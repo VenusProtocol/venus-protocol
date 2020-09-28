@@ -1,0 +1,119 @@
+-- Auto-generated tests from Excel
+
+Test "Excel Scenario 1 https://docs.google.com/spreadsheets/d/14kRju5M3t0wL-OPSNPV-j1raXgArb0IdsL7hMqKQuyI/edit#gid=1178589286"
+	-- Excel Base Setup
+	SetOriginationFee "0"
+	SetCollateralRatio "1.1"
+	AddToken BNB
+	SupportMarket BNB (FixedPrice 1.0) WhitepaperRate SimplePolicyHook
+	AddToken OMG
+	SupportMarket OMG (FixedPrice 0.05) WhitepaperRate SimplePolicyHook
+	Approve Bank BNB "1e30"
+	Approve Bank OMG "1e30"
+	Approve Geoff BNB "1e30"
+	Approve Geoff OMG "1e30"
+	Approve Torrey BNB "1e30"
+	Approve Torrey OMG "1e30"
+	Approve Robert BNB "1e30"
+	Approve Robert OMG "1e30"
+	Faucet Bank BNB "1e30"
+	Faucet Bank OMG "1e30"
+	Faucet Geoff BNB "1e30"
+	Faucet Geoff OMG "1e30"
+	Faucet Torrey BNB "1e30"
+	Faucet Torrey OMG "1e30"
+	Faucet Robert BNB "1e30"
+	Faucet Robert OMG "1e30"
+	--
+	-- Scenario 1
+	Supply Bank BNB "1000.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Bank BNB) (Precisely "1000.00000000e18")
+	Supply Bank OMG "3000.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Bank OMG) (Precisely "3000.00000000e18")
+	FastForward 20 Blocks
+	Supply Geoff BNB "200.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Geoff BNB) (Precisely "200.00000000e18")
+	FastForward 10 Blocks
+	EnterMarkets Geoff OMG
+	Borrow Geoff OMG "2500.00000000e18"
+	Assert Success
+	Assert Equal (BorrowBalance Geoff OMG) (Precisely "2500.00000000e18")
+	FastForward 10 Blocks
+	Supply Torrey OMG "2500.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Torrey OMG) (Precisely "2500.00000000e18")
+	FastForward 10 Blocks
+	EnterMarkets Torrey BNB
+	Borrow Torrey BNB "97.00000000e18"
+	Assert Success
+	Assert Equal (BorrowBalance Torrey BNB) (Precisely "97.00000000e18")
+	FastForward 10 Blocks
+	Withdraw Bank BNB "780.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Bank BNB) (Precisely "220.00002988e18")
+	FastForward 10 Blocks
+	Withdraw Bank OMG "2000.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Bank OMG) (Precisely "1000.00900609e18")
+	FastForward 10 Blocks
+	Supply Robert OMG "5000.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Robert OMG) (Precisely "5000.00000000e18")
+	FastForward 10 Blocks
+	EnterMarkets Robert BNB
+	Borrow Robert BNB "115.00000000e18"
+	Assert Success
+	Assert Equal (BorrowBalance Robert BNB) (Precisely "115.00000000e18")
+	FastForward 10 Blocks
+	PayBorrow Geoff OMG "2000.00000000e18"
+	Assert Success
+	Assert Equal (BorrowBalance Geoff OMG) (Precisely "500.02288785e18")
+	FastForward 10 Blocks
+	Withdraw Geoff BNB "30.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Geoff BNB) (Precisely "170.00033682e18")
+	FastForward 40 Blocks
+	Withdraw Robert OMG "1000.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Robert OMG) (Precisely "4000.00277737e18")
+
+Test "Excel Scenario 2 https://docs.google.com/spreadsheets/d/14kRju5M3t0wL-OPSNPV-j1raXgArb0IdsL7hMqKQuyI/edit#gid=585013245"
+	-- Excel Base Setup
+	SetOriginationFee "0"
+	SetCollateralRatio "1.1"
+	AddToken BNB
+	SupportMarket BNB (FixedPrice 1.0) WhitepaperRate SimplePolicyHook
+	AddToken OMG
+	SupportMarket OMG (FixedPrice 0.05) WhitepaperRate SimplePolicyHook
+	Approve Bank BNB "1e30"
+	Approve Bank OMG "1e30"
+	Approve Geoff BNB "1e30"
+	Approve Geoff OMG "1e30"
+	Approve Torrey BNB "1e30"
+	Approve Torrey OMG "1e30"
+	Approve Robert BNB "1e30"
+	Approve Robert OMG "1e30"
+	Faucet Bank BNB "1e30"
+	Faucet Bank OMG "1e30"
+	Faucet Geoff BNB "1e30"
+	Faucet Geoff OMG "1e30"
+	Faucet Torrey BNB "1e30"
+	Faucet Torrey OMG "1e30"
+	Faucet Robert BNB "1e30"
+	Faucet Robert OMG "1e30"
+	--
+	-- Scenario 2
+	Supply Geoff BNB "1000.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Geoff BNB) (Precisely "1000.00000000e18")
+	EnterMarkets Geoff BNB
+	Borrow Geoff BNB "310.00000000e18"
+	Assert Success
+	Assert Equal (BorrowBalance Geoff BNB) (Precisely "310.00000000e18")
+	FastForward 40 Blocks
+	Supply Geoff BNB "0.00000000e18"
+	Assert Success
+	Assert Equal (SupplyBalance Geoff BNB) (Precisely "1000.00100590e18")

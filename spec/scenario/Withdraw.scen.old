@@ -1,0 +1,48 @@
+-- Withdraw Tests
+
+Test "Supply BNB 5 then Withdraw MAX in the same block"
+	AddToken BNB -- baseline sanity check for withdraw max
+	SupportMarket BNB (FixedPrice 1.0) (FixedRate 0.5 0.75) SimplePolicyHook
+	Approve Geoff BNB "6.0e18"
+	Faucet Geoff BNB "6.0e18"
+	Supply Geoff BNB "5.0e18"
+	Assert Success
+	Assert Equal (SupplyBalance Geoff BNB) (Exactly "5.0e18")
+	Assert Equal (BorrowBalance Geoff BNB) (Exactly "0e18")
+	Assert Equal (MaxBorrow Geoff) (Exactly "2.5e18")
+	Withdraw Geoff BNB "MAX"
+	Assert Success
+	Assert Equal (SupplyBalance Geoff BNB) (Exactly "0.0e18")
+	Assert Equal (TokenBalance Geoff BNB) (Exactly "6e18")
+
+Test "Supply BNB 5 then Withdraw MAX (6) after accruing some interest"
+	AddToken BNB
+	SupportMarket BNB (FixedPrice 1.0) (FixedRate 0.5 0.75) SimplePolicyHook
+	Approve Geoff BNB "6.0e18"
+	Faucet Geoff BNB "6.0e18"
+	Supply Geoff BNB "5.0e18" -- We need more BNB in the system to simulate protocol gaining borrow interest to pay Geoff
+	Approve Torrey BNB "10.0e18"
+	Faucet Torrey BNB "10.0e18"
+	Supply Torrey BNB "10.0e18"
+	Assert Success
+	Assert Equal (SupplyBalance Geoff BNB) (Exactly "5.0e18")
+	FastForward 2 Blocks
+	Assert Equal (SupplyBalance Geoff BNB) (Exactly "10.0e18")
+	Withdraw Geoff BNB "MAX"
+	Assert Success
+	Assert Equal (SupplyBalance Geoff BNB) (Exactly "0.0e18")
+	Assert Equal (TokenBalance Geoff BNB) (Exactly "11e18")
+
+Test "Withdraw BNB 1 when contract paused"
+	AddToken BNB
+	SupportMarket BNB (FixedPrice 1.0) (FixedRate 0.5 0.75) SimplePolicyHook
+	Approve Geoff BNB "1.0e18"
+	Faucet Geoff BNB "1.0e18"
+	Supply Geoff BNB "1.0e18"
+	Assert Success
+	Assert Equal (SupplyBalance Geoff BNB) (Exactly "1.0e18")
+	PolicyHook BNB (SetPaused True)
+	Withdraw Geoff BNB "1.0e18"
+	Assert Failure COMPTROLLER_REJECTION WITHDRAW_COMPTROLLER_REJECTION 1
+	Assert Equal (SupplyBalance Geoff BNB) (Exactly "1e18")
+	Assert Equal (TokenBalance Geoff BNB) (Exactly "0e18")

@@ -1,0 +1,73 @@
+
+Test "Initial Exchange Rate"
+    NewComptroller
+    NewVToken ZRX vZRX initialExchangeRate:2e9
+    Assert Equal (VToken vZRX ExchangeRateStored) (Exp 2e9)
+
+Test "Initial Exchange Rate with Mint"
+    NewComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:5e9
+    -- Check initial exchange holds
+    Invariant Remains (VToken vZRX ExchangeRateStored) (Exp 5e9)
+    -- Mint some tokens and verify invariant still holds
+    Prep Geoff Some ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    -- Also, verify token was minted at given exchange rate
+    Assert Equal (Bep20 vZRX TotalSupply) (Exactly 10e9)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 10e9)
+    -- Let's mint again and verify it's still good.
+    Prep Torrey Some ZRX vZRX
+    Mint Torrey 50e18 vZRX
+    -- Also, verify token was minted at given exchange rate
+    Assert Equal (Bep20 vZRX TotalSupply) (Exactly 20e9)
+    Assert Equal (Bep20 vZRX TokenBalance Torrey) (Exactly 10e9)
+
+Test "ZRX: Exch. Rate:2e9, Cash(51e18) + Borrows(2.0e18) - Reserves(0.5e18) / Tokens(2.5e10)"
+    NewComptroller
+    -- Decimals You=18, Decimals Us=8 -> 2e9 Exchange Rate
+    ListedVToken ZRX vZRX initialExchangeRate:2e9 decimals:8
+    Assert Equal (VToken vZRX ExchangeRateStored) (Exp 2e9)
+    -- Mint 50.0 ZRX at given exchange rate
+    Prep Geoff Some ZRX vZRX
+    Assert Equal (Bep20 vZRX TotalSupply) Zero
+    Mint Geoff 50e18 vZRX
+    -- 50e18 / 2e9 = 2.5e10
+    Assert Equal (Bep20 vZRX TotalSupply) (Exactly 2.5e10)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 2.5e10)
+    -- Set cash
+    Bep20 ZRX Faucet vZRX 1.0e18
+    Assert Equal (Bep20 ZRX TokenBalance vZRX) (Exactly 51.0e18)
+    -- Mock total borrows
+    VToken vZRX Mock totalBorrows 2.0e18
+    Assert Equal (VToken vZRX TotalBorrows) (Exactly 2.0e18)
+    -- Mock total reserves
+    VToken vZRX Mock totalReserves 0.5e18
+    Assert Equal (VToken vZRX Reserves) (Exactly 0.5e18)
+    -- Okay, we're all set, let's check the exchange rate
+    -- (51+2-0.5)e18/2.5e10 = 52.5e18/2.5e10 = 21e8 -> 21e26 (Exp)
+    Assert Equal (VToken vZRX ExchangeRateStored) (Exp 2.1e9)
+
+Test "USDC: Exch. Rate:2e-3, Cash(51e18) + Borrows(2.0e18) - Reserves(0.5e18) / Tokens(2.5e10)"
+    NewComptroller
+    -- Decimals You=6, Decimals Us=8 -> 2e-3 Exchange Rate
+    ListedVToken USDC vUSDC initialExchangeRate:2e-3 decimals:8
+    Assert Equal (VToken vUSDC ExchangeRateStored) (Exp 2e-3)
+    -- Mint 50.0 USDC at given exchange rate
+    Prep Geoff Little USDC vUSDC
+    Assert Equal (Bep20 vUSDC TotalSupply) (Exactly 0.0)
+    Mint Geoff 50e6 vUSDC
+    -- 5.0e7 / 2e-3 = 2.5e10
+    Assert Equal (Bep20 vUSDC TotalSupply) (Exactly 2.5e10)
+    Assert Equal (Bep20 vUSDC TokenBalance Geoff) (Exactly 2.5e10)
+    -- Set cash
+    Bep20 USDC Faucet vUSDC 2.0e6
+    Assert Equal (Bep20 USDC TokenBalance vUSDC) (Exactly 52.0e6)
+    -- Mock total borrows
+    VToken vUSDC Mock totalBorrows 5.0e6
+    Assert Equal (VToken vUSDC TotalBorrows) (Exactly 5.0e6)
+    -- Mock total reserves
+    VToken vUSDC Mock totalReserves 1.5e6
+    Assert Equal (VToken vUSDC Reserves) (Exactly 1.5e6)
+    -- Okay, we're all set, let's check the exchange rate
+    -- (52+5-1.5)e6/2.5e10 = 55.5e6/2.5e10 = 2.22e-3 -> 2.22e15 (Exp)
+    Assert Equal (VToken vUSDC ExchangeRateStored) (Exp 2.22e-3)

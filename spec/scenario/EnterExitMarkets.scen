@@ -1,0 +1,151 @@
+-- Enter and Exit Markets Tests
+
+Test "Enter Markets Idempotent"
+	NewComptroller
+	Assert Equal (Comptroller MembershipLength Geoff) Zero
+	Assert Equal (Comptroller AssetsIn Geoff) []
+	ListedVToken ZRX vZRX
+	EnterMarkets Geoff vZRX
+	Assert Log MarketEntered (vToken (Address vZRX)) (account (Address Geoff))
+	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 1)
+	Assert True (Comptroller CheckMembership Geoff vZRX)
+	ListedVToken OMG vOMG
+	EnterMarkets Geoff vZRX vOMG
+	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 2)
+	Assert True (Comptroller CheckMembership Geoff vZRX)
+	Assert True (Comptroller CheckMembership Geoff vOMG)
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vZRX) (Address vOMG)]
+
+Test "Entered Market Must Be Supported"
+	NewComptroller
+	Assert Equal (Comptroller MembershipLength Geoff) Zero
+	ListedVToken ZRX vZRX
+	EnterMarkets Geoff vZRX
+	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 1)
+	NewVToken OMG vOMG
+	EnterMarkets Geoff vZRX vOMG
+	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 1)
+	Assert True (Comptroller CheckMembership Geoff vZRX)
+	Assert False (Comptroller CheckMembership Geoff vOMG)
+	Support vOMG
+	EnterMarkets Geoff vZRX vOMG
+	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 2)
+	Assert True (Comptroller CheckMembership Geoff vZRX)
+	Assert True (Comptroller CheckMembership Geoff vOMG)
+
+Test "Cannot enter Markets beyond max assets"
+	NewComptroller
+	Comptroller SetMaxAssets 1
+	Assert Equal (Comptroller MembershipLength Geoff) Zero
+	ListedVToken ZRX vZRX
+	ListedVToken OMG vOMG
+	EnterMarkets Geoff vZRX vOMG
+	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 1)
+	Assert True (Comptroller CheckMembership Geoff vZRX)
+	Assert False (Comptroller CheckMembership Geoff vOMG)
+
+Test "Exit single market"
+	NewComptroller
+	ListedVToken ZRX vZRX
+	EnterMarkets Geoff vZRX
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vZRX)]
+	ExitMarket Geoff vZRX
+	Assert Equal (Comptroller AssetsIn Geoff) []
+
+Test "Exit non-entered market"
+	NewComptroller
+	ListedVToken ZRX vZRX
+	ExitMarket Geoff vZRX
+	Assert Equal (Comptroller AssetsIn Geoff) []
+
+Test "Exit one of two market from the front"
+	NewComptroller
+	ListedVToken ZRX vZRX
+	ListedVToken OMG vOMG
+	EnterMarkets Geoff vZRX vOMG
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vZRX) (Address vOMG)]
+	ExitMarket Geoff vZRX
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vOMG)]
+
+Test "Exit one of two market from the back"
+	NewComptroller
+	ListedVToken ZRX vZRX
+	ListedVToken OMG vOMG
+	EnterMarkets Geoff vZRX vOMG
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vZRX) (Address vOMG)]
+	ExitMarket Geoff vOMG
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vZRX)]
+
+Test "Exit multiple markets"
+	NewComptroller
+	ListedVToken ZRX vZRX
+	ListedVToken OMG vOMG
+	ListedVToken BAT vBAT
+	ListedVToken REP vREP
+	ListedVToken DAI vDAI
+	EnterMarkets Geoff vZRX vOMG vBAT vREP vDAI
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vZRX) (Address vOMG) (Address vBAT) (Address vREP) (Address vDAI)]
+	ExitMarket Geoff vZRX
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vDAI) (Address vOMG) (Address vBAT) (Address vREP)]
+	ExitMarket Geoff vREP
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vDAI) (Address vOMG) (Address vBAT)]
+	ExitMarket Geoff vOMG
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vDAI) (Address vBAT)]
+	ExitMarket Geoff vDAI
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vBAT)]
+	ExitMarket Geoff vBAT
+	Assert Equal (Comptroller AssetsIn Geoff) []
+
+Test "Realistic Market Scenario"
+	PricedComptroller
+	ListedVToken ZRX vZRX
+	SetPriceCF vZRX 0.002 0.4
+	ListedBNBToken vBNB
+	Comptroller SetCollateralFactor vBnb 0.8
+	ListedVToken BAT vBAT
+	SetPriceCF vBAT 0.0015 0.3
+	-- Mint some vZRX and vBNB
+	Prep Geoff 1250e18 ZRX vZRX
+	Mint Geoff 1250e18 vZRX -- Liquidity -> 0.4 * 0.002 * 1250e18 = 1.0e18
+	SendMintBnb Geoff 2.5e18 vBNB -- Liqiuidity -> 0.8 * 1.0 * 2.5e18 = 2.0e18
+	-- Check liquidity is zero when not in any markets
+	Assert Equal (Comptroller Liquidity Geoff) Zero
+	-- Enter ZRX and check liquidity
+	EnterMarkets Geoff vZRX
+	Assert Equal (Comptroller Liquidity Geoff) 1.0e18
+	-- Fail to borrow BAT due to liquidity
+	Give vBAT 1000e18 BAT
+	HoldInvariants
+	Borrow Geoff 1000e18 vBAT -- 1000e18 * 0.0015 = 1.5e18 required liquidity
+							  -- But since we're only in ZRX, we only have 1.0e18 liquidity
+	Assert Failure COMPTROLLER_REJECTION BORROW_COMPTROLLER_REJECTION INSUFFICIENT_LIQUIDITY
+	-- Enter vBNB and check liquidity
+	EnterMarkets Geoff vBNB
+	Assert Equal (Comptroller Liquidity Geoff) 3.0e18 -- Sum of vBNB and vZRX liquidity from above
+	-- Borrow previous BAT amount given liquidity
+	Borrow Geoff 1000e18 vBAT
+	Assert Equal (Comptroller Liquidity Geoff) 1.5e18 -- Less the borrow amount's toll
+	-- Try to exit a bnb market but fail due to given borrow requiring bnb as collateral
+	HoldInvariants
+	ExitMarket Geoff vBNB
+	Assert Failure REJECTION EXIT_MARKET_REJECTION INSUFFICIENT_LIQUIDITY -- Liquidity check fails
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vZRX) (Address vBAT) (Address vBNB)]
+	-- Repay some borrow and exit market OMG
+	Allow Geoff vBAT
+	RepayBorrow Geoff 500e18 vBAT
+	Assert Equal (Comptroller Liquidity Geoff) 2.25e18 -- With 0.75e18 repaid
+	ExitMarket Geoff vBNB
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vZRX) (Address vBAT)]
+	Assert Equal (Comptroller Liquidity Geoff) 0.25e18 -- Less Bnb's 2.0e18 collateral weight
+	-- Try and exit vBAT (firist without, then after, repaying)
+	HoldInvariants
+	ExitMarket Geoff vBAT
+	Assert Failure NONZERO_BORROW_BALANCE EXIT_MARKET_BALANCE_OWED
+	RepayBorrow Geoff UInt256Max vBAT
+	ExitMarket Geoff vBAT
+	Assert Equal (Comptroller AssetsIn Geoff) [(Address vZRX)]
+	Assert Equal (Comptroller Liquidity Geoff) 1.0e18 -- Back to just vZRX
+	-- Exit vZRX
+	ExitMarket Geoff vZRX
+	Assert Equal (Comptroller AssetsIn Geoff) []
+	Assert Equal (Comptroller Liquidity Geoff) 0e18 -- Back to nothing

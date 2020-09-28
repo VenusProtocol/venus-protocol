@@ -1,0 +1,133 @@
+Test "Add all reserves and verify effects"
+    NewComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff 50e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 500e8) -- 50e18 / 1e9
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) (Exactly 50e18)
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1e9)
+    -- Get some brah to borrow then repay
+    BorrowAndRepayWithInterest ZRX vZRX 10e18 5e18 interestRate:0.000001 blocks:500000 reserveRate:0.2
+    -- We've accrued .0001% interest for 500000 blocks, or 50% of the principal (10e18),
+    --   thus, we should have accrued 5e18 of interest for the protocol
+    --   The reserves should get 20% of this, or 1e18, and the rest
+    --   is due pro-rata to all suppliers. We just have one, so
+    --   let's check that account is given correct new balance.
+    Assert Equal (Bep20 ZRX TokenBalance vZRX) (Exactly 55e18)
+    Assert Equal (Bep20 ZRX TokenBalance Root) (Exactly 0e18)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 500e8)
+    Assert Equal (VToken vZRX Reserves) (Exactly 1e18)
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) (Exactly 54e18)
+    -- (55.0e18+0.0e18-1.0e18)/500.0e8
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1.08e9)
+    -- Now, let's pull out add some our reserves (1e18)
+    Bep20 ZRX Faucet Root 3e18
+    From Root (Bep20 ZRX Approve vZRX 6e18)
+    AddReserves 1e18 vZRX
+    Assert Equal (Bep20 ZRX TokenBalance vZRX) (Exactly 56e18)
+    Assert Equal (Bep20 ZRX TokenBalance Root) (Exactly 2e18)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 500e8)
+    Assert Equal (VToken vZRX Reserves) (Exactly 2e18)
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) (Exactly 54e18)
+    -- (54.0e18+0.0e18-0.0e18)/500.0e8
+    -- unchanged
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1.08e9)
+
+Test "Remove and re add reserves and remove again"
+    NewComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff 50e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 500e8)
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) (Exactly 50e18)
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1e9)
+    -- Get some brah to borrow then repay
+    BorrowAndRepayWithInterest ZRX vZRX 10e18 5e18 interestRate:0.000001 blocks:500000 reserveRate:0.2
+    -- We've accrued .0001% interest for 500000 blocks, or 50% of the principal (10e18),
+    --   thus, we should have accrued 5e18 of interest for the protocol
+    --   The reserves should get 20% of this, or 1e18, and the rest
+    --   is due pro-rata to all suppliers. We just have one, so
+    --   let's check that account is given correct new balance.
+    Assert Equal (Bep20 ZRX TokenBalance vZRX) (Exactly 55e18)
+    Assert Equal (Bep20 ZRX TokenBalance Root) (Exactly 0e18)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 500e8)
+    Assert Equal (VToken vZRX Reserves) (Exactly 1e18)
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) (Exactly 54e18)
+    -- (55.0e18+0.0e18-1.0e18)/500.0e8
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1.08e9)
+    -- Now, let's pull out half of reserves (0.5e18)
+    ReduceReserves 0.5e18 vZRX
+    Assert Equal (Bep20 ZRX TokenBalance vZRX) (Exactly 54.5e18)
+    Assert Equal (Bep20 ZRX TokenBalance Root) (Exactly 0.5e18)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 500e8)
+    Assert Equal (VToken vZRX Reserves) (Exactly 0.5e18)
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) (Exactly 54e18)
+    -- (54.5e18+0.5e18-0.0e18)/500.0e8
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1.08e9)
+    -- Now, let's put back reserves (1e18)
+    From Root (Bep20 ZRX Approve vZRX 6e18)
+    AddReserves 0.5e18 vZRX
+    Assert Equal (Bep20 ZRX TokenBalance vZRX) (Exactly 55e18)
+    Assert Equal (Bep20 ZRX TokenBalance Root) (Exactly 0e18)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 500e8)
+    Assert Equal (VToken vZRX Reserves) (Exactly 1e18)
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) (Exactly 54e18)
+    -- (54.5e18+0.5e18-0.0e18)/500.0e8
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1.08e9)
+
+Test "add reserves to empty contract"
+    NewComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1e9)
+    Bep20 ZRX Faucet Root 3e18
+    From Root (Bep20 ZRX Approve vZRX 6e18)
+    AddReserves 2e18 vZRX
+    Assert Equal (Bep20 ZRX TokenBalance vZRX) (Exactly 2e18)
+    Assert Equal (Bep20 ZRX TokenBalance Root) (Exactly 1e18)
+    Assert Equal (VToken vZRX Reserves) (Exactly 2e18)
+    -- unchanged
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1e9)
+
+Test "add reserves failures"
+    NewComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1e9)
+    Assert Equal (VToken vZRX Reserves) (Exactly 0e18)
+    Bep20 ZRX Faucet Root 2e18
+    AllowFailures
+    AddReserves 2e18 vZRX
+    Assert Revert "revert Insufficient allowance"
+    Assert Equal (Bep20 ZRX TokenBalance vZRX) (Exactly 0e18)
+    Assert Equal (Bep20 ZRX TokenBalance Root) (Exactly 2e18)
+    Assert Equal (VToken vZRX Reserves) (Exactly 0e18)
+    -- unchanged
+    Assert Equal (VToken vZRX ExchangeRate) (Exactly 1e9)
+
+Test "Add reserves WBTC when paused"
+    NewComptroller
+    ListedVToken WBTC vWBTC initialExchangeRate:1e9 tokenType:WBTC
+    Prep Geoff 50e18 WBTC vWBTC
+    Mint Geoff 50e18 vWBTC
+    Assert Equal (Bep20 vWBTC TokenBalance Geoff) (Exactly 500e8)
+    Assert Equal (VToken vWBTC UnderlyingBalance Geoff) (Exactly 50e18)
+    Assert Equal (VToken vWBTC ExchangeRate) (Exactly 1e9)
+    -- Get some brah to borrow then repay
+    BorrowAndRepayWithInterest WBTC vWBTC 10e18 5e18 interestRate:0.000001 blocks:500000 reserveRate:0.2
+    -- We've accrued .0001% interest for 500000 blocks, or 50% of the principal (10e18),
+    --   thus, we should have accrued 5e18 of interest for the protocol
+    --   The reserves should get 20% of this, or 1e18, and the rest
+    --   is due pro-rata to all suppliers. We just have one, so
+    --   let's check that account is given correct new balance.
+    Bep20 WBTC Faucet Root 3e18
+    Invariant Remains (Bep20 WBTC TokenBalance vWBTC) (Exactly 55e18)
+    Invariant Remains (Bep20 WBTC TokenBalance Root) (Exactly 3e18)
+    Invariant Remains (Bep20 vWBTC TokenBalance Geoff) (Exactly 500e8)
+    Invariant Remains (VToken vWBTC Reserves) (Exactly 1e18)
+    Invariant Remains (VToken vWBTC UnderlyingBalance Geoff) (Exactly 54e18)
+    -- (55.0e18+0.0e18-1.0e18)/500.0e8
+    Invariant Remains (VToken vWBTC ExchangeRate) (Exactly 1.08e9)
+    From Root (Bep20 WBTC Approve vWBTC 6e18)
+    Bep20 WBTC Pause
+    AllowFailures
+    AddReserves 1e18 vWBTC
+    Assert Revert

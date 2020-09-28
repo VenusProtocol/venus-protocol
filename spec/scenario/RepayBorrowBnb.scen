@@ -1,0 +1,206 @@
+-- Tests for repaying borrows
+
+Macro SetupBorrow borrowRate
+    NewComptroller price:1.0 -- TODO: This should really be a price for a specific asset
+    ListedVToken ZRX vZRX borrowRate
+    ListedBNBToken vBNB borrowRate 0.005e9
+    SetCollateralFactor vZRX collateralFactor:0.5
+    SetCollateralFactor vBNB collateralFactor:0.5
+    Donate vBNB 0.003e18
+    Prep Geoff Some ZRX vZRX
+    Mint Geoff 100e18 vZRX
+    EnterMarkets Geoff vZRX vBNB
+
+Macro NewBorrowBnb borrowAmount borrowRate
+    SetupBorrow borrowRate
+    Borrow Geoff borrowAmount vBNB
+
+Test "Borrow, hold a few blocks, and repay part"
+    NewBorrowBnb borrowAmount:0.001e18 borrowRate:0.000005
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.001e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.001e18
+    -- Now let's add some blocks and see what happs
+    FastForward 300000 Blocks -- 0.001e18 * (1 + 300000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
+    -- Now let's repay one full token
+    Expect Changes (BNBBalance Geoff) -0.001e18
+    Expect Changes (BNBBalance vBNB) +0.001e18
+    RepayBorrowBnb Geoff 0.001e18 vBNB
+    ---- Let's check the overall numbers
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0015e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.0015e18
+    FastForward 200000 Blocks -- 0.0015e18 * (1 + 2000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.003e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.003e18
+
+Test "Borrow, hold a few blocks, and repay part via maximillion"
+    NewBorrowBnb borrowAmount:0.001e18 borrowRate:0.000005
+    Maximillion Deploy vBNB
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.001e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.001e18
+    -- Now let's add some blocks and see what happs
+    FastForward 300000 Blocks -- 0.001e18 * (1 + 300000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
+    -- Now let's repay one full token
+    Expect Changes (BNBBalance Geoff) -0.001e18
+    Expect Changes (BNBBalance vBNB) +0.001e18
+    RepayBorrowBnbMax Geoff 0.001e18 vBNB
+    ---- Let's check the overall numbers
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0015e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.0015e18
+    FastForward 200000 Blocks -- 0.0015e18 * (1 + 200000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.003e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.003e18
+
+Test "Don't borrow and then do repay"
+    SetupBorrow borrowRate:0.000005
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) Zero
+    -- Now let's add some blocks and see what happs
+    FastForward 300000 Blocks -- 0 * (1 + 300000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    -- Now let's repay one full token
+    Expect Changes (BNBBalance Geoff) Zero
+    Expect Changes (BNBBalance vBNB) Zero
+    RepayBorrowBnb Geoff 0 vBNB
+    ---- Let's check the overall numbers
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) Zero
+
+Test "Don't borrow and repay part via maximillion"
+    SetupBorrow borrowRate:0.000005
+    Maximillion Deploy vBNB
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) Zero
+    -- Now let's add some blocks and see what happs
+    FastForward 300000 Blocks -- 0 * (1 + 300000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    -- Now let's repay one full token
+    Expect Changes (BNBBalance Geoff) Zero
+    Expect Changes (BNBBalance vBNB) Zero
+    RepayBorrowBnbMax Geoff 0.001e18 vBNB
+    ---- Let's check the overall numbers
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) Zero
+
+Test "Borrow, hold a few blocks, and repay full"
+    NewBorrowBnb borrowAmount:0.001e18 borrowRate:0.000005
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.001e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.001e18
+    -- Now let's add some blocks and see what happs
+    FastForward 300000 Blocks -- 0.001e18 * (1 + 300000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
+    -- Now let's repay fully
+    Expect Changes (BNBBalance Geoff) -0.0025e18
+    Expect Changes (BNBBalance vBNB) +0.0025e18
+    RepayBorrowBnb Geoff 0.0025e18 vBNB
+    -- Let's check the overall numbers
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) Zero
+    FastForward 200000 Blocks -- 0e18 * (1 + 200000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) Zero
+
+Test "Borrow, hold a few blocks, and repay full via maximillion"
+    NewBorrowBnb borrowAmount:0.001e18 borrowRate:0.000005
+    Maximillion Deploy vBNB
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.001e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.001e18
+    -- Now let's add some blocks and see what happs
+    FastForward 300000 Blocks -- 0.001e18 * (1 + 300000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
+    -- Now let's repay fully
+    Expect Changes (BNBBalance Geoff) -0.0025e18
+    Expect Changes (BNBBalance vBNB) +0.0025e18
+    RepayBorrowBnbMax Geoff 0.0025e18 vBNB
+    -- Let's check the overall numbers
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) Zero
+    FastForward 200000 Blocks -- 0e18 * (1 + 200000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) Zero
+
+Test "Borrow, hold a few blocks, and repay too much"
+    NewBorrowBnb borrowAmount:0.001e18 borrowRate:0.000005
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.001e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.001e18
+    -- Now let's add some blocks and see what happs
+    FastForward 300000 Blocks -- 0.001e18 * (1 + 300000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
+    -- Now let's repay fully
+    Expect Changes (BNBBalance Geoff) Zero
+    Expect Changes (BNBBalance vBNB) Zero
+    -- TODO: This currently drains the sent-bnb
+    AllowFailures
+    RepayBorrowBnb Geoff 1.0e18 vBNB
+    Assert Revert "revert REPAY_BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED"
+    -- Let's check the overall numbers
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.0025e18
+
+Test "Borrow, hold a few blocks, and repay too much via maximillion"
+    NewBorrowBnb borrowAmount:0.001e18 borrowRate:0.000005
+    Maximillion Deploy vBNB
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.001e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.001e18
+    -- Now let's add some blocks and see what happs
+    FastForward 300000 Blocks -- 0.001e18 * (1 + 300000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
+    -- Now let's repay fully
+    Expect Changes (BNBBalance Geoff) -0.0025e18
+    Expect Changes (BNBBalance vBNB) +0.0025e18
+    RepayBorrowBnbMax Geoff 1.0e18 vBNB
+    -- Let's check the overall numbers
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) Zero
+    FastForward 200000 Blocks -- 0e18 * (1 + 200000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) Zero
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) Zero
+
+Test "Borrow, and get a negative total cash situation"
+    NewBorrowBnb borrowAmount:0.001e18 borrowRate:0.000005
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.001e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.001e18
+    -- Let's zoom way forward into the future
+    FastForward 9800000 Blocks -- 0.001e18 * (1 + 9800000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.05e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.05e18
+    -- Now let's repay one bit
+    RepayBorrowBnb Geoff 0.001e18 vBNB
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.049e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.049e18
+
+Test "Borrow, hold a few blocks, and repay behalf part"
+    NewBorrowBnb borrowAmount:0.001e18 borrowRate:0.000005
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.001e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.001e18
+    -- Now let's add some blocks and see what happs
+    FastForward 300000 Blocks -- 0.001e18 * (1 + 300000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
+    -- Now let's repay one full token from another user
+    RepayBorrowBnbBehalf Torrey Geoff 0.001e18 vBNB
+    Assert Equal (VToken vBNB BorrowBalance Torrey) Zero
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0015e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.0015e18
+    FastForward 200000 Blocks -- 0.0015e18 * (1 + 200000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Torrey) Zero
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.003e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.003e18
+
+Test "Prohibit repay by comptroller hook"
+    NewBorrowBnb borrowAmount:0.001e18 borrowRate:0.000005
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.001e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.001e18
+    -- Now let's add some blocks and see what happs
+    FastForward 300000 Blocks -- 0.001e18 * (1 + 300000 * 0.000005)
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
+    -- Now let's repay one full token
+    Expect Changes (BNBBalance Geoff) Zero
+    Expect Changes (BNBBalance vBNB) Zero
+    Comptroller UnList vBNB -- Mock unlist vBNB
+    AllowFailures
+    RepayBorrowBnb Geoff 0.001e18 vBNB
+    Assert RevertFailure COMPTROLLER_REJECTION "revert repayBorrow failed"
+    ---- Let's check the overall numbers
+    Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
+    Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.0025e18

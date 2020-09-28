@@ -1,0 +1,217 @@
+-- NewComptroller, but with markets listed so that we can make them venus markets in constructor
+Macro FlywheelComptroller price=1.0 borrowRate=0.000005 compInitAmount=5000000e18
+    Unitroller Deploy
+    PriceOracle Deploy Fixed price
+    PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero)
+    ComptrollerImpl Deploy Scenario ComptrollerScen
+    Unitroller SetPendingImpl ComptrollerScen
+    ComptrollerImpl ComptrollerScen Become
+    Comptroller SetPriceOracle (PriceOracleProxy Address)
+    Comptroller SetMaxAssets 20
+    Comptroller SetCloseFactor 0.5
+    Comptroller LiquidationIncentive 1.1
+    Comptroller SetVenusRate 1e18
+    NewVToken ZRX vZRX
+    NewVToken BAT vBAT
+    Support vZRX collateralFactor:0.5
+    Support vBAT collateralFactor:0.5
+    Comptroller AddVenusMarkets (vZRX vBAT)
+    Bep20 Deploy Standard XVS "XVS Token" 18
+    Give (Address Comptroller) compInitAmount XVS
+    Comptroller Send "setCompAddress(address)" (Address XVS)
+
+Macro InitSpeeds
+    Prep Geoff 100e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX--tokenbalance = 50e18 / 2e9 = 2.5e10
+    Prep Coburn Some BAT vBAT
+    Mint Coburn 6e18 vBAT--tokenbalance = 6e18 / 2e9 = 3e9
+    EnterMarkets Coburn vBAT
+    Borrow Coburn 1e18 vZRX
+    Comptroller RefreshVenusSpeeds
+
+Test "Accrue XVS during a mint"
+    FlywheelComptroller
+    InitSpeeds
+    FastForward 300000 Blocks
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Mint Geoff 1e18 vZRX
+    -- new index = initVal + deltaBlocks * supplySpeed * 1e36 / totalSupply
+    -- new index = 1e36 + 300000 * 1e18 * 1e36 / 2.5e10 = 1.2000000000001e49
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Assert Equal (Comptroller VenusSupplyState vZRX "index") 1.2000000000001e49
+    Assert Equal (Comptroller VenusSupplyState vZRX "block") 300000
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 300000e18
+    Assert Equal (Comptroller VenusSupplierIndex vZRX Geoff) 1.2000000000001e49
+
+Test "Accrue XVS during a borrow"
+    FlywheelComptroller
+    InitSpeeds
+    Comptroller FastForward 300000 Blocks
+    Assert Equal (Comptroller VenusAccrued Coburn) 0
+    Borrow Coburn 0.1e18 vZRX
+    -- new index = initVal + deltaBlocks * borrowSpeed * 1e36 / totalBorrows
+    -- new index = 1e36 + 300000 * 1e18 * 1e36 / 1e18 =  3.00001e41
+    Assert Equal (Comptroller VenusAccrued Coburn) 0
+    Assert Equal (Comptroller VenusBorrowState vZRX "index") 3.00001e41
+    Assert Equal (Comptroller VenusBorrowState vZRX "block") 300000
+    Assert Equal (Bep20 XVS TokenBalance Coburn) 300000e18
+    Assert Equal (Comptroller VenusBorrowerIndex vZRX Coburn) 3.00001e41
+
+Test "Accrue XVS during a redeem"
+    FlywheelComptroller
+    InitSpeeds
+    FastForward 300000 Blocks
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Redeem Geoff 1e9 vZRX
+    -- new index = initVal + deltaBlocks * supplySpeed * 1e36 / totalSupply
+    -- new index = 1e36 + 300000 * 1e18 * 1e36 / 2.5e10 = 1.2000000000001e49
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Assert Equal (Comptroller VenusSupplyState vZRX "index") 1.2000000000001e49
+    Assert Equal (Comptroller VenusSupplyState vZRX "block") 300000
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 300000e18
+    Assert Equal (Comptroller VenusSupplierIndex vZRX Geoff) 1.2000000000001e49
+
+Test "Accrue XVS during a repayBorrow"
+    FlywheelComptroller
+    InitSpeeds
+    FastForward 300000 Blocks
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Prep Coburn 0.5e18 ZRX vZRX
+    RepayBorrow Coburn 0.5e18 vZRX
+    -- new index = initVal + deltaBlocks * borrowSpeed * 1e36 / totalBorrows
+    -- new index = 1e36 + 300000 * 1e18 * 1e36 / 1e18 =  3.00001e41
+    Assert Equal (Comptroller VenusAccrued Coburn) 0
+    Assert Equal (Comptroller VenusBorrowState vZRX "index") 3.00001e41
+    Assert Equal (Comptroller VenusBorrowState vZRX "block") 300000
+    Assert Equal (Bep20 XVS TokenBalance Coburn) 300000e18
+    Assert Equal (Comptroller VenusBorrowerIndex vZRX Coburn) 3.00001e41
+
+Test "Accrue XVS during a repayBorrowBehalf of 0"
+    FlywheelComptroller
+    InitSpeeds
+    FastForward 300000 Blocks
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    -- confirm we can init all flywheel accounts for free
+    RepayBorrowBehalf Jared Coburn 0 vZRX
+    -- new index = initVal + deltaBlocks * borrowSpeed * 1e36 / totalBorrows
+    -- new index = 1e36 + 300000 * 1e18 * 1e36 / 1e18 = 3.00001e41
+    Assert Equal (Comptroller VenusAccrued Coburn) 0
+    Assert Equal (Comptroller VenusBorrowState vZRX "index") 3.00001e41
+    Assert Equal (Comptroller VenusBorrowState vZRX "block") 300000
+    Assert Equal (Bep20 XVS TokenBalance Coburn) 300000e18
+    Assert Equal (Comptroller VenusBorrowerIndex vZRX Coburn) 3.00001e41
+
+Test "Accrue XVS during a liquidation"
+    FlywheelComptroller
+    InitSpeeds
+    Assert Equal (Comptroller VenusSpeed vZRX) 1e18
+    Assert Equal (Comptroller VenusSpeed vBAT) 0
+    --coburn zrx borrow, bat supply. geoff zrx supply
+    FastForward 600000 Blocks--1e18 borrow * (1 + 600000 * 0.000005) = 3.5e18 borrow > 6e18 collateral * 0.5 CF
+    Prep Geoff Some ZRX vZRX
+    From Geoff (VToken vZRX Liquidate Coburn vBAT 0.5e18)
+    -- zrx borrow index is updated and xvs distributed
+    -- * new index = initVal + deltaBlocks * borrowSpeed * 1e36 / totalBorrows
+    -- * new index = 1e36 + 600000 * 1e18 * 1e36 / 1e18 = 6.00001E41
+    Assert Equal (Comptroller VenusBorrowState vZRX "index") 6.00001e41
+    Assert Equal (Comptroller VenusBorrowState vZRX "block") 600000
+    -- zrx supply index isnt updated and xvs isnt distributed for zrx supply
+    Assert Equal (Comptroller VenusSupplyState vZRX "index") 1e36
+    Assert Equal (Comptroller VenusSupplyState vZRX "block") 0
+    Assert Equal (Comptroller VenusSupplierIndex vZRX Geoff) 1e36--no change, minted in init
+    -- bat supply/borrow index is not updated, since there is no xvs speed
+    Assert Equal (Comptroller VenusSupplyState vBAT "index") 1e36
+    Assert Equal (Comptroller VenusSupplyState vBAT "block") 600000
+    -- neither is borrow state. block is 0 because update fn is never even called
+    Assert Equal (Comptroller VenusBorrowState vBAT "index") 1e36
+    Assert Equal (Comptroller VenusBorrowState vBAT "block") 0
+    --
+    Assert Equal (Comptroller VenusSupplierIndex vBAT Coburn) 1e36
+    Assert Equal (Comptroller VenusBorrowerIndex vZRX Coburn) 6.00001e41
+    Assert Equal (Bep20 XVS TokenBalance Coburn) 600000e18
+    Assert Equal (Comptroller VenusAccrued Coburn) 0
+    --
+    Assert Equal (Comptroller VenusSupplierIndex vBAT Geoff) 1e36
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 0
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+
+Test "Accrue XVS during a transfer"
+    FlywheelComptroller
+    InitSpeeds
+    FastForward 300000 Blocks
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 0
+    Assert Equal (Comptroller VenusSupplierIndex vZRX Geoff) 1e36
+    Transfer Geoff Jared 2.5e10 vZRX
+    -- new index = initVal + deltaBlocks * supplySpeed * 1e36 / totalSupply
+    -- new index = 1e36 + 300000 * 1e18 * 1e36 / 2.5e10 = 1.2000000000001e49
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 300000e18
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Assert Equal (Comptroller VenusSupplyState vZRX "index") 1.2000000000001e49
+    Assert Equal (Comptroller VenusSupplyState vZRX "block") 300000
+    Assert Equal (Comptroller VenusSupplierIndex vZRX Geoff) 1.2000000000001e49
+    --
+    Assert Equal (Comptroller VenusAccrued Jared) 0
+    Assert Equal (Comptroller VenusSupplyState vZRX "index") 1.2000000000001e49
+    Assert Equal (Comptroller VenusSupplyState vZRX "block") 300000
+    Assert Equal (Comptroller VenusSupplierIndex vZRX Jared) 1.2000000000001e49
+
+Test "Accrues correctly when market is added, deactivated, and activated again"
+    FlywheelComptroller
+    InitSpeeds
+    NewVToken DAI vDAI
+    --
+    Support vDAI collateralFactor:0.5
+    Comptroller AddVenusMarkets vDAI
+    Assert Equal (Comptroller GetVenusMarkets) [(Address vZRX) (Address vBAT) (Address vDAI)]
+    Prep Jared Some DAI vDAI
+    Mint Jared 6e18 vDAI
+    EnterMarkets Geoff vZRX
+    Borrow Geoff 0.5e18 vDAI
+    Borrow Coburn 0.5e18 vDAI
+    Comptroller RefreshVenusSpeeds
+    Assert Equal (Comptroller VenusSpeed vZRX) 0.5e18
+    Assert Equal (Comptroller VenusSpeed vDAI) 0.5e18
+    --
+    FastForward 100 Blocks
+    Comptroller DropVenusMarket vDAI
+    Comptroller ClaimVenus Geoff
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 75e18--half of vdai, all of zrx(.25e18 + .5e18) * 100
+    Assert Equal (Comptroller GetVenusMarkets) [(Address vZRX) (Address vBAT)]
+    Assert Equal (Comptroller VenusSpeed vZRX) 1e18
+    Assert Equal (Comptroller VenusSpeed vDAI) 0
+    --
+    FastForward 100 Blocks
+    Comptroller ClaimVenus Geoff
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 175e18-- += 1e18 * 100
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    --
+    Comptroller AddVenusMarkets vDAI
+    FastForward 100 Blocks
+    Comptroller ClaimVenus Geoff
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 250e18--half of vdai, all of zrx. += (.25 + .5) * 100
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+
+Test "TransferComp handles running out of XVS in Comptroller correctly"
+    FlywheelComptroller price:1.0 borrowRate:0.000005 compInitAmount:1e18
+    InitSpeeds
+    FastForward 2 Blocks
+    Comptroller ClaimVenus Geoff
+    Assert Equal (Comptroller VenusAccrued Geoff) 2e18
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 0
+    Give (Address Comptroller) 1e18 XVS
+    Comptroller ClaimVenus Geoff
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 2e18
+
+Test "Changing XVS rate continues to distribute at the correct speed"
+    FlywheelComptroller
+    InitSpeeds
+    --
+    Assert Equal (Comptroller VenusSpeed vZRX) 1e18
+    FastForward 10 Blocks
+    Comptroller SetVenusRate 2e18
+    Assert Equal (Comptroller VenusSpeed vZRX) 2e18
+    FastForward 10 Blocks
+    Comptroller ClaimVenus Geoff
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 30e18

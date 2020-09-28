@@ -1,0 +1,202 @@
+
+Test "Standard Upgrade"
+    Unitroller Deploy
+    PriceOracle Deploy Fixed 1.0
+    ComptrollerImpl Deploy Scenario ScenComptroller
+    Unitroller SetPendingImpl ScenComptroller
+    ComptrollerImpl ScenComptroller Become
+    Comptroller SetPriceOracle (PriceOracle Address)
+    Comptroller SetCloseFactor 0.2
+    Comptroller SetMaxAssets 20
+    Comptroller SetVenusRate 1e18
+    ListedVToken ZRX vZRX
+    ListedVToken DAI vDAI
+    Comptroller AddVenusMarkets (vZRX vDAI)
+    Assert Equal (Comptroller Implementation) (Address ScenComptroller)
+    Assert Equal (Comptroller CloseFactor) 0.2
+    Assert Equal (Comptroller MaxAssets) 20
+    Assert Equal (Comptroller VenusRate) 1e18
+    -- Upgrade to V*
+    ComptrollerImpl Deploy Scenario ScenComptroller_2
+    Unitroller SetPendingImpl ScenComptroller_2
+    ComptrollerImpl ScenComptroller_2 Become
+    Assert Equal (Comptroller Implementation) (Address ScenComptroller_2)
+    Assert Equal (Comptroller CloseFactor) 0.2
+    Assert Equal (Comptroller MaxAssets) 20
+    Assert Equal (Comptroller VenusRate) 1e18
+
+Test "Once become, can become again"
+    -- TODO: See why ABI is broken here
+    Unitroller Deploy
+    PriceOracle Deploy Fixed 1.0
+    ComptrollerImpl Deploy Scenario ScenComptroller
+    Unitroller SetPendingImpl ScenComptroller
+    ComptrollerImpl ScenComptroller Become
+    Comptroller SetPriceOracle (PriceOracle Address)
+    Comptroller SetCloseFactor 0.2
+    Comptroller SetMaxAssets 20
+    Comptroller SetVenusRate 1e18
+    Assert Equal (Comptroller Implementation) (Address ScenComptroller)
+    Assert Equal (Comptroller CloseFactor) 0.2
+    Assert Equal (Comptroller MaxAssets) 20
+    Assert Equal (Comptroller VenusRate) 1e18
+    ComptrollerImpl Deploy Scenario ScenComptroller_2
+    Unitroller SetPendingImpl ScenComptroller_2
+    ComptrollerImpl ScenComptroller_2 Become
+    Comptroller SetPriceOracle (PriceOracle Address)
+    Comptroller SetCloseFactor 0.4
+    Comptroller SetMaxAssets 40
+    Comptroller SetVenusRate 2e18
+    Assert Equal (Comptroller Implementation) (Address ScenComptroller_2)
+    Assert Equal (Comptroller CloseFactor) 0.4
+    Assert Equal (Comptroller MaxAssets) 40
+    Assert Equal (Comptroller VenusRate) 2e18
+
+--bork
+Test "Bork and unbork"
+    Unitroller Deploy
+    PriceOracle Deploy Fixed 1.0
+    ComptrollerImpl Deploy Scenario ScenComptroller
+    -- Set a normal impl
+    Unitroller SetPendingImpl ScenComptroller
+    ComptrollerImpl ScenComptroller Become
+    Comptroller SetPriceOracle (PriceOracle Address)
+    Comptroller SetCloseFactor 0.2
+    Comptroller SetMaxAssets 20
+    Comptroller SetVenusRate 1e18
+    Assert Equal (Comptroller Implementation) (Address ScenComptroller)
+    Assert Equal (Comptroller CloseFactor) 0.2
+    Assert Equal (Comptroller MaxAssets) 20
+    Assert Equal (Comptroller VenusRate) 1e18
+    -- Now move to a borked one that's bad
+    ComptrollerImpl Deploy Borked MyBork
+    Unitroller SetPendingImpl MyBork
+    ComptrollerImpl MyBork Become
+    Assert ReadRevert (Comptroller CloseFactor) "revert"
+    Assert Equal (Comptroller Implementation) (Address MyBork)
+
+Macro CheckUnitrollerStorage implementation
+    -- Admin; 0
+    Assert Equal (Comptroller Admin) (Address Root)
+    Assert Equal (StorageAt Comptroller 0 0 "address") (Address Root)
+    -- PendingAdmin; 1
+    Assert Equal (Comptroller PendingAdmin) (Address Coburn)
+    Assert Equal (StorageAt Comptroller 1 0 "address") (Address Coburn)
+    -- ComptrollerImplementation; 2
+    Assert Equal (Unitroller Implementation) implementation
+    Assert Equal (StorageAt Comptroller 2 0 "address") implementation
+    -- PendingComptrollerImplementation; 3
+    -- check as number since casting address 0 is not defined
+    Assert Equal (StorageAt Comptroller 3 0 "number") 0
+
+Macro CheckStorage
+    -- Oracle; 4
+    Assert Equal (Comptroller PriceOracle) (Address PriceOracle)
+    Assert Equal (StorageAt Comptroller 4 0 "address") (Address PriceOracle)
+    -- CloseFactorMantissa; 5
+    Assert Equal (Comptroller CloseFactor) 0.2
+    Assert Equal (StorageAt Comptroller 5 0 "number") 0.2e18
+    -- LiquidationIncentiveMantissa; 6
+    Assert Equal (Comptroller LiquidationIncentive) 1
+    Assert Equal (StorageAt Comptroller 6 0 "number") 1e18
+    -- MaxAssets; 7
+    Assert Equal (Comptroller MaxAssets) 20
+    Assert Equal (StorageAt Comptroller 7 0 "number") 20
+    -- AccountAssets; 8 *
+    Assert Equal (StorageAt Comptroller 8 0 "number") 0
+    Assert Equal (StorageAtMapping Comptroller 8 (Address Geoff) "number") 2
+    Assert Equal (StorageAtMapping Comptroller 8 (Address Geoff) "list(address)") [(Address vZRX) (Address vBAT)]
+    Assert Equal (Comptroller AssetsIn Geoff) [(Address vZRX) (Address vBAT)]
+    -- Markets; 9 *
+    Assert Equal (StorageAt Comptroller 9 0 "number") 0
+    Assert Equal (StorageAtNestedMapping Comptroller 9 (Address vZRX) Geoff "marketStruct") [True 0.5 True]
+    Assert Equal (StorageAtNestedMapping Comptroller 9 (Address vBAT) Geoff "marketStruct") [True 0.4 True]
+    Assert Equal (StorageAtNestedMapping Comptroller 9 (Address vBAT) Coburn "marketStruct") [True 0.4 False]
+    Assert Equal (Comptroller CollateralFactor vZRX) 0.5
+    Assert Equal (Comptroller CollateralFactor vBAT) 0.4
+    Assert Equal (Comptroller CheckMembership Geoff vZRX) True
+    Assert Equal (Comptroller CheckMembership Geoff vBAT) True
+    -- PauseGuardian; 10
+    Assert Equal (Comptroller PauseGuardian) (Address Coburn)
+    Assert Equal (StorageAt Comptroller 10 0 "address") (Address Coburn)
+    -- MintGuardianPaused; 11
+    Assert Equal (StorageAt Comptroller 10 40 "bool") False
+    Assert Equal (Comptroller _MintGuardianPaused) False
+    -- BorrowGuardianPaused; 12
+    Assert Equal (StorageAt Comptroller 10 42 "bool") False
+    Assert Equal (Comptroller _BorrowGuardianPaused) False
+    -- TransferGuardianPaused; 13
+    Assert Equal (StorageAt Comptroller 10 44 "bool") False
+    From Coburn (Comptroller SetGuardianPaused "Transfer" True)
+    Assert Equal (Comptroller TransferGuardianPaused) True
+    Assert Equal (StorageAt Comptroller 10 44 "bool") True
+    Comptroller SetGuardianPaused "Transfer" False
+    -- SeizeGuardianPaused; 14
+    Assert Equal (StorageAt Comptroller 10 46 "bool") False
+    From Coburn (Comptroller SetGuardianPaused "Seize" True)
+    Assert Equal (Comptroller SeizeGuardianPaused) True
+    Assert Equal (StorageAt Comptroller 10 46 "bool") True
+    Comptroller SetGuardianPaused "Seize" False
+    --
+    -- Pause by market storage
+    --
+    -- MintGuardianPaused; 15
+    Assert Equal (StorageAtMapping Comptroller 11 (Address vZRX) "bool") False
+    From Coburn (Comptroller SetGuardianMarketPaused vZRX "Mint" True)
+    Assert Equal (Comptroller MintGuardianMarketPaused vZRX) True
+    Assert Equal (StorageAtMapping Comptroller 11 (Address vZRX) "bool") True
+    Comptroller SetGuardianMarketPaused vZRX "Mint" False
+    -- BorrowGuardianPaused; 16
+    Assert Equal (StorageAtMapping Comptroller 12 (Address vZRX) "bool") False
+    From Coburn (Comptroller SetGuardianMarketPaused vZRX "Borrow" True)
+    Assert Equal (Comptroller BorrowGuardianMarketPaused vZRX) True
+    Assert Equal (StorageAtMapping Comptroller 12 (Address vZRX) "bool") True
+    Comptroller SetGuardianMarketPaused vZRX "Borrow" False
+    -- AllMarkets; 17
+    Assert Equal (StorageAt Comptroller 13 0 "number") 2
+    -- TODO: StorageAtArray Comptroller 13?
+    -- VenusRate; 18
+    Assert Equal (StorageAt Comptroller 14 0 "number") 1e18
+    -- VenusSpeeds; 19
+    Assert Equal (StorageAt Comptroller 15 0 "number") 0
+    -- VenusSupplyState; 20
+    Assert Equal (StorageAt Comptroller 16 0 "number") 0
+    -- VenusBorrowState; 21
+    Assert Equal (StorageAt Comptroller 17 0 "number") 0
+    -- VenusSupplierIndex; 22
+    Assert Equal (StorageAt Comptroller 18 0 "number") 0
+    -- VenusBorrowerIndex; 23
+    Assert Equal (StorageAt Comptroller 19 0 "number") 0
+    -- VenusAccrued; 24
+    Assert Equal (StorageAt Comptroller 20 0 "number") 0
+
+-- Times out coverage, disable for now - ideally set flag to not run in coverage
+Pending "Keeps all storage"
+    Unitroller Deploy
+    PriceOracle Deploy Fixed 1.0
+    ComptrollerImpl Deploy Standard StandardComptroller
+    Unitroller SetPendingImpl StandardComptroller
+    ComptrollerImpl StandardComptroller Become
+    Comptroller SetPriceOracle (PriceOracle Address)
+    Comptroller SetCloseFactor 0.2
+    Comptroller SetMaxAssets 20
+    Comptroller SetVenusRate 1e18
+    Comptroller SetPendingAdmin Coburn
+    ---
+    NewVToken ZRX vZRX delegatorType:VBep20Delegator vTokenType:VBep20Delegate
+    NewVToken BAT vBAT delegatorType:VBep20Delegator vTokenType:VBep20Delegate
+    Give vBAT 10e18 BAT -- Faucet some bat to borrow
+    Support vZRX collateralFactor:0.5
+    Support vBAT collateralFactor:0.4
+    Prep Geoff Some ZRX vZRX
+    Mint Geoff 100e18 vZRX
+    EnterMarkets Geoff vZRX vBAT
+    Borrow Geoff 1e18 vBAT
+    --
+    CheckUnitrollerStorage (Address StandardComptroller)
+    CheckStorage
+    --
+    Comptroller SetPauseGuardian Coburn
+    --
+    CheckUnitrollerStorage (Address StandardComptroller)
+    CheckStorage

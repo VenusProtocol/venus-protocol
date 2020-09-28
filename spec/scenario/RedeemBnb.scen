@@ -1,0 +1,156 @@
+-- Redeem Tests
+
+Test "Mint then Redeem All"
+    NewComptroller
+    ListedBNBToken vBNB initialExchangeRate:0.005e9
+    CallMintBnb Geoff 0.005e18 vBNB
+    -- Check current affairs
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 10e8
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 0.005e18
+    Invariant Static (VToken vBNB ExchangeRateStored)
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    Expect Changes (BNBBalance Geoff) +0.005e18
+    RedeemBnb Geoff 10e8 vBNB
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) Zero
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) Zero
+
+Test "Mint then Redeem Part"
+    NewComptroller
+    ListedBNBToken vBNB initialExchangeRate:0.005e9
+    CallMintBnb Geoff 0.005e18 vBNB
+    -- Check current affairs
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 10e8
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 0.005e18
+    Invariant Static (VToken vBNB ExchangeRateStored)
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    Expect Changes (BNBBalance Geoff) +0.001e18
+    RedeemBnb Geoff 2e8 vBNB
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 8e8
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 0.004e18
+
+Test "Mint then Redeem Too Much"
+    NewComptroller
+    ListedBNBToken vBNB initialExchangeRate:0.005e9
+    CallMintBnb Geoff 0.005e18 vBNB
+    AllowFailures
+    -- Check and hold static
+    Invariant Static (VToken vBNB ExchangeRateStored)
+    Invariant Remains (Bep20 vBNB TokenBalance Geoff) 10e8
+    Invariant Static (BNBBalance Geoff)
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    RedeemBnb Geoff 11e8 vBNB
+    -- TODO: This should really be REDEEM_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED, but based on
+    -- the order of subtractions, total supply comes before account supply.
+    Assert Failure MATH_ERROR REDEEM_NEW_TOTAL_SUPPLY_CALCULATION_FAILED "3" -- TODO: This error is wrong
+
+Test "Mint then Redeem Zero"
+    NewComptroller
+    ListedBNBToken vBNB initialExchangeRate:0.005e9
+    CallMintBnb Geoff 0.005e18 vBNB
+    -- Check and hold static
+    Invariant Static (VToken vBNB ExchangeRateStored)
+    Invariant Remains (Bep20 vBNB TokenBalance Geoff) 10e8
+    Invariant Static (BNBBalance Geoff)
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    RedeemBnb Geoff 0e9 vBNB
+
+Pending "Mint then redeem with interest - no reserves"
+    Invariant Success
+    NewComptroller
+    ListedVToken ZRX vBNB initialExchangeRate:1e9
+    Invariant Remains (VToken vBNB Reserves) Zero
+    Prep Geoff 50e18 ZRX vBNB
+    Mint Geoff 50e18 vBNB
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 500e8
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 50e18
+    Assert Equal (VToken vBNB ExchangeRate) 1e9
+    -- Get some brah to borrow then repay
+    BorrowAndRepayWithInterest ZRX vBNB 10e18 5e18 interestRate:0.0001 blocks:5000
+    -- We've accrued 10% interest for 5 blocks, or 50% of the amount,
+    --   thus, we should have accrued 5e18 of interest for the protocol
+    --   This is due pro-rata to all holders, but we just have one, so
+    --   let's check that account is given correct new balance.
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 500e8
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 55e18
+    Assert Equal (VToken vBNB ExchangeRate) 1.1e9
+    -- Now redeem all with interest
+    Redeem Geoff 500e8 vBNB
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 55e18
+    Assert Equal (Bep20 ZRX TokenBalance vBNB) 0e18
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 0e8
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 0e18
+    Assert Equal (VToken vBNB ExchangeRate) 1e9
+
+Pending "Mint then redeem part with interest - no reserves"
+    Invariant Success
+    NewComptroller
+    ListedVToken ZRX vBNB initialExchangeRate:1e9
+    Invariant Remains (VToken vBNB Reserves) Zero
+    Prep Geoff 50e18 ZRX vBNB
+    Mint Geoff 50e18 vBNB
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 500e8
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 50e18
+    Assert Equal (VToken vBNB ExchangeRate) 1e9
+    -- Get some brah to borrow then repay
+    BorrowAndRepayWithInterest ZRX vBNB 10e18 5e18 interestRate:0.0001 blocks:5000
+    -- We've accrued 10% interest for 5 blocks, or 50% of the amount,
+    --   thus, we should have accrued 5e18 of interest for the protocol
+    --   This is due pro-rata to all holders, but we just have one, so
+    --   let's check that account is given correct new balance.
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 500e8
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 55e18
+    Assert Equal (VToken vBNB ExchangeRate) 1.1e9
+    -- Now redeem all with interest
+    Redeem Geoff 499e8 vBNB
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 1e8
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 0.11e18
+    Assert Equal (VToken vBNB ExchangeRate) 1.1e9
+
+Pending "Mint then redeem with reserves and interest"
+    Invariant Success
+    NewComptroller
+    ListedVToken ZRX vBNB initialExchangeRate:1e9
+    Prep Geoff 50e18 ZRX vBNB
+    Mint Geoff 50e18 vBNB
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 500e8
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 50e18
+    Assert Equal (VToken vBNB ExchangeRate) 1e9
+    -- Get some brah to borrow then repay
+    BorrowAndRepayWithInterest ZRX vBNB 10e18 5e18 interestRate:0.0001 blocks:5000 reserveRate:0.2
+    -- We've accrued 10% interest for 5 blocks, or 50% of the amount,
+    --   thus, we should have accrued 5e18 of interest for the protocol
+    --   The reserves should get 20% of this, or 1e18, and the rest
+    --   is due pro-rata to all holders. We just have one, so
+    --   let's check that account is given correct new balance.
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 500e8
+    Assert Equal (VToken vBNB Reserves) 1e18
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 54e18
+    -- 55e18 + 0e18 - 1e18 / 500
+    Assert Equal (VToken vBNB ExchangeRate) 1.08e9
+    -- Now redeem all with interest
+    Redeem Geoff 500e8 vBNB
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 54e18
+    Assert Equal (Bep20 ZRX TokenBalance vBNB) 1e18
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 0e8
+    Assert Equal (VToken vBNB Reserves) 1e18
+    Assert Equal (VToken vBNB UnderlyingBalance Geoff) 0e18
+    Assert Equal (VToken vBNB ExchangeRate) 1e9
+
+Test "Two users Mint, one redeems"
+    NewComptroller
+    ListedBNBToken vBNB initialExchangeRate:0.005e9
+    CallMintBnb Geoff 0.002e18 vBNB
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 4e8
+    Assert Equal (Bep20 vBNB TotalSupply) 4e8
+    CallMintBnb Torrey 0.004e18 vBNB
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 4e8
+    Assert Equal (Bep20 vBNB TokenBalance Torrey) 8e8
+    Assert Equal (Bep20 vBNB TotalSupply) 12e8
+    RedeemBnb Torrey 3e8 vBNB
+    Assert Equal (Bep20 vBNB TokenBalance Geoff) 4e8
+    Assert Equal (Bep20 vBNB TokenBalance Torrey) 5e8
+    Assert Equal (Bep20 vBNB TotalSupply) 9e8
