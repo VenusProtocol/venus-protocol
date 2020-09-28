@@ -264,7 +264,7 @@ docker run --env ACCOUNT=0x$(cat ~/.ethereum/rinkeby) SwipeWallet/venus-protocol
 Discussion
 ----------
 
-For any concerns with the protocol, open an issue or visit us on [Discord](https://t.me/venusprotocol) to discuss.
+For any concerns with the protocol, open an issue or visit us on [Telegram](https://t.me/venusprotocol) to discuss.
 
 For security concerns, please email [security@swipe.io](mailto:security@swipe.io).
 
