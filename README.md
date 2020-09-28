@@ -268,4 +268,4 @@ For any concerns with the protocol, open an issue or visit us on [Telegram](http
 
 For security concerns, please email [security@swipe.io](mailto:security@swipe.io).
 
-_© Copyright 2020, Venus Labs_
+_© Copyright 2020, Swipe Wallet
