@@ -95,7 +95,7 @@ contract UserLock is Owned {
     event UnlockUser(address indexed who);
 
     modifier permissionCheck {
-        require(!blacklist[msg.sender]);
+        require(!blacklist[msg.sender], "Blocked user");
         _;
     }
     
