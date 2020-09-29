@@ -27,6 +27,7 @@ import { invariantCommands, processInvariantEvent } from './Event/InvariantEvent
 import { expectationCommands, processExpectationEvent } from './Event/ExpectationEvent';
 import { timelockCommands, processTimelockEvent } from './Event/TimelockEvent';
 import { xvsCommands, processXVSEvent } from './Event/XVSEvent';
+import { sxpCommands, processSXPEvent } from './Event/SXPEvent';
 import { governorCommands, processGovernorEvent } from './Event/GovernorEvent';
 import { processTrxEvent, trxCommands } from './Event/TrxEvent';
 import { getFetchers, getCoreValue } from './CoreValue';
@@ -793,6 +794,21 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       return processXVSEvent(world, event.val, from);
     },
     { subExpressions: xvsCommands() }
+  ),
+
+  new Command<{ event: EventV }>(
+    `
+      #### SXP
+
+      * "SXP ...event" - Runs given sxp event
+      * E.g. "SXP Deploy"
+    `,
+    'SXP',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => {
+      return processSXPEvent(world, event.val, from);
+    },
+    { subExpressions: sxpCommands() }
   ),
 
   new Command<{ event: EventV }>(

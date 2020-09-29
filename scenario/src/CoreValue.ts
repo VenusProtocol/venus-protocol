@@ -30,7 +30,8 @@ import { getPriceOracleValue, priceOracleFetchers } from './Value/PriceOracleVal
 import { getPriceOracleProxyValue, priceOracleProxyFetchers } from './Value/PriceOracleProxyValue';
 import { getTimelockValue, timelockFetchers, getTimelockAddress } from './Value/TimelockValue';
 import { getMaximillionValue, maximillionFetchers } from './Value/MaximillionValue';
-import { getXVSValue, compFetchers } from './Value/XVSValue';
+import { getXVSValue, xvsFetchers } from './Value/XVSValue';
+import { getSXPValue, sxpFetchers } from './Value/SXPValue';
 import { getGovernorValue, governorFetchers } from './Value/GovernorValue';
 import { getAddress } from './ContractLookup';
 import { getCurrentBlockNumber, getCurrentTimestamp, mustArray, sendRPC } from './Utils';
@@ -952,7 +953,18 @@ const fetchers = [
     'XVS',
     [new Arg('res', getXVSValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: compFetchers() }
+    { subExpressions: xvsFetchers() }
+  ),
+  new Fetcher<{ res: Value }, Value>(
+    `
+      #### SXP
+
+      * "SXP ...compArgs" - Returns SXP value
+    `,
+    'SXP',
+    [new Arg('res', getSXPValue, { variadic: true })],
+    async (world, { res }) => res,
+    { subExpressions: sxpFetchers() }
   ),
   new Fetcher<{ res: Value }, Value>(
     `

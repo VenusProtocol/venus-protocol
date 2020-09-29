@@ -168,7 +168,7 @@ contract VenusLens {
         uint proposalId;
         bool hasVoted;
         bool support;
-        uint96 votes;
+        uint votes;
     }
 
     function getGovReceipts(GovernorAlpha governor, address voter, uint[] memory proposalIds) public view returns (GovReceipt[] memory) {
@@ -263,7 +263,7 @@ contract VenusLens {
     function getXVSBalanceMetadata(XVS xvs, address account) external view returns (XVSBalanceMetadata memory) {
         return XVSBalanceMetadata({
             balance: xvs.balanceOf(account),
-            votes: uint256(xvs.getCurrentVotes(account)),
+            votes: xvs.getCurrentVotes(account),
             delegate: xvs.delegates(account)
         });
     }
@@ -285,21 +285,21 @@ contract VenusLens {
 
         return XVSBalanceMetadataExt({
             balance: balance,
-            votes: uint256(xvs.getCurrentVotes(account)),
+            votes: xvs.getCurrentVotes(account),
             delegate: xvs.delegates(account),
             allocated: allocated
         });
     }
 
-    struct CompVotes {
+    struct VenusVotes {
         uint blockNumber;
         uint votes;
     }
 
-    function getCompVotes(XVS xvs, address account, uint32[] calldata blockNumbers) external view returns (CompVotes[] memory) {
-        CompVotes[] memory res = new CompVotes[](blockNumbers.length);
+    function getVenusVotes(XVS xvs, address account, uint32[] calldata blockNumbers) external view returns (VenusVotes[] memory) {
+        VenusVotes[] memory res = new VenusVotes[](blockNumbers.length);
         for (uint i = 0; i < blockNumbers.length; i++) {
-            res[i] = CompVotes({
+            res[i] = VenusVotes({
                 blockNumber: uint256(blockNumbers[i]),
                 votes: uint256(xvs.getPriorVotes(account, blockNumbers[i]))
             });

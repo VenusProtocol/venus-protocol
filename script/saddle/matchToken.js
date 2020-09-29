@@ -14,7 +14,7 @@ npx saddle -n rinkeby script token:match 0x19B674715cD20626415C738400FDd0d32D680
   "interestRateModel": "$Base200bps_Slope3000bps",
   "initialExchangeRateMantissa": "2.0e18",
   "name": "Venus Kyber Network Crystal",
-  "symbol": "cKNC",
+  "symbol": "vKNC",
   "decimals": "8",
   "admin": "$Timelock"
 }'

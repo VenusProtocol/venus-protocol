@@ -28,8 +28,13 @@ We detail a few of the core contracts in the Venus protocol.
 </dl>
 
 <dl>
+  <dt>SXP</dt>
+  <dd>The Venus Governance Token (SXP). Holders of this token have the ability to govern the protocol via the governor contract.</dd>
+</dl>
+
+<dl>
   <dt>Governor Alpha</dt>
-  <dd>The administrator of the Venus timelock contract. Holders of XVS token may create and vote on proposals which will be queued into the Venus timelock and then have effects on Venus vToken and Copmtroller contracts. This contract may be replaced in the future with a beta version.</dd>
+  <dd>The administrator of the Venus timelock contract. Holders of XVS(SXP) token may create and vote on proposals which will be queued into the Venus timelock and then have effects on Venus vToken and Copmtroller contracts. This contract may be replaced in the future with a beta version.</dd>
 </dl>
 
 <dl>
@@ -140,6 +145,7 @@ From within a docker shell, you can interact locally with the protocol via ganac
     Deployed goerli contracts
       comptroller: 0x627EA49279FD0dE89186A58b8758aD02B6Be2867
       xvs: 0xfa5E1B628EFB17C024ca76f65B45Faf6B3128CA5
+      sxp: 0xfa5E1B628EFB17C024ca76f65B45Faf6B3128CA5
       governorAlpha: 0x8C3969Dd514B559D78135e9C210F2F773Feadf21
       maximillion: 0x73d3F01b8aC5063f4601C7C45DA5Fdf1b5240C92
       priceOracle: 0x9A536Ed5C97686988F93C9f7C2A390bF3B59c0ec
@@ -148,7 +154,9 @@ From within a docker shell, you can interact locally with the protocol via ganac
       unitroller: 0x627EA49279FD0dE89186A58b8758aD02B6Be2867
 
     > await xvs.methods.totalSupply().call()
-    '10000000000000000000000000'
+    '300000000000000000000000000'
+    > await sxp.methods.totalSupply().call()
+    '28971492600000000000000000'
 ```
 
 Console
@@ -166,14 +174,18 @@ This command will start a saddle console conencted to Goerli testnet (see [Saddl
     Deployed goerli contracts
       comptroller: 0x627EA49279FD0dE89186A58b8758aD02B6Be2867
       xvs: 0xfa5E1B628EFB17C024ca76f65B45Faf6B3128CA5
+      sxp: 0xfa5E1B628EFB17C024ca76f65B45Faf6B3128CA5
       governorAlpha: 0x8C3969Dd514B559D78135e9C210F2F773Feadf21
       maximillion: 0x73d3F01b8aC5063f4601C7C45DA5Fdf1b5240C92
       priceOracle: 0x9A536Ed5C97686988F93C9f7C2A390bF3B59c0ec
       priceOracleProxy: 0xd0c84453b3945cd7e84BF7fc53BfFd6718913B71
       timelock: 0x25e46957363e16C4e2D5F2854b062475F9f8d287
       unitroller: 0x627EA49279FD0dE89186A58b8758aD02B6Be2867
+
     > await xvs.methods.totalSupply().call()
-    '10000000000000000000000000'
+    '300000000000000000000000000'
+    > await sxp.methods.totalSupply().call()
+    '28971492600000000000000000'
 ```
 
 Deploying a VToken from Source
@@ -192,7 +204,7 @@ npx saddle -n rinkeby script token:deploy '{
   "interestRateModel": "$Base200bps_Slope3000bps",
   "initialExchangeRateMantissa": "2.0e18",
   "name": "Venus Kyber Network Crystal",
-  "symbol": "cKNC",
+  "symbol": "vKNC",
   "decimals": "8",
   "admin": "$Timelock"
 }'
@@ -207,7 +219,7 @@ npx saddle -n rinkeby script token:verify 0x19B674715cD20626415C738400FDd0d32D68
   "interestRateModel": "$Base200bps_Slope3000bps",
   "initialExchangeRateMantissa": "2.0e18",
   "name": "Venus Kyber Network Crystal",
-  "symbol": "cKNC",
+  "symbol": "vKNC",
   "decimals": "8",
   "admin": "$Timelock"
 }'
@@ -240,7 +252,7 @@ docker run --env BSCSCAN_API_KEY --env VERIFY=true --env ACCOUNT=0x$(cat ~/.ethe
   "interestRateModel": "$Base200bps_Slope3000bps",
   "initialExchangeRateMantissa": "2.0e18",
   "name": "Venus Kyber Network Crystal",
-  "symbol": "cKNC",
+  "symbol": "vKNC",
   "decimals": "8",
   "admin": "$Timelock"
 }'

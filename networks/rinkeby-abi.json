@@ -5594,7 +5594,7 @@
                     "type": "uint32[]"
                 }
             ],
-            "name": "getCompVotes",
+            "name": "getVenusVotes",
             "outputs": [
                 {
                     "components": [
@@ -5609,7 +5609,7 @@
                             "type": "uint256"
                         }
                     ],
-                    "internalType": "struct VenusLens.CompVotes[]",
+                    "internalType": "struct VenusLens.VenusVotes[]",
                     "name": "",
                     "type": "tuple[]"
                 }
@@ -5752,9 +5752,9 @@
                             "type": "bool"
                         },
                         {
-                            "internalType": "uint96",
+                            "internalType": "uint256",
                             "name": "votes",
-                            "type": "uint96"
+                            "type": "uint256"
                         }
                     ],
                     "internalType": "struct VenusLens.GovReceipt[]",

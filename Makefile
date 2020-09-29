@@ -40,16 +40,34 @@ spec/certora/XVS/transfer.cvl:
 	--verify \
 	 XVSCertora:$@
 
+spec/certora/SXP/search.cvl:
+	$(CERTORA_RUN) \
+	spec/certora/contracts/SXPCertora.sol \
+	--settings -b=4,-graphDrawLimit=0,-assumeUnwindCond,-depth=100 \
+	--solc_args "'--evm-version istanbul'" \
+	--verify \
+	 SXPCertora:$@
+
+spec/certora/SXP/transfer.cvl:
+	$(CERTORA_RUN) \
+	spec/certora/contracts/SXPCertora.sol \
+	--settings -graphDrawLimit=0,-assumeUnwindCond,-depth=100 \
+	--solc_args "'--evm-version istanbul'" \
+	--verify \
+	 SXPCertora:$@
+
 spec/certora/Governor/%.cvl:
 	$(CERTORA_RUN) \
 	 spec/certora/contracts/GovernorAlphaCertora.sol \
 	 spec/certora/contracts/TimelockCertora.sol \
 	 spec/certora/contracts/XVSCertora.sol \
+	 spec/certora/contracts/SXPCertora.sol \
 	 --settings -assumeUnwindCond,-enableWildcardInlining=false \
 	 --solc_args "'--evm-version istanbul'" \
 	 --link \
 	 GovernorAlphaCertora:timelock=TimelockCertora \
 	 GovernorAlphaCertora:xvs=XVSCertora \
+	 GovernorAlphaCertora:sxp=SXPCertora \
 	--verify \
 	 GovernorAlphaCertora:$@
 

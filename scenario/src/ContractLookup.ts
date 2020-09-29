@@ -8,6 +8,7 @@ import { mustString } from './Utils';
 
 import { VBep20Delegate } from './Contract/VBep20Delegate';
 import { XVS } from './Contract/XVS';
+import { SXP } from './Contract/SXP';
 import { Comptroller } from './Contract/Comptroller';
 import { ComptrollerImpl } from './Contract/ComptrollerImpl';
 import { VToken } from './Contract/VToken';
@@ -124,12 +125,29 @@ export async function getXVS(
   return getWorldContract(world, [['XVS', 'address']]);
 }
 
-export async function getCompData(
+export async function getXVSData(
   world: World,
   compArg: string
 ): Promise<[XVS, string, Map<string, string>]> {
   let contract = await getXVS(world, <Event>(<any>compArg));
   let data = getContractData(world, [['XVS', compArg]]);
+
+  return [contract, compArg, <Map<string, string>>(<any>data)];
+}
+
+export async function getSXP(
+  world: World,
+  compArg: Event
+): Promise<SXP> {
+  return getWorldContract(world, [['SXP', 'address']]);
+}
+
+export async function getSXPData(
+  world: World,
+  compArg: string
+): Promise<[SXP, string, Map<string, string>]> {
+  let contract = await getSXP(world, <Event>(<any>compArg));
+  let data = getContractData(world, [['SXP', compArg]]);
 
   return [contract, compArg, <Map<string, string>>(<any>data)];
 }

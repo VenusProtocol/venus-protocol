@@ -336,10 +336,10 @@ describe('VenusLens', () => {
       });
     });
 
-    describe('getCompVotes', () => {
+    describe('getVenusVotes', () => {
       it('gets correct values', async () => {
         expect(
-          (await call(VenusLens, 'getCompVotes', [xvs._address, acct, [currentBlock, currentBlock - 1]])).map(cullTuple)
+          (await call(VenusLens, 'getVenusVotes', [xvs._address, acct, [currentBlock, currentBlock - 1]])).map(cullTuple)
         ).toEqual([
           {
             blockNumber: currentBlock.toString(),
@@ -354,7 +354,7 @@ describe('VenusLens', () => {
 
       it('reverts on future value', async () => {
         await expect(
-          call(VenusLens, 'getCompVotes', [xvs._address, acct, [currentBlock + 1]])
+          call(VenusLens, 'getVenusVotes', [xvs._address, acct, [currentBlock + 1]])
         ).rejects.toRevert('revert XVS::getPriorVotes: not yet determined')
       });
     });
