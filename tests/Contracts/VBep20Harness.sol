@@ -184,7 +184,7 @@ contract VBep20Scenario is VBep20Immutable {
     }
 }
 
-contract CEvil is VBep20Scenario {
+contract VEvil is VBep20Scenario {
     constructor(address underlying_,
                 ComptrollerInterface comptroller_,
                 InterestRateModel interestRateModel_,

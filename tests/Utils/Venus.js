@@ -202,10 +202,10 @@ async function makePriceOracle(opts = {}) {
 async function makeToken(opts = {}) {
   const {
     root = saddle.account,
-    kind = 'erc20'
+    kind = 'bep20'
   } = opts || {};
 
-  if (kind == 'erc20') {
+  if (kind == 'bep20') {
     const quantity = bnbUnsigned(dfn(opts.quantity, 1e25));
     const decimals = bnbUnsigned(dfn(opts.decimals, 18));
     const symbol = opts.symbol || 'OMG';

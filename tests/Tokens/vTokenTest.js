@@ -16,7 +16,7 @@ describe('VToken', function () {
   });
 
   describe('constructor', () => {
-    it("fails when non erc-20 underlying", async () => {
+    it("fails when non bep-20 underlying", async () => {
       await expect(makeVToken({ underlying: { _address: root } })).rejects.toRevert("revert");
     });
 
@@ -24,7 +24,7 @@ describe('VToken', function () {
       await expect(makeVToken({ exchangeRate: 0 })).rejects.toRevert("revert initial exchange rate must be greater than zero.");
     });
 
-    it("succeeds with erc-20 underlying and non-zero exchange rate", async () => {
+    it("succeeds with bep-20 underlying and non-zero exchange rate", async () => {
       const vToken = await makeVToken();
       expect(await call(vToken, 'underlying')).toEqual(vToken.underlying._address);
       expect(await call(vToken, 'admin')).toEqual(root);

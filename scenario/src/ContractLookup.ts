@@ -101,8 +101,8 @@ export function getVTokenDelegateAddress(world: World, vTokenDelegateArg: string
   return getContractDataString(world, [['VTokenDelegate', vTokenDelegateArg, 'address']]);
 }
 
-export function getBep20Address(world: World, erc20Arg: string): string {
-  return getContractDataString(world, [['Tokens', erc20Arg, 'address']]);
+export function getBep20Address(world: World, bep20Arg: string): string {
+  return getContractDataString(world, [['Tokens', bep20Arg, 'address']]);
 }
 
 export function getGovernorAddress(world: World, governorArg: string): string {
@@ -163,12 +163,12 @@ export async function getInterestRateModelData(
 
 export async function getBep20Data(
   world: World,
-  erc20Arg: string
+  bep20Arg: string
 ): Promise<[Bep20, string, Map<string, string>]> {
-  let contract = getWorldContract<Bep20>(world, [['Tokens', erc20Arg, 'address']]);
-  let data = getContractData(world, [['Tokens', erc20Arg]]);
+  let contract = getWorldContract<Bep20>(world, [['Tokens', bep20Arg, 'address']]);
+  let data = getContractData(world, [['Tokens', bep20Arg]]);
 
-  return [contract, erc20Arg, <Map<string, string>>(<any>data)];
+  return [contract, bep20Arg, <Map<string, string>>(<any>data)];
 }
 
 export async function getVTokenData(

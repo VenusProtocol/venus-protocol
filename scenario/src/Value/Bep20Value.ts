@@ -15,28 +15,28 @@ import {
   StringV
 } from '../Value';
 
-export async function getBep20Name(world: World, erc20: Bep20): Promise<StringV> {
-  return new StringV(await erc20.methods.name().call());
+export async function getBep20Name(world: World, bep20: Bep20): Promise<StringV> {
+  return new StringV(await bep20.methods.name().call());
 }
 
-export async function getBep20Symbol(world: World, erc20: Bep20): Promise<StringV> {
-  return new StringV(await erc20.methods.symbol().call());
+export async function getBep20Symbol(world: World, bep20: Bep20): Promise<StringV> {
+  return new StringV(await bep20.methods.symbol().call());
 }
 
-export async function getBep20Decimals(world: World, erc20: Bep20): Promise<NumberV> {
-  return new NumberV(await erc20.methods.decimals().call());
+export async function getBep20Decimals(world: World, bep20: Bep20): Promise<NumberV> {
+  return new NumberV(await bep20.methods.decimals().call());
 }
 
-async function getTotalSupply(world: World, erc20: Bep20): Promise<NumberV> {
-  return new NumberV(await erc20.methods.totalSupply().call());
+async function getTotalSupply(world: World, bep20: Bep20): Promise<NumberV> {
+  return new NumberV(await bep20.methods.totalSupply().call());
 }
 
-async function getTokenBalance(world: World, erc20: Bep20, address: string): Promise<NumberV> {
-  return new NumberV(await erc20.methods.balanceOf(address).call());
+async function getTokenBalance(world: World, bep20: Bep20, address: string): Promise<NumberV> {
+  return new NumberV(await bep20.methods.balanceOf(address).call());
 }
 
-async function getAllowance(world: World, erc20: Bep20, owner: string, spender: string): Promise<NumberV> {
-  return new NumberV(await erc20.methods.allowance(owner, spender).call());
+async function getAllowance(world: World, bep20: Bep20, owner: string, spender: string): Promise<NumberV> {
+  return new NumberV(await bep20.methods.allowance(owner, spender).call());
 }
 
 export async function getBep20V(world: World, event: Event): Promise<Bep20> {
@@ -51,9 +51,9 @@ export async function getBep20V(world: World, event: Event): Promise<Bep20> {
   return getWorldContractByAddress<Bep20>(world, address.val);
 }
 
-export function erc20Fetchers() {
+export function bep20Fetchers() {
   return [
-    new Fetcher<{erc20: Bep20}, AddressV>(`
+    new Fetcher<{bep20: Bep20}, AddressV>(`
         #### Address
 
         * "Bep20 <Bep20> Address" - Returns address of BEP-20 contract
@@ -61,12 +61,12 @@ export function erc20Fetchers() {
       `,
       "Address",
       [
-        new Arg("erc20", getBep20V)
+        new Arg("bep20", getBep20V)
       ],
-      async (world, {erc20}) => new AddressV(erc20._address),
+      async (world, {bep20}) => new AddressV(bep20._address),
       {namePos: 1}
     ),
-    new Fetcher<{erc20: Bep20}, StringV>(`
+    new Fetcher<{bep20: Bep20}, StringV>(`
         #### Name
 
         * "Bep20 <Bep20> Name" - Returns name of BEP-20 contract
@@ -74,12 +74,12 @@ export function erc20Fetchers() {
       `,
       "Name",
       [
-        new Arg("erc20", getBep20V)
+        new Arg("bep20", getBep20V)
       ],
-      (world, {erc20}) => getBep20Name(world, erc20),
+      (world, {bep20}) => getBep20Name(world, bep20),
       {namePos: 1}
     ),
-    new Fetcher<{erc20: Bep20}, StringV>(`
+    new Fetcher<{bep20: Bep20}, StringV>(`
         #### Symbol
 
         * "Bep20 <Bep20> Symbol" - Returns symbol of BEP-20 contract
@@ -87,12 +87,12 @@ export function erc20Fetchers() {
       `,
       "Symbol",
       [
-        new Arg("erc20", getBep20V)
+        new Arg("bep20", getBep20V)
       ],
-      (world, {erc20}) => getBep20Symbol(world, erc20),
+      (world, {bep20}) => getBep20Symbol(world, bep20),
       {namePos: 1}
     ),
-    new Fetcher<{erc20: Bep20}, NumberV>(`
+    new Fetcher<{bep20: Bep20}, NumberV>(`
         #### Decimals
 
         * "Bep20 <Bep20> Decimals" - Returns number of decimals in BEP-20 contract
@@ -100,12 +100,12 @@ export function erc20Fetchers() {
       `,
       "Decimals",
       [
-        new Arg("erc20", getBep20V)
+        new Arg("bep20", getBep20V)
       ],
-      (world, {erc20}) => getBep20Decimals(world, erc20),
+      (world, {bep20}) => getBep20Decimals(world, bep20),
       {namePos: 1}
     ),
-    new Fetcher<{erc20: Bep20}, NumberV>(`
+    new Fetcher<{bep20: Bep20}, NumberV>(`
         #### TotalSupply
 
         * "Bep20 <Bep20> TotalSupply" - Returns the BEP-20 token's total supply
@@ -114,12 +114,12 @@ export function erc20Fetchers() {
       `,
       "TotalSupply",
       [
-        new Arg("erc20", getBep20V)
+        new Arg("bep20", getBep20V)
       ],
-      (world, {erc20}) => getTotalSupply(world, erc20),
+      (world, {bep20}) => getTotalSupply(world, bep20),
       {namePos: 1}
     ),
-    new Fetcher<{erc20: Bep20, address: AddressV}, NumberV>(`
+    new Fetcher<{bep20: Bep20, address: AddressV}, NumberV>(`
         #### TokenBalance
 
         * "Bep20 <Bep20> TokenBalance <Address>" - Returns the BEP-20 token balance of a given address
@@ -129,13 +129,13 @@ export function erc20Fetchers() {
       `,
       "TokenBalance",
       [
-        new Arg("erc20", getBep20V),
+        new Arg("bep20", getBep20V),
         new Arg("address", getAddressV)
       ],
-      (world, {erc20, address}) => getTokenBalance(world, erc20, address.val),
+      (world, {bep20, address}) => getTokenBalance(world, bep20, address.val),
       {namePos: 1}
     ),
-    new Fetcher<{erc20: Bep20, owner: AddressV, spender: AddressV}, NumberV>(`
+    new Fetcher<{bep20: Bep20, owner: AddressV, spender: AddressV}, NumberV>(`
         #### Allowance
 
         * "Bep20 <Bep20> Allowance owner:<Address> spender:<Address>" - Returns the BEP-20 allowance from owner to spender
@@ -145,16 +145,16 @@ export function erc20Fetchers() {
       `,
       "Allowance",
       [
-        new Arg("erc20", getBep20V),
+        new Arg("bep20", getBep20V),
         new Arg("owner", getAddressV),
         new Arg("spender", getAddressV)
       ],
-      (world, {erc20, owner, spender}) => getAllowance(world, erc20, owner.val, spender.val),
+      (world, {bep20, owner, spender}) => getAllowance(world, bep20, owner.val, spender.val),
       {namePos: 1}
     )
   ];
 }
 
 export async function getBep20Value(world: World, event: Event): Promise<Value> {
-  return await getFetcherValue<any, any>("Bep20", erc20Fetchers(), world, event);
+  return await getFetcherValue<any, any>("Bep20", bep20Fetchers(), world, event);
 }

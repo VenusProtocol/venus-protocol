@@ -178,19 +178,19 @@ Test "Two users Mint, one redeems"
 
 Test "Redeem transfer out fails"
     NewComptroller
-    ListedVToken EVL cEVL initialExchangeRate:1e9 tokenType:Evil
+    ListedVToken EVL vEVL initialExchangeRate:1e9 tokenType:Evil
     Bep20 EVL SetFail False
-    Prep Geoff 70e18 EVL cEVL
-    Mint Geoff 50e18 cEVL
+    Prep Geoff 70e18 EVL vEVL
+    Mint Geoff 50e18 vEVL
     -- Check current affairs
-    Invariant Remains (Bep20 cEVL TokenBalance Geoff) 500e8
+    Invariant Remains (Bep20 vEVL TokenBalance Geoff) 500e8
     Invariant Remains (Bep20 EVL TokenBalance Geoff) 20e18
-    Invariant Static (VToken cEVL ExchangeRateStored)
+    Invariant Static (VToken vEVL ExchangeRateStored)
     -- Now redeem after some time
     FastForward 2 Blocks
     Bep20 EVL SetFail True
     AllowFailures
-    Redeem Geoff 500e8 cEVL
+    Redeem Geoff 500e8 vEVL
     Assert Revert "revert TOKEN_TRANSFER_OUT_FAILED"
 
 Test "Mint, Enter, then Redeem Too Much (collateral factor: 0)"

@@ -15,7 +15,7 @@ const VBep20DelegatorScenario = getTestContract('VBep20DelegatorScenario');
 const VBNBContract = getContract('VBNB');
 const VBep20ScenarioContract = getTestContract('VBep20Scenario');
 const VBNBScenarioContract = getTestContract('VBNBScenario');
-const CEvilContract = getTestContract('CEvil');
+const CEvilContract = getTestContract('VEvil');
 
 export interface TokenData {
   invokation: Invokation<VToken>;
@@ -305,12 +305,12 @@ export async function buildVToken(
     ),
 
     new Fetcher<{symbol: StringV, name: StringV, decimals: NumberV, admin: AddressV, underlying: AddressV, comptroller: AddressV, interestRateModel: AddressV, initialExchangeRate: NumberV}, TokenData>(`
-        #### CEvil
+        #### VEvil
 
-        * "CEvil symbol:<String> name:<String> underlying:<Address> comptroller:<Address> interestRateModel:<Address> initialExchangeRate:<Number> decimals:<Number> admin: <Address>" - A malicious VToken contract
-          * E.g. "VToken Deploy CEvil cEVL \"Venus EVL\" (Bep20 ZRX Address) (Comptroller Address) (InterestRateModel Address) 1.0 8"
+        * "VEvil symbol:<String> name:<String> underlying:<Address> comptroller:<Address> interestRateModel:<Address> initialExchangeRate:<Number> decimals:<Number> admin: <Address>" - A malicious VToken contract
+          * E.g. "VToken Deploy VEvil vEVL \"Venus EVL\" (Bep20 ZRX Address) (Comptroller Address) (InterestRateModel Address) 1.0 8"
       `,
-      "CEvil",
+      "VEvil",
       [
         new Arg("symbol", getStringV),
         new Arg("name", getStringV),
@@ -328,7 +328,7 @@ export async function buildVToken(
           symbol: symbol.val,
           decimals: decimals.toNumber(),
           underlying: underlying.val,
-          contract: 'CEvil',
+          contract: 'VEvil',
           initial_exchange_rate_mantissa: initialExchangeRate.encode().toString(),
           admin: admin.val
         };

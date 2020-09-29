@@ -40,7 +40,7 @@ export interface TokenData {
   contract: string
 }
 
-export async function buildBep20(world: World, from: string, event: Event): Promise<{ world: World, erc20: Bep20, tokenData: TokenData }> {
+export async function buildBep20(world: World, from: string, event: Event): Promise<{ world: World, bep20: Bep20, tokenData: TokenData }> {
   const fetchers = [
     new Fetcher<{ symbol: StringV, address: AddressV, name: StringV }, TokenData>(`
         #### Existing
@@ -254,12 +254,12 @@ export async function buildBep20(world: World, from: string, event: Event): Prom
   if (invokation.error) {
     throw invokation.error;
   }
-  const erc20 = invokation.value!;
-  tokenData.address = erc20._address;
+  const bep20 = invokation.value!;
+  tokenData.address = bep20._address;
 
   world = await storeAndSaveContract(
     world,
-    erc20,
+    bep20,
     tokenData.symbol,
     invokation,
     [
@@ -267,5 +267,5 @@ export async function buildBep20(world: World, from: string, event: Event): Prom
     ]
   );
 
-  return {world, erc20, tokenData};
+  return {world, bep20, tokenData};
 }

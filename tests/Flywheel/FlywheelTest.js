@@ -28,7 +28,7 @@ async function totalVenusAccrued(comptroller, user) {
 
 describe('Flywheel', () => {
   let root, a1, a2, a3, accounts;
-  let comptroller, vLOW, vREP, vZRX, cEVIL;
+  let comptroller, vLOW, vREP, vZRX, vEVIL;
   beforeEach(async () => {
     let interestRateModelOpts = {borrowRate: 0.000001};
     [root, a1, a2, a3, ...accounts] = saddle.accounts;
@@ -36,7 +36,7 @@ describe('Flywheel', () => {
     vLOW = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 1, interestRateModelOpts});
     vREP = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 2, interestRateModelOpts});
     vZRX = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 3, interestRateModelOpts});
-    cEVIL = await makeVToken({comptroller, supportMarket: false, underlyingPrice: 3, interestRateModelOpts});
+    vEVIL = await makeVToken({comptroller, supportMarket: false, underlyingPrice: 3, interestRateModelOpts});
     await send(comptroller, '_addVenusMarkets', [[vLOW, vREP, vZRX].map(c => c._address)]);
   });
 
@@ -489,7 +489,7 @@ describe('Flywheel', () => {
 
       await fastForward(comptroller, deltaBlocks);
 
-      await expect(send(comptroller, 'claimVenus', [claimAccts, [vLOW._address, cEVIL._address], true, true])).rejects.toRevert('revert market must be listed');
+      await expect(send(comptroller, 'claimVenus', [claimAccts, [vLOW._address, vEVIL._address], true, true])).rejects.toRevert('revert market must be listed');
     });
 
 

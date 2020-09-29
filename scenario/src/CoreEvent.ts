@@ -18,7 +18,7 @@ import { processUnitrollerEvent, unitrollerCommands } from './Event/UnitrollerEv
 import { comptrollerImplCommands, processComptrollerImplEvent } from './Event/ComptrollerImplEvent';
 import { vTokenCommands, processVTokenEvent } from './Event/VTokenEvent';
 import { vTokenDelegateCommands, processVTokenDelegateEvent } from './Event/VTokenDelegateEvent';
-import { erc20Commands, processBep20Event } from './Event/Bep20Event';
+import { bep20Commands, processBep20Event } from './Event/Bep20Event';
 import { interestRateModelCommands, processInterestRateModelEvent } from './Event/InterestRateModelEvent';
 import { priceOracleCommands, processPriceOracleEvent } from './Event/PriceOracleEvent';
 import { priceOracleProxyCommands, processPriceOracleProxyEvent } from './Event/PriceOracleProxyEvent';
@@ -706,7 +706,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     'Bep20',
     [new Arg('event', getEventV, { variadic: true })],
     (world, from, { event }) => processBep20Event(world, event.val, from),
-    { subExpressions: erc20Commands() }
+    { subExpressions: bep20Commands() }
   ),
 
   new Command<{ event: EventV }>(

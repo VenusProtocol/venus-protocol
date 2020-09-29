@@ -640,7 +640,7 @@ export function vTokenCommands() {
         #### EvilSeize
 
         * "VToken <vToken> EvilSeize treasure:<Token> liquidator:<User> borrower:<User> seizeTokens:<Number>" - Improperly seizes a given number of tokens from a user
-          * E.g. "VToken cEVL EvilSeize vZRX Geoff Torrey 1.0e18"
+          * E.g. "VToken vEVL EvilSeize vZRX Geoff Torrey 1.0e18"
       `,
       "EvilSeize",
       [

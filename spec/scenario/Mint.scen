@@ -67,14 +67,14 @@ Test "Mint accrues no interest without borrows"
 
 Test "Mint transfer in fails"
     NewComptroller
-    ListedVToken EVL cEVL tokenType:Evil
-    Prep Geoff Some EVL cEVL
-    Prep Torrey Some EVL cEVL
-    Invariant Static (Bep20 cEVL TokenBalance Geoff)
-    Invariant Static (Bep20 cEVL TotalSupply)
+    ListedVToken EVL vEVL tokenType:Evil
+    Prep Geoff Some EVL vEVL
+    Prep Torrey Some EVL vEVL
+    Invariant Static (Bep20 vEVL TokenBalance Geoff)
+    Invariant Static (Bep20 vEVL TotalSupply)
     Invariant Static (Bep20 EVL TotalSupply)
     AllowFailures
-    Mint Geoff 2e18 cEVL
+    Mint Geoff 2e18 vEVL
     Assert Revert "revert TOKEN_TRANSFER_IN_FAILED"
 
 Test "Denied by comptroller because unlisted"

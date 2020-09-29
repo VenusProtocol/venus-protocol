@@ -23,7 +23,7 @@ import { comptrollerImplFetchers, getComptrollerImplValue } from './Value/Comptr
 import { getUnitrollerValue, unitrollerFetchers } from './Value/UnitrollerValue';
 import { vTokenFetchers, getVTokenValue } from './Value/VTokenValue';
 import { vTokenDelegateFetchers, getVTokenDelegateValue } from './Value/VTokenDelegateValue';
-import { erc20Fetchers, getBep20Value } from './Value/Bep20Value';
+import { bep20Fetchers, getBep20Value } from './Value/Bep20Value';
 import { mcdFetchers, getMCDValue } from './Value/MCDValue';
 import { getInterestRateModelValue, interestRateModelFetchers } from './Value/InterestRateModelValue';
 import { getPriceOracleValue, priceOracleFetchers } from './Value/PriceOracleValue';
@@ -870,12 +870,12 @@ const fetchers = [
     `
       #### Bep20
 
-      * "Bep20 ...erc20Args" - Returns Bep20 value
+      * "Bep20 ...bep20Args" - Returns Bep20 value
     `,
     'Bep20',
     [new Arg('res', getBep20Value, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: erc20Fetchers() }
+    { subExpressions: bep20Fetchers() }
   ),
   new Fetcher<{ res: Value }, Value>(
     `
