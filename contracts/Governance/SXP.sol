@@ -10,7 +10,7 @@ pragma solidity ^0.5.16;
 
 // Name        : Swipe
 
-// Total supply: 300,000,000.000000000000000000
+// Total supply: 289,714,926.000000000000000000
 
 // Decimals    : 18
 
@@ -124,7 +124,7 @@ contract SwipeToken is Tokenlock, UserLock {
     uint8 public constant decimals = 18;
 
     /// @notice Total number of tokens in circulation
-    uint96 public totalSupply; // 300 million SXP
+    uint96 public totalSupply; // 289,714,926 SXP
 
     mapping(address => mapping(address => uint)) allowed;
     
