@@ -24,7 +24,7 @@ contract GovernorAlpha {
     TimelockInterface public timelock;
 
     /// @notice The address of the Venus governance token
-    CompInterface public xvs;
+    XVSInterface public xvs;
 
     /// @notice The address of the Governor Guardian
     address public guardian;
@@ -129,7 +129,7 @@ contract GovernorAlpha {
 
     constructor(address timelock_, address comp_, address guardian_) public {
         timelock = TimelockInterface(timelock_);
-        xvs = CompInterface(comp_);
+        xvs = XVSInterface(comp_);
         guardian = guardian_;
     }
 
@@ -326,6 +326,6 @@ interface TimelockInterface {
     function executeTransaction(address target, uint value, string calldata signature, bytes calldata data, uint eta) external payable returns (bytes memory);
 }
 
-interface CompInterface {
+interface XVSInterface {
     function getPriorVotes(address account, uint blockNumber) external view returns (uint96);
 }

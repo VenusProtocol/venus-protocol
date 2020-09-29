@@ -20393,7 +20393,7 @@
       "name": "xvs",
       "outputs": [
         {
-          "internalType": "contract CompInterface",
+          "internalType": "contract XVSInterface",
           "name": "",
           "type": "address"
         }
