@@ -46,9 +46,9 @@ contract VenusLens {
             underlyingAssetAddress = address(0);
             underlyingDecimals = 18;
         } else {
-            VBep20 cBep20 = VBep20(address(vToken));
-            underlyingAssetAddress = cBep20.underlying();
-            underlyingDecimals = EIP20Interface(cBep20.underlying()).decimals();
+            VBep20 vBep20 = VBep20(address(vToken));
+            underlyingAssetAddress = vBep20.underlying();
+            underlyingDecimals = EIP20Interface(vBep20.underlying()).decimals();
         }
 
         return VTokenMetadata({
@@ -98,8 +98,8 @@ contract VenusLens {
             tokenBalance = account.balance;
             tokenAllowance = account.balance;
         } else {
-            VBep20 cBep20 = VBep20(address(vToken));
-            EIP20Interface underlying = EIP20Interface(cBep20.underlying());
+            VBep20 vBep20 = VBep20(address(vToken));
+            EIP20Interface underlying = EIP20Interface(vBep20.underlying());
             tokenBalance = underlying.balanceOf(account);
             tokenAllowance = underlying.allowance(account, address(vToken));
         }

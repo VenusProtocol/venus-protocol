@@ -48,7 +48,7 @@ export async function buildComptrollerImpl(
         #### Standard
 
         * "Standard name:<String>" - The standard Comptroller contract
-          * E.g. "Comptroller Deploy Standard MyStandard"
+          * E.g. "ComptrollerImpl Deploy Standard MyStandard"
       `,
       'Standard',
       [new Arg('name', getStringV)],

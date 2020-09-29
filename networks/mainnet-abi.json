@@ -15039,7 +15039,7 @@
             "signature": "constructor"
         }
     ],
-    "cBep20Delegate": [
+    "vBep20Delegate": [
         {
             "inputs": [],
             "payable": false,

@@ -1533,7 +1533,7 @@
       "type": "function"
     }
   ],
-  "cBep20Delegate": [
+  "vBep20Delegate": [
     {
       "inputs": [],
       "payable": false,

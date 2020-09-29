@@ -2,10 +2,10 @@
 
 Test "Change the delegate"
     NewComptroller
-    NewVToken DEL cDEL
-    Support cDEL collateralFactor:0.5
-    Prep Jared Some DEL cDEL
-    Mint Jared 100e18 cDEL
-    VTokenDelegate Deploy VBep20Delegate cBep20Delegate2
-    VToken cDEL SetImplementation (VTokenDelegate cBep20Delegate2 Address) True "0x0"
-    Redeem Jared 50e9 cDEL
+    NewVToken DEL vDEL
+    Support vDEL collateralFactor:0.5
+    Prep Jared Some DEL vDEL
+    Mint Jared 100e18 vDEL
+    VTokenDelegate Deploy VBep20Delegate vBep20Delegate2
+    VToken vDEL SetImplementation (VTokenDelegate vBep20Delegate2 Address) True "0x0"
+    Redeem Jared 50e9 vDEL

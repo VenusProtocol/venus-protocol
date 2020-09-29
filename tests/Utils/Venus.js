@@ -65,7 +65,7 @@ async function makeComptroller(opts = {}) {
 async function makeVToken(opts = {}) {
   const {
     root = saddle.account,
-    kind = 'cbep20'
+    kind = 'vbep20'
   } = opts || {};
 
   const comptroller = opts.comptroller || await makeComptroller(opts.comptrollerOpts);
@@ -77,7 +77,7 @@ async function makeVToken(opts = {}) {
   const admin = opts.admin || root;
 
   let vToken, underlying;
-  let cDelegator, cDelegatee, vDaiMaker;
+  let vDelegator, vDelegatee, vDaiMaker;
 
   switch (kind) {
     case 'vbnb':
@@ -96,8 +96,8 @@ async function makeVToken(opts = {}) {
     case 'vdai':
       vDaiMaker  = await deploy('VDaiDelegateMakerHarness');
       underlying = vDaiMaker;
-      cDelegatee = await deploy('VDaiDelegateHarness');
-      cDelegator = await deploy('VBep20Delegator',
+      vDelegatee = await deploy('VDaiDelegateHarness');
+      vDelegator = await deploy('VBep20Delegator',
         [
           underlying._address,
           comptroller._address,
@@ -107,18 +107,18 @@ async function makeVToken(opts = {}) {
           symbol,
           decimals,
           admin,
-          cDelegatee._address,
+          vDelegatee._address,
           encodeParameters(['address', 'address'], [vDaiMaker._address, vDaiMaker._address])
         ]
       );
-      vToken = await saddle.getContractAt('VDaiDelegateHarness', cDelegator._address); // XXXS at
+      vToken = await saddle.getContractAt('VDaiDelegateHarness', vDelegator._address); // XXXS at
       break;
 
-    case 'cbep20':
+    case 'vbep20':
     default:
       underlying = opts.underlying || await makeToken(opts.underlyingOpts);
-      cDelegatee = await deploy('VBep20DelegateHarness');
-      cDelegator = await deploy('VBep20Delegator',
+      vDelegatee = await deploy('VBep20DelegateHarness');
+      vDelegator = await deploy('VBep20Delegator',
         [
           underlying._address,
           comptroller._address,
@@ -128,11 +128,11 @@ async function makeVToken(opts = {}) {
           symbol,
           decimals,
           admin,
-          cDelegatee._address,
+          vDelegatee._address,
           "0x0"
         ]
       );
-      vToken = await saddle.getContractAt('VBep20DelegateHarness', cDelegator._address); // XXXS at
+      vToken = await saddle.getContractAt('VBep20DelegateHarness', vDelegator._address); // XXXS at
       break;
   }
 

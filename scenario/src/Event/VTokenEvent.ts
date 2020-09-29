@@ -296,12 +296,12 @@ async function becomeImplementation(
   becomeImplementationData: string
 ): Promise<World> {
 
-  const cBep20Delegate = getContract('VBep20Delegate');
-  const cBep20DelegateContract = await cBep20Delegate.at<VBep20Delegate>(world, vToken._address);
+  const vBep20Delegate = getContract('VBep20Delegate');
+  const vBep20DelegateContract = await vBep20Delegate.at<VBep20Delegate>(world, vToken._address);
 
   let invokation = await invoke(
     world,
-    cBep20DelegateContract.methods._becomeImplementation(becomeImplementationData),
+    vBep20DelegateContract.methods._becomeImplementation(becomeImplementationData),
     from,
     VTokenErrorReporter
   );
@@ -324,12 +324,12 @@ async function resignImplementation(
   vToken: VToken,
 ): Promise<World> {
 
-  const cBep20Delegate = getContract('VBep20Delegate');
-  const cBep20DelegateContract = await cBep20Delegate.at<VBep20Delegate>(world, vToken._address);
+  const vBep20Delegate = getContract('VBep20Delegate');
+  const vBep20DelegateContract = await vBep20Delegate.at<VBep20Delegate>(world, vToken._address);
 
   let invokation = await invoke(
     world,
-    cBep20DelegateContract.methods._resignImplementation(),
+    vBep20DelegateContract.methods._resignImplementation(),
     from,
     VTokenErrorReporter
   );

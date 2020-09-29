@@ -32,14 +32,14 @@ Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
 Macro NewVToken bep20 vToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 tokenType=Standard delegatorType=VBep20DelegatorScenario vTokenType=VBep20DelegateScenario admin=Admin becomeImplementationData="0x0"
     Bep20 Deploy tokenType bep20 bep20
     InterestRateModel Deploy Fixed StdInterest borrowRate -- Note: interest rate model probably shouldn't be global
-    VTokenDelegate Deploy vTokenType cBep20Delegate
-    VToken Deploy delegatorType vToken vToken (Bep20 bep20 Address) (Comptroller Address) (InterestRateModel StdInterest Address) initialExchangeRate decimals admin (VTokenDelegate cBep20Delegate Address) becomeImplementationData
+    VTokenDelegate Deploy vTokenType vBep20Delegate
+    VToken Deploy delegatorType vToken vToken (Bep20 bep20 Address) (Comptroller Address) (InterestRateModel StdInterest Address) initialExchangeRate decimals admin (VTokenDelegate vBep20Delegate Address) becomeImplementationData
 
 -- Same as NewVToken but does not deploy an BEP20. Used for special BEP20s that are initialized differently
 Macro NewVTokenBringBEP20 bep20 vToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 delegatorType=VBep20DelegatorScenario vTokenType=VBep20DelegateScenario admin=Admin becomeImplementationData="0x0"
     InterestRateModel Deploy Fixed StdInterest borrowRate -- Note: interest rate model probably shouldn't be global
-    VTokenDelegate Deploy vTokenType cBep20Delegate
-    VToken Deploy delegatorType vToken vToken (Bep20 bep20 Address) (Comptroller Address) (InterestRateModel StdInterest Address) initialExchangeRate decimals admin (VTokenDelegate cBep20Delegate Address) becomeImplementationData
+    VTokenDelegate Deploy vTokenType vBep20Delegate
+    VToken Deploy delegatorType vToken vToken (Bep20 bep20 Address) (Comptroller Address) (InterestRateModel StdInterest Address) initialExchangeRate decimals admin (VTokenDelegate vBep20Delegate Address) becomeImplementationData
 
 Macro NewVTokenImmutable bep20 vToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 tokenType=Standard vTokenType=Scenario admin=Admin
     Bep20 Deploy tokenType bep20 bep20

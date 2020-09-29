@@ -35,8 +35,8 @@ Macro DeployVDAI
     ForkMCD
     NewComptroller
     InterestRateModel Deploy Fixed StdInterest 0.000005
-    VTokenDelegate Deploy VBep20Delegate cBep20Delegate
-    From VTokenAdmin (VToken Deploy VBep20Delegator vDAI vDAI (Bep20 DAI Address) (Comptroller Address) (InterestRateModel StdInterest Address) 1e9 8 VTokenAdmin (VTokenDelegate cBep20Delegate Address) "0x0")
+    VTokenDelegate Deploy VBep20Delegate vBep20Delegate
+    From VTokenAdmin (VToken Deploy VBep20Delegator vDAI vDAI (Bep20 DAI Address) (Comptroller Address) (InterestRateModel StdInterest Address) 1e9 8 VTokenAdmin (VTokenDelegate vBep20Delegate Address) "0x0")
     Comptroller SupportMarket vDAI
 
 Macro UpgradeToDSR
@@ -131,7 +131,7 @@ Pending "Mint, upgrade to DSR and then downgrade to vanilla delegate"
     Assert Approx (VToken vDAI Cash) 1e18
     Assert Approx (MCD PotAt PotAddress "pie" (VToken vDAI Address)) 1e18
     -- Downgrade
-    From VTokenAdmin (VToken vDAI SetImplementation (VTokenDelegate cBep20Delegate Address) True "0x0")
+    From VTokenAdmin (VToken vDAI SetImplementation (VTokenDelegate vBep20Delegate Address) True "0x0")
     Assert Approx (Bep20 DAI TokenBalance vDAI) 1e18
     Assert Approx (VToken vDAI Cash) 1e18
 

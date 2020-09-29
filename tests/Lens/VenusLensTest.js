@@ -30,13 +30,13 @@ describe('VenusLens', () => {
   });
 
   describe('vTokenMetadata', () => {
-    it('is correct for a cBep20', async () => {
-      let cBep20 = await makeVToken();
+    it('is correct for a vBep20', async () => {
+      let vBep20 = await makeVToken();
       expect(
-        cullTuple(await call(VenusLens, 'vTokenMetadata', [cBep20._address]))
+        cullTuple(await call(VenusLens, 'vTokenMetadata', [vBep20._address]))
       ).toEqual(
         {
-          vToken: cBep20._address,
+          vToken: vBep20._address,
           exchangeRateCurrent: "1000000000000000000",
           supplyRatePerBlock: "0",
           borrowRatePerBlock: "0",
@@ -47,7 +47,7 @@ describe('VenusLens', () => {
           totalCash: "0",
           isListed:false,
           collateralFactorMantissa: "0",
-          underlyingAssetAddress: await call(cBep20, 'underlying', []),
+          underlyingAssetAddress: await call(vBep20, 'underlying', []),
           vTokenDecimals: "8",
           underlyingDecimals: "18"
         }
@@ -78,14 +78,14 @@ describe('VenusLens', () => {
   });
 
   describe('vTokenMetadataAll', () => {
-    it('is correct for a cBep20 and vBnb', async () => {
-      let cBep20 = await makeVToken();
+    it('is correct for a vBep20 and vBnb', async () => {
+      let vBep20 = await makeVToken();
       let vBnb = await makeVToken({kind: 'vbnb'});
       expect(
-        (await call(VenusLens, 'vTokenMetadataAll', [[cBep20._address, vBnb._address]])).map(cullTuple)
+        (await call(VenusLens, 'vTokenMetadataAll', [[vBep20._address, vBnb._address]])).map(cullTuple)
       ).toEqual([
         {
-          vToken: cBep20._address,
+          vToken: vBep20._address,
           exchangeRateCurrent: "1000000000000000000",
           supplyRatePerBlock: "0",
           borrowRatePerBlock: "0",
@@ -96,7 +96,7 @@ describe('VenusLens', () => {
           totalCash: "0",
           isListed:false,
           collateralFactorMantissa: "0",
-          underlyingAssetAddress: await call(cBep20, 'underlying', []),
+          underlyingAssetAddress: await call(vBep20, 'underlying', []),
           vTokenDecimals: "8",
           underlyingDecimals: "18"
         },
@@ -121,16 +121,16 @@ describe('VenusLens', () => {
   });
 
   describe('vTokenBalances', () => {
-    it('is correct for cBEP20', async () => {
-      let cBep20 = await makeVToken();
+    it('is correct for vBEP20', async () => {
+      let vBep20 = await makeVToken();
       expect(
-        cullTuple(await call(VenusLens, 'vTokenBalances', [cBep20._address, acct]))
+        cullTuple(await call(VenusLens, 'vTokenBalances', [vBep20._address, acct]))
       ).toEqual(
         {
           balanceOf: "0",
           balanceOfUnderlying: "0",
           borrowBalanceCurrent: "0",
-          vToken: cBep20._address,
+          vToken: vBep20._address,
           tokenAllowance: "0",
           tokenBalance: "10000000000000000000000000",
         }
@@ -156,19 +156,19 @@ describe('VenusLens', () => {
   });
 
   describe('vTokenBalancesAll', () => {
-    it('is correct for vBnb and cBep20', async () => {
-      let cBep20 = await makeVToken();
+    it('is correct for vBnb and vBep20', async () => {
+      let vBep20 = await makeVToken();
       let vBnb = await makeVToken({kind: 'vbnb'});
       let bnbBalance = await web3.eth.getBalance(acct);
       
       expect(
-        (await call(VenusLens, 'vTokenBalancesAll', [[cBep20._address, vBnb._address], acct], {gasPrice: '0'})).map(cullTuple)
+        (await call(VenusLens, 'vTokenBalancesAll', [[vBep20._address, vBnb._address], acct], {gasPrice: '0'})).map(cullTuple)
       ).toEqual([
         {
           balanceOf: "0",
           balanceOfUnderlying: "0",
           borrowBalanceCurrent: "0",
-          vToken: cBep20._address,
+          vToken: vBep20._address,
           tokenAllowance: "0",
           tokenBalance: "10000000000000000000000000",
         },
@@ -185,13 +185,13 @@ describe('VenusLens', () => {
   });
 
   describe('vTokenUnderlyingPrice', () => {
-    it('gets correct price for cBep20', async () => {
-      let cBep20 = await makeVToken();
+    it('gets correct price for vBep20', async () => {
+      let vBep20 = await makeVToken();
       expect(
-        cullTuple(await call(VenusLens, 'vTokenUnderlyingPrice', [cBep20._address]))
+        cullTuple(await call(VenusLens, 'vTokenUnderlyingPrice', [vBep20._address]))
       ).toEqual(
         {
-          vToken: cBep20._address,
+          vToken: vBep20._address,
           underlyingPrice: "0",
         }
       );
@@ -212,13 +212,13 @@ describe('VenusLens', () => {
 
   describe('vTokenUnderlyingPriceAll', () => {
     it('gets correct price for both', async () => {
-      let cBep20 = await makeVToken();
+      let vBep20 = await makeVToken();
       let vBnb = await makeVToken({kind: 'vbnb'});
       expect(
-        (await call(VenusLens, 'vTokenUnderlyingPriceAll', [[cBep20._address, vBnb._address]])).map(cullTuple)
+        (await call(VenusLens, 'vTokenUnderlyingPriceAll', [[vBep20._address, vBnb._address]])).map(cullTuple)
       ).toEqual([
         {
-          vToken: cBep20._address,
+          vToken: vBep20._address,
           underlyingPrice: "0",
         },
         {

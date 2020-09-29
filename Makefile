@@ -97,7 +97,7 @@ spec/certora/VBep20/%.cvl:
 	 VTokenCollateral:underlying=UnderlyingModelNonStandard \
 	--verify \
 	 VBep20ImmutableCertora:$@ \
-	--settings -cache=certora-run-cbep20-immutable
+	--settings -cache=certora-run-vbep20-immutable
 
 spec/certora/VBep20Delegator/%.cvl:
 	$(CERTORA_RUN) \
@@ -118,7 +118,7 @@ spec/certora/VBep20Delegator/%.cvl:
 	--verify \
 	 VBep20DelegatorCertora:$@ \
 	--settings -assumeUnwindCond \
-	--settings -cache=certora-run-cbep20-delegator
+	--settings -cache=certora-run-vbep20-delegator
 
 spec/certora/Maximillion/%.cvl:
 	$(CERTORA_RUN) \
