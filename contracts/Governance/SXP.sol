@@ -246,7 +246,11 @@ contract SXP is BEP20Interface, Tokenlock, UserLock {
      */
     function transferFrom(address sender, address recipient, uint256 amount) external validLock permissionCheck returns (bool) {
         _transfer(sender, recipient, amount);
-        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "The transfer amount exceeds allowance"));
+        address spender = _msgSender();
+        uint256 spenderAllowance = _allowances[sender][spender];
+        if (spenderAllowance != uint256(-1)) {
+            _approve(sender, spender, spenderAllowance.sub(amount, "The transfer amount exceeds allowance"));
+        }
         return true;
     }
 
