@@ -1,47 +1,21 @@
 pragma solidity ^0.5.16;
 
 // ----------------------------------------------------------------------------
-
 // 'SXP' 'Swipe' BEP20 token contract
-
 //
-
 // Symbol      : SXP
-
 // Name        : Swipe
-
 // Total supply: 289,714,926.000000000000000000
-
 // Decimals    : 18
-
 // Website     : https://swipe.io
-
+//
 // ----------------------------------------------------------------------------
 
+import "../SafeMath.sol";
+import "../Ownable.sol";
+import "../BEP20Interface.sol";
 
-
-contract Owned {
-
-    address public owner;
-
-    event OwnershipTransferred(address indexed _from, address indexed _to);
-
-    constructor() public {
-        owner = msg.sender;
-    }
-
-    modifier onlyOwner {
-        require(msg.sender == owner, "Should be owner");
-        _;
-    }
-
-    function transferOwnership(address newOwner) public onlyOwner {
-        owner = newOwner;
-        emit OwnershipTransferred(owner, newOwner);
-    }
-}
-
-contract Tokenlock is Owned {
+contract Tokenlock is Ownable {
     /// @notice Indicates if token is locked
     uint8 isLocked = 0;
 
@@ -67,35 +41,25 @@ contract Tokenlock is Owned {
 }
 
 // ----------------------------------------------------------------------------
-
 // Contract function to receive approval and execute function in one call
-
 //
-
 // Borrowed from MiniMeToken
-
 // ----------------------------------------------------------------------------
-
 contract ApproveAndCallFallBack {
-
     function receiveApproval(address from, uint256 tokens, address token, bytes memory data) public;
-
 }
 
 // ----------------------------------------------------------------------------
-
 // Limit users in blacklist
-
 // ----------------------------------------------------------------------------
-contract UserLock is Owned {
-    
+contract UserLock is Ownable {
     mapping(address => bool) blacklist;
         
     event LockUser(address indexed who);
     event UnlockUser(address indexed who);
 
     modifier permissionCheck {
-        require(!blacklist[msg.sender]);
+        require(!blacklist[msg.sender], "Blocked user");
         _;
     }
     
@@ -112,27 +76,26 @@ contract UserLock is Owned {
     }
 }
 
-contract SwipeToken is Tokenlock, UserLock {
-    
-    /// @notice BEP-20 token name for this token
-    string public constant name = "Swipe";
-
-    /// @notice BEP-20 token symbol for this token
-    string public constant symbol = "SXP";
-
-    /// @notice BEP-20 token decimals for this token
-    uint8 public constant decimals = 18;
-
-    /// @notice Total number of tokens in circulation
-    uint96 public totalSupply; // 289,714,926 SXP
-
-    mapping(address => mapping(address => uint)) allowed;
-    
-    /// @notice Allowance amounts on behalf of others
-    mapping (address => mapping (address => uint96)) internal allowances;
+contract SXP is BEP20Interface, Tokenlock, UserLock {
+    using SafeMath for uint256;
 
     /// @notice Official record of token balances for each account
-    mapping (address => uint96) internal balances;
+    mapping (address => uint256) private _balances;
+
+    /// @notice Allowance amounts on behalf of others
+    mapping (address => mapping (address => uint256)) private _allowances;
+
+    /// @notice Total number of tokens in circulation
+    uint256 private _totalSupply;
+
+    /// @notice BEP-20 token decimals for this token
+    uint8 private _decimals;
+
+    /// @notice BEP-20 token symbol for this token
+    string private _symbol;
+
+    /// @notice BEP-20 token name for this token
+    string private _name;
 
     /// @notice A record of each accounts delegate
     mapping (address => address) public delegates;
@@ -140,7 +103,7 @@ contract SwipeToken is Tokenlock, UserLock {
     /// @notice A checkpoint for marking number of votes from a given block
     struct Checkpoint {
         uint32 fromBlock;
-        uint96 votes;
+        uint256 votes;
     }
 
     /// @notice A record of votes checkpoints for each account, by index
@@ -156,13 +119,13 @@ contract SwipeToken is Tokenlock, UserLock {
     bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
     /// @notice A record of states for signing / validating signatures
-    mapping (address => uint) public nonces;
+    mapping (address => uint256) public nonces;
 
     /// @notice An event thats emitted when an account changes its delegate
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
     /// @notice An event thats emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
+    event DelegateVotesChanged(address indexed delegate, uint256 previousBalance, uint256 newBalance);
 
     /// @notice The standard BEP-20 transfer event
     event Transfer(address indexed from, address indexed to, uint256 amount);
@@ -171,44 +134,52 @@ contract SwipeToken is Tokenlock, UserLock {
     event Approval(address indexed owner, address indexed spender, uint256 amount);
 
     /**
-     * @notice Construct a new XVS token
+     * @notice Construct a new SXP token
      * @param account The initial account to grant all the tokens
      */
     constructor(address account) public {
-        totalSupply = 289714926e18;
-        balances[account] = uint96(totalSupply);
-        emit Transfer(address(0), account, totalSupply);
+        _name = "Swipe";
+        _symbol = "SXP";
+        _decimals = 18;
+        _totalSupply = 289714926e18;
+        _balances[account] = _totalSupply;
+
+        emit Transfer(address(0), account, _totalSupply);
     }
 
     /**
-     * @notice Get the number of tokens `spender` is approved to spend on behalf of `account`
-     * @param account The address of the account holding the funds
-     * @param spender The address of the account spending the funds
-     * @return The number of tokens approved
-     */
-    function allowance(address account, address spender) external view returns (uint) {
-        return allowances[account][spender];
+     * @dev Returns the bep token owner.
+    */
+    function getOwner() external view returns (address) {
+        return owner();
     }
 
     /**
-     * @notice Approve `spender` to transfer up to `amount` from `src`
-     * @dev This will overwrite the approval amount for `spender`
-     * @param spender The address of the account which may transfer tokens
-     * @param rawAmount The number of tokens that are approved (2^256-1 means infinite)
-     * @return Whether or not the approval succeeded
-     */
-    function approve(address spender, uint rawAmount) external validLock permissionCheck returns (bool) {
-        uint96 amount;
-        if (rawAmount == uint(-1)) {
-            amount = uint96(-1);
-        } else {
-            amount = safe96(rawAmount, "XVS::approve: amount exceeds 96 bits");
-        }
+     * @dev Returns the token decimals.
+    */
+    function decimals() external view returns (uint8) {
+        return _decimals;
+    }
 
-        allowances[msg.sender][spender] = amount;
+    /**
+     * @dev Returns the token symbol.
+    */
+    function symbol() external view returns (string memory) {
+        return _symbol;
+    }
 
-        emit Approval(msg.sender, spender, amount);
-        return true;
+    /**
+     * @dev Returns the token name.
+    */
+    function name() external view returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev Returns the total supply.
+    */
+    function totalSupply() external view returns (uint256) {
+        return _totalSupply;
     }
 
     /**
@@ -216,42 +187,107 @@ contract SwipeToken is Tokenlock, UserLock {
      * @param account The address of the account to get the balance of
      * @return The number of tokens held
      */
-    function balanceOf(address account) external view returns (uint) {
-        return balances[account];
+    function balanceOf(address account) external view returns (uint256) {
+        return _balances[account];
     }
 
     /**
      * @notice Transfer `amount` tokens from `msg.sender` to `dst`
-     * @param dst The address of the destination account
-     * @param rawAmount The number of tokens to transfer
+     * @param recipient The address of the destination account
+     * @param amount The number of tokens to transfer
      * @return Whether or not the transfer succeeded
      */
-    function transfer(address dst, uint rawAmount) external validLock permissionCheck returns (bool) {
-        uint96 amount = safe96(rawAmount, "XVS::transfer: amount exceeds 96 bits");
-        _transferTokens(msg.sender, dst, amount);
+    function transfer(address recipient, uint256 amount) external validLock permissionCheck returns (bool) {
+        _transfer(_msgSender(), recipient, amount);
+        return true;
+    }
+
+    /**
+     * @notice Get the number of tokens `spender` is approved to spend on behalf of `account`
+     * @param owner The address of the account holding the funds
+     * @param spender The address of the account spending the funds
+     * @return The number of tokens approved
+     */
+    function allowance(address owner, address spender) external view returns (uint256) {
+        return _allowances[owner][spender];
+    }
+
+    /**
+     * @notice Approve `spender` to transfer up to `amount` from `src`
+     * @dev This will overwrite the approval amount for `spender`
+     * @param spender The address of the account which may transfer tokens
+     * @param amount The number of tokens that are approved (2^256-1 means infinite)
+     * @return Whether or not the approval succeeded
+     */
+    function approve(address spender, uint256 amount) external validLock permissionCheck returns (bool) {
+        _approve(_msgSender(), spender, amount);
+        return true;
+    }
+
+    /**
+     * @notice Approve the spender to transferFrom(...) with the amount.
+     * @dev receiveApproval(...) is executed.
+     * @param amount The number of tokens that are approved
+     * @param data The data to pass to receiveApproval(...)
+     * @return true
+     */
+    function approveAndCall(address spender, uint256 amount, bytes memory data) public validLock permissionCheck returns (bool) {
+        _approve(_msgSender(), spender, amount);
+        ApproveAndCallFallBack(spender).receiveApproval(_msgSender(), amount, address(this), data);
         return true;
     }
 
     /**
      * @notice Transfer `amount` tokens from `src` to `dst`
-     * @param src The address of the source account
-     * @param dst The address of the destination account
-     * @param rawAmount The number of tokens to transfer
+     * @param sender The address of the source account
+     * @param recipient The address of the destination account
+     * @param amount The number of tokens to transfer
      * @return Whether or not the transfer succeeded
      */
-    function transferFrom(address src, address dst, uint rawAmount) external validLock permissionCheck returns (bool) {
-        address spender = msg.sender;
-        uint96 spenderAllowance = allowances[src][spender];
-        uint96 amount = safe96(rawAmount, "XVS::approve: amount exceeds 96 bits");
-
-        if (spender != src && spenderAllowance != uint96(-1)) {
-            uint96 newAllowance = sub96(spenderAllowance, amount, "XVS::transferFrom: transfer amount exceeds spender allowance");
-            allowances[src][spender] = newAllowance;
-
-            emit Approval(src, spender, newAllowance);
+    function transferFrom(address sender, address recipient, uint256 amount) external validLock permissionCheck returns (bool) {
+        _transfer(sender, recipient, amount);
+        address spender = _msgSender();
+        uint256 spenderAllowance = _allowances[sender][spender];
+        if (spenderAllowance != uint256(-1)) {
+            _approve(sender, spender, spenderAllowance.sub(amount, "The transfer amount exceeds allowance"));
         }
+        return true;
+    }
 
-        _transferTokens(src, dst, amount);
+    /**
+     * @notice Atomically increases the allowance granted to `spender` by the caller
+     * @dev This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {BEP20-approve}.
+     * @param spender The address of the account which may transfer tokens
+     * @param addedValue The additional number of tokens to allow which may be spent
+     * @return Whether or not the approval succeeded
+     */
+    function increaseAllowance(address spender, uint256 addedValue) public validLock permissionCheck returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue, "The increased allowance overflows"));
+        return true;
+    }
+
+    /**
+     * @notice Atomically increases the allowance granted to `spender` by the caller
+     * @dev This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {BEP20-approve}.
+     * @param spender The address of the account which may transfer tokens
+     * @param subtractedValue The subtractional number of tokens to allow which may be spent
+     * @return Whether or not the approval succeeded
+     */
+    function decreaseAllowance(address spender, uint256 subtractedValue) public validLock permissionCheck returns (bool) {
+        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "The decreased allowance below zero"));
+        return true;
+    }
+
+    /**
+     * @notice Destroy the amount of tokens from the sender, reducing the total supply.
+     * @dev The amount must be greater than balance, total supply.
+     * @param amount The number of tokens that are burnt
+     * @return true
+     */
+    function burn(uint256 amount) public validLock permissionCheck returns (bool) {
+        _burn(_msgSender(), amount);
         return true;
     }
 
@@ -260,7 +296,7 @@ contract SwipeToken is Tokenlock, UserLock {
      * @param delegatee The address to delegate votes to
      */
     function delegate(address delegatee) public validLock permissionCheck {
-        return _delegate(msg.sender, delegatee);
+        return _delegate(_msgSender(), delegatee);
     }
 
     /**
@@ -272,14 +308,14 @@ contract SwipeToken is Tokenlock, UserLock {
      * @param r Half of the ECDSA signature pair
      * @param s Half of the ECDSA signature pair
      */
-    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s) public validLock permissionCheck {
-        bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainId(), address(this)));
+    function delegateBySig(address delegatee, uint256 nonce, uint256 expiry, uint8 v, bytes32 r, bytes32 s) public validLock permissionCheck {
+        bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(_name)), getChainId(), address(this)));
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "XVS::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "XVS::delegateBySig: invalid nonce");
-        require(now <= expiry, "XVS::delegateBySig: signature expired");
+        require(signatory != address(0), "Invalid signature");
+        require(nonce == nonces[signatory]++, "Invalid nonce");
+        require(now <= expiry, "The signature expired");
         return _delegate(signatory, delegatee);
     }
 
@@ -290,7 +326,7 @@ contract SwipeToken is Tokenlock, UserLock {
      */
     function getCurrentVotes(address account) external view returns (uint96) {
         uint32 nCheckpoints = numCheckpoints[account];
-        return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
+        return nCheckpoints > 0 ? ceil96(checkpoints[account][nCheckpoints - 1].votes) : 0;
     }
 
     /**
@@ -300,8 +336,8 @@ contract SwipeToken is Tokenlock, UserLock {
      * @param blockNumber The block number to get the vote balance at
      * @return The number of votes the account had as of the given block
      */
-    function getPriorVotes(address account, uint blockNumber) public view returns (uint96) {
-        require(blockNumber < block.number, "XVS::getPriorVotes: not yet determined");
+    function getPriorVotes(address account, uint256 blockNumber) public view returns (uint96) {
+        require(blockNumber < block.number, "Not determined yet");
 
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) {
@@ -310,7 +346,7 @@ contract SwipeToken is Tokenlock, UserLock {
 
         // First check most recent balance
         if (checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
-            return checkpoints[account][nCheckpoints - 1].votes;
+            return ceil96(checkpoints[account][nCheckpoints - 1].votes);
         }
 
         // Next check implicit zero balance
@@ -324,19 +360,48 @@ contract SwipeToken is Tokenlock, UserLock {
             uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
             Checkpoint memory cp = checkpoints[account][center];
             if (cp.fromBlock == blockNumber) {
-                return cp.votes;
+                return ceil96(cp.votes);
             } else if (cp.fromBlock < blockNumber) {
                 lower = center;
             } else {
                 upper = center - 1;
             }
         }
-        return checkpoints[account][lower].votes;
+        return ceil96(checkpoints[account][lower].votes);
+    }
+
+    function _transfer(address sender, address recipient, uint256 amount) internal {
+        require(sender != address(0), "Cannot transfer from the zero address");
+        require(recipient != address(0), "Cannot transfer to the zero address");
+
+        _balances[sender] = _balances[sender].sub(amount, "The transfer amount exceeds balance");
+        _balances[recipient] = _balances[recipient].add(amount, "The balance overflows");
+        emit Transfer(sender, recipient, amount);
+
+        _moveDelegates(delegates[sender], delegates[recipient], amount);
+    }
+
+    function _approve(address owner, address spender, uint256 amount) internal {
+        require(owner != address(0), "Cannot approve from the zero address");
+        require(spender != address(0), "Cannot approve to the zero address");
+
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    function _burn(address account, uint256 amount) internal {
+        require(account != address(0), "Cannot burn from the zero address");
+
+        _balances[account] = _balances[account].sub(amount, "The burn amount exceeds balance");
+        _totalSupply = _totalSupply.sub(amount);
+        emit Transfer(account, address(0), amount);
+
+        _moveDelegates(delegates[account], address(0), amount);
     }
 
     function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = delegates[delegator];
-        uint96 delegatorBalance = balances[delegator];
+        uint256 delegatorBalance = _balances[delegator];
         delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -344,37 +409,26 @@ contract SwipeToken is Tokenlock, UserLock {
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
 
-    function _transferTokens(address src, address dst, uint96 amount) internal {
-        require(src != address(0), "XVS::_transferTokens: cannot transfer from the zero address");
-        require(dst != address(0), "XVS::_transferTokens: cannot transfer to the zero address");
-
-        balances[src] = sub96(balances[src], amount, "XVS::_transferTokens: transfer amount exceeds balance");
-        balances[dst] = add96(balances[dst], amount, "XVS::_transferTokens: transfer amount overflows");
-        emit Transfer(src, dst, amount);
-
-        _moveDelegates(delegates[src], delegates[dst], amount);
-    }
-
-    function _moveDelegates(address srcRep, address dstRep, uint96 amount) internal {
+    function _moveDelegates(address srcRep, address dstRep, uint256 amount) internal {
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
-                uint96 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
-                uint96 srcRepNew = sub96(srcRepOld, amount, "XVS::_moveVotes: vote amount underflows");
+                uint256 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
+                uint256 srcRepNew = srcRepOld.sub(amount, "The vote amount underflows");
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
 
             if (dstRep != address(0)) {
                 uint32 dstRepNum = numCheckpoints[dstRep];
-                uint96 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
-                uint96 dstRepNew = add96(dstRepOld, amount, "XVS::_moveVotes: vote amount overflows");
+                uint256 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
+                uint256 dstRepNew = dstRepOld.add(amount, "The vote amount overflows");
                 _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
         }
     }
 
-    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint96 oldVotes, uint96 newVotes) internal {
-      uint32 blockNumber = safe32(block.number, "XVS::_writeCheckpoint: block number exceeds 32 bits");
+    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint256 oldVotes, uint256 newVotes) internal {
+      uint32 blockNumber = safe32(block.number, "The block number exceeds 32 bits");
 
       if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
           checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
@@ -385,72 +439,20 @@ contract SwipeToken is Tokenlock, UserLock {
 
       emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
     }
-
-     // ------------------------------------------------------------------------
-     // Destroys `amount` tokens from `account`, reducing the
-     // total supply.
-     
-     // Emits a `Transfer` event with `to` set to the zero address.
-     
-     // Requirements
-     
-     // - `account` cannot be the zero address.
-     // - `account` must have at least `amount` tokens.
-     
-     // ------------------------------------------------------------------------
-    function burn(uint96 value) public validLock permissionCheck returns (bool success) {
-        require(msg.sender != address(0), "ERC20: burn from the zero address");
-
-        totalSupply = sub96(totalSupply, safe96(value, "Invalid param format"), "Invalid param format");
-        balances[msg.sender] = sub96(balances[msg.sender], value, "Invalid param format");
-        emit Transfer(msg.sender, address(0), value);
-        return true;
-    }
     
-    // ------------------------------------------------------------------------
-
-    // Token owner can approve for `spender` to transferFrom(...) `tokens`
-
-    // from the token owner's account. The `spender` contract function
-
-    // `receiveApproval(...)` is then executed
-
-    // ------------------------------------------------------------------------
-
-    function approveAndCall(address spender, uint tokens, bytes memory data) public validLock permissionCheck returns (bool success) {
-
-        allowed[msg.sender][spender] = tokens;
-
-        emit Approval(msg.sender, spender, tokens);
-
-        ApproveAndCallFallBack(spender).receiveApproval(msg.sender, tokens, address(this), data);
-
-        return true;
-
-    }
-    
-    function safe32(uint n, string memory errorMessage) internal pure returns (uint32) {
+    function safe32(uint256 n, string memory errorMessage) internal pure returns (uint32) {
         require(n < 2**32, errorMessage);
         return uint32(n);
     }
 
-    function safe96(uint n, string memory errorMessage) internal pure returns (uint96) {
-        require(n < 2**96, errorMessage);
+    function ceil96(uint256 n) internal pure returns (uint96) {
+        if (n >= 2**96) {
+            return uint96(-1);
+        }
         return uint96(n);
     }
 
-    function add96(uint96 a, uint96 b, string memory errorMessage) internal pure returns (uint96) {
-        uint96 c = a + b;
-        require(c >= a, errorMessage);
-        return c;
-    }
-
-    function sub96(uint96 a, uint96 b, string memory errorMessage) internal pure returns (uint96) {
-        require(b <= a, errorMessage);
-        return a - b;
-    }
-
-    function getChainId() internal pure returns (uint) {
+    function getChainId() internal pure returns (uint256) {
         uint256 chainId;
         assembly { chainId := chainid() }
         return chainId;

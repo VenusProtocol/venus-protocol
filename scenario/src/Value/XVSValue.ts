@@ -15,7 +15,7 @@ import {
 import { Arg, Fetcher, getFetcherValue } from '../Command';
 import { getXVS } from '../ContractLookup';
 
-export function compFetchers() {
+export function xvsFetchers() {
   return [
     new Fetcher<{ xvs: XVS }, AddressV>(`
         #### Address
@@ -198,5 +198,5 @@ export function compFetchers() {
 }
 
 export async function getXVSValue(world: World, event: Event): Promise<Value> {
-  return await getFetcherValue<any, any>("XVS", compFetchers(), world, event);
+  return await getFetcherValue<any, any>("XVS", xvsFetchers(), world, event);
 }

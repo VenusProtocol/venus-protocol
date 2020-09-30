@@ -5286,7 +5286,7 @@
                     "type": "uint32[]"
                 }
             ],
-            "name": "getCompVotes",
+            "name": "getVenusVotes",
             "outputs": [
                 {
                     "components": [
@@ -5301,7 +5301,7 @@
                             "type": "uint256"
                         }
                     ],
-                    "internalType": "struct VenusLens.CompVotes[]",
+                    "internalType": "struct VenusLens.VenusVotes[]",
                     "name": "",
                     "type": "tuple[]"
                 }

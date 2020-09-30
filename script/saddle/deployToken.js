@@ -14,7 +14,7 @@ npx saddle -n rinkeby script token:deploy '{
   "interestRateModel": "$Base200bps_Slope3000bps",
   "initialExchangeRateMantissa": "2.0e18",
   "name": "Venus Kyber Network Crystal",
-  "symbol": "cKNC",
+  "symbol": "vKNC",
   "decimals": "8",
   "admin": "$Timelock"
 }'

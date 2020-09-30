@@ -1,0 +1,285 @@
+
+Test "Check Name"
+    SXP Deploy Geoff
+    Assert Equal (SXP Name) "Swipe"
+
+Test "Check Symbol"
+    SXP Deploy Geoff
+    Assert Equal (SXP Symbol) "SXP"
+
+Test "Check Decimals"
+    SXP Deploy Geoff
+    Assert Equal (SXP Decimals) 18
+
+Test "Check Total Supply"
+    SXP Deploy Geoff
+    Assert Equal (SXP TotalSupply) 289714926e18
+
+Test "Check account receives Total Supply after deploy and emits Transfer event"
+    SXP Deploy Geoff
+    Assert Equal (SXP TokenBalance Geoff) 289714926e18
+    Assert Log Transfer (from (Address Zero)) (to (Address Geoff)) (amount "289714926000000000000000000")
+
+Test "Check approve sets correct approval and emits Approval event"
+    SXP Deploy Geoff
+    From Geoff (SXP Approve Jared 10)
+    Assert Equal (SXP Allowance Geoff Jared) 10
+    Assert Log Approval (owner (Address Geoff)) (spender (Address Jared)) (amount "10")
+
+Test "Check transfer updates balances correctly, emits Transfer event, and returns true"
+    SXP Deploy Geoff
+    From Geoff (SXP Transfer Jared 10)
+    Assert Equal (SXP TokenBalance Geoff) 289714925999999999999999990
+    Assert Equal (SXP TokenBalance Jared) 10
+    Assert Log Transfer (from (Address Geoff)) (to (Address Jared)) (amount "10")
+
+Test "Check self-transfer updates balances correctly, emits Transfer event, and returns true"
+    SXP Deploy Geoff
+    Expect Changes (SXP VotesLength Geoff) Zero
+    Expect Changes (SXP TokenBalance Geoff) Zero
+    From Geoff (SXP Transfer Geoff 10)
+    Assert Log Transfer (from (Address Geoff)) (to (Address Geoff)) (amount "10")
+    Expect Changes (SXP VotesLength Geoff) Zero
+    Expect Changes (SXP TokenBalance Geoff) Zero
+    From Geoff (SXP Transfer Geoff 0)
+    Assert Log Transfer (from (Address Geoff)) (to (Address Geoff)) (amount "0")
+
+Test "Check transferFrom with unlimited allowance updates balances correctly, emits Transfer event, and returns true"
+    SXP Deploy Geoff
+    From Geoff (SXP Approve Jared UInt256Max)
+    From Jared (SXP TransferFrom Geoff Jared 10)
+    Assert Equal (SXP TokenBalance Geoff) 289714925999999999999999990
+    Assert Equal (SXP TokenBalance Jared) 10
+    Assert Equal (SXP Allowance Geoff Jared) UInt256Max
+    Assert Log Transfer (from (Address Geoff)) (to (Address Jared)) (amount "10")
+
+Test "Check transferFrom with allowance updates balances correctly, emits Transfer event, and returns true"
+    SXP Deploy Geoff
+    From Geoff (SXP Approve Jared 10)
+    From Jared (SXP TransferFrom Geoff Jared 9)
+    Assert Equal (SXP TokenBalance Geoff) 289714925999999999999999991
+    Assert Equal (SXP TokenBalance Jared) 9
+    Assert Equal (SXP Allowance Geoff Jared) 1
+    Assert Log Transfer (from (Address Geoff)) (to (Address Jared)) (amount "9")
+    Assert Log Approval (owner (Address Geoff)) (spender (Address Jared)) (amount "1")
+
+Test "Check transferFrom reverts with not sufficient allowance"
+    SXP Deploy Geoff
+    From Geoff (SXP Approve Jared 10)
+    AllowFailures
+    From Jared (SXP TransferFrom Geoff Jared 11)
+    Assert Revert "revert The transfer amount exceeds allowance"
+
+Test "Check transfer reverts when transferring too much"
+    SXP Deploy Geoff
+    AllowFailures
+    From Geoff (SXP Transfer Jared 289714927e18)
+    Assert Revert "revert The transfer amount exceeds balance"
+
+Test "Check transfer reverts when transferring to address 0"
+    SXP Deploy Geoff
+    AllowFailures
+    From Geoff (SXP Transfer (Address Zero) 289714926e18)
+    Assert Revert "revert Cannot transfer to the zero address"
+
+Test "Delegate with zero balance doesn't change votes checkpoints"
+    SXP Deploy Geoff
+    Assert Equal (SXP VotesLength Geoff) 0
+    From Jared (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 0
+    Assert Log DelegateChanged (delegator (Address Jared)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+
+Test "Delegate from address(0) to account with zero checkpoints"
+    SXP Deploy Geoff
+    From Geoff (SXP Transfer Jared 10)
+    Assert Equal (SXP VotesLength Geoff) 0
+    From Jared (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 1
+    Assert Equal (SXP GetCurrentVotes Geoff) 10
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Equal (SXP VotesLength Zero) 0
+    Assert Log DelegateChanged (delegator (Address Jared)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "0") (newBalance "10")
+
+Test "Delegate from address(0) to account with existing checkpoints"
+    SXP Deploy Geoff
+    From Geoff (SXP Transfer Jared 10)
+    From Geoff (SXP Transfer Torrey 14)
+    Assert Equal (SXP VotesLength Geoff) 0
+    From Jared (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 1
+    Assert Equal (SXP GetCurrentVotes Geoff) 10
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Jared)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "0") (newBalance "10")
+    From Torrey (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 2
+    Assert Equal (SXP GetCurrentVotes Geoff) 24
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Equal (SXP VotesLength Zero) 0
+    Assert Log DelegateChanged (delegator (Address Torrey)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "10") (newBalance "24")
+
+Test "Delegate to address(0)"
+    SXP Deploy Geoff
+    From Geoff (SXP Transfer Jared 10)
+    From Geoff (SXP Transfer Torrey 14)
+    Assert Equal (SXP VotesLength Geoff) 0
+    From Jared (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 1
+    Assert Equal (SXP GetCurrentVotes Geoff) 10
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Jared)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "0") (newBalance "10")
+    From Torrey (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 2
+    Assert Equal (SXP GetCurrentVotes Geoff) 24
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Torrey)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "10") (newBalance "24")
+    From Torrey (SXP Delegate Zero)
+    Assert Equal (SXP VotesLength Geoff) 3
+    Assert Equal (SXP GetCurrentVotes Geoff) 10
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Torrey)) (fromDelegate (Address Geoff)) (toDelegate (Address Zero))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "24") (newBalance "10")
+    Assert Equal (SXP VotesLength Zero) 0
+
+Test "Delegate from one account to another account with zero checkpoints"
+    SXP Deploy Geoff
+    From Geoff (SXP Transfer Jared 10)
+    From Geoff (SXP Transfer Torrey 14)
+    Assert Equal (SXP VotesLength Geoff) 0
+    From Jared (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 1
+    Assert Equal (SXP GetCurrentVotes Geoff) 10
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Jared)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "0") (newBalance "10")
+    From Torrey (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 2
+    Assert Equal (SXP GetCurrentVotes Geoff) 24
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Equal (SXP VotesLength Coburn) 0
+    Assert Log DelegateChanged (delegator (Address Torrey)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "10") (newBalance "24")
+    From Torrey (SXP Delegate Coburn)
+    Assert Equal (SXP VotesLength Coburn) 1
+    Assert Equal (SXP GetCurrentVotes Coburn) 14
+    Assert Equal (SXP GetCurrentVotesBlock Coburn) LastBlock
+    Assert Equal (SXP VotesLength Geoff) 3
+    Assert Equal (SXP GetCurrentVotes Geoff) 10
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Torrey)) (fromDelegate (Address Geoff)) (toDelegate (Address Coburn))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "24") (newBalance "10")
+    Assert Log DelegateVotesChanged (delegate (Address Coburn)) (previousBalance "0") (newBalance "14")
+
+Test "Delegate from one account to another account with multiple checkpoints"
+    SXP Deploy Geoff
+    From Geoff (SXP Transfer Jared 10)
+    From Geoff (SXP Transfer Torrey 14)
+    From Geoff (SXP Transfer Coburn 2)
+    Assert Equal (SXP VotesLength Geoff) 0
+    From Jared (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 1
+    Assert Equal (SXP GetCurrentVotes Geoff) 10
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Jared)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "0") (newBalance "10")
+    From Torrey (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 2
+    Assert Equal (SXP GetCurrentVotes Geoff) 24
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Equal (SXP VotesLength Coburn) 0
+    Assert Log DelegateChanged (delegator (Address Torrey)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "10") (newBalance "24")
+    From Coburn (SXP Delegate Coburn)
+    Assert Equal (SXP VotesLength Coburn) 1
+    Assert Equal (SXP GetCurrentVotes Coburn) 2
+    Assert Equal (SXP GetCurrentVotesBlock Coburn) LastBlock
+    Assert Log DelegateChanged (delegator (Address Coburn)) (fromDelegate (Address Zero)) (toDelegate (Address Coburn))
+    Assert Log DelegateVotesChanged (delegate (Address Coburn)) (previousBalance "0") (newBalance "2")
+    From Torrey (SXP Delegate Coburn)
+    Assert Equal (SXP VotesLength Coburn) 2
+    Assert Equal (SXP GetCurrentVotes Coburn) 16
+    Assert Equal (SXP GetCurrentVotesBlock Coburn) LastBlock
+    Assert Equal (SXP VotesLength Geoff) 3
+    Assert Equal (SXP GetCurrentVotes Geoff) 10
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Torrey)) (fromDelegate (Address Geoff)) (toDelegate (Address Coburn))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "24") (newBalance "10")
+    Assert Log DelegateVotesChanged (delegate (Address Coburn)) (previousBalance "2") (newBalance "16")
+
+Test "Vote checkpoints don't change on transfer when to and from accounts delegate to same account"
+    SXP Deploy Geoff
+    From Geoff (SXP Transfer Jared 10)
+    From Geoff (SXP Transfer Torrey 14)
+    Assert Equal (SXP VotesLength Geoff) 0
+    From Jared (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 1
+    Assert Equal (SXP GetCurrentVotes Geoff) 10
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Jared)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "0") (newBalance "10")
+    From Torrey (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 2
+    Assert Equal (SXP GetCurrentVotes Geoff) 24
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Torrey)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "10") (newBalance "24")
+    Invariant Static (SXP VotesLength Geoff)
+    Invariant Static (SXP GetCurrentVotes Geoff)
+    Invariant Static (SXP GetCurrentVotesBlock Geoff)
+    From Torrey (SXP Transfer Jared 14)
+
+Test "Only one checkpoint is added per block for multiple increased balance updates"
+    SXP Deploy Scenario Geoff
+    Assert Equal (SXP VotesLength Geoff) 0
+    Assert Equal (SXP GetCurrentVotes Geoff) 0
+    From Jared (SXP Delegate Geoff)
+    Assert Log DelegateChanged (delegator (Address Jared)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    From Torrey (SXP Delegate Geoff)
+    Assert Log DelegateChanged (delegator (Address Torrey)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    From Geoff (SXP TransferScenario (Jared Torrey) 10)
+    Assert Equal (SXP VotesLength Geoff) 1
+    Assert Equal (SXP GetCurrentVotes Geoff) 20
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Equal (SXP VotesLength Zero) 0
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "0") (newBalance "10")
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "10") (newBalance "20")
+
+Test "Only one checkpoint is added per block for multiple decreased balance updates"
+    SXP Deploy Scenario Geoff
+    From Geoff (SXP Transfer Jared 10)
+    From Geoff (SXP Transfer Torrey 10)
+    Assert Equal (SXP VotesLength Geoff) 0
+    Assert Equal (SXP GetCurrentVotes Geoff) 0
+    From Jared (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 1
+    Assert Equal (SXP GetCurrentVotes Geoff) 10
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Jared)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "0") (newBalance "10")
+    From Torrey (SXP Delegate Geoff)
+    Assert Equal (SXP VotesLength Geoff) 2
+    Assert Equal (SXP GetCurrentVotes Geoff) 20
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Log DelegateChanged (delegator (Address Torrey)) (fromDelegate (Address Zero)) (toDelegate (Address Geoff))
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "10") (newBalance "20")
+    From Jared (SXP Approve Geoff 10)
+    From Torrey (SXP Approve Geoff 10)
+    From Geoff (SXP TransferFromScenario (Jared Torrey) 10)
+    Assert Equal (SXP VotesLength Geoff) 3
+    Assert Equal (SXP GetCurrentVotes Geoff) 0
+    Assert Equal (SXP GetCurrentVotesBlock Geoff) LastBlock
+    Assert Equal (SXP VotesLength Zero) 0
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "20") (newBalance "10")
+    Assert Log DelegateVotesChanged (delegate (Address Geoff)) (previousBalance "10") (newBalance "0")
+
+Test "Check transfer reverts when block number exceeds 32 bits"
+    SXP Deploy Geoff
+    From Jared (SXP Delegate Geoff)
+    AllowFailures
+    SetBlockNumber 5000000000
+    From Geoff (SXP Transfer Jared 289714926e18)
+    Assert Revert "revert The block number exceeds 32 bits"
