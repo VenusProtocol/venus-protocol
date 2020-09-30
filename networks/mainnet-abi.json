@@ -2948,9 +2948,9 @@
                             "type": "bool"
                         },
                         {
-                            "internalType": "uint256",
+                            "internalType": "uint96",
                             "name": "votes",
-                            "type": "uint256"
+                            "type": "uint96"
                         }
                     ],
                     "internalType": "struct GovernorAlpha.Receipt",
@@ -5444,9 +5444,9 @@
                             "type": "bool"
                         },
                         {
-                            "internalType": "uint256",
+                            "internalType": "uint96",
                             "name": "votes",
-                            "type": "uint256"
+                            "type": "uint96"
                         }
                     ],
                     "internalType": "struct VenusLens.GovReceipt[]",

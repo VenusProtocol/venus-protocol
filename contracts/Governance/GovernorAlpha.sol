@@ -85,7 +85,7 @@ contract GovernorAlpha {
         bool support;
 
         /// @notice The number of votes the voter had, which were cast
-        uint votes;
+        uint96 votes;
     }
 
     /// @notice Possible states that a proposal may be in
@@ -263,7 +263,7 @@ contract GovernorAlpha {
         Proposal storage proposal = proposals[proposalId];
         Receipt storage receipt = proposal.receipts[voter];
         require(receipt.hasVoted == false, "GovernorAlpha::_castVote: voter already voted");
-        uint votes = xvs.getPriorVotes(voter, proposal.startBlock);
+        uint96 votes = xvs.getPriorVotes(voter, proposal.startBlock);
 
         if (support) {
             proposal.forVotes = add256(proposal.forVotes, votes);

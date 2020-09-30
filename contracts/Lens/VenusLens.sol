@@ -168,7 +168,7 @@ contract VenusLens {
         uint proposalId;
         bool hasVoted;
         bool support;
-        uint votes;
+        uint96 votes;
     }
 
     function getGovReceipts(GovernorAlpha governor, address voter, uint[] memory proposalIds) public view returns (GovReceipt[] memory) {
@@ -263,7 +263,7 @@ contract VenusLens {
     function getXVSBalanceMetadata(XVS xvs, address account) external view returns (XVSBalanceMetadata memory) {
         return XVSBalanceMetadata({
             balance: xvs.balanceOf(account),
-            votes: xvs.getCurrentVotes(account),
+            votes: uint256(xvs.getCurrentVotes(account)),
             delegate: xvs.delegates(account)
         });
     }
@@ -285,7 +285,7 @@ contract VenusLens {
 
         return XVSBalanceMetadataExt({
             balance: balance,
-            votes: xvs.getCurrentVotes(account),
+            votes: uint256(xvs.getCurrentVotes(account)),
             delegate: xvs.delegates(account),
             allocated: allocated
         });
