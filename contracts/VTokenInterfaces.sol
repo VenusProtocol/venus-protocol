@@ -96,6 +96,11 @@ contract VTokenStorage {
     mapping (address => uint) internal accountTokens;
 
     /**
+     * @notice Official record of minted VAI for each account
+     */
+    mapping (address => uint) internal accountMintedVAIs;
+
+    /**
      * @notice Approved token transfer amounts on behalf of others
      */
     mapping (address => mapping (address => uint)) internal transferAllowances;

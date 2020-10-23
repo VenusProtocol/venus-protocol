@@ -8,6 +8,7 @@ import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
 import "./Governance/XVS.sol";
+import "./VAI/vai.sol";
 
 /**
  * @title Venus's Comptroller Contract
@@ -1377,5 +1378,32 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      */
     function getXVSAddress() public view returns (address) {
         return 0xc00e94Cb662C3520282E6f5717214004A7f26888;
+    }
+
+    /**
+     * @notice Return the address of the VAI token
+     * @return The address of VAI
+     */
+    function getVAIAddress() public view returns (address) {
+        return 0xbb6dcAa67FA12041e402acee61709A9Ba8ad9448;
+    }
+    
+    /**
+     * @notice Get Underlying Price of the vToken
+     * @return The price of vToken's underlying token
+     */
+    function getUnderlyingPrice(address vToken) external view returns (uint) {
+        return oracle.getUnderlyingPrice(VToken(vToken));
+    }
+    
+    /**
+     * @notice Mint VAI
+     * @return Minted VAI amount
+     */
+    function mintVAI(address vToken, address usr, uint wad) external returns (uint) {
+        if (msg.sender != vToken) {
+            return failOpaque(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION, wad);
+        }
+        Vai(getVAIAddress()).mint(usr, wad);
     }
 }

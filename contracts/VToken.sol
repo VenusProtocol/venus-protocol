@@ -7,6 +7,7 @@ import "./Exponential.sol";
 import "./EIP20Interface.sol";
 import "./EIP20NonStandardInterface.sol";
 import "./InterestRateModel.sol";
+import "./PriceOracle.sol";
 
 /**
  * @title Venus's VToken Contract
@@ -482,8 +483,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         MathError mathErr;
         uint exchangeRateMantissa;
         uint mintTokens;
+        uint accountMintableVAI;
         uint totalSupplyNew;
         uint accountTokensNew;
+        uint accountMintedVAINew;
         uint actualMintAmount;
     }
 
@@ -546,9 +549,39 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[minter], vars.mintTokens);
         require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
 
+        /*
+         * We get the current underlying price and calculate the number of VAIs to be minted:
+         *  accountMintableVAI = mintAmount * getUnderlyingPrice;
+         */
+
+        // Get the normalized price of the asset
+        uint assetPrice = comptroller.getUnderlyingPrice(address(this));
+        if (assetPrice == 0) {
+            return (fail(Error.TOKEN_PRICE_ERROR, FailureInfo.TOKEN_GET_UNDERLYING_PRICE_ERROR), 0);
+        }
+        Exp memory oraclePrice = Exp({mantissa: assetPrice});
+
+        (vars.mathErr, vars.accountMintableVAI) = divScalarByExpTruncate(vars.actualMintAmount, oraclePrice);
+        require(vars.mathErr == MathError.NO_ERROR, "VAI_MINT_EXCHANGE_CALCULATION_FAILED");
+        vars.accountMintableVAI = div_(vars.accountMintableVAI, 2);
+
+        /*
+         * We calculate the new minted VAI amount:
+         *  accountMintedVAINew = accountMintedVAIs[minter] + mintTokens
+         */
+
+        (vars.mathErr, vars.accountMintedVAINew) = addUInt(accountMintedVAIs[minter], vars.accountMintableVAI);
+        require(vars.mathErr == MathError.NO_ERROR, "VAI_MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
+
         /* We write previously calculated values into storage */
         totalSupply = vars.totalSupplyNew;
         accountTokens[minter] = vars.accountTokensNew;
+
+        /* We write previously calculated VAI values into storage */
+        accountMintedVAIs[minter] = vars.accountMintedVAINew;
+
+        /* Mint VAI to user */
+        comptroller.mintVAI(address(this), minter, vars.accountMintableVAI);
 
         /* We emit a Mint event, and a Transfer event */
         emit Mint(minter, vars.actualMintAmount, vars.mintTokens);

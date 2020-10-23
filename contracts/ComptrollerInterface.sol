@@ -68,4 +68,9 @@ contract ComptrollerInterface {
         address vTokenBorrowed,
         address vTokenCollateral,
         uint repayAmount) external view returns (uint, uint);
+
+    /*** VAI Integration ***/
+
+    function getUnderlyingPrice(address vToken) external view returns (uint);
+    function mintVAI(address vToken, address usr, uint wad) external returns (uint);
 }
