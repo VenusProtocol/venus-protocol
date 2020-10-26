@@ -175,7 +175,7 @@ describe('VToken', function () {
         await preRedeem(vToken, redeemer, redeemTokens, redeemAmount, exchangeRate);
       });
 
-      it("fails if comptroller tells it to", async () =>{
+      it("fails if comptroller tells it to 2", async () =>{
         await send(vToken.comptroller, 'setRedeemAllowed', [false]);
         expect(await redeemFresh(vToken, redeemer, redeemTokens, redeemAmount)).toHaveTrollReject('REDEEM_COMPTROLLER_REJECTION');
       });

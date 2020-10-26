@@ -1,5 +1,5 @@
 -- NewComptroller, but with markets listed so that we can make them venus markets in constructor
-Macro FlywheelComptroller price=1.0 borrowRate=0.000005 compInitAmount=5000000e18
+Macro FlywheelComptroller price=1.0 borrowRate=0.000005 venusInitAmount=5000000e18
     Unitroller Deploy
     PriceOracle Deploy Fixed price
     PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero)
@@ -17,8 +17,11 @@ Macro FlywheelComptroller price=1.0 borrowRate=0.000005 compInitAmount=5000000e1
     Support vBAT collateralFactor:0.5
     Comptroller AddVenusMarkets (vZRX vBAT)
     Bep20 Deploy Standard XVS "XVS Token" 18
-    Give (Address Comptroller) compInitAmount XVS
-    Comptroller Send "setCompAddress(address)" (Address XVS)
+    Give (Address Comptroller) venusInitAmount XVS
+    Comptroller Send "setXVSAddress(address)" (Address XVS)
+    Bep20 Deploy Standard VAI "VAI Token" 18
+    Give (Address Comptroller) venusInitAmount VAI
+    Comptroller Send "setVAIAddress(address)" (Address VAI)
 
 Macro InitSpeeds
     Prep Geoff 100e18 ZRX vZRX

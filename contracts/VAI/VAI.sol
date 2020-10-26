@@ -19,18 +19,18 @@ pragma solidity >=0.5.16;
 
 import "./lib.sol";
 
-contract Vai is LibNote {
+contract VAI is LibNote {
     // --- Auth ---
     mapping (address => uint) public wards;
     function rely(address guy) external note auth { wards[guy] = 1; }
     function deny(address guy) external note auth { wards[guy] = 0; }
     modifier auth {
-        require(wards[msg.sender] == 1, "Vai/not-authorized");
+        require(wards[msg.sender] == 1, "VAI/not-authorized");
         _;
     }
 
     // --- ERC20 Data ---
-    string  public constant name     = "Vai Stablecoin";
+    string  public constant name     = "VAI Stablecoin";
     string  public constant symbol   = "VAI";
     string  public constant version  = "1";
     uint8   public constant decimals = 18;

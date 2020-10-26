@@ -200,7 +200,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Get a snapshot of the account's balances, and the cached exchange rate
      * @dev This is used by comptroller to more efficiently perform liquidity checks.
      * @param account Address of the account to snapshot
-     * @return (possible error, token balance, borrow balance, exchange rate mantissa, minted vai)
+     * @return (possible error, token balance, borrow balance, exchange rate mantissa, minted VAI)
      */
     function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint, uint) {
         uint vTokenBalance = accountTokens[account];

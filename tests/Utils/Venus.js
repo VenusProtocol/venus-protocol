@@ -43,7 +43,8 @@ async function makeComptroller(opts = {}) {
     const closeFactor = bnbMantissa(dfn(opts.closeFactor, .051));
     const maxAssets = bnbUnsigned(dfn(opts.maxAssets, 10));
     const liquidationIncentive = bnbMantissa(1);
-    const xvs = opts.xvs || await deploy('XVS', [opts.compOwner || root]);
+    const xvs = opts.xvs || await deploy('XVS', [opts.venusOwner || root]);
+    const vai = opts.vai || await deploy('VAI', [opts.venusOwner || root]);
     const venusRate = bnbUnsigned(dfn(opts.venusRate, 1e18));
     const venusMarkets = opts.venusMarkets || [];
 
@@ -54,7 +55,8 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, '_setCloseFactor', [closeFactor]);
     await send(unitroller, '_setMaxAssets', [maxAssets]);
     await send(unitroller, '_setPriceOracle', [priceOracle._address]);
-    await send(unitroller, 'setCompAddress', [xvs._address]); // harness only
+    await send(unitroller, 'setXVSAddress', [xvs._address]); // harness only
+    await send(unitroller, 'setVAIAddress', [vai._address]); // harness only
     await send(unitroller, '_setVenusRate', [venusRate]);
     await send(unitroller, '_addVenusMarkets', [venusMarkets]);
 
@@ -69,6 +71,7 @@ async function makeVToken(opts = {}) {
   } = opts || {};
 
   const comptroller = opts.comptroller || await makeComptroller(opts.comptrollerOpts);
+  console.log("makeComptroller", comptroller);
   const interestRateModel = opts.interestRateModel || await makeInterestRateModel(opts.interestRateModelOpts);
   const exchangeRate = bnbMantissa(dfn(opts.exchangeRate, 1));
   const decimals = bnbUnsigned(dfn(opts.decimals, 8));
@@ -210,7 +213,9 @@ async function makeToken(opts = {}) {
     const decimals = bnbUnsigned(dfn(opts.decimals, 18));
     const symbol = opts.symbol || 'OMG';
     const name = opts.name || `Bep20 ${symbol}`;
-    return await deploy('BEP20Harness', [quantity, name, decimals, symbol]);
+    const cont = await deploy('BEP20Harness', [quantity, name, decimals, symbol]);
+    console.log(kind, cont);
+    return cont;
   }
 }
 

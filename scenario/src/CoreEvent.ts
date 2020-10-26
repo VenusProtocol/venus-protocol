@@ -28,6 +28,7 @@ import { expectationCommands, processExpectationEvent } from './Event/Expectatio
 import { timelockCommands, processTimelockEvent } from './Event/TimelockEvent';
 import { xvsCommands, processXVSEvent } from './Event/XVSEvent';
 import { sxpCommands, processSXPEvent } from './Event/SXPEvent';
+import { vaiCommands, processVAIEvent } from './Event/VAIEvent';
 import { governorCommands, processGovernorEvent } from './Event/GovernorEvent';
 import { processTrxEvent, trxCommands } from './Event/TrxEvent';
 import { getFetchers, getCoreValue } from './CoreValue';
@@ -809,6 +810,21 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       return processSXPEvent(world, event.val, from);
     },
     { subExpressions: sxpCommands() }
+  ),
+
+  new Command<{ event: EventV }>(
+    `
+      #### VAI
+
+      * "VAI ...event" - Runs given xvs event
+      * E.g. "VAI Deploy"
+    `,
+    'VAI',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => {
+      return processVAIEvent(world, event.val, from);
+    },
+    { subExpressions: vaiCommands() }
   ),
 
   new Command<{ event: EventV }>(

@@ -614,7 +614,7 @@ export function comptrollerCommands() {
     new Command<{comptroller: Comptroller, signature: StringV, callArgs: StringV[]}>(`
       #### Send
       * Comptroller Send functionSignature:<String> callArgs[] - Sends any transaction to comptroller
-      * E.g: Comptroller Send "setCompAddress(address)" (Address XVS)
+      * E.g: Comptroller Send "setXVSAddress(address)" (Address XVS)
       `,
       "Send",
       [

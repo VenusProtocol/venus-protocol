@@ -32,6 +32,7 @@ import { getTimelockValue, timelockFetchers, getTimelockAddress } from './Value/
 import { getMaximillionValue, maximillionFetchers } from './Value/MaximillionValue';
 import { getXVSValue, xvsFetchers } from './Value/XVSValue';
 import { getSXPValue, sxpFetchers } from './Value/SXPValue';
+import { getVAIValue, vaiFetchers } from './Value/VAIValue';
 import { getGovernorValue, governorFetchers } from './Value/GovernorValue';
 import { getAddress } from './ContractLookup';
 import { getCurrentBlockNumber, getCurrentTimestamp, mustArray, sendRPC } from './Utils';
@@ -965,6 +966,17 @@ const fetchers = [
     [new Arg('res', getSXPValue, { variadic: true })],
     async (world, { res }) => res,
     { subExpressions: sxpFetchers() }
+  ),
+  new Fetcher<{ res: Value }, Value>(
+    `
+      #### VAI
+
+      * "VAI ...compArgs" - Returns VAI value
+    `,
+    'VAI',
+    [new Arg('res', getVAIValue, { variadic: true })],
+    async (world, { res }) => res,
+    { subExpressions: vaiFetchers() }
   ),
   new Fetcher<{ res: Value }, Value>(
     `

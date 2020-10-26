@@ -4,16 +4,25 @@ import "../../contracts/Comptroller.sol";
 
 contract ComptrollerScenario is Comptroller {
     uint public blockNumber;
-    address public compAddress;
+    address public xvsAddress;
+    address public vaiAddress;
 
     constructor() Comptroller() public {}
 
-    function setCompAddress(address compAddress_) public {
-        compAddress = compAddress_;
+    function setXVSAddress(address xvsAddress_) public {
+        xvsAddress = xvsAddress_;
     }
 
     function getXVSAddress() public view returns (address) {
-        return compAddress;
+        return xvsAddress;
+    }
+
+    function setVAIAddress(address vaiAddress_) public {
+        vaiAddress = vaiAddress_;
+    }
+
+    function getVAIAddress() public view returns (address) {
+        return vaiAddress;
     }
 
     function membershipLength(VToken vToken) public view returns (uint) {

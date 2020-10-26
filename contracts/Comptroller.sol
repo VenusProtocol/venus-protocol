@@ -8,7 +8,7 @@ import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
 import "./Governance/XVS.sol";
-import "./VAI/vai.sol";
+import "./VAI/VAI.sol";
 
 /**
  * @title Venus's Comptroller Contract
@@ -1457,7 +1457,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         if (msg.sender != vToken) {
             return failOpaque(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION, wad);
         }
-        Vai(getVAIAddress()).mint(usr, wad);
+        VAI(getVAIAddress()).mint(usr, wad);
         return uint(Error.NO_ERROR);
     }
     
@@ -1469,7 +1469,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         if (msg.sender != vToken) {
             return failOpaque(Error.REJECTION, FailureInfo.VAI_BURN_REJECTION, wad);
         }
-        Vai(getVAIAddress()).burn(usr, wad);
+        VAI(getVAIAddress()).burn(usr, wad);
         return uint(Error.NO_ERROR);
     }
     /// @dev VAI Integration$
