@@ -340,6 +340,40 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         }
     }
 
+    /// @dev VAI Integration^
+    /**
+     * @notice Checks if the account should be allowed to repay VAI in the given market
+     * @param vToken The market to verify the repay VAI against
+     * @param repayer The account which would repay the VAI
+     * @param repayVAIAmount The amount of VAI being repaid to the market
+     * @return 0 if the repay VAI is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
+     */
+    function repayVAIAllowed(address vToken, address repayer, uint repayVAIAmount) external returns (uint) {
+        // Shh - currently unused
+        repayer;
+        repayVAIAmount;
+
+        if (!markets[vToken].isListed) {
+            return uint(Error.MARKET_NOT_LISTED);
+        }
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Validates repay VAI and reverts on rejection. May emit logs.
+     * @param vToken Asset being repaid
+     * @param repayer The address repaying VAI
+     * @param repayVAIAmount The amount of the VAI being repaid
+     */
+    function repayVAIVerify(address vToken, address repayer, uint repayVAIAmount) external {
+        // Shh - currently unused
+        vToken;
+        repayer;
+        repayVAIAmount;
+    }
+    /// @dev VAI Integration$
+
     /**
      * @notice Checks if the account should be allowed to borrow the underlying asset of the given market
      * @param vToken The market to verify the borrow against
@@ -1417,13 +1451,26 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     
     /**
      * @notice Mint VAI
-     * @return Minted VAI amount
+     * @return (uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol)
      */
     function mintVAI(address vToken, address usr, uint wad) external returns (uint) {
         if (msg.sender != vToken) {
             return failOpaque(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION, wad);
         }
         Vai(getVAIAddress()).mint(usr, wad);
+        return uint(Error.NO_ERROR);
+    }
+    
+    /**
+     * @notice Burn VAI
+     * @return (uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol)
+     */
+    function burnVAI(address vToken, address usr, uint wad) external returns (uint) {
+        if (msg.sender != vToken) {
+            return failOpaque(Error.REJECTION, FailureInfo.VAI_BURN_REJECTION, wad);
+        }
+        Vai(getVAIAddress()).burn(usr, wad);
+        return uint(Error.NO_ERROR);
     }
     /// @dev VAI Integration$
 }

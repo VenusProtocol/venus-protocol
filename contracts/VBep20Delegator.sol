@@ -105,6 +105,18 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         delegateAndReturn();
     }
 
+    /// @dev VAI Integration^
+    /**
+     * @notice Sender repays VAI
+     * @param repayVAIAmount The number of VAI to repay
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function repayVAI(uint repayVAIAmount) external returns (uint) {
+        repayVAIAmount; // Shh
+        delegateAndReturn();
+    }
+    /// @dev VAI Integration$
+
     /**
       * @notice Sender borrows assets from the protocol to their own address
       * @param borrowAmount The amount of the underlying asset to borrow

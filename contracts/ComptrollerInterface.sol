@@ -17,6 +17,11 @@ contract ComptrollerInterface {
     function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint);
     function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external;
 
+    /// @dev VAI Integration^
+    function repayVAIAllowed(address vToken, address repayer, uint repayVAIAmount) external returns (uint);
+    function repayVAIVerify(address vToken, address repayer, uint repayVAIAmount) external;
+    /// @dev VAI Integration$
+
     function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint);
     function borrowVerify(address vToken, address borrower, uint borrowAmount) external;
 
@@ -72,5 +77,6 @@ contract ComptrollerInterface {
     /// @dev VAI Integration^
     function getUnderlyingPrice(address vToken) external view returns (uint);
     function mintVAI(address vToken, address usr, uint wad) external returns (uint);
+    function burnVAI(address vToken, address usr, uint wad) external returns (uint);
     /// @dev VAI Integration$
 }

@@ -47,7 +47,8 @@ contract ComptrollerErrorReporter {
         SUPPORT_MARKET_OWNER_CHECK,
         SET_PAUSE_GUARDIAN_OWNER_CHECK,
         /// @dev VAI Integration^
-        VAI_MINT_REJECTION
+        VAI_MINT_REJECTION,
+        VAI_BURN_REJECTION
         /// @dev VAI Integration$
     }
 
@@ -189,7 +190,9 @@ contract TokenErrorReporter {
         ADD_RESERVES_FRESH_CHECK,
         ADD_RESERVES_TRANSFER_IN_NOT_POSSIBLE,
         /// @dev VAI Integration^
-        TOKEN_GET_UNDERLYING_PRICE_ERROR
+        TOKEN_GET_UNDERLYING_PRICE_ERROR,
+        REPAY_VAI_COMPTROLLER_REJECTION,
+        REPAY_VAI_FRESHNESS_CHECK
         /// @dev VAI Integration$
     }
 

@@ -594,11 +594,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         accountTokens[minter] = vars.accountTokensNew;
 
         /// @dev VAI Integration^
-        /* We write previously calculated VAI values into storage */
-        accountMintedVAIs[minter] = vars.accountMintedVAINew;
-
         /* Mint VAI to user */
         comptroller.mintVAI(address(this), minter, vars.accountMintableVAI);
+
+        /* We write previously calculated VAI values into storage */
+        accountMintedVAIs[minter] = vars.accountMintedVAINew;
         /// @dev VAI Integration$
 
         /* We emit a Mint event, and a Transfer event */
@@ -756,6 +756,59 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         return uint(Error.NO_ERROR);
     }
+
+    /// @dev VAI Integration^
+    /**
+     * @notice Sender repays VAI
+     * @param repayVAIAmount The number of VAI to repay
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function repayVAIInternal(uint repayVAIAmount) internal nonReentrant returns (uint, uint) {
+        return repayVAIFresh(msg.sender, repayVAIAmount);
+    }
+
+    struct RepayVAILocalVars {
+        Error err;
+        MathError mathErr;
+        uint repayVAIAmount;
+    }
+
+    /**
+     * @notice User repays VAI to the market
+     * @param repayer The address of the account which repay VAI
+     * @param repayVAIAmount The amount of VAI to repay
+     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual burn amount.
+     */
+    function repayVAIFresh(address repayer, uint repayVAIAmount) internal returns (uint, uint) {
+        /* Fail if repay VAI not allowed */
+        uint allowed = comptroller.repayVAIAllowed(address(this), repayer, repayVAIAmount);
+        if (allowed != 0) {
+            return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.REPAY_VAI_COMPTROLLER_REJECTION, allowed), 0);
+        }
+
+        /* Verify market's block number equals current block number */
+        if (accrualBlockNumber != getBlockNumber()) {
+            return (fail(Error.MARKET_NOT_FRESH, FailureInfo.REPAY_VAI_FRESHNESS_CHECK), 0);
+        }
+
+        /* Burn VAI from user */
+        uint actualBurnAmount = 0;
+
+        /* We write previously calculated VAI values into storage */
+        if(accountMintedVAIs[repayer] > repayVAIAmount) {
+            actualBurnAmount = repayVAIAmount;
+        } else {
+            actualBurnAmount = accountMintedVAIs[repayer];
+        }
+
+        comptroller.burnVAI(address(this), repayer, actualBurnAmount);
+
+        /* We call the defense hook */
+        comptroller.repayVAIVerify(address(this), repayer, actualBurnAmount);
+
+        return (uint(Error.NO_ERROR), actualBurnAmount);
+    }
+    /// @dev VAI Integration$
 
     /**
       * @notice Sender borrows assets from the protocol to their own address
