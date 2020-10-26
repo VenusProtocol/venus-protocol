@@ -95,10 +95,12 @@ contract VTokenStorage {
      */
     mapping (address => uint) internal accountTokens;
 
+    /// @dev VAI Integration^
     /**
      * @notice Official record of minted VAI for each account
      */
     mapping (address => uint) internal accountMintedVAIs;
+    /// @dev VAI Integration$
 
     /**
      * @notice Approved token transfer amounts on behalf of others
@@ -222,7 +224,10 @@ contract VTokenInterface is VTokenStorage {
     function allowance(address owner, address spender) external view returns (uint);
     function balanceOf(address owner) external view returns (uint);
     function balanceOfUnderlying(address owner) external returns (uint);
-    function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint);
+    /// @dev VAI Integration^
+    function mintedVAIOf(address owner) external view returns (uint);
+    function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint, uint);
+    /// @dev VAI Integration$
     function borrowRatePerBlock() external view returns (uint);
     function supplyRatePerBlock() external view returns (uint);
     function totalBorrowsCurrent() external returns (uint);

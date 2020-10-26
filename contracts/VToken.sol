@@ -195,31 +195,34 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         return balance;
     }
 
+    /// @dev VAI Integration^
     /**
      * @notice Get a snapshot of the account's balances, and the cached exchange rate
      * @dev This is used by comptroller to more efficiently perform liquidity checks.
      * @param account Address of the account to snapshot
-     * @return (possible error, token balance, borrow balance, exchange rate mantissa)
+     * @return (possible error, token balance, borrow balance, exchange rate mantissa, minted vai)
      */
-    function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint) {
+    function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint, uint) {
         uint vTokenBalance = accountTokens[account];
         uint borrowBalance;
         uint exchangeRateMantissa;
+        uint mintedVAI = accountMintedVAIs[account];
 
         MathError mErr;
 
         (mErr, borrowBalance) = borrowBalanceStoredInternal(account);
         if (mErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0, 0, 0);
+            return (uint(Error.MATH_ERROR), 0, 0, 0, 0);
         }
 
         (mErr, exchangeRateMantissa) = exchangeRateStoredInternal();
         if (mErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0, 0, 0);
+            return (uint(Error.MATH_ERROR), 0, 0, 0, 0);
         }
 
-        return (uint(Error.NO_ERROR), vTokenBalance, borrowBalance, exchangeRateMantissa);
+        return (uint(Error.NO_ERROR), vTokenBalance, borrowBalance, exchangeRateMantissa, mintedVAI);
     }
+    /// @dev VAI Integration$
 
     /**
      * @dev Function to simply retrieve block number
@@ -274,6 +277,17 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         require(err == MathError.NO_ERROR, "borrowBalanceStored: borrowBalanceStoredInternal failed");
         return result;
     }
+
+    /// @dev VAI Integration^
+    /**
+     * @notice Get the minted VAI of the `owner`
+     * @param owner The address of the account to query
+     * @return The number of minted VAI by `owner`
+     */
+    function mintedVAIOf(address owner) external view returns (uint256) {
+        return accountMintedVAIs[owner];
+    }
+    /// @dev VAI Integration$
 
     /**
      * @notice Return the borrow balance of account based on stored data
@@ -549,6 +563,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[minter], vars.mintTokens);
         require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
 
+        /// @dev VAI Integration^
         /*
          * We get the current underlying price and calculate the number of VAIs to be minted:
          *  accountMintableVAI = mintAmount * getUnderlyingPrice;
@@ -572,16 +587,19 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         (vars.mathErr, vars.accountMintedVAINew) = addUInt(accountMintedVAIs[minter], vars.accountMintableVAI);
         require(vars.mathErr == MathError.NO_ERROR, "VAI_MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
+        /// @dev VAI Integration$
 
         /* We write previously calculated values into storage */
         totalSupply = vars.totalSupplyNew;
         accountTokens[minter] = vars.accountTokensNew;
 
+        /// @dev VAI Integration^
         /* We write previously calculated VAI values into storage */
         accountMintedVAIs[minter] = vars.accountMintedVAINew;
 
         /* Mint VAI to user */
         comptroller.mintVAI(address(this), minter, vars.accountMintableVAI);
+        /// @dev VAI Integration$
 
         /* We emit a Mint event, and a Transfer event */
         emit Mint(minter, vars.actualMintAmount, vars.mintTokens);

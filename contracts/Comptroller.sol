@@ -176,7 +176,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     function exitMarket(address vTokenAddress) external returns (uint) {
         VToken vToken = VToken(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
-        (uint oErr, uint tokensHeld, uint amountOwed, ) = vToken.getAccountSnapshot(msg.sender);
+        (uint oErr, uint tokensHeld, uint amountOwed,, uint mintedVAI ) = vToken.getAccountSnapshot(msg.sender);
         require(oErr == 0, "exitMarket: getAccountSnapshot failed"); // semi-opaque error code
 
         /* Fail if the sender has a borrow balance */
@@ -189,6 +189,13 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         if (allowed != 0) {
             return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
         }
+
+        /// @dev VAI Integration^
+        /* Fail if the sender has a borrow balance */
+        if (mintedVAI != 0) {
+            return fail(Error.NONZERO_MINTEDVAI_BALANCE, FailureInfo.EXIT_MARKET_BALANCE_OWED);
+        }
+        /// @dev VAI Integration$
 
         Market storage marketToExit = markets[address(vToken)];
 
@@ -640,6 +647,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
     /*** Liquidity/Liquidation Calculations ***/
 
+    /// @dev VAI Integration^
     /**
      * @dev Local vars for avoiding stack-depth limits in calculating account liquidity.
      *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
@@ -651,12 +659,14 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         uint vTokenBalance;
         uint borrowBalance;
         uint exchangeRateMantissa;
+        uint mintedVAIMantissa;
         uint oraclePriceMantissa;
         Exp collateralFactor;
         Exp exchangeRate;
         Exp oraclePrice;
         Exp tokensToDenom;
     }
+    /// @dev VAI Integration$
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
@@ -727,7 +737,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             VToken asset = assets[i];
 
             // Read the balances and exchange rate from the vToken
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(account);
+            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa, vars.mintedVAIMantissa) = asset.getAccountSnapshot(account);
             if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (Error.SNAPSHOT_ERROR, 0, 0);
             }
@@ -752,6 +762,14 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             if (mErr != MathError.NO_ERROR) {
                 return (Error.MATH_ERROR, 0, 0);
             }
+
+            /// @dev VAI Integration^
+            if (vars.sumCollateral > vars.mintedVAIMantissa) {
+                vars.sumCollateral = vars.sumCollateral - vars.mintedVAIMantissa;
+            } else {
+                return (Error.MATH_ERROR, 0, 0);
+            }
+            /// @dev VAI Integration$
 
             // sumBorrowPlusEffects += oraclePrice * borrowBalance
             (mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
@@ -1380,6 +1398,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         return 0xc00e94Cb662C3520282E6f5717214004A7f26888;
     }
 
+    /// @dev VAI Integration^
     /**
      * @notice Return the address of the VAI token
      * @return The address of VAI
@@ -1406,4 +1425,5 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         }
         Vai(getVAIAddress()).mint(usr, wad);
     }
+    /// @dev VAI Integration$
 }
