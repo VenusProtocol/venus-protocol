@@ -67,8 +67,9 @@ describe('VToken', function () {
   describe('borrowRatePerBlock', () => {
     it("has a borrow rate", async () => {
       const vToken = await makeVToken({ supportMarket: true, interestRateModelOpts: { kind: 'jump-rate', baseRate: .05, multiplier: 0.45, kink: 0.95, jump: 5 } });
+      const blocksPerYear = await call(vToken.interestRateModel, 'blocksPerYear');
       const perBlock = await call(vToken, 'borrowRatePerBlock');
-      expect(Math.abs(perBlock * 2102400 - 5e16)).toBeLessThanOrEqual(1e8);
+      expect(Math.abs(perBlock * blocksPerYear - 5e16)).toBeLessThanOrEqual(1e8);
     });
   });
 
@@ -92,8 +93,9 @@ describe('VToken', function () {
       const borrowRate = baseRate + multiplier * kink + jump * .05;
       const expectedSuplyRate = borrowRate * .99;
 
+      const blocksPerYear = await call(vToken.interestRateModel, 'blocksPerYear');
       const perBlock = await call(vToken, 'supplyRatePerBlock');
-      expect(Math.abs(perBlock * 2102400 - expectedSuplyRate * 1e18)).toBeLessThanOrEqual(1e8);
+      expect(Math.abs(perBlock * blocksPerYear - expectedSuplyRate * 1e18)).toBeLessThanOrEqual(1e8);
     });
   });
 
