@@ -790,6 +790,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         comptroller.burnVAI(address(this), repayer, actualBurnAmount);
+        accountMintedVAIs[repayer] = accountMintedVAIs[repayer] - actualBurnAmount;
 
         /* We call the defense hook */
         comptroller.repayVAIVerify(address(this), repayer, actualBurnAmount);

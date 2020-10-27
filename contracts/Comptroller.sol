@@ -300,6 +300,24 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         return uint(Error.NO_ERROR);
     }
 
+    /// @dev VAI Integration^
+    /**
+     * @dev Local vars for avoiding stack-depth limits in calculating account redeem.
+     *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
+     */
+    struct AccountBalanceLocalVars {
+        uint vTokenBalance;
+        uint exchangeRateMantissa;
+        uint mintedVAIMantissa;
+        uint oraclePriceMantissa;
+        Exp exchangeRate;
+        Exp mintedVAI;
+        Exp oraclePrice;
+        Exp expectedRemainedBalance;
+        Exp expectedRemainedAmount;
+    }
+    /// @dev VAI Integration$
+
     function redeemAllowedInternal(address vToken, address redeemer, uint redeemTokens) internal view returns (uint) {
         if (!markets[vToken].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
@@ -307,6 +325,43 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
         if (!markets[vToken].accountMembership[redeemer]) {
+            /// @dev VAI Integration^
+            uint oErr;
+            MathError mErr;
+            AccountBalanceLocalVars memory vars; // Holds all our calculation results
+            
+            // Read the balances and exchange rate from the vToken
+            (oErr, vars.vTokenBalance, , vars.exchangeRateMantissa, vars.mintedVAIMantissa) = VToken(vToken).getAccountSnapshot(redeemer);
+            if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
+                return uint(Error.SNAPSHOT_ERROR);
+            }
+            
+            if(vars.mintedVAIMantissa > 0) {
+                // Get the normalized price of the asset
+                vars.oraclePriceMantissa = oracle.getUnderlyingPrice(VToken(vToken));
+                if (vars.oraclePriceMantissa == 0) {
+                    return uint(Error.PRICE_ERROR);
+                }
+
+                vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
+                vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
+                vars.mintedVAI = Exp({mantissa: vars.mintedVAIMantissa});
+
+                if(vars.vTokenBalance < redeemTokens) {
+                    return uint(Error.MATH_ERROR);
+                }
+                vars.expectedRemainedBalance = Exp({mantissa: vars.vTokenBalance - redeemTokens});
+                (mErr, vars.expectedRemainedAmount) = mulExp(vars.oraclePrice, vars.expectedRemainedBalance);
+                if (mErr != MathError.NO_ERROR) {
+                    return uint(Error.MATH_ERROR);
+                }
+
+                if(vars.mintedVAIMantissa > vars.expectedRemainedAmount.mantissa) {
+                    return uint(Error.MATH_ERROR);
+                }
+            }
+            /// @dev VAI Integration$
+
             return uint(Error.NO_ERROR);
         }
 
