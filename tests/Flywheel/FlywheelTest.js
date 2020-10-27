@@ -211,9 +211,9 @@ describe('Flywheel', () => {
       expect(a2Accrued1).toEqualNumber(a3Accrued2.sub(a3Accrued1));
       expect(a3Accrued1).toEqualNumber(a2Accrued2.sub(a2Accrued1));
 
-      expect(txT1.gasUsed).toBeLessThan(200000);
+      expect(txT1.gasUsed).toBeLessThan(220000);
       expect(txT1.gasUsed).toBeGreaterThan(150000);
-      expect(txT2.gasUsed).toBeLessThan(200000);
+      expect(txT2.gasUsed).toBeLessThan(220000);
       expect(txT2.gasUsed).toBeGreaterThan(150000);
     });
   });
