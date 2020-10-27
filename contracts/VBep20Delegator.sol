@@ -105,7 +105,11 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         delegateAndReturn();
     }
 
-    /// @dev VAI Integration^
+    function mintedVAIOf(address owner) external view returns (uint) {
+        owner; // Shh
+        delegateToViewAndReturn();
+    }
+
     /**
      * @notice Sender repays VAI
      * @param repayVAIAmount The number of VAI to repay
@@ -115,7 +119,6 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         repayVAIAmount; // Shh
         delegateAndReturn();
     }
-    /// @dev VAI Integration$
 
     /**
       * @notice Sender borrows assets from the protocol to their own address

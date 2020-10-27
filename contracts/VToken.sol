@@ -313,6 +313,15 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         return (MathError.NO_ERROR, result);
     }
+    
+    /**
+     * @notice Get the minted VAI amount of the `owner`
+     * @param owner The address of the account to query
+     * @return The number of minted VAI by `owner`
+     */
+    function mintedVAIOf(address owner) external view returns (uint) {
+        return accountMintedVAIs[owner];
+    }
 
     /**
      * @notice Accrue interest then return the up-to-date exchange rate
