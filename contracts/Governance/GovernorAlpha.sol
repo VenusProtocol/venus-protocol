@@ -18,7 +18,7 @@ contract GovernorAlpha {
     function votingDelay() public pure returns (uint) { return 1; } // 1 block
 
     /// @notice The duration of voting on a proposal, in blocks
-    function votingPeriod() public pure returns (uint) { return 17280; } // ~3 days in blocks (assuming 15s blocks)
+    function votingPeriod() public pure returns (uint) { return 60 * 60 * 24 * 3 / 3; } // ~3 days in blocks (assuming 3s blocks)
 
     /// @notice The address of the Venus Protocol Timelock
     TimelockInterface public timelock;

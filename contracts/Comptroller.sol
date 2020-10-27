@@ -351,7 +351,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
                     return uint(Error.MATH_ERROR);
                 }
                 vars.expectedRemainedBalance = Exp({mantissa: vars.vTokenBalance - redeemTokens});
-                (mErr, vars.expectedRemainedAmount) = mulExp(vars.oraclePrice, vars.expectedRemainedBalance);
+                (mErr, vars.expectedRemainedAmount) = mulExp3(vars.oraclePrice, vars.expectedRemainedBalance, vars.exchangeRate);
                 if (mErr != MathError.NO_ERROR) {
                     return uint(Error.MATH_ERROR);
                 }
