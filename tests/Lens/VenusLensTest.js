@@ -285,7 +285,7 @@ describe('VenusLens', () => {
             againstVotes: "0",
             calldatas: callDatas,
             canceled: false,
-            endBlock: (Number(proposalBlock) + 17281).toString(),
+            endBlock: (Number(proposalBlock) + 86401).toString(),
             eta: "0",
             executed: false,
             forVotes: "0",
