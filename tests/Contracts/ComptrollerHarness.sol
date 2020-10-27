@@ -433,20 +433,16 @@ contract BoolComptroller is ComptrollerInterface {
     }
 
     function mintVAI(
-        address _vToken,
         address _usr,
         uint _wad) public returns (uint) {
-        _vToken;
         _usr;
         _wad;
         return _wad;
     }
 
     function burnVAI(
-        address _vToken,
         address _usr,
         uint _wad) public returns (uint) {
-        _vToken;
         _usr;
         _wad;
         return _wad;

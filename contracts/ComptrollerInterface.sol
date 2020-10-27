@@ -76,7 +76,7 @@ contract ComptrollerInterface {
 
     /// @dev VAI Integration^
     function getUnderlyingPrice(address vToken) external view returns (uint);
-    function mintVAI(address vToken, address usr, uint wad) external returns (uint);
-    function burnVAI(address vToken, address usr, uint wad) external returns (uint);
+    function mintVAI(address usr, uint wad) external returns (uint);
+    function burnVAI(address usr, uint wad) external returns (uint);
     /// @dev VAI Integration$
 }

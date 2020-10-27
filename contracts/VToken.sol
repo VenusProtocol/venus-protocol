@@ -592,7 +592,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /// @dev VAI Integration^
         /* Mint VAI to user */
-        comptroller.mintVAI(address(this), minter, vars.accountMintableVAI);
+        comptroller.mintVAI(minter, vars.accountMintableVAI);
 
         /* We write previously calculated VAI values into storage */
         accountMintedVAIs[minter] = vars.accountMintedVAINew;
@@ -798,7 +798,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             actualBurnAmount = accountMintedVAIs[repayer];
         }
 
-        comptroller.burnVAI(address(this), repayer, actualBurnAmount);
+        comptroller.burnVAI(repayer, actualBurnAmount);
         accountMintedVAIs[repayer] = accountMintedVAIs[repayer] - actualBurnAmount;
 
         /* We call the defense hook */

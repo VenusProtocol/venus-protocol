@@ -1508,8 +1508,11 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @notice Mint VAI
      * @return (uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol)
      */
-    function mintVAI(address vToken, address usr, uint wad) external returns (uint) {
-        if (msg.sender != vToken) {
+    function mintVAI(address usr, uint wad) external returns (uint) {
+        Market storage market = markets[msg.sender];
+
+        if (!market.isListed) {
+            // market is not listed, cannot mint VAI
             return failOpaque(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION, wad);
         }
         VAI(getVAIAddress()).mint(usr, wad);
@@ -1520,8 +1523,11 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @notice Burn VAI
      * @return (uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol)
      */
-    function burnVAI(address vToken, address usr, uint wad) external returns (uint) {
-        if (msg.sender != vToken) {
+    function burnVAI(address usr, uint wad) external returns (uint) {
+        Market storage market = markets[msg.sender];
+
+        if (!market.isListed) {
+            // market is not listed, cannot mint VAI
             return failOpaque(Error.REJECTION, FailureInfo.VAI_BURN_REJECTION, wad);
         }
         VAI(getVAIAddress()).burn(usr, wad);
