@@ -29,7 +29,7 @@ contract VAI is LibNote {
         _;
     }
 
-    // --- ERC20 Data ---
+    // --- BEP20 Data ---
     string  public constant name     = "VAI Stablecoin";
     string  public constant symbol   = "VAI";
     string  public constant version  = "1";
@@ -74,9 +74,9 @@ contract VAI is LibNote {
     function transferFrom(address src, address dst, uint wad)
         public returns (bool)
     {
-        require(balanceOf[src] >= wad, "Vai/insufficient-balance");
+        require(balanceOf[src] >= wad, "VAI/insufficient-balance");
         if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
-            require(allowance[src][msg.sender] >= wad, "Vai/insufficient-allowance");
+            require(allowance[src][msg.sender] >= wad, "VAI/insufficient-allowance");
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
         balanceOf[src] = sub(balanceOf[src], wad);
@@ -90,9 +90,9 @@ contract VAI is LibNote {
         emit Transfer(address(0), usr, wad);
     }
     function burn(address usr, uint wad) external {
-        require(balanceOf[usr] >= wad, "Vai/insufficient-balance");
+        require(balanceOf[usr] >= wad, "VAI/insufficient-balance");
         if (usr != msg.sender && allowance[usr][msg.sender] != uint(-1)) {
-            require(allowance[usr][msg.sender] >= wad, "Vai/insufficient-allowance");
+            require(allowance[usr][msg.sender] >= wad, "VAI/insufficient-allowance");
             allowance[usr][msg.sender] = sub(allowance[usr][msg.sender], wad);
         }
         balanceOf[usr] = sub(balanceOf[usr], wad);
@@ -132,10 +132,10 @@ contract VAI is LibNote {
                                      allowed))
         ));
 
-        require(holder != address(0), "Vai/invalid-address-0");
-        require(holder == ecrecover(digest, v, r, s), "Vai/invalid-permit");
-        require(expiry == 0 || now <= expiry, "Vai/permit-expired");
-        require(nonce == nonces[holder]++, "Vai/invalid-nonce");
+        require(holder != address(0), "VAI/invalid-address-0");
+        require(holder == ecrecover(digest, v, r, s), "VAI/invalid-permit");
+        require(expiry == 0 || now <= expiry, "VAI/permit-expired");
+        require(nonce == nonces[holder]++, "VAI/invalid-nonce");
         uint wad = allowed ? uint(-1) : 0;
         allowance[holder][spender] = wad;
         emit Approval(holder, spender, wad);

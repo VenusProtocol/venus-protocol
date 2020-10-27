@@ -225,7 +225,6 @@ contract VTokenInterface is VTokenStorage {
     function balanceOf(address owner) external view returns (uint);
     function balanceOfUnderlying(address owner) external returns (uint);
     /// @dev VAI Integration^
-    function mintedVAIOf(address owner) external view returns (uint);
     function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint, uint);
     /// @dev VAI Integration$
     function borrowRatePerBlock() external view returns (uint);

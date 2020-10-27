@@ -7,7 +7,6 @@ import "./Exponential.sol";
 import "./EIP20Interface.sol";
 import "./EIP20NonStandardInterface.sol";
 import "./InterestRateModel.sol";
-import "./PriceOracle.sol";
 
 /**
  * @title Venus's VToken Contract
@@ -277,17 +276,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         require(err == MathError.NO_ERROR, "borrowBalanceStored: borrowBalanceStoredInternal failed");
         return result;
     }
-
-    /// @dev VAI Integration^
-    /**
-     * @notice Get the minted VAI of the `owner`
-     * @param owner The address of the account to query
-     * @return The number of minted VAI by `owner`
-     */
-    function mintedVAIOf(address owner) external view returns (uint256) {
-        return accountMintedVAIs[owner];
-    }
-    /// @dev VAI Integration$
 
     /**
      * @notice Return the borrow balance of account based on stored data

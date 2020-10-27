@@ -429,7 +429,7 @@ contract BoolComptroller is ComptrollerInterface {
 
     function getUnderlyingPrice(address _vToken) external view returns (uint) {
         _vToken;
-        return noError;
+        return 1e18;
     }
 
     function mintVAI(

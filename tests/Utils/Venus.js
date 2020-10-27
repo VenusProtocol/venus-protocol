@@ -212,8 +212,7 @@ async function makeToken(opts = {}) {
     const decimals = bnbUnsigned(dfn(opts.decimals, 18));
     const symbol = opts.symbol || 'OMG';
     const name = opts.name || `Bep20 ${symbol}`;
-    const cont = await deploy('BEP20Harness', [quantity, name, decimals, symbol]);
-    return cont;
+    return await deploy('BEP20Harness', [quantity, name, decimals, symbol]);
   }
 }
 
