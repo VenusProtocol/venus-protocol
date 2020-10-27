@@ -16,6 +16,8 @@ describe('GovernorAlpha#propose/5', () => {
 
   let trivialProposal, targets, values, signatures, callDatas;
   let proposalBlock;
+  let votingDelay;
+  let votingPeriod;
   beforeAll(async () => {
     targets = [root];
     values = ["0"];
@@ -26,6 +28,8 @@ describe('GovernorAlpha#propose/5', () => {
     proposalBlock = +(await web3.eth.getBlockNumber());
     proposalId = await call(gov, 'latestProposalIds', [root]);
     trivialProposal = await call(gov, "proposals", [proposalId]);
+    votingDelay = Number(await call(gov, 'votingDelay'));
+    votingPeriod = Number(await call(gov, 'votingPeriod'));
   });
 
   it("Given the sender's GetPriorVotes for the immediately previous block is above the Proposal Threshold (e.g. 2%), the given proposal is added to all proposals, given the following settings", async () => {
@@ -42,11 +46,11 @@ describe('GovernorAlpha#propose/5', () => {
     });
 
     it("Start block is set to the current block number plus vote delay", async () => {
-      expect(trivialProposal.startBlock).toEqual(proposalBlock + 1 + "");
+      expect(trivialProposal.startBlock).toEqual(proposalBlock + votingDelay + "");
     });
 
     it("End block is set to the current block number plus the sum of vote delay and vote period", async () => {
-      expect(trivialProposal.endBlock).toEqual(proposalBlock + 1 + 17280 + "");
+      expect(trivialProposal.endBlock).toEqual(proposalBlock + votingDelay + votingPeriod + "");
     });
 
     it("ForVotes and AgainstVotes are initialized to zero", async () => {
@@ -143,8 +147,8 @@ describe('GovernorAlpha#propose/5', () => {
         values: values,
         signatures: signatures,
         calldatas: callDatas,
-        startBlock: 14,
-        endBlock: 17294,
+        startBlock: 13 + votingDelay,
+        endBlock: 13 + votingDelay + votingPeriod,
         description: "second proposal",
         proposer: accounts[3]
       });
