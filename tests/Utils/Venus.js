@@ -71,7 +71,6 @@ async function makeVToken(opts = {}) {
   } = opts || {};
 
   const comptroller = opts.comptroller || await makeComptroller(opts.comptrollerOpts);
-  console.log("makeComptroller", comptroller);
   const interestRateModel = opts.interestRateModel || await makeInterestRateModel(opts.interestRateModelOpts);
   const exchangeRate = bnbMantissa(dfn(opts.exchangeRate, 1));
   const decimals = bnbUnsigned(dfn(opts.decimals, 8));
@@ -214,7 +213,6 @@ async function makeToken(opts = {}) {
     const symbol = opts.symbol || 'OMG';
     const name = opts.name || `Bep20 ${symbol}`;
     const cont = await deploy('BEP20Harness', [quantity, name, decimals, symbol]);
-    console.log(kind, cont);
     return cont;
   }
 }

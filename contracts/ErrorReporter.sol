@@ -20,9 +20,7 @@ contract ComptrollerErrorReporter {
         SNAPSHOT_ERROR,
         TOO_MANY_ASSETS,
         TOO_MUCH_REPAY,
-        /// @dev VAI Integration^
         NONZERO_MINTEDVAI_BALANCE
-        /// @dev VAI Integration$
     }
 
     enum FailureInfo {
@@ -46,10 +44,8 @@ contract ComptrollerErrorReporter {
         SUPPORT_MARKET_EXISTS,
         SUPPORT_MARKET_OWNER_CHECK,
         SET_PAUSE_GUARDIAN_OWNER_CHECK,
-        /// @dev VAI Integration^
         VAI_MINT_REJECTION,
         VAI_BURN_REJECTION
-        /// @dev VAI Integration$
     }
 
     /**
@@ -96,9 +92,7 @@ contract TokenErrorReporter {
         TOKEN_INSUFFICIENT_CASH,
         TOKEN_TRANSFER_IN_FAILED,
         TOKEN_TRANSFER_OUT_FAILED,
-        /// @dev VAI Integration^
         TOKEN_PRICE_ERROR
-        /// @dev VAI Integration$
     }
 
     /*
@@ -189,11 +183,11 @@ contract TokenErrorReporter {
         ADD_RESERVES_ACCRUE_INTEREST_FAILED,
         ADD_RESERVES_FRESH_CHECK,
         ADD_RESERVES_TRANSFER_IN_NOT_POSSIBLE,
-        /// @dev VAI Integration^
         TOKEN_GET_UNDERLYING_PRICE_ERROR,
         REPAY_VAI_COMPTROLLER_REJECTION,
-        REPAY_VAI_FRESHNESS_CHECK
-        /// @dev VAI Integration$
+        REPAY_VAI_FRESHNESS_CHECK,
+        VAI_MINT_EXCHANGE_CALCULATION_FAILED,
+        VAI_MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED
     }
 
     /**
