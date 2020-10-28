@@ -194,34 +194,31 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         return balance;
     }
 
-    /// @dev VAI Integration^
     /**
      * @notice Get a snapshot of the account's balances, and the cached exchange rate
      * @dev This is used by comptroller to more efficiently perform liquidity checks.
      * @param account Address of the account to snapshot
-     * @return (possible error, token balance, borrow balance, exchange rate mantissa, minted VAI)
+     * @return (possible error, token balance, borrow balance, exchange rate mantissa)
      */
-    function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint, uint) {
+    function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint) {
         uint vTokenBalance = accountTokens[account];
         uint borrowBalance;
         uint exchangeRateMantissa;
-        uint mintedVAI = accountMintedVAIs[account];
 
         MathError mErr;
 
         (mErr, borrowBalance) = borrowBalanceStoredInternal(account);
         if (mErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0, 0, 0, 0);
+            return (uint(Error.MATH_ERROR), 0, 0, 0);
         }
 
         (mErr, exchangeRateMantissa) = exchangeRateStoredInternal();
         if (mErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0, 0, 0, 0);
+            return (uint(Error.MATH_ERROR), 0, 0, 0);
         }
 
-        return (uint(Error.NO_ERROR), vTokenBalance, borrowBalance, exchangeRateMantissa, mintedVAI);
+        return (uint(Error.NO_ERROR), vTokenBalance, borrowBalance, exchangeRateMantissa);
     }
-    /// @dev VAI Integration$
 
     /**
      * @dev Function to simply retrieve block number
@@ -312,15 +309,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         return (MathError.NO_ERROR, result);
-    }
-    
-    /**
-     * @notice Get the minted VAI amount of the `owner`
-     * @param owner The address of the account to query
-     * @return The number of minted VAI by `owner`
-     */
-    function mintedVAIOf(address owner) external view returns (uint) {
-        return accountMintedVAIs[owner];
     }
 
     /**
@@ -494,10 +482,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         MathError mathErr;
         uint exchangeRateMantissa;
         uint mintTokens;
-        uint accountMintableVAI;
         uint totalSupplyNew;
         uint accountTokensNew;
-        uint accountMintedVAINew;
         uint actualMintAmount;
     }
 
@@ -560,43 +546,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[minter], vars.mintTokens);
         require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
 
-        /// @dev VAI Integration^
-        /*
-         * We get the current underlying price and calculate the number of VAIs to be minted:
-         *  accountMintableVAI = mintAmount * getUnderlyingPrice;
-         */
-
-        // Get the normalized price of the asset
-        uint assetPrice = comptroller.getUnderlyingPrice(address(this));
-        if (assetPrice == 0) {
-            return (fail(Error.TOKEN_PRICE_ERROR, FailureInfo.TOKEN_GET_UNDERLYING_PRICE_ERROR), 0);
-        }
-        Exp memory oraclePrice = Exp({mantissa: assetPrice});
-
-        (vars.mathErr, vars.accountMintableVAI) = divScalarByExpTruncate(vars.actualMintAmount, oraclePrice);
-        require(vars.mathErr == MathError.NO_ERROR, "VAI_MINT_EXCHANGE_CALCULATION_FAILED");
-        vars.accountMintableVAI = div_(vars.accountMintableVAI, 2);
-
-        /*
-         * We calculate the new minted VAI amount:
-         *  accountMintedVAINew = accountMintedVAIs[minter] + mintTokens
-         */
-
-        (vars.mathErr, vars.accountMintedVAINew) = addUInt(accountMintedVAIs[minter], vars.accountMintableVAI);
-        require(vars.mathErr == MathError.NO_ERROR, "VAI_MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
-        /// @dev VAI Integration$
-
         /* We write previously calculated values into storage */
         totalSupply = vars.totalSupplyNew;
         accountTokens[minter] = vars.accountTokensNew;
-
-        /// @dev VAI Integration^
-        /* Mint VAI to user */
-        comptroller.mintVAI(minter, vars.accountMintableVAI);
-
-        /* We write previously calculated VAI values into storage */
-        accountMintedVAIs[minter] = vars.accountMintedVAINew;
-        /// @dev VAI Integration$
 
         /* We emit a Mint event, and a Transfer event */
         emit Mint(minter, vars.actualMintAmount, vars.mintTokens);
@@ -753,60 +705,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         return uint(Error.NO_ERROR);
     }
-
-    /// @dev VAI Integration^
-    /**
-     * @notice Sender repays VAI
-     * @param repayVAIAmount The number of VAI to repay
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-     */
-    function repayVAIInternal(uint repayVAIAmount) internal nonReentrant returns (uint, uint) {
-        return repayVAIFresh(msg.sender, repayVAIAmount);
-    }
-
-    struct RepayVAILocalVars {
-        Error err;
-        MathError mathErr;
-        uint repayVAIAmount;
-    }
-
-    /**
-     * @notice User repays VAI to the market
-     * @param repayer The address of the account which repay VAI
-     * @param repayVAIAmount The amount of VAI to repay
-     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual burn amount.
-     */
-    function repayVAIFresh(address repayer, uint repayVAIAmount) internal returns (uint, uint) {
-        /* Fail if repay VAI not allowed */
-        uint allowed = comptroller.repayVAIAllowed(address(this), repayer, repayVAIAmount);
-        if (allowed != 0) {
-            return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.REPAY_VAI_COMPTROLLER_REJECTION, allowed), 0);
-        }
-
-        /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
-            return (fail(Error.MARKET_NOT_FRESH, FailureInfo.REPAY_VAI_FRESHNESS_CHECK), 0);
-        }
-
-        /* Burn VAI from user */
-        uint actualBurnAmount = 0;
-
-        /* We write previously calculated VAI values into storage */
-        if(accountMintedVAIs[repayer] > repayVAIAmount) {
-            actualBurnAmount = repayVAIAmount;
-        } else {
-            actualBurnAmount = accountMintedVAIs[repayer];
-        }
-
-        comptroller.burnVAI(repayer, actualBurnAmount);
-        accountMintedVAIs[repayer] = accountMintedVAIs[repayer] - actualBurnAmount;
-
-        /* We call the defense hook */
-        comptroller.repayVAIVerify(address(this), repayer, actualBurnAmount);
-
-        return (uint(Error.NO_ERROR), actualBurnAmount);
-    }
-    /// @dev VAI Integration$
 
     /**
       * @notice Sender borrows assets from the protocol to their own address

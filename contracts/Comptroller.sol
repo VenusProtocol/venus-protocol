@@ -176,7 +176,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     function exitMarket(address vTokenAddress) external returns (uint) {
         VToken vToken = VToken(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
-        (uint oErr, uint tokensHeld, uint amountOwed,, uint mintedVAI ) = vToken.getAccountSnapshot(msg.sender);
+        (uint oErr, uint tokensHeld, uint amountOwed, ) = vToken.getAccountSnapshot(msg.sender);
         require(oErr == 0, "exitMarket: getAccountSnapshot failed"); // semi-opaque error code
 
         /* Fail if the sender has a borrow balance */
@@ -192,7 +192,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
         /// @dev VAI Integration^
         /* Fail if the sender has a borrow balance */
-        if (mintedVAI != 0) {
+        if (mintedVAIs[msg.sender] != 0) {
             return fail(Error.NONZERO_MINTEDVAI_BALANCE, FailureInfo.EXIT_MARKET_BALANCE_OWED);
         }
         /// @dev VAI Integration$
@@ -274,6 +274,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         actualMintAmount;
         mintTokens;
 
+        mintVAIInternal(vToken, minter, actualMintAmount);
+
         // Shh - we don't ever want this hook to be marked pure
         if (false) {
             maxAssets = maxAssets;
@@ -323,7 +325,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             return uint(Error.MARKET_NOT_LISTED);
         }
 
-        /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
+        /* If the redeemer is not 'in' the market, then we can bypass the liquidity check but need minted VAI check */
         if (!markets[vToken].accountMembership[redeemer]) {
             /// @dev VAI Integration^
             uint oErr;
@@ -331,10 +333,12 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             AccountBalanceLocalVars memory vars; // Holds all our calculation results
             
             // Read the balances and exchange rate from the vToken
-            (oErr, vars.vTokenBalance, , vars.exchangeRateMantissa, vars.mintedVAIMantissa) = VToken(vToken).getAccountSnapshot(redeemer);
+            (oErr, vars.vTokenBalance, , vars.exchangeRateMantissa) = VToken(vToken).getAccountSnapshot(redeemer);
             if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return uint(Error.SNAPSHOT_ERROR);
             }
+
+            vars.mintedVAIMantissa = mintedVAIs[redeemer];
             
             if(vars.mintedVAIMantissa > 0) {
                 // Get the normalized price of the asset
@@ -357,7 +361,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
                 }
 
                 if(vars.mintedVAIMantissa > vars.expectedRemainedAmount.mantissa) {
-                    return uint(Error.MATH_ERROR);
+                    return uint(Error.INSUFFICIENT_BALANCE_FOR_VAI);
                 }
             }
             /// @dev VAI Integration$
@@ -394,40 +398,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             revert("redeemTokens zero");
         }
     }
-
-    /// @dev VAI Integration^
-    /**
-     * @notice Checks if the account should be allowed to repay VAI in the given market
-     * @param vToken The market to verify the repay VAI against
-     * @param repayer The account which would repay the VAI
-     * @param repayVAIAmount The amount of VAI being repaid to the market
-     * @return 0 if the repay VAI is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
-     */
-    function repayVAIAllowed(address vToken, address repayer, uint repayVAIAmount) external returns (uint) {
-        // Shh - currently unused
-        repayer;
-        repayVAIAmount;
-
-        if (!markets[vToken].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
-        }
-
-        return uint(Error.NO_ERROR);
-    }
-
-    /**
-     * @notice Validates repay VAI and reverts on rejection. May emit logs.
-     * @param vToken Asset being repaid
-     * @param repayer The address repaying VAI
-     * @param repayVAIAmount The amount of the VAI being repaid
-     */
-    function repayVAIVerify(address vToken, address repayer, uint repayVAIAmount) external {
-        // Shh - currently unused
-        vToken;
-        repayer;
-        repayVAIAmount;
-    }
-    /// @dev VAI Integration$
 
     /**
      * @notice Checks if the account should be allowed to borrow the underlying asset of the given market
@@ -736,7 +706,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
     /*** Liquidity/Liquidation Calculations ***/
 
-    /// @dev VAI Integration^
     /**
      * @dev Local vars for avoiding stack-depth limits in calculating account liquidity.
      *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
@@ -748,14 +717,12 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         uint vTokenBalance;
         uint borrowBalance;
         uint exchangeRateMantissa;
-        uint mintedVAIMantissa;
         uint oraclePriceMantissa;
         Exp collateralFactor;
         Exp exchangeRate;
         Exp oraclePrice;
         Exp tokensToDenom;
     }
-    /// @dev VAI Integration$
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
@@ -826,7 +793,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             VToken asset = assets[i];
 
             // Read the balances and exchange rate from the vToken
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa, vars.mintedVAIMantissa) = asset.getAccountSnapshot(account);
+            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(account);
             if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (Error.SNAPSHOT_ERROR, 0, 0);
             }
@@ -852,14 +819,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
                 return (Error.MATH_ERROR, 0, 0);
             }
 
-            /// @dev VAI Integration^
-            if (vars.sumCollateral > vars.mintedVAIMantissa) {
-                vars.sumCollateral = vars.sumCollateral - vars.mintedVAIMantissa;
-            } else {
-                return (Error.MATH_ERROR, 0, 0);
-            }
-            /// @dev VAI Integration$
-
             // sumBorrowPlusEffects += oraclePrice * borrowBalance
             (mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
             if (mErr != MathError.NO_ERROR) {
@@ -883,6 +842,14 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
                 }
             }
         }
+
+        /// @dev VAI Integration^
+        MathError mathErr;
+        (mathErr, vars.sumCollateral) = subUInt(vars.sumCollateral, mintedVAIs[account]);
+        if (mathErr != MathError.NO_ERROR) {
+            return (Error.MATH_ERROR, 0, 0);
+        }
+        /// @dev VAI Integration$
 
         // These are safe, as the underflow condition is checked first
         if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
@@ -1497,41 +1464,70 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
     
     /**
-     * @notice Get Underlying Price of the vToken
-     * @return The price of vToken's underlying token
-     */
-    function getUnderlyingPrice(address vToken) external view returns (uint) {
-        return oracle.getUnderlyingPrice(VToken(vToken));
-    }
-    
-    /**
      * @notice Mint VAI
      * @return (uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol)
      */
-    function mintVAI(address usr, uint wad) external returns (uint) {
-        Market storage market = markets[msg.sender];
+    function mintVAIInternal(address vToken, address minter, uint actualMintAmount) internal returns (uint) {
+        require(vToken == msg.sender, "Mint VAI only allowed from VToken call");
 
+        /* Mint VAI to user */
+        Market storage market = markets[vToken];
         if (!market.isListed) {
             // market is not listed, cannot mint VAI
-            return failOpaque(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION, wad);
+            return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
         }
-        VAI(getVAIAddress()).mint(usr, wad);
+
+        MathError mathErr;
+        uint accountMintableVAI;
+        uint accountMintedVAINew;
+
+        /*
+         * We get the current underlying price and calculate the number of VAIs to be minted:
+         *  accountMintedVAINew = mintedVAIs[minter] + (actualMintAmount * getUnderlyingPrice) / 2;
+         */
+        uint assetPrice = oracle.getUnderlyingPrice(VToken(vToken));
+        require(assetPrice != 0, "VAI_MINT_UNDERLYING_PRICE_ERROR");
+        
+        Exp memory oraclePrice = Exp({mantissa: assetPrice});
+        (mathErr, accountMintableVAI) = divScalarByExpTruncate(actualMintAmount, oraclePrice);
+        require(mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
+
+        (mathErr, accountMintableVAI) = divUInt(accountMintableVAI, 2);
+        require(mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
+
+        (mathErr, accountMintedVAINew) = addUInt(mintedVAIs[minter], accountMintableVAI);
+        require(mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
+
+        VAI(getVAIAddress()).mint(minter, accountMintableVAI);
+        mintedVAIs[minter] = accountMintedVAINew;
+
         return uint(Error.NO_ERROR);
     }
     
     /**
-     * @notice Burn VAI
-     * @return (uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol)
+     * @notice Repay VAI
      */
-    function burnVAI(address usr, uint wad) external returns (uint) {
-        Market storage market = markets[msg.sender];
+    function repayVAI(uint repayVAIAmount) external {
+        uint actualBurnAmount = 0;
 
-        if (!market.isListed) {
-            // market is not listed, cannot mint VAI
-            return failOpaque(Error.REJECTION, FailureInfo.VAI_BURN_REJECTION, wad);
+        /* We write previously calculated VAI values into storage */
+        if(mintedVAIs[msg.sender] > repayVAIAmount) {
+            actualBurnAmount = repayVAIAmount;
+        } else {
+            actualBurnAmount = mintedVAIs[msg.sender];
         }
-        VAI(getVAIAddress()).burn(usr, wad);
-        return uint(Error.NO_ERROR);
+
+        VAI(getVAIAddress()).burn(msg.sender, actualBurnAmount);
+        mintedVAIs[msg.sender] = mintedVAIs[msg.sender] - actualBurnAmount;
+    }
+
+    /**
+     * @notice Get the minted VAI amount of the `owner`
+     * @param owner The address of the account to query
+     * @return The number of minted VAI by `owner`
+     */
+    function mintedVAIOf(address owner) external view returns (uint) {
+        return mintedVAIs[owner];
     }
     /// @dev VAI Integration$
 }

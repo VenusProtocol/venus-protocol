@@ -120,4 +120,7 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
 
     /// @notice The XVS accrued but not yet transferred to each user
     mapping(address => uint) public venusAccrued;
+
+    /// @notice The minted VAI amount to each user
+    mapping(address => uint) public mintedVAIs;
 }
