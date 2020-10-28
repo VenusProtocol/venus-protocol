@@ -61,7 +61,7 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, '_addVenusMarkets', [venusMarkets]);
     await send(vai, 'rely', [unitroller._address]);
 
-    return Object.assign(unitroller, { priceOracle, xvs });
+    return Object.assign(unitroller, { priceOracle, xvs, vai });
   }
 }
 
