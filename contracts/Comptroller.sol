@@ -8,7 +8,6 @@ import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
 import "./Governance/XVS.sol";
-import "./VAI/VAI.sol";
 
 /**
  * @title Venus's Comptroller Contract
@@ -62,6 +61,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
     /// @notice Emitted when XVS is distributed to a borrower
     event DistributedBorrowerVenus(VToken indexed vToken, address indexed borrower, uint venusDelta, uint venusBorrowIndex);
+
+    /// @notice Emitted when VAIController is changed
+    event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
 
     /// @notice The threshold above which the flywheel transfers XVS, in wei
     uint public constant venusClaimThreshold = 0.001e18;
@@ -190,12 +192,10 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
         }
 
-        /// @dev VAI Integration^
-        /* Fail if the sender has a borrow balance */
+        /* Fail if the sender has a minted VAI balance */
         if (mintedVAIs[msg.sender] != 0) {
             return fail(Error.NONZERO_MINTEDVAI_BALANCE, FailureInfo.EXIT_MARKET_BALANCE_OWED);
         }
-        /// @dev VAI Integration$
 
         Market storage marketToExit = markets[address(vToken)];
 
@@ -274,12 +274,14 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         actualMintAmount;
         mintTokens;
 
-        mintVAIInternal(vToken, minter, actualMintAmount);
-
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
+        //mintVAIInternal(vToken, minter, actualMintAmount);
+        // Check caller is vtoken
+        if (vToken != msg.sender || !markets[vToken].isListed) {
+            fail(Error.UNAUTHORIZED, FailureInfo.VAI_MINT_REJECTION);
+            return;
         }
+
+        vaiController.mintVAI(address(oracle), vToken, minter, actualMintAmount);
     }
 
     /**
@@ -845,7 +847,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
         /// @dev VAI Integration^
         MathError mathErr;
-        (mathErr, vars.sumCollateral) = subUInt(vars.sumCollateral, mintedVAIs[account]);
+        (mathErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, mintedVAIs[account]);
         if (mathErr != MathError.NO_ERROR) {
             return (Error.MATH_ERROR, 0, 0);
         }
@@ -1450,75 +1452,24 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @notice Return the address of the XVS token
      * @return The address of XVS
      */
-    function getXVSAddress() public view returns (address) {
-        return 0xc00e94Cb662C3520282E6f5717214004A7f26888;
+   function getXVSAddress() public view returns (address) {
+        return 0xB9e0E753630434d7863528cc73CB7AC638a7c8ff;
     }
 
-    /// @dev VAI Integration^
     /**
-     * @notice Return the address of the VAI token
-     * @return The address of VAI
-     */
-    function getVAIAddress() public view returns (address) {
-        return 0xbb6dcAa67FA12041e402acee61709A9Ba8ad9448;
-    }
-    
-    /**
-     * @notice Mint VAI
-     * @return (uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol)
-     */
-    function mintVAIInternal(address vToken, address minter, uint actualMintAmount) internal returns (uint) {
-        require(vToken == msg.sender, "Mint VAI only allowed from VToken call");
-
-        /* Mint VAI to user */
-        Market storage market = markets[vToken];
-        if (!market.isListed) {
-            // market is not listed, cannot mint VAI
-            return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
+      * @notice Sets a new VAI controller
+      * @dev Admin function to set a new VAI controller
+      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+      */
+    function _setVAIController(VAIControllerInterface vaiController_) public returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAICONTROLLER_OWNER_CHECK);
         }
 
-        MathError mathErr;
-        uint accountMintableVAI;
-        uint accountMintedVAINew;
-
-        /*
-         * We get the current underlying price and calculate the number of VAIs to be minted:
-         *  accountMintedVAINew = mintedVAIs[minter] + (actualMintAmount * getUnderlyingPrice) / 2;
-         */
-        uint assetPrice = oracle.getUnderlyingPrice(VToken(vToken));
-        require(assetPrice != 0, "VAI_MINT_UNDERLYING_PRICE_ERROR");
-        
-        Exp memory oraclePrice = Exp({mantissa: assetPrice});
-        (mathErr, accountMintableVAI) = divScalarByExpTruncate(actualMintAmount, oraclePrice);
-        require(mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
-
-        (mathErr, accountMintableVAI) = divUInt(accountMintableVAI, 2);
-        require(mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
-
-        (mathErr, accountMintedVAINew) = addUInt(mintedVAIs[minter], accountMintableVAI);
-        require(mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
-
-        VAI(getVAIAddress()).mint(minter, accountMintableVAI);
-        mintedVAIs[minter] = accountMintedVAINew;
-
-        return uint(Error.NO_ERROR);
-    }
-    
-    /**
-     * @notice Repay VAI
-     */
-    function repayVAI(uint repayVAIAmount) external {
-        uint actualBurnAmount = 0;
-
-        /* We write previously calculated VAI values into storage */
-        if(mintedVAIs[msg.sender] > repayVAIAmount) {
-            actualBurnAmount = repayVAIAmount;
-        } else {
-            actualBurnAmount = mintedVAIs[msg.sender];
-        }
-
-        VAI(getVAIAddress()).burn(msg.sender, actualBurnAmount);
-        mintedVAIs[msg.sender] = mintedVAIs[msg.sender] - actualBurnAmount;
+        VAIControllerInterface oldRate = vaiController;
+        vaiController = vaiController_;
+        emit NewVAIController(oldRate, vaiController_);
     }
 
     /**
@@ -1529,5 +1480,18 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     function mintedVAIOf(address owner) external view returns (uint) {
         return mintedVAIs[owner];
     }
-    /// @dev VAI Integration$
+
+    /**
+     * @notice Set the minted VAI amount of the `owner`
+     * @param owner The address of the account to set
+     * @param amount The amount of VAI to set to the account
+     * @return The number of minted VAI by `owner`
+     */
+    function setMintedVAIOf(address owner, uint amount) external returns (uint) {
+        // Check caller is vaiController
+        if (msg.sender != address(vaiController)) {
+            return fail(Error.REJECTION, FailureInfo.MINTED_VAI_SET_REJECTION);
+        }
+        mintedVAIs[owner] = amount;
+    }
 }

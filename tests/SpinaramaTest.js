@@ -100,7 +100,6 @@ describe('Spinarama', () => {
       await send(vToken1.comptroller.vai, 'approve', [vToken1.comptroller._address, 100], {from});
       expect(await enterMarkets([vToken1, vToken2], from)).toSucceed();
       expect(await send(vToken1, 'mint', [10], {from})).toSucceed();
-      expect(await send(vToken1, 'repayVAI', [5], {from})).toSucceed(); // TODO: why we should repay for borrow
       expect(await send(vToken2, 'borrow', [2], {from})).toSucceed();
       await minerStop();
       const p1 = send(vToken2, 'repayBorrow', [1], {from});

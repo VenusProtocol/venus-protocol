@@ -48,7 +48,9 @@ contract ComptrollerErrorReporter {
         SUPPORT_MARKET_OWNER_CHECK,
         SET_PAUSE_GUARDIAN_OWNER_CHECK,
         VAI_MINT_REJECTION,
-        VAI_BURN_REJECTION
+        VAI_BURN_REJECTION,
+        SET_VAICONTROLLER_OWNER_CHECK,
+        MINTED_VAI_SET_REJECTION
     }
 
     /**
@@ -191,6 +193,48 @@ contract TokenErrorReporter {
         REPAY_VAI_FRESHNESS_CHECK,
         VAI_MINT_EXCHANGE_CALCULATION_FAILED,
         VAI_MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED
+    }
+
+    /**
+      * @dev `error` corresponds to enum Error; `info` corresponds to enum FailureInfo, and `detail` is an arbitrary
+      * contract-specific code that enables us to report opaque error codes from upgradeable contracts.
+      **/
+    event Failure(uint error, uint info, uint detail);
+
+    /**
+      * @dev use this when reporting a known error from the money market or a non-upgradeable collaborator
+      */
+    function fail(Error err, FailureInfo info) internal returns (uint) {
+        emit Failure(uint(err), uint(info), 0);
+
+        return uint(err);
+    }
+
+    /**
+      * @dev use this when reporting an opaque error from an upgradeable collaborator contract
+      */
+    function failOpaque(Error err, FailureInfo info, uint opaqueError) internal returns (uint) {
+        emit Failure(uint(err), uint(info), opaqueError);
+
+        return uint(err);
+    }
+}
+
+contract VAIControllerErrorReporter {
+    enum Error {
+        NO_ERROR,
+        UNAUTHORIZED,
+        INSUFFICIENT_BALANCE_FOR_VAI
+    }
+
+    enum FailureInfo {
+        SET_PENDING_ADMIN_OWNER_CHECK,
+        SET_PENDING_IMPLEMENTATION_OWNER_CHECK,
+        SET_COMPTROLLER_OWNER_CHECK,
+        ACCEPT_ADMIN_PENDING_ADMIN_CHECK,
+        ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK,
+        VAI_MINT_REJECTION,
+        VAI_BURN_REJECTION
     }
 
     /**
