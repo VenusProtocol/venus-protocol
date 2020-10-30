@@ -44,7 +44,10 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         (mathErr, accountMintableVAI) = mulScalarTruncate(oraclePrice, actualMintAmount);
         require(mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
 
-        (mathErr, accountMintableVAI) = divUInt(accountMintableVAI, 2);
+        (mathErr, accountMintableVAI) = mulUInt(accountMintableVAI, comptroller.getVAIMintRate());
+        require(mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
+
+        (mathErr, accountMintableVAI) = divUInt(accountMintableVAI, 10000);
         require(mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
 
         (mathErr, accountMintedVAINew) = addUInt(comptroller.mintedVAIOf(minter), accountMintableVAI);
@@ -65,10 +68,10 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
     /**
      * @notice Repay VAI
      */
-    function repayVAI(uint repayVAIAmount) external returns (uint) {
+    function repayVAI(address repayer, uint repayVAIAmount) external returns (uint) {
         uint actualBurnAmount = 0;
 
-        uint vaiBalance = comptroller.mintedVAIOf(msg.sender);
+        uint vaiBalance = comptroller.mintedVAIOf(repayer);
         
         if(vaiBalance > repayVAIAmount) {
             actualBurnAmount = repayVAIAmount;
@@ -76,8 +79,8 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             actualBurnAmount = vaiBalance;
         }
 
-        VAI(getVAIAddress()).burn(msg.sender, actualBurnAmount);
-        comptroller.setMintedVAIOf(msg.sender, vaiBalance - actualBurnAmount);
+        VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
+        comptroller.setMintedVAIOf(repayer, vaiBalance - actualBurnAmount);
     }
 
     /**

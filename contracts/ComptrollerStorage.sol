@@ -127,4 +127,7 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
 
     /// @notice The minted VAI amount to each user
     mapping(address => uint) public mintedVAIs;
+
+    /// @notice VAI Mint Rate as a percentage
+    uint public vaiMintRate;
 }
