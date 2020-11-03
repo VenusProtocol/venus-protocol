@@ -223,6 +223,10 @@ contract VAIControllerErrorReporter {
     enum Error {
         NO_ERROR,
         UNAUTHORIZED,
+        REJECTION,
+        SNAPSHOT_ERROR,
+        PRICE_ERROR,
+        MATH_ERROR,
         INSUFFICIENT_BALANCE_FOR_VAI
     }
 

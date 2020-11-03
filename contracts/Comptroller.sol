@@ -265,12 +265,10 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      */
     function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {
         // Shh - currently unused
+        vToken;
+        minter;
+        actualMintAmount;
         mintTokens;
-
-        // Check caller is vtoken
-        require(vToken == msg.sender && markets[vToken].isListed, "vai mint rejection");
-
-        vaiController.mintVAI(address(oracle), vToken, minter, actualMintAmount);
     }
 
     /**
@@ -1481,6 +1479,13 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
         }
         mintedVAIs[owner] = amount;
+    }
+    
+    /**
+     * @notice Mint VAI
+     */
+    function mintVAI(uint mintVAIAmount) external returns (uint) {
+        return vaiController.mintVAI(msg.sender, mintVAIAmount);
     }
     
     /**
