@@ -176,6 +176,6 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
      * @return The address of VAI
      */
     function getVAIAddress() public view returns (address) {
-        return 0x0A87C5BdeC19d74BEE9938F928bfa153bc8532b2;
+        return 0x5fFbE5302BadED40941A403228E6AD03f93752d9;
     }
 }
