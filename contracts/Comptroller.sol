@@ -1484,6 +1484,13 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
     
     /**
+     * @notice Get Mintable VAI amount
+     */
+    function getMintableVAI(address minter) public view returns (uint, uint) {
+        return vaiController.getMintableVAI(minter);
+    }
+    
+    /**
      * @notice Mint VAI
      */
     function mintVAI(uint mintVAIAmount) external returns (uint) {
