@@ -468,7 +468,7 @@ describe('Flywheel', () => {
       const cNOT = await makeVToken({comptroller});
       await expect(
         send(comptroller, 'claimVenus', [a1, [cNOT._address]])
-      ).rejects.toRevert('revert market must be listed');
+      ).rejects.toRevert('revert not listed market');
     });
   });
 
@@ -489,7 +489,7 @@ describe('Flywheel', () => {
 
       await fastForward(comptroller, deltaBlocks);
 
-      await expect(send(comptroller, 'claimVenus', [claimAccts, [vLOW._address, vEVIL._address], true, true])).rejects.toRevert('revert market must be listed');
+      await expect(send(comptroller, 'claimVenus', [claimAccts, [vLOW._address, vEVIL._address], true, true])).rejects.toRevert('revert not listed market');
     });
 
 
@@ -561,7 +561,7 @@ describe('Flywheel', () => {
       const cNOT = await makeVToken({comptroller});
       await expect(
         send(comptroller, 'claimVenus', [[a1, a2], [cNOT._address], true, true])
-      ).rejects.toRevert('revert market must be listed');
+      ).rejects.toRevert('revert not listed market');
     });
   });
 
@@ -606,7 +606,7 @@ describe('Flywheel', () => {
     it('should not be callable inside a contract', async () => {
       await pretendBorrow(vLOW, a1, 1, 1, 100);
       await pretendBorrow(vZRX, a1, 1, 1, 100);
-      await expect(deploy('RefreshSpeedsProxy', [comptroller._address])).rejects.toRevert('revert only externally owned accounts may refresh speeds');
+      await expect(deploy('RefreshSpeedsProxy', [comptroller._address])).rejects.toRevert('revert only externally owned accounts can');
     });
   });
 
@@ -626,7 +626,7 @@ describe('Flywheel', () => {
       const vBAT = await makeVToken({ comptroller, supportMarket: true });
       await expect(
         send(comptroller, '_addVenusMarkets', [[vBAT._address]], {from: a1})
-      ).rejects.toRevert('revert only admin can add venus market');
+      ).rejects.toRevert('revert only admin can');
     });
 
     it('should not add non-listed markets', async () => {
@@ -691,14 +691,14 @@ describe('Flywheel', () => {
     it('should not drop a venus market unless called by admin', async () => {
       await expect(
         send(comptroller, '_dropVenusMarket', [vLOW._address], {from: a1})
-      ).rejects.toRevert('revert only admin can drop venus market');
+      ).rejects.toRevert('revert only admin can');
     });
 
     it('should not drop a venus market already dropped', async () => {
       await send(comptroller, '_dropVenusMarket', [vLOW._address]);
       await expect(
         send(comptroller, '_dropVenusMarket', [vLOW._address])
-      ).rejects.toRevert('revert market is not a venus market');
+      ).rejects.toRevert('revert not venus market');
     });
   });
 
@@ -718,7 +718,7 @@ describe('Flywheel', () => {
     it('should not change venus rate unless called by admin', async () => {
       await expect(
         send(comptroller, '_setVenusRate', [vLOW._address], {from: a1})
-      ).rejects.toRevert('revert only admin can change venus rate');
+      ).rejects.toRevert('revert only admin can');
     });
   });
 });
