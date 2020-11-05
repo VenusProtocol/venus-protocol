@@ -13,7 +13,7 @@ Macro DeployGov
 Macro SucceedQueueExecuteLastProposal gov
     MineBlock
     Governor gov Proposal LastProposal Vote For
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     MineBlock
     Enfranchise Root 600001e18
     Assert Equal ("Succeeded") (Governor gov Proposal LastProposal State)
@@ -53,7 +53,7 @@ Test "Guardian can switch to a new governor"
     Governor Beta Propose "Add 2" [(Address CNT1)] [0] ["increment(uint256)"] [["2"]]
     IncreaseTime 604901
     From Root (Governor Beta Proposal LastProposal Vote For)
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     Governor Beta Proposal LastProposal Queue
     Assert Equal ("Queued") (Governor Beta Proposal LastProposal State)
     IncreaseTime 604901

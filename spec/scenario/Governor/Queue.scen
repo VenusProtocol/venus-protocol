@@ -35,7 +35,7 @@ Macro GivenSucceededProposal
 
 Macro SucceedProposal
     Governor LegitGov Proposal LastProposal Vote For
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     Assert Equal ("Succeeded") (Governor LegitGov Proposal LastProposal State)
 
 Test "Queue simple action"
@@ -54,7 +54,7 @@ Test "Queue simple action"
 Test "Queue 2 actions with multiple params"
     GivenActiveProposal
     Governor LegitGov Proposal LastProposal Vote For
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     QueueLastProposal
     Assert Log ProposalQueued (id 1)
     Assert Log ProposalQueued (eta (Governor LegitGov Proposal LastProposal Eta))
@@ -93,7 +93,7 @@ Test "Revert queue proposal is Active"
 Test "Revert queue when proposal is Defeated"
     GivenActiveProposal
     Governor LegitGov Proposal LastProposal Vote Against
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     AllowFailures
     Assert Equal ("Defeated") (Governor LegitGov Proposal LastProposal State)
     Governor LegitGov Proposal LastProposal Queue
