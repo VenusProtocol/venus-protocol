@@ -195,7 +195,7 @@ Test "Accrues correctly when market is added, deactivated, and activated again"
     Assert Equal (Comptroller VenusAccrued Geoff) 0
 
 Test "TransferComp handles running out of XVS in Comptroller correctly"
-    FlywheelComptroller price:1.0 borrowRate:0.000005 compInitAmount:1e18
+    FlywheelComptroller price:1.0 borrowRate:0.000005 venusInitAmount:1e18
     InitSpeeds
     FastForward 2 Blocks
     Comptroller ClaimVenus Geoff
