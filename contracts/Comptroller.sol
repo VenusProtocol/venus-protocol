@@ -1479,6 +1479,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
         }
         mintedVAIs[owner] = amount;
+        
+        return uint(Error.NO_ERROR);
     }
     
     /**

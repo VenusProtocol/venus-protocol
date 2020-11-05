@@ -128,6 +128,8 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
 
         comptroller.setMintedVAIOf(minter, accountMintVAINew);
+        
+        return uint(Error.NO_ERROR);
     }
     
     /**
@@ -151,6 +153,8 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
 
         VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
         comptroller.setMintedVAIOf(repayer, vaiBalance - actualBurnAmount);
+        
+        return uint(Error.NO_ERROR);
     }
 
     /** Admin Functions */
@@ -169,6 +173,8 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         ComptrollerInterface oldComptroller = comptroller;
         comptroller = comptroller_;
         emit NewComptroller(oldComptroller, comptroller_);
+
+        return uint(Error.NO_ERROR);
     }
 
     /**

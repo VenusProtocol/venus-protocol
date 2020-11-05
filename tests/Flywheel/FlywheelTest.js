@@ -380,7 +380,7 @@ describe('Flywheel', () => {
       const xvsBalancePre = await xvsBalance(comptroller, a1);
       const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
-      const tx2 = await send(comptroller, 'harnessTransferComp', [a1, a1AccruedPre, threshold]);
+      const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
       const a1AccruedPost = await venusAccrued(comptroller, a1);
       const xvsBalancePost = await xvsBalance(comptroller, a1);
       expect(xvsBalancePre).toEqualNumber(0);
@@ -392,7 +392,7 @@ describe('Flywheel', () => {
       const xvsBalancePre = await call(comptroller.xvs, 'balanceOf', [a1]);
       const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
-      const tx2 = await send(comptroller, 'harnessTransferComp', [a1, a1AccruedPre, threshold]);
+      const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
       const a1AccruedPost = await venusAccrued(comptroller, a1);
       const xvsBalancePost = await xvsBalance(comptroller, a1);
       expect(xvsBalancePre).toEqualNumber(0);
@@ -404,7 +404,7 @@ describe('Flywheel', () => {
       const xvsBalancePre = await xvsBalance(comptroller, a1);
       const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
-      const tx2 = await send(comptroller, 'harnessTransferComp', [a1, a1AccruedPre, threshold]);
+      const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
       const a1AccruedPost = await venusAccrued(comptroller, a1);
       const xvsBalancePost = await xvsBalance(comptroller, a1);
       expect(xvsBalancePre).toEqualNumber(0);
