@@ -59,12 +59,10 @@ describe('Spinarama', () => {
       await send(vToken.comptroller.vai, 'approve', [vToken.comptroller._address, 100], {from});
       await minerStop();
       const p1 = send(vToken, 'mint', [10], {from});
-      const p2 = send(vToken, 'repayVAI', [5], {from});
-      const p3 = send(vToken, 'redeemUnderlying', [10], {from});
+      const p2 = send(vToken, 'redeemUnderlying', [10], {from});
       await minerStart();
       expect(await p1).toSucceed();
       expect(await p2).toSucceed();
-      expect(await p3).toSucceed();
       expect(await balanceOf(vToken, from)).toEqualNumber(0);
     });
   });
