@@ -81,7 +81,7 @@ describe('GovernorAlpha#state/1', () => {
 
   it("Defeated", async () => {
     // travel to end block
-    await advanceBlocks(20000)
+    await advanceBlocks(90000)
 
     expect(await call(gov, 'state', [trivialProposal.id])).toEqual(states["Defeated"])
   })
@@ -91,7 +91,7 @@ describe('GovernorAlpha#state/1', () => {
     const { reply: newProposalId } = await both(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: acct })
     await mineBlock()
     await send(gov, 'castVote', [newProposalId, true])
-    await advanceBlocks(20000)
+    await advanceBlocks(90000)
 
     expect(await call(gov, 'state', [newProposalId])).toEqual(states["Succeeded"])
   })
@@ -101,7 +101,7 @@ describe('GovernorAlpha#state/1', () => {
     const { reply: newProposalId } = await both(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: acct })
     await mineBlock()
     await send(gov, 'castVote', [newProposalId, true])
-    await advanceBlocks(20000)
+    await advanceBlocks(90000)
 
     await send(gov, 'queue', [newProposalId], { from: acct })
     expect(await call(gov, 'state', [newProposalId])).toEqual(states["Queued"])
@@ -112,7 +112,7 @@ describe('GovernorAlpha#state/1', () => {
     const { reply: newProposalId } = await both(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: acct })
     await mineBlock()
     await send(gov, 'castVote', [newProposalId, true])
-    await advanceBlocks(20000)
+    await advanceBlocks(90000)
 
     await increaseTime(1)
     await send(gov, 'queue', [newProposalId], { from: acct })
@@ -135,7 +135,7 @@ describe('GovernorAlpha#state/1', () => {
     const { reply: newProposalId } = await both(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: acct })
     await mineBlock()
     await send(gov, 'castVote', [newProposalId, true])
-    await advanceBlocks(20000)
+    await advanceBlocks(90000)
 
     await increaseTime(1)
     await send(gov, 'queue', [newProposalId], { from: acct })
