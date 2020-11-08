@@ -39,6 +39,7 @@ jobs:
         ./scripts/install_deps.sh
         cmake .
         make
+        cd ..
     - name: yarn install, lint and test
       run: |
         yarn install
