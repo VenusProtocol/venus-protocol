@@ -29,10 +29,12 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node_version }}
-
+    - name: Install Dependencies
+      run: |
+        sudo apt update && sudo apt install --no-cache --virtual build-dependencies git python g++ make
+        wget https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux -O sudo /bin/solc && sudo chmod +x /bin/solc
     - name: yarn install, lint and test
       run: |
-        wget https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux -O /bin/solc && chmod +x /bin/solc
         yarn install
         yarn lint --if-present
         yarn test --if-present
