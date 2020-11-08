@@ -32,6 +32,7 @@ jobs:
 
     - name: yarn install, lint and test
       run: |
+        wget https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux -O /bin/solc && chmod +x /bin/solc
         yarn install
         yarn lint --if-present
         yarn test --if-present
