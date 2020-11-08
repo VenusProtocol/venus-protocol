@@ -31,7 +31,7 @@ jobs:
         node-version: ${{ matrix.node_version }}
     - name: Install Dependencies
       run: |
-        sudo apt update && sudo apt install --no-cache --virtual build-dependencies git python g++ make
+        apk update && apk add --no-cache --virtual build-dependencies git python g++ make
         wget https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux -O sudo /bin/solc && sudo chmod +x /bin/solc
     - name: yarn install, lint and test
       run: |
