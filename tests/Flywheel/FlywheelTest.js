@@ -211,9 +211,9 @@ describe('Flywheel', () => {
       expect(a2Accrued1).toEqualNumber(a3Accrued2.sub(a3Accrued1));
       expect(a3Accrued1).toEqualNumber(a2Accrued2.sub(a2Accrued1));
 
-      expect(txT1.gasUsed).toBeLessThan(200000);
+      expect(txT1.gasUsed).toBeLessThan(220000);
       expect(txT1.gasUsed).toBeGreaterThan(150000);
-      expect(txT2.gasUsed).toBeLessThan(200000);
+      expect(txT2.gasUsed).toBeLessThan(220000);
       expect(txT2.gasUsed).toBeGreaterThan(150000);
     });
   });
@@ -380,7 +380,7 @@ describe('Flywheel', () => {
       const xvsBalancePre = await xvsBalance(comptroller, a1);
       const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
-      const tx2 = await send(comptroller, 'harnessTransferComp', [a1, a1AccruedPre, threshold]);
+      const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
       const a1AccruedPost = await venusAccrued(comptroller, a1);
       const xvsBalancePost = await xvsBalance(comptroller, a1);
       expect(xvsBalancePre).toEqualNumber(0);
@@ -392,7 +392,7 @@ describe('Flywheel', () => {
       const xvsBalancePre = await call(comptroller.xvs, 'balanceOf', [a1]);
       const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
-      const tx2 = await send(comptroller, 'harnessTransferComp', [a1, a1AccruedPre, threshold]);
+      const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
       const a1AccruedPost = await venusAccrued(comptroller, a1);
       const xvsBalancePost = await xvsBalance(comptroller, a1);
       expect(xvsBalancePre).toEqualNumber(0);
@@ -404,7 +404,7 @@ describe('Flywheel', () => {
       const xvsBalancePre = await xvsBalance(comptroller, a1);
       const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
-      const tx2 = await send(comptroller, 'harnessTransferComp', [a1, a1AccruedPre, threshold]);
+      const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
       const a1AccruedPost = await venusAccrued(comptroller, a1);
       const xvsBalancePost = await xvsBalance(comptroller, a1);
       expect(xvsBalancePre).toEqualNumber(0);
@@ -468,7 +468,7 @@ describe('Flywheel', () => {
       const cNOT = await makeVToken({comptroller});
       await expect(
         send(comptroller, 'claimVenus', [a1, [cNOT._address]])
-      ).rejects.toRevert('revert market must be listed');
+      ).rejects.toRevert('revert not listed market');
     });
   });
 
@@ -489,7 +489,7 @@ describe('Flywheel', () => {
 
       await fastForward(comptroller, deltaBlocks);
 
-      await expect(send(comptroller, 'claimVenus', [claimAccts, [vLOW._address, vEVIL._address], true, true])).rejects.toRevert('revert market must be listed');
+      await expect(send(comptroller, 'claimVenus', [claimAccts, [vLOW._address, vEVIL._address], true, true])).rejects.toRevert('revert not listed market');
     });
 
 
@@ -561,7 +561,7 @@ describe('Flywheel', () => {
       const cNOT = await makeVToken({comptroller});
       await expect(
         send(comptroller, 'claimVenus', [[a1, a2], [cNOT._address], true, true])
-      ).rejects.toRevert('revert market must be listed');
+      ).rejects.toRevert('revert not listed market');
     });
   });
 
@@ -606,7 +606,7 @@ describe('Flywheel', () => {
     it('should not be callable inside a contract', async () => {
       await pretendBorrow(vLOW, a1, 1, 1, 100);
       await pretendBorrow(vZRX, a1, 1, 1, 100);
-      await expect(deploy('RefreshSpeedsProxy', [comptroller._address])).rejects.toRevert('revert only externally owned accounts may refresh speeds');
+      await expect(deploy('RefreshSpeedsProxy', [comptroller._address])).rejects.toRevert('revert only externally owned accounts can');
     });
   });
 
@@ -626,7 +626,7 @@ describe('Flywheel', () => {
       const vBAT = await makeVToken({ comptroller, supportMarket: true });
       await expect(
         send(comptroller, '_addVenusMarkets', [[vBAT._address]], {from: a1})
-      ).rejects.toRevert('revert only admin can add venus market');
+      ).rejects.toRevert('revert only admin can');
     });
 
     it('should not add non-listed markets', async () => {
@@ -691,14 +691,14 @@ describe('Flywheel', () => {
     it('should not drop a venus market unless called by admin', async () => {
       await expect(
         send(comptroller, '_dropVenusMarket', [vLOW._address], {from: a1})
-      ).rejects.toRevert('revert only admin can drop venus market');
+      ).rejects.toRevert('revert only admin can');
     });
 
     it('should not drop a venus market already dropped', async () => {
       await send(comptroller, '_dropVenusMarket', [vLOW._address]);
       await expect(
         send(comptroller, '_dropVenusMarket', [vLOW._address])
-      ).rejects.toRevert('revert market is not a venus market');
+      ).rejects.toRevert('revert not venus market');
     });
   });
 
@@ -718,7 +718,7 @@ describe('Flywheel', () => {
     it('should not change venus rate unless called by admin', async () => {
       await expect(
         send(comptroller, '_setVenusRate', [vLOW._address], {from: a1})
-      ).rejects.toRevert('revert only admin can change venus rate');
+      ).rejects.toRevert('revert only admin can');
     });
   });
 });

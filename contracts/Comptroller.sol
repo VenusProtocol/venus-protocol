@@ -62,6 +62,12 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     /// @notice Emitted when XVS is distributed to a borrower
     event DistributedBorrowerVenus(VToken indexed vToken, address indexed borrower, uint venusDelta, uint venusBorrowIndex);
 
+    /// @notice Emitted when VAIController is changed
+    event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
+
+    /// @notice Emitted when VAI mint rate is changed by admin
+    event NewVAIMintRate(uint oldVAIMintRate, uint newVAIMintRate);
+
     /// @notice The threshold above which the flywheel transfers XVS, in wei
     uint public constant venusClaimThreshold = 0.001e18;
 
@@ -95,9 +101,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @return A dynamic list with the assets the account has entered
      */
     function getAssetsIn(address account) external view returns (VToken[] memory) {
-        VToken[] memory assetsIn = accountAssets[account];
-
-        return assetsIn;
+        return accountAssets[account];
     }
 
     /**
@@ -176,7 +180,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         VToken vToken = VToken(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
         (uint oErr, uint tokensHeld, uint amountOwed, ) = vToken.getAccountSnapshot(msg.sender);
-        require(oErr == 0, "exitMarket: getAccountSnapshot failed"); // semi-opaque error code
+        require(oErr == 0, "getAccountSnapshot failed"); // semi-opaque error code
 
         /* Fail if the sender has a borrow balance */
         if (amountOwed != 0) {
@@ -187,6 +191,11 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         uint allowed = redeemAllowedInternal(vTokenAddress, msg.sender, tokensHeld);
         if (allowed != 0) {
             return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
+        }
+
+        /* Fail if the sender has a minted VAI balance */
+        if (mintedVAIs[msg.sender] != 0) {
+            return fail(Error.NONZERO_MINTEDVAI_BALANCE, FailureInfo.EXIT_MARKET_BALANCE_OWED);
         }
 
         Market storage marketToExit = markets[address(vToken)];
@@ -200,24 +209,20 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         delete marketToExit.accountMembership[msg.sender];
 
         /* Delete vToken from the account’s list of assets */
-        // load into memory for faster iteration
-        VToken[] memory userAssetList = accountAssets[msg.sender];
+        // In order to delete vToken, copy last item in list to location of item to be removed, reduce length by 1
+        VToken[] storage userAssetList = accountAssets[msg.sender];
         uint len = userAssetList.length;
-        uint assetIndex = len;
-        for (uint i = 0; i < len; i++) {
+        uint i;
+        for (; i < len; i++) {
             if (userAssetList[i] == vToken) {
-                assetIndex = i;
+                userAssetList[i] = userAssetList[len - 1];
+                userAssetList.length--;
                 break;
             }
         }
 
         // We *must* have found the asset in the list or our redundant data structure is broken
-        assert(assetIndex < len);
-
-        // copy last item in list to location of item to be removed, reduce length by 1
-        VToken[] storage storedList = accountAssets[msg.sender];
-        storedList[assetIndex] = storedList[storedList.length - 1];
-        storedList.length--;
+        assert(i < len);
 
         emit MarketExited(vToken, msg.sender);
 
@@ -238,7 +243,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         require(!mintGuardianPaused[vToken], "mint is paused");
 
         // Shh - currently unused
-        minter;
         mintAmount;
 
         if (!markets[vToken].isListed) {
@@ -265,11 +269,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         minter;
         actualMintAmount;
         mintTokens;
-
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
     }
 
     /**
@@ -292,13 +291,68 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         return uint(Error.NO_ERROR);
     }
 
+    /// @dev VAI Integration^
+    /**
+     * @dev Local vars for avoiding stack-depth limits in calculating account redeem.
+     *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
+     */
+    struct AccountBalanceLocalVars {
+        uint vTokenBalance;
+        uint exchangeRateMantissa;
+        uint mintedVAIMantissa;
+        uint oraclePriceMantissa;
+        Exp exchangeRate;
+        Exp oraclePrice;
+        Exp expectedRemainedBalance;
+        Exp expectedRemainedAmount;
+    }
+    /// @dev VAI Integration$
+
     function redeemAllowedInternal(address vToken, address redeemer, uint redeemTokens) internal view returns (uint) {
         if (!markets[vToken].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
-        /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
+        /* If the redeemer is not 'in' the market, then we can bypass the liquidity check but need minted VAI check */
         if (!markets[vToken].accountMembership[redeemer]) {
+            /// @dev VAI Integration^
+            uint oErr;
+            MathError mErr;
+            AccountBalanceLocalVars memory vars; // Holds all our calculation results
+            
+            // Read the balances and exchange rate from the vToken
+            (oErr, vars.vTokenBalance, , vars.exchangeRateMantissa) = VToken(vToken).getAccountSnapshot(redeemer);
+            if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
+                return uint(Error.SNAPSHOT_ERROR);
+            }
+
+            vars.mintedVAIMantissa = mintedVAIs[redeemer];
+            
+            if(vars.mintedVAIMantissa > 0) {
+                // Get the normalized price of the asset
+                vars.oraclePriceMantissa = oracle.getUnderlyingPrice(VToken(vToken));
+                if (vars.oraclePriceMantissa == 0) {
+                    return uint(Error.PRICE_ERROR);
+                }
+
+                vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
+                vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
+
+                if(vars.vTokenBalance < redeemTokens) {
+                    return uint(Error.MATH_ERROR);
+                }
+                vars.expectedRemainedBalance = Exp({mantissa: vars.vTokenBalance - redeemTokens});
+                (mErr, vars.expectedRemainedAmount) = mulExp3(vars.oraclePrice, vars.expectedRemainedBalance, vars.exchangeRate);
+                if (mErr != MathError.NO_ERROR) {
+                    return uint(Error.MATH_ERROR);
+                }
+
+                if(vars.mintedVAIMantissa > vars.expectedRemainedAmount.mantissa) {
+                    return uint(Error.INSUFFICIENT_BALANCE_FOR_VAI);
+                }
+            }
+            /// @dev VAI Integration$
+
             return uint(Error.NO_ERROR);
         }
 
@@ -327,9 +381,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         redeemer;
 
         // Require tokens is zero or amount is also zero
-        if (redeemTokens == 0 && redeemAmount > 0) {
-            revert("redeemTokens zero");
-        }
+        require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
     }
 
     /**
@@ -352,13 +404,10 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             require(msg.sender == vToken, "sender must be vToken");
 
             // attempt to add borrower to the market
-            Error err = addToMarketInternal(VToken(msg.sender), borrower);
+            Error err = addToMarketInternal(VToken(vToken), borrower);
             if (err != Error.NO_ERROR) {
                 return uint(err);
             }
-
-            // it should be impossible to break the important invariant
-            assert(markets[vToken].accountMembership[borrower]);
         }
 
         if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
@@ -776,6 +825,13 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             }
         }
 
+        /// @dev VAI Integration^
+        (mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, mintedVAIs[account]);
+        if (mErr != MathError.NO_ERROR) {
+            return (Error.MATH_ERROR, 0, 0);
+        }
+        /// @dev VAI Integration$
+
         // These are safe, as the underflow condition is checked first
         if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
             return (Error.NO_ERROR, vars.sumCollateral - vars.sumBorrowPlusEffects, 0);
@@ -1044,8 +1100,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
 
     function _setMintPaused(VToken vToken, bool state) public returns (bool) {
-        require(markets[address(vToken)].isListed, "cannot pause a market that is not listed");
-        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can pause");
+        require(markets[address(vToken)].isListed, "venus market is not listed");
+        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
         require(msg.sender == admin || state == true, "only admin can unpause");
 
         mintGuardianPaused[address(vToken)] = state;
@@ -1054,8 +1110,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
 
     function _setBorrowPaused(VToken vToken, bool state) public returns (bool) {
-        require(markets[address(vToken)].isListed, "cannot pause a market that is not listed");
-        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can pause");
+        require(markets[address(vToken)].isListed, "venus market is not listed");
+        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
         require(msg.sender == admin || state == true, "only admin can unpause");
 
         borrowGuardianPaused[address(vToken)] = state;
@@ -1064,7 +1120,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
 
     function _setTransferPaused(bool state) public returns (bool) {
-        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can pause");
+        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
         require(msg.sender == admin || state == true, "only admin can unpause");
 
         transferGuardianPaused = state;
@@ -1073,24 +1129,30 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
 
     function _setSeizePaused(bool state) public returns (bool) {
-        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can pause");
+        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
         require(msg.sender == admin || state == true, "only admin can unpause");
 
         seizeGuardianPaused = state;
         emit ActionPaused("Seize", state);
         return state;
     }
+    
+    function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAI_MINT_RATE_CHECK);
+        }
 
-    function _become(Unitroller unitroller) public {
-        require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
-        require(unitroller._acceptImplementation() == 0, "change not authorized");
+        uint oldVAIMintRate = vaiMintRate;
+        vaiMintRate = newVAIMintRate;
+        emit NewVAIMintRate(oldVAIMintRate, newVAIMintRate);
+
+        return uint(Error.NO_ERROR);
     }
 
-    /**
-     * @notice Checks caller is admin, or this contract is becoming the new implementation
-     */
-    function adminOrInitializing() internal view returns (bool) {
-        return msg.sender == admin || msg.sender == comptrollerImplementation;
+    function _become(Unitroller unitroller) public {
+        require(msg.sender == unitroller.admin(), "only unitroller admin can");
+        require(unitroller._acceptImplementation() == 0, "not authorized");
     }
 
     /*** Venus Distribution ***/
@@ -1099,24 +1161,24 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @notice Recalculate and update Venus speeds for all Venus markets
      */
     function refreshVenusSpeeds() public {
-        require(msg.sender == tx.origin, "only externally owned accounts may refresh speeds");
+        require(msg.sender == tx.origin, "only externally owned accounts can");
         refreshVenusSpeedsInternal();
     }
 
     function refreshVenusSpeedsInternal() internal {
-        VToken[] memory allMarkets_ = allMarkets;
-
-        for (uint i = 0; i < allMarkets_.length; i++) {
-            VToken vToken = allMarkets_[i];
+        uint i;
+        VToken vToken;
+        for (i = 0; i < allMarkets.length; i++) {
+            vToken = allMarkets[i];
             Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
             updateVenusSupplyIndex(address(vToken));
             updateVenusBorrowIndex(address(vToken), borrowIndex);
         }
 
         Exp memory totalUtility = Exp({mantissa: 0});
-        Exp[] memory utilities = new Exp[](allMarkets_.length);
-        for (uint i = 0; i < allMarkets_.length; i++) {
-            VToken vToken = allMarkets_[i];
+        Exp[] memory utilities = new Exp[](allMarkets.length);
+        for (i = 0; i < allMarkets.length; i++) {
+            vToken = allMarkets[i];
             if (markets[address(vToken)].isVenus) {
                 Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(vToken)});
                 Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
@@ -1125,8 +1187,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             }
         }
 
-        for (uint i = 0; i < allMarkets_.length; i++) {
-            VToken vToken = allMarkets[i];
+        for (i = 0; i < allMarkets.length; i++) {
+            vToken = allMarkets[i];
             uint newSpeed = totalUtility.mantissa > 0 ? mul_(venusRate, div_(utilities[i], totalUtility)) : 0;
             venusSpeeds[address(vToken)] = newSpeed;
             emit VenusSpeedUpdated(vToken, newSpeed);
@@ -1148,11 +1210,11 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             Double memory ratio = supplyTokens > 0 ? fraction(venusAccrued, supplyTokens) : Double({mantissa: 0});
             Double memory index = add_(Double({mantissa: supplyState.index}), ratio);
             venusSupplyState[vToken] = VenusMarketState({
-                index: safe224(index.mantissa, "new index exceeds 224 bits"),
-                block: safe32(blockNumber, "block number exceeds 32 bits")
+                index: safe224(index.mantissa, "new index overflows"),
+                block: safe32(blockNumber, "block number overflows")
             });
         } else if (deltaBlocks > 0) {
-            supplyState.block = safe32(blockNumber, "block number exceeds 32 bits");
+            supplyState.block = safe32(blockNumber, "block number overflows");
         }
     }
 
@@ -1171,11 +1233,11 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             Double memory ratio = borrowAmount > 0 ? fraction(venusAccrued, borrowAmount) : Double({mantissa: 0});
             Double memory index = add_(Double({mantissa: borrowState.index}), ratio);
             venusBorrowState[vToken] = VenusMarketState({
-                index: safe224(index.mantissa, "new index exceeds 224 bits"),
-                block: safe32(blockNumber, "block number exceeds 32 bits")
+                index: safe224(index.mantissa, "new index overflows"),
+                block: safe32(blockNumber, "block number overflows")
             });
         } else if (deltaBlocks > 0) {
-            borrowState.block = safe32(blockNumber, "block number exceeds 32 bits");
+            borrowState.block = safe32(blockNumber, "block number overflows");
         }
     }
 
@@ -1270,19 +1332,20 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param suppliers Whether or not to claim XVS earned by supplying
      */
     function claimVenus(address[] memory holders, VToken[] memory vTokens, bool borrowers, bool suppliers) public {
+        uint j;
         for (uint i = 0; i < vTokens.length; i++) {
             VToken vToken = vTokens[i];
-            require(markets[address(vToken)].isListed, "market must be listed");
+            require(markets[address(vToken)].isListed, "not listed market");
             if (borrowers == true) {
                 Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
                 updateVenusBorrowIndex(address(vToken), borrowIndex);
-                for (uint j = 0; j < holders.length; j++) {
+                for (j = 0; j < holders.length; j++) {
                     distributeBorrowerVenus(address(vToken), holders[j], borrowIndex, true);
                 }
             }
             if (suppliers == true) {
                 updateVenusSupplyIndex(address(vToken));
-                for (uint j = 0; j < holders.length; j++) {
+                for (j = 0; j < holders.length; j++) {
                     distributeSupplierVenus(address(vToken), holders[j], true);
                 }
             }
@@ -1296,7 +1359,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param venusRate_ The amount of XVS wei per block to distribute
      */
     function _setVenusRate(uint venusRate_) public {
-        require(msg.sender == admin, "only admin can change venus rate");
+        require(msg.sender == admin, "only admin can");
 
         uint oldRate = venusRate;
         venusRate = venusRate_;
@@ -1310,7 +1373,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param vTokens The addresses of the markets to add
      */
     function _addVenusMarkets(address[] memory vTokens) public {
-        require(msg.sender == admin, "only admin can add venus market");
+        require(msg.sender == admin, "only admin can");
 
         for (uint i = 0; i < vTokens.length; i++) {
             _addVenusMarketInternal(vTokens[i]);
@@ -1330,14 +1393,14 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         if (venusSupplyState[vToken].index == 0 && venusSupplyState[vToken].block == 0) {
             venusSupplyState[vToken] = VenusMarketState({
                 index: venusInitialIndex,
-                block: safe32(getBlockNumber(), "block number exceeds 32 bits")
+                block: safe32(getBlockNumber(), "block number overflows")
             });
         }
 
         if (venusBorrowState[vToken].index == 0 && venusBorrowState[vToken].block == 0) {
             venusBorrowState[vToken] = VenusMarketState({
                 index: venusInitialIndex,
-                block: safe32(getBlockNumber(), "block number exceeds 32 bits")
+                block: safe32(getBlockNumber(), "block number overflows")
             });
         }
     }
@@ -1347,10 +1410,10 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param vToken The address of the market to drop
      */
     function _dropVenusMarket(address vToken) public {
-        require(msg.sender == admin, "only admin can drop venus market");
+        require(msg.sender == admin, "only admin can");
 
         Market storage market = markets[vToken];
-        require(market.isVenus == true, "market is not a venus market");
+        require(market.isVenus == true, "not venus market");
 
         market.isVenus = false;
         emit MarketVenus(VToken(vToken), false);
@@ -1375,7 +1438,76 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @notice Return the address of the XVS token
      * @return The address of XVS
      */
-    function getXVSAddress() public view returns (address) {
-        return 0xc00e94Cb662C3520282E6f5717214004A7f26888;
+   function getXVSAddress() public view returns (address) {
+        return 0xB9e0E753630434d7863528cc73CB7AC638a7c8ff;
+    }
+
+    /**
+      * @notice Sets a new VAI controller
+      * @dev Admin function to set a new VAI controller
+      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+      */
+    function _setVAIController(VAIControllerInterface vaiController_) public returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAICONTROLLER_OWNER_CHECK);
+        }
+
+        VAIControllerInterface oldRate = vaiController;
+        vaiController = vaiController_;
+        emit NewVAIController(oldRate, vaiController_);
+    }
+
+    /**
+     * @notice Get the minted VAI amount of the `owner`
+     * @param owner The address of the account to query
+     * @return The number of minted VAI by `owner`
+     */
+    function mintedVAIOf(address owner) external view returns (uint) {
+        return mintedVAIs[owner];
+    }
+
+    /**
+     * @notice Set the minted VAI amount of the `owner`
+     * @param owner The address of the account to set
+     * @param amount The amount of VAI to set to the account
+     * @return The number of minted VAI by `owner`
+     */
+    function setMintedVAIOf(address owner, uint amount) external returns (uint) {
+        // Check caller is vaiController
+        if (msg.sender != address(vaiController)) {
+            return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
+        }
+        mintedVAIs[owner] = amount;
+        
+        return uint(Error.NO_ERROR);
+    }
+    
+    /**
+     * @notice Get Mintable VAI amount
+     */
+    function getMintableVAI(address minter) public view returns (uint, uint) {
+        return vaiController.getMintableVAI(minter);
+    }
+    
+    /**
+     * @notice Mint VAI
+     */
+    function mintVAI(uint mintVAIAmount) external returns (uint) {
+        return vaiController.mintVAI(msg.sender, mintVAIAmount);
+    }
+    
+    /**
+     * @notice Repay VAI
+     */
+    function repayVAI(uint repayVAIAmount) external returns (uint) {
+        return vaiController.repayVAI(msg.sender, repayVAIAmount);
+    }
+
+    /**
+     * @notice Get the VAI Mint Rate
+     */
+    function getVAIMintRate() external view returns (uint) {
+        return vaiMintRate;
     }
 }

@@ -43,7 +43,10 @@ Borrow Seventh 1e18 vZRX
 Comptroller AddVenusMarkets (vZRX vBAT)
 Bep20 Deploy Standard XVS "XVS Token" 18
 Give (Address Comptroller) 5000000e18 XVS
-Comptroller Send "setCompAddress(address)" (Address XVS)
+Comptroller Send "setXVSAddress(address)" (Address XVS)
+Bep20 Deploy Standard VAI "VAI Token" 18
+Give (Address Comptroller) 5000000e18 VAI
+Comptroller Send "setVAIAddress(address)" (Address VAI)
 
 Comptroller RefreshVenusSpeeds
 

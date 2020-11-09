@@ -40,7 +40,7 @@ describe('Comptroller', function() {
       it('reverts if this is not the pending implementation', async () => {
         await expect(
           send(brains, '_become', [unitroller._address])
-        ).rejects.toRevert('revert change not authorized');
+        ).rejects.toRevert('revert not authorized');
       });
 
       it('on success it sets admin to caller of constructor', async () => {

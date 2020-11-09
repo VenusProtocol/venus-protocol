@@ -39,5 +39,6 @@ script/certora
 tests/scenarios/
 junit.xml
 .build
+.idea
 .last_confs
 .saddle_history

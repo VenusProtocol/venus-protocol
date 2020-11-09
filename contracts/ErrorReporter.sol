@@ -19,7 +19,11 @@ contract ComptrollerErrorReporter {
         REJECTION,
         SNAPSHOT_ERROR,
         TOO_MANY_ASSETS,
-        TOO_MUCH_REPAY
+        TOO_MUCH_REPAY,
+        NONZERO_MINTEDVAI_BALANCE,
+        /// @dev VAI Integration^
+        INSUFFICIENT_BALANCE_FOR_VAI
+        /// @dev VAI Integration$
     }
 
     enum FailureInfo {
@@ -42,7 +46,10 @@ contract ComptrollerErrorReporter {
         SET_PRICE_ORACLE_OWNER_CHECK,
         SUPPORT_MARKET_EXISTS,
         SUPPORT_MARKET_OWNER_CHECK,
-        SET_PAUSE_GUARDIAN_OWNER_CHECK
+        SET_PAUSE_GUARDIAN_OWNER_CHECK,
+        SET_VAI_MINT_RATE_CHECK,
+        SET_VAICONTROLLER_OWNER_CHECK,
+        SET_MINTED_VAI_REJECTION
     }
 
     /**
@@ -88,7 +95,8 @@ contract TokenErrorReporter {
         TOKEN_INSUFFICIENT_BALANCE,
         TOKEN_INSUFFICIENT_CASH,
         TOKEN_TRANSFER_IN_FAILED,
-        TOKEN_TRANSFER_OUT_FAILED
+        TOKEN_TRANSFER_OUT_FAILED,
+        TOKEN_PRICE_ERROR
     }
 
     /*
@@ -178,7 +186,58 @@ contract TokenErrorReporter {
         TRANSFER_TOO_MUCH,
         ADD_RESERVES_ACCRUE_INTEREST_FAILED,
         ADD_RESERVES_FRESH_CHECK,
-        ADD_RESERVES_TRANSFER_IN_NOT_POSSIBLE
+        ADD_RESERVES_TRANSFER_IN_NOT_POSSIBLE,
+        TOKEN_GET_UNDERLYING_PRICE_ERROR,
+        REPAY_VAI_COMPTROLLER_REJECTION,
+        REPAY_VAI_FRESHNESS_CHECK,
+        VAI_MINT_EXCHANGE_CALCULATION_FAILED,
+        VAI_MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED
+    }
+
+    /**
+      * @dev `error` corresponds to enum Error; `info` corresponds to enum FailureInfo, and `detail` is an arbitrary
+      * contract-specific code that enables us to report opaque error codes from upgradeable contracts.
+      **/
+    event Failure(uint error, uint info, uint detail);
+
+    /**
+      * @dev use this when reporting a known error from the money market or a non-upgradeable collaborator
+      */
+    function fail(Error err, FailureInfo info) internal returns (uint) {
+        emit Failure(uint(err), uint(info), 0);
+
+        return uint(err);
+    }
+
+    /**
+      * @dev use this when reporting an opaque error from an upgradeable collaborator contract
+      */
+    function failOpaque(Error err, FailureInfo info, uint opaqueError) internal returns (uint) {
+        emit Failure(uint(err), uint(info), opaqueError);
+
+        return uint(err);
+    }
+}
+
+contract VAIControllerErrorReporter {
+    enum Error {
+        NO_ERROR,
+        UNAUTHORIZED,
+        REJECTION,
+        SNAPSHOT_ERROR,
+        PRICE_ERROR,
+        MATH_ERROR,
+        INSUFFICIENT_BALANCE_FOR_VAI
+    }
+
+    enum FailureInfo {
+        SET_PENDING_ADMIN_OWNER_CHECK,
+        SET_PENDING_IMPLEMENTATION_OWNER_CHECK,
+        SET_COMPTROLLER_OWNER_CHECK,
+        ACCEPT_ADMIN_PENDING_ADMIN_CHECK,
+        ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK,
+        VAI_MINT_REJECTION,
+        VAI_BURN_REJECTION
     }
 
     /**

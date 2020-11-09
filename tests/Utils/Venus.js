@@ -43,7 +43,8 @@ async function makeComptroller(opts = {}) {
     const closeFactor = bnbMantissa(dfn(opts.closeFactor, .051));
     const maxAssets = bnbUnsigned(dfn(opts.maxAssets, 10));
     const liquidationIncentive = bnbMantissa(1);
-    const xvs = opts.xvs || await deploy('XVS', [opts.compOwner || root]);
+    const xvs = opts.xvs || await deploy('XVS', [opts.venusOwner || root]);
+    const vai = opts.vai || await deploy('VAI', [opts.venusOwner || root]);
     const venusRate = bnbUnsigned(dfn(opts.venusRate, 1e18));
     const venusMarkets = opts.venusMarkets || [];
 
@@ -54,11 +55,13 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, '_setCloseFactor', [closeFactor]);
     await send(unitroller, '_setMaxAssets', [maxAssets]);
     await send(unitroller, '_setPriceOracle', [priceOracle._address]);
-    await send(unitroller, 'setCompAddress', [xvs._address]); // harness only
+    await send(unitroller, 'setXVSAddress', [xvs._address]); // harness only
+    await send(unitroller, 'setVAIAddress', [vai._address]); // harness only
     await send(unitroller, '_setVenusRate', [venusRate]);
     await send(unitroller, '_addVenusMarkets', [venusMarkets]);
+    await send(vai, 'rely', [unitroller._address]);
 
-    return Object.assign(unitroller, { priceOracle, xvs });
+    return Object.assign(unitroller, { priceOracle, xvs, vai });
   }
 }
 

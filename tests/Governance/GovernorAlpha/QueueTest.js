@@ -36,7 +36,7 @@ describe('GovernorAlpha#queue/1', () => {
       await mineBlock();
 
       const txVote1 = await send(gov, 'castVote', [proposalId1, true], {from: a1});
-      await advanceBlocks(20000);
+      await advanceBlocks(90000);
 
       await expect(
         send(gov, 'queue', [proposalId1])
@@ -63,7 +63,7 @@ describe('GovernorAlpha#queue/1', () => {
 
       const txVote1 = await send(gov, 'castVote', [proposalId1, true], {from: a1});
       const txVote2 = await send(gov, 'castVote', [proposalId2, true], {from: a2});
-      await advanceBlocks(20000);
+      await advanceBlocks(90000);
       await freezeTime(100);
 
       const txQueue1 = await send(gov, 'queue', [proposalId1]);

@@ -60,7 +60,7 @@ Test "Cannot vote before vote starts"
 Test "Cannot vote after vote ends"
     GivenProposal
     AllowFailures
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     Governor LegitGov Proposal LastProposal Vote For
     Assert Revert "revert GovernorAlpha::_castVote: voting is closed"
 

@@ -16,7 +16,8 @@ contract ComptrollerRopsten is Comptroller {
 }
 
 contract ComptrollerHarness is Comptroller {
-    address compAddress;
+    address xvsAddress;
+    address vaiAddress;
     uint public blockNumber;
 
     constructor() Comptroller() public {}
@@ -39,12 +40,20 @@ contract ComptrollerHarness is Comptroller {
         venusAccrued[user] = userAccrued;
     }
 
-    function setCompAddress(address compAddress_) public {
-        compAddress = compAddress_;
+    function setXVSAddress(address xvsAddress_) public {
+        xvsAddress = xvsAddress_;
     }
 
     function getXVSAddress() public view returns (address) {
-        return compAddress;
+        return xvsAddress;
+    }
+
+    function setVAIAddress(address vaiAddress_) public {
+        vaiAddress = vaiAddress_;
+    }
+
+    function getVAIAddress() public view returns (address) {
+        return vaiAddress;
     }
 
     function setVenusSpeed(address vToken, uint venusSpeed) public {
@@ -75,7 +84,7 @@ contract ComptrollerHarness is Comptroller {
         distributeSupplierVenus(vToken, supplier, false);
     }
 
-    function harnessTransferComp(address user, uint userAccrued, uint threshold) public returns (uint) {
+    function harnessTransferVenus(address user, uint userAccrued, uint threshold) public returns (uint) {
         return transferXVS(user, userAccrued, threshold);
     }
 
@@ -157,7 +166,7 @@ contract BoolComptroller is ComptrollerInterface {
 
     /*** Policy Hooks ***/
 
-    function mintAllowed(address _vToken, address _minter, uint _mintAmount) public returns (uint) {
+    function mintAllowed(address _vToken, address _minter, uint _mintAmount) external returns (uint) {
         _vToken;
         _minter;
         _mintAmount;
@@ -172,7 +181,7 @@ contract BoolComptroller is ComptrollerInterface {
         require(verifyMint, "mintVerify rejected mint");
     }
 
-    function redeemAllowed(address _vToken, address _redeemer, uint _redeemTokens) public returns (uint) {
+    function redeemAllowed(address _vToken, address _redeemer, uint _redeemTokens) external returns (uint) {
         _vToken;
         _redeemer;
         _redeemTokens;
@@ -187,7 +196,7 @@ contract BoolComptroller is ComptrollerInterface {
         require(verifyRedeem, "redeemVerify rejected redeem");
     }
 
-    function borrowAllowed(address _vToken, address _borrower, uint _borrowAmount) public returns (uint) {
+    function borrowAllowed(address _vToken, address _borrower, uint _borrowAmount) external returns (uint) {
         _vToken;
         _borrower;
         _borrowAmount;
@@ -205,7 +214,7 @@ contract BoolComptroller is ComptrollerInterface {
         address _vToken,
         address _payer,
         address _borrower,
-        uint _repayAmount) public returns (uint) {
+        uint _repayAmount) external returns (uint) {
         _vToken;
         _payer;
         _borrower;
@@ -232,7 +241,7 @@ contract BoolComptroller is ComptrollerInterface {
         address _vTokenCollateral,
         address _liquidator,
         address _borrower,
-        uint _repayAmount) public returns (uint) {
+        uint _repayAmount) external returns (uint) {
         _vTokenBorrowed;
         _vTokenCollateral;
         _liquidator;
@@ -262,7 +271,7 @@ contract BoolComptroller is ComptrollerInterface {
         address _vTokenBorrowed,
         address _borrower,
         address _liquidator,
-        uint _seizeTokens) public returns (uint) {
+        uint _seizeTokens) external returns (uint) {
         _vTokenCollateral;
         _vTokenBorrowed;
         _liquidator;
@@ -289,7 +298,7 @@ contract BoolComptroller is ComptrollerInterface {
         address _vToken,
         address _src,
         address _dst,
-        uint _transferTokens) public returns (uint) {
+        uint _transferTokens) external returns (uint) {
         _vToken;
         _src;
         _dst;
@@ -314,7 +323,7 @@ contract BoolComptroller is ComptrollerInterface {
     function liquidateCalculateSeizeTokens(
         address _vTokenBorrowed,
         address _vTokenCollateral,
-        uint _repayAmount) public view returns (uint, uint) {
+        uint _repayAmount) external view returns (uint, uint) {
         _vTokenBorrowed;
         _vTokenCollateral;
         _repayAmount;
@@ -389,6 +398,21 @@ contract BoolComptroller is ComptrollerInterface {
 
     function setFailCalculateSeizeTokens(bool shouldFail) public {
         failCalculateSeizeTokens = shouldFail;
+    }
+
+    function mintedVAIOf(address owner) external view returns (uint) {
+        owner;
+        return 1e18;
+    }
+
+    function setMintedVAIOf(address owner, uint amount) external returns (uint) {
+        owner;
+        amount;
+        return noError;        
+    }
+
+    function getVAIMintRate() external view returns (uint) {
+        return 1e18;
     }
 }
 

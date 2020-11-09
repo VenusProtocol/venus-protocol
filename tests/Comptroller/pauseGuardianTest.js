@@ -70,8 +70,8 @@ describe('Comptroller', () => {
 
       globalMethods.forEach(async (method) => {
         it(`only pause guardian or admin can pause ${method}`, async () => {
-          await expect(send(comptroller, `_set${method}Paused`, [true], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can pause");
-          await expect(send(comptroller, `_set${method}Paused`, [false], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can pause");
+          await expect(send(comptroller, `_set${method}Paused`, [true], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can");
+          await expect(send(comptroller, `_set${method}Paused`, [false], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can");
         });
 
         it(`PauseGuardian can pause of ${method}GuardianPaused`, async () => {
@@ -124,8 +124,8 @@ describe('Comptroller', () => {
 
       marketMethods.forEach(async (method) => {
         it(`only pause guardian or admin can pause ${method}`, async () => {
-          await expect(send(comptroller, `_set${method}Paused`, [vToken._address, true], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can pause");
-          await expect(send(comptroller, `_set${method}Paused`, [vToken._address, false], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can pause");
+          await expect(send(comptroller, `_set${method}Paused`, [vToken._address, true], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can");
+          await expect(send(comptroller, `_set${method}Paused`, [vToken._address, false], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can");
         });
 
         it(`PauseGuardian can pause of ${method}GuardianPaused`, async () => {

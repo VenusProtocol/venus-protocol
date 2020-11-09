@@ -247,6 +247,8 @@ describe('VenusLens', () => {
     let xvs, gov;
     let targets, values, signatures, callDatas;
     let proposalBlock, proposalId;
+    let votingDelay;
+    let votingPeriod;
 
     beforeEach(async () => {
       xvs = await deploy('XVS', [acct]);
@@ -259,6 +261,8 @@ describe('VenusLens', () => {
       await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"]);
       proposalBlock = +(await web3.eth.getBlockNumber());
       proposalId = await call(gov, 'latestProposalIds', [acct]);
+      votingDelay = Number(await call(gov, 'votingDelay'));
+      votingPeriod = Number(await call(gov, 'votingPeriod'));
     });
 
     describe('getGovReceipts', () => {
@@ -285,14 +289,14 @@ describe('VenusLens', () => {
             againstVotes: "0",
             calldatas: callDatas,
             canceled: false,
-            endBlock: (Number(proposalBlock) + 17281).toString(),
+            endBlock: (Number(proposalBlock) + votingDelay + votingPeriod).toString(),
             eta: "0",
             executed: false,
             forVotes: "0",
             proposalId: proposalId,
             proposer: acct,
             signatures: signatures,
-            startBlock: (Number(proposalBlock) + 1).toString(),
+            startBlock: (Number(proposalBlock) + votingDelay).toString(),
             targets: targets
           }
         ]);

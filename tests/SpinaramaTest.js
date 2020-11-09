@@ -20,7 +20,7 @@ describe('Spinarama', () => {
 
   describe('#mintMint', () => {
     it('should succeed', async () => {
-      const vToken = await makeVToken({supportMarket: true});
+      const vToken = await makeVToken({supportMarket: true, underlyingPrice: 1});
       await send(vToken.underlying, 'harnessSetBalance', [from, 100], {from});
       await send(vToken.underlying, 'approve', [vToken._address, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'], {from});
       await minerStop();
@@ -33,7 +33,7 @@ describe('Spinarama', () => {
     });
 
     it('should partial succeed', async () => {
-      const vToken = await makeVToken({supportMarket: true});
+      const vToken = await makeVToken({supportMarket: true, underlyingPrice: 1});
       await send(vToken.underlying, 'harnessSetBalance', [from, 100], {from});
       await send(vToken.underlying, 'approve', [vToken._address, 10], {from});
       await minerStop();
@@ -53,9 +53,10 @@ describe('Spinarama', () => {
 
   describe('#mintRedeem', () => {
     it('should succeed', async () => {
-      const vToken = await makeVToken({supportMarket: true});
+      const vToken = await makeVToken({supportMarket: true, underlyingPrice: 1});
       await send(vToken.underlying, 'harnessSetBalance', [from, 100], {from});
       await send(vToken.underlying, 'approve', [vToken._address, 10], {from});
+      await send(vToken.comptroller.vai, 'approve', [vToken.comptroller._address, 100], {from});
       await minerStop();
       const p1 = send(vToken, 'mint', [10], {from});
       const p2 = send(vToken, 'redeemUnderlying', [10], {from});
@@ -68,7 +69,7 @@ describe('Spinarama', () => {
 
   describe('#redeemMint', () => {
     it('should succeed', async () => {
-      const vToken = await makeVToken({supportMarket: true});
+      const vToken = await makeVToken({supportMarket: true, underlyingPrice: 1});
       await send(vToken, 'harnessSetTotalSupply', [10]);
       await send(vToken, 'harnessSetExchangeRate', [bnbMantissa(1)]);
       await send(vToken, 'harnessSetBalance', [from, 10]);
@@ -94,6 +95,7 @@ describe('Spinarama', () => {
       await send(vToken2, 'harnessSetTotalSupply', [100]);
       await send(vToken2.underlying, 'approve', [vToken2._address, 10], {from});
       await send(vToken2, 'harnessSetExchangeRate', [bnbMantissa(1)]);
+      await send(vToken1.comptroller.vai, 'approve', [vToken1.comptroller._address, 100], {from});
       expect(await enterMarkets([vToken1, vToken2], from)).toSucceed();
       expect(await send(vToken1, 'mint', [10], {from})).toSucceed();
       expect(await send(vToken2, 'borrow', [2], {from})).toSucceed();

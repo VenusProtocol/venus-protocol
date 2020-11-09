@@ -2,6 +2,7 @@ pragma solidity ^0.5.16;
 
 import "./VToken.sol";
 import "./PriceOracle.sol";
+import "./VAIControllerInterface.sol";
 
 contract UnitrollerAdminStorage {
     /**
@@ -120,4 +121,13 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
 
     /// @notice The XVS accrued but not yet transferred to each user
     mapping(address => uint) public venusAccrued;
+
+    /// @notice The Address of VAIController
+    VAIControllerInterface public vaiController;
+
+    /// @notice The minted VAI amount to each user
+    mapping(address => uint) public mintedVAIs;
+
+    /// @notice VAI Mint Rate as a percentage
+    uint public vaiMintRate;
 }

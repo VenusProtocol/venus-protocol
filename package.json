@@ -14,8 +14,8 @@
     "test": "./script/test",
     "test:prepare": "NO_RUN=true ./script/test"
   },
-  "repository": "git@github.com:compound-finance/venus-protocol.git",
-  "author": "Venus Finance",
+  "repository": "git@github.com:SwipeWallet/venus-protocol.git",
+  "author": "Swipe",
   "license": "UNLICENSED",
   "devDependencies": {
     "bignumber.js": "8.0.1",
