@@ -10,7 +10,7 @@ import "./VAIUnitroller.sol";
 import "./VAI/VAI.sol";
 
 interface ComptrollerLensInterface {
-    function getAllMarkets() external view returns (VToken[] memory);
+    function getAssetsIn(address account) external view returns (VToken[] memory);
     function oracle() external view returns (PriceOracle);
 }
 
@@ -49,7 +49,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
     
     function getMintableVAI(address minter) public view returns (uint, uint) {
         PriceOracle oracle = ComptrollerLensInterface(address(comptroller)).oracle();
-        VToken[] memory allMarkets = ComptrollerLensInterface(address(comptroller)).getAllMarkets();
+        VToken[] memory enteredMarkets = ComptrollerLensInterface(address(comptroller)).getAssetsIn(minter);
 
         AccountAmountLocalVars memory vars; // Holds all our calculation results
 
@@ -63,15 +63,15 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
          * We use this formula to calculate mintable VAI amount.
          * totalSupplyAmount * VAIMintRate - (totalBorrowAmount + mintedVAIOf)
          */
-        for (i = 0; i < allMarkets.length; i++) {
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = allMarkets[i].getAccountSnapshot(minter);
+        for (i = 0; i < enteredMarkets.length; i++) {
+            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = enteredMarkets[i].getAccountSnapshot(minter);
             if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (uint(Error.SNAPSHOT_ERROR), 0);
             }
             vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(allMarkets[i]);
+            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(enteredMarkets[i]);
             if (vars.oraclePriceMantissa == 0) {
                 return (uint(Error.PRICE_ERROR), 0);
             }
