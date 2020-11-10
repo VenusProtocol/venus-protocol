@@ -155,7 +155,7 @@ contract VenusLens {
 
     function getAccountLimits(ComptrollerLensInterface comptroller, address account) public view returns (AccountLimits memory) {
         (uint errorCode, uint liquidity, uint shortfall) = comptroller.getAccountLiquidity(account);
-        require(errorCode == 0);
+        require(errorCode == 0, "account liquidity error");
 
         return AccountLimits({
             markets: comptroller.getAssetsIn(account),

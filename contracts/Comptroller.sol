@@ -1081,7 +1081,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         emit ActionPaused("Seize", state);
         return state;
     }
-    
+
     function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
@@ -1424,24 +1424,24 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
         }
         mintedVAIs[owner] = amount;
-        
+
         return uint(Error.NO_ERROR);
     }
-    
+
     /**
      * @notice Get Mintable VAI amount
      */
     function getMintableVAI(address minter) public view returns (uint, uint) {
         return vaiController.getMintableVAI(minter);
     }
-    
+
     /**
      * @notice Mint VAI
      */
     function mintVAI(uint mintVAIAmount) external returns (uint) {
         return vaiController.mintVAI(msg.sender, mintVAIAmount);
     }
-    
+
     /**
      * @notice Repay VAI
      */

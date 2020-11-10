@@ -23,10 +23,10 @@ interface IStdReference {
 
 contract VenusPriceOracle is PriceOracle {
     using SafeMath for uint256;
-    
+
     mapping(address => uint) prices;
     event PricePosted(address asset, uint previousPriceMantissa, uint requestedPriceMantissa, uint newPriceMantissa);
-    
+
     IStdReference ref;
 
     constructor(IStdReference _ref) public {
@@ -41,14 +41,14 @@ contract VenusPriceOracle is PriceOracle {
             return prices[address(vToken)];
         } else {
             BEP20Interface token = BEP20Interface(VBep20(address(vToken)).underlying());
-            
+
             if(address(token) == address(0)) {
                 return prices[address(vToken)];
             }
-            
+
             IStdReference.ReferenceData memory data = ref.getReferenceData(token.symbol(), "USD");
             uint256 price = data.rate;
-            
+
             uint decimalDelta = 18-uint(token.decimals());
             return price.mul(10**decimalDelta);
         }

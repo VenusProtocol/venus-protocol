@@ -142,8 +142,8 @@ contract GovernorAlpha {
         uint latestProposalId = latestProposalIds[msg.sender];
         if (latestProposalId != 0) {
           ProposalState proposersLatestProposalState = state(latestProposalId);
-          require(proposersLatestProposalState != ProposalState.Active, "GovernorAlpha::propose: one live proposal per proposer, found an already active proposal");
-          require(proposersLatestProposalState != ProposalState.Pending, "GovernorAlpha::propose: one live proposal per proposer, found an already pending proposal");
+          require(proposersLatestProposalState != ProposalState.Active, "GovernorAlpha::propose: found an already active proposal");
+          require(proposersLatestProposalState != ProposalState.Pending, "GovernorAlpha::propose: found an already pending proposal");
         }
 
         uint startBlock = add256(block.number, votingDelay());
