@@ -3,7 +3,7 @@ pragma solidity ^0.5.16;
 contract Counter {
   uint public count;
   uint public count2;
-  
+
   function increment(uint amount) public payable {
     count += amount;
   }

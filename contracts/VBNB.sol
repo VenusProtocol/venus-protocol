@@ -123,7 +123,7 @@ contract VBNB is VToken {
      */
     function getCashPrior() internal view returns (uint) {
         (MathError err, uint startingBalance) = subUInt(address(this).balance, msg.value);
-        require(err == MathError.NO_ERROR);
+        require(err == MathError.NO_ERROR, "cash prior math error");
         return startingBalance;
     }
 

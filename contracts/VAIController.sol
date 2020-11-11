@@ -10,7 +10,7 @@ import "./VAIUnitroller.sol";
 import "./VAI/VAI.sol";
 
 interface ComptrollerLensInterface {
-    function getAllMarkets() external view returns (VToken[] memory);
+    function getAssetsIn(address account) external view returns (VToken[] memory);
     function oracle() external view returns (PriceOracle);
 }
 
@@ -46,10 +46,10 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         Exp oraclePrice;
         Exp tokensToDenom;
     }
-    
+
     function getMintableVAI(address minter) public view returns (uint, uint) {
         PriceOracle oracle = ComptrollerLensInterface(address(comptroller)).oracle();
-        VToken[] memory allMarkets = ComptrollerLensInterface(address(comptroller)).getAllMarkets();
+        VToken[] memory enteredMarkets = ComptrollerLensInterface(address(comptroller)).getAssetsIn(minter);
 
         AccountAmountLocalVars memory vars; // Holds all our calculation results
 
@@ -63,15 +63,15 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
          * We use this formula to calculate mintable VAI amount.
          * totalSupplyAmount * VAIMintRate - (totalBorrowAmount + mintedVAIOf)
          */
-        for (i = 0; i < allMarkets.length; i++) {
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = allMarkets[i].getAccountSnapshot(minter);
+        for (i = 0; i < enteredMarkets.length; i++) {
+            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = enteredMarkets[i].getAccountSnapshot(minter);
             if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (uint(Error.SNAPSHOT_ERROR), 0);
             }
             vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(allMarkets[i]);
+            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(enteredMarkets[i]);
             if (vars.oraclePriceMantissa == 0) {
                 return (uint(Error.PRICE_ERROR), 0);
             }
@@ -81,7 +81,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             if (mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
             }
-            
+
             // sumSupply += tokensToDenom * vTokenBalance
             (mErr, vars.sumSupply) = mulScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumSupply);
             if (mErr != MathError.NO_ERROR) {
@@ -94,7 +94,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
                 return (uint(Error.MATH_ERROR), 0);
             }
         }
-        
+
         (mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, comptroller.mintedVAIOf(minter));
         if (mErr != MathError.NO_ERROR) {
             return (uint(Error.MATH_ERROR), 0);
@@ -106,12 +106,12 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         (mErr, accountMintableVAI) = divUInt(accountMintableVAI, 10000);
         require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
 
-        
+
         (mErr, accountMintableVAI) = subUInt(accountMintableVAI, vars.sumBorrowPlusEffects);
         if (mErr != MathError.NO_ERROR) {
             return (uint(Error.REJECTION), 0);
         }
-        
+
         return (uint(Error.NO_ERROR), accountMintableVAI);
     }
 
@@ -125,12 +125,12 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         MathError mErr;
         uint accountMintVAINew;
         uint accountMintableVAI;
-        
+
         (oErr, accountMintableVAI) = getMintableVAI(minter);
         if (oErr != uint(Error.NO_ERROR)) {
             return uint(Error.REJECTION);
         }
-        
+
         // check that user have sufficient mintableVAI balance
         if (mintVAIAmount > accountMintableVAI) {
             return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
@@ -143,7 +143,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         comptroller.setMintedVAIOf(minter, accountMintVAINew);
         return uint(Error.NO_ERROR);
     }
-    
+
     /**
      * @notice Repay VAI
      */
@@ -152,11 +152,11 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         if (msg.sender != address(comptroller)) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
         }
-        
+
         uint actualBurnAmount = 0;
 
         uint vaiBalance = comptroller.mintedVAIOf(repayer);
-        
+
         if(vaiBalance > repayVAIAmount) {
             actualBurnAmount = repayVAIAmount;
         } else {

@@ -45,10 +45,10 @@ contract VAI is LibNote {
 
     // --- Math ---
     function add(uint x, uint y) internal pure returns (uint z) {
-        require((z = x + y) >= x);
+        require((z = x + y) >= x, "VAI math error");
     }
     function sub(uint x, uint y) internal pure returns (uint z) {
-        require((z = x - y) <= x);
+        require((z = x - y) <= x, "VAI math error");
     }
 
     // --- EIP712 niceties ---
@@ -86,7 +86,7 @@ contract VAI is LibNote {
     }
     function mint(address usr, uint wad) external auth {
         balanceOf[usr] = add(balanceOf[usr], wad);
-        totalSupply    = add(totalSupply, wad);
+        totalSupply = add(totalSupply, wad);
         emit Transfer(address(0), usr, wad);
     }
     function burn(address usr, uint wad) external {
@@ -96,7 +96,7 @@ contract VAI is LibNote {
             allowance[usr][msg.sender] = sub(allowance[usr][msg.sender], wad);
         }
         balanceOf[usr] = sub(balanceOf[usr], wad);
-        totalSupply    = sub(totalSupply, wad);
+        totalSupply = sub(totalSupply, wad);
         emit Transfer(usr, address(0), wad);
     }
     function approve(address usr, uint wad) external returns (bool) {
@@ -120,8 +120,7 @@ contract VAI is LibNote {
     function permit(address holder, address spender, uint256 nonce, uint256 expiry,
                     bool allowed, uint8 v, bytes32 r, bytes32 s) external
     {
-        bytes32 digest =
-            keccak256(abi.encodePacked(
+        bytes32 digest = keccak256(abi.encodePacked(
                 "\x19\x01",
                 DOMAIN_SEPARATOR,
                 keccak256(abi.encode(PERMIT_TYPEHASH,

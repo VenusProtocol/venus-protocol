@@ -108,7 +108,7 @@ describe('GovernorAlpha#propose/5', () => {
         it("reverts with pending", async () => {
           await expect(
             call(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"])
-          ).rejects.toRevert("revert GovernorAlpha::propose: one live proposal per proposer, found an already pending proposal");
+          ).rejects.toRevert("revert GovernorAlpha::propose: found an already pending proposal");
         });
 
         it("reverts with active", async () => {
@@ -117,7 +117,7 @@ describe('GovernorAlpha#propose/5', () => {
 
           await expect(
             call(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"])
-          ).rejects.toRevert("revert GovernorAlpha::propose: one live proposal per proposer, found an already active proposal");
+          ).rejects.toRevert("revert GovernorAlpha::propose: found an already active proposal");
         });
       });
     });

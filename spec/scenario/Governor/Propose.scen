@@ -86,7 +86,7 @@ Test "Propose fails when proposer has active proposal"
     Governor LegitGov Propose "Add 5" [(Address Counter)] [1] ["increment(uint256)"] [["5"]]
     AllowFailures
     Governor LegitGov Propose "Add 5" [(Address Counter)] [1] ["increment(uint256)"] [["5"]]
-    Assert Revert "revert GovernorAlpha::propose: one live proposal per proposer, found an already pending proposal"
+    Assert Revert "revert GovernorAlpha::propose: found an already pending proposal"
 
 Test "Can re-propose after vote completes"
     DeployGov

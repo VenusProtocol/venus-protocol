@@ -26,16 +26,16 @@ contract Tokenlock is Ownable {
         require(isLocked == 0, "Token is locked");
         _;
     }
-    
+
     function freeze() public onlyOwner {
         isLocked = 1;
-        
+
         emit Freezed();
     }
 
     function unfreeze() public onlyOwner {
         isLocked = 0;
-        
+
         emit UnFreezed();
     }
 }
@@ -54,7 +54,7 @@ contract ApproveAndCallFallBack {
 // ----------------------------------------------------------------------------
 contract UserLock is Ownable {
     mapping(address => bool) blacklist;
-        
+
     event LockUser(address indexed who);
     event UnlockUser(address indexed who);
 
@@ -62,16 +62,16 @@ contract UserLock is Ownable {
         require(!blacklist[msg.sender], "Blocked user");
         _;
     }
-    
+
     function lockUser(address who) public onlyOwner {
         blacklist[who] = true;
-        
+
         emit LockUser(who);
     }
 
     function unlockUser(address who) public onlyOwner {
         blacklist[who] = false;
-        
+
         emit UnlockUser(who);
     }
 }
@@ -439,7 +439,7 @@ contract SXP is BEP20Interface, Tokenlock, UserLock {
 
       emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
     }
-    
+
     function safe32(uint256 n, string memory errorMessage) internal pure returns (uint32) {
         require(n < 2**32, errorMessage);
         return uint32(n);

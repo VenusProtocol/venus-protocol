@@ -32,16 +32,16 @@ contract Tokenlock is Owned {
         require(isLocked == 0, "Token is locked");
         _;
     }
-    
+
     function freeze() public onlyOwner {
         isLocked = 1;
-        
+
         emit Freezed();
     }
 
     function unfreeze() public onlyOwner {
         isLocked = 0;
-        
+
         emit UnFreezed();
     }
 }

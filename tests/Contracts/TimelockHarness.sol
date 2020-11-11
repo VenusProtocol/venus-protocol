@@ -26,7 +26,7 @@ contract TimelockTest is Timelock {
     }
 
     function harnessSetAdmin(address admin_) public {
-        require(msg.sender == admin);
+        require(msg.sender == admin, "owner check");
         admin = admin_;
     }
 

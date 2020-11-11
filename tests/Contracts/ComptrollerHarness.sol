@@ -408,7 +408,7 @@ contract BoolComptroller is ComptrollerInterface {
     function setMintedVAIOf(address owner, uint amount) external returns (uint) {
         owner;
         amount;
-        return noError;        
+        return noError;
     }
 
     function getVAIMintRate() external view returns (uint) {

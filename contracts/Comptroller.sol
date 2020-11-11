@@ -291,68 +291,13 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         return uint(Error.NO_ERROR);
     }
 
-    /// @dev VAI Integration^
-    /**
-     * @dev Local vars for avoiding stack-depth limits in calculating account redeem.
-     *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
-     */
-    struct AccountBalanceLocalVars {
-        uint vTokenBalance;
-        uint exchangeRateMantissa;
-        uint mintedVAIMantissa;
-        uint oraclePriceMantissa;
-        Exp exchangeRate;
-        Exp oraclePrice;
-        Exp expectedRemainedBalance;
-        Exp expectedRemainedAmount;
-    }
-    /// @dev VAI Integration$
-
     function redeemAllowedInternal(address vToken, address redeemer, uint redeemTokens) internal view returns (uint) {
         if (!markets[vToken].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
-        /* If the redeemer is not 'in' the market, then we can bypass the liquidity check but need minted VAI check */
+        /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
         if (!markets[vToken].accountMembership[redeemer]) {
-            /// @dev VAI Integration^
-            uint oErr;
-            MathError mErr;
-            AccountBalanceLocalVars memory vars; // Holds all our calculation results
-            
-            // Read the balances and exchange rate from the vToken
-            (oErr, vars.vTokenBalance, , vars.exchangeRateMantissa) = VToken(vToken).getAccountSnapshot(redeemer);
-            if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
-                return uint(Error.SNAPSHOT_ERROR);
-            }
-
-            vars.mintedVAIMantissa = mintedVAIs[redeemer];
-            
-            if(vars.mintedVAIMantissa > 0) {
-                // Get the normalized price of the asset
-                vars.oraclePriceMantissa = oracle.getUnderlyingPrice(VToken(vToken));
-                if (vars.oraclePriceMantissa == 0) {
-                    return uint(Error.PRICE_ERROR);
-                }
-
-                vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
-                vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
-
-                if(vars.vTokenBalance < redeemTokens) {
-                    return uint(Error.MATH_ERROR);
-                }
-                vars.expectedRemainedBalance = Exp({mantissa: vars.vTokenBalance - redeemTokens});
-                (mErr, vars.expectedRemainedAmount) = mulExp3(vars.oraclePrice, vars.expectedRemainedBalance, vars.exchangeRate);
-                if (mErr != MathError.NO_ERROR) {
-                    return uint(Error.MATH_ERROR);
-                }
-
-                if(vars.mintedVAIMantissa > vars.expectedRemainedAmount.mantissa) {
-                    return uint(Error.INSUFFICIENT_BALANCE_FOR_VAI);
-                }
-            }
-            /// @dev VAI Integration$
-
             return uint(Error.NO_ERROR);
         }
 
@@ -1136,7 +1081,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         emit ActionPaused("Seize", state);
         return state;
     }
-    
+
     function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
@@ -1479,24 +1424,24 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
         }
         mintedVAIs[owner] = amount;
-        
+
         return uint(Error.NO_ERROR);
     }
-    
+
     /**
      * @notice Get Mintable VAI amount
      */
     function getMintableVAI(address minter) public view returns (uint, uint) {
         return vaiController.getMintableVAI(minter);
     }
-    
+
     /**
      * @notice Mint VAI
      */
     function mintVAI(uint mintVAIAmount) external returns (uint) {
         return vaiController.mintVAI(msg.sender, mintVAIAmount);
     }
-    
+
     /**
      * @notice Repay VAI
      */
