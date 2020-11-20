@@ -68,6 +68,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     /// @notice Emitted when VAI mint rate is changed by admin
     event NewVAIMintRate(uint oldVAIMintRate, uint newVAIMintRate);
 
+    /// @notice Emitted when protocol state is changed by admin or pauseGuardian
+    event UpdatedProtocolState(bool state);
+
     /// @notice The threshold above which the flywheel transfers XVS, in wei
     uint public constant venusClaimThreshold = 0.001e18;
 
@@ -91,6 +94,12 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
     constructor() public {
         admin = msg.sender;
+        protocolState = true;
+    }
+
+    modifier onlyProtocolAllowed {
+        require(protocolState == true, "protocol is locked");
+        _;
     }
 
     /*** Assets You Are In ***/
@@ -233,7 +242,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param mintAmount The amount of underlying being supplied to the market in exchange for tokens
      * @return 0 if the mint is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint) {
+    function mintAllowed(address vToken, address minter, uint mintAmount) external onlyProtocolAllowed returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!mintGuardianPaused[vToken], "mint is paused");
 
@@ -273,7 +282,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param redeemTokens The number of vTokens to exchange for the underlying asset in the market
      * @return 0 if the redeem is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint) {
+    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external onlyProtocolAllowed returns (uint) {
         uint allowed = redeemAllowedInternal(vToken, redeemer, redeemTokens);
         if (allowed != uint(Error.NO_ERROR)) {
             return allowed;
@@ -331,7 +340,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param borrowAmount The amount of underlying the account would borrow
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint) {
+    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external onlyProtocolAllowed returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!borrowGuardianPaused[vToken], "borrow is paused");
 
@@ -400,7 +409,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         address vToken,
         address payer,
         address borrower,
-        uint repayAmount) external returns (uint) {
+        uint repayAmount) external onlyProtocolAllowed returns (uint) {
         // Shh - currently unused
         payer;
         borrower;
@@ -457,7 +466,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         address vTokenCollateral,
         address liquidator,
         address borrower,
-        uint repayAmount) external returns (uint) {
+        uint repayAmount) external onlyProtocolAllowed returns (uint) {
         // Shh - currently unused
         liquidator;
 
@@ -529,7 +538,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         address vTokenBorrowed,
         address liquidator,
         address borrower,
-        uint seizeTokens) external returns (uint) {
+        uint seizeTokens) external onlyProtocolAllowed returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!seizeGuardianPaused, "seize is paused");
 
@@ -587,7 +596,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param transferTokens The number of vTokens to transfer
      * @return 0 if the transfer is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint) {
+    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external onlyProtocolAllowed returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!transferGuardianPaused, "transfer is paused");
 
@@ -1473,5 +1482,17 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      */
     function getVAIMintRate() external view returns (uint) {
         return vaiMintRate;
+    }
+
+    /**
+     * @notice Set whole protocol lock/unlock state
+     */
+    function _setProtocolState(bool state) public returns(bool) {
+        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
+        require(msg.sender == admin || state == true, "only admin can unpause");
+
+        protocolState = state;
+        emit UpdatedProtocolState(state);
+        return state;
     }
 }
