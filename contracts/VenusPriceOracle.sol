@@ -23,14 +23,17 @@ interface IStdReference {
 
 contract VenusPriceOracle is PriceOracle {
     using SafeMath for uint256;
+    address admin;
 
     mapping(address => uint) prices;
     event PricePosted(address asset, uint previousPriceMantissa, uint requestedPriceMantissa, uint newPriceMantissa);
+    event NewAdmin(address oldAdmin, address newAdmin);
 
     IStdReference ref;
 
     constructor(IStdReference _ref) public {
         ref = _ref;
+        admin = msg.sender;
     }
 
     function getUnderlyingPrice(VToken vToken) public view returns (uint) {
@@ -40,14 +43,15 @@ contract VenusPriceOracle is PriceOracle {
         }else if (compareStrings(vToken.symbol(), "XVS")) {
             return prices[address(vToken)];
         } else {
+            uint256 price;
             BEP20Interface token = BEP20Interface(VBep20(address(vToken)).underlying());
 
-            if(address(token) == address(0)) {
-                return prices[address(vToken)];
+            if(prices[address(token)] != 0) {
+                price = prices[address(token)];
+            } else {
+                IStdReference.ReferenceData memory data = ref.getReferenceData(token.symbol(), "USD");
+                price = data.rate;
             }
-
-            IStdReference.ReferenceData memory data = ref.getReferenceData(token.symbol(), "USD");
-            uint256 price = data.rate;
 
             uint decimalDelta = 18-uint(token.decimals());
             return price.mul(10**decimalDelta);
@@ -55,12 +59,14 @@ contract VenusPriceOracle is PriceOracle {
     }
 
     function setUnderlyingPrice(VToken vToken, uint underlyingPriceMantissa) public {
+        require(msg.sender == admin, "only admin can set underlying price");
         address asset = address(VBep20(address(vToken)).underlying());
         emit PricePosted(asset, prices[asset], underlyingPriceMantissa, underlyingPriceMantissa);
         prices[asset] = underlyingPriceMantissa;
     }
 
     function setDirectPrice(address asset, uint price) public {
+        require(msg.sender == admin, "only admin can set price");
         emit PricePosted(asset, prices[asset], price, price);
         prices[asset] = price;
     }
@@ -71,5 +77,13 @@ contract VenusPriceOracle is PriceOracle {
 
     function compareStrings(string memory a, string memory b) internal pure returns (bool) {
         return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
+    }
+
+    function setAdmin(address newAdmin) external {
+        require(msg.sender == admin, "only admin can set new admin");
+        address oldAdmin = admin;
+        admin = newAdmin;
+
+        emit NewAdmin(oldAdmin, newAdmin);
     }
 }

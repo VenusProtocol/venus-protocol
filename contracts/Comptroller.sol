@@ -193,11 +193,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
             return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
         }
 
-        /* Fail if the sender has a minted VAI balance */
-        if (mintedVAIs[msg.sender] != 0) {
-            return fail(Error.NONZERO_MINTEDVAI_BALANCE, FailureInfo.EXIT_MARKET_BALANCE_OWED);
-        }
-
         Market storage marketToExit = markets[address(vToken)];
 
         /* Return true if the sender is not already ‘in’ the market */
@@ -1082,6 +1077,24 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         return state;
     }
 
+    function _setMintVAIPaused(bool state) public returns (bool) {
+        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
+        require(msg.sender == admin || state == true, "only admin can unpause");
+
+        mintVAIGuardianPaused = state;
+        emit ActionPaused("MintVAI", state);
+        return state;
+    }
+
+    function _setRepayVAIPaused(bool state) public returns (bool) {
+        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
+        require(msg.sender == admin || state == true, "only admin can unpause");
+
+        repayVAIGuardianPaused = state;
+        emit ActionPaused("RepayVAI", state);
+        return state;
+    }
+
     function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
@@ -1419,6 +1432,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @return The number of minted VAI by `owner`
      */
     function setMintedVAIOf(address owner, uint amount) external returns (uint) {
+        // Pausing is a very serious situation - we revert to sound the alarms
+        require(!mintVAIGuardianPaused && !repayVAIGuardianPaused, "VAI is paused");
         // Check caller is vaiController
         if (msg.sender != address(vaiController)) {
             return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
@@ -1439,6 +1454,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @notice Mint VAI
      */
     function mintVAI(uint mintVAIAmount) external returns (uint) {
+        // Pausing is a very serious situation - we revert to sound the alarms
+        require(!mintVAIGuardianPaused, "mintVAI is paused");
         return vaiController.mintVAI(msg.sender, mintVAIAmount);
     }
 
@@ -1446,6 +1463,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @notice Repay VAI
      */
     function repayVAI(uint repayVAIAmount) external returns (uint) {
+        // Pausing is a very serious situation - we revert to sound the alarms
+        require(!repayVAIGuardianPaused, "repayVAI is paused");
         return vaiController.repayVAI(msg.sender, repayVAIAmount);
     }
 

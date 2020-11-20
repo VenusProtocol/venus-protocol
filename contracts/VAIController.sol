@@ -136,11 +136,12 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
         }
 
-        VAI(getVAIAddress()).mint(minter, mintVAIAmount);
         (mErr, accountMintVAINew) = addUInt(comptroller.mintedVAIOf(minter), mintVAIAmount);
         require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
-
         comptroller.setMintedVAIOf(minter, accountMintVAINew);
+
+        VAI(getVAIAddress()).mint(minter, mintVAIAmount);
+
         return uint(Error.NO_ERROR);
     }
 
@@ -163,8 +164,9 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             actualBurnAmount = vaiBalance;
         }
 
-        VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
         comptroller.setMintedVAIOf(repayer, vaiBalance - actualBurnAmount);
+
+        VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
         return uint(Error.NO_ERROR);
     }
 
