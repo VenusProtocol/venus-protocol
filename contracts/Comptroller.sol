@@ -68,8 +68,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     /// @notice Emitted when VAI mint rate is changed by admin
     event NewVAIMintRate(uint oldVAIMintRate, uint newVAIMintRate);
 
-    /// @notice Emitted when protocol state is changed by admin or pauseGuardian
-    event UpdatedProtocolState(bool state);
+    /// @notice Emitted when protocol state is changed by admin
+    event ActionProtocolPaused(bool state);
 
     /// @notice The threshold above which the flywheel transfers XVS, in wei
     uint public constant venusClaimThreshold = 0.001e18;
@@ -94,11 +94,10 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
     constructor() public {
         admin = msg.sender;
-        protocolState = true;
     }
 
     modifier onlyProtocolAllowed {
-        require(protocolState == true, "protocol is locked");
+        require(protocolPaused == false, "protocol is paused");
         _;
     }
 
@@ -1485,14 +1484,13 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
 
     /**
-     * @notice Set whole protocol lock/unlock state
+     * @notice Set whole protocol pause/unpause state
      */
-    function _setProtocolState(bool state) public returns(bool) {
-        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
-        require(msg.sender == admin || state == true, "only admin can unpause");
+    function _setProtocolPaused(bool state) public returns(bool) {
+        require(msg.sender == admin, "only admin can");
 
-        protocolState = state;
-        emit UpdatedProtocolState(state);
+        protocolPaused = state;
+        emit ActionProtocolPaused(state);
         return state;
     }
 }

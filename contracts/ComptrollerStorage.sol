@@ -138,7 +138,7 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
     bool public repayVAIGuardianPaused;
 
     /**
-     * @notice Lock/Unlock whole protocol actions
+     * @notice Pause/Unpause whole protocol actions
      */
-    bool public protocolState;
+    bool public protocolPaused;
 }
