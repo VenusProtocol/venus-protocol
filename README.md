@@ -103,7 +103,7 @@ There are additional tests under the [spec/scenario](https://github.com/SwipeWal
 Formal Verification Specs
 -------------------------
 
-The Venus Protocol has a number of formal verification specifications, powered by [Certora](https://www.certora.com/). The Certora Verification Language (CVL) files included are specifications, which when with the Certora CLI tool, produce formal proofs (or counter-examples) that the code of a given contract exactly matches that specification.
+The Venus Protocol has a number of formal verification specifications, powered by [Certik](https://certik.foundation/projects/swipe). The Certik Verification evaluates smart contracts for vulnerabilities and certifies their behavior with respect to a custom function specification.
 =======
 See the [Scenario Docs](https://github.com/SwipeWallet/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
 
