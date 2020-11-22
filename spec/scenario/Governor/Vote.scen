@@ -5,7 +5,7 @@ Macro GivenProposal
     Timelock Deploy Jared 604800
     Governor Deploy Alpha LegitGov (Address Timelock) (Address XVS) Guardian
     Timelock SetAdmin (Address LegitGov)
-    Enfranchise Root 100001e18
+    Enfranchise Root 300001e18
     Enfranchise Geoff 100
     Governor LegitGov Propose "Add 5" [(Address Counter)] [1] ["increment(uint256)"] [["0x5"]]
     MineBlock
@@ -46,7 +46,7 @@ Test "Fail to vote twice"
     Assert Revert "revert GovernorAlpha::_castVote: voter already voted"
     Governor LegitGov Proposal LastProposal Vote Against
     Assert Revert "revert GovernorAlpha::_castVote: voter already voted"
-    Assert Equal (Governor LegitGov Proposal LastProposal ForVotes) 100001e18
+    Assert Equal (Governor LegitGov Proposal LastProposal ForVotes) 300001e18
     Assert Equal (Governor LegitGov Proposal LastProposal AgainstVotes) 0
     Assert False (Governor LegitGov Proposal LastProposal HasVoted Geoff)
 

@@ -4,7 +4,7 @@ Macro DeployGov
     XVS Deploy Bank
     Governor Deploy Alpha LegitGov (Address Timelock) (Address XVS) Guardian
     Timelock SetAdmin (Address LegitGov)
-    Enfranchise Root 400001e18
+    Enfranchise Root 600001e18
     MineBlock
 
 Macro Enfranchise user amount
@@ -118,7 +118,7 @@ Test "Revert when queuing an already executed proposal"
 
 Test "Revert when queuing on invalid Timelock"
     XVS Deploy Bank
-    Enfranchise Root 600001e18
+    Enfranchise Root 1200001e18
     Counter Deploy CNT1
     Governor Deploy Alpha LegitGov (Address Zero) (Address XVS) Guardian
     Governor LegitGov Propose "Add 5" [(Address CNT1)] [1] ["increment(uint256)"] [["2"]]

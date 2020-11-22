@@ -130,4 +130,15 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
 
     /// @notice VAI Mint Rate as a percentage
     uint public vaiMintRate;
+
+    /**
+     * @notice The Pause Guardian can pause certain actions as a safety mechanism.
+     */
+    bool public mintVAIGuardianPaused;
+    bool public repayVAIGuardianPaused;
+
+    /**
+     * @notice Pause/Unpause whole protocol actions
+     */
+    bool public protocolPaused;
 }
