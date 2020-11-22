@@ -4,7 +4,7 @@ Macro DeployGov
     SetTime 10
     Counter Deploy CNT1
     XVS Deploy Bank
-    Enfranchise Root 400001e18
+    Enfranchise Root 800001e18
     Timelock Deploy Jared 604800
     Governor Deploy Alpha Alpha (Address Timelock) (Address XVS) Guardian
     Timelock SetAdmin (Address Alpha)
@@ -15,7 +15,7 @@ Macro SucceedQueueExecuteLastProposal gov
     Governor gov Proposal LastProposal Vote For
     AdvanceBlocks 90000
     MineBlock
-    Enfranchise Root 600001e18
+    Enfranchise Root 1200001e18
     Assert Equal ("Succeeded") (Governor gov Proposal LastProposal State)
     Governor gov Proposal LastProposal Queue
     Assert Equal ("Queued") (Governor gov Proposal LastProposal State)

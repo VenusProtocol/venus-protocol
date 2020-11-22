@@ -5,8 +5,8 @@ Macro DeployGov
     XVS Deploy Bank
     Governor Deploy Alpha LegitGov (Address Timelock) (Address XVS) Guardian
     Timelock SetAdmin (Address LegitGov)
-    Enfranchise Root 200001e18
-    Enfranchise Jared 200000e18
+    Enfranchise Root 600001e18
+    Enfranchise Jared 600000e18
 
 Macro Enfranchise user amount
     From Bank (XVS Transfer user amount)

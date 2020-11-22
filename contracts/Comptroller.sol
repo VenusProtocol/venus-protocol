@@ -1439,7 +1439,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @param amount The amount of VAI to set to the account
      * @return The number of minted VAI by `owner`
      */
-    function setMintedVAIOf(address owner, uint amount) external returns (uint) {
+    function setMintedVAIOf(address owner, uint amount) external onlyProtocolAllowed returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!mintVAIGuardianPaused && !repayVAIGuardianPaused, "VAI is paused");
         // Check caller is vaiController
@@ -1461,7 +1461,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     /**
      * @notice Mint VAI
      */
-    function mintVAI(uint mintVAIAmount) external returns (uint) {
+    function mintVAI(uint mintVAIAmount) external onlyProtocolAllowed returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!mintVAIGuardianPaused, "mintVAI is paused");
         return vaiController.mintVAI(msg.sender, mintVAIAmount);
@@ -1470,7 +1470,7 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     /**
      * @notice Repay VAI
      */
-    function repayVAI(uint repayVAIAmount) external returns (uint) {
+    function repayVAI(uint repayVAIAmount) external onlyProtocolAllowed returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!repayVAIGuardianPaused, "repayVAI is paused");
         return vaiController.repayVAI(msg.sender, repayVAIAmount);

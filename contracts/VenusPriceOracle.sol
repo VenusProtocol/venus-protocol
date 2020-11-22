@@ -23,7 +23,7 @@ interface IStdReference {
 
 contract VenusPriceOracle is PriceOracle {
     using SafeMath for uint256;
-    address admin;
+    address public admin;
 
     mapping(address => uint) prices;
     event PricePosted(address asset, uint previousPriceMantissa, uint requestedPriceMantissa, uint newPriceMantissa);
