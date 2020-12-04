@@ -46,6 +46,7 @@ async function makeComptroller(opts = {}) {
     const xvs = opts.xvs || await deploy('XVS', [opts.venusOwner || root]);
     const vai = opts.vai || await deploy('VAI', [opts.venusOwner || root]);
     const venusRate = bnbUnsigned(dfn(opts.venusRate, 1e18));
+    const venusVAIRate = bnbUnsigned(dfn(opts.venusVAIRate, 5e17));
     const venusMarkets = opts.venusMarkets || [];
 
     await send(unitroller, '_setPendingImplementation', [comptroller._address]);
@@ -58,6 +59,8 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, 'setXVSAddress', [xvs._address]); // harness only
     await send(unitroller, 'setVAIAddress', [vai._address]); // harness only
     await send(unitroller, '_setVenusRate', [venusRate]);
+    await send(unitroller, '_setVenusVAIRate', [venusVAIRate]);
+    await send(unitroller, '_initializeVenusVAIState', [0]);
     await send(unitroller, '_addVenusMarkets', [venusMarkets]);
     await send(vai, 'rely', [unitroller._address]);
 
@@ -158,6 +161,22 @@ async function makeVToken(opts = {}) {
   }
 
   return Object.assign(vToken, { name, symbol, underlying, comptroller, interestRateModel });
+}
+
+async function makeVAI(opts = {}) {
+  const {
+    chainId = 97
+  } = opts || {};
+
+  let vai;
+
+  vai = await deploy('VAIHarness',
+    [
+      chainId
+    ]
+  );
+
+  return Object.assign(vai);
 }
 
 async function makeInterestRateModel(opts = {}) {
@@ -316,6 +335,13 @@ async function quickMint(vToken, minter, mintAmount, opts = {}) {
   return send(vToken, 'mint', [mintAmount], { from: minter });
 }
 
+async function quickMintVAI(vai, vaiMinter, vaiMintAmount, opts = {}) {
+  // make sure to accrue interest
+  await fastForward(vai, 1);
+
+  expect(await send(vai, 'harnessSetBalanceOf', [vaiMinter, vaiMintAmount], { vaiMinter })).toSucceed();
+  expect(await send(vai, 'harnessIncrementTotalSupply', [vaiMintAmount], { vaiMinter })).toSucceed();
+}
 
 async function preSupply(vToken, account, tokens, opts = {}) {
   if (dfn(opts.total, true)) {
@@ -369,9 +395,15 @@ async function pretendBorrow(vToken, borrower, accountIndex, marketIndex, princi
   await send(vToken, 'harnessSetBlockNumber', [bnbUnsigned(blockNumber)]);
 }
 
+async function pretendVAIMint(vai, vaiMinter, accountIndex, totalSupply, blockNumber = 2e7) {
+  await send(vai, 'harnessIncrementTotalSupply', [bnbUnsigned(totalSupply)]);
+  await send(vai, 'harnessSetBalanceOf', [vaiMinter, bnbUnsigned(totalSupply), bnbMantissa(accountIndex)]);
+}
+
 module.exports = {
   makeComptroller,
   makeVToken,
+  makeVAI,
   makeInterestRateModel,
   makePriceOracle,
   makeToken,
@@ -390,6 +422,7 @@ module.exports = {
 
   preApprove,
   quickMint,
+  quickMintVAI,
 
   preSupply,
   quickRedeem,
@@ -399,5 +432,6 @@ module.exports = {
   setBorrowRate,
   getBorrowRate,
   getSupplyRate,
-  pretendBorrow
+  pretendBorrow,
+  pretendVAIMint
 };
