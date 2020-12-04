@@ -23,6 +23,16 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
     /// @notice Emitted when Comptroller is changed
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
 
+    /**
+     * @notice Event emitted when VAI is minted
+     */
+    event MintVAI(address minter, uint mintVAIAmount);
+
+    /**
+     * @notice Event emitted when VAI is repaid
+     */
+    event RepayVAI(address repayer, uint repayVAIAmount);
+
     function _become(VAIUnitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
         require(unitroller._acceptImplementation() == 0, "change not authorized");
@@ -141,6 +151,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         comptroller.setMintedVAIOf(minter, accountMintVAINew);
 
         VAI(getVAIAddress()).mint(minter, mintVAIAmount);
+        emit MintVAI(minter, mintVAIAmount);
 
         return uint(Error.NO_ERROR);
     }
@@ -167,6 +178,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         comptroller.setMintedVAIOf(repayer, vaiBalance - actualBurnAmount);
 
         VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
+        emit RepayVAI(repayer, actualBurnAmount);
         return uint(Error.NO_ERROR);
     }
 
@@ -195,6 +207,6 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
      * @return The address of VAI
      */
     function getVAIAddress() public view returns (address) {
-        return 0x5fFbE5302BadED40941A403228E6AD03f93752d9;
+        return 0x4BD17003473389A42DAF6a0a729f6Fdb328BbBd7;
     }
 }
