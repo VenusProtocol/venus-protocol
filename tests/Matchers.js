@@ -1,6 +1,6 @@
 const { last } = require('./Utils/JS');
 const { address, bnbUnsigned } = require('./Utils/BSC');
-const diff = require('jest-diff');
+const { default: diff } = require('jest-diff');
 const { ComptrollerErr, TokenErr, IRErr, MathErr } = require('./Errors');
 
 function opts(comment) {
@@ -335,7 +335,7 @@ expect.extend({
   },
 
   toEqualNumber(actual, expected) {
-    return match.call(this, actual, expected, bnbUnsigned(actual).eq(bnbUnsigned(expected)), opts('toEqualNumber'));
+    return match.call(this, actual, expected, bnbUnsigned(actual).isEqualTo(bnbUnsigned(expected)), opts('toEqualNumber'));
   },
 
   toPartEqual(actual, expected) {

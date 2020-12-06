@@ -15,7 +15,7 @@ const {
 
 const repayAmount = bnbUnsigned(10e2);
 const seizeAmount = repayAmount;
-const seizeTokens = seizeAmount.mul(4); // forced
+const seizeTokens = seizeAmount.multipliedBy(4); // forced
 
 async function preLiquidate(vToken, liquidator, borrower, repayAmount, vTokenCollateral) {
   // setup for success in liquidating

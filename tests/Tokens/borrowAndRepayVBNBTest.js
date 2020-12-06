@@ -1,7 +1,8 @@
 const {
   bnbGasCost,
   bnbUnsigned,
-  bnbMantissa
+  bnbMantissa,
+  UInt256Max
 } = require('../Utils/BSC');
 
 const {
@@ -94,7 +95,7 @@ describe('VBNB', function () {
     });
 
     it("fails if protocol has less than borrowAmount of underlying", async () => {
-      expect(await borrowFresh(vToken, borrower, borrowAmount.add(1))).toHaveTokenFailure('TOKEN_INSUFFICIENT_CASH', 'BORROW_CASH_NOT_AVAILABLE');
+      expect(await borrowFresh(vToken, borrower, borrowAmount.plus(1))).toHaveTokenFailure('TOKEN_INSUFFICIENT_CASH', 'BORROW_CASH_NOT_AVAILABLE');
     });
 
     it("fails if borrowBalanceStored fails (due to non-zero stored principal with zero account index)", async () => {
@@ -103,12 +104,12 @@ describe('VBNB', function () {
     });
 
     it("fails if calculating account new total borrow balance overflows", async () => {
-      await pretendBorrow(vToken, borrower, 1e-18, 1e-18, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+      await pretendBorrow(vToken, borrower, 1e-18, 1e-18, UInt256Max());
       expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTokenFailure('MATH_ERROR', 'BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED');
     });
 
     it("fails if calculation of new total borrow balance overflows", async () => {
-      await send(vToken, 'harnessSetTotalBorrows', ['0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF']);
+      await send(vToken, 'harnessSetTotalBorrows', [UInt256Max()]);
       expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTokenFailure('MATH_ERROR', 'BORROW_NEW_TOTAL_BALANCE_CALCULATION_FAILED');
     });
 
@@ -131,14 +132,14 @@ describe('VBNB', function () {
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
         [vToken, 'bnb', -borrowAmount],
         [vToken, 'borrows', borrowAmount],
-        [vToken, borrower, 'bnb', borrowAmount.sub(await bnbGasCost(result))],
+        [vToken, borrower, 'bnb', borrowAmount.minus(await bnbGasCost(result))],
         [vToken, borrower, 'borrows', borrowAmount]
       ]));
       expect(result).toHaveLog('Borrow', {
         borrower: borrower,
         borrowAmount: borrowAmount.toString(),
         accountBorrows: borrowAmount.toString(),
-        totalBorrows: beforeProtocolBorrows.add(borrowAmount).toString()
+        totalBorrows: beforeProtocolBorrows.plus(borrowAmount).toString()
       });
     });
 
@@ -149,7 +150,7 @@ describe('VBNB', function () {
       const borrowSnap = await borrowSnapshot(vToken, borrower);
       expect(borrowSnap.principal).toEqualNumber(borrowAmount);
       expect(borrowSnap.interestIndex).toEqualNumber(bnbMantissa(3));
-      expect(await totalBorrows(vToken)).toEqualNumber(beforeProtocolBorrows.add(borrowAmount));
+      expect(await totalBorrows(vToken)).toEqualNumber(beforeProtocolBorrows.plus(borrowAmount));
     });
   });
 
@@ -163,7 +164,7 @@ describe('VBNB', function () {
     });
 
     it("returns error from borrowFresh without emitting any extra logs", async () => {
-      expect(await borrow(vToken, borrower, borrowAmount.add(1))).toHaveTokenFailure('TOKEN_INSUFFICIENT_CASH', 'BORROW_CASH_NOT_AVAILABLE');
+      expect(await borrow(vToken, borrower, borrowAmount.plus(1))).toHaveTokenFailure('TOKEN_INSUFFICIENT_CASH', 'BORROW_CASH_NOT_AVAILABLE');
     });
 
     it("returns success from borrowFresh and transfers the correct amount", async () => {
@@ -175,7 +176,7 @@ describe('VBNB', function () {
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
         [vToken, 'bnb', -borrowAmount],
         [vToken, 'borrows', borrowAmount],
-        [vToken, borrower, 'bnb', borrowAmount.sub(await bnbGasCost(result))],
+        [vToken, borrower, 'bnb', borrowAmount.minus(await bnbGasCost(result))],
         [vToken, borrower, 'borrows', borrowAmount]
       ]));
     });
@@ -236,7 +237,7 @@ describe('VBNB', function () {
               [vToken, 'bnb', repayAmount],
               [vToken, 'borrows', -repayAmount],
               [vToken, borrower, 'borrows', -repayAmount],
-              [vToken, borrower, 'bnb', -repayAmount.add(await bnbGasCost(result))]
+              [vToken, borrower, 'bnb', -repayAmount.plus(await bnbGasCost(result))]
             ]));
           } else {
             expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
@@ -259,9 +260,9 @@ describe('VBNB', function () {
           const beforeAccountBorrowSnap = await borrowSnapshot(vToken, borrower);
           expect(await repayBorrowFresh(vToken, payer, borrower, repayAmount)).toSucceed();
           const afterAccountBorrows = await borrowSnapshot(vToken, borrower);
-          expect(afterAccountBorrows.principal).toEqualNumber(beforeAccountBorrowSnap.principal.sub(repayAmount));
+          expect(afterAccountBorrows.principal).toEqualNumber(beforeAccountBorrowSnap.principal.minus(repayAmount));
           expect(afterAccountBorrows.interestIndex).toEqualNumber(bnbMantissa(1));
-          expect(await totalBorrows(vToken)).toEqualNumber(beforeProtocolBorrows.sub(repayAmount));
+          expect(await totalBorrows(vToken)).toEqualNumber(beforeProtocolBorrows.minus(repayAmount));
         });
       });
     });
@@ -287,7 +288,7 @@ describe('VBNB', function () {
       const beforeAccountBorrowSnap = await borrowSnapshot(vToken, borrower);
       expect(await repayBorrow(vToken, borrower, repayAmount)).toSucceed();
       const afterAccountBorrowSnap = await borrowSnapshot(vToken, borrower);
-      expect(afterAccountBorrowSnap.principal).toEqualNumber(beforeAccountBorrowSnap.principal.sub(repayAmount));
+      expect(afterAccountBorrowSnap.principal).toEqualNumber(beforeAccountBorrowSnap.principal.minus(repayAmount));
     });
 
     it("reverts if overpaying", async () => {
@@ -321,7 +322,7 @@ describe('VBNB', function () {
       const beforeAccountBorrowSnap = await borrowSnapshot(vToken, borrower);
       expect(await repayBorrowBehalf(vToken, payer, borrower, repayAmount)).toSucceed();
       const afterAccountBorrowSnap = await borrowSnapshot(vToken, borrower);
-      expect(afterAccountBorrowSnap.principal).toEqualNumber(beforeAccountBorrowSnap.principal.sub(repayAmount));
+      expect(afterAccountBorrowSnap.principal).toEqualNumber(beforeAccountBorrowSnap.principal.minus(repayAmount));
     });
   });
 });

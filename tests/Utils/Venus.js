@@ -8,6 +8,7 @@ const {
   bnbUnsigned,
   mergeInterface
 } = require('./BSC');
+const BigNumber = require('bignumber.js');
 
 async function makeComptroller(opts = {}) {
   const {
@@ -308,7 +309,8 @@ async function adjustBalances(balances, deltas) {
       ([vToken, key, diff] = delta);
       account = vToken._address;
     }
-    balances[vToken._address][account][key] = balances[vToken._address][account][key].add(diff);
+
+    balances[vToken._address][account][key] = new BigNumber(balances[vToken._address][account][key]).plus(diff);
   }
   return balances;
 }

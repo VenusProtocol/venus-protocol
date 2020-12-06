@@ -24,7 +24,7 @@ async function xvsBalance(comptroller, user) {
 }
 
 async function totalVenusAccrued(comptroller, user) {
-  return (await venusAccrued(comptroller, user)).add(await xvsBalance(comptroller, user));
+  return (await venusAccrued(comptroller, user)).plus(await xvsBalance(comptroller, user));
 }
 
 describe('Flywheel', () => {
@@ -96,8 +96,8 @@ describe('Flywheel', () => {
       expect(await xvsBalance(comptroller, a1)).toEqualNumber(25e18);
       expect(tx).toHaveLog('DistributedVAIMinterVenus', {
         vaiMinter: a1,
-        venusDelta: bnbUnsigned(25e18).toString(),
-        venusVAIMintIndex: bnbDouble(6).toString()
+        venusDelta: bnbUnsigned(25e18).toFixed(),
+        venusVAIMintIndex: bnbDouble(6).toFixed()
       });
     });
 
@@ -122,7 +122,7 @@ describe('Flywheel', () => {
 
   describe('claimVenus', () => {
     it('should accrue xvs and then transfer xvs accrued', async () => {
-      const xvsRemaining = venusVAIRate.mul(100), mintAmount = bnbUnsigned(12e18), deltaBlocks = 10;
+      const xvsRemaining = venusVAIRate.multipliedBy(100), mintAmount = bnbUnsigned(12e18), deltaBlocks = 10;
       await send(comptroller.xvs, 'transfer', [comptroller._address, xvsRemaining], {from: root});
       //await pretendVAIMint(vai, a1, 1, 1, 100);
       const speed = await call(comptroller, 'venusVAIRate');
@@ -138,7 +138,7 @@ describe('Flywheel', () => {
       expect(a2AccruedPre).toEqualNumber(0);
       expect(a2AccruedPost).toEqualNumber(0);
       expect(xvsBalancePre).toEqualNumber(0);
-      expect(xvsBalancePost).toEqualNumber(venusVAIRate.mul(deltaBlocks).sub(1)); // index is 8333...
+      expect(xvsBalancePost).toEqualNumber(venusVAIRate.multipliedBy(deltaBlocks).minus(1)); // index is 8333...
     });
 
     it('should claim when xvs accrued is below threshold', async () => {
@@ -153,7 +153,7 @@ describe('Flywheel', () => {
 
   describe('claimVenus batch', () => {
     it('should claim the expected amount when holders and arg is duplicated', async () => {
-      const xvsRemaining = venusVAIRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10);
+      const xvsRemaining = venusVAIRate.multipliedBy(100), deltaBlocks = 10, mintAmount = bnbExp(10);
       await send(comptroller.xvs, 'transfer', [comptroller._address, xvsRemaining], {from: root});
       let [_, __, ...claimAccts] = saddle.accounts;
       for(let from of claimAccts) {
@@ -171,7 +171,7 @@ describe('Flywheel', () => {
     });
 
     it('claims xvs for multiple vai minters only, primes uninitiated', async () => {
-      const xvsRemaining = venusVAIRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10), vaiAmt = bnbExp(1), vaiMintIdx = bnbExp(1)
+      const xvsRemaining = venusVAIRate.multipliedBy(100), deltaBlocks = 10, mintAmount = bnbExp(10), vaiAmt = bnbExp(1), vaiMintIdx = bnbExp(1)
       await send(comptroller.xvs, 'transfer', [comptroller._address, xvsRemaining], {from: root});
       let [_,__, ...claimAccts] = saddle.accounts;
 
