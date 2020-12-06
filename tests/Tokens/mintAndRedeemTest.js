@@ -19,9 +19,9 @@ const {
 
 const exchangeRate = 50e3;
 const mintAmount = bnbUnsigned(10e4);
-const mintTokens = mintAmount.div(exchangeRate);
+const mintTokens = mintAmount.dividedBy(exchangeRate);
 const redeemTokens = bnbUnsigned(10e3);
-const redeemAmount = redeemTokens.mul(exchangeRate);
+const redeemAmount = redeemTokens.multipliedBy(exchangeRate);
 
 async function preMint(vToken, minter, mintAmount, mintTokens, exchangeRate) {
   await preApprove(vToken, minter, mintAmount);

@@ -17,9 +17,9 @@ const {
 
 const exchangeRate = 5;
 const mintAmount = bnbUnsigned(1e5);
-const mintTokens = mintAmount.div(exchangeRate);
+const mintTokens = mintAmount.dividedBy(exchangeRate);
 const redeemTokens = bnbUnsigned(10e3);
-const redeemAmount = redeemTokens.mul(exchangeRate);
+const redeemAmount = redeemTokens.multipliedBy(exchangeRate);
 
 async function preMint(vToken, minter, mintAmount, mintTokens, exchangeRate) {
   await send(vToken.comptroller, 'setMintAllowed', [true]);
@@ -84,7 +84,7 @@ describe('VBNB', () => {
         expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
           [vToken, 'bnb', mintAmount],
           [vToken, 'tokens', mintTokens],
-          [vToken, minter, 'bnb', -mintAmount.add(await bnbGasCost(receipt))],
+          [vToken, minter, 'bnb', -mintAmount.plus(await bnbGasCost(receipt))],
           [vToken, minter, 'tokens', mintTokens]
         ]));
       });
@@ -103,7 +103,7 @@ describe('VBNB', () => {
       });
 
       it("returns error from redeemFresh without emitting any extra logs", async () => {
-        expect(await redeem(vToken, redeemer, redeemTokens.mul(5), redeemAmount.mul(5))).toHaveTokenFailure('MATH_ERROR', 'REDEEM_NEW_TOTAL_SUPPLY_CALCULATION_FAILED');
+        expect(await redeem(vToken, redeemer, redeemTokens.multipliedBy(5), redeemAmount.multipliedBy(5))).toHaveTokenFailure('MATH_ERROR', 'REDEEM_NEW_TOTAL_SUPPLY_CALCULATION_FAILED');
       });
 
       it("returns success from redeemFresh and redeems the correct amount", async () => {
@@ -116,7 +116,7 @@ describe('VBNB', () => {
         expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
           [vToken, 'bnb', -redeemAmount],
           [vToken, 'tokens', -redeemTokens],
-          [vToken, redeemer, 'bnb', redeemAmount.sub(await bnbGasCost(receipt))],
+          [vToken, redeemer, 'bnb', redeemAmount.minus(await bnbGasCost(receipt))],
           [vToken, redeemer, 'tokens', -redeemTokens]
         ]));
       });

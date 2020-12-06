@@ -23,7 +23,7 @@ async function xvsBalance(comptroller, user) {
 }
 
 async function totalVenusAccrued(comptroller, user) {
-  return (await venusAccrued(comptroller, user)).add(await xvsBalance(comptroller, user));
+  return (await venusAccrued(comptroller, user)).plus(await xvsBalance(comptroller, user));
 }
 
 describe('Flywheel', () => {
@@ -173,7 +173,7 @@ describe('Flywheel', () => {
     });
 
     it('should not matter if the index is updated multiple times', async () => {
-      const compRemaining = venusRate.mul(100)
+      const compRemaining = venusRate.multipliedBy(100)
       await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       await pretendBorrow(vLOW, a1, 1, 1, 100);
       await send(comptroller, 'refreshVenusSpeeds');
@@ -188,7 +188,7 @@ describe('Flywheel', () => {
 
       await fastForward(comptroller, 20);
 
-      const txT1 = await send(vLOW, 'transfer', [a2, a3Balance0.sub(a2Balance0)], {from: a3});
+      const txT1 = await send(vLOW, 'transfer', [a2, a3Balance0.minus(a2Balance0)], {from: a3});
 
       const a2Accrued1 = await totalVenusAccrued(comptroller, a2);
       const a3Accrued1 = await totalVenusAccrued(comptroller, a3);
@@ -199,7 +199,7 @@ describe('Flywheel', () => {
       await send(comptroller, 'harnessUpdateVenusSupplyIndex', [vLOW._address]);
       await fastForward(comptroller, 10);
 
-      const txT2 = await send(vLOW, 'transfer', [a3, a2Balance1.sub(a3Balance1)], {from: a2});
+      const txT2 = await send(vLOW, 'transfer', [a3, a2Balance1.minus(a3Balance1)], {from: a2});
 
       const a2Accrued2 = await totalVenusAccrued(comptroller, a2);
       const a3Accrued2 = await totalVenusAccrued(comptroller, a3);
@@ -208,8 +208,8 @@ describe('Flywheel', () => {
       expect(a3Accrued0).toEqualNumber(0);
       expect(a2Accrued1).not.toEqualNumber(0);
       expect(a3Accrued1).not.toEqualNumber(0);
-      expect(a2Accrued1).toEqualNumber(a3Accrued2.sub(a3Accrued1));
-      expect(a3Accrued1).toEqualNumber(a2Accrued2.sub(a2Accrued1));
+      expect(a2Accrued1).toEqualNumber(a3Accrued2.minus(a3Accrued1));
+      expect(a3Accrued1).toEqualNumber(a2Accrued2.minus(a2Accrued1));
 
       expect(txT1.gasUsed).toBeLessThan(220000);
       expect(txT1.gasUsed).toBeGreaterThan(150000);
@@ -253,8 +253,8 @@ describe('Flywheel', () => {
       expect(tx).toHaveLog('DistributedBorrowerVenus', {
         vToken: mkt._address,
         borrower: a1,
-        venusDelta: bnbUnsigned(25e18).toString(),
-        venusBorrowIndex: bnbDouble(6).toString()
+        venusDelta: bnbUnsigned(25e18).toFixed(),
+        venusBorrowIndex: bnbDouble(6).toFixed()
       });
     });
 
@@ -315,8 +315,8 @@ describe('Flywheel', () => {
       expect(tx).toHaveLog('DistributedSupplierVenus', {
         vToken: mkt._address,
         supplier: a1,
-        venusDelta: bnbUnsigned(25e18).toString(),
-        venusSupplyIndex: bnbDouble(6).toString()
+        venusDelta: bnbUnsigned(25e18).toFixed(),
+        venusSupplyIndex: bnbDouble(6).toFixed()
       });
     });
 
@@ -414,7 +414,7 @@ describe('Flywheel', () => {
 
   describe('claimVenus', () => {
     it('should accrue xvs and then transfer xvs accrued', async () => {
-      const compRemaining = venusRate.mul(100), mintAmount = bnbUnsigned(12e18), deltaBlocks = 10;
+      const compRemaining = venusRate.multipliedBy(100), mintAmount = bnbUnsigned(12e18), deltaBlocks = 10;
       await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       await pretendBorrow(vLOW, a1, 1, 1, 100);
       await send(comptroller, 'refreshVenusSpeeds');
@@ -426,16 +426,16 @@ describe('Flywheel', () => {
       const tx = await send(comptroller, 'claimVenus', [a2]);
       const a2AccruedPost = await venusAccrued(comptroller, a2);
       const xvsBalancePost = await xvsBalance(comptroller, a2);
-      expect(tx.gasUsed).toBeLessThan(330000);
+      expect(tx.gasUsed).toBeLessThan(360000);
       expect(speed).toEqualNumber(venusRate);
       expect(a2AccruedPre).toEqualNumber(0);
       expect(a2AccruedPost).toEqualNumber(0);
       expect(xvsBalancePre).toEqualNumber(0);
-      expect(xvsBalancePost).toEqualNumber(venusRate.mul(deltaBlocks).sub(1)); // index is 8333...
+      expect(xvsBalancePost).toEqualNumber(venusRate.multipliedBy(deltaBlocks).minus(1)); // index is 8333...
     });
 
     it('should accrue xvs and then transfer xvs accrued in a single market', async () => {
-      const compRemaining = venusRate.mul(100), mintAmount = bnbUnsigned(12e18), deltaBlocks = 10;
+      const compRemaining = venusRate.multipliedBy(100), mintAmount = bnbUnsigned(12e18), deltaBlocks = 10;
       await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       await pretendBorrow(vLOW, a1, 1, 1, 100);
       await send(comptroller, 'refreshVenusSpeeds');
@@ -452,7 +452,7 @@ describe('Flywheel', () => {
       expect(a2AccruedPre).toEqualNumber(0);
       expect(a2AccruedPost).toEqualNumber(0);
       expect(xvsBalancePre).toEqualNumber(0);
-      expect(xvsBalancePost).toEqualNumber(venusRate.mul(deltaBlocks).sub(1)); // index is 8333...
+      expect(xvsBalancePost).toEqualNumber(venusRate.multipliedBy(deltaBlocks).minus(1)); // index is 8333...
     });
 
     it('should claim when xvs accrued is below threshold', async () => {
@@ -474,7 +474,7 @@ describe('Flywheel', () => {
 
   describe('claimVenus batch', () => {
     it('should revert when claiming xvs from non-listed market', async () => {
-      const compRemaining = venusRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10);
+      const compRemaining = venusRate.multipliedBy(100), deltaBlocks = 10, mintAmount = bnbExp(10);
       await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       let [_, __, ...claimAccts] = saddle.accounts;
 
@@ -494,7 +494,7 @@ describe('Flywheel', () => {
 
 
     it('should claim the expected amount when holders and vtokens arg is duplicated', async () => {
-      const compRemaining = venusRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10);
+      const compRemaining = venusRate.multipliedBy(100), deltaBlocks = 10, mintAmount = bnbExp(10);
       await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       let [_, __, ...claimAccts] = saddle.accounts;
       for(let from of claimAccts) {
@@ -516,7 +516,7 @@ describe('Flywheel', () => {
     });
 
     it('claims xvs for multiple suppliers only', async () => {
-      const compRemaining = venusRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10);
+      const compRemaining = venusRate.multipliedBy(100), deltaBlocks = 10, mintAmount = bnbExp(10);
       await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       let [_, __, ...claimAccts] = saddle.accounts;
       for(let from of claimAccts) {
@@ -538,7 +538,7 @@ describe('Flywheel', () => {
     });
 
     it('claims xvs for multiple borrowers only, primes uninitiated', async () => {
-      const compRemaining = venusRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10), borrowAmt = bnbExp(1), borrowIdx = bnbExp(1)
+      const compRemaining = venusRate.multipliedBy(100), deltaBlocks = 10, mintAmount = bnbExp(10), borrowAmt = bnbExp(1), borrowIdx = bnbExp(1)
       await send(comptroller.xvs, 'transfer', [comptroller._address, compRemaining], {from: root});
       let [_,__, ...claimAccts] = saddle.accounts;
 
@@ -598,9 +598,9 @@ describe('Flywheel', () => {
       const speed1 = await call(comptroller, 'venusSpeeds', [vLOW._address]);
       const speed2 = await call(comptroller, 'venusSpeeds', [vREP._address]);
       const speed3 = await call(comptroller, 'venusSpeeds', [vZRX._address]);
-      expect(speed1).toEqualNumber(venusRate.div(4));
+      expect(speed1).toEqualNumber(venusRate.dividedBy(4));
       expect(speed2).toEqualNumber(0);
-      expect(speed3).toEqualNumber(venusRate.div(4).mul(3));
+      expect(speed3).toEqualNumber(venusRate.dividedBy(4).multipliedBy(3));
     });
 
     it('should not be callable inside a contract', async () => {
@@ -661,11 +661,11 @@ describe('Flywheel', () => {
 
       const supplyState = await call(comptroller, 'venusSupplyState', [mkt]);
       expect(supplyState.block).toEqual(bn1.toString());
-      expect(supplyState.index).toEqual(idx.toString());
+      expect(supplyState.index).toEqual(idx.toFixed());
 
       const borrowState = await call(comptroller, 'venusBorrowState', [mkt]);
       expect(borrowState.block).toEqual(bn1.toString());
-      expect(borrowState.index).toEqual(idx.toString());
+      expect(borrowState.index).toEqual(idx.toFixed());
     });
   });
 

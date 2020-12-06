@@ -9,7 +9,7 @@ const {fastForward, makeVToken} = require('../Utils/Venus');
 const factor = bnbMantissa(.02);
 
 const reserves = bnbUnsigned(3e12);
-const cash = bnbUnsigned(reserves.mul(2));
+const cash = bnbUnsigned(reserves.multipliedBy(2));
 const reduction = bnbUnsigned(2e12);
 
 describe('VToken', function () {
@@ -122,12 +122,12 @@ describe('VToken', function () {
     });
 
     it("fails if amount exceeds reserves", async () => {
-      expect(await send(vToken, 'harnessReduceReservesFresh', [reserves.add(1)])).toHaveTokenFailure('BAD_INPUT', 'REDUCE_RESERVES_VALIDATION');
+      expect(await send(vToken, 'harnessReduceReservesFresh', [reserves.plus(1)])).toHaveTokenFailure('BAD_INPUT', 'REDUCE_RESERVES_VALIDATION');
       expect(await call(vToken, 'totalReserves')).toEqualNumber(reserves);
     });
 
     it("fails if amount exceeds available cash", async () => {
-      const cashLessThanReserves = reserves.sub(2);
+      const cashLessThanReserves = reserves.minus(2);
       await send(vToken.underlying, 'harnessSetBalance', [vToken._address, cashLessThanReserves]);
       expect(await send(vToken, 'harnessReduceReservesFresh', [reserves])).toHaveTokenFailure('TOKEN_INSUFFICIENT_CASH', 'REDUCE_RESERVES_CASH_NOT_AVAILABLE');
       expect(await call(vToken, 'totalReserves')).toEqualNumber(reserves);
@@ -136,7 +136,7 @@ describe('VToken', function () {
     it("increases admin balance and reduces reserves on success", async () => {
       const balance = bnbUnsigned(await call(vToken.underlying, 'balanceOf', [root]));
       expect(await send(vToken, 'harnessReduceReservesFresh', [reserves])).toSucceed();
-      expect(await call(vToken.underlying, 'balanceOf', [root])).toEqualNumber(balance.add(reserves));
+      expect(await call(vToken.underlying, 'balanceOf', [root])).toEqualNumber(balance.plus(reserves));
       expect(await call(vToken, 'totalReserves')).toEqualNumber(0);
     });
 
@@ -168,7 +168,7 @@ describe('VToken', function () {
     });
 
     it("returns error from _reduceReservesFresh without emitting any extra logs", async () => {
-      const {reply, receipt} = await both(vToken, 'harnessReduceReservesFresh', [reserves.add(1)]);
+      const {reply, receipt} = await both(vToken, 'harnessReduceReservesFresh', [reserves.plus(1)]);
       expect(reply).toHaveTokenError('BAD_INPUT');
       expect(receipt).toHaveTokenFailure('BAD_INPUT', 'REDUCE_RESERVES_VALIDATION');
     });
