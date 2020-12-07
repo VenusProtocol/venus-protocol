@@ -35,6 +35,7 @@ jobs:
         sudo chmod +x /usr/local/bin/solc
     - name: yarn install, lint and test
       run: |
+        npm install -g yarn
         yarn install --lock-file
         yarn lint --if-present
         yarn test --if-present
