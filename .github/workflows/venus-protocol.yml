@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node_version: ['14']
+        node_version: ['12']
         os: [ubuntu-latest]
 
     steps:
@@ -33,8 +33,9 @@ jobs:
       run: |
         sudo wget https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux -O /usr/local/bin/solc
         sudo chmod +x /usr/local/bin/solc
+    - run: npm install -g yarn
     - name: yarn install, lint and test
       run: |
-        npm install
-        yarn lint --if-present
-        yarn test --if-present
+        yarn install --lock-file
+        yarn run lint --if-present
+        yarn run test --if-present
