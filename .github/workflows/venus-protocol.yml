@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node_version: ['12']
+        node_version: ['13']
         os: [ubuntu-latest]
 
     steps:
@@ -35,6 +35,6 @@ jobs:
         sudo chmod +x /usr/local/bin/solc
     - name: yarn install, lint and test
       run: |
-        yarn install --lock-file
-        yarn lint --lock-file --if-present
-        yarn test --lock-file --if-present
+        npm install
+        yarn lint --if-present
+        yarn test --if-present
