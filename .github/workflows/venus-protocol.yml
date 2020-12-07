@@ -36,5 +36,5 @@ jobs:
     - name: yarn install, lint and test
       run: |
         yarn install --lock-file
-        yarn lint --if-present
-        yarn test --if-present
+        yarn lint --lock-file --if-present
+        yarn test --lock-file --if-present
