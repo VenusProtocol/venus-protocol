@@ -38,4 +38,4 @@ jobs:
     - name: yarn lint and test
       run: |
         yarn run lint --if-present
-        npm run test
+        yarn run test --if-present
