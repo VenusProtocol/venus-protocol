@@ -36,6 +36,6 @@ jobs:
     - run: npm install -g yarn
     - name: yarn install, lint and test
       run: |
-        yarn install --lock-file
+        yarn --frozen-lockfile
         yarn run lint --if-present
         yarn run test --if-present
