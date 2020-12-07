@@ -34,8 +34,8 @@ jobs:
         sudo wget https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux -O /usr/local/bin/solc
         sudo chmod +x /usr/local/bin/solc
     - run: npm install -g yarn
-    - name: yarn install, lint and test
+    - run: yarn --frozen-lockfile
+    - name: yarn lint and test
       run: |
-        yarn --frozen-lockfile
         yarn run lint --if-present
         yarn run test --if-present
