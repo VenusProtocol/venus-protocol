@@ -4725,9 +4725,9 @@ functional-red-black-tree@^1.0.1, functional-red-black-tree@~1.0.1:
   resolved "https://registry.yarnpkg.com/functional-red-black-tree/-/functional-red-black-tree-1.0.1.tgz#1b0ab3bd553b2a0d6399d29c0e3ea0b252078327"
   integrity sha1-GwqzvVU7Kg1jmdKcDj6gslIHgyc=
 
-ganache-core@^2.10.2, ganache-core@^2.9.0-istanbul.0, "ganache-core@https://github.com/compound-finance/ganache-core.git#jflatow/unbreak-fork":
+ganache-core@^2.10.2, ganache-core@^2.9.0-istanbul.0, "ganache-core@github:compound-finance/ganache-core.git#jflatow/unbreak-fork":
   version "2.10.2"
-  resolved "https://github.com/compound-finance/ganache-core.git#4c7e063f6d423e1b3850f4cb328029e819670a64"
+  resolved "https://codeload.github.com/compound-finance/ganache-core/tar.gz/4c7e063f6d423e1b3850f4cb328029e819670a64"
   dependencies:
     abstract-leveldown "3.0.0"
     async "2.6.2"
