@@ -8,6 +8,7 @@ import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
 import "./Governance/XVS.sol";
+import "./VAI/VAI.sol";
 
 /**
  * @title Venus's Comptroller Contract
@@ -53,6 +54,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     /// @notice Emitted when Venus rate is changed
     event NewVenusRate(uint oldVenusRate, uint newVenusRate);
 
+    /// @notice Emitted when Venus VAI rate is changed
+    event NewVenusVAIRate(uint oldVenusVAIRate, uint newVenusVAIRate);
+
     /// @notice Emitted when a new Venus speed is calculated for a market
     event VenusSpeedUpdated(VToken indexed vToken, uint newSpeed);
 
@@ -61,6 +65,9 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
     /// @notice Emitted when XVS is distributed to a borrower
     event DistributedBorrowerVenus(VToken indexed vToken, address indexed borrower, uint venusDelta, uint venusBorrowIndex);
+
+    /// @notice Emitted when XVS is distributed to a VAI minter
+    event DistributedVAIMinterVenus(address indexed vaiMinter, uint venusDelta, uint venusVAIMintIndex);
 
     /// @notice Emitted when VAIController is changed
     event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
@@ -1208,6 +1215,28 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
 
     /**
+     * @notice Accrue XVS to by updating the VAI minter index
+     */
+    function updateVenusVAIMintIndex() internal {
+        //VenusMarketState storage vaiState = venusVAIState;
+        uint vaiMinterSpeed = venusVAIRate;
+        uint blockNumber = getBlockNumber();
+        uint deltaBlocks = sub_(blockNumber, uint(venusVAIState.block));
+        if (deltaBlocks > 0 && vaiMinterSpeed > 0) {
+            uint vaiAmount = VAI(getVAIAddress()).totalSupply();
+            uint venusAccrued = mul_(deltaBlocks, vaiMinterSpeed);
+            Double memory ratio = vaiAmount > 0 ? fraction(venusAccrued, vaiAmount) : Double({mantissa: 0});
+            Double memory index = add_(Double({mantissa: venusVAIState.index}), ratio);
+            venusVAIState = VenusMarketState({
+                index: safe224(index.mantissa, "new index overflows"),
+                block: safe32(blockNumber, "block number overflows")
+            });
+        } else if (deltaBlocks > 0) {
+            venusVAIState.block = safe32(blockNumber, "block number overflows");
+        }
+    }
+
+    /**
      * @notice Calculate XVS accrued by a supplier and possibly transfer it to them
      * @param vToken The market in which the supplier is interacting
      * @param supplier The address of the supplier to distribute XVS to
@@ -1253,6 +1282,29 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
 
     /**
+     * @notice Calculate XVS accrued by a VAI minter and possibly transfer it to them
+     * @dev VAI minters will not begin to accrue until after the first interaction with the protocol.
+     * @param vaiMinter The address of the VAI minter to distribute XVS to
+     */
+    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) internal {
+        VenusMarketState storage vaiState = venusVAIState;
+        Double memory vaiMintIndex = Double({mantissa: vaiState.index});
+        Double memory vaiMinterIndex = Double({mantissa: venusVAIMinterIndex[vaiMinter]});
+        venusVAIMinterIndex[vaiMinter] = vaiMintIndex.mantissa;
+
+        if (vaiMinterIndex.mantissa == 0 && vaiMintIndex.mantissa > 0) {
+            vaiMinterIndex.mantissa = venusInitialIndex;
+        }
+
+        Double memory deltaIndex = sub_(vaiMintIndex, vaiMinterIndex);
+        uint vaiMinterAmount = VAI(getVAIAddress()).balanceOf(vaiMinter);
+        uint vaiMinterDelta = mul_(vaiMinterAmount, deltaIndex);
+        uint vaiMinterAccrued = add_(venusAccrued[vaiMinter], vaiMinterDelta);
+        venusAccrued[vaiMinter] = transferXVS(vaiMinter, vaiMinterAccrued, distributeAll ? 0 : venusClaimThreshold);
+        emit DistributedVAIMinterVenus(vaiMinter, vaiMinterDelta, vaiMintIndex.mantissa);
+    }
+
+    /**
      * @notice Transfer XVS to the user, if they are above the threshold
      * @dev Note: If there is not enough XVS, we do not perform the transfer all.
      * @param user The address of the user to transfer XVS to
@@ -1272,10 +1324,11 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
 
     /**
-     * @notice Claim all the xvs accrued by holder in all markets
+     * @notice Claim all the xvs accrued by holder in all markets and VAI
      * @param holder The address to claim XVS for
      */
     function claimVenus(address holder) public {
+        claimVenusVAI(holder);
         return claimVenus(holder, allMarkets);
     }
 
@@ -1288,6 +1341,16 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         address[] memory holders = new address[](1);
         holders[0] = holder;
         claimVenus(holders, vTokens, true, true);
+    }
+
+    /**
+     * @notice Claim all the xvs accrued by holder in VAI
+     * @param holder The address to claim XVS for
+     */
+    function claimVenusVAI(address holder) public {
+        address[] memory holders = new address[](1);
+        holders[0] = holder;
+        claimVenusVAIs(holders);
     }
 
     /**
@@ -1318,6 +1381,18 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         }
     }
 
+    /**
+     * @notice Claim all xvs accrued by the holders in vai
+     * @param holders The addresses to claim XVS for
+     */
+    function claimVenusVAIs(address[] memory holders) public {
+        uint i;
+        updateVenusVAIMintIndex();
+        for (i = 0; i < holders.length; i++) {
+            distributeVAIMinterVenus(holders[i], true);
+        }
+    }
+
     /*** Venus Distribution Admin ***/
 
     /**
@@ -1332,6 +1407,18 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         emit NewVenusRate(oldRate, venusRate_);
 
         refreshVenusSpeedsInternal();
+    }
+
+    /**
+     * @notice Set the amount of XVS distributed per block to VAI Mint
+     * @param venusVAIRate_ The amount of XVS wei per block to distribute to VAI Mint
+     */
+    function _setVenusVAIRate(uint venusVAIRate_) public {
+        require(msg.sender == admin, "only admin can");
+
+        uint oldVAIRate = venusVAIRate;
+        venusVAIRate = venusVAIRate_;
+        emit NewVenusVAIRate(oldVAIRate, venusVAIRate_);
     }
 
     /**
@@ -1371,6 +1458,19 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         }
     }
 
+    function _initializeVenusVAIState(uint blockNumber) public {
+        require(msg.sender == admin, "only admin can");
+
+        if (isVenusVAIInitialized == false && venusVAIState.index == 0 && venusVAIState.block == 0) {
+            isVenusVAIInitialized = true;
+            uint vaiBlockNumber = blockNumber == 0 ? getBlockNumber() : blockNumber;
+            venusVAIState = VenusMarketState({
+                index: venusInitialIndex,
+                block: safe32(vaiBlockNumber, "block number overflows")
+            });
+        }
+    }
+
     /**
      * @notice Remove a market from venusMarkets, preventing it from earning XVS in the flywheel
      * @param vToken The address of the market to drop
@@ -1404,8 +1504,16 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
      * @notice Return the address of the XVS token
      * @return The address of XVS
      */
-   function getXVSAddress() public view returns (address) {
-        return 0xB9e0E753630434d7863528cc73CB7AC638a7c8ff;
+    function getXVSAddress() public view returns (address) {
+        return 0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63;
+    }
+
+    /**
+     * @notice Return the address of the VAI token
+     * @return The address of VAI
+     */
+    function getVAIAddress() public view returns (address) {
+        return vaiController.getVAIAddress();
     }
 
     /**
@@ -1464,6 +1572,10 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     function mintVAI(uint mintVAIAmount) external onlyProtocolAllowed returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!mintVAIGuardianPaused, "mintVAI is paused");
+
+        // Keep the flywheel moving
+        updateVenusVAIMintIndex();
+        distributeVAIMinterVenus(msg.sender, false);
         return vaiController.mintVAI(msg.sender, mintVAIAmount);
     }
 
@@ -1473,6 +1585,10 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     function repayVAI(uint repayVAIAmount) external onlyProtocolAllowed returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!repayVAIGuardianPaused, "repayVAI is paused");
+
+        // Keep the flywheel moving
+        updateVenusVAIMintIndex();
+        distributeVAIMinterVenus(msg.sender, false);
         return vaiController.repayVAI(msg.sender, repayVAIAmount);
     }
 

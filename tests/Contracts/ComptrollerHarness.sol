@@ -36,6 +36,11 @@ contract ComptrollerHarness is Comptroller {
         venusBorrowState[vToken].block = blockNumber_;
     }
 
+    function setVenusVAIState(uint224 index, uint32 blockNumber_) public {
+        venusVAIState.index = index;
+        venusVAIState.block = blockNumber_;
+    }
+
     function setVenusAccrued(address user, uint userAccrued) public {
         venusAccrued[user] = userAccrued;
     }
@@ -68,6 +73,10 @@ contract ComptrollerHarness is Comptroller {
         venusSupplierIndex[vToken][supplier] = index;
     }
 
+    function setVenusVAIMinterIndex(address vaiMinter, uint index) public {
+        venusVAIMinterIndex[vaiMinter] = index;
+    }
+
     function harnessUpdateVenusBorrowIndex(address vToken, uint marketBorrowIndexMantissa) public {
         updateVenusBorrowIndex(vToken, Exp({mantissa: marketBorrowIndexMantissa}));
     }
@@ -76,12 +85,20 @@ contract ComptrollerHarness is Comptroller {
         updateVenusSupplyIndex(vToken);
     }
 
+    function harnessUpdateVenusVAIMintIndex() public {
+        updateVenusVAIMintIndex();
+    }
+
     function harnessDistributeBorrowerVenus(address vToken, address borrower, uint marketBorrowIndexMantissa) public {
         distributeBorrowerVenus(vToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}), false);
     }
 
     function harnessDistributeSupplierVenus(address vToken, address supplier) public {
         distributeSupplierVenus(vToken, supplier, false);
+    }
+
+    function harnessDistributeVAIMinterVenus(address vaiMinter) public {
+        distributeVAIMinterVenus(vaiMinter, false);
     }
 
     function harnessTransferVenus(address user, uint userAccrued, uint threshold) public returns (uint) {

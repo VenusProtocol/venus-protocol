@@ -426,7 +426,7 @@ describe('Flywheel', () => {
       const tx = await send(comptroller, 'claimVenus', [a2]);
       const a2AccruedPost = await venusAccrued(comptroller, a2);
       const xvsBalancePost = await xvsBalance(comptroller, a2);
-      expect(tx.gasUsed).toBeLessThan(330000);
+      expect(tx.gasUsed).toBeLessThan(360000);
       expect(speed).toEqualNumber(venusRate);
       expect(a2AccruedPre).toEqualNumber(0);
       expect(a2AccruedPost).toEqualNumber(0);
