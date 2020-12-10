@@ -17,7 +17,6 @@ contract ComptrollerRopsten is Comptroller {
 
 contract ComptrollerHarness is Comptroller {
     address xvsAddress;
-    address vaiAddress;
     uint public blockNumber;
 
     constructor() Comptroller() public {}
@@ -36,11 +35,6 @@ contract ComptrollerHarness is Comptroller {
         venusBorrowState[vToken].block = blockNumber_;
     }
 
-    function setVenusVAIState(uint224 index, uint32 blockNumber_) public {
-        venusVAIState.index = index;
-        venusVAIState.block = blockNumber_;
-    }
-
     function setVenusAccrued(address user, uint userAccrued) public {
         venusAccrued[user] = userAccrued;
     }
@@ -53,14 +47,6 @@ contract ComptrollerHarness is Comptroller {
         return xvsAddress;
     }
 
-    function setVAIAddress(address vaiAddress_) public {
-        vaiAddress = vaiAddress_;
-    }
-
-    function getVAIAddress() public view returns (address) {
-        return vaiAddress;
-    }
-
     function setVenusSpeed(address vToken, uint venusSpeed) public {
         venusSpeeds[vToken] = venusSpeed;
     }
@@ -71,10 +57,6 @@ contract ComptrollerHarness is Comptroller {
 
     function setVenusSupplierIndex(address vToken, address supplier, uint index) public {
         venusSupplierIndex[vToken][supplier] = index;
-    }
-
-    function setVenusVAIMinterIndex(address vaiMinter, uint index) public {
-        venusVAIMinterIndex[vaiMinter] = index;
     }
 
     function harnessUpdateVenusBorrowIndex(address vToken, uint marketBorrowIndexMantissa) public {

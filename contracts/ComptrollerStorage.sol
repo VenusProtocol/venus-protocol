@@ -116,20 +116,11 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
     /// @notice The Venus market borrow state for each market
     mapping(address => VenusMarketState) public venusBorrowState;
 
-    /// @notice The Venus VAI state
-    VenusMarketState public venusVAIState;
-
-    /// @notice The Venus VAI state initialized
-    bool public isVenusVAIInitialized;
-
     /// @notice The Venus borrow index for each market for each supplier as of the last time they accrued XVS
     mapping(address => mapping(address => uint)) public venusSupplierIndex;
 
     /// @notice The Venus borrow index for each market for each borrower as of the last time they accrued XVS
     mapping(address => mapping(address => uint)) public venusBorrowerIndex;
-
-    /// @notice The Venus VAI minter index as of the last time they accrued XVS
-    mapping(address => uint) public venusVAIMinterIndex;
 
     /// @notice The XVS accrued but not yet transferred to each user
     mapping(address => uint) public venusAccrued;

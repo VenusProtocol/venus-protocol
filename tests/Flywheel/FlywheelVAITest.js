@@ -29,17 +29,17 @@ async function totalVenusAccrued(comptroller, user) {
 
 describe('Flywheel', () => {
   let root, a1, a2, a3, accounts;
-  let comptroller, vai;
+  let comptroller, vaicontroller, vai;
   beforeEach(async () => {
     [root, a1, a2, a3, ...accounts] = saddle.accounts;
     comptroller = await makeComptroller();
-    vai = await makeVAI();
-    await send(comptroller, 'setVAIAddress', [vai._address]);
+    vai = comptroller.vai;
+    vaicontroller = comptroller.vaiunitroller;
   });
 
   describe('updateVenusVAIMintIndex()', () => {
     it('should calculate xvs vai minter index correctly', async () => {
-      await send(comptroller, 'setBlockNumber', [100]);
+      await send(vaicontroller, 'setBlockNumber', [100]);
       await send(vai, 'harnessSetTotalSupply', [bnbUnsigned(10e18)]);
       await send(comptroller, '_setVenusVAIRate', [bnbExp(0.5)]);
       await send(comptroller, 'harnessUpdateVenusVAIMintIndex');
@@ -51,7 +51,7 @@ describe('Flywheel', () => {
                     = 1e36 + 50e18 * 1e36 / 10e18 = 6e36
       */
 
-      const {index, block} = await call(comptroller, 'venusVAIState');
+      const {index, block} = await call(vaicontroller, 'venusVAIState');
       expect(index).toEqualNumber(6e36);
       expect(block).toEqualNumber(100);
     });
@@ -59,7 +59,7 @@ describe('Flywheel', () => {
     it('should not update index if no blocks passed since last accrual', async () => {
       await send(comptroller, 'harnessUpdateVenusVAIMintIndex');
 
-      const {index, block} = await call(comptroller, 'venusVAIState');
+      const {index, block} = await call(vaicontroller, 'venusVAIState');
       expect(index).toEqualNumber(1e36);
       expect(block).toEqualNumber(0);
     });
@@ -67,19 +67,19 @@ describe('Flywheel', () => {
 
   describe('distributeVAIMinterVenus()', () => {
     it('should update vai minter index checkpoint but not venusAccrued for first time user', async () => {
-      await send(comptroller, "setVenusVAIState", [bnbDouble(6), 10]);
-      await send(comptroller, "setVenusVAIMinterIndex", [root, bnbUnsigned(0)]);
+      await send(vaicontroller, "setVenusVAIState", [bnbDouble(6), 10]);
+      await send(vaicontroller, "setVenusVAIMinterIndex", [root, bnbUnsigned(0)]);
 
       await send(comptroller, "harnessDistributeVAIMinterVenus", [root]);
       expect(await call(comptroller, "venusAccrued", [root])).toEqualNumber(0);
-      expect(await call(comptroller, "venusVAIMinterIndex", [root])).toEqualNumber(6e36);
+      expect(await call(vaicontroller, "venusVAIMinterIndex", [root])).toEqualNumber(6e36);
     });
 
     it('should transfer xvs and update vai minter index checkpoint correctly for repeat time user', async () => {
       await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
       await send(vai, "harnessSetBalanceOf", [a1, bnbUnsigned(5e18)]);
-      await send(comptroller, "setVenusVAIState", [bnbDouble(6), 10]);
-      await send(comptroller, "setVenusVAIMinterIndex", [a1, bnbDouble(1)]);
+      await send(vaicontroller, "setVenusVAIState", [bnbDouble(6), 10]);
+      await send(vaicontroller, "setVenusVAIMinterIndex", [a1, bnbDouble(1)]);
 
       /*
       * 100 delta blocks, 10e18 origin total vai mint, 0.5e18 vaiMinterSpeed => 6e18 venusVAIMintIndex
@@ -105,7 +105,7 @@ describe('Flywheel', () => {
       await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
 
       await send(vai, "harnessSetBalanceOf", [a1, bnbUnsigned(5e17)]);
-      await send(comptroller, "setVenusVAIState", [bnbDouble(1.0019), 10]);
+      await send(vaicontroller, "setVenusVAIState", [bnbDouble(1.0019), 10]);
       /*
         vaiMinterAmount  = 5e17
         deltaIndex      = marketStoredIndex - userStoredIndex
@@ -129,7 +129,7 @@ describe('Flywheel', () => {
       const a2AccruedPre = await venusAccrued(comptroller, a2);
       const xvsBalancePre = await xvsBalance(comptroller, a2);
       await quickMintVAI(vai, a2, mintAmount);
-      await fastForward(comptroller, deltaBlocks);
+      await fastForward(vaicontroller, deltaBlocks);
       const tx = await send(comptroller, 'claimVenus', [a2]);
       const a2AccruedPost = await venusAccrued(comptroller, a2);
       const xvsBalancePost = await xvsBalance(comptroller, a2);
@@ -145,7 +145,7 @@ describe('Flywheel', () => {
       const xvsRemaining = bnbExp(1), accruedAmt = bnbUnsigned(0.0009e18)
       await send(comptroller.xvs, 'transfer', [comptroller._address, xvsRemaining], {from: root});
       await send(comptroller, 'setVenusAccrued', [a1, accruedAmt]);
-      await send(comptroller, 'claimVenusVAI', [a1]);
+      await send(comptroller, 'claimVenus', [a1]);
       expect(await venusAccrued(comptroller, a1)).toEqualNumber(0);
       expect(await xvsBalance(comptroller, a1)).toEqualNumber(accruedAmt);
     });
@@ -160,12 +160,12 @@ describe('Flywheel', () => {
         await send(vai, 'harnessIncrementTotalSupply', [mintAmount]);
         expect(await send(vai, 'harnessSetBalanceOf', [from, mintAmount], { from })).toSucceed();
       }
-      await fastForward(comptroller, deltaBlocks);
+      await fastForward(vaicontroller, deltaBlocks);
 
-      const tx = await send(comptroller, 'claimVenusVAIs', [[...claimAccts, ...claimAccts]]);
+      const tx = await send(comptroller, 'claimVenus', [[...claimAccts, ...claimAccts], [], false, false]);
       // xvs distributed => 10e18
       for(let acct of claimAccts) {
-        expect(await call(comptroller, 'venusVAIMinterIndex', [acct])).toEqualNumber(bnbDouble(1.0625));
+        expect(await call(vaicontroller, 'venusVAIMinterIndex', [acct])).toEqualNumber(bnbDouble(1.0625));
         expect(await xvsBalance(comptroller, acct)).toEqualNumber(bnbExp(0.625));
       }
     });
@@ -180,11 +180,11 @@ describe('Flywheel', () => {
         await send(vai, 'harnessSetBalanceOf', [acct, vaiAmt]);
       }
 
-      await send(comptroller, 'harnessFastForward', [10]);
+      await send(vaicontroller, 'harnessFastForward', [10]);
 
-      const tx = await send(comptroller, 'claimVenusVAIs', [claimAccts]);
+      const tx = await send(comptroller, 'claimVenus', [claimAccts, [], false, false]);
       for(let acct of claimAccts) {
-        expect(await call(comptroller, 'venusVAIMinterIndex', [acct])).toEqualNumber(bnbDouble(1.625));
+        expect(await call(vaicontroller, 'venusVAIMinterIndex', [acct])).toEqualNumber(bnbDouble(1.625));
       }
     });
   });

@@ -25,23 +25,22 @@ contract VAIUnitrollerAdminStorage {
 }
 
 contract VAIControllerStorage is VAIUnitrollerAdminStorage {
-    struct Market {
-        /// @notice Whether or not this market is listed
-        bool isListed;
+    ComptrollerInterface public comptroller;
 
-        /**
-         * @notice Multiplier representing the most one can borrow against their collateral in this market.
-         *  For instance, 0.9 to allow borrowing 90% of collateral value.
-         *  Must be between 0 and 1, and stored as a mantissa.
-         */
-        uint collateralFactorMantissa;
+    struct VenusVAIState {
+        /// @notice The last updated venusVAIMintIndex
+        uint224 index;
 
-        /// @notice Per-market mapping of "accounts in this asset"
-        mapping(address => bool) accountMembership;
-
-        /// @notice Whether or not this market receives XVS
-        bool isVenus;
+        /// @notice The block number the index was last updated at
+        uint32 block;
     }
 
-    ComptrollerInterface public comptroller;
+    /// @notice The Venus VAI state
+    VenusVAIState public venusVAIState;
+
+    /// @notice The Venus VAI state initialized
+    bool public isVenusVAIInitialized;
+
+    /// @notice The Venus VAI minter index as of the last time they accrued XVS
+    mapping(address => uint) public venusVAIMinterIndex;
 }

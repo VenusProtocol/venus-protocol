@@ -44,7 +44,7 @@ async function makeComptroller(opts = {}) {
     const maxAssets = bnbUnsigned(dfn(opts.maxAssets, 10));
     const liquidationIncentive = bnbMantissa(1);
     const xvs = opts.xvs || await deploy('XVS', [opts.venusOwner || root]);
-    const vai = opts.vai || await deploy('VAI', [opts.venusOwner || root]);
+    const vai = opts.vai || await makeVAI();
     const venusRate = bnbUnsigned(dfn(opts.venusRate, 1e18));
     const venusVAIRate = bnbUnsigned(dfn(opts.venusVAIRate, 5e17));
     const venusMarkets = opts.venusMarkets || [];
@@ -52,19 +52,29 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, '_setPendingImplementation', [comptroller._address]);
     await send(comptroller, '_become', [unitroller._address]);
     mergeInterface(unitroller, comptroller);
+
+    const vaiunitroller = await deploy('VAIUnitroller');
+    const vaicontroller = await deploy('VAIControllerHarness');
+    
+    await send(vaiunitroller, '_setPendingImplementation', [vaicontroller._address]);
+    await send(vaicontroller, '_become', [vaiunitroller._address]);
+    mergeInterface(vaiunitroller, vaicontroller);
+
+    await send(unitroller, '_setVAIController', [vaiunitroller._address]);
+    await send(vaiunitroller, '_setComptroller', [unitroller._address]);
     await send(unitroller, '_setLiquidationIncentive', [liquidationIncentive]);
     await send(unitroller, '_setCloseFactor', [closeFactor]);
     await send(unitroller, '_setMaxAssets', [maxAssets]);
     await send(unitroller, '_setPriceOracle', [priceOracle._address]);
     await send(unitroller, 'setXVSAddress', [xvs._address]); // harness only
-    await send(unitroller, 'setVAIAddress', [vai._address]); // harness only
+    await send(vaiunitroller, 'setVAIAddress', [vai._address]); // harness only
     await send(unitroller, '_setVenusRate', [venusRate]);
     await send(unitroller, '_setVenusVAIRate', [venusVAIRate]);
     await send(unitroller, '_initializeVenusVAIState', [0]);
     await send(unitroller, '_addVenusMarkets', [venusMarkets]);
     await send(vai, 'rely', [unitroller._address]);
 
-    return Object.assign(unitroller, { priceOracle, xvs, vai });
+    return Object.assign(unitroller, { priceOracle, xvs, vai, vaiunitroller });
   }
 }
 
