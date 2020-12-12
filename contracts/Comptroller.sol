@@ -1492,15 +1492,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
     }
 
     /**
-     * @notice Get the minted VAI amount of the `owner`
-     * @param owner The address of the account to query
-     * @return The number of minted VAI by `owner`
-     */
-    function mintedVAIOf(address owner) external view returns (uint) {
-        return mintedVAIs[owner];
-    }
-
-    /**
      * @notice Set the minted VAI amount of the `owner`
      * @param owner The address of the account to set
      * @param amount The amount of VAI to set to the account
@@ -1549,13 +1540,6 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
         updateVenusVAIMintIndex();
         distributeVAIMinterVenus(msg.sender, false);
         return vaiController.repayVAI(msg.sender, repayVAIAmount);
-    }
-
-    /**
-     * @notice Get the VAI Mint Rate
-     */
-    function getVAIMintRate() external view returns (uint) {
-        return vaiMintRate;
     }
 
     /**

@@ -399,7 +399,7 @@ contract BoolComptroller is ComptrollerInterface {
         failCalculateSeizeTokens = shouldFail;
     }
 
-    function mintedVAIOf(address owner) external view returns (uint) {
+    function mintedVAIs(address owner) external pure returns (uint) {
         owner;
         return 1e18;
     }
@@ -410,7 +410,7 @@ contract BoolComptroller is ComptrollerInterface {
         return noError;
     }
 
-    function getVAIMintRate() external view returns (uint) {
+    function vaiMintRate() external pure returns (uint) {
         return 1e18;
     }
 }

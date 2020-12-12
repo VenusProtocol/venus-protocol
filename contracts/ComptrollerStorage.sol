@@ -104,9 +104,6 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
     /// @notice The rate at which the flywheel distributes XVS, per block
     uint public venusRate;
 
-    /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block
-    uint public venusVAIRate;
-
     /// @notice The portion of venusRate that each market currently receives
     mapping(address => uint) public venusSpeeds;
 
@@ -144,4 +141,7 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
      * @notice Pause/Unpause whole protocol actions
      */
     bool public protocolPaused;
+
+        /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block
+    uint public venusVAIRate;
 }

@@ -9,6 +9,8 @@ import "./VAIUnitroller.sol";
 import "./VAI/VAI.sol";
 
 interface ComptrollerLensInterface {
+    function mintedVAIs(address account) external view returns (uint);
+    function vaiMintRate() external view returns (uint);
     function venusVAIRate() external view returns (uint);
     function venusAccrued(address account) external view returns(uint);
     function getAssetsIn(address account) external view returns (VToken[] memory);
@@ -29,13 +31,13 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
      */
     event MintVAI(address minter, uint mintVAIAmount);
 
-    /// @notice The initial Venus index for a market
-    uint224 public constant venusInitialIndex = 1e36;
-
     /**
      * @notice Event emitted when VAI is repaid
      */
     event RepayVAI(address repayer, uint repayVAIAmount);
+
+    /// @notice The initial Venus index for a market
+    uint224 public constant venusInitialIndex = 1e36;
 
     function _become(VAIUnitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
@@ -109,12 +111,12 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             }
         }
 
-        (mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, comptroller.mintedVAIOf(minter));
+        (mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, ComptrollerLensInterface(address(comptroller)).mintedVAIs(minter));
         if (mErr != MathError.NO_ERROR) {
             return (uint(Error.MATH_ERROR), 0);
         }
 
-        (mErr, accountMintableVAI) = mulUInt(vars.sumSupply, comptroller.getVAIMintRate());
+        (mErr, accountMintableVAI) = mulUInt(vars.sumSupply, ComptrollerLensInterface(address(comptroller)).vaiMintRate());
         require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
 
         (mErr, accountMintableVAI) = divUInt(accountMintableVAI, 10000);
@@ -150,7 +152,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
         }
 
-        (mErr, accountMintVAINew) = addUInt(comptroller.mintedVAIOf(minter), mintVAIAmount);
+        (mErr, accountMintVAINew) = addUInt(ComptrollerLensInterface(address(comptroller)).mintedVAIs(minter), mintVAIAmount);
         require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
         comptroller.setMintedVAIOf(minter, accountMintVAINew);
 
@@ -171,7 +173,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
 
         uint actualBurnAmount = 0;
 
-        uint vaiBalance = comptroller.mintedVAIOf(repayer);
+        uint vaiBalance = ComptrollerLensInterface(address(comptroller)).mintedVAIs(repayer);
 
         if(vaiBalance > repayVAIAmount) {
             actualBurnAmount = repayVAIAmount;
@@ -192,7 +194,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
         }
 
-        if (isVenusVAIInitialized == false && venusVAIState.index == 0 && venusVAIState.block == 0) {
+        if (isVenusVAIInitialized == false) {
             isVenusVAIInitialized = true;
             uint vaiBlockNumber = blockNumber == 0 ? getBlockNumber() : blockNumber;
             venusVAIState = VenusVAIState({
