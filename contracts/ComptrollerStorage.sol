@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.5.17;
 
 import "./VToken.sol";
 import "./PriceOracle.sol";
@@ -113,7 +113,7 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
     /// @notice The Venus market borrow state for each market
     mapping(address => VenusMarketState) public venusBorrowState;
 
-    /// @notice The Venus borrow index for each market for each supplier as of the last time they accrued XVS
+    /// @notice The Venus supply index for each market for each supplier as of the last time they accrued XVS
     mapping(address => mapping(address => uint)) public venusSupplierIndex;
 
     /// @notice The Venus borrow index for each market for each borrower as of the last time they accrued XVS

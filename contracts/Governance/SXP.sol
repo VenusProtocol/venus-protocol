@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.5.17;
 
 // ----------------------------------------------------------------------------
 // 'SXP' 'Swipe' BEP20 token contract

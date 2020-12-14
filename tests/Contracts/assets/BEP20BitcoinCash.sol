@@ -6,7 +6,7 @@
  *Submitted for verification at Bscscan.com on 2020-09-09
 */
 
-pragma solidity 0.5.16;
+pragma solidity 0.5.17;
 
 interface IBEP20 {
   /**

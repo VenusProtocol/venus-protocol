@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.5.17;
 
 import "./VToken.sol";
 import "./PriceOracle.sol";
@@ -22,6 +22,88 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
 
     /// @notice Emitted when Comptroller is changed
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
+
+    function mintVAI(address minter, uint mintVAIAmount) external returns (uint) {
+        // Check caller is comptroller
+        if (msg.sender != address(comptroller)) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
+        }
+
+        uint oErr;
+        MathError mErr;
+        uint accountMintVAINew;
+        uint accountMintableVAI;
+
+        (oErr, accountMintableVAI) = getMintableVAI(minter);
+        if (oErr != uint(Error.NO_ERROR)) {
+            return uint(Error.REJECTION);
+        }
+
+        // check that user have sufficient mintableVAI balance
+        if (mintVAIAmount > accountMintableVAI) {
+            return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
+        }
+
+        (mErr, accountMintVAINew) = addUInt(comptroller.mintedVAIOf(minter), mintVAIAmount);
+        require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
+        uint error = comptroller.setMintedVAIOf(minter, accountMintVAINew);
+        if (error != 0 ) {
+            return error;
+        }
+
+        VAI(getVAIAddress()).mint(minter, mintVAIAmount);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Repay VAI
+     */
+    function repayVAI(address repayer, uint repayVAIAmount) external returns (uint) {
+        // Check caller is comptroller
+        if (msg.sender != address(comptroller)) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
+        }
+
+        uint actualBurnAmount;
+
+        uint vaiBalance = comptroller.mintedVAIOf(repayer);
+
+        if(vaiBalance > repayVAIAmount) {
+            actualBurnAmount = repayVAIAmount;
+        } else {
+            actualBurnAmount = vaiBalance;
+        }
+
+        uint error = comptroller.setMintedVAIOf(repayer, vaiBalance - actualBurnAmount);
+        if (error != 0) {
+            return error;
+        }
+
+        VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /** Admin Functions */
+
+    /**
+      * @notice Sets a new comptroller
+      * @dev Admin function to set a new comptroller
+      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+      */
+    function _setComptroller(ComptrollerInterface comptroller_) public returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
+        }
+
+        ComptrollerInterface oldComptroller = comptroller;
+        comptroller = comptroller_;
+        emit NewComptroller(oldComptroller, comptroller_);
+
+        return uint(Error.NO_ERROR);
+    }
 
     function _become(VAIUnitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
@@ -113,81 +195,6 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         }
 
         return (uint(Error.NO_ERROR), accountMintableVAI);
-    }
-
-    function mintVAI(address minter, uint mintVAIAmount) external returns (uint) {
-        // Check caller is comptroller
-        if (msg.sender != address(comptroller)) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
-
-        uint oErr;
-        MathError mErr;
-        uint accountMintVAINew;
-        uint accountMintableVAI;
-
-        (oErr, accountMintableVAI) = getMintableVAI(minter);
-        if (oErr != uint(Error.NO_ERROR)) {
-            return uint(Error.REJECTION);
-        }
-
-        // check that user have sufficient mintableVAI balance
-        if (mintVAIAmount > accountMintableVAI) {
-            return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
-        }
-
-        (mErr, accountMintVAINew) = addUInt(comptroller.mintedVAIOf(minter), mintVAIAmount);
-        require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
-        comptroller.setMintedVAIOf(minter, accountMintVAINew);
-
-        VAI(getVAIAddress()).mint(minter, mintVAIAmount);
-
-        return uint(Error.NO_ERROR);
-    }
-
-    /**
-     * @notice Repay VAI
-     */
-    function repayVAI(address repayer, uint repayVAIAmount) external returns (uint) {
-        // Check caller is comptroller
-        if (msg.sender != address(comptroller)) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
-
-        uint actualBurnAmount = 0;
-
-        uint vaiBalance = comptroller.mintedVAIOf(repayer);
-
-        if(vaiBalance > repayVAIAmount) {
-            actualBurnAmount = repayVAIAmount;
-        } else {
-            actualBurnAmount = vaiBalance;
-        }
-
-        comptroller.setMintedVAIOf(repayer, vaiBalance - actualBurnAmount);
-
-        VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
-        return uint(Error.NO_ERROR);
-    }
-
-    /** Admin Functions */
-
-    /**
-      * @notice Sets a new comptroller
-      * @dev Admin function to set a new comptroller
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
-    function _setComptroller(ComptrollerInterface comptroller_) public returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
-
-        ComptrollerInterface oldComptroller = comptroller;
-        comptroller = comptroller_;
-        emit NewComptroller(oldComptroller, comptroller_);
-
-        return uint(Error.NO_ERROR);
     }
 
     /**

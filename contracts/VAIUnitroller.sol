@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.5.17;
 
 import "./ErrorReporter.sol";
 import "./VAIControllerStorage.sol";
@@ -52,8 +52,8 @@ contract VAIUnitroller is VAIUnitrollerAdminStorage, VAIControllerErrorReporter 
     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
     */
     function _acceptImplementation() public returns (uint) {
-        // Check caller is pendingImplementation and pendingImplementation ≠ address(0)
-        if (msg.sender != pendingVAIControllerImplementation || pendingVAIControllerImplementation == address(0)) {
+        // Check caller is pendingImplementation
+        if (msg.sender != pendingVAIControllerImplementation) {
             return fail(Error.UNAUTHORIZED, FailureInfo.ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK);
         }
 
@@ -102,8 +102,8 @@ contract VAIUnitroller is VAIUnitrollerAdminStorage, VAIControllerErrorReporter 
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
     function _acceptAdmin() public returns (uint) {
-        // Check caller is pendingAdmin and pendingAdmin ≠ address(0)
-        if (msg.sender != pendingAdmin || msg.sender == address(0)) {
+        // Check caller is pendingAdmin
+        if (msg.sender != pendingAdmin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.ACCEPT_ADMIN_PENDING_ADMIN_CHECK);
         }
 

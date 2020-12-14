@@ -31,7 +31,7 @@ jobs:
         node-version: ${{ matrix.node_version }}
     - name: Install Dependencies
       run: |
-        sudo wget https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux -O /usr/local/bin/solc
+        sudo wget https://github.com/ethereum/solidity/releases/download/v0.5.17/solc-static-linux -O /usr/local/bin/solc
         sudo chmod +x /usr/local/bin/solc
     - run: npm install -g yarn
     - run: yarn --frozen-lockfile
