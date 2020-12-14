@@ -1,4 +1,4 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.5.16;
 
 contract VAIControllerInterface {
     function getMintableVAI(address minter) public view returns (uint, uint);
