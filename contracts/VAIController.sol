@@ -26,6 +26,19 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
     /// @notice Emitted when Comptroller is changed
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
 
+    /**
+     * @notice Event emitted when VAI is minted
+     */
+    event MintVAI(address minter, uint mintVAIAmount);
+
+    /**
+     * @notice Event emitted when VAI is repaid
+     */
+    event RepayVAI(address repayer, uint repayVAIAmount);
+
+    /// @notice The initial Venus index for a market
+    uint224 public constant venusInitialIndex = 1e36;
+
     function mintVAI(address minter, uint mintVAIAmount) external returns (uint) {
         // Check caller is comptroller
         if (msg.sender != address(comptroller)) {
@@ -47,7 +60,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
         }
 
-        (mErr, accountMintVAINew) = addUInt(comptroller.mintedVAIOf(minter), mintVAIAmount);
+        (mErr, accountMintVAINew) = addUInt(ComptrollerLensInterface(address(comptroller)).mintedVAIs(minter), mintVAIAmount);
         require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
         uint error = comptroller.setMintedVAIOf(minter, accountMintVAINew);
         if (error != 0 ) {
@@ -70,7 +83,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
 
         uint actualBurnAmount;
 
-        uint vaiBalance = comptroller.mintedVAIOf(repayer);
+        uint vaiBalance = ComptrollerLensInterface(address(comptroller)).mintedVAIs(repayer);
 
         if(vaiBalance > repayVAIAmount) {
             actualBurnAmount = repayVAIAmount;
@@ -86,6 +99,76 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
 
         return uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Initialize the VenusVAIState
+     */
+    function _initializeVenusVAIState(uint blockNumber) external returns (uint) {
+        // Check caller is comptroller
+        if (msg.sender != address(comptroller)) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
+        }
+
+        if (isVenusVAIInitialized == false) {
+            isVenusVAIInitialized = true;
+            uint vaiBlockNumber = blockNumber == 0 ? getBlockNumber() : blockNumber;
+            venusVAIState = VenusVAIState({
+                index: venusInitialIndex,
+                block: safe32(vaiBlockNumber, "block number overflows")
+            });
+        }
+    }
+
+    /**
+     * @notice Accrue XVS to by updating the VAI minter index
+     */
+    function updateVenusVAIMintIndex() public returns (uint) {
+        // Check caller is comptroller
+        if (msg.sender != address(comptroller)) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
+        }
+
+        uint vaiMinterSpeed = ComptrollerLensInterface(address(comptroller)).venusVAIRate();
+        uint blockNumber = getBlockNumber();
+        uint deltaBlocks = sub_(blockNumber, uint(venusVAIState.block));
+        if (deltaBlocks > 0 && vaiMinterSpeed > 0) {
+            uint vaiAmount = VAI(getVAIAddress()).totalSupply();
+            uint venusAccrued = mul_(deltaBlocks, vaiMinterSpeed);
+            Double memory ratio = vaiAmount > 0 ? fraction(venusAccrued, vaiAmount) : Double({mantissa: 0});
+            Double memory index = add_(Double({mantissa: venusVAIState.index}), ratio);
+            venusVAIState = VenusVAIState({
+                index: safe224(index.mantissa, "new index overflows"),
+                block: safe32(blockNumber, "block number overflows")
+            });
+        } else if (deltaBlocks > 0) {
+            venusVAIState.block = safe32(blockNumber, "block number overflows");
+        }
+    }
+
+    /**
+     * @notice Calculate XVS accrued by a VAI minter
+     * @param vaiMinter The address of the VAI minter to distribute XVS to
+     */
+    function calcDistributeVAIMinterVenus(address vaiMinter) public returns(uint, uint, uint, uint) {
+        // Check caller is comptroller
+        if (msg.sender != address(comptroller)) {
+            return (fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK), 0, 0, 0);
+        }
+
+        Double memory vaiMintIndex = Double({mantissa: venusVAIState.index});
+        Double memory vaiMinterIndex = Double({mantissa: venusVAIMinterIndex[vaiMinter]});
+        venusVAIMinterIndex[vaiMinter] = vaiMintIndex.mantissa;
+
+        if (vaiMinterIndex.mantissa == 0 && vaiMintIndex.mantissa > 0) {
+            vaiMinterIndex.mantissa = venusInitialIndex;
+        }
+
+        Double memory deltaIndex = sub_(vaiMintIndex, vaiMinterIndex);
+        uint vaiMinterAmount = VAI(getVAIAddress()).balanceOf(vaiMinter);
+        uint vaiMinterDelta = mul_(vaiMinterAmount, deltaIndex);
+        uint vaiMinterAccrued = add_(ComptrollerLensInterface(address(comptroller)).venusAccrued(vaiMinter), vaiMinterDelta);
+        return (uint(Error.NO_ERROR), vaiMinterAccrued, vaiMinterDelta, vaiMintIndex.mantissa);
     }
 
     /** Admin Functions */
@@ -198,6 +281,10 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         }
 
         return (uint(Error.NO_ERROR), accountMintableVAI);
+    }
+
+    function getBlockNumber() public view returns (uint) {
+        return block.number;
     }
 
     /**

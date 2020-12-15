@@ -1148,8 +1148,8 @@ contract Comptroller is ComptrollerStorage, ComptrollerInterface, ComptrollerErr
 
     function refreshVenusSpeedsInternal() internal {
         uint i;
-        
         VToken vToken;
+
         for (i = 0; i < allMarkets.length; i++) {
             vToken = allMarkets[i];
             Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
