@@ -26,21 +26,4 @@ contract VAIUnitrollerAdminStorage {
 
 contract VAIControllerStorage is VAIUnitrollerAdminStorage {
     ComptrollerInterface public comptroller;
-
-    struct VenusVAIState {
-        /// @notice The last updated venusVAIMintIndex
-        uint224 index;
-
-        /// @notice The block number the index was last updated at
-        uint32 block;
-    }
-
-    /// @notice The Venus VAI state
-    VenusVAIState public venusVAIState;
-
-    /// @notice The Venus VAI state initialized
-    bool public isVenusVAIInitialized;
-
-    /// @notice The Venus VAI minter index as of the last time they accrued XVS
-    mapping(address => uint) public venusVAIMinterIndex;
 }
