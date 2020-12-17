@@ -69,7 +69,5 @@ contract ComptrollerInterface {
         address vTokenCollateral,
         uint repayAmount) external view returns (uint, uint);
 
-    function mintedVAIOf(address owner) external view returns (uint);
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
-    function getVAIMintRate() external view returns (uint);
 }

@@ -47,12 +47,10 @@ describe('Comptroller', () => {
         globalMethods.forEach(async (method) => {
           switch (method) {
             case "Mint":
-              expect(await call(comptroller, 'mintAllowed', [address(1), address(2), 1])).toHaveTrollError('MARKET_NOT_LISTED');
               await expect(send(comptroller, 'mintAllowed', [vToken._address, address(2), 1])).rejects.toRevert(`revert protocol is paused`);
               break;
   
             case "Borrow":
-              expect(await call(comptroller, 'borrowAllowed', [address(1), address(2), 1])).toHaveTrollError('MARKET_NOT_LISTED');
               await expect(send(comptroller, 'borrowAllowed', [vToken._address, address(2), 1])).rejects.toRevert(`revert protocol is paused`);
               break;
   

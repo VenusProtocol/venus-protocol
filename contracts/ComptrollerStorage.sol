@@ -141,4 +141,7 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
      * @notice Pause/Unpause whole protocol actions
      */
     bool public protocolPaused;
+
+        /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block
+    uint public venusVAIRate;
 }

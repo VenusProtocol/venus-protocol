@@ -17,7 +17,6 @@ contract ComptrollerRopsten is Comptroller {
 
 contract ComptrollerHarness is Comptroller {
     address xvsAddress;
-    address vaiAddress;
     uint public blockNumber;
 
     constructor() Comptroller() public {}
@@ -48,14 +47,6 @@ contract ComptrollerHarness is Comptroller {
         return xvsAddress;
     }
 
-    function setVAIAddress(address vaiAddress_) public {
-        vaiAddress = vaiAddress_;
-    }
-
-    function getVAIAddress() public view returns (address) {
-        return vaiAddress;
-    }
-
     function setVenusSpeed(address vToken, uint venusSpeed) public {
         venusSpeeds[vToken] = venusSpeed;
     }
@@ -76,12 +67,20 @@ contract ComptrollerHarness is Comptroller {
         updateVenusSupplyIndex(vToken);
     }
 
+    function harnessUpdateVenusVAIMintIndex() public {
+        updateVenusVAIMintIndex();
+    }
+
     function harnessDistributeBorrowerVenus(address vToken, address borrower, uint marketBorrowIndexMantissa) public {
         distributeBorrowerVenus(vToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}), false);
     }
 
     function harnessDistributeSupplierVenus(address vToken, address supplier) public {
         distributeSupplierVenus(vToken, supplier, false);
+    }
+
+    function harnessDistributeVAIMinterVenus(address vaiMinter) public {
+        distributeVAIMinterVenus(vaiMinter, false);
     }
 
     function harnessTransferVenus(address user, uint userAccrued, uint threshold) public returns (uint) {
@@ -400,7 +399,7 @@ contract BoolComptroller is ComptrollerInterface {
         failCalculateSeizeTokens = shouldFail;
     }
 
-    function mintedVAIOf(address owner) external view returns (uint) {
+    function mintedVAIs(address owner) external pure returns (uint) {
         owner;
         return 1e18;
     }
@@ -411,7 +410,7 @@ contract BoolComptroller is ComptrollerInterface {
         return noError;
     }
 
-    function getVAIMintRate() external view returns (uint) {
+    function vaiMintRate() external pure returns (uint) {
         return 1e18;
     }
 }

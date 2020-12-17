@@ -34,7 +34,7 @@ We detail a few of the core contracts in the Venus protocol.
 
 <dl>
   <dt>Governor Alpha</dt>
-  <dd>The administrator of the Venus timelock contract. Holders of XVS(SXP) token may create and vote on proposals which will be queued into the Venus timelock and then have effects on Venus vToken and Copmtroller contracts. This contract may be replaced in the future with a beta version.</dd>
+  <dd>The administrator of the Venus timelock contract. Holders of XVS(SXP) token may create and vote on proposals which will be queued into the Venus timelock and then have effects on Venus vToken and Comptroller contracts. This contract may be replaced in the future with a beta version.</dd>
 </dl>
 
 <dl>
