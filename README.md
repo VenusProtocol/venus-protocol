@@ -3,7 +3,7 @@
 Venus Protocol
 =================
 
-The Venus Protocol is an BSC smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain *supply* capital (BNB or BEP-20 tokens) to receive vTokens or *borrow* assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers.
+The Venus Protocol is an Binance Smart Chain smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain *supply* capital (BNB or BEP-20 tokens) to receive vTokens or *borrow* assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers.
 
 Before getting started with this repo, please read:
 
