@@ -87,6 +87,10 @@ contract ComptrollerHarness is Comptroller {
         return transferXVS(user, userAccrued, threshold);
     }
 
+    function harnessSetMintedVAIs(address user, uint amount) public {
+        mintedVAIs[user] = amount;
+    }
+
     function harnessFastForward(uint blocks) public returns (uint) {
         blockNumber += blocks;
         return blockNumber;

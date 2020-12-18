@@ -78,6 +78,7 @@ describe('Flywheel', () => {
     it('should transfer xvs and update vai minter index checkpoint correctly for repeat time user', async () => {
       await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
       await send(vai, "harnessSetBalanceOf", [a1, bnbUnsigned(5e18)]);
+      await send(comptroller, "harnessSetMintedVAIs", [a1, bnbUnsigned(5e18)]);
       await send(vaicontroller, "setVenusVAIState", [bnbDouble(6), 10]);
       await send(vaicontroller, "setVenusVAIMinterIndex", [a1, bnbDouble(1)]);
 
@@ -105,6 +106,7 @@ describe('Flywheel', () => {
       await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
 
       await send(vai, "harnessSetBalanceOf", [a1, bnbUnsigned(5e17)]);
+      await send(comptroller, "harnessSetMintedVAIs", [a1, bnbUnsigned(5e17)]);
       await send(vaicontroller, "setVenusVAIState", [bnbDouble(1.0019), 10]);
       /*
         vaiMinterAmount  = 5e17
@@ -128,7 +130,7 @@ describe('Flywheel', () => {
       const speed = await call(comptroller, 'venusVAIRate');
       const a2AccruedPre = await venusAccrued(comptroller, a2);
       const xvsBalancePre = await xvsBalance(comptroller, a2);
-      await quickMintVAI(vai, a2, mintAmount);
+      await quickMintVAI(comptroller, vai, a2, mintAmount);
       await fastForward(vaicontroller, deltaBlocks);
       const tx = await send(comptroller, 'claimVenus', [a2]);
       const a2AccruedPost = await venusAccrued(comptroller, a2);
@@ -159,6 +161,7 @@ describe('Flywheel', () => {
       for(let from of claimAccts) {
         await send(vai, 'harnessIncrementTotalSupply', [mintAmount]);
         expect(await send(vai, 'harnessSetBalanceOf', [from, mintAmount], { from })).toSucceed();
+        expect(await await send(comptroller, 'harnessSetMintedVAIs', [from, mintAmount], { from })).toSucceed();
       }
       await fastForward(vaicontroller, deltaBlocks);
 
@@ -178,6 +181,7 @@ describe('Flywheel', () => {
       for(let acct of claimAccts) {
         await send(vai, 'harnessIncrementTotalSupply', [vaiAmt]);
         await send(vai, 'harnessSetBalanceOf', [acct, vaiAmt]);
+        await send(comptroller, 'harnessSetMintedVAIs', [acct, vaiAmt]);
       }
 
       await send(vaicontroller, 'harnessFastForward', [10]);

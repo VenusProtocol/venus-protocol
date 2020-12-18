@@ -345,11 +345,12 @@ async function quickMint(vToken, minter, mintAmount, opts = {}) {
   return send(vToken, 'mint', [mintAmount], { from: minter });
 }
 
-async function quickMintVAI(vai, vaiMinter, vaiMintAmount, opts = {}) {
+async function quickMintVAI(comptroller, vai, vaiMinter, vaiMintAmount, opts = {}) {
   // make sure to accrue interest
   await fastForward(vai, 1);
 
   expect(await send(vai, 'harnessSetBalanceOf', [vaiMinter, vaiMintAmount], { vaiMinter })).toSucceed();
+  expect(await send(comptroller, 'harnessSetMintedVAIs', [vaiMinter, vaiMintAmount], { vaiMinter })).toSucceed();
   expect(await send(vai, 'harnessIncrementTotalSupply', [vaiMintAmount], { vaiMinter })).toSucceed();
 }
 

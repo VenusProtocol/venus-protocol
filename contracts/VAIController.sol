@@ -39,7 +39,9 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
 
-    function mintVAI(address minter, uint mintVAIAmount) external returns (uint) {
+    /*** Main Actions ***/
+
+    function mintVAI(address minter, uint mintVAIAmount) external nonReentrant returns (uint) {
         // Check caller is comptroller
         if (msg.sender != address(comptroller)) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
@@ -68,6 +70,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         }
 
         VAI(getVAIAddress()).mint(minter, mintVAIAmount);
+        emit MintVAI(minter, mintVAIAmount);
 
         return uint(Error.NO_ERROR);
     }
@@ -97,6 +100,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         }
 
         VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
+        emit RepayVAI(repayer, actualBurnAmount);
 
         return uint(Error.NO_ERROR);
     }
@@ -165,13 +169,13 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         }
 
         Double memory deltaIndex = sub_(vaiMintIndex, vaiMinterIndex);
-        uint vaiMinterAmount = VAI(getVAIAddress()).balanceOf(vaiMinter);
+        uint vaiMinterAmount = ComptrollerLensInterface(address(comptroller)).mintedVAIs(vaiMinter);
         uint vaiMinterDelta = mul_(vaiMinterAmount, deltaIndex);
         uint vaiMinterAccrued = add_(ComptrollerLensInterface(address(comptroller)).venusAccrued(vaiMinter), vaiMinterDelta);
         return (uint(Error.NO_ERROR), vaiMinterAccrued, vaiMinterDelta, vaiMintIndex.mantissa);
     }
 
-    /** Admin Functions */
+    /*** Admin Functions ***/
 
     /**
       * @notice Sets a new comptroller
