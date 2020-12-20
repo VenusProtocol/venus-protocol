@@ -14,7 +14,7 @@ import "./VAI/VAI.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerErrorReporter, Exponential {
+contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterface, ComptrollerErrorReporter, Exponential {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -39,9 +39,6 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
     /// @notice Emitted when price oracle is changed
     event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
 
-    /// @notice Emitted when VAI Vault info is changed
-    event NewVAIVaultInfo(address vault_, uint releaseStartBlock_, uint releaseInterval_);
-
     /// @notice Emitted when pause guardian is changed
     event NewPauseGuardian(address oldPauseGuardian, address newPauseGuardian);
 
@@ -60,9 +57,6 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
     /// @notice Emitted when Venus VAI rate is changed
     event NewVenusVAIRate(uint oldVenusVAIRate, uint newVenusVAIRate);
 
-    /// @notice Emitted when Venus VAI Vault rate is changed
-    event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
-
     /// @notice Emitted when a new Venus speed is calculated for a market
     event VenusSpeedUpdated(VToken indexed vToken, uint newSpeed);
 
@@ -74,9 +68,6 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
 
     /// @notice Emitted when XVS is distributed to a VAI minter
     event DistributedVAIMinterVenus(address indexed vaiMinter, uint venusDelta, uint venusVAIMintIndex);
-
-    /// @notice Emitted when XVS is distributed to VAI Vault
-    event DistributedVAIVaultVenus(uint amount);
 
     /// @notice Emitted when VAIController is changed
     event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
@@ -1402,33 +1393,6 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Set the amount of XVS distributed per block to VAI Vault
-     * @param venusVAIVaultRate_ The amount of XVS wei per block to distribute to VAI Vault
-     */
-    function _setVenusVAIVaultRate(uint venusVAIVaultRate_) public {
-        require(msg.sender == admin, "only admin can");
-
-        uint oldVenusVAIVaultRate = venusVAIVaultRate;
-        venusVAIVaultRate = venusVAIVaultRate_;
-        emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
-    }
-
-    /**
-     * @notice Set the VAI Vault infos
-     * @param vault_ The address of the VAI Vault
-     * @param releaseStartBlock_ The start block of release to VAI Vault
-     * @param releaseInterval_ The release block interval to VAI Vault
-     */
-    function _setVAIVaultInfo(address vault_, uint releaseStartBlock_, uint releaseInterval_) public {
-        require(msg.sender == admin, "only admin can");
-
-        vaiVaultAddress = vault_;
-        releaseStartBlock = releaseStartBlock_;
-        releaseInterval = releaseInterval_;
-        emit NewVAIVaultInfo(vault_, releaseStartBlock_, releaseInterval_);
-    }
-
-    /**
      * @notice Add markets to venusMarkets, allowing them to earn XVS in the flywheel
      * @param vTokens The addresses of the markets to add
      */
@@ -1565,31 +1529,5 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
      */
     function getMintableVAI(address minter) external view returns (uint, uint) {
         return vaiController.getMintableVAI(minter);
-    }
-
-    /**
-     * @notice Transfer XVS to VAI Vault
-     */
-    function releaseToVault() public {
-        require(releaseStartBlock != 0, "not initialized yet");
-        require(getBlockNumber() >= add_(releaseStartBlock, releaseInterval), "current time is before release time");
-
-        XVS xvs = XVS(getXVSAddress());
-
-        uint256 xvsBalance = xvs.balanceOf(address(this));
-        require(xvsBalance > 0, "no tokens to release");
-
-        uint256 actualAmount;
-        uint256 _releaseAmount = mul_(venusVAIVaultRate, releaseInterval);
-        if (xvsBalance >= _releaseAmount) {
-            actualAmount = _releaseAmount;
-        } else {
-            actualAmount = xvsBalance;
-        }
-
-        releaseStartBlock = add_(releaseStartBlock, releaseInterval);
-
-        xvs.transfer(vaiVaultAddress, actualAmount);
-        emit DistributedVAIVaultVenus(actualAmount);
     }
 }
