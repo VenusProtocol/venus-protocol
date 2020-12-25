@@ -1,22 +1,13 @@
 pragma solidity ^0.5.16;
-import "../SafeMath.sol";
-import "../BEP20Interface.sol";
+import "./SafeBEP20.sol";
+import "./IBEP20.sol";
+import "./VAIVaultProxy.sol";
+import "./VAIVaultStorage.sol";
+import "./VAIVaultErrorReporter.sol";
 
-contract VAIVault {
+contract VAIVault is VAIVaultStorage {
     using SafeMath for uint256;
-    //using SafeERC20 for IERC20;
-
-    /// @notice Administrator for this contract
-    address public admin;
-
-    /// @notice The XVS TOKEN!
-    BEP20Interface public xvs;
-
-    /// @notice The VAI TOKEN!
-    BEP20Interface public vai;
-
-    /// @notice Guard variable for re-entrancy checks
-    bool internal _notEntered;
+    using SafeBEP20 for IBEP20;
 
     /// @notice Event emitted when VAI deposit
     event Deposit(address indexed user, uint256 amount);
@@ -27,33 +18,8 @@ contract VAIVault {
     /// @notice Event emitted when admin changed
     event AdminTransfered(address indexed oldAdmin, address indexed newAdmin);
 
-    /// @notice XVS balance of vault
-    uint256 private xvsBalance;
-
-    /// @notice Accumulated XVS per share
-    uint256 public accXVSPerShare;
-
-    //// pending rewards awaiting anyone to update
-    uint256 public pendingRewards;
-
-    /// @notice Info of each user.
-    struct UserInfo {
-        uint256 amount;
-        uint256 rewardDebt;
-    }
-
-    // Info of each user that stakes tokens.
-    mapping(address => UserInfo) public userInfo;
-
-    constructor(
-        address _xvs,
-        address _vai
-    ) public {
+    constructor() public {
         admin = msg.sender;
-        xvs = BEP20Interface(_xvs);
-        vai = BEP20Interface(_vai);
-
-        _notEntered = true;
     }
 
     modifier onlyAdmin() {
@@ -87,7 +53,7 @@ contract VAIVault {
 
         // Transfer in the amounts from user
         if(_amount > 0) {
-            vai.transferFrom(address(msg.sender), address(this), _amount); //need update
+            vai.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
         }
 
@@ -101,7 +67,13 @@ contract VAIVault {
      */
     function withdraw(uint256 _amount) public nonReentrant {
         _withdraw(msg.sender, _amount);
+    }
 
+    /**
+     * @notice Claim XVS from VAIVault
+     */
+    function claim(uint256 ) public nonReentrant {
+        _withdraw(msg.sender, 0);
     }
 
     /**
@@ -118,7 +90,7 @@ contract VAIVault {
 
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
-            vai.transfer(address(account), _amount);  //need update
+            vai.safeTransfer(address(account), _amount);
         }
         user.rewardDebt = user.amount.mul(accXVSPerShare).div(1e18);
 
@@ -212,5 +184,19 @@ contract VAIVault {
         require(newAdmin != address(0), "new owner is the zero address");
         emit AdminTransfered(admin, newAdmin);
         admin = newAdmin;
+    }
+
+    /*** Admin Functions ***/
+
+    function _become(VAIVaultProxy vaiVaultProxy) public {
+        require(msg.sender == vaiVaultProxy.admin(), "only proxy admin can change brains");
+        require(vaiVaultProxy._acceptImplementation() == 0, "change not authorized");
+    }
+
+    function setVenusInfo(address _xvs, address _vai) public onlyAdmin {
+        xvs = IBEP20(_xvs);
+        vai = IBEP20(_vai);
+
+        _notEntered = true;
     }
 }

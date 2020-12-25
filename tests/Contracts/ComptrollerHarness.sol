@@ -67,10 +67,6 @@ contract ComptrollerHarness is Comptroller {
         updateVenusSupplyIndex(vToken);
     }
 
-    function harnessUpdateVenusVAIMintIndex() public {
-        updateVenusVAIMintIndex();
-    }
-
     function harnessDistributeBorrowerVenus(address vToken, address borrower, uint marketBorrowIndexMantissa) public {
         distributeBorrowerVenus(vToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}), false);
     }
