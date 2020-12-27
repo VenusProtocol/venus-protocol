@@ -1239,10 +1239,6 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
         }
 
         if (address(vaiController) != address(0)) {
-            // Check caller is vai controller
-            if (msg.sender != address(vaiController)) {
-                return;
-            }
             uint vaiMinterAccrued;
             uint vaiMinterDelta;
             uint vaiMintIndexMantissa;
@@ -1369,15 +1365,15 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
      * @notice Set the VAI Vault infos
      * @param vault_ The address of the VAI Vault
      * @param releaseStartBlock_ The start block of release to VAI Vault
-     * @param releaseInterval_ The release block interval to VAI Vault
+     * @param minReleaseAmount_ The minimum release amount to VAI Vault
      */
-    function _setVAIVaultInfo(address vault_, uint releaseStartBlock_, uint releaseInterval_) public {
+    function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) public {
         require(msg.sender == admin, "only admin can");
 
         vaiVaultAddress = vault_;
         releaseStartBlock = releaseStartBlock_;
-        releaseInterval = releaseInterval_;
-        emit NewVAIVaultInfo(vault_, releaseStartBlock_, releaseInterval_);
+        minReleaseAmount = minReleaseAmount_;
+        emit NewVAIVaultInfo(vault_, releaseStartBlock_, minReleaseAmount_);
     }
 
     /**
@@ -1474,26 +1470,38 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
      * @notice Transfer XVS to VAI Vault
      */
     function releaseToVault() public {
-        if(releaseStartBlock == 0 || getBlockNumber() < add_(releaseStartBlock, releaseInterval)) {
+        if(releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
             return;
         }
 
         XVS xvs = XVS(getXVSAddress());
 
         uint256 xvsBalance = xvs.balanceOf(address(this));
-        require(xvsBalance > 0, "no tokens to release");
+        if(xvsBalance == 0) {
+            return;
+        }
+
 
         uint256 actualAmount;
-        uint256 _releaseAmount = mul_(venusVAIVaultRate, releaseInterval);
+        uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
+        // releaseAmount = venusVAIVaultRate * deltaBlocks
+        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
+
+        if (_releaseAmount < minReleaseAmount) {
+            return;
+        }
+
         if (xvsBalance >= _releaseAmount) {
             actualAmount = _releaseAmount;
         } else {
             actualAmount = xvsBalance;
         }
 
-        releaseStartBlock = add_(releaseStartBlock, releaseInterval);
+        releaseStartBlock = getBlockNumber();
 
         xvs.transfer(vaiVaultAddress, actualAmount);
         emit DistributedVAIVaultVenus(actualAmount);
+
+        IVAIVault(vaiVaultAddress).updatePendingRewards();
     }
 }

@@ -72,7 +72,7 @@ contract VAIVault is VAIVaultStorage {
     /**
      * @notice Claim XVS from VAIVault
      */
-    function claim(uint256 ) public nonReentrant {
+    function claim() public nonReentrant {
         _withdraw(msg.sender, 0);
     }
 

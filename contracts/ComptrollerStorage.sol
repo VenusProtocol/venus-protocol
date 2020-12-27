@@ -156,6 +156,6 @@ contract ComptrollerV2Storage is ComptrollerV1Storage {
     // start block of release to VAI Vault
     uint256 public releaseStartBlock;
 
-    // release block interval
-    uint256 public releaseInterval;
+    // minimum release amount to VAI Vault
+    uint256 public minReleaseAmount;
 }
