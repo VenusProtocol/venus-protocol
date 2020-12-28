@@ -94,7 +94,6 @@ Test "Borrow some BAT from Excess Cash"
 
 Test "Borrow some BAT reverts if borrow is paused"
     NewComptroller price:1.0
-    Comptroller SetPauseGuardian Coburn
     NewVToken ZRX vZRX
     NewVToken BAT vBAT
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
@@ -103,14 +102,14 @@ Test "Borrow some BAT reverts if borrow is paused"
     Prep Geoff Some ZRX vZRX
     Mint Geoff 100e18 vZRX
     EnterMarkets Geoff vZRX vBAT
-    From Coburn (Comptroller SetGuardianMarketPaused vBAT "Borrow" True)
+    Comptroller SetProtocolPaused True
     AllowFailures
     Borrow Geoff 1e18 vBAT
-    Assert Revert "revert borrow is paused"
+    Assert Revert "revert protocol is paused"
     Assert Equal (vToken vBAT BorrowBalance Geoff) 0
     Assert Equal (Bep20 BAT TokenBalance Geoff) 0
     Assert Equal (Bep20 BAT TokenBalance vBAT) (Exactly 10e18)
-    Comptroller SetGuardianMarketPaused vBAT "Borrow" False
+    Comptroller SetProtocolPaused False
     Borrow Geoff 1e18 vBAT
     Assert Equal (vToken vBAT BorrowBalance Geoff) (Exactly 1e18)
     Assert Equal (Bep20 BAT TokenBalance Geoff) (Exactly 1e18)

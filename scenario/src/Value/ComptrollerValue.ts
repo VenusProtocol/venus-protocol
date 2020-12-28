@@ -331,88 +331,17 @@ export function comptrollerFetchers() {
       ],
       (world, {comptroller, vToken}) => checkIsVenus(world, comptroller, vToken)
     ),
-    new Fetcher<{comptroller: Comptroller}, AddressV>(`
-        #### PauseGuardian
-
-        * "PauseGuardian" - Returns the Comptrollers's PauseGuardian
-        * E.g. "Comptroller PauseGuardian"
-        `,
-        "PauseGuardian",
-        [
-          new Arg("comptroller", getComptroller, {implicit: true})
-        ],
-        async (world, {comptroller}) => new AddressV(await comptroller.methods.pauseGuardian().call())
-    ),
 
     new Fetcher<{comptroller: Comptroller}, BoolV>(`
-        #### _MintGuardianPaused
+        #### _ProtocolPaused
 
-        * "_MintGuardianPaused" - Returns the Comptrollers's original global Mint paused status
-        * E.g. "Comptroller _MintGuardianPaused"
+        * "_ProtocolPaused" - Returns the Comptrollers's original protocol paused status
+        * E.g. "Comptroller _ProtocolPaused"
         `,
-        "_MintGuardianPaused",
+        "_ProtocolPaused",
         [new Arg("comptroller", getComptroller, {implicit: true})],
-        async (world, {comptroller}) => new BoolV(await comptroller.methods._mintGuardianPaused().call())
+        async (world, {comptroller}) => new BoolV(await comptroller.methods.protocolPaused().call())
     ),
-    new Fetcher<{comptroller: Comptroller}, BoolV>(`
-        #### _BorrowGuardianPaused
-
-        * "_BorrowGuardianPaused" - Returns the Comptrollers's original global Borrow paused status
-        * E.g. "Comptroller _BorrowGuardianPaused"
-        `,
-        "_BorrowGuardianPaused",
-        [new Arg("comptroller", getComptroller, {implicit: true})],
-        async (world, {comptroller}) => new BoolV(await comptroller.methods._borrowGuardianPaused().call())
-    ),
-
-    new Fetcher<{comptroller: Comptroller}, BoolV>(`
-        #### TransferGuardianPaused
-
-        * "TransferGuardianPaused" - Returns the Comptrollers's Transfer paused status
-        * E.g. "Comptroller TransferGuardianPaused"
-        `,
-        "TransferGuardianPaused",
-        [new Arg("comptroller", getComptroller, {implicit: true})],
-        async (world, {comptroller}) => new BoolV(await comptroller.methods.transferGuardianPaused().call())
-    ),
-    new Fetcher<{comptroller: Comptroller}, BoolV>(`
-        #### SeizeGuardianPaused
-
-        * "SeizeGuardianPaused" - Returns the Comptrollers's Seize paused status
-        * E.g. "Comptroller SeizeGuardianPaused"
-        `,
-        "SeizeGuardianPaused",
-        [new Arg("comptroller", getComptroller, {implicit: true})],
-        async (world, {comptroller}) => new BoolV(await comptroller.methods.seizeGuardianPaused().call())
-    ),
-
-    new Fetcher<{comptroller: Comptroller, vToken: VToken}, BoolV>(`
-        #### MintGuardianMarketPaused
-
-        * "MintGuardianMarketPaused" - Returns the Comptrollers's Mint paused status in market
-        * E.g. "Comptroller MintGuardianMarketPaused vREP"
-        `,
-        "MintGuardianMarketPaused",
-        [
-          new Arg("comptroller", getComptroller, {implicit: true}),
-          new Arg("vToken", getVTokenV)
-        ],
-        async (world, {comptroller, vToken}) => new BoolV(await comptroller.methods.mintGuardianPaused(vToken._address).call())
-    ),
-    new Fetcher<{comptroller: Comptroller, vToken: VToken}, BoolV>(`
-        #### BorrowGuardianMarketPaused
-
-        * "BorrowGuardianMarketPaused" - Returns the Comptrollers's Borrow paused status in market
-        * E.g. "Comptroller BorrowGuardianMarketPaused vREP"
-        `,
-        "BorrowGuardianMarketPaused",
-        [
-          new Arg("comptroller", getComptroller, {implicit: true}),
-          new Arg("vToken", getVTokenV)
-        ],
-        async (world, {comptroller, vToken}) => new BoolV(await comptroller.methods.borrowGuardianPaused(vToken._address).call())
-    ),
-
     new Fetcher<{comptroller: Comptroller}, ListV>(`
       #### GetVenusMarkets
 

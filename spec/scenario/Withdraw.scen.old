@@ -41,7 +41,7 @@ Test "Withdraw BNB 1 when contract paused"
 	Supply Geoff BNB "1.0e18"
 	Assert Success
 	Assert Equal (SupplyBalance Geoff BNB) (Exactly "1.0e18")
-	PolicyHook BNB (SetPaused True)
+	PolicyHook BNB (SetProtocolPaused True)
 	Withdraw Geoff BNB "1.0e18"
 	Assert Failure COMPTROLLER_REJECTION WITHDRAW_COMPTROLLER_REJECTION 1
 	Assert Equal (SupplyBalance Geoff BNB) (Exactly "1e18")

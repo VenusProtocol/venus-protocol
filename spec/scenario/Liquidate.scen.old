@@ -102,7 +102,7 @@ Test "Can't liquidate when contract is borrow asset is paused"
 	--
 	-- Crash OMG price and liquidate
 	SetMarketPriceOracle OMG (FixedPrice "0.5") -- Max liquidate at this price should be maxClose = 1E for all the supply
-	PolicyHook BNB (SetPaused True)
+	PolicyHook BNB (SetProtocolPaused True)
 	Liquidate Torrey Geoff BNB "1e18" OMG
 	Assert Failure COMPTROLLER_REJECTION LIQUIDATE_POLICY_HOOK_ASSET_BORROW_REJECTION 1
 	Assert Equal (BalanceSheetBorrow BNB) (Exactly "1.05e18") -- unchanged
@@ -135,7 +135,7 @@ Test "Can't liquidate when contract is collateral asset is paused"
 	--
 	-- Crash OMG price and liquidate
 	SetMarketPriceOracle OMG (FixedPrice "0.5") -- Max liquidate at this price should be maxClose = 1E for all the supply
-	PolicyHook OMG (SetPaused True)
+	PolicyHook OMG (SetProtocolPaused True)
 	Liquidate Torrey Geoff BNB "1e18" OMG
 	Assert Failure COMPTROLLER_REJECTION LIQUIDATE_POLICY_HOOK_ASSET_COLLATERAL_REJECTION 1
 	Assert Equal (BalanceSheetBorrow BNB) (Exactly "1.05e18") -- unchanged

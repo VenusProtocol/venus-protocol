@@ -93,16 +93,15 @@ Test "vToken Transfer paused"
     Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 50e9)
     Assert Equal (Bep20 vZRX TokenBalance Coburn) Zero
     -- Pause and attempt transfer
-    Comptroller SetPauseGuardian Coburn
-    From Coburn (Comptroller SetGuardianPaused "Transfer" True)
+    Comptroller SetProtocolPaused True
     AllowFailures
     Transfer Geoff Torrey 10e9 vZRX
-    Assert Revert "revert transfer is paused"
+    Assert Revert "revert protocol is paused"
     Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 50e9)
     Assert Equal (Bep20 vZRX TokenBalance Coburn) Zero
     -- unPause and complete transfer
     Invariant Success
-    Comptroller SetGuardianPaused "Transfer" False
+    Comptroller SetProtocolPaused False
     Transfer Geoff Coburn 10e9 vZRX
     Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 40e9)
     Assert Equal (Bep20 vZRX TokenBalance Coburn) (Exactly 10e9)

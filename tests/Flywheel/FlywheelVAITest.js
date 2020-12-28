@@ -42,7 +42,7 @@ describe('Flywheel', () => {
       await send(vaicontroller, 'setBlockNumber', [100]);
       await send(vai, 'harnessSetTotalSupply', [bnbUnsigned(10e18)]);
       await send(comptroller, '_setVenusVAIRate', [bnbExp(0.5)]);
-      await send(comptroller, 'harnessUpdateVenusVAIMintIndex');
+      await send(vaicontroller, 'harnessUpdateVenusVAIMintIndex');
       /*
         vaiTokens = 10e18
         venusAccrued = deltaBlocks * setVenusVAIRate
@@ -57,7 +57,7 @@ describe('Flywheel', () => {
     });
 
     it('should not update index if no blocks passed since last accrual', async () => {
-      await send(comptroller, 'harnessUpdateVenusVAIMintIndex');
+      await send(vaicontroller, 'harnessUpdateVenusVAIMintIndex');
 
       const {index, block} = await call(vaicontroller, 'venusVAIState');
       expect(index).toEqualNumber(1e36);
