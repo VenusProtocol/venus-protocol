@@ -71,3 +71,7 @@ contract ComptrollerInterface {
 
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
 }
+
+interface IVAIVault {
+    function updatePendingRewards() external;
+}

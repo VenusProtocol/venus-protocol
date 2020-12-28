@@ -116,42 +116,12 @@ Macro CheckStorage
     Assert Equal (Comptroller CollateralFactor vBAT) 0.4
     Assert Equal (Comptroller CheckMembership Geoff vZRX) True
     Assert Equal (Comptroller CheckMembership Geoff vBAT) True
-    -- PauseGuardian; 10
-    Assert Equal (Comptroller PauseGuardian) (Address Coburn)
-    Assert Equal (StorageAt Comptroller 10 0 "address") (Address Coburn)
-    -- MintGuardianPaused; 11
-    Assert Equal (StorageAt Comptroller 10 40 "bool") False
-    Assert Equal (Comptroller _MintGuardianPaused) False
-    -- BorrowGuardianPaused; 12
-    Assert Equal (StorageAt Comptroller 10 42 "bool") False
-    Assert Equal (Comptroller _BorrowGuardianPaused) False
-    -- TransferGuardianPaused; 13
+    -- SetProtocolPaused; 13
     Assert Equal (StorageAt Comptroller 10 44 "bool") False
-    From Coburn (Comptroller SetGuardianPaused "Transfer" True)
-    Assert Equal (Comptroller TransferGuardianPaused) True
+    Comptroller SetProtocolPaused True
+    Assert Equal (Comptroller SetProtocolPaused) True
     Assert Equal (StorageAt Comptroller 10 44 "bool") True
-    Comptroller SetGuardianPaused "Transfer" False
-    -- SeizeGuardianPaused; 14
-    Assert Equal (StorageAt Comptroller 10 46 "bool") False
-    From Coburn (Comptroller SetGuardianPaused "Seize" True)
-    Assert Equal (Comptroller SeizeGuardianPaused) True
-    Assert Equal (StorageAt Comptroller 10 46 "bool") True
-    Comptroller SetGuardianPaused "Seize" False
-    --
-    -- Pause by market storage
-    --
-    -- MintGuardianPaused; 15
-    Assert Equal (StorageAtMapping Comptroller 11 (Address vZRX) "bool") False
-    From Coburn (Comptroller SetGuardianMarketPaused vZRX "Mint" True)
-    Assert Equal (Comptroller MintGuardianMarketPaused vZRX) True
-    Assert Equal (StorageAtMapping Comptroller 11 (Address vZRX) "bool") True
-    Comptroller SetGuardianMarketPaused vZRX "Mint" False
-    -- BorrowGuardianPaused; 16
-    Assert Equal (StorageAtMapping Comptroller 12 (Address vZRX) "bool") False
-    From Coburn (Comptroller SetGuardianMarketPaused vZRX "Borrow" True)
-    Assert Equal (Comptroller BorrowGuardianMarketPaused vZRX) True
-    Assert Equal (StorageAtMapping Comptroller 12 (Address vZRX) "bool") True
-    Comptroller SetGuardianMarketPaused vZRX "Borrow" False
+    Comptroller SetProtocolPaused False
     -- AllMarkets; 17
     Assert Equal (StorageAt Comptroller 13 0 "number") 2
     -- TODO: StorageAtArray Comptroller 13?
@@ -195,8 +165,6 @@ Pending "Keeps all storage"
     --
     CheckUnitrollerStorage (Address StandardComptroller)
     CheckStorage
-    --
-    Comptroller SetPauseGuardian Coburn
     --
     CheckUnitrollerStorage (Address StandardComptroller)
     CheckStorage

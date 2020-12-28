@@ -9,12 +9,15 @@ import "./VAIUnitroller.sol";
 import "./VAI/VAI.sol";
 
 interface ComptrollerLensInterface {
+    function protocolPaused() external view returns (bool);
     function mintedVAIs(address account) external view returns (uint);
     function vaiMintRate() external view returns (uint);
     function venusVAIRate() external view returns (uint);
     function venusAccrued(address account) external view returns(uint);
     function getAssetsIn(address account) external view returns (VToken[] memory);
     function oracle() external view returns (PriceOracle);
+
+    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) external;
 }
 
 /**
@@ -41,76 +44,85 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
 
     /*** Main Actions ***/
 
-    function mintVAI(address minter, uint mintVAIAmount) external returns (uint) {
-        // Check caller is comptroller
-        if (msg.sender != address(comptroller)) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
+    function mintVAI(uint mintVAIAmount) external returns (uint) {
+        if(address(comptroller) != address(0)) {
+            require(!ComptrollerLensInterface(address(comptroller)).protocolPaused(), "protocol is paused");
+
+            address minter = msg.sender;
+
+            // Keep the flywheel moving
+            updateVenusVAIMintIndex();
+            ComptrollerLensInterface(address(comptroller)).distributeVAIMinterVenus(minter, false);
+
+            uint oErr;
+            MathError mErr;
+            uint accountMintVAINew;
+            uint accountMintableVAI;
+
+            (oErr, accountMintableVAI) = getMintableVAI(minter);
+            if (oErr != uint(Error.NO_ERROR)) {
+                return uint(Error.REJECTION);
+            }
+
+            // check that user have sufficient mintableVAI balance
+            if (mintVAIAmount > accountMintableVAI) {
+                return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
+            }
+
+            (mErr, accountMintVAINew) = addUInt(ComptrollerLensInterface(address(comptroller)).mintedVAIs(minter), mintVAIAmount);
+            require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
+            uint error = comptroller.setMintedVAIOf(minter, accountMintVAINew);
+            if (error != 0 ) {
+                return error;
+            }
+
+            VAI(getVAIAddress()).mint(minter, mintVAIAmount);
+            emit MintVAI(minter, mintVAIAmount);
+
+            return uint(Error.NO_ERROR);
         }
-
-        uint oErr;
-        MathError mErr;
-        uint accountMintVAINew;
-        uint accountMintableVAI;
-
-        (oErr, accountMintableVAI) = getMintableVAI(minter);
-        if (oErr != uint(Error.NO_ERROR)) {
-            return uint(Error.REJECTION);
-        }
-
-        // check that user have sufficient mintableVAI balance
-        if (mintVAIAmount > accountMintableVAI) {
-            return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
-        }
-
-        (mErr, accountMintVAINew) = addUInt(ComptrollerLensInterface(address(comptroller)).mintedVAIs(minter), mintVAIAmount);
-        require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
-        uint error = comptroller.setMintedVAIOf(minter, accountMintVAINew);
-        if (error != 0 ) {
-            return error;
-        }
-
-        VAI(getVAIAddress()).mint(minter, mintVAIAmount);
-        emit MintVAI(minter, mintVAIAmount);
-
-        return uint(Error.NO_ERROR);
     }
 
     /**
      * @notice Repay VAI
      */
-    function repayVAI(address repayer, uint repayVAIAmount) external returns (uint) {
-        // Check caller is comptroller
-        if (msg.sender != address(comptroller)) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
+    function repayVAI(uint repayVAIAmount) external returns (uint) {
+        if(address(comptroller) != address(0)) {
+            require(!ComptrollerLensInterface(address(comptroller)).protocolPaused(), "protocol is paused");
+
+            address repayer = msg.sender;
+
+            updateVenusVAIMintIndex();
+            ComptrollerLensInterface(address(comptroller)).distributeVAIMinterVenus(repayer, false);
+
+            uint actualBurnAmount;
+
+            uint vaiBalance = ComptrollerLensInterface(address(comptroller)).mintedVAIs(repayer);
+
+            if(vaiBalance > repayVAIAmount) {
+                actualBurnAmount = repayVAIAmount;
+            } else {
+                actualBurnAmount = vaiBalance;
+            }
+
+            uint error = comptroller.setMintedVAIOf(repayer, vaiBalance - actualBurnAmount);
+            if (error != 0) {
+                return error;
+            }
+
+            VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
+            emit RepayVAI(repayer, actualBurnAmount);
+
+            return uint(Error.NO_ERROR);
         }
-
-        uint actualBurnAmount;
-
-        uint vaiBalance = ComptrollerLensInterface(address(comptroller)).mintedVAIs(repayer);
-
-        if(vaiBalance > repayVAIAmount) {
-            actualBurnAmount = repayVAIAmount;
-        } else {
-            actualBurnAmount = vaiBalance;
-        }
-
-        uint error = comptroller.setMintedVAIOf(repayer, vaiBalance - actualBurnAmount);
-        if (error != 0) {
-            return error;
-        }
-
-        VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
-        emit RepayVAI(repayer, actualBurnAmount);
-
-        return uint(Error.NO_ERROR);
     }
 
     /**
      * @notice Initialize the VenusVAIState
      */
     function _initializeVenusVAIState(uint blockNumber) external returns (uint) {
-        // Check caller is comptroller
-        if (msg.sender != address(comptroller)) {
+        // Check caller is admin
+        if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
         }
 
@@ -128,11 +140,6 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
      * @notice Accrue XVS to by updating the VAI minter index
      */
     function updateVenusVAIMintIndex() public returns (uint) {
-        // Check caller is comptroller
-        if (msg.sender != address(comptroller)) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
-
         uint vaiMinterSpeed = ComptrollerLensInterface(address(comptroller)).venusVAIRate();
         uint blockNumber = getBlockNumber();
         uint deltaBlocks = sub_(blockNumber, uint(venusVAIState.block));

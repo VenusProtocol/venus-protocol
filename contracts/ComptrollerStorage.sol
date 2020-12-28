@@ -26,7 +26,7 @@ contract UnitrollerAdminStorage {
     address public pendingComptrollerImplementation;
 }
 
-contract ComptrollerStorage is UnitrollerAdminStorage {
+contract ComptrollerV1Storage is UnitrollerAdminStorage {
 
     /**
      * @notice Oracle which gives the price of any given asset
@@ -142,6 +142,20 @@ contract ComptrollerStorage is UnitrollerAdminStorage {
      */
     bool public protocolPaused;
 
-        /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block
+    /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block
     uint public venusVAIRate;
+}
+
+contract ComptrollerV2Storage is ComptrollerV1Storage {
+    /// @notice The rate at which the flywheel distributes XVS to VAI Vault, per block
+    uint public venusVAIVaultRate;
+
+    // address of VAI Vault
+    address public vaiVaultAddress;
+
+    // start block of release to VAI Vault
+    uint256 public releaseStartBlock;
+
+    // minimum release amount to VAI Vault
+    uint256 public minReleaseAmount;
 }

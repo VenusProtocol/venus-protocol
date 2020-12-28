@@ -16,7 +16,6 @@ interface ComptrollerMethods {
   getBlockNumber(): Callable<number>
   collateralFactor(string): Callable<string>
   markets(string): Callable<{0: boolean, 1: number, 2?: boolean}>
-  _setMintPaused(bool): Sendable<number>
   _setMaxAssets(encodedNumber): Sendable<number>
   _setLiquidationIncentive(encodedNumber): Sendable<number>
   _supportMarket(string): Sendable<number>
@@ -33,18 +32,8 @@ interface ComptrollerMethods {
   pendingAdmin(): Callable<string>
   _setPendingAdmin(string): Sendable<number>
   _acceptAdmin(): Sendable<number>
-  _setPauseGuardian(string): Sendable<number>
-  pauseGuardian(): Callable<string>
-  _setMintPaused(market: string, string): Sendable<number>
-  _setBorrowPaused(market: string, string): Sendable<number>
-  _setTransferPaused(string): Sendable<number>
-  _setSeizePaused(string): Sendable<number>
-  _mintGuardianPaused(): Callable<boolean>
-  _borrowGuardianPaused(): Callable<boolean>
-  transferGuardianPaused(): Callable<boolean>
-  seizeGuardianPaused(): Callable<boolean>
-  mintGuardianPaused(market: string): Callable<boolean>
-  borrowGuardianPaused(market: string): Callable<boolean>
+  _setProtocolPaused(bool): Sendable<number>
+  protocolPaused(): Callable<boolean>
   _addVenusMarkets(markets: string[]): Sendable<void>
   _dropVenusMarket(market: string): Sendable<void>
   getVenusMarkets(): Callable<string[]>

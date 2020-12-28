@@ -14,7 +14,7 @@ import "./VAI/VAI.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerErrorReporter, Exponential {
+contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterface, ComptrollerErrorReporter, Exponential {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -39,9 +39,6 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
     /// @notice Emitted when price oracle is changed
     event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
 
-    /// @notice Emitted when VAI Vault info is changed
-    event NewVAIVaultInfo(address vault_, uint releaseStartBlock_, uint releaseInterval_);
-
     /// @notice Emitted when pause guardian is changed
     event NewPauseGuardian(address oldPauseGuardian, address newPauseGuardian);
 
@@ -60,9 +57,6 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
     /// @notice Emitted when Venus VAI rate is changed
     event NewVenusVAIRate(uint oldVenusVAIRate, uint newVenusVAIRate);
 
-    /// @notice Emitted when Venus VAI Vault rate is changed
-    event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
-
     /// @notice Emitted when a new Venus speed is calculated for a market
     event VenusSpeedUpdated(VToken indexed vToken, uint newSpeed);
 
@@ -74,9 +68,6 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
 
     /// @notice Emitted when XVS is distributed to a VAI minter
     event DistributedVAIMinterVenus(address indexed vaiMinter, uint venusDelta, uint venusVAIMintIndex);
-
-    /// @notice Emitted when XVS is distributed to VAI Vault
-    event DistributedVAIVaultVenus(uint amount);
 
     /// @notice Emitted when VAIController is changed
     event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
@@ -1046,6 +1037,63 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
+     * @notice Admin function to change the Pause Guardian
+     * @param newPauseGuardian The address of the new Pause Guardian
+     * @return uint 0=success, otherwise a failure. (See enum Error for details)
+     */
+    function _setPauseGuardian(address newPauseGuardian) public returns (uint) {
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PAUSE_GUARDIAN_OWNER_CHECK);
+        }
+
+        // Save current value for inclusion in log
+        address oldPauseGuardian = pauseGuardian;
+
+        // Store pauseGuardian with value newPauseGuardian
+        pauseGuardian = newPauseGuardian;
+
+        // Emit NewPauseGuardian(OldPauseGuardian, NewPauseGuardian)
+        emit NewPauseGuardian(oldPauseGuardian, newPauseGuardian);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    function _setMintPaused(VToken vToken, bool state) public onlyListedMarket(vToken) validPauseState(state) returns (bool) {
+        mintGuardianPaused[address(vToken)] = state;
+        emit ActionPaused(vToken, "Mint", state);
+        return state;
+    }
+
+    function _setBorrowPaused(VToken vToken, bool state) public onlyListedMarket(vToken) validPauseState(state) returns (bool) {
+        borrowGuardianPaused[address(vToken)] = state;
+        emit ActionPaused(vToken, "Borrow", state);
+        return state;
+    }
+
+    function _setTransferPaused(bool state) public validPauseState(state) returns (bool) {
+        transferGuardianPaused = state;
+        emit ActionPaused("Transfer", state);
+        return state;
+    }
+
+    function _setSeizePaused(bool state) public validPauseState(state) returns (bool) {
+        seizeGuardianPaused = state;
+        emit ActionPaused("Seize", state);
+        return state;
+    }
+
+    function _setMintVAIPaused(bool state) public validPauseState(state) returns (bool) {
+        mintVAIGuardianPaused = state;
+        emit ActionPaused("MintVAI", state);
+        return state;
+    }
+
+    function _setRepayVAIPaused(bool state) public validPauseState(state) returns (bool) {
+        repayVAIGuardianPaused = state;
+        emit ActionPaused("RepayVAI", state);
+        return state;
+    }
+    /**
      * @notice Set whole protocol pause/unpause state
      */
     function _setProtocolPaused(bool state) public onlyAdmin returns(bool) {
@@ -1176,15 +1224,20 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
+     * @notice Accrue XVS to by updating the VAI minter index
+     */
+    function updateVenusVAIMintIndex() internal {
+        if (address(vaiController) != address(0)) {
+            vaiController.updateVenusVAIMintIndex();
+        }
+    }
+
+    /**
      * @notice Calculate XVS accrued by a supplier and possibly transfer it to them
      * @param vToken The market in which the supplier is interacting
      * @param supplier The address of the supplier to distribute XVS to
      */
     function distributeSupplierVenus(address vToken, address supplier, bool distributeAll) internal {
-        if (address(vaiVaultAddress) != address(0)) {
-            releaseToVault();
-        }
-
         VenusMarketState storage supplyState = venusSupplyState[vToken];
         Double memory supplyIndex = Double({mantissa: supplyState.index});
         Double memory supplierIndex = Double({mantissa: venusSupplierIndex[vToken][supplier]});
@@ -1209,10 +1262,6 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
      * @param borrower The address of the borrower to distribute XVS to
      */
     function distributeBorrowerVenus(address vToken, address borrower, Exp memory marketBorrowIndex, bool distributeAll) internal {
-        if (address(vaiVaultAddress) != address(0)) {
-            releaseToVault();
-        }
-
         VenusMarketState storage borrowState = venusBorrowState[vToken];
         Double memory borrowIndex = Double({mantissa: borrowState.index});
         Double memory borrowerIndex = Double({mantissa: venusBorrowerIndex[vToken][borrower]});
@@ -1233,11 +1282,7 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
      * @dev VAI minters will not begin to accrue until after the first interaction with the protocol.
      * @param vaiMinter The address of the VAI minter to distribute XVS to
      */
-    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) public {
-        if (address(vaiVaultAddress) != address(0)) {
-            releaseToVault();
-        }
-
+    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) internal {
         if (address(vaiController) != address(0)) {
             uint vaiMinterAccrued;
             uint vaiMinterDelta;
@@ -1298,9 +1343,7 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
      */
     function claimVenus(address[] memory holders, VToken[] memory vTokens, bool borrowers, bool suppliers) public {
         uint j;
-        if(address(vaiController) != address(0)) {
-            vaiController.updateVenusVAIMintIndex();
-        }
+        updateVenusVAIMintIndex();
         for (j = 0; j < holders.length; j++) {
             distributeVAIMinterVenus(holders[j], true);
         }
@@ -1350,33 +1393,6 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Set the amount of XVS distributed per block to VAI Vault
-     * @param venusVAIVaultRate_ The amount of XVS wei per block to distribute to VAI Vault
-     */
-    function _setVenusVAIVaultRate(uint venusVAIVaultRate_) public {
-        require(msg.sender == admin, "only admin can");
-
-        uint oldVenusVAIVaultRate = venusVAIVaultRate;
-        venusVAIVaultRate = venusVAIVaultRate_;
-        emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
-    }
-
-    /**
-     * @notice Set the VAI Vault infos
-     * @param vault_ The address of the VAI Vault
-     * @param releaseStartBlock_ The start block of release to VAI Vault
-     * @param minReleaseAmount_ The minimum release amount to VAI Vault
-     */
-    function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) public {
-        require(msg.sender == admin, "only admin can");
-
-        vaiVaultAddress = vault_;
-        releaseStartBlock = releaseStartBlock_;
-        minReleaseAmount = minReleaseAmount_;
-        emit NewVAIVaultInfo(vault_, releaseStartBlock_, minReleaseAmount_);
-    }
-
-    /**
      * @notice Add markets to venusMarkets, allowing them to earn XVS in the flywheel
      * @param vTokens The addresses of the markets to add
      */
@@ -1408,6 +1424,13 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
                 index: venusInitialIndex,
                 block: safe32(getBlockNumber(), "block number overflows")
             });
+        }
+    }
+
+    function _initializeVenusVAIState(uint blockNumber) public {
+        require(msg.sender == admin, "only admin can");
+        if (address(vaiController) != address(0)) {
+            vaiController._initializeVenusVAIState(blockNumber);
         }
     }
 
@@ -1467,41 +1490,44 @@ contract Comptroller is ComptrollerV2Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-     * @notice Transfer XVS to VAI Vault
+     * @notice Mint VAI
      */
-    function releaseToVault() public {
-        if(releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
-            return;
-        }
+    function mintVAI(uint mintVAIAmount) external onlyProtocolAllowed returns (uint) {
+        // Pausing is a very serious situation - we revert to sound the alarms
+        require(!mintVAIGuardianPaused, "mintVAI is paused");
 
-        XVS xvs = XVS(getXVSAddress());
+        // Keep the flywheel moving
+        updateVenusVAIMintIndex();
+        distributeVAIMinterVenus(msg.sender, false);
+        return vaiController.mintVAI(msg.sender, mintVAIAmount);
+    }
 
-        uint256 xvsBalance = xvs.balanceOf(address(this));
-        if(xvsBalance == 0) {
-            return;
-        }
+    /**
+     * @notice Repay VAI
+     */
+    function repayVAI(uint repayVAIAmount) external onlyProtocolAllowed returns (uint) {
+        // Pausing is a very serious situation - we revert to sound the alarms
+        require(!repayVAIGuardianPaused, "repayVAI is paused");
 
+        // Keep the flywheel moving
+        updateVenusVAIMintIndex();
+        distributeVAIMinterVenus(msg.sender, false);
+        return vaiController.repayVAI(msg.sender, repayVAIAmount);
+    }
 
-        uint256 actualAmount;
-        uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
-        // releaseAmount = venusVAIVaultRate * deltaBlocks
-        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
+    /**
+     * @notice Get the minted VAI amount of the `owner`
+     * @param owner The address of the account to query
+     * @return The number of minted VAI by `owner`
+     */
+    function mintedVAIOf(address owner) external view returns (uint) {
+        return mintedVAIs[owner];
+    }
 
-        if (_releaseAmount < minReleaseAmount) {
-            return;
-        }
-
-        if (xvsBalance >= _releaseAmount) {
-            actualAmount = _releaseAmount;
-        } else {
-            actualAmount = xvsBalance;
-        }
-
-        releaseStartBlock = getBlockNumber();
-
-        xvs.transfer(vaiVaultAddress, actualAmount);
-        emit DistributedVAIVaultVenus(actualAmount);
-
-        IVAIVault(vaiVaultAddress).updatePendingRewards();
+    /**
+     * @notice Get Mintable VAI amount
+     */
+    function getMintableVAI(address minter) external view returns (uint, uint) {
+        return vaiController.getMintableVAI(minter);
     }
 }

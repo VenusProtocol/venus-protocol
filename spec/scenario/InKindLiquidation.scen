@@ -429,12 +429,11 @@ Test "when seize is paused"
     Assert Equal (Comptroller Liquidity Geoff) -1e18
     -- Okay, so we should be able to liquidate, so let's do that.
     Prep Torrey 2e18 BAT vBAT
-    Comptroller SetPauseGuardian Coburn
-    From Coburn (Comptroller SetGuardianPaused "Seize" True)
+    Comptroller SetProtocolPaused True
     AllowFailures
     Liquidate Torrey "->" Geoff 2e18 vBAT "Seizing" vBAT
-    Assert Revert "revert seize is paused"
+    Assert Revert "revert protocol is paused"
     -- unpause and check correct values
     Invariant Success
-    Comptroller SetGuardianPaused "Seize" False
+    Comptroller SetProtocolPaused False
     Liquidate Torrey "->" Geoff 2e18 vBAT "Seizing" vBAT

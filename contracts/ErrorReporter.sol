@@ -20,10 +20,7 @@ contract ComptrollerErrorReporter {
         SNAPSHOT_ERROR,
         TOO_MANY_ASSETS,
         TOO_MUCH_REPAY,
-        NONZERO_MINTEDVAI_BALANCE,
-        /// @dev VAI Integration^
         INSUFFICIENT_BALANCE_FOR_VAI
-        /// @dev VAI Integration$
     }
 
     enum FailureInfo {
@@ -49,7 +46,8 @@ contract ComptrollerErrorReporter {
         SET_PAUSE_GUARDIAN_OWNER_CHECK,
         SET_VAI_MINT_RATE_CHECK,
         SET_VAICONTROLLER_OWNER_CHECK,
-        SET_MINTED_VAI_REJECTION
+        SET_MINTED_VAI_REJECTION,
+        VAI_CONTROLLER_MISMATCH
     }
 
     /**

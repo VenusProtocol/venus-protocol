@@ -47,7 +47,7 @@ Test "Can't supply when contract is paused"
 	SupportMarket BNB (FixedPrice 1.0) (FixedRate 0.5 0.75) SimplePolicyHook
 	Approve Geoff BNB 1.0e18
 	Faucet Geoff BNB 0.4e18
-	PolicyHook BNB (SetPaused True)
+	PolicyHook BNB (SetProtocolPaused True)
 	Supply Geoff BNB 0.3e18
 	Assert Failure COMPTROLLER_REJECTION SUPPLY_COMPTROLLER_REJECTION 1
 	Assert Equal (SupplyBalance Geoff BNB) (Exactly "0e18")

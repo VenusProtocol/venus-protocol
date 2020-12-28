@@ -21,10 +21,6 @@ contract ComptrollerHarness is Comptroller {
 
     constructor() Comptroller() public {}
 
-    function setPauseGuardian(address harnessedPauseGuardian) public {
-        pauseGuardian = harnessedPauseGuardian;
-    }
-
     function setVenusSupplyState(address vToken, uint224 index, uint32 blockNumber_) public {
         venusSupplyState[vToken].index = index;
         venusSupplyState[vToken].block = blockNumber_;
@@ -65,10 +61,6 @@ contract ComptrollerHarness is Comptroller {
 
     function harnessUpdateVenusSupplyIndex(address vToken) public {
         updateVenusSupplyIndex(vToken);
-    }
-
-    function harnessUpdateVenusVAIMintIndex() public {
-        updateVenusVAIMintIndex();
     }
 
     function harnessDistributeBorrowerVenus(address vToken, address borrower, uint marketBorrowIndexMantissa) public {
