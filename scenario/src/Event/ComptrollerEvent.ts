@@ -630,19 +630,6 @@ export function comptrollerCommands() {
       ],
       (world, from, {comptroller, vToken, speed}) => setVenusSpeed(world, from, comptroller, vToken, speed)
     ),
-    new Command<{comptroller: Comptroller, contributor: AddressV, speed: NumberV}>(`
-      #### SetContributorVenusSpeed
-      * "Comptroller SetContributorVenusSpeed <contributor> <rate>" - Sets XVS speed for contributor
-      * E.g. "Comptroller SetContributorVenusSpeed contributor 1000
-      `,
-      "SetContributorVenusSpeed",
-      [
-        new Arg("comptroller", getComptroller, {implicit: true}),
-        new Arg("contributor", getAddressV),
-        new Arg("speed", getNumberV)
-      ],
-      (world, from, {comptroller, contributor, speed}) => setContributorVenusSpeed(world, from, comptroller, contributor.val, speed)
-    ),
     new Command<{comptroller: Comptroller, vTokens: VToken[], borrowCaps: NumberV[]}>(`
       #### SetMarketBorrowCaps
       * "Comptroller SetMarketBorrowCaps (<VToken> ...) (<borrowCap> ...)" - Sets Market Borrow Caps
