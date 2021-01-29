@@ -8,6 +8,12 @@ import { Arg, Fetcher, getFetcherValue } from '../Command';
 import { storeAndSaveContract } from '../Networks';
 import { getContract, getTestContract } from '../Contract';
 
+const ComptrollerG1Contract = getContract('ComptrollerG1');
+const ComptrollerScenarioG1Contract = getContract('ComptrollerScenarioG1');
+
+const ComptrollerG2Contract = getContract('ComptrollerG2');
+const ComptrollerScenarioG2Contract = getContract('ComptrollerScenarioG2');
+
 const ComptrollerScenarioContract = getTestContract('ComptrollerScenario');
 const ComptrollerContract = getContract('Comptroller');
 
@@ -26,6 +32,39 @@ export async function buildComptrollerImpl(
   event: Event
 ): Promise<{ world: World; comptrollerImpl: ComptrollerImpl; comptrollerImplData: ComptrollerImplData }> {
   const fetchers = [
+
+    new Fetcher<{ name: StringV }, ComptrollerImplData>(
+      `
+        #### ScenarioG1
+        * "ScenarioG1 name:<String>" - The Comptroller Scenario for local testing (G2)
+          * E.g. "ComptrollerImpl Deploy ScenarioG1 MyScen"
+      `,
+      'ScenarioG1',
+      [new Arg('name', getStringV)],
+      async (world, { name }) => ({
+        invokation: await ComptrollerScenarioG1Contract.deploy<ComptrollerImpl>(world, from, []),
+        name: name.val,
+        contract: 'ComptrollerScenarioG1Contract',
+        description: 'ScenarioG1 Comptroller Impl'
+      })
+    ),
+
+    new Fetcher<{ name: StringV }, ComptrollerImplData>(
+      `
+        #### ScenarioG2
+        * "ScenarioG2 name:<String>" - The Comptroller Scenario for local testing (G2)
+          * E.g. "ComptrollerImpl Deploy ScenarioG2 MyScen"
+      `,
+      'ScenarioG2',
+      [new Arg('name', getStringV)],
+      async (world, { name }) => ({
+        invokation: await ComptrollerScenarioG2Contract.deploy<ComptrollerImpl>(world, from, []),
+        name: name.val,
+        contract: 'ComptrollerScenarioG2Contract',
+        description: 'ScenarioG2 Comptroller Impl'
+      })
+    ),
+
     new Fetcher<{ name: StringV }, ComptrollerImplData>(
       `
         #### Scenario
@@ -41,6 +80,42 @@ export async function buildComptrollerImpl(
         contract: 'ComptrollerScenario',
         description: 'Scenario Comptroller Impl'
       })
+    ),
+
+    new Fetcher<{ name: StringV }, ComptrollerImplData>(
+      `
+        #### StandardG1
+        * "StandardG1 name:<String>" - The standard generation 1 Comptroller contract
+          * E.g. "Comptroller Deploy StandardG1 MyStandard"
+      `,
+      'StandardG1',
+      [new Arg('name', getStringV)],
+      async (world, { name }) => {
+        return {
+          invokation: await ComptrollerG1Contract.deploy<ComptrollerImpl>(world, from, []),
+          name: name.val,
+          contract: 'ComptrollerG1',
+          description: 'StandardG1 Comptroller Impl'
+        };
+      }
+    ),
+
+    new Fetcher<{ name: StringV }, ComptrollerImplData>(
+      `
+        #### StandardG2
+        * "StandardG2 name:<String>" - The standard generation 2 Comptroller contract
+          * E.g. "Comptroller Deploy StandardG2 MyStandard"
+      `,
+      'StandardG2',
+      [new Arg('name', getStringV)],
+      async (world, { name }) => {
+        return {
+          invokation: await ComptrollerG2Contract.deploy<ComptrollerImpl>(world, from, []),
+          name: name.val,
+          contract: 'ComptrollerG2',
+          description: 'StandardG2 Comptroller Impl'
+        };
+      }
     ),
 
     new Fetcher<{ name: StringV }, ComptrollerImplData>(

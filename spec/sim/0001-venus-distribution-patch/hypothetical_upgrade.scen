@@ -3,8 +3,8 @@
 PrintTransactionLogs
 Alias CompHolder "0x19bc62ff7cd9ffd6bdced9802ff718f09f7259f1"
 Alias USDCWhale "0x92d7796c04ee34d1d16c57fab92fc2bccf434468"
-Alias cBATBorrower "0xe5f3dbcc3dcf75a6946822aae7df5160505d3069"
-Web3Fork "https://mainnet-eth.compound.finance/@10331520" (CompHolder USDCWhale cBATBorrower)
+Alias vBATBorrower "0xe5f3dbcc3dcf75a6946822aae7df5160505d3069"
+Web3Fork "https://mainnet-eth.compound.finance/@10331520" (CompHolder USDCWhale vBATBorrower)
 UseConfigs mainnet
 
 -- Deploy the flywheel impl
@@ -140,22 +140,22 @@ Assert Equal (Bep20 vUSDC TotalSupply) 927050045835492296
 
 -- Next check the BAT borrower, borrow a little more
 
-Assert Equal (Bep20 vBNB TokenBalance cBATBorrower) 384765976900
+Assert Equal (Bep20 vBNB TokenBalance vBATBorrower) 384765976900
 Assert Equal (Bep20 vBNB TotalSupply) 4585405574577755
 
-Assert Equal (VToken vBAT BorrowBalance cBATBorrower) 37550980777226218529804
+Assert Equal (VToken vBAT BorrowBalance vBATBorrower) 37550980777226218529804
 Assert Equal (VToken vBAT TotalBorrows) 816167647101108360363936140
 
-Expect Changes (VToken vBAT BorrowBalance cBATBorrower) 6666005042256047300989
-From cBATBorrower (VToken vBAT Borrow 6666000000000000000000)
+Expect Changes (VToken vBAT BorrowBalance vBATBorrower) 6666005042256047300989
+From vBATBorrower (VToken vBAT Borrow 6666000000000000000000)
 
-Assert Equal (VToken vBAT BorrowBalance cBATBorrower) 44216985819482265830793
+Assert Equal (VToken vBAT BorrowBalance vBATBorrower) 44216985819482265830793
 Assert Equal (VToken vBAT TotalBorrows) 818374059192055804747435060
 
 -- Claim xvs to true up their balances
 
 Comptroller ClaimVenus USDCWhale
-Comptroller ClaimVenus cBATBorrower
+Comptroller ClaimVenus vBATBorrower
 
 -- Now move the clock forward
 
@@ -170,7 +170,7 @@ Comptroller ClaimVenus USDCWhale
 -- vBNB: 384765976900 / 4585405574577755 * 231982893485648 * 1e6 = 19465917067611490
 -- vBAT: 44216985819482265830793 / 818374059192055804747435060 * 158876289748264702 * 1e6 = 8584131635094196000
 --  = 0.01946591706761149 + 8.584131635094196000 = 8.603597552161807
-Expect Changes (Bep20 XVS TokenBalance cBATBorrower) 8.603623362954463581e18
-Comptroller ClaimVenus cBATBorrower
+Expect Changes (Bep20 XVS TokenBalance vBATBorrower) 8.603623362954463581e18
+Comptroller ClaimVenus vBATBorrower
 
 Print "XVS distribution patch OK!"

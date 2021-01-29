@@ -474,13 +474,13 @@ const fetchers = [
           let userInMarket = await world.web3.eth.getStorageAt(addr.val, newKeyTwo);
 
           let isCompKey = '0x' + toBN(newKey).add(toBN(3)).toString(16);
-          let isCompStr = await world.web3.eth.getStorageAt(addr.val, isCompKey);
+          let isVenusStr = await world.web3.eth.getStorageAt(addr.val, isCompKey);
 
           return new ListV([
             new BoolV(isListed),
             new ExpNumberV(collateralFactor.toString(), 1e18),
             new BoolV(areEqual(userInMarket, 1)),
-            new BoolV(areEqual(isCompStr, 1))
+            new BoolV(areEqual(isVenusStr, 1))
           ]);
         default:
           return new NothingV();
@@ -949,7 +949,7 @@ const fetchers = [
     `
       #### XVS
 
-      * "XVS ...compArgs" - Returns XVS value
+      * "XVS ...venusArgs" - Returns XVS value
     `,
     'XVS',
     [new Arg('res', getXVSValue, { variadic: true })],
@@ -960,7 +960,7 @@ const fetchers = [
     `
       #### SXP
 
-      * "SXP ...compArgs" - Returns SXP value
+      * "SXP ...venusArgs" - Returns SXP value
     `,
     'SXP',
     [new Arg('res', getSXPValue, { variadic: true })],
@@ -971,7 +971,7 @@ const fetchers = [
     `
       #### VAI
 
-      * "VAI ...compArgs" - Returns VAI value
+      * "VAI ...venusArgs" - Returns VAI value
     `,
     'VAI',
     [new Arg('res', getVAIValue, { variadic: true })],

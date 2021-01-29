@@ -36,6 +36,27 @@ async function makeComptroller(opts = {}) {
     return Object.assign(comptroller, { priceOracle });
   }
 
+  if (kind == 'unitroller-g2') {
+    const unitroller = opts.unitroller || await deploy('Unitroller');
+    const comptroller = await deploy('ComptrollerScenarioG2');
+    const priceOracle = opts.priceOracle || await makePriceOracle(opts.priceOracleOpts);
+    const closeFactor = bnbMantissa(dfn(opts.closeFactor, .051));
+    const liquidationIncentive = bnbMantissa(1);
+    const xvs = opts.xvs || await deploy('XVS', [opts.compOwner || root]);
+    const venusRate = bnbUnsigned(dfn(opts.venusRate, 1e18));
+
+    await send(unitroller, '_setPendingImplementation', [comptroller._address]);
+    await send(comptroller, '_become', [unitroller._address]);
+    mergeInterface(unitroller, comptroller);
+    await send(unitroller, '_setLiquidationIncentive', [liquidationIncentive]);
+    await send(unitroller, '_setCloseFactor', [closeFactor]);
+    await send(unitroller, '_setPriceOracle', [priceOracle._address]);
+    await send(unitroller, 'harnessSetVenusRate', [venusRate]);
+    await send(unitroller, 'setXVSAddress', [xvs._address]); // harness only
+
+    return Object.assign(unitroller, { priceOracle, xvs });
+  }
+
   if (kind == 'unitroller') {
     const unitroller = opts.unitroller || await deploy('Unitroller');
     const comptroller = await deploy('ComptrollerHarness');
@@ -68,10 +89,9 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, '_setPriceOracle', [priceOracle._address]);
     await send(unitroller, 'setXVSAddress', [xvs._address]); // harness only
     await send(vaiunitroller, 'setVAIAddress', [vai._address]); // harness only
-    await send(unitroller, '_setVenusRate', [venusRate]);
+    await send(unitroller, 'harnessSetVenusRate', [venusRate]);
     await send(unitroller, '_setVenusVAIRate', [venusVAIRate]);
     await send(vaiunitroller, '_initializeVenusVAIState', [0]);
-    await send(unitroller, '_addVenusMarkets', [venusMarkets]);
     await send(vai, 'rely', [unitroller._address]);
 
     return Object.assign(unitroller, { priceOracle, xvs, vai, vaiunitroller });

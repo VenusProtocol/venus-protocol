@@ -1,0 +1,93 @@
+-- Tests for the grants and math patch
+
+Macro FlywheelComptroller price=1.0 borrowRate=0.000005 venusInitAmount=5000000e18
+    Unitroller Deploy
+    PriceOracle Deploy Fixed price
+    PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero)
+    ----g1
+    ComptrollerImpl Deploy ScenarioG1 ComptrollerScenG1
+    Unitroller SetPendingImpl ComptrollerScenG1
+    ComptrollerImpl ComptrollerScenG1 BecomeG1
+    --list some tokens
+    Comptroller SetPriceOracle (PriceOracleProxy Address)
+    Comptroller SetMaxAssets 20
+    Comptroller SetCloseFactor 0.5
+    Comptroller LiquidationIncentive 1.1
+    Comptroller SetVenusRate 1e18
+    NewVToken ZRX vZRX
+    NewVToken BAT vBAT
+    Support vZRX collateralFactor:0.5
+    Support vBAT collateralFactor:0.5
+    Comptroller AddVenusMarkets (vZRX vBAT)
+    Bep20 Deploy Standard XVS "XVS Token" 18
+    Give (Address Comptroller) venusInitAmount XVS
+    Comptroller Send "setXVSAddress(address)" (Address XVS)
+    Bep20 Deploy Standard VAI "VAI Token" 18
+    Give (Address Comptroller) venusInitAmount VAI
+    Comptroller Send "setVAIAddress(address)" (Address VAI)
+
+Macro GrantsComptroller
+    FlywheelComptroller
+    -- g2
+    ComptrollerImpl Deploy ScenarioG2 ComptrollerScen
+    Unitroller SetPendingImpl ComptrollerScen
+    ComptrollerImpl ComptrollerScen BecomeG2
+    -- current
+    ComptrollerImpl Deploy Scenario ComptrollerScen
+    Unitroller SetPendingImpl ComptrollerScen
+    ComptrollerImpl ComptrollerScen Become
+
+Macro InitSpeeds
+    Prep Geoff 100e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX--tokenbalance = 50e18 / 2e9 = 2.5e10
+    Prep Coburn Some BAT vBAT
+    Mint Coburn 6e18 vBAT--tokenbalance = 6e18 / 2e9 = 3e9
+    EnterMarkets Coburn vBAT
+    Borrow Coburn 1e18 vZRX
+    Comptroller SetVenusSpeed vZRX 1
+    Comptroller SetVenusSpeed vBAT 1
+    Comptroller RefreshVenusSpeeds
+    Comptroller Send "setXVSAddress(address)" (Address XVS)
+
+Test "XVS speed can be set per market"
+    GrantsComptroller
+    InitSpeeds
+    -- Baseline xvs amounts
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 0
+    -- Venus speed can be set
+    Comptroller SetVenusSpeed vZRX 2
+    FastForward 1000 Blocks
+    Comptroller ClaimVenus Geoff
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 2000
+    -- Venus speed can be changed
+    Comptroller SetVenusSpeed vZRX 4
+    FastForward 1000 Blocks
+    Comptroller ClaimVenus Geoff
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 6000
+    -- Venus speed can be removed
+    Comptroller SetVenusSpeed vZRX 0
+    FastForward 1000 Blocks
+    Comptroller ClaimVenus Geoff
+    Assert Equal (Comptroller VenusAccrued Geoff) 0
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 6000
+
+Test "Set xvs rate is removed"
+    GrantsComptroller
+    InitSpeeds
+    AllowFailures
+    Comptroller SetVenusRate 5
+
+Test "XVS is not claimed automatically"
+    GrantsComptroller
+    InitSpeeds
+    Comptroller SetVenusSpeed vZRX 2
+    FastForward 100000 Blocks
+    -- Check xvs is not claimed automatically
+    Mint Geoff 50e18 vZRX
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 0
+    -- Confirm there was xvs to claim
+    Comptroller ClaimVenus Geoff
+    Assert Equal (Bep20 XVS TokenBalance Geoff) 200000

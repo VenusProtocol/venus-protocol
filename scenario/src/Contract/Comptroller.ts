@@ -47,6 +47,11 @@ interface ComptrollerMethods {
   venusSpeeds(string): Callable<string>
   claimVenus(string): Sendable<void>
   _setVenusRate(encodedNumber): Sendable<void>
+  _setVenusSpeed(vToken: string, encodedNumber): Sendable<void>
+  _setMarketBorrowCaps(vTokens:string[], borrowCaps:encodedNumber[]): Sendable<void>
+  _setBorrowCapGuardian(string): Sendable<void>
+  borrowCapGuardian(): Callable<string>
+  borrowCaps(string): Callable<string>
 }
 
 export interface Comptroller extends Contract {

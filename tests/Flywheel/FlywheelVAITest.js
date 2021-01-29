@@ -93,8 +93,8 @@ describe('Flywheel', () => {
                        = 5e18 * 5e36 / 1e36 = 25e18
       */
       const tx = await send(comptroller, "harnessDistributeVAIMinterVenus", [a1]);
-      expect(await venusAccrued(comptroller, a1)).toEqualNumber(0);
-      expect(await xvsBalance(comptroller, a1)).toEqualNumber(25e18);
+      expect(await venusAccrued(comptroller, a1)).toEqualNumber(25e18);
+      expect(await xvsBalance(comptroller, a1)).toEqualNumber(0);
       expect(tx).toHaveLog('DistributedVAIMinterVenus', {
         vaiMinter: a1,
         venusDelta: bnbUnsigned(25e18).toString(),
@@ -135,7 +135,7 @@ describe('Flywheel', () => {
       const tx = await send(comptroller, 'claimVenus', [a2]);
       const a2AccruedPost = await venusAccrued(comptroller, a2);
       const xvsBalancePost = await xvsBalance(comptroller, a2);
-      expect(tx.gasUsed).toBeLessThan(330000);
+      expect(tx.gasUsed).toBeLessThan(400000);
       expect(speed).toEqualNumber(venusVAIRate);
       expect(a2AccruedPre).toEqualNumber(0);
       expect(a2AccruedPost).toEqualNumber(0);

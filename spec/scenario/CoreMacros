@@ -20,6 +20,15 @@ Macro PricedComptroller closeFactor=0.1 maxAssets=20
 Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
     Unitroller Deploy
     PriceOracle Deploy Fixed price
+    --g1
+    ComptrollerImpl Deploy ScenarioG1 ComptrollerG1
+    Unitroller SetPendingImpl ComptrollerG1
+    ComptrollerImpl ComptrollerG1 BecomeG1
+    --g2
+    ComptrollerImpl Deploy ScenarioG2 ComptrollerG2
+    Unitroller SetPendingImpl ComptrollerG2
+    ComptrollerImpl ComptrollerG2 BecomeG2
+    --current
     ComptrollerImpl Deploy Scenario ScenComptroller
     Unitroller SetPendingImpl ScenComptroller
     ComptrollerImpl ScenComptroller Become
@@ -27,7 +36,6 @@ Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetMaxAssets maxAssets
     Comptroller SetCloseFactor closeFactor
-    Comptroller SetVenusRate 1e18
 
 Macro NewVToken bep20 vToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 tokenType=Standard delegatorType=VBep20DelegatorScenario vTokenType=VBep20DelegateScenario admin=Admin becomeImplementationData="0x0"
     Bep20 Deploy tokenType bep20 bep20

@@ -252,6 +252,18 @@ async function setVenusRate(world: World, from: string, comptroller: Comptroller
   return world;
 }
 
+async function setVenusSpeed(world: World, from: string, comptroller: Comptroller, vToken: VToken, speed: NumberV): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setVenusSpeed(vToken._address, speed.encode()), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Venus speed for market ${vToken._address} set to ${speed.show()}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function printLiquidity(world: World, comptroller: Comptroller): Promise<World> {
   let enterEvents = await getPastEvents(world, comptroller, 'StdComptroller', 'MarketEntered');
   let addresses = enterEvents.map((event) => event.returnValues['account']);
@@ -290,6 +302,30 @@ async function acceptAdmin(world: World, from: string, comptroller: Comptroller)
   world = addAction(
     world,
     `Comptroller: ${describeUser(world, from)} accepts admin`,
+    invokation
+  );
+
+  return world;
+}
+
+async function setMarketBorrowCaps(world: World, from: string, comptroller: Comptroller, vTokens: VToken[], borrowCaps: NumberV[]): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setMarketBorrowCaps(vTokens.map(c => c._address), borrowCaps.map(c => c.encode())), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Borrow caps on ${vTokens} set to ${borrowCaps}`,
+    invokation
+  );
+
+  return world;
+}
+
+async function setBorrowCapGuardian(world: World, from: string, comptroller: Comptroller, newBorrowCapGuardian: string): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setBorrowCapGuardian(newBorrowCapGuardian), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Comptroller: ${describeUser(world, from)} sets borrow cap guardian to ${newBorrowCapGuardian}`,
     invokation
   );
 
@@ -581,6 +617,57 @@ export function comptrollerCommands() {
       ],
       (world, from, {comptroller, rate}) => setVenusRate(world, from, comptroller, rate)
     ),
+    new Command<{comptroller: Comptroller, vToken: VToken, speed: NumberV}>(`
+      #### SetVenusSpeed
+      * "Comptroller SetVenusSpeed <vToken> <rate>" - Sets XVS speed for market
+      * E.g. "Comptroller SetVenusSpeed vToken 1000
+      `,
+      "SetVenusSpeed",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("vToken", getVTokenV),
+        new Arg("speed", getNumberV)
+      ],
+      (world, from, {comptroller, vToken, speed}) => setVenusSpeed(world, from, comptroller, vToken, speed)
+    ),
+    new Command<{comptroller: Comptroller, contributor: AddressV, speed: NumberV}>(`
+      #### SetContributorVenusSpeed
+      * "Comptroller SetContributorVenusSpeed <contributor> <rate>" - Sets XVS speed for contributor
+      * E.g. "Comptroller SetContributorVenusSpeed contributor 1000
+      `,
+      "SetContributorVenusSpeed",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("contributor", getAddressV),
+        new Arg("speed", getNumberV)
+      ],
+      (world, from, {comptroller, contributor, speed}) => setContributorVenusSpeed(world, from, comptroller, contributor.val, speed)
+    ),
+    new Command<{comptroller: Comptroller, vTokens: VToken[], borrowCaps: NumberV[]}>(`
+      #### SetMarketBorrowCaps
+      * "Comptroller SetMarketBorrowCaps (<VToken> ...) (<borrowCap> ...)" - Sets Market Borrow Caps
+      * E.g "Comptroller SetMarketBorrowCaps (vZRX vUSDC) (10000.0e18, 1000.0e6)
+      `,
+      "SetMarketBorrowCaps",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("vTokens", getVTokenV, {mapped: true}),
+        new Arg("borrowCaps", getNumberV, {mapped: true})
+      ],
+      (world, from, {comptroller,vTokens,borrowCaps}) => setMarketBorrowCaps(world, from, comptroller, vTokens, borrowCaps)
+    ),
+    new Command<{comptroller: Comptroller, newBorrowCapGuardian: AddressV}>(`
+        #### SetBorrowCapGuardian
+        * "Comptroller SetBorrowCapGuardian newBorrowCapGuardian:<Address>" - Sets the Borrow Cap Guardian for the Comptroller
+          * E.g. "Comptroller SetBorrowCapGuardian Geoff"
+      `,
+      "SetBorrowCapGuardian",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("newBorrowCapGuardian", getAddressV)
+      ],
+      (world, from, {comptroller, newBorrowCapGuardian}) => setBorrowCapGuardian(world, from, comptroller, newBorrowCapGuardian.val)
+    )
   ];
 }
 

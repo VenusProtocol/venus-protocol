@@ -476,6 +476,30 @@ export function comptrollerFetchers() {
       async (world, {comptroller, VToken}) => {
         return new NumberV(await comptroller.methods.venusSpeeds(VToken._address).call());
       }
+    ),
+    new Fetcher<{comptroller: Comptroller}, AddressV>(`
+        #### BorrowCapGuardian
+        * "BorrowCapGuardian" - Returns the Comptrollers's BorrowCapGuardian
+        * E.g. "Comptroller BorrowCapGuardian"
+        `,
+        "BorrowCapGuardian",
+        [
+          new Arg("comptroller", getComptroller, {implicit: true})
+        ],
+        async (world, {comptroller}) => new AddressV(await comptroller.methods.borrowCapGuardian().call())
+    ),
+    new Fetcher<{comptroller: Comptroller, VToken: VToken}, NumberV>(`
+        #### BorrowCaps
+        * "Comptroller BorrowCaps vZRX
+      `,
+      "BorrowCaps",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("VToken", getVTokenV),
+      ],
+      async (world, {comptroller, VToken}) => {
+        return new NumberV(await comptroller.methods.borrowCaps(VToken._address).call());
+      }
     )
   ];
 }
