@@ -8,14 +8,11 @@ Test "Standard Upgrade"
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.2
     Comptroller SetMaxAssets 20
-    Comptroller SetVenusRate 1e18
     ListedVToken ZRX vZRX
     ListedVToken DAI vDAI
-    Comptroller AddVenusMarkets (vZRX vDAI)
     Assert Equal (Comptroller Implementation) (Address ScenComptroller)
     Assert Equal (Comptroller CloseFactor) 0.2
     Assert Equal (Comptroller MaxAssets) 20
-    Assert Equal (Comptroller VenusRate) 1e18
     -- Upgrade to V*
     ComptrollerImpl Deploy Scenario ScenComptroller_2
     Unitroller SetPendingImpl ScenComptroller_2
@@ -23,7 +20,6 @@ Test "Standard Upgrade"
     Assert Equal (Comptroller Implementation) (Address ScenComptroller_2)
     Assert Equal (Comptroller CloseFactor) 0.2
     Assert Equal (Comptroller MaxAssets) 20
-    Assert Equal (Comptroller VenusRate) 1e18
 
 Test "Once become, can become again"
     -- TODO: See why ABI is broken here
@@ -35,22 +31,18 @@ Test "Once become, can become again"
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.2
     Comptroller SetMaxAssets 20
-    Comptroller SetVenusRate 1e18
     Assert Equal (Comptroller Implementation) (Address ScenComptroller)
     Assert Equal (Comptroller CloseFactor) 0.2
     Assert Equal (Comptroller MaxAssets) 20
-    Assert Equal (Comptroller VenusRate) 1e18
     ComptrollerImpl Deploy Scenario ScenComptroller_2
     Unitroller SetPendingImpl ScenComptroller_2
     ComptrollerImpl ScenComptroller_2 Become
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.4
     Comptroller SetMaxAssets 40
-    Comptroller SetVenusRate 2e18
     Assert Equal (Comptroller Implementation) (Address ScenComptroller_2)
     Assert Equal (Comptroller CloseFactor) 0.4
     Assert Equal (Comptroller MaxAssets) 40
-    Assert Equal (Comptroller VenusRate) 2e18
 
 --bork
 Test "Bork and unbork"
@@ -63,11 +55,9 @@ Test "Bork and unbork"
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.2
     Comptroller SetMaxAssets 20
-    Comptroller SetVenusRate 1e18
     Assert Equal (Comptroller Implementation) (Address ScenComptroller)
     Assert Equal (Comptroller CloseFactor) 0.2
     Assert Equal (Comptroller MaxAssets) 20
-    Assert Equal (Comptroller VenusRate) 1e18
     -- Now move to a borked one that's bad
     ComptrollerImpl Deploy Borked MyBork
     Unitroller SetPendingImpl MyBork
@@ -150,7 +140,6 @@ Pending "Keeps all storage"
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.2
     Comptroller SetMaxAssets 20
-    Comptroller SetVenusRate 1e18
     Comptroller SetPendingAdmin Coburn
     ---
     NewVToken ZRX vZRX delegatorType:VBep20Delegator vTokenType:VBep20Delegate

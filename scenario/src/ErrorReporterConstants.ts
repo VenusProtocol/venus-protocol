@@ -57,7 +57,7 @@ const ComptrollerErrorReporter = {
     'SET_PAUSE_GUARDIAN_OWNER_CHECK',
     'VAI_MINT_REJECTION',
     'VAI_BURN_REJECTION',
-    'ZUNUSED'
+    'SET_PAUSE_GUARDIAN_OWNER_CHECK',
   ]
 };
 

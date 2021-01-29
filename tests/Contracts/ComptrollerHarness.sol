@@ -43,8 +43,44 @@ contract ComptrollerHarness is Comptroller {
         return xvsAddress;
     }
 
-    function setVenusSpeed(address vToken, uint venusSpeed) public {
-        venusSpeeds[vToken] = venusSpeed;
+    /**
+     * @notice Set the amount of XVS distributed per block
+     * @param venusRate_ The amount of XVS wei per block to distribute
+     */
+    function harnessSetVenusRate(uint venusRate_) public {
+        venusRate = venusRate_;
+    }
+
+    /**
+     * @notice Recalculate and update XVS speeds for all XVS markets
+     */
+    function harnessRefreshVenusSpeeds() public {
+        VToken[] memory allMarkets_ = allMarkets;
+
+        for (uint i = 0; i < allMarkets_.length; i++) {
+            VToken vToken = allMarkets_[i];
+            Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
+            updateVenusSupplyIndex(address(vToken));
+            updateVenusBorrowIndex(address(vToken), borrowIndex);
+        }
+
+        Exp memory totalUtility = Exp({mantissa: 0});
+        Exp[] memory utilities = new Exp[](allMarkets_.length);
+        for (uint i = 0; i < allMarkets_.length; i++) {
+            VToken vToken = allMarkets_[i];
+            if (venusSpeeds[address(vToken)] > 0) {
+                Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(vToken)});
+                Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
+                utilities[i] = utility;
+                totalUtility = add_(totalUtility, utility);
+            }
+        }
+
+        for (uint i = 0; i < allMarkets_.length; i++) {
+            VToken vToken = allMarkets[i];
+            uint newSpeed = totalUtility.mantissa > 0 ? mul_(venusRate, div_(utilities[i], totalUtility)) : 0;
+            setVenusSpeedInternal(vToken, newSpeed);
+        }
     }
 
     function setVenusBorrowerIndex(address vToken, address borrower, uint index) public {
@@ -53,6 +89,16 @@ contract ComptrollerHarness is Comptroller {
 
     function setVenusSupplierIndex(address vToken, address supplier, uint index) public {
         venusSupplierIndex[vToken][supplier] = index;
+    }
+
+    function harnessDistributeAllBorrowerVenus(address vToken, address borrower, uint marketBorrowIndexMantissa) public {
+        distributeBorrowerVenus(vToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}));
+        venusAccrued[borrower] = grantXVSInternal(borrower, venusAccrued[borrower]);
+    }
+
+    function harnessDistributeAllSupplierVenus(address vToken, address supplier) public {
+        distributeSupplierVenus(vToken, supplier);
+        venusAccrued[supplier] = grantXVSInternal(supplier, venusAccrued[supplier]);
     }
 
     function harnessUpdateVenusBorrowIndex(address vToken, uint marketBorrowIndexMantissa) public {
@@ -64,11 +110,11 @@ contract ComptrollerHarness is Comptroller {
     }
 
     function harnessDistributeBorrowerVenus(address vToken, address borrower, uint marketBorrowIndexMantissa) public {
-        distributeBorrowerVenus(vToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}), false);
+        distributeBorrowerVenus(vToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}));
     }
 
     function harnessDistributeSupplierVenus(address vToken, address supplier) public {
-        distributeSupplierVenus(vToken, supplier, false);
+        distributeSupplierVenus(vToken, supplier);
     }
 
     function harnessDistributeVAIMinterVenus(address vaiMinter) public {
@@ -76,7 +122,17 @@ contract ComptrollerHarness is Comptroller {
     }
 
     function harnessTransferVenus(address user, uint userAccrued, uint threshold) public returns (uint) {
-        return transferXVS(user, userAccrued, threshold);
+        if (userAccrued > 0 && userAccrued >= threshold) {
+            return grantXVSInternal(user, userAccrued);
+        }
+        return userAccrued;
+    }
+
+    function harnessAddVenusMarkets(address[] memory vTokens) public {
+        for (uint i = 0; i < vTokens.length; i++) {
+            // temporarily set venusSpeed to 1 (will be fixed by `harnessRefreshVenusSpeeds`)
+            setVenusSpeedInternal(VToken(vTokens[i]), 1);
+        }
     }
 
     function harnessSetMintedVAIs(address user, uint amount) public {
@@ -100,7 +156,7 @@ contract ComptrollerHarness is Comptroller {
         uint m = allMarkets.length;
         uint n = 0;
         for (uint i = 0; i < m; i++) {
-            if (markets[address(allMarkets[i])].isVenus) {
+            if (venusSpeeds[address(allMarkets[i])] > 0) {
                 n++;
             }
         }
@@ -108,7 +164,7 @@ contract ComptrollerHarness is Comptroller {
         address[] memory venusMarkets = new address[](n);
         uint k = 0;
         for (uint i = 0; i < m; i++) {
-            if (markets[address(allMarkets[i])].isVenus) {
+            if (venusSpeeds[address(allMarkets[i])] > 0) {
                 venusMarkets[k++] = address(allMarkets[i]);
             }
         }

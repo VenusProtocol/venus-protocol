@@ -121,53 +121,53 @@ export async function getPriceOracle(world: World): Promise<PriceOracle> {
 
 export async function getXVS(
   world: World,
-  compArg: Event
+  venusArg: Event
 ): Promise<XVS> {
   return getWorldContract(world, [['XVS', 'address']]);
 }
 
 export async function getXVSData(
   world: World,
-  compArg: string
+  venusArg: string
 ): Promise<[XVS, string, Map<string, string>]> {
-  let contract = await getXVS(world, <Event>(<any>compArg));
-  let data = getContractData(world, [['XVS', compArg]]);
+  let contract = await getXVS(world, <Event>(<any>venusArg));
+  let data = getContractData(world, [['XVS', venusArg]]);
 
-  return [contract, compArg, <Map<string, string>>(<any>data)];
+  return [contract, venusArg, <Map<string, string>>(<any>data)];
 }
 
 export async function getSXP(
   world: World,
-  compArg: Event
+  venusArg: Event
 ): Promise<SXP> {
   return getWorldContract(world, [['SXP', 'address']]);
 }
 
 export async function getSXPData(
   world: World,
-  compArg: string
+  venusArg: string
 ): Promise<[SXP, string, Map<string, string>]> {
-  let contract = await getSXP(world, <Event>(<any>compArg));
-  let data = getContractData(world, [['SXP', compArg]]);
+  let contract = await getSXP(world, <Event>(<any>venusArg));
+  let data = getContractData(world, [['SXP', venusArg]]);
 
-  return [contract, compArg, <Map<string, string>>(<any>data)];
+  return [contract, venusArg, <Map<string, string>>(<any>data)];
 }
 
 export async function getVAI(
   world: World,
-  compArg: Event
+  venusArg: Event
 ): Promise<VAI> {
   return getWorldContract(world, [['VAI', 'address']]);
 }
 
 export async function getVAIData(
   world: World,
-  compArg: string
+  venusArg: string
 ): Promise<[VAI, string, Map<string, string>]> {
-  let contract = await getVAI(world, <Event>(<any>compArg));
-  let data = getContractData(world, [['VAI', compArg]]);
+  let contract = await getVAI(world, <Event>(<any>venusArg));
+  let data = getContractData(world, [['VAI', venusArg]]);
 
-  return [contract, compArg, <Map<string, string>>(<any>data)];
+  return [contract, venusArg, <Map<string, string>>(<any>data)];
 }
 
 export async function getGovernorData(

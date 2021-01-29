@@ -194,7 +194,6 @@ Test "Set Pending Comptroller implementation on Unitroller from Timelock"
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetCloseFactor 0.1
     Comptroller SetMaxAssets 20
-    Comptroller SetVenusRate 1e18
     Assert Equal (Unitroller PendingImplementation) (Address Zero)
     Assert Equal (Unitroller Implementation) (Address ScenComptroller)
     FreezeTime 90
