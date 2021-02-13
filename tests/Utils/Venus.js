@@ -147,7 +147,27 @@ async function makeVToken(opts = {}) {
           encodeParameters(['address', 'address'], [vDaiMaker._address, vDaiMaker._address])
         ]
       );
-      vToken = await saddle.getContractAt('VDaiDelegateHarness', vDelegator._address); // XXXS at
+      vToken = await saddle.getContractAt('VDaiDelegateHarness', vDelegator._address);
+      break;
+
+    case 'vxvs':
+      underlying = await deploy('XVS', [opts.compHolder || root]);
+      vDelegatee = await deploy('VXvsLikeDelegate');
+      vDelegator = await deploy('VBep20Delegator',
+        [
+          underlying._address,
+          comptroller._address,
+          interestRateModel._address,
+          exchangeRate,
+          name,
+          symbol,
+          decimals,
+          admin,
+          vDelegatee._address,
+          "0x0"
+        ]
+      );
+      vToken = await saddle.getContractAt('VXvsLikeDelegate', vDelegator._address);
       break;
 
     case 'vbep20':
@@ -168,7 +188,7 @@ async function makeVToken(opts = {}) {
           "0x0"
         ]
       );
-      vToken = await saddle.getContractAt('VBep20DelegateHarness', vDelegator._address); // XXXS at
+      vToken = await saddle.getContractAt('VBep20DelegateHarness', vDelegator._address);
       break;
   }
 
