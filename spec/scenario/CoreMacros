@@ -127,6 +127,12 @@ Macro Borrow user amount token
 Macro RepayBorrow user amount token
     From user (VToken token RepayBorrow amount)
 
+Macro MintVAI user amount
+    From user (VAIController Mint amount)
+
+Macro RepayVAI user amount
+    From user (VAIController Repay amount)
+
 Macro RepayBorrowBnb user amount token
     From user (Trx GasPrice 0 (Trx Value amount (VToken token RepayBorrow)))
 

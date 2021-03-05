@@ -381,6 +381,16 @@ contract BoolComptroller is ComptrollerInterface {
         return failCalculateSeizeTokens ? (opaqueError, 0) : (noError, calculatedSeizeTokens);
     }
 
+    /*** Special Liquidation Calculation ***/
+
+    function liquidateVAICalculateSeizeTokens(
+        address _vTokenCollateral,
+        uint _repayAmount) external view returns (uint, uint) {
+        _vTokenCollateral;
+        _repayAmount;
+        return failCalculateSeizeTokens ? (opaqueError, 0) : (noError, calculatedSeizeTokens);
+    }
+
     /**** Mock Settors ****/
 
     /*** Policy Hooks ***/

@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-contract ComptrollerInterface {
+contract ComptrollerInterfaceG1 {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     bool public constant isComptroller = true;
 
@@ -68,8 +68,16 @@ contract ComptrollerInterface {
         address vTokenBorrowed,
         address vTokenCollateral,
         uint repayAmount) external view returns (uint, uint);
-
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
+}
+
+contract ComptrollerInterfaceG2 is ComptrollerInterfaceG1 {
+    function liquidateVAICalculateSeizeTokens(
+        address vTokenCollateral,
+        uint repayAmount) external view returns (uint, uint);
+}
+
+contract ComptrollerInterface is ComptrollerInterfaceG2 {
 }
 
 interface IVAIVault {

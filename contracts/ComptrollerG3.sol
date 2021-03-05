@@ -14,7 +14,7 @@ import "./VAI/VAI.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, ComptrollerErrorReporter, Exponential {
+contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, ComptrollerErrorReporter, Exponential {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -39,6 +39,9 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
     /// @notice Emitted when price oracle is changed
     event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
 
+    /// @notice Emitted when VAI Vault info is changed
+    event NewVAIVaultInfo(address vault_, uint releaseStartBlock_, uint releaseInterval_);
+
     /// @notice Emitted when pause guardian is changed
     event NewPauseGuardian(address oldPauseGuardian, address newPauseGuardian);
 
@@ -48,14 +51,11 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
     /// @notice Emitted when an action is paused on a market
     event ActionPaused(VToken vToken, string action, bool pauseState);
 
-    /// @notice Emitted when market venus status is changed
-    event MarketVenus(VToken vToken, bool isVenus);
-
-    /// @notice Emitted when Venus rate is changed
-    event NewVenusRate(uint oldVenusRate, uint newVenusRate);
-
     /// @notice Emitted when Venus VAI rate is changed
     event NewVenusVAIRate(uint oldVenusVAIRate, uint newVenusVAIRate);
+
+    /// @notice Emitted when Venus VAI Vault rate is changed
+    event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
 
     /// @notice Emitted when a new Venus speed is calculated for a market
     event VenusSpeedUpdated(VToken indexed vToken, uint newSpeed);
@@ -69,6 +69,9 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
     /// @notice Emitted when XVS is distributed to a VAI minter
     event DistributedVAIMinterVenus(address indexed vaiMinter, uint venusDelta, uint venusVAIMintIndex);
 
+    /// @notice Emitted when XVS is distributed to VAI Vault
+    event DistributedVAIVaultVenus(uint amount);
+
     /// @notice Emitted when VAIController is changed
     event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
 
@@ -78,8 +81,11 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
     /// @notice Emitted when protocol state is changed by admin
     event ActionProtocolPaused(bool state);
 
-    /// @notice The threshold above which the flywheel transfers XVS, in wei
-    uint public constant venusClaimThreshold = 0.001e18;
+    /// @notice Emitted when borrow cap for a vToken is changed
+    event NewBorrowCap(VToken indexed vToken, uint newBorrowCap);
+
+    /// @notice Emitted when borrow cap guardian is changed
+    event NewBorrowCapGuardian(address oldBorrowCapGuardian, address newBorrowCapGuardian);
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
@@ -275,7 +281,7 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
 
         // Keep the flywheel moving
         updateVenusSupplyIndex(vToken);
-        distributeSupplierVenus(vToken, minter, false);
+        distributeSupplierVenus(vToken, minter);
 
         return uint(Error.NO_ERROR);
     }
@@ -310,7 +316,7 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
 
         // Keep the flywheel moving
         updateVenusSupplyIndex(vToken);
-        distributeSupplierVenus(vToken, redeemer, false);
+        distributeSupplierVenus(vToken, redeemer);
 
         return uint(Error.NO_ERROR);
     }
@@ -383,6 +389,15 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
             return uint(Error.PRICE_ERROR);
         }
 
+        uint borrowCap = borrowCaps[vToken];
+        // Borrow cap of 0 corresponds to unlimited borrowing
+        if (borrowCap != 0) {
+            uint totalBorrows = VToken(vToken).totalBorrows();
+            (MathError mathErr, uint nextTotalBorrows) = addUInt(totalBorrows, borrowAmount);
+            require(mathErr == MathError.NO_ERROR, "total borrows overflow");
+            require(nextTotalBorrows < borrowCap, "market borrow cap reached");
+        }
+
         (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(vToken), 0, borrowAmount);
         if (err != Error.NO_ERROR) {
             return uint(err);
@@ -394,7 +409,7 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: VToken(vToken).borrowIndex()});
         updateVenusBorrowIndex(vToken, borrowIndex);
-        distributeBorrowerVenus(vToken, borrower, borrowIndex, false);
+        distributeBorrowerVenus(vToken, borrower, borrowIndex);
 
         return uint(Error.NO_ERROR);
     }
@@ -442,7 +457,7 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: VToken(vToken).borrowIndex()});
         updateVenusBorrowIndex(vToken, borrowIndex);
-        distributeBorrowerVenus(vToken, borrower, borrowIndex, false);
+        distributeBorrowerVenus(vToken, borrower, borrowIndex);
 
         return uint(Error.NO_ERROR);
     }
@@ -575,8 +590,8 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
 
         // Keep the flywheel moving
         updateVenusSupplyIndex(vTokenCollateral);
-        distributeSupplierVenus(vTokenCollateral, borrower, false);
-        distributeSupplierVenus(vTokenCollateral, liquidator, false);
+        distributeSupplierVenus(vTokenCollateral, borrower);
+        distributeSupplierVenus(vTokenCollateral, liquidator);
 
         return uint(Error.NO_ERROR);
     }
@@ -629,8 +644,8 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
 
         // Keep the flywheel moving
         updateVenusSupplyIndex(vToken);
-        distributeSupplierVenus(vToken, src, false);
-        distributeSupplierVenus(vToken, dst, false);
+        distributeSupplierVenus(vToken, src);
+        distributeSupplierVenus(vToken, dst);
 
         return uint(Error.NO_ERROR);
     }
@@ -1020,6 +1035,7 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
 
         vToken.isVToken(); // Sanity check to make sure its really a VToken
 
+        // Note that isVenus is not in active use anymore
         markets[address(vToken)] = Market({isListed: true, isVenus: false, collateralFactorMantissa: 0});
 
         _addMarketInternal(vToken);
@@ -1037,62 +1053,42 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
     }
 
     /**
-     * @notice Admin function to change the Pause Guardian
-     * @param newPauseGuardian The address of the new Pause Guardian
-     * @return uint 0=success, otherwise a failure. (See enum Error for details)
-     */
-    function _setPauseGuardian(address newPauseGuardian) public returns (uint) {
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PAUSE_GUARDIAN_OWNER_CHECK);
+      * @notice Set the given borrow caps for the given vToken markets. Borrowing that brings total borrows to or above borrow cap will revert.
+      * @dev Admin or borrowCapGuardian function to set the borrow caps. A borrow cap of 0 corresponds to unlimited borrowing.
+      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
+      * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing.
+      */
+    function _setMarketBorrowCaps(VToken[] calldata vTokens, uint[] calldata newBorrowCaps) external {
+    	require(msg.sender == admin || msg.sender == borrowCapGuardian, "only admin or borrow cap guardian can set borrow caps"); 
+
+        uint numMarkets = vTokens.length;
+        uint numBorrowCaps = newBorrowCaps.length;
+
+        require(numMarkets != 0 && numMarkets == numBorrowCaps, "invalid input");
+
+        for(uint i = 0; i < numMarkets; i++) {
+            borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
+            emit NewBorrowCap(vTokens[i], newBorrowCaps[i]);
         }
+    }
+
+    /**
+     * @notice Admin function to change the Borrow Cap Guardian
+     * @param newBorrowCapGuardian The address of the new Borrow Cap Guardian
+     */
+    function _setBorrowCapGuardian(address newBorrowCapGuardian) external {
+        require(msg.sender == admin, "only admin can set borrow cap guardian");
 
         // Save current value for inclusion in log
-        address oldPauseGuardian = pauseGuardian;
+        address oldBorrowCapGuardian = borrowCapGuardian;
 
-        // Store pauseGuardian with value newPauseGuardian
-        pauseGuardian = newPauseGuardian;
+        // Store borrowCapGuardian with value newBorrowCapGuardian
+        borrowCapGuardian = newBorrowCapGuardian;
 
-        // Emit NewPauseGuardian(OldPauseGuardian, NewPauseGuardian)
-        emit NewPauseGuardian(oldPauseGuardian, newPauseGuardian);
-
-        return uint(Error.NO_ERROR);
+        // Emit NewBorrowCapGuardian(OldBorrowCapGuardian, NewBorrowCapGuardian)
+        emit NewBorrowCapGuardian(oldBorrowCapGuardian, newBorrowCapGuardian);
     }
 
-    function _setMintPaused(VToken vToken, bool state) public onlyListedMarket(vToken) validPauseState(state) returns (bool) {
-        mintGuardianPaused[address(vToken)] = state;
-        emit ActionPaused(vToken, "Mint", state);
-        return state;
-    }
-
-    function _setBorrowPaused(VToken vToken, bool state) public onlyListedMarket(vToken) validPauseState(state) returns (bool) {
-        borrowGuardianPaused[address(vToken)] = state;
-        emit ActionPaused(vToken, "Borrow", state);
-        return state;
-    }
-
-    function _setTransferPaused(bool state) public validPauseState(state) returns (bool) {
-        transferGuardianPaused = state;
-        emit ActionPaused("Transfer", state);
-        return state;
-    }
-
-    function _setSeizePaused(bool state) public validPauseState(state) returns (bool) {
-        seizeGuardianPaused = state;
-        emit ActionPaused("Seize", state);
-        return state;
-    }
-
-    function _setMintVAIPaused(bool state) public validPauseState(state) returns (bool) {
-        mintVAIGuardianPaused = state;
-        emit ActionPaused("MintVAI", state);
-        return state;
-    }
-
-    function _setRepayVAIPaused(bool state) public validPauseState(state) returns (bool) {
-        repayVAIGuardianPaused = state;
-        emit ActionPaused("RepayVAI", state);
-        return state;
-    }
     /**
      * @notice Set whole protocol pause/unpause state
      */
@@ -1136,44 +1132,46 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
         require(unitroller._acceptImplementation() == 0, "not authorized");
     }
 
-    /*** Venus Distribution ***/
-
     /**
-     * @notice Recalculate and update Venus speeds for all Venus markets
+     * @notice Checks caller is admin, or this contract is becoming the new implementation
      */
-    function refreshVenusSpeeds() public {
-        require(msg.sender == tx.origin, "only externally owned accounts can");
-        refreshVenusSpeedsInternal();
+    function adminOrInitializing() internal view returns (bool) {
+        return msg.sender == admin || msg.sender == comptrollerImplementation;
     }
 
-    function refreshVenusSpeedsInternal() internal {
-        uint i;
-        VToken vToken;
+    /*** Venus Distribution ***/
 
-        for (i = 0; i < allMarkets.length; i++) {
-            vToken = allMarkets[i];
+    function setVenusSpeedInternal(VToken vToken, uint venusSpeed) internal {
+        uint currentVenusSpeed = venusSpeeds[address(vToken)];
+        if (currentVenusSpeed != 0) {
+            // note that XVS speed could be set to 0 to halt liquidity rewards for a market
             Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
             updateVenusSupplyIndex(address(vToken));
             updateVenusBorrowIndex(address(vToken), borrowIndex);
-        }
+        } else if (venusSpeed != 0) {
+            // Add the XVS market
+            Market storage market = markets[address(vToken)];
+            require(market.isListed == true, "venus market is not listed");
 
-        Exp memory totalUtility = Exp({mantissa: 0});
-        Exp[] memory utilities = new Exp[](allMarkets.length);
-        for (i = 0; i < allMarkets.length; i++) {
-            vToken = allMarkets[i];
-            if (markets[address(vToken)].isVenus) {
-                Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(vToken)});
-                Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
-                utilities[i] = utility;
-                totalUtility = add_(totalUtility, utility);
+            if (venusSupplyState[address(vToken)].index == 0 && venusSupplyState[address(vToken)].block == 0) {
+                venusSupplyState[address(vToken)] = VenusMarketState({
+                    index: venusInitialIndex,
+                    block: safe32(getBlockNumber(), "block number exceeds 32 bits")
+                });
+            }
+
+
+        if (venusBorrowState[address(vToken)].index == 0 && venusBorrowState[address(vToken)].block == 0) {
+                venusBorrowState[address(vToken)] = VenusMarketState({
+                    index: venusInitialIndex,
+                    block: safe32(getBlockNumber(), "block number exceeds 32 bits")
+                });
             }
         }
 
-        for (i = 0; i < allMarkets.length; i++) {
-            vToken = allMarkets[i];
-            uint newSpeed = totalUtility.mantissa > 0 ? mul_(venusRate, div_(utilities[i], totalUtility)) : 0;
-            venusSpeeds[address(vToken)] = newSpeed;
-            emit VenusSpeedUpdated(vToken, newSpeed);
+        if (currentVenusSpeed != venusSpeed) {
+            venusSpeeds[address(vToken)] = venusSpeed;
+            emit VenusSpeedUpdated(vToken, venusSpeed);
         }
     }
 
@@ -1224,20 +1222,15 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
     }
 
     /**
-     * @notice Accrue XVS to by updating the VAI minter index
-     */
-    function updateVenusVAIMintIndex() internal {
-        if (address(vaiController) != address(0)) {
-            vaiController.updateVenusVAIMintIndex();
-        }
-    }
-
-    /**
      * @notice Calculate XVS accrued by a supplier and possibly transfer it to them
      * @param vToken The market in which the supplier is interacting
      * @param supplier The address of the supplier to distribute XVS to
      */
-    function distributeSupplierVenus(address vToken, address supplier, bool distributeAll) internal {
+    function distributeSupplierVenus(address vToken, address supplier) internal {
+        if (address(vaiVaultAddress) != address(0)) {
+            releaseToVault();
+        }
+
         VenusMarketState storage supplyState = venusSupplyState[vToken];
         Double memory supplyIndex = Double({mantissa: supplyState.index});
         Double memory supplierIndex = Double({mantissa: venusSupplierIndex[vToken][supplier]});
@@ -1251,7 +1244,7 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
         uint supplierTokens = VToken(vToken).balanceOf(supplier);
         uint supplierDelta = mul_(supplierTokens, deltaIndex);
         uint supplierAccrued = add_(venusAccrued[supplier], supplierDelta);
-        venusAccrued[supplier] = transferXVS(supplier, supplierAccrued, distributeAll ? 0 : venusClaimThreshold);
+        venusAccrued[supplier] = supplierAccrued;
         emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex.mantissa);
     }
 
@@ -1261,7 +1254,11 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
      * @param vToken The market in which the borrower is interacting
      * @param borrower The address of the borrower to distribute XVS to
      */
-    function distributeBorrowerVenus(address vToken, address borrower, Exp memory marketBorrowIndex, bool distributeAll) internal {
+    function distributeBorrowerVenus(address vToken, address borrower, Exp memory marketBorrowIndex) internal {
+        if (address(vaiVaultAddress) != address(0)) {
+            releaseToVault();
+        }
+
         VenusMarketState storage borrowState = venusBorrowState[vToken];
         Double memory borrowIndex = Double({mantissa: borrowState.index});
         Double memory borrowerIndex = Double({mantissa: venusBorrowerIndex[vToken][borrower]});
@@ -1272,7 +1269,7 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
             uint borrowerAmount = div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex);
             uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
             uint borrowerAccrued = add_(venusAccrued[borrower], borrowerDelta);
-            venusAccrued[borrower] = transferXVS(borrower, borrowerAccrued, distributeAll ? 0 : venusClaimThreshold);
+            venusAccrued[borrower] = borrowerAccrued;
             emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex.mantissa);
         }
     }
@@ -1282,7 +1279,11 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
      * @dev VAI minters will not begin to accrue until after the first interaction with the protocol.
      * @param vaiMinter The address of the VAI minter to distribute XVS to
      */
-    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) internal {
+    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) public {
+        if (address(vaiVaultAddress) != address(0)) {
+            releaseToVault();
+        }
+
         if (address(vaiController) != address(0)) {
             uint vaiMinterAccrued;
             uint vaiMinterDelta;
@@ -1290,29 +1291,10 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
             uint err;
             (err, vaiMinterAccrued, vaiMinterDelta, vaiMintIndexMantissa) = vaiController.calcDistributeVAIMinterVenus(vaiMinter);
             if (err == uint(Error.NO_ERROR)) {
-                venusAccrued[vaiMinter] = transferXVS(vaiMinter, vaiMinterAccrued, distributeAll ? 0 : venusClaimThreshold);
+                venusAccrued[vaiMinter] = vaiMinterAccrued;
                 emit DistributedVAIMinterVenus(vaiMinter, vaiMinterDelta, vaiMintIndexMantissa);
             }
         }
-    }
-
-    /**
-     * @notice Transfer XVS to the user, if they are above the threshold
-     * @dev Note: If there is not enough XVS, we do not perform the transfer all.
-     * @param user The address of the user to transfer XVS to
-     * @param userAccrued The amount of XVS to (possibly) transfer
-     * @return The amount of XVS which was NOT transferred to the user
-     */
-    function transferXVS(address user, uint userAccrued, uint threshold) internal returns (uint) {
-        if (userAccrued >= threshold && userAccrued > 0) {
-            XVS xvs = XVS(getXVSAddress());
-            uint xvsRemaining = xvs.balanceOf(address(this));
-            if (userAccrued <= xvsRemaining) {
-                xvs.transfer(user, userAccrued);
-                return 0;
-            }
-        }
-        return userAccrued;
     }
 
     /**
@@ -1343,9 +1325,12 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
      */
     function claimVenus(address[] memory holders, VToken[] memory vTokens, bool borrowers, bool suppliers) public {
         uint j;
-        updateVenusVAIMintIndex();
+        if(address(vaiController) != address(0)) {
+            vaiController.updateVenusVAIMintIndex();
+        }
         for (j = 0; j < holders.length; j++) {
             distributeVAIMinterVenus(holders[j], true);
+            venusAccrued[holders[j]] = grantXVSInternal(holders[j], venusAccrued[holders[j]]);
         }
         for (uint i = 0; i < vTokens.length; i++) {
             VToken vToken = vTokens[i];
@@ -1354,31 +1339,38 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
                 Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
                 updateVenusBorrowIndex(address(vToken), borrowIndex);
                 for (j = 0; j < holders.length; j++) {
-                    distributeBorrowerVenus(address(vToken), holders[j], borrowIndex, true);
+                    distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
+                    venusAccrued[holders[j]] = grantXVSInternal(holders[j], venusAccrued[holders[j]]);
                 }
             }
             if (suppliers) {
                 updateVenusSupplyIndex(address(vToken));
                 for (j = 0; j < holders.length; j++) {
-                    distributeSupplierVenus(address(vToken), holders[j], true);
+                    distributeSupplierVenus(address(vToken), holders[j]);
+                    venusAccrued[holders[j]] = grantXVSInternal(holders[j], venusAccrued[holders[j]]);
                 }
             }
         }
     }
 
-    /*** Venus Distribution Admin ***/
-
     /**
-     * @notice Set the amount of XVS distributed per block
-     * @param venusRate_ The amount of XVS wei per block to distribute
+     * @notice Transfer XVS to the user
+     * @dev Note: If there is not enough XVS, we do not perform the transfer all.
+     * @param user The address of the user to transfer XVS to
+     * @param amount The amount of XVS to (possibly) transfer
+     * @return The amount of XVS which was NOT transferred to the user
      */
-    function _setVenusRate(uint venusRate_) public onlyAdmin {
-        uint oldRate = venusRate;
-        venusRate = venusRate_;
-        emit NewVenusRate(oldRate, venusRate_);
-
-        refreshVenusSpeedsInternal();
+    function grantXVSInternal(address user, uint amount) internal returns (uint) {
+        XVS xvs = XVS(getXVSAddress());
+        uint venusRemaining = xvs.balanceOf(address(this));
+        if (amount > 0 && amount <= venusRemaining) {
+            xvs.transfer(user, amount);
+            return 0;
+        }
+        return amount;
     }
+
+    /*** Venus Distribution Admin ***/
 
     /**
      * @notice Set the amount of XVS distributed per block to VAI Mint
@@ -1393,59 +1385,40 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
     }
 
     /**
-     * @notice Add markets to venusMarkets, allowing them to earn XVS in the flywheel
-     * @param vTokens The addresses of the markets to add
+     * @notice Set the amount of XVS distributed per block to VAI Vault
+     * @param venusVAIVaultRate_ The amount of XVS wei per block to distribute to VAI Vault
      */
-    function _addVenusMarkets(address[] calldata vTokens) external onlyAdmin {
-        for (uint i = 0; i < vTokens.length; i++) {
-            _addVenusMarketInternal(vTokens[i]);
-        }
-
-        refreshVenusSpeedsInternal();
-    }
-
-    function _addVenusMarketInternal(address vToken) internal {
-        Market storage market = markets[vToken];
-        require(market.isListed, "venus market is not listed");
-        require(!market.isVenus, "venus market already added");
-
-        market.isVenus = true;
-        emit MarketVenus(VToken(vToken), true);
-
-        if (venusSupplyState[vToken].index == 0 && venusSupplyState[vToken].block == 0) {
-            venusSupplyState[vToken] = VenusMarketState({
-                index: venusInitialIndex,
-                block: safe32(getBlockNumber(), "block number overflows")
-            });
-        }
-
-        if (venusBorrowState[vToken].index == 0 && venusBorrowState[vToken].block == 0) {
-            venusBorrowState[vToken] = VenusMarketState({
-                index: venusInitialIndex,
-                block: safe32(getBlockNumber(), "block number overflows")
-            });
-        }
-    }
-
-    function _initializeVenusVAIState(uint blockNumber) public {
+    function _setVenusVAIVaultRate(uint venusVAIVaultRate_) public {
         require(msg.sender == admin, "only admin can");
-        if (address(vaiController) != address(0)) {
-            vaiController._initializeVenusVAIState(blockNumber);
-        }
+
+        uint oldVenusVAIVaultRate = venusVAIVaultRate;
+        venusVAIVaultRate = venusVAIVaultRate_;
+        emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
     }
 
     /**
-     * @notice Remove a market from venusMarkets, preventing it from earning XVS in the flywheel
-     * @param vToken The address of the market to drop
+     * @notice Set the VAI Vault infos
+     * @param vault_ The address of the VAI Vault
+     * @param releaseStartBlock_ The start block of release to VAI Vault
+     * @param minReleaseAmount_ The minimum release amount to VAI Vault
      */
-    function _dropVenusMarket(address vToken) public onlyAdmin {
-        Market storage market = markets[vToken];
-        require(market.isVenus == true, "not venus market");
+    function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) public {
+        require(msg.sender == admin, "only admin can");
 
-        market.isVenus = false;
-        emit MarketVenus(VToken(vToken), false);
+        vaiVaultAddress = vault_;
+        releaseStartBlock = releaseStartBlock_;
+        minReleaseAmount = minReleaseAmount_;
+        emit NewVAIVaultInfo(vault_, releaseStartBlock_, minReleaseAmount_);
+    }
 
-        refreshVenusSpeedsInternal();
+    /**
+     * @notice Set XVS speed for a single market
+     * @param vToken The market whose XVS speed to update
+     * @param venusSpeed New XVS speed for market
+     */
+    function _setVenusSpeed(VToken vToken, uint venusSpeed) public {
+        require(adminOrInitializing(), "only admin can set venus speed");
+        setVenusSpeedInternal(vToken, venusSpeed);
     }
 
     /**
@@ -1490,44 +1463,41 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
     }
 
     /**
-     * @notice Mint VAI
+     * @notice Transfer XVS to VAI Vault
      */
-    function mintVAI(uint mintVAIAmount) external onlyProtocolAllowed returns (uint) {
-        // Pausing is a very serious situation - we revert to sound the alarms
-        require(!mintVAIGuardianPaused, "mintVAI is paused");
+    function releaseToVault() public {
+        if(releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
+            return;
+        }
 
-        // Keep the flywheel moving
-        updateVenusVAIMintIndex();
-        distributeVAIMinterVenus(msg.sender, false);
-        return vaiController.mintVAI(msg.sender, mintVAIAmount);
-    }
+        XVS xvs = XVS(getXVSAddress());
 
-    /**
-     * @notice Repay VAI
-     */
-    function repayVAI(uint repayVAIAmount) external onlyProtocolAllowed returns (uint) {
-        // Pausing is a very serious situation - we revert to sound the alarms
-        require(!repayVAIGuardianPaused, "repayVAI is paused");
+        uint256 xvsBalance = xvs.balanceOf(address(this));
+        if(xvsBalance == 0) {
+            return;
+        }
 
-        // Keep the flywheel moving
-        updateVenusVAIMintIndex();
-        distributeVAIMinterVenus(msg.sender, false);
-        return vaiController.repayVAI(msg.sender, repayVAIAmount);
-    }
 
-    /**
-     * @notice Get the minted VAI amount of the `owner`
-     * @param owner The address of the account to query
-     * @return The number of minted VAI by `owner`
-     */
-    function mintedVAIOf(address owner) external view returns (uint) {
-        return mintedVAIs[owner];
-    }
+        uint256 actualAmount;
+        uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
+        // releaseAmount = venusVAIVaultRate * deltaBlocks
+        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
 
-    /**
-     * @notice Get Mintable VAI amount
-     */
-    function getMintableVAI(address minter) external view returns (uint, uint) {
-        return vaiController.getMintableVAI(minter);
+        if (_releaseAmount < minReleaseAmount) {
+            return;
+        }
+
+        if (xvsBalance >= _releaseAmount) {
+            actualAmount = _releaseAmount;
+        } else {
+            actualAmount = xvsBalance;
+        }
+
+        releaseStartBlock = getBlockNumber();
+
+        xvs.transfer(vaiVaultAddress, actualAmount);
+        emit DistributedVAIVaultVenus(actualAmount);
+
+        IVAIVault(vaiVaultAddress).updatePendingRewards();
     }
 }

@@ -14,7 +14,7 @@ import "./VAI/VAI.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerErrorReporter, Exponential {
+contract Comptroller is ComptrollerV3Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, Exponential {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -825,6 +825,57 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
     function liquidateCalculateSeizeTokens(address vTokenBorrowed, address vTokenCollateral, uint actualRepayAmount) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
         uint priceBorrowedMantissa = oracle.getUnderlyingPrice(VToken(vTokenBorrowed));
+        uint priceCollateralMantissa = oracle.getUnderlyingPrice(VToken(vTokenCollateral));
+        if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
+            return (uint(Error.PRICE_ERROR), 0);
+        }
+
+        /*
+         * Get the exchange rate and calculate the number of collateral tokens to seize:
+         *  seizeAmount = actualRepayAmount * liquidationIncentive * priceBorrowed / priceCollateral
+         *  seizeTokens = seizeAmount / exchangeRate
+         *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
+         */
+        uint exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
+        uint seizeTokens;
+        Exp memory numerator;
+        Exp memory denominator;
+        Exp memory ratio;
+        MathError mathErr;
+
+        (mathErr, numerator) = mulExp(liquidationIncentiveMantissa, priceBorrowedMantissa);
+        if (mathErr != MathError.NO_ERROR) {
+            return (uint(Error.MATH_ERROR), 0);
+        }
+
+        (mathErr, denominator) = mulExp(priceCollateralMantissa, exchangeRateMantissa);
+        if (mathErr != MathError.NO_ERROR) {
+            return (uint(Error.MATH_ERROR), 0);
+        }
+
+        (mathErr, ratio) = divExp(numerator, denominator);
+        if (mathErr != MathError.NO_ERROR) {
+            return (uint(Error.MATH_ERROR), 0);
+        }
+
+        (mathErr, seizeTokens) = mulScalarTruncate(ratio, actualRepayAmount);
+        if (mathErr != MathError.NO_ERROR) {
+            return (uint(Error.MATH_ERROR), 0);
+        }
+
+        return (uint(Error.NO_ERROR), seizeTokens);
+    }
+
+    /**
+     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
+     * @param vTokenCollateral The address of the collateral vToken
+     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
+     */
+    function liquidateVAICalculateSeizeTokens(address vTokenCollateral, uint actualRepayAmount) external view returns (uint, uint) {
+        /* Read oracle prices for borrowed and collateral markets */
+        uint priceBorrowedMantissa = 1e18;  // Note: this is VAI
         uint priceCollateralMantissa = oracle.getUnderlyingPrice(VToken(vTokenCollateral));
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);

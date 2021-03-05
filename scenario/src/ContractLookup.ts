@@ -12,6 +12,8 @@ import { SXP } from './Contract/SXP';
 import { VAI } from './Contract/VAI';
 import { Comptroller } from './Contract/Comptroller';
 import { ComptrollerImpl } from './Contract/ComptrollerImpl';
+import { VAIController } from './Contract/VAIController';
+import { VAIControllerImpl } from './Contract/VAIControllerImpl';
 import { VToken } from './Contract/VToken';
 import { Governor } from './Contract/Governor';
 import { Bep20 } from './Contract/Bep20';
@@ -93,6 +95,14 @@ export async function getComptroller(world: World): Promise<Comptroller> {
 
 export async function getComptrollerImpl(world: World, comptrollerImplArg: Event): Promise<ComptrollerImpl> {
   return getWorldContract(world, [['Comptroller', mustString(comptrollerImplArg), 'address']]);
+}
+
+export async function getVAIController(world: World): Promise<VAIController> {
+  return getWorldContract(world, [['Contracts', 'VAIController']]);
+}
+
+export async function getVAIControllerImpl(world: World, vaicontrollerImplArg: Event): Promise<VAIControllerImpl> {
+  return getWorldContract(world, [['VAIController', mustString(vaicontrollerImplArg), 'address']]);
 }
 
 export function getVTokenAddress(world: World, vTokenArg: string): string {
@@ -235,6 +245,16 @@ export async function getComptrollerImplData(
   let data = getContractData(world, [['Comptroller', comptrollerImplArg]]);
 
   return [contract, comptrollerImplArg, <Map<string, string>>(<any>data)];
+}
+
+export async function getVAIControllerImplData(
+  world: World,
+  vaicontrollerImplArg: string
+): Promise<[VAIControllerImpl, string, Map<string, string>]> {
+  let contract = await getComptrollerImpl(world, <Event>(<any>vaicontrollerImplArg));
+  let data = getContractData(world, [['VAIController', vaicontrollerImplArg]]);
+
+  return [contract, vaicontrollerImplArg, <Map<string, string>>(<any>data)];
 }
 
 export function getAddress(world: World, addressArg: string): string {

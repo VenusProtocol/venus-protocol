@@ -14,8 +14,10 @@ import { AddressV, EventV, NothingV, NumberV, StringV, Value } from './Value';
 import { Arg, Command, processCommandEvent, View } from './Command';
 import { assertionCommands, processAssertionEvent } from './Event/AssertionEvent';
 import { comptrollerCommands, processComptrollerEvent } from './Event/ComptrollerEvent';
+import { vaicontrollerCommands, processVAIControllerEvent } from './Event/VAIControllerEvent';
 import { processUnitrollerEvent, unitrollerCommands } from './Event/UnitrollerEvent';
 import { comptrollerImplCommands, processComptrollerImplEvent } from './Event/ComptrollerImplEvent';
+import { vaicontrollerImplCommands, processVAIControllerImplEvent } from './Event/VAIControllerImplEvent';
 import { vTokenCommands, processVTokenEvent } from './Event/VTokenEvent';
 import { vTokenDelegateCommands, processVTokenDelegateEvent } from './Event/VTokenDelegateEvent';
 import { bep20Commands, processBep20Event } from './Event/Bep20Event';
@@ -670,6 +672,32 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     [new Arg('event', getEventV, { variadic: true })],
     (world, from, { event }) => processComptrollerImplEvent(world, event.val, from),
     { subExpressions: comptrollerImplCommands() }
+  ),
+
+  new Command<{ event: EventV }>(
+    `
+      #### VAIController
+
+      * "VAIController ...event" - Runs given VAIController event
+        * E.g. "VAIComptroller mint 0.5"
+    `,
+    'VAIComptroller',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => processVAIControllerEvent(world, event.val, from),
+    { subExpressions: vaicontrollerCommands() }
+  ),
+
+  new Command<{ event: EventV }>(
+    `
+      #### VAIControllerImpl
+
+      * "VAIControllerImpl ...event" - Runs given VAIControllerImpl event
+        * E.g. "VAIControllerImpl MyImpl Become"
+    `,
+    'VAIControllerImpl',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => processVAIControllerImplEvent(world, event.val, from),
+    { subExpressions: vaicontrollerImplCommands() }
   ),
 
   new Command<{ event: EventV }>(

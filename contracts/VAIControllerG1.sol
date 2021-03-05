@@ -8,7 +8,7 @@ import "./VAIControllerStorage.sol";
 import "./VAIUnitroller.sol";
 import "./VAI/VAI.sol";
 
-interface ComptrollerImplInterface {
+interface ComptrollerLensInterface {
     function protocolPaused() external view returns (bool);
     function mintedVAIs(address account) external view returns (uint);
     function vaiMintRate() external view returns (uint);
@@ -24,7 +24,7 @@ interface ComptrollerImplInterface {
  * @title Venus's VAI Comptroller Contract
  * @author Venus
  */
-contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Exponential {
+contract VAIControllerG1 is VAIControllerStorage, VAIControllerErrorReporter, Exponential {
 
     /// @notice Emitted when Comptroller is changed
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
@@ -42,22 +42,17 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
 
-    /**
-     * @notice Event emitted when a borrow is liquidated
-     */
-    event LiquidateVAI(address liquidator, address borrower, uint repayAmount, address vTokenCollateral, uint seizeTokens);
-
     /*** Main Actions ***/
 
     function mintVAI(uint mintVAIAmount) external returns (uint) {
         if(address(comptroller) != address(0)) {
-            require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
+            require(!ComptrollerLensInterface(address(comptroller)).protocolPaused(), "protocol is paused");
 
             address minter = msg.sender;
 
             // Keep the flywheel moving
             updateVenusVAIMintIndex();
-            ComptrollerImplInterface(address(comptroller)).distributeVAIMinterVenus(minter, false);
+            ComptrollerLensInterface(address(comptroller)).distributeVAIMinterVenus(minter, false);
 
             uint oErr;
             MathError mErr;
@@ -74,7 +69,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
                 return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
             }
 
-            (mErr, accountMintVAINew) = addUInt(ComptrollerImplInterface(address(comptroller)).mintedVAIs(minter), mintVAIAmount);
+            (mErr, accountMintVAINew) = addUInt(ComptrollerLensInterface(address(comptroller)).mintedVAIs(minter), mintVAIAmount);
             require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
             uint error = comptroller.setMintedVAIOf(minter, accountMintVAINew);
             if (error != 0 ) {
@@ -91,125 +86,34 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
     /**
      * @notice Repay VAI
      */
-    function repayVAI(uint repayVAIAmount) external returns (uint, uint) {
+    function repayVAI(uint repayVAIAmount) external returns (uint) {
         if(address(comptroller) != address(0)) {
-            require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
+            require(!ComptrollerLensInterface(address(comptroller)).protocolPaused(), "protocol is paused");
 
-            address payer = msg.sender;
+            address repayer = msg.sender;
 
-            return repayVAIInternal(msg.sender, msg.sender, repayVAIAmount);
-        }
-    }
+            updateVenusVAIMintIndex();
+            ComptrollerLensInterface(address(comptroller)).distributeVAIMinterVenus(repayer, false);
 
-    /**
-     * @notice Repay VAI Internal
-     * @notice Borrowed VAIs are repaid by another user (possibly the borrower).
-     * @param payer the account paying off the VAI
-     * @param borrower the account with the debt being payed off
-     * @param repayAmount the amount of VAI being returned
-     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
-     */
-    function repayVAIInternal(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
-        updateVenusVAIMintIndex();
-        ComptrollerImplInterface(address(comptroller)).distributeVAIMinterVenus(payer, false);
+            uint actualBurnAmount;
 
-        uint actualBurnAmount;
+            uint vaiBalance = ComptrollerLensInterface(address(comptroller)).mintedVAIs(repayer);
 
-        uint vaiBalance = ComptrollerImplInterface(address(comptroller)).mintedVAIs(payer);
-
-        if(vaiBalance > repayAmount) {
-            actualBurnAmount = repayAmount;
-        } else {
-            actualBurnAmount = vaiBalance;
-        }
-
-        //////////// critical need check amount here
-        uint error = comptroller.setMintedVAIOf(borrower, vaiBalance - actualBurnAmount);
-        if (error != 0) {
-            return (error, 0);
-        }
-
-        VAI(getVAIAddress()).burn(payer, actualBurnAmount);
-        emit RepayVAI(payer, actualBurnAmount);
-
-        return (uint(Error.NO_ERROR), actualBurnAmount);
-    }
-
-    /**
-     * @notice The liquidator liquidates the borrowers collateral by repay borrowers VAI.
-     *  The collateral seized is transferred to the liquidator.
-     * @param borrower The borrower of this VAI to be liquidated
-     * @param liquidator The address repaying the VAI and seizing collateral
-     * @param vTokenCollateral The market in which to seize collateral from the borrower
-     * @param repayAmount The amount of the VAI to repay
-     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment VAI.
-     */
-    function liquidateVAI(address liquidator, address borrower, uint repayAmount, VTokenInterface vTokenCollateral) internal returns (uint, uint) {
-        if(address(comptroller) != address(0)) {
-            /* Fail if liquidate not allowed */
-            uint allowed = comptroller.liquidateBorrowAllowed(address(this), address(vTokenCollateral), liquidator, borrower, repayAmount);
-            if (allowed != 0) {
-                // critical return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.LIQUIDATE_COMPTROLLER_REJECTION, allowed), 0);
+            if(vaiBalance > repayVAIAmount) {
+                actualBurnAmount = repayVAIAmount;
+            } else {
+                actualBurnAmount = vaiBalance;
             }
 
-            ///////////// critical
-            // /* Verify market's block number equals current block number */
-            // if (accrualBlockNumber != getBlockNumber()) {
-            //     return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_FRESHNESS_CHECK), 0);
-            // }
-
-            /* Verify vTokenCollateral market's block number equals current block number */
-            if (vTokenCollateral.accrualBlockNumber() != getBlockNumber()) {
-                // critical return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
+            uint error = comptroller.setMintedVAIOf(repayer, vaiBalance - actualBurnAmount);
+            if (error != 0) {
+                return error;
             }
 
-            /* Fail if borrower = liquidator */
-            if (borrower == liquidator) {
-                // critical return (fail(Error.INVALID_ACCOUNT_PAIR, FailureInfo.LIQUIDATE_LIQUIDATOR_IS_BORROWER), 0);
-            }
+            VAI(getVAIAddress()).burn(repayer, actualBurnAmount);
+            emit RepayVAI(repayer, actualBurnAmount);
 
-            /* Fail if repayAmount = 0 */
-            if (repayAmount == 0) {
-                // critical return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_ZERO), 0);
-            }
-
-            /* Fail if repayAmount = -1 */
-            if (repayAmount == uint(-1)) {
-                // critical return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
-            }
-
-
-            /* Fail if repayBorrow fails */
-            (uint repayBorrowError, uint actualRepayAmount) = repayVAIInternal(liquidator, borrower, repayAmount);
-            if (repayBorrowError != uint(Error.NO_ERROR)) {
-                // critical return (fail(Error(repayBorrowError), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
-            }
-
-            /////////////////////////
-            // EFFECTS & INTERACTIONS
-            // (No safe failures beyond this point)
-
-            /* We calculate the number of collateral tokens that will be seized */
-            (uint amountSeizeError, uint seizeTokens) = (0,0);//comptroller.liquidateVAICalculateSeizeTokens(address(vTokenCollateral), actualRepayAmount);
-            require(amountSeizeError == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
-
-            /* Revert if borrower collateral token balance < seizeTokens */
-            require(vTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
-
-            // If this is also the collateral, run seizeInternal to avoid re-entrancy, otherwise make an external call
-            uint seizeError;
-            seizeError = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
-
-            /* Revert if seize tokens fails (since we cannot be sure of side effects) */
-            require(seizeError == uint(Error.NO_ERROR), "token seizure failed");
-
-            /* We emit a LiquidateBorrow event */
-            emit LiquidateVAI(liquidator, borrower, actualRepayAmount, address(vTokenCollateral), seizeTokens);
-
-            /* We call the defense hook */
-            comptroller.liquidateBorrowVerify(address(this), address(vTokenCollateral), liquidator, borrower, actualRepayAmount, seizeTokens);
-
-            return (uint(Error.NO_ERROR), actualRepayAmount);
+            return uint(Error.NO_ERROR);
         }
     }
 
@@ -236,7 +140,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
      * @notice Accrue XVS to by updating the VAI minter index
      */
     function updateVenusVAIMintIndex() public returns (uint) {
-        uint vaiMinterSpeed = ComptrollerImplInterface(address(comptroller)).venusVAIRate();
+        uint vaiMinterSpeed = ComptrollerLensInterface(address(comptroller)).venusVAIRate();
         uint blockNumber = getBlockNumber();
         uint deltaBlocks = sub_(blockNumber, uint(venusVAIState.block));
         if (deltaBlocks > 0 && vaiMinterSpeed > 0) {
@@ -272,9 +176,9 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         }
 
         Double memory deltaIndex = sub_(vaiMintIndex, vaiMinterIndex);
-        uint vaiMinterAmount = ComptrollerImplInterface(address(comptroller)).mintedVAIs(vaiMinter);
+        uint vaiMinterAmount = ComptrollerLensInterface(address(comptroller)).mintedVAIs(vaiMinter);
         uint vaiMinterDelta = mul_(vaiMinterAmount, deltaIndex);
-        uint vaiMinterAccrued = add_(ComptrollerImplInterface(address(comptroller)).venusAccrued(vaiMinter), vaiMinterDelta);
+        uint vaiMinterAccrued = add_(ComptrollerLensInterface(address(comptroller)).venusAccrued(vaiMinter), vaiMinterDelta);
         return (uint(Error.NO_ERROR), vaiMinterAccrued, vaiMinterDelta, vaiMintIndex.mantissa);
     }
 
@@ -323,8 +227,8 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
     }
 
     function getMintableVAI(address minter) public view returns (uint, uint) {
-        PriceOracle oracle = ComptrollerImplInterface(address(comptroller)).oracle();
-        VToken[] memory enteredMarkets = ComptrollerImplInterface(address(comptroller)).getAssetsIn(minter);
+        PriceOracle oracle = ComptrollerLensInterface(address(comptroller)).oracle();
+        VToken[] memory enteredMarkets = ComptrollerLensInterface(address(comptroller)).getAssetsIn(minter);
 
         AccountAmountLocalVars memory vars; // Holds all our calculation results
 
@@ -370,12 +274,12 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             }
         }
 
-        (mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, ComptrollerImplInterface(address(comptroller)).mintedVAIs(minter));
+        (mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, ComptrollerLensInterface(address(comptroller)).mintedVAIs(minter));
         if (mErr != MathError.NO_ERROR) {
             return (uint(Error.MATH_ERROR), 0);
         }
 
-        (mErr, accountMintableVAI) = mulUInt(vars.sumSupply, ComptrollerImplInterface(address(comptroller)).vaiMintRate());
+        (mErr, accountMintableVAI) = mulUInt(vars.sumSupply, ComptrollerLensInterface(address(comptroller)).vaiMintRate());
         require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
 
         (mErr, accountMintableVAI) = divUInt(accountMintableVAI, 10000);

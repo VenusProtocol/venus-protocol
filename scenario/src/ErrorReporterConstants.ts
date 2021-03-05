@@ -61,6 +61,28 @@ const ComptrollerErrorReporter = {
   ]
 };
 
+const VAIControllerErrorReporter = {
+  Error: [
+    'NO_ERROR',
+    'UNAUTHORIZED',
+    'REJECTION',
+    'SNAPSHOT_ERROR',
+    'PRICE_ERROR',
+    'MATH_ERROR',
+    'INSUFFICIENT_BALANCE_FOR_VAI'
+  ],
+
+  FailureInfo: [
+    'SET_PENDING_ADMIN_OWNER_CHECK',
+    'SET_PENDING_IMPLEMENTATION_OWNER_CHECK',
+    'SET_COMPTROLLER_OWNER_CHECK',
+    'ACCEPT_ADMIN_PENDING_ADMIN_CHECK',
+    'ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK',
+    'VAI_MINT_REJECTION',
+    'VAI_BURN_REJECTION'
+  ]
+};
+
 const TokenErrorReporter = {
   Error: [
     'NO_ERROR',
@@ -193,4 +215,5 @@ function parseEnum(reporterEnum: ErrorReporterEnum): ErrorTypes {
 }
 
 export const ComptrollerErr = parseEnum(ComptrollerErrorReporter);
+export const VAIControllerErr = parseEnum(VAIControllerErrorReporter);
 export const TokenErr = parseEnum(TokenErrorReporter);
