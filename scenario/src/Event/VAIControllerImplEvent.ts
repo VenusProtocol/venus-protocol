@@ -1,14 +1,14 @@
 import { Event } from '../Event';
 import { addAction, World } from '../World';
 import { VAIControllerImpl } from '../Contract/VAIControllerImpl';
-import { Unitroller } from '../Contract/Unitroller';
+import { VAIUnitroller } from '../Contract/VAIUnitroller';
 import { invoke } from '../Invokation';
 import { getEventV, getStringV } from '../CoreValue';
 import { EventV, StringV } from '../Value';
 import { Arg, Command, View, processCommandEvent } from '../Command';
 import { buildVAIControllerImpl } from '../Builder/VAIControllerImplBuilder';
 import { VAIControllerErrorReporter } from '../ErrorReporter';
-import { getVAIControllerImpl, getVAIControllerImplData, getUnitroller } from '../ContractLookup';
+import { getVAIControllerImpl, getVAIControllerImplData, getVAIUnitroller } from '../ContractLookup';
 import { verify } from '../Verify';
 import { mergeContractABI } from '../Networks';
 
@@ -33,11 +33,11 @@ async function mergeABI(
   world: World,
   from: string,
   vaicontrollerImpl: VAIControllerImpl,
-  unitroller: Unitroller
+  vaiunitroller: VAIUnitroller
 ): Promise<World> {
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'VAIController', unitroller, unitroller.name, vaicontrollerImpl.name);
+    world = await mergeContractABI(world, 'VAIController', vaiunitroller, vaiunitroller.name, vaicontrollerImpl.name);
   }
 
   return world;
@@ -47,21 +47,21 @@ async function becomeG1(
   world: World,
   from: string,
   vaicontrollerImpl: VAIControllerImpl,
-  unitroller: Unitroller
+  vaiunitroller: VAIUnitroller
 ): Promise<World> {
   let invokation = await invoke(
     world,
-    vaicontrollerImpl.methods._become(unitroller._address),
+    vaicontrollerImpl.methods._become(vaiunitroller._address),
     from,
     VAIControllerErrorReporter
   );
 
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'VAIController', unitroller, unitroller.name, vaicontrollerImpl.name);
+    world = await mergeContractABI(world, 'VAIController', vaiunitroller, vaiunitroller.name, vaicontrollerImpl.name);
   }
 
-  world = addAction(world, `Become ${unitroller._address}'s VAIController Impl`, invokation);
+  world = addAction(world, `Become ${vaiunitroller._address}'s VAIController Impl`, invokation);
 
   return world;
 }
@@ -70,21 +70,21 @@ async function becomeG2(
   world: World,
   from: string,
   vaicontrollerImpl: VAIControllerImpl,
-  unitroller: Unitroller
+  vaiunitroller: VAIUnitroller
 ): Promise<World> {
   let invokation = await invoke(
     world,
-    vaicontrollerImpl.methods._become(unitroller._address),
+    vaicontrollerImpl.methods._become(vaiunitroller._address),
     from,
     VAIControllerErrorReporter
   );
 
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'VAIController', unitroller, unitroller.name, vaicontrollerImpl.name);
+    world = await mergeContractABI(world, 'VAIController', vaiunitroller, vaiunitroller.name, vaicontrollerImpl.name);
   }
 
-  world = addAction(world, `Become ${unitroller._address}'s VAIController Impl`, invokation);
+  world = addAction(world, `Become ${vaiunitroller._address}'s VAIController Impl`, invokation);
 
   return world;
 }
@@ -93,21 +93,21 @@ async function become(
   world: World,
   from: string,
   vaicontrollerImpl: VAIControllerImpl,
-  unitroller: Unitroller
+  vaiunitroller: VAIUnitroller
 ): Promise<World> {
   let invokation = await invoke(
     world,
-    vaicontrollerImpl.methods._become(unitroller._address),
+    vaicontrollerImpl.methods._become(vaiunitroller._address),
     from,
     VAIControllerErrorReporter
   );
 
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'VAIController', unitroller, unitroller.name, vaicontrollerImpl.name);
+    world = await mergeContractABI(world, 'VAIController', vaiunitroller, vaiunitroller.name, vaicontrollerImpl.name);
   }
 
-  world = addAction(world, `Become ${unitroller._address}'s VAIController Impl`, invokation);
+  world = addAction(world, `Become ${vaiunitroller._address}'s VAIController Impl`, invokation);
 
   return world;
 }
@@ -159,7 +159,7 @@ export function vaicontrollerImplCommands() {
     ),
 
     new Command<{
-      unitroller: Unitroller;
+      vaiunitroller: VAIUnitroller;
       vaicontrollerImpl: VAIControllerImpl;
     }>(
       `
@@ -169,17 +169,17 @@ export function vaicontrollerImplCommands() {
       `,
       'BecomeG1',
       [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
+        new Arg('vaiunitroller', getVAIUnitroller, { implicit: true }),
         new Arg('vaicontrollerImpl', getVAIControllerImpl)
       ],
-      (world, from, { unitroller, vaicontrollerImpl }) => {
-        return becomeG1(world, from, vaicontrollerImpl, unitroller)
+      (world, from, { vaiunitroller, vaicontrollerImpl }) => {
+        return becomeG1(world, from, vaicontrollerImpl, vaiunitroller)
       },
       { namePos: 1 }
     ),
 
     new Command<{
-      unitroller: Unitroller;
+      vaiunitroller: VAIUnitroller;
       vaicontrollerImpl: VAIControllerImpl;
     }>(
       `
@@ -189,17 +189,17 @@ export function vaicontrollerImplCommands() {
       `,
       'BecomeG2',
       [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
+        new Arg('vaiunitroller', getVAIUnitroller, { implicit: true }),
         new Arg('vaicontrollerImpl', getVAIControllerImpl)
       ],
-      (world, from, { unitroller, vaicontrollerImpl }) => {
-        return becomeG2(world, from, vaicontrollerImpl, unitroller)
+      (world, from, { vaiunitroller, vaicontrollerImpl }) => {
+        return becomeG2(world, from, vaicontrollerImpl, vaiunitroller)
       },
       { namePos: 1 }
     ),
 
     new Command<{
-      unitroller: Unitroller;
+      vaiunitroller: VAIUnitroller;
       vaicontrollerImpl: VAIControllerImpl;
     }>(
       `
@@ -210,17 +210,17 @@ export function vaicontrollerImplCommands() {
       `,
       'Become',
       [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
+        new Arg('vaiunitroller', getVAIUnitroller, { implicit: true }),
         new Arg('vaicontrollerImpl', getVAIControllerImpl)
       ],
-      (world, from, { unitroller, vaicontrollerImpl }) => {
-        return become(world, from, vaicontrollerImpl, unitroller)
+      (world, from, { vaiunitroller, vaicontrollerImpl }) => {
+        return become(world, from, vaicontrollerImpl, vaiunitroller)
       },
       { namePos: 1 }
     ),
 
     new Command<{
-      unitroller: Unitroller;
+      vaiunitroller: VAIUnitroller;
       vaicontrollerImpl: VAIControllerImpl;
     }>(
       `
@@ -231,10 +231,10 @@ export function vaicontrollerImplCommands() {
       `,
       'MergeABI',
       [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
+        new Arg('vaiunitroller', getVAIUnitroller, { implicit: true }),
         new Arg('vaicontrollerImpl', getVAIControllerImpl)
       ],
-      (world, from, { unitroller, vaicontrollerImpl }) => mergeABI(world, from, vaicontrollerImpl, unitroller),
+      (world, from, { vaiunitroller, vaicontrollerImpl }) => mergeABI(world, from, vaicontrollerImpl, vaiunitroller),
       { namePos: 1 }
     )
   ];

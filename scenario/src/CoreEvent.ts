@@ -16,6 +16,7 @@ import { assertionCommands, processAssertionEvent } from './Event/AssertionEvent
 import { comptrollerCommands, processComptrollerEvent } from './Event/ComptrollerEvent';
 import { vaicontrollerCommands, processVAIControllerEvent } from './Event/VAIControllerEvent';
 import { processUnitrollerEvent, unitrollerCommands } from './Event/UnitrollerEvent';
+import { processVAIUnitrollerEvent, vaiunitrollerCommands } from './Event/VAIUnitrollerEvent';
 import { comptrollerImplCommands, processComptrollerImplEvent } from './Event/ComptrollerImplEvent';
 import { vaicontrollerImplCommands, processVAIControllerImplEvent } from './Event/VAIControllerImplEvent';
 import { vTokenCommands, processVTokenEvent } from './Event/VTokenEvent';
@@ -676,12 +677,25 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
 
   new Command<{ event: EventV }>(
     `
+      #### VAIUnitroller
+
+      * "VAIUnitroller ...event" - Runs given VAIUnitroller event
+        * E.g. "VAIUnitroller SetPendingImpl MyVAIControllerImpl"
+    `,
+    'VAIUnitroller',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => processVAIUnitrollerEvent(world, event.val, from),
+    { subExpressions: vaiunitrollerCommands() }
+  ),
+
+  new Command<{ event: EventV }>(
+    `
       #### VAIController
 
       * "VAIController ...event" - Runs given VAIController event
-        * E.g. "VAIComptroller mint 0.5"
+        * E.g. "VAIController mint 0.5"
     `,
-    'VAIComptroller',
+    'VAIController',
     [new Arg('event', getEventV, { variadic: true })],
     (world, from, { event }) => processVAIControllerEvent(world, event.val, from),
     { subExpressions: vaicontrollerCommands() }

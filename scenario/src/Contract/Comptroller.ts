@@ -22,6 +22,8 @@ interface ComptrollerMethods {
   _setPriceOracle(string): Sendable<number>
   _setCollateralFactor(string, encodedNumber): Sendable<number>
   _setCloseFactor(encodedNumber): Sendable<number>
+  _setVAIMintRate(encodedNumber): Sendable<number>
+  _setVAIController(string): Sendable<number>
   enterMarkets(markets: string[]): Sendable<number>
   exitMarket(market: string): Sendable<number>
   fastForward(encodedNumber): Sendable<number>

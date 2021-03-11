@@ -23,7 +23,6 @@ import {
   StringV
 } from '../Value';
 import {Arg, Command, View, processCommandEvent} from '../Command';
-import {buildComptrollerImpl} from '../Builder/ComptrollerImplBuilder';
 import {buildVAIControllerImpl} from '../Builder/VAIControllerImplBuilder';
 import {VAIControllerErrorReporter} from '../ErrorReporter';
 import {getVAIController, getVAIControllerImpl} from '../ContractLookup';
@@ -63,6 +62,18 @@ async function acceptAdmin(world: World, from: string, vaicontroller: VAIControl
   world = addAction(
     world,
     `VAIController: ${describeUser(world, from)} accepts admin`,
+    invokation
+  );
+
+  return world;
+}
+
+async function setComptroller(world: World, from: string, vaicontroller: VAIController, comptroller: string): Promise<World> {
+  let invokation = await invoke(world, vaicontroller.methods._setComptroller(comptroller), from, VAIControllerErrorReporter);
+
+  world = addAction(
+    world,
+    `Set Comptroller to ${comptroller} as ${describeUser(world, from)}`,
     invokation
   );
 
@@ -127,6 +138,20 @@ export function vaicontrollerCommands() {
       (world, from, {vaicontrollerParams}) => genVAIController(world, from, vaicontrollerParams.val)
     ),
 
+    new Command<{ vaicontroller: VAIController, comptroller: AddressV}>(`
+        #### SetComptroller
+
+        * "VAIController SetComptroller comptroller:<Address>" - Sets the comptroller address
+          * E.g. "VAIController SetComptroller 0x..."
+      `,
+      "SetComptroller",
+      [
+        new Arg("vaicontroller", getVAIController, {implicit: true}),
+        new Arg("comptroller", getAddressV)
+      ],
+      (world, from, {vaicontroller, comptroller}) => setComptroller(world, from, vaicontroller, comptroller.val)
+    ),
+
     new Command<{ vaicontroller: VAIController, amount: NumberV }>(`
         #### Mint
 
@@ -140,7 +165,6 @@ export function vaicontrollerCommands() {
       ],
       // Note: we override from
       (world, from, { vaicontroller, amount }) => mint(world, from, vaicontroller, amount),
-      { namePos: 1 }
     ),
 
     new Command<{ vaicontroller: VAIController, amount: NumberV }>(`
@@ -155,7 +179,6 @@ export function vaicontrollerCommands() {
         new Arg("amount", getNumberV, { nullable: true })
       ],
       (world, from, { vaicontroller, amount }) => repay(world, from, vaicontroller, amount),
-      { namePos: 1 }
     ),
 
     new Command<{ vaicontroller: VAIController, borrower: AddressV, vToken: VToken, collateral: VToken, repayAmount: NumberV }>(`
@@ -172,7 +195,6 @@ export function vaicontrollerCommands() {
         new Arg("repayAmount", getNumberV, { nullable: true })
       ],
       (world, from, { vaicontroller, borrower, collateral, repayAmount }) => liquidateVAI(world, from, vaicontroller, borrower.val, collateral, repayAmount),
-      { namePos: 1 }
     )
   ];
 }

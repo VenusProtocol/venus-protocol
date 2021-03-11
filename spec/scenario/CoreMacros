@@ -17,6 +17,13 @@ Macro PricedComptroller closeFactor=0.1 maxAssets=20
     Comptroller SetCloseFactor closeFactor
     Comptroller SetMaxAssets maxAssets
 
+Macro PricedComptrollerWithVAIController closeFactor=0.1 maxAssets=20
+    PricedComptroller closeFactor maxAssets
+    NewVAIController
+    Comptroller SetVAIController (Address VAIUnitroller)
+    VAIController SetComptroller (Address Unitroller)
+    Comptroller SetVAIMintRate 5e3
+
 Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
     Unitroller Deploy
     PriceOracle Deploy Fixed price
@@ -36,6 +43,20 @@ Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetMaxAssets maxAssets
     Comptroller SetCloseFactor closeFactor
+
+Macro NewComptrollerWithVAIController price=1.0 closeFactor=0.1 maxAssets=20
+    NewComptroller price closeFactor maxAssets
+    NewVAIController
+    Comptroller SetVAIController (Address VAIUnitroller)
+    VAIController SetComptroller (Address Unitroller)
+    Comptroller SetVAIMintRate 5e3
+
+Macro NewVAIController
+    VAIUnitroller Deploy
+    --current
+    VAIControllerImpl Deploy Scenario ScenVAIController
+    VAIUnitroller SetPendingImpl ScenVAIController
+    VAIControllerImpl ScenVAIController Become
 
 Macro NewVToken bep20 vToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 tokenType=Standard delegatorType=VBep20DelegatorScenario vTokenType=VBep20DelegateScenario admin=Admin becomeImplementationData="0x0"
     Bep20 Deploy tokenType bep20 bep20
@@ -147,6 +168,9 @@ Macro RepayBorrowBnbBehalf user behalf amount token
 
 Macro Liquidate liquidator _ borrower amount token _ collateral
     From liquidator (VToken token Liquidate borrower collateral amount)
+
+Macro LiquidateVAI liquidator _ borrower amount _ collateral
+    From liquidator (VAIController LiquidateVAI borrower collateral amount)
 
 Macro LiquidateBnbColl liquidator _ borrower amount token _ collateral
     From liquidator (Trx GasPrice 0 (VToken token Liquidate borrower collateral amount))

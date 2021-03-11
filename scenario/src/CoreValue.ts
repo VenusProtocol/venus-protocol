@@ -20,6 +20,8 @@ import { Arg, Fetcher, getFetcherValue } from './Command';
 import { getUserValue, userFetchers } from './Value/UserValue';
 import { comptrollerFetchers, getComptrollerValue } from './Value/ComptrollerValue';
 import { comptrollerImplFetchers, getComptrollerImplValue } from './Value/ComptrollerImplValue';
+import { vaicontrollerFetchers, getVAIControllerValue } from './Value/VAIControllerValue';
+import { vaicontrollerImplFetchers, getVAIControllerImplValue } from './Value/VAIControllerImplValue';
 import { getUnitrollerValue, unitrollerFetchers } from './Value/UnitrollerValue';
 import { vTokenFetchers, getVTokenValue } from './Value/VTokenValue';
 import { vTokenDelegateFetchers, getVTokenDelegateValue } from './Value/VTokenDelegateValue';
@@ -845,6 +847,29 @@ const fetchers = [
     [new Arg('res', getComptrollerImplValue, { variadic: true })],
     async (world, { res }) => res,
     { subExpressions: comptrollerImplFetchers() }
+  ),
+
+  new Fetcher<{ res: Value }, Value>(
+    `
+      #### VAIController
+
+      * "VAIController ...vaicontrollerArgs" - Returns vaicontroller value
+    `,
+    'VAIController',
+    [new Arg('res', getVAIControllerValue, { variadic: true })],
+    async (world, { res }) => res,
+    { subExpressions: vaicontrollerFetchers() }
+  ),
+  new Fetcher<{ res: Value }, Value>(
+    `
+      #### VAIControllerImpl
+
+      * "VAIControllerImpl ...vaicontrollerImplArgs" - Returns vaicontroller implementation value
+    `,
+    'VAIControllerImpl',
+    [new Arg('res', getVAIControllerImplValue, { variadic: true })],
+    async (world, { res }) => res,
+    { subExpressions: vaicontrollerImplFetchers() }
   ),
   new Fetcher<{ res: Value }, Value>(
     `

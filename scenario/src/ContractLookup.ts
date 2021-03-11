@@ -85,6 +85,10 @@ export async function getUnitroller(world: World): Promise<Comptroller> {
   return getWorldContract(world, [['Contracts', 'Unitroller']]);
 }
 
+export async function getVAIUnitroller(world: World): Promise<VAIController> {
+  return getWorldContract(world, [['Contracts', 'VAIUnitroller']]);
+}
+
 export async function getMaximillion(world: World): Promise<Comptroller> {
   return getWorldContract(world, [['Contracts', 'Maximillion']]);
 }
