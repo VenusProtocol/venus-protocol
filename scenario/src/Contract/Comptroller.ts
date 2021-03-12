@@ -50,6 +50,7 @@ interface ComptrollerMethods {
   claimVenus(string): Sendable<void>
   _setVenusRate(encodedNumber): Sendable<void>
   _setVenusSpeed(vToken: string, encodedNumber): Sendable<void>
+  mintedVAIs(string): Callable<number>
   _setMarketBorrowCaps(vTokens:string[], borrowCaps:encodedNumber[]): Sendable<void>
   _setBorrowCapGuardian(string): Sendable<void>
   borrowCapGuardian(): Callable<string>

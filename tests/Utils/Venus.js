@@ -220,7 +220,7 @@ async function makeVAI(opts = {}) {
 
   let vai;
 
-  vai = await deploy('VAIHarness',
+  vai = await deploy('VAIScenario',
     [
       chainId
     ]

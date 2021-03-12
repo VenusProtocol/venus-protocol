@@ -104,6 +104,18 @@ async function transferFromScenario(world: World, from: string, vai: VAIScenario
   return world;
 }
 
+async function rely(world: World, from: string, vai: VAI, address: string): Promise<World> {
+  let invokation = await invoke(world, vai.methods.rely(address), from, NoErrorReporter);
+
+  world = addAction(
+    world,
+    `Add rely to VAI token to ${address}`,
+    invokation
+  );
+
+  return world;
+}
+
 export function vaiCommands() {
   return [
     new Command<{ params: EventV }>(`
@@ -212,7 +224,23 @@ export function vaiCommands() {
         new Arg("amount", getNumberV)
       ],
       (world, from, { vai, froms, amount }) => transferFromScenario(world, from, vai, froms.map(_from => _from.val), amount)
-    )
+    ),
+
+    new Command<{ vai: VAI, address: AddressV, amount: NumberV }>(`
+        #### Rely
+
+        * "VAI Rely rely:<Address>" - Adds rely address
+          * E.g. "VAI Rely 0xXX..."
+      `,
+      "Rely",
+      [
+        new Arg("vai", getVAI, { implicit: true }),
+        new Arg("address", getAddressV)
+      ],
+      (world, from, { vai, address }) => {
+        return rely(world, from, vai, address.val)
+      }
+    ),
   ];
 }
 

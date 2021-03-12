@@ -2,7 +2,7 @@ pragma solidity ^0.5.16;
 
 import "../../contracts/VAI/VAI.sol";
 
-contract VAIHarness is VAI {
+contract VAIScenario is VAI {
     uint blockNumber = 100000;
 
     constructor(uint chainId) VAI(chainId) public {}

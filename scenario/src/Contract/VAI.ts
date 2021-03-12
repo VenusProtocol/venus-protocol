@@ -12,6 +12,7 @@ export interface VAIMethods {
   approve(address: string, amount: encodedNumber): Sendable<number>;
   transfer(address: string, amount: encodedNumber): Sendable<boolean>;
   transferFrom(owner: string, spender: string, amount: encodedNumber): Sendable<boolean>;
+  rely(address: string): Sendable<void>;
 }
 
 export interface VAIScenarioMethods extends VAIMethods {

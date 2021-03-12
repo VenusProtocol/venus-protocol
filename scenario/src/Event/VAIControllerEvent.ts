@@ -68,6 +68,16 @@ async function acceptAdmin(world: World, from: string, vaicontroller: VAIControl
   return world;
 }
 
+async function sendAny(world: World, from:string, comptroller: VAIController, signature: string, callArgs: string[]): Promise<World> {
+  const fnData = encodeABI(world, signature, callArgs);
+  await world.web3.eth.sendTransaction({
+      to: comptroller._address,
+      data: fnData,
+      from: from
+    })
+  return world;
+}
+
 async function setComptroller(world: World, from: string, vaicontroller: VAIController, comptroller: string): Promise<World> {
   let invokation = await invoke(world, vaicontroller.methods._setComptroller(comptroller), from, VAIControllerErrorReporter);
 
@@ -138,6 +148,20 @@ export function vaicontrollerCommands() {
       (world, from, {vaicontrollerParams}) => genVAIController(world, from, vaicontrollerParams.val)
     ),
 
+    new Command<{vaicontroller: VAIController, signature: StringV, callArgs: StringV[]}>(`
+      #### Send
+      * VAIController Send functionSignature:<String> callArgs[] - Sends any transaction to vaicontroller
+      * E.g: VAIController Send "setVAIAddress(address)" (Address VAI)
+      `,
+      "Send",
+      [
+        new Arg("vaicontroller", getVAIController, {implicit: true}),
+        new Arg("signature", getStringV),
+        new Arg("callArgs", getCoreValue, {variadic: true, mapped: true})
+      ],
+      (world, from, {vaicontroller, signature, callArgs}) => sendAny(world, from, vaicontroller, signature.val, rawValues(callArgs))
+    ),
+
     new Command<{ vaicontroller: VAIController, comptroller: AddressV}>(`
         #### SetComptroller
 
@@ -182,12 +206,12 @@ export function vaicontrollerCommands() {
     ),
 
     new Command<{ vaicontroller: VAIController, borrower: AddressV, vToken: VToken, collateral: VToken, repayAmount: NumberV }>(`
-        #### Liquidate
+        #### LiquidateVAI
 
-        * "VAIController Liquidate borrower:<User> vTokenCollateral:<Address> repayAmount:<Number>" - Liquidates repayAmount of given token seizing collateral token
-          * E.g. "VAIController Liquidate Geoff vBAT 1.0e18"
+        * "VAIController LiquidateVAI borrower:<User> vTokenCollateral:<Address> repayAmount:<Number>" - Liquidates repayAmount of VAI seizing collateral token
+          * E.g. "VAIController LiquidateVAI Geoff vBAT 1.0e18"
       `,
-      "Liquidate",
+      "LiquidateVAI",
       [
         new Arg("vaicontroller", getVAIController, {implicit: true}),
         new Arg("borrower", getAddressV),

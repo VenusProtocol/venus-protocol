@@ -136,15 +136,41 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
     }
 
     /**
+     * @notice The sender liquidates the vai minters collateral.
+     *  The collateral seized is transferred to the liquidator.
+     * @param borrower The borrower of vai to be liquidated
+     * @param vTokenCollateral The market in which to seize collateral from the borrower
+     * @param repayAmount The amount of the underlying borrowed asset to repay
+     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     */
+    function liquidateVAI(address borrower, uint repayAmount, VTokenInterface vTokenCollateral) external /* critical nonReentrant */ returns (uint, uint) {
+        //critical
+        //uint error = accrueInterest();
+        // if (error != uint(Error.NO_ERROR)) {
+        //     // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
+        //     return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED), 0);
+        // }
+
+        // error = vTokenCollateral.accrueInterest();
+        // if (error != uint(Error.NO_ERROR)) {
+        //     // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
+        //     return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
+        // }
+
+        // liquidateVAIFresh emits borrow-specific logs on errors, so we don't need to
+        return liquidateVAIFresh(msg.sender, borrower, repayAmount, vTokenCollateral);
+    }
+
+    /**
      * @notice The liquidator liquidates the borrowers collateral by repay borrowers VAI.
      *  The collateral seized is transferred to the liquidator.
-     * @param borrower The borrower of this VAI to be liquidated
      * @param liquidator The address repaying the VAI and seizing collateral
+     * @param borrower The borrower of this VAI to be liquidated
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @param repayAmount The amount of the VAI to repay
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment VAI.
      */
-    function liquidateVAI(address liquidator, address borrower, uint repayAmount, VTokenInterface vTokenCollateral) internal returns (uint, uint) {
+    function liquidateVAIFresh(address liquidator, address borrower, uint repayAmount, VTokenInterface vTokenCollateral) internal returns (uint, uint) {
         if(address(comptroller) != address(0)) {
             /* Fail if liquidate not allowed */
             uint allowed = comptroller.liquidateBorrowAllowed(address(this), address(vTokenCollateral), liquidator, borrower, repayAmount);
@@ -182,7 +208,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             /* Fail if repayBorrow fails */
             (uint repayBorrowError, uint actualRepayAmount) = repayVAIInternal(liquidator, borrower, repayAmount);
             if (repayBorrowError != uint(Error.NO_ERROR)) {
-                // critical return (fail(Error(repayBorrowError), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
+                return (fail(Error(repayBorrowError), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
             }
 
             /////////////////////////
@@ -190,13 +216,12 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             // (No safe failures beyond this point)
 
             /* We calculate the number of collateral tokens that will be seized */
-            (uint amountSeizeError, uint seizeTokens) = (0,0);//comptroller.liquidateVAICalculateSeizeTokens(address(vTokenCollateral), actualRepayAmount);
+            (uint amountSeizeError, uint seizeTokens) = comptroller.liquidateVAICalculateSeizeTokens(address(vTokenCollateral), actualRepayAmount);
             require(amountSeizeError == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
 
             /* Revert if borrower collateral token balance < seizeTokens */
             require(vTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
 
-            // If this is also the collateral, run seizeInternal to avoid re-entrancy, otherwise make an external call
             uint seizeError;
             seizeError = vTokenCollateral.seize(liquidator, borrower, seizeTokens);
 

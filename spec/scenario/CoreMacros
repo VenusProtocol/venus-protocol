@@ -23,6 +23,7 @@ Macro PricedComptrollerWithVAIController closeFactor=0.1 maxAssets=20
     Comptroller SetVAIController (Address VAIUnitroller)
     VAIController SetComptroller (Address Unitroller)
     Comptroller SetVAIMintRate 5e3
+    NewVAI
 
 Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
     Unitroller Deploy
@@ -57,6 +58,11 @@ Macro NewVAIController
     VAIControllerImpl Deploy Scenario ScenVAIController
     VAIUnitroller SetPendingImpl ScenVAIController
     VAIControllerImpl ScenVAIController Become
+
+Macro NewVAI
+    VAI Deploy Admin
+    VAI Rely (Address VAIUnitroller)
+    VAIController Send "setVAIAddress(address)" (Address VAI)
 
 Macro NewVToken bep20 vToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 tokenType=Standard delegatorType=VBep20DelegatorScenario vTokenType=VBep20DelegateScenario admin=Admin becomeImplementationData="0x0"
     Bep20 Deploy tokenType bep20 bep20

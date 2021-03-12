@@ -580,7 +580,8 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterfaceG2, Comptrolle
         // Shh - currently unused
         seizeTokens;
 
-        if (!markets[vTokenCollateral].isListed || !markets[vTokenBorrowed].isListed) {
+        // We've added VAIController as a borrowed token list check for seize
+        if (!markets[vTokenCollateral].isListed || !(markets[vTokenBorrowed].isListed || address(vTokenBorrowed) == address(vaiController))) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
