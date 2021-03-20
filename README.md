@@ -3,7 +3,7 @@
 Venus Protocol
 =================
 
-The Venus Protocol is an Binance Smart Chain smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain *supply* capital (BNB or BEP-20 tokens) to receive vTokens or *borrow* assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers.
+The Venus Protocol is a Binance Smart Chain smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain *supply* capital (BNB or BEP-20 tokens) to receive vTokens or *borrow* assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers.
 
 Before getting started with this repo, please read:
 
@@ -14,7 +14,7 @@ We detail a few of the core contracts in the Venus protocol.
 
 <dl>
   <dt>VToken, VBep20 and VBNB</dt>
-  <dd>The Venus vTokens, which are self-contained borrowing and lending contracts. VToken contains the core logic and VBep20, VBUSD, VSXP and VBNB add public interfaces for Bep20 tokens and bnb, respectively. Each VToken is assigned an interest rate and risk model (see InterestRateModel and Comptroller sections), and allows accounts to *mint* (supply capital), *redeem* (withdraw capital), *borrow* and *repay a borrow*. Each VToken is an BEP-20 compliant token where balances represent ownership of the market.</dd>
+  <dd>The Venus vTokens, which are self-contained borrowing and lending contracts. VToken contains the core logic and VBep20, VBUSD, VSXP and VBNB add public interfaces for Bep20 tokens and bnb, respectively. Each VToken is assigned an interest rate and risk model (see InterestRateModel and Comptroller sections), and allows accounts to *mint* (supply capital), *redeem* (withdraw capital), *borrow* and *repay a borrow*. Each VToken is a BEP-20 compliant token where balances represent ownership of the market.</dd>
 </dl>
 
 <dl>
@@ -69,7 +69,7 @@ We detail a few of the core contracts in the Venus protocol.
 
 Installation
 ------------
-To run venus, pull the repository from GitHub and install its dependencies. You will need [yarn](https://yarnpkg.com/lang/en/docs/install/) or [npm](https://docs.npmjs.com/cli/install) installed.
+To run Venus, pull the repository from GitHub and install its dependencies. You will need [yarn](https://yarnpkg.com/lang/en/docs/install/) or [npm](https://docs.npmjs.com/cli/install) installed.
 
     git clone https://github.com/SwipeWallet/venus-protocol
     cd venus-protocol
@@ -128,7 +128,7 @@ To lint the code, run:
 Docker
 ------
 
-To run in docker:
+To run the code in Docker:
 
     # Build the docker image
     docker build -t swipewallet/venus-protocol .
@@ -136,7 +136,7 @@ To run in docker:
     # Run a shell to the built image
     docker run -it swipewallet/venus-protocol /bin/sh
 
-From within a docker shell, you can interact locally with the protocol via ganache and truffle:
+From within a Docker shell, you can interact locally with the protocol via ganache and truffle:
 
 ```bash
     /venus-protocol > yarn console -n goerli
@@ -195,7 +195,7 @@ Note: you will need to set `~/.ethereum/<network>` with your private key or assi
 
 Note: for all sections including BscScan verification, you must set the `BSCSCAN_API_KEY` to a valid API Key from [BscScan](https://bscscan.com/apis).
 
-To deploy a new vToken, you can run the `token:deploy`. command, as follows. If you set `VERIFY=true`, the script will verify the token on BscScan as well. The JSON here is the token config JSON, which should be specific to the token you wish to list.
+To deploy a new vToken, you can run the `token:deploy` command, as follows. If you set `VERIFY=true`, the script will verify the token on BscScan as well. The JSON here is the token config JSON, which should be specific to the token you wish to list.
 
 ```bash
 npx saddle -n rinkeby script token:deploy '{
