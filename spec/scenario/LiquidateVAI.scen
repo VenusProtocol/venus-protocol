@@ -1,23 +1,21 @@
 -- Liquidate Tests
 
 Test "Supply OMG, Mint VAI, OMG price crashes, Liquidate VAI"
-	AddToken OMG
-	SupportMarket OMG (FixedPrice 1.0) (FixedRate 0.5 0.75) SimplePolicyHook
-	Approve Geoff OMG "2.1e18"
-	Faucet Geoff OMG "2.1e18"
-	Supply Geoff OMG "2.1e18"
-	Assert Success
-	Assert Equal (SupplyBalance Geoff OMG) (Exactly "2.1e18")
-	-- AddToken BNB
-	-- SupportMarket BNB (FixedPrice 1.0) (FixedRate 0.5 0.75) SimplePolicyHook
-	-- Approve Torrey BNB "5.0e18"
-	-- Faucet Torrey BNB "5.0e18"
-	-- Supply Torrey BNB "2.0e18"
-	-- Assert Equal (BalanceSheetSupply OMG) (Exactly "2.1e18")
-	-- Assert Equal (TokenBalance Geoff BNB) (Exactly "0.0e18")
-	-- EnterMarkets Geoff BNB
-	-- Borrow Geoff BNB "1e18"
-	MintVAI Geoff "1e18"
+    NewComptrollerWithVAIController price:1.0
+    NewVToken ZRX vZRX
+    NewVToken BAT vBAT
+    Give vBAT 10e18 BAT -- Faucet some bat to borrow
+    Support vZRX collateralFactor:0.5
+    Support vBAT collateralFactor:0.5
+    Prep Geoff Some ZRX vZRX
+    Mint Geoff 100e18 vZRX
+    EnterMarkets Geoff vZRX
+    Borrow Geoff 1e18 vBAT
+	Assert Equal (vToken vBAT BorrowBalance Geoff) (Exactly 1e18)
+    Assert Equal (Bep20 BAT TokenBalance Geoff) (Exactly 1e18)
+    Assert Equal (Bep20 BAT TokenBalance vBAT) (Exactly 9e18)
+	MintVAI Geoff 1e18
+	Assert Equal (Bep20 TokenBalance Geoff) 1e18 -- liquidator token balance should be reduced
 	Assert Success
 	-- Assert Equal (BalanceSheetBorrow BNB) (Exactly "1.05e18") -- includes origination fee
 	-- Assert Equal (BorrowBalance Geoff BNB) (Exactly "1.05e18") -- includes origination fee
@@ -27,8 +25,8 @@ Test "Supply OMG, Mint VAI, OMG price crashes, Liquidate VAI"
 	--Assert Equal (BalanceSheetSupply BNB) (Exactly "2.0e18")
 	----
 	---- Crash OMG price and liquidate
-	SetMarketPriceOracle OMG (FixedPrice "0.5") -- Max liquidate at this price should be maxClose = 1E for all the supply
-	LiquidateVAI Torrey Geoff "1e18" OMG
+	PriceOracle SetPrice vOMG 0.5
+	LiquidateVAI Torrey Geoff 1e18 OMG
 	Assert Success
 	-- Assert Equal (BalanceSheetBorrow BNB) (Exactly "0.05e18") -- borrow was paid by liquidator
 	-- Assert Equal (BorrowBalance Geoff BNB) (Exactly "0.05e18") -- target user should have liquidated amount closed on borrow

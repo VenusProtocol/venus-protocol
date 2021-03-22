@@ -37,7 +37,7 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
     /**
      * @notice Event emitted when VAI is repaid
      */
-    event RepayVAI(address repayer, uint repayVAIAmount);
+    event RepayVAI(address payer, address borrower, uint repayVAIAmount);
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
@@ -115,22 +115,27 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
 
         uint actualBurnAmount;
 
-        uint vaiBalance = ComptrollerImplInterface(address(comptroller)).mintedVAIs(payer);
+        uint vaiBalanceBorrower = ComptrollerImplInterface(address(comptroller)).mintedVAIs(borrower);
 
-        if(vaiBalance > repayAmount) {
+        if(vaiBalanceBorrower > repayAmount) {
             actualBurnAmount = repayAmount;
         } else {
-            actualBurnAmount = vaiBalance;
+            actualBurnAmount = vaiBalanceBorrower;
         }
 
-        //////////// critical need check amount here
-        uint error = comptroller.setMintedVAIOf(borrower, vaiBalance - actualBurnAmount);
+        MathError mErr;
+        uint accountVAINew;
+        
+        VAI(getVAIAddress()).burn(payer, actualBurnAmount);
+
+        (mErr, accountVAINew) = subUInt(vaiBalanceBorrower, actualBurnAmount);
+        require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+        
+        uint error = comptroller.setMintedVAIOf(borrower, accountVAINew);
         if (error != 0) {
             return (error, 0);
         }
-
-        VAI(getVAIAddress()).burn(payer, actualBurnAmount);
-        emit RepayVAI(payer, actualBurnAmount);
+        emit RepayVAI(payer, borrower, actualBurnAmount);
 
         return (uint(Error.NO_ERROR), actualBurnAmount);
     }
@@ -148,13 +153,13 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         //uint error = accrueInterest();
         // if (error != uint(Error.NO_ERROR)) {
         //     // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
-        //     return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED), 0);
+        //     return (fail(Error(error), FailureInfo.VAI_LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED), 0);
         // }
 
         // error = vTokenCollateral.accrueInterest();
         // if (error != uint(Error.NO_ERROR)) {
         //     // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
-        //     return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
+        //     return (fail(Error(error), FailureInfo.VAI_LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
         // }
 
         // liquidateVAIFresh emits borrow-specific logs on errors, so we don't need to
@@ -175,40 +180,40 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             /* Fail if liquidate not allowed */
             uint allowed = comptroller.liquidateBorrowAllowed(address(this), address(vTokenCollateral), liquidator, borrower, repayAmount);
             if (allowed != 0) {
-                // critical return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.LIQUIDATE_COMPTROLLER_REJECTION, allowed), 0);
+                return (failOpaque(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_COMPTROLLER_REJECTION, allowed), 0);
             }
 
             ///////////// critical
             // /* Verify market's block number equals current block number */
             // if (accrualBlockNumber != getBlockNumber()) {
-            //     return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_FRESHNESS_CHECK), 0);
+            //     return (fail(Error.MARKET_NOT_FRESH, FailureInfo.VAI_LIQUIDATE_FRESHNESS_CHECK), 0);
             // }
 
             /* Verify vTokenCollateral market's block number equals current block number */
             if (vTokenCollateral.accrualBlockNumber() != getBlockNumber()) {
-                // critical return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
+                return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
             }
 
             /* Fail if borrower = liquidator */
             if (borrower == liquidator) {
-                // critical return (fail(Error.INVALID_ACCOUNT_PAIR, FailureInfo.LIQUIDATE_LIQUIDATOR_IS_BORROWER), 0);
+                return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_LIQUIDATOR_IS_BORROWER), 0);
             }
 
             /* Fail if repayAmount = 0 */
             if (repayAmount == 0) {
-                // critical return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_ZERO), 0);
+                return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_CLOSE_AMOUNT_IS_ZERO), 0);
             }
 
             /* Fail if repayAmount = -1 */
             if (repayAmount == uint(-1)) {
-                // critical return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
+                return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
             }
 
 
-            /* Fail if repayBorrow fails */
+            /* Fail if repayVAI fails */
             (uint repayBorrowError, uint actualRepayAmount) = repayVAIInternal(liquidator, borrower, repayAmount);
             if (repayBorrowError != uint(Error.NO_ERROR)) {
-                return (fail(Error(repayBorrowError), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
+                return (fail(Error(repayBorrowError), FailureInfo.VAI_LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
             }
 
             /////////////////////////
@@ -217,10 +222,10 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
 
             /* We calculate the number of collateral tokens that will be seized */
             (uint amountSeizeError, uint seizeTokens) = comptroller.liquidateVAICalculateSeizeTokens(address(vTokenCollateral), actualRepayAmount);
-            require(amountSeizeError == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
+            require(amountSeizeError == uint(Error.NO_ERROR), "VAI_LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
 
             /* Revert if borrower collateral token balance < seizeTokens */
-            require(vTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
+            require(vTokenCollateral.balanceOf(borrower) >= seizeTokens, "VAI_LIQUIDATE_SEIZE_TOO_MUCH");
 
             uint seizeError;
             seizeError = vTokenCollateral.seize(liquidator, borrower, seizeTokens);

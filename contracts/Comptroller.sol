@@ -505,7 +505,7 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterfaceG2, Comptrolle
         // Shh - currently unused
         liquidator;
 
-        if (!markets[vTokenBorrowed].isListed || !markets[vTokenCollateral].isListed) {
+        if (!(markets[vTokenBorrowed].isListed || address(vTokenBorrowed) == address(vaiController)) || !markets[vTokenCollateral].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
@@ -519,7 +519,13 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterfaceG2, Comptrolle
         }
 
         /* The liquidator may not repay more than what is allowed by the closeFactor */
-        uint borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
+        uint borrowBalance;
+        if (address(vTokenBorrowed) != address(vaiController)) {
+            borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
+        } else {
+            borrowBalance = mintedVAIs[borrower];
+        }
+        
         (MathError mathErr, uint maxClose) = mulScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
         if (mathErr != MathError.NO_ERROR) {
             return uint(Error.MATH_ERROR);
