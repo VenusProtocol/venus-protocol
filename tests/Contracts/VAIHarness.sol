@@ -23,4 +23,10 @@ contract VAIScenario is VAI {
         balanceOf[account] = _amount;
     }
 
+    function allocateTo(address _owner, uint256 value) public {
+        balanceOf[_owner] += value;
+        totalSupply += value;
+        emit Transfer(address(this), _owner, value);
+    }
+
 }

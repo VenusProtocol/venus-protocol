@@ -329,21 +329,46 @@ async function setBNBBalance(vBnb, balance) {
 async function getBalances(vTokens, accounts) {
   const balances = {};
   for (let vToken of vTokens) {
-    const cBalances = balances[vToken._address] = {};
+    const vBalances = balances[vToken._address] = {};
     for (let account of accounts) {
-      cBalances[account] = {
+      vBalances[account] = {
         bnb: await bnbBalance(account),
         cash: vToken.underlying && await balanceOf(vToken.underlying, account),
         tokens: await balanceOf(vToken, account),
         borrows: (await borrowSnapshot(vToken, account)).principal
       };
     }
-    cBalances[vToken._address] = {
+    vBalances[vToken._address] = {
       bnb: await bnbBalance(vToken._address),
       cash: vToken.underlying && await balanceOf(vToken.underlying, vToken._address),
       tokens: await totalSupply(vToken),
       borrows: await totalBorrows(vToken),
       reserves: await totalReserves(vToken)
+    };
+  }
+  return balances;
+}
+
+async function getBalancesWithVAI(vTokens, vai, accounts) {
+  const balances = {};
+  for (let vToken of vTokens) {
+    const vBalances = balances[vToken._address] = {};
+    for (let account of accounts) {
+      vBalances[account] = {
+        bnb: await bnbBalance(account),
+        cash: vToken.underlying && await balanceOf(vToken.underlying, account),
+        tokens: await balanceOf(vToken, account),
+        borrows: (await borrowSnapshot(vToken, account)).principal,
+        vai: (await vaiBalance(vToken, vai, account)).principal
+      };
+    }
+    vBalances[vToken._address] = {
+      bnb: await bnbBalance(vToken._address),
+      cash: vToken.underlying && await balanceOf(vToken.underlying, vToken._address),
+      tokens: await totalSupply(vToken),
+      borrows: await totalBorrows(vToken),
+      reserves: await totalReserves(vToken),
+      vai: await totalVAI(vai)
     };
   }
   return balances;
@@ -469,6 +494,7 @@ module.exports = {
   setBalance,
   setBNBBalance,
   getBalances,
+  getBalancesWithVAI,
   adjustBalances,
 
   preApprove,

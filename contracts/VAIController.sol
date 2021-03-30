@@ -150,17 +150,18 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
      */
     function liquidateVAI(address borrower, uint repayAmount, VTokenInterface vTokenCollateral) external /* critical nonReentrant */ returns (uint, uint) {
         //critical
+        uint error;
         //uint error = accrueInterest();
         // if (error != uint(Error.NO_ERROR)) {
         //     // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
         //     return (fail(Error(error), FailureInfo.VAI_LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED), 0);
         // }
 
-        // error = vTokenCollateral.accrueInterest();
-        // if (error != uint(Error.NO_ERROR)) {
-        //     // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
-        //     return (fail(Error(error), FailureInfo.VAI_LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
-        // }
+        error = vTokenCollateral.accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
+            return (fail(Error(error), FailureInfo.VAI_LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
+        }
 
         // liquidateVAIFresh emits borrow-specific logs on errors, so we don't need to
         return liquidateVAIFresh(msg.sender, borrower, repayAmount, vTokenCollateral);

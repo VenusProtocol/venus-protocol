@@ -111,6 +111,13 @@ Macro SetPriceCF vToken price collateralFactor
 Macro Give user amount bep20
     Bep20 bep20 Faucet user amount
 
+Macro GiveVAI user amount
+    VAI Faucet user amount
+
+Macro PrepVAI user amount token allowanceAmount=Nothing
+    GiveVAI user amount
+    From user (VAI Approve token (Default allowanceAmount amount))
+
 Macro Donate token amount
     (Trx Value amount (VToken token Donate))
 

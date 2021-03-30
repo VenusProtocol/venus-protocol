@@ -1,6 +1,6 @@
 const { last } = require('./Utils/JS');
 const { address, bnbUnsigned } = require('./Utils/BSC');
-const diff = require('jest-diff');
+const diff = require('jest-diff').default;
 const { ComptrollerErr, TokenErr, IRErr, MathErr } = require('./Errors');
 
 function opts(comment) {
