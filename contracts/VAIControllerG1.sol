@@ -24,7 +24,7 @@ interface ComptrollerLensInterface {
  * @title Venus's VAI Comptroller Contract
  * @author Venus
  */
-contract VAIControllerG1 is VAIControllerStorage, VAIControllerErrorReporter, Exponential {
+contract VAIControllerG1 is VAIControllerStorageG1, VAIControllerErrorReporter, Exponential {
 
     /// @notice Emitted when Comptroller is changed
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);

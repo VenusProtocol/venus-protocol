@@ -12,11 +12,20 @@ const {
 async function makeComptroller(opts = {}) {
   const {
     root = saddle.account,
+    treasuryGuardian = saddle.accounts[4],
+    treasuryAddress = saddle.accounts[4],
     kind = 'unitroller'
   } = opts || {};
 
   if (kind == 'bool') {
-    return await deploy('BoolComptroller');
+    const comptroller = await deploy('BoolComptroller');
+    return comptroller;
+  }
+
+  if (kind == 'boolFee') {
+    const comptroller = await deploy('BoolComptroller');
+    await send(comptroller, 'setTreasuryData', [treasuryGuardian, treasuryAddress, 1e14]);
+    return comptroller;
   }
 
   if (kind == 'false-marker') {
@@ -93,6 +102,8 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, '_setVenusVAIRate', [venusVAIRate]);
     await send(vaiunitroller, '_initializeVenusVAIState', [0]);
     await send(vai, 'rely', [unitroller._address]);
+
+    await send(unitroller, '_setTreasuryData', [treasuryGuardian, treasuryAddress, 1e14]);
 
     return Object.assign(unitroller, { priceOracle, xvs, vai, vaiunitroller });
   }

@@ -141,6 +141,11 @@ contract VTokenInterface is VTokenStorage {
     event Redeem(address redeemer, uint redeemAmount, uint redeemTokens);
 
     /**
+     * @notice Event emitted when tokens are redeemed and fee are transferred
+     */
+    event RedeemFee(address redeemer, uint feeAmount, uint redeemTokens);
+
+    /**
      * @notice Event emitted when underlying is borrowed
      */
     event Borrow(address borrower, uint borrowAmount, uint accountBorrows, uint totalBorrows);

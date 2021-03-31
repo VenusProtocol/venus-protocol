@@ -356,6 +356,25 @@ async function setBorrowCapGuardian(world: World, from: string, comptroller: Com
   return world;
 }
 
+async function setTreasuryData(
+  world: World,
+  from: string,
+  comptroller: Comptroller,
+  guardian: string,
+  address: string,
+  percent: NumberV,
+): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setTreasuryData(guardian, address, percent.encode()), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Set treasury data to guardian: ${guardian}, address: ${address}, percent: ${percent.show()}`,
+    invokation
+  );
+
+  return world;
+}
+
 export function comptrollerCommands() {
   return [
     new Command<{comptrollerParams: EventV}>(`
@@ -704,6 +723,20 @@ export function comptrollerCommands() {
         new Arg("newBorrowCapGuardian", getAddressV)
       ],
       (world, from, {comptroller, newBorrowCapGuardian}) => setBorrowCapGuardian(world, from, comptroller, newBorrowCapGuardian.val)
+    ),
+    new Command<{comptroller: Comptroller, guardian: AddressV, address: AddressV, percent: NumberV}>(`
+      #### SetTreasuryData
+      * "Comptroller SetTreasuryData <guardian> <address> <rate>" - Sets Treasury Data
+      * E.g. "Comptroller SetTreasuryData 0x.. 0x.. 1e18
+      `,
+      "SetTreasuryData",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("guardian", getAddressV),
+        new Arg("address", getAddressV),
+        new Arg("percent", getNumberV)
+      ],
+      (world, from, {comptroller, guardian, address, percent}) => setTreasuryData(world, from, comptroller, guardian.val, address.val, percent)
     )
   ];
 }

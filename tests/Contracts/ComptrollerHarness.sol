@@ -202,6 +202,10 @@ contract BoolComptroller is ComptrollerInterface {
     uint noError = 0;
     uint opaqueError = noError + 11; // an arbitrary, opaque error code
 
+    address public treasuryGuardian;
+    address public treasuryAddress;
+    uint public treasuryPercent;
+
     /*** Assets You Are In ***/
 
     function enterMarkets(address[] calldata _vTokens) external returns (uint[] memory) {
@@ -474,6 +478,12 @@ contract BoolComptroller is ComptrollerInterface {
 
     function vaiMintRate() external pure returns (uint) {
         return 1e18;
+    }
+
+    function setTreasuryData(address treasuryGuardian_, address treasuryAddress_, uint treasuryPercent_) external {
+        treasuryGuardian = treasuryGuardian_;
+        treasuryAddress = treasuryAddress_;
+        treasuryPercent = treasuryPercent_;
     }
 }
 

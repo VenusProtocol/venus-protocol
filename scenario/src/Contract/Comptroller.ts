@@ -55,6 +55,7 @@ interface ComptrollerMethods {
   _setBorrowCapGuardian(string): Sendable<void>
   borrowCapGuardian(): Callable<string>
   borrowCaps(string): Callable<string>
+  _setTreasuryData(guardian, address, percent: encodedNumber): Sendable<number>
 }
 
 export interface Comptroller extends Contract {

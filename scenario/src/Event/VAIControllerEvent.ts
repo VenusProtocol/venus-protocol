@@ -68,10 +68,10 @@ async function acceptAdmin(world: World, from: string, vaicontroller: VAIControl
   return world;
 }
 
-async function sendAny(world: World, from:string, comptroller: VAIController, signature: string, callArgs: string[]): Promise<World> {
+async function sendAny(world: World, from:string, vaicontroller: VAIController, signature: string, callArgs: string[]): Promise<World> {
   const fnData = encodeABI(world, signature, callArgs);
   await world.web3.eth.sendTransaction({
-      to: comptroller._address,
+      to: vaicontroller._address,
       data: fnData,
       from: from
     })
@@ -129,6 +129,25 @@ async function liquidateVAI(world: World, from: string, vaicontroller: VAIContro
   world = addAction(
     world,
     `VAIController: ${describeUser(world, from)} liquidates ${showAmount} from of ${describeUser(world, borrower)}, seizing ${collateral.name}.`,
+    invokation
+  );
+
+  return world;
+}
+
+async function setTreasuryData(
+  world: World,
+  from: string,
+  vaicontroller: VAIController,
+  guardian: string,
+  address: string,
+  percent: NumberV,
+): Promise<World> {
+  let invokation = await invoke(world, vaicontroller.methods._setTreasuryData(guardian, address, percent.encode()), from, VAIControllerErrorReporter);
+
+  world = addAction(
+    world,
+    `Set treasury data to guardian: ${guardian}, address: ${address}, percent: ${percent.show()}`,
     invokation
   );
 
@@ -219,6 +238,21 @@ export function vaicontrollerCommands() {
         new Arg("repayAmount", getNumberV, { nullable: true })
       ],
       (world, from, { vaicontroller, borrower, collateral, repayAmount }) => liquidateVAI(world, from, vaicontroller, borrower.val, collateral, repayAmount),
+    ),
+
+    new Command<{vaicontroller: VAIController, guardian: AddressV, address: AddressV, percent: NumberV}>(`
+      #### SetTreasuryData
+      * "VAIController SetTreasuryData <guardian> <address> <rate>" - Sets Treasury Data
+      * E.g. "VAIController SetTreasuryData 0x.. 0x.. 1e18
+      `,
+      "SetTreasuryData",
+      [
+        new Arg("vaicontroller", getVAIController, {implicit: true}),
+        new Arg("guardian", getAddressV),
+        new Arg("address", getAddressV),
+        new Arg("percent", getNumberV)
+      ],
+      (world, from, {vaicontroller, guardian, address, percent}) => setTreasuryData(world, from, vaicontroller, guardian.val, address.val, percent)
     )
   ];
 }

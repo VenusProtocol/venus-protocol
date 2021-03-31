@@ -83,3 +83,9 @@ contract ComptrollerInterface is ComptrollerInterfaceG2 {
 interface IVAIVault {
     function updatePendingRewards() external;
 }
+
+interface IComptroller {
+    /*** Treasury Data ***/
+    function treasuryAddress() external view returns (address);
+    function treasuryPercent() external view returns (uint);
+}

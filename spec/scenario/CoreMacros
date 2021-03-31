@@ -45,6 +45,18 @@ Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
     Comptroller SetMaxAssets maxAssets
     Comptroller SetCloseFactor closeFactor
 
+Macro NewFeeComptroller price=1.0 closeFactor=0.1 maxAssets=20
+    Unitroller Deploy
+    PriceOracle Deploy Fixed price
+    ComptrollerImpl Deploy Scenario ScenComptroller
+    Unitroller SetPendingImpl ScenComptroller
+    ComptrollerImpl ScenComptroller Become
+    PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero) -- if listing vBnb use ListedBNBToken to replace proxy
+    Comptroller SetPriceOracle (PriceOracleProxy Address)
+    Comptroller SetMaxAssets maxAssets
+    Comptroller SetCloseFactor closeFactor
+    Comptroller SetTreasuryData Guardian Jared 1e14
+
 Macro NewComptrollerWithVAIController price=1.0 closeFactor=0.1 maxAssets=20
     NewComptroller price closeFactor maxAssets
     NewVAIController

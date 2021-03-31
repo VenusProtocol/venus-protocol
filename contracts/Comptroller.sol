@@ -14,7 +14,7 @@ import "./VAI/VAI.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV3Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, Exponential {
+contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, Exponential {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -86,6 +86,15 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterfaceG2, Comptrolle
 
     /// @notice Emitted when borrow cap guardian is changed
     event NewBorrowCapGuardian(address oldBorrowCapGuardian, address newBorrowCapGuardian);
+
+    /// @notice Emitted when treasury guardian is changed
+    event NewTreasuryGuardian(address oldTreasuryGuardian, address newTreasuryGuardian);
+
+    /// @notice Emitted when treasury address is changed
+    event NewTreasuryAddress(address oldTreasuryAddress, address newTreasuryAddress);
+
+    /// @notice Emitted when treasury percent is changed
+    event NewTreasuryPercent(uint oldTreasuryPercent, uint newTreasuryPercent);
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
@@ -1181,6 +1190,27 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterfaceG2, Comptrolle
         uint oldVAIMintRate = vaiMintRate;
         vaiMintRate = newVAIMintRate;
         emit NewVAIMintRate(oldVAIMintRate, newVAIMintRate);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    function _setTreasuryData(address newTreasuryGuardian, address newTreasuryAddress, uint newTreasuryPercent) external returns (uint) {
+        // Check caller is admin
+        if (!(msg.sender == admin || msg.sender == treasuryGuardian)) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_TREASURY_OWNER_CHECK);
+        }
+
+        address oldTreasuryGuardian = treasuryGuardian;
+        address oldTreasuryAddress = treasuryAddress;
+        uint oldTreasuryPercent = treasuryPercent;
+
+        treasuryGuardian = newTreasuryGuardian;
+        treasuryAddress = newTreasuryAddress;
+        treasuryPercent = newTreasuryPercent;
+
+        emit NewTreasuryGuardian(oldTreasuryGuardian, newTreasuryGuardian);
+        emit NewTreasuryAddress(oldTreasuryAddress, newTreasuryAddress);
+        emit NewTreasuryPercent(oldTreasuryPercent, newTreasuryPercent);
 
         return uint(Error.NO_ERROR);
     }

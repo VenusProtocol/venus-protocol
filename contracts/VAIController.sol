@@ -24,7 +24,7 @@ interface ComptrollerImplInterface {
  * @title Venus's VAI Comptroller Contract
  * @author Venus
  */
-contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Exponential {
+contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Exponential {
 
     /// @notice Emitted when Comptroller is changed
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
@@ -47,11 +47,38 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
      */
     event LiquidateVAI(address liquidator, address borrower, uint repayAmount, address vTokenCollateral, uint seizeTokens);
 
+    /**
+     * @notice Emitted when treasury guardian is changed
+     */
+    event NewTreasuryGuardian(address oldTreasuryGuardian, address newTreasuryGuardian);
+
+    /**
+     * @notice Emitted when treasury address is changed
+     */
+    event NewTreasuryAddress(address oldTreasuryAddress, address newTreasuryAddress);
+
+    /**
+     * @notice Emitted when treasury percent is changed
+     */
+    event NewTreasuryPercent(uint oldTreasuryPercent, uint newTreasuryPercent);
+
+    /**
+     * @notice Event emitted when VAIs are minted and fee are transferred
+     */
+    event MintFee(address minter, uint feeAmount);
+
     /*** Main Actions ***/
+    struct MintLocalVars {
+        Error err;
+        MathError mathErr;
+        uint mintAmount;
+    }
 
     function mintVAI(uint mintVAIAmount) external returns (uint) {
         if(address(comptroller) != address(0)) {
             require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
+
+            MintLocalVars memory vars;
 
             address minter = msg.sender;
 
@@ -81,8 +108,35 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
                 return error;
             }
 
-            VAI(getVAIAddress()).mint(minter, mintVAIAmount);
-            emit MintVAI(minter, mintVAIAmount);
+            uint feeAmount;
+            uint remainedAmount;
+            vars.mintAmount = mintVAIAmount;
+            if (treasuryPercent != 0) {
+                (vars.mathErr, feeAmount) = mulUInt(vars.mintAmount, treasuryPercent);
+                if (vars.mathErr != MathError.NO_ERROR) {
+                    return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
+                }
+
+                (vars.mathErr, feeAmount) = divUInt(feeAmount, 1e18);
+                if (vars.mathErr != MathError.NO_ERROR) {
+                    return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
+                }
+
+                (vars.mathErr, remainedAmount) = subUInt(vars.mintAmount, feeAmount);
+                if (vars.mathErr != MathError.NO_ERROR) {
+                    return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
+                }
+
+                VAI(getVAIAddress()).mint(treasuryAddress, feeAmount);
+
+                emit MintFee(minter, feeAmount);
+            } else {
+                remainedAmount = vars.mintAmount;
+            }
+
+            VAI(getVAIAddress()).mint(minter, remainedAmount);
+
+            emit MintVAI(minter, remainedAmount);
 
             return uint(Error.NO_ERROR);
         }
@@ -190,10 +244,10 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
             //     return (fail(Error.MARKET_NOT_FRESH, FailureInfo.VAI_LIQUIDATE_FRESHNESS_CHECK), 0);
             // }
 
-            /* Verify vTokenCollateral market's block number equals current block number */
-            if (vTokenCollateral.accrualBlockNumber() != getBlockNumber()) {
-                return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
-            }
+            // /* Verify vTokenCollateral market's block number equals current block number */
+            // if (vTokenCollateral.accrualBlockNumber() != getBlockNumber()) {
+            //     return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
+            // }
 
             /* Fail if borrower = liquidator */
             if (borrower == liquidator) {
@@ -419,6 +473,27 @@ contract VAIController is VAIControllerStorage, VAIControllerErrorReporter, Expo
         }
 
         return (uint(Error.NO_ERROR), accountMintableVAI);
+    }
+
+    function _setTreasuryData(address newTreasuryGuardian, address newTreasuryAddress, uint newTreasuryPercent) external returns (uint) {
+        // Check caller is admin
+        if (!(msg.sender == admin || msg.sender == treasuryGuardian)) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_TREASURY_OWNER_CHECK);
+        }
+
+        address oldTreasuryGuardian = treasuryGuardian;
+        address oldTreasuryAddress = treasuryAddress;
+        uint oldTreasuryPercent = treasuryPercent;
+
+        treasuryGuardian = newTreasuryGuardian;
+        treasuryAddress = newTreasuryAddress;
+        treasuryPercent = newTreasuryPercent;
+
+        emit NewTreasuryGuardian(oldTreasuryGuardian, newTreasuryGuardian);
+        emit NewTreasuryAddress(oldTreasuryAddress, newTreasuryAddress);
+        emit NewTreasuryPercent(oldTreasuryPercent, newTreasuryPercent);
+
+        return uint(Error.NO_ERROR);
     }
 
     function getBlockNumber() public view returns (uint) {
