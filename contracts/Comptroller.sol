@@ -893,7 +893,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
         /* Read oracle prices for borrowed and collateral markets */
         uint priceBorrowedMantissa = 1e18;  // Note: this is VAI
         uint priceCollateralMantissa = oracle.getUnderlyingPrice(VToken(vTokenCollateral));
-        if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
+        if (priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
 
@@ -1143,9 +1143,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
      * @notice Admin function to change the Borrow Cap Guardian
      * @param newBorrowCapGuardian The address of the new Borrow Cap Guardian
      */
-    function _setBorrowCapGuardian(address newBorrowCapGuardian) external {
-        require(msg.sender == admin, "only admin can set borrow cap guardian");
-
+    function _setBorrowCapGuardian(address newBorrowCapGuardian) external onlyAdmin {
         // Save current value for inclusion in log
         address oldBorrowCapGuardian = borrowCapGuardian;
 
@@ -1367,7 +1365,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
      * @dev VAI minters will not begin to accrue until after the first interaction with the protocol.
      * @param vaiMinter The address of the VAI minter to distribute XVS to
      */
-    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) public {
+    function distributeVAIMinterVenus(address vaiMinter) public {
         if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }
@@ -1417,7 +1415,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
             vaiController.updateVenusVAIMintIndex();
         }
         for (j = 0; j < holders.length; j++) {
-            distributeVAIMinterVenus(holders[j], true);
+            distributeVAIMinterVenus(holders[j]);
             venusAccrued[holders[j]] = grantXVSInternal(holders[j], venusAccrued[holders[j]]);
         }
         for (uint i = 0; i < vTokens.length; i++) {
@@ -1464,9 +1462,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
      * @notice Set the amount of XVS distributed per block to VAI Mint
      * @param venusVAIRate_ The amount of XVS wei per block to distribute to VAI Mint
      */
-    function _setVenusVAIRate(uint venusVAIRate_) public {
-        require(msg.sender == admin, "only admin can");
-
+    function _setVenusVAIRate(uint venusVAIRate_) public onlyAdmin {
         uint oldVAIRate = venusVAIRate;
         venusVAIRate = venusVAIRate_;
         emit NewVenusVAIRate(oldVAIRate, venusVAIRate_);
@@ -1476,9 +1472,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
      * @notice Set the amount of XVS distributed per block to VAI Vault
      * @param venusVAIVaultRate_ The amount of XVS wei per block to distribute to VAI Vault
      */
-    function _setVenusVAIVaultRate(uint venusVAIVaultRate_) public {
-        require(msg.sender == admin, "only admin can");
-
+    function _setVenusVAIVaultRate(uint venusVAIVaultRate_) public onlyAdmin {
         uint oldVenusVAIVaultRate = venusVAIVaultRate;
         venusVAIVaultRate = venusVAIVaultRate_;
         emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
@@ -1490,9 +1484,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
      * @param releaseStartBlock_ The start block of release to VAI Vault
      * @param minReleaseAmount_ The minimum release amount to VAI Vault
      */
-    function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) public {
-        require(msg.sender == admin, "only admin can");
-
+    function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) public onlyAdmin {
         vaiVaultAddress = vault_;
         releaseStartBlock = releaseStartBlock_;
         minReleaseAmount = minReleaseAmount_;

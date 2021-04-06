@@ -17,7 +17,7 @@ interface ComptrollerImplInterface {
     function getAssetsIn(address account) external view returns (VToken[] memory);
     function oracle() external view returns (PriceOracle);
 
-    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) external;
+    function distributeVAIMinterVenus(address vaiMinter) external;
 }
 
 /**
@@ -76,6 +76,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
     function mintVAI(uint mintVAIAmount) external returns (uint) {
         if(address(comptroller) != address(0)) {
+            require(mintVAIAmount > 0, "mintVAIAmount cannt be zero");
+
             require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
 
             MintLocalVars memory vars;
@@ -84,7 +86,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
             // Keep the flywheel moving
             updateVenusVAIMintIndex();
-            ComptrollerImplInterface(address(comptroller)).distributeVAIMinterVenus(minter, false);
+            ComptrollerImplInterface(address(comptroller)).distributeVAIMinterVenus(minter);
 
             uint oErr;
             MathError mErr;
@@ -147,6 +149,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     function repayVAI(uint repayVAIAmount) external returns (uint, uint) {
         if(address(comptroller) != address(0)) {
+            require(repayVAIAmount > 0, "repayVAIAmount cannt be zero");
+
             require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
 
             address payer = msg.sender;
@@ -165,7 +169,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     function repayVAIInternal(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
         updateVenusVAIMintIndex();
-        ComptrollerImplInterface(address(comptroller)).distributeVAIMinterVenus(payer, false);
+        ComptrollerImplInterface(address(comptroller)).distributeVAIMinterVenus(payer);
 
         uint actualBurnAmount;
 
@@ -205,6 +209,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     function liquidateVAI(address borrower, uint repayAmount, VTokenInterface vTokenCollateral) external /* critical nonReentrant */ returns (uint, uint) {
         //critical
         uint error;
+
+        require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
+        
         //uint error = accrueInterest();
         // if (error != uint(Error.NO_ERROR)) {
         //     // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
@@ -315,6 +322,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
                 block: safe32(vaiBlockNumber, "block number overflows")
             });
         }
+
+        return uint(Error.NO_ERROR);
     }
 
     /**
@@ -336,6 +345,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         } else if (deltaBlocks > 0) {
             venusVAIState.block = safe32(blockNumber, "block number overflows");
         }
+
+        return uint(Error.NO_ERROR); 
     }
 
     /**
@@ -370,7 +381,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
       * @dev Admin function to set a new comptroller
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
-    function _setComptroller(ComptrollerInterface comptroller_) public returns (uint) {
+    function _setComptroller(ComptrollerInterface comptroller_) external returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
@@ -383,7 +394,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         return uint(Error.NO_ERROR);
     }
 
-    function _become(VAIUnitroller unitroller) public {
+    function _become(VAIUnitroller unitroller) external {
         require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
         require(unitroller._acceptImplementation() == 0, "change not authorized");
     }

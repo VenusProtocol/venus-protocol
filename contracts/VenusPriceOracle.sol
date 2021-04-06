@@ -55,7 +55,10 @@ contract VenusPriceOracle is PriceOracle {
 
             uint256 defaultDecimal = 18;
             uint256 tokenDecimal = uint256(token.decimals());
-            if(defaultDecimal >= tokenDecimal) {
+
+            if(defaultDecimal == tokenDecimal) {
+                return price;
+            } else if(defaultDecimal > tokenDecimal) {
                 return price.mul(10**(defaultDecimal.sub(tokenDecimal)));
             } else {
                 return price.div(10**(tokenDecimal.sub(defaultDecimal)));

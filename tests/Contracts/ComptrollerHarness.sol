@@ -118,7 +118,7 @@ contract ComptrollerHarness is Comptroller {
     }
 
     function harnessDistributeVAIMinterVenus(address vaiMinter) public {
-        distributeVAIMinterVenus(vaiMinter, false);
+        distributeVAIMinterVenus(vaiMinter);
     }
 
     function harnessTransferVenus(address user, uint userAccrued, uint threshold) public returns (uint) {
