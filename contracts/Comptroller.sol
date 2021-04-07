@@ -534,7 +534,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
         } else {
             borrowBalance = mintedVAIs[borrower];
         }
-        
+
         (MathError mathErr, uint maxClose) = mulScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
         if (mathErr != MathError.NO_ERROR) {
             return uint(Error.MATH_ERROR);
@@ -1126,7 +1126,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
       * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing.
       */
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint[] calldata newBorrowCaps) external {
-    	require(msg.sender == admin || msg.sender == borrowCapGuardian, "only admin or borrow cap guardian can set borrow caps"); 
+        require(msg.sender == admin || msg.sender == borrowCapGuardian, "only admin or borrow cap guardian can set borrow caps");
 
         uint numMarkets = vTokens.length;
         uint numBorrowCaps = newBorrowCaps.length;

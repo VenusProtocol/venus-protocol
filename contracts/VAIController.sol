@@ -183,12 +183,12 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
         MathError mErr;
         uint accountVAINew;
-        
+
         VAI(getVAIAddress()).burn(payer, actualBurnAmount);
 
         (mErr, accountVAINew) = subUInt(vaiBalanceBorrower, actualBurnAmount);
         require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
-        
+
         uint error = comptroller.setMintedVAIOf(borrower, accountVAINew);
         if (error != 0) {
             return (error, 0);
@@ -211,7 +211,6 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint error;
 
         require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
-        
         //uint error = accrueInterest();
         // if (error != uint(Error.NO_ERROR)) {
         //     // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
@@ -346,7 +345,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             venusVAIState.block = safe32(blockNumber, "block number overflows");
         }
 
-        return uint(Error.NO_ERROR); 
+        return uint(Error.NO_ERROR);
     }
 
     /**
