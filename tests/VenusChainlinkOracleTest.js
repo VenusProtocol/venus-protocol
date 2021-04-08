@@ -44,7 +44,7 @@ describe('VenusChainlinkOracle', () => {
     it("only admin may set a feed", async () => {
       await expect(
         send(oracle, "setFeed", ["vBNB", bnbFeed._address], {from: accounts[0]})
-      ).rejects.toRevert("revert only admin can set feed");
+      ).rejects.toRevert("revert only admin may call");
     });
 
     it("cannot set feed to self address", async () => {

@@ -60,21 +60,18 @@ contract VenusChainlinkOracle is PriceOracle {
         }
     }
 
-    function setUnderlyingPrice(VToken vToken, uint underlyingPriceMantissa) external {
-        require(msg.sender == admin, "only admin can set underlying price");
+    function setUnderlyingPrice(VToken vToken, uint underlyingPriceMantissa) external onlyAdmin() {
         address asset = address(VBep20(address(vToken)).underlying());
         emit PricePosted(asset, prices[asset], underlyingPriceMantissa, underlyingPriceMantissa);
         prices[asset] = underlyingPriceMantissa;
     }
 
-    function setDirectPrice(address asset, uint price) external {
-        require(msg.sender == admin, "only admin can set price");
+    function setDirectPrice(address asset, uint price) external onlyAdmin() {
         emit PricePosted(asset, prices[asset], price, price);
         prices[asset] = price;
     }
 
-    function setFeed(string calldata symbol, address feed) external {
-        require(msg.sender == admin, "only admin can set feed");
+    function setFeed(string calldata symbol, address feed) external onlyAdmin() {
         require(feed != address(0) && feed != address(this), "invalid feed address");
         emit FeedSet(feed, symbol);
         feeds[keccak256(abi.encodePacked(symbol))] = AggregatorV2V3Interface(feed);
@@ -92,11 +89,15 @@ contract VenusChainlinkOracle is PriceOracle {
         return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
     }
 
-    function setAdmin(address newAdmin) external {
-        require(msg.sender == admin, "only admin can set new admin");
+    function setAdmin(address newAdmin) external onlyAdmin() {
         address oldAdmin = admin;
         admin = newAdmin;
 
         emit NewAdmin(oldAdmin, newAdmin);
+    }
+
+    modifier onlyAdmin() {
+      require(msg.sender == admin, "only admin may call");
+      _;
     }
 }
