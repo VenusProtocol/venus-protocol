@@ -153,4 +153,33 @@ describe("VenusChainlinkOracle", () => {
       ).rejects.toRevert();
     });
   });
+
+  describe("setUnderlyingPrice", () => {
+    it("only admin may set an underlying price", async () => {
+      await expect(
+        send(oracle, "setUnderlyingPrice", [vExampleSet._address, 1], {from: accounts[0]})
+      ).rejects.toRevert("revert only admin may call");
+    });
+
+    it("sets the underlying price", async () => {
+      await send(oracle, "setUnderlyingPrice", [vExampleSet._address, 1], {from: root});
+      let underlying = await call(vExampleSet, "underlying", []);
+      let price = await call(oracle, "assetPrices", [underlying], {from: root});
+      expect(price).toEqual("1");
+    });
+  });
+
+  describe("setDirectPrice", () => {
+    it("only admin may set an underlying price", async () => {
+      await expect(
+        send(oracle, "setDirectPrice", [xvs._address, 7], {from: accounts[0]})
+      ).rejects.toRevert("revert only admin may call");
+    });
+
+    it("sets the direct price", async () => {
+      await send(oracle, "setDirectPrice", [xvs._address, 7], {from: root});
+      let price = await call(oracle, "assetPrices", [xvs._address], {from: root});
+      expect(price).toEqual("7");
+    });
+  });
 });
