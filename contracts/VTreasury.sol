@@ -5,7 +5,7 @@ import "./BEP20Interface.sol";
 import "./Ownable.sol";
 
 /**
- * @dev Contract for treasury all tokens as fee and transfer to governance 
+ * @dev Contract for treasury all tokens as fee and transfer to governance
  */
 contract VTreasury is Ownable {
     using SafeMath for uint256;
