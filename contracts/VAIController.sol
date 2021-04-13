@@ -155,7 +155,10 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
             address payer = msg.sender;
 
-            return repayVAIInternal(msg.sender, msg.sender, repayVAIAmount);
+            updateVenusVAIMintIndex();
+            ComptrollerImplInterface(address(comptroller)).distributeVAIMinterVenus(payer);
+
+            return repayVAIFresh(msg.sender, msg.sender, repayVAIAmount);
         }
     }
 
@@ -167,10 +170,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      * @param repayAmount the amount of VAI being returned
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
-    function repayVAIInternal(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
-        updateVenusVAIMintIndex();
-        ComptrollerImplInterface(address(comptroller)).distributeVAIMinterVenus(payer);
-
+    function repayVAIFresh(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
         uint actualBurnAmount;
 
         uint vaiBalanceBorrower = ComptrollerImplInterface(address(comptroller)).mintedVAIs(borrower);
@@ -247,7 +247,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             ///////////// critical
             // /* Verify market's block number equals current block number */
             // if (accrualBlockNumber != getBlockNumber()) {
-            //     return (fail(Error.MARKET_NOT_FRESH, FailureInfo.VAI_LIQUIDATE_FRESHNESS_CHECK), 0);
+            //     return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_FRESHNESS_CHECK), 0);
             // }
 
             // /* Verify vTokenCollateral market's block number equals current block number */
@@ -272,7 +272,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
 
             /* Fail if repayVAI fails */
-            (uint repayBorrowError, uint actualRepayAmount) = repayVAIInternal(liquidator, borrower, repayAmount);
+            (uint repayBorrowError, uint actualRepayAmount) = repayVAIFresh(liquidator, borrower, repayAmount);
             if (repayBorrowError != uint(Error.NO_ERROR)) {
                 return (fail(Error(repayBorrowError), FailureInfo.VAI_LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
             }

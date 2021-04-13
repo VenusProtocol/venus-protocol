@@ -725,7 +725,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* We emit a Transfer event, and a Redeem event */
         emit Transfer(redeemer, address(this), vars.redeemTokens);
         emit Redeem(redeemer, remainedAmount, vars.redeemTokens);
-        emit RedeemFee(redeemer, feeAmount, vars.redeemTokens);
 
         /* We call the defense hook */
         comptroller.redeemVerify(address(this), redeemer, vars.redeemAmount, vars.redeemTokens);

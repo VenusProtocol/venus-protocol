@@ -199,6 +199,12 @@ contract BoolComptroller is ComptrollerInterface {
     bool failCalculateSeizeTokens;
     uint calculatedSeizeTokens;
 
+    bool public protocolPaused = false;
+
+    mapping(address => uint) public mintedVAIs;
+    bool vaiFailCalculateSeizeTokens;
+    uint vaiCalculatedSeizeTokens;
+
     uint noError = 0;
     uint opaqueError = noError + 11; // an arbitrary, opaque error code
 
@@ -392,7 +398,7 @@ contract BoolComptroller is ComptrollerInterface {
         uint _repayAmount) external view returns (uint, uint) {
         _vTokenCollateral;
         _repayAmount;
-        return failCalculateSeizeTokens ? (opaqueError, 0) : (noError, calculatedSeizeTokens);
+        return vaiFailCalculateSeizeTokens ? (opaqueError, 0) : (noError, vaiCalculatedSeizeTokens);
     }
 
     /**** Mock Settors ****/
@@ -465,10 +471,23 @@ contract BoolComptroller is ComptrollerInterface {
         failCalculateSeizeTokens = shouldFail;
     }
 
-    function mintedVAIs(address owner) external pure returns (uint) {
-        owner;
-        return 1e18;
+    function setVAICalculatedSeizeTokens(uint vaiSeizeTokens_) public {
+        vaiCalculatedSeizeTokens = vaiSeizeTokens_;
     }
+
+    function setVAIFailCalculateSeizeTokens(bool vaiShouldFail) public {
+        vaiFailCalculateSeizeTokens = vaiShouldFail;
+    }
+
+    function harnessSetMintedVAIOf(address owner, uint amount) external returns (uint) {
+        mintedVAIs[owner] = amount;
+        return noError;
+    }
+
+    // function mintedVAIs(address owner) external pure returns (uint) {
+    //     owner;
+    //     return 1e18;
+    // }
 
     function setMintedVAIOf(address owner, uint amount) external returns (uint) {
         owner;

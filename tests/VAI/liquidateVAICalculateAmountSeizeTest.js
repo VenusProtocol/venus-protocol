@@ -2,7 +2,8 @@ const {bnbUnsigned} = require('../Utils/BSC');
 const {
   makeComptroller,
   makeVToken,
-  setOraclePrice
+  setOraclePrice,
+  setOraclePriceFromMantissa
 } = require('../Utils/Venus');
 
 const borrowedPrice = 1e18;
@@ -66,7 +67,7 @@ describe('Comptroller', () => {
       it(`returns the correct value for ${testCase}`, async () => {
         const [exchangeRate, borrowedPrice, collateralPrice, liquidationIncentive, repayAmount] = testCase.map(bnbUnsigned);
 
-        await setOraclePrice(vTokenCollateral, collateralPrice);
+        await setOraclePriceFromMantissa(vTokenCollateral, collateralPrice);
         await send(comptroller, '_setLiquidationIncentive', [liquidationIncentive]);
         await send(vTokenCollateral, 'harnessSetExchangeRate', [exchangeRate]);
 

@@ -8,7 +8,7 @@ Comptroller SetPriceOracle (PriceOracle Address)
 Comptroller SetMaxAssets 20
 Comptroller SetCloseFactor 0.5
 Comptroller LiquidationIncentive 1.1
-Comptroller SetVenusRate 1e18
+--Comptroller SetVenusRate 1e18
 NewVToken ZRX vZRX
 NewVToken BAT vBAT
 Support vZRX collateralFactor:0.5

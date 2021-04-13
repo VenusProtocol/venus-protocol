@@ -32,3 +32,5 @@ Test "VAI Mint Treasury Guardian"
     AllowFailures
     From Jared (VAIController SetTreasuryData Guardian Jared 1e14)
     Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
+    From Jared (VAIController SetTreasuryData Jared Jared 1e14)
+    Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"

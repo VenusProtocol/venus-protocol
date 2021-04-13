@@ -19,7 +19,23 @@ async function makeComptroller(opts = {}) {
 
   if (kind == 'bool') {
     const comptroller = await deploy('BoolComptroller');
-    return comptroller;
+    const xvs = opts.xvs || await deploy('XVS', [opts.venusOwner || root]);
+    const vai = opts.vai || await makeVAI();
+
+    const vaiunitroller = await deploy('VAIUnitroller');
+    const vaicontroller = await deploy('VAIControllerHarness');
+    
+    await send(vaiunitroller, '_setPendingImplementation', [vaicontroller._address]);
+    await send(vaicontroller, '_become', [vaiunitroller._address]);
+    mergeInterface(vaiunitroller, vaicontroller);
+
+    await send(vaiunitroller, '_setComptroller', [comptroller._address]);
+    await send(vaiunitroller, 'setVAIAddress', [vai._address]);
+    await send(vai, 'rely', [vaiunitroller._address]);
+
+    //await send(unitroller, '_setTreasuryData', [treasuryGuardian, treasuryAddress, 1e14]);
+
+    return Object.assign(comptroller, { xvs, vai, vaicontroller: vaiunitroller });
   }
 
   if (kind == 'boolFee') {
@@ -101,7 +117,7 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, 'harnessSetVenusRate', [venusRate]);
     await send(unitroller, '_setVenusVAIRate', [venusVAIRate]);
     await send(vaiunitroller, '_initializeVenusVAIState', [0]);
-    await send(vai, 'rely', [unitroller._address]);
+    await send(vai, 'rely', [vaiunitroller._address]);
 
     await send(unitroller, '_setTreasuryData', [treasuryGuardian, treasuryAddress, 1e14]);
 
@@ -330,6 +346,14 @@ async function setBalance(vToken, account, balance) {
   return await send(vToken, 'harnessSetBalance', [account, balance]);
 }
 
+async function setMintedVAIOf(comptroller, account, balance) {
+  return await send(comptroller, 'harnessSetMintedVAIOf', [account, balance]);
+}
+
+async function setVAIBalance(vai, account, balance) {
+  return await send(vai, 'harnessSetBalanceOf', [account, balance]);
+}
+
 async function setBNBBalance(vBnb, balance) {
   const current = await bnbBalance(vBnb._address);
   const root = saddle.account;
@@ -360,17 +384,20 @@ async function getBalances(vTokens, accounts) {
   return balances;
 }
 
-async function getBalancesWithVAI(vTokens, vai, accounts) {
+async function getBalancesWithVAI(vai, vTokens, accounts) {
   const balances = {};
   for (let vToken of vTokens) {
     const vBalances = balances[vToken._address] = {};
+    const vaiBalancesData = balances[vai._address] = {};
     for (let account of accounts) {
       vBalances[account] = {
         bnb: await bnbBalance(account),
         cash: vToken.underlying && await balanceOf(vToken.underlying, account),
         tokens: await balanceOf(vToken, account),
-        borrows: (await borrowSnapshot(vToken, account)).principal,
-        vai: (await vaiBalance(vToken, vai, account)).principal
+        borrows: (await borrowSnapshot(vToken, account)).principal
+      };
+      vaiBalancesData[account] = {
+        vai: (await balanceOf(vai, account)),
       };
     }
     vBalances[vToken._address] = {
@@ -379,7 +406,6 @@ async function getBalancesWithVAI(vTokens, vai, accounts) {
       tokens: await totalSupply(vToken),
       borrows: await totalBorrows(vToken),
       reserves: await totalReserves(vToken),
-      vai: await totalVAI(vai)
     };
   }
   return balances;
@@ -399,6 +425,24 @@ async function adjustBalances(balances, deltas) {
   return balances;
 }
 
+async function adjustBalancesWithVAI(balances, deltas, vai) {
+  for (let delta of deltas) {
+    let vToken, account, key, diff;
+    if (delta[0]._address != vai._address) {
+      if (delta.length == 4) {
+        ([vToken, account, key, diff] = delta);
+      } else {
+        ([vToken, key, diff] = delta);
+        account = vToken._address;
+      }
+      balances[vToken._address][account][key] = balances[vToken._address][account][key].add(diff);
+    } else {
+      [vToken, account, key, diff] = delta;
+      balances[vai._address][account][key] = balances[vai._address][account][key].add(diff);
+    }
+  }
+  return balances;
+}
 
 async function preApprove(vToken, from, amount, opts = {}) {
   if (dfn(opts.faucet, true)) {
@@ -406,6 +450,15 @@ async function preApprove(vToken, from, amount, opts = {}) {
   }
 
   return send(vToken.underlying, 'approve', [vToken._address, amount], { from });
+}
+
+async function preApproveVAI(comptroller, vai, from, to, amount, opts = {}) {
+  if (dfn(opts.faucet, true)) {
+    expect(await send(vai, 'harnessSetBalanceOf', [from, amount], { from })).toSucceed();
+    await send(comptroller, 'harnessSetMintedVAIOf', [from, amount]);
+  }
+
+  return send(vai, 'approve', [to, amount], { from });
 }
 
 async function quickMint(vToken, minter, mintAmount, opts = {}) {
@@ -462,6 +515,10 @@ async function setOraclePrice(vToken, price) {
   return send(vToken.comptroller.priceOracle, 'setUnderlyingPrice', [vToken._address, bnbMantissa(price)]);
 }
 
+async function setOraclePriceFromMantissa(vToken, price) {
+  return send(vToken.comptroller.priceOracle, 'setUnderlyingPrice', [vToken._address, price]);
+}
+
 async function setBorrowRate(vToken, rate) {
   return send(vToken.interestRateModel, 'setBorrowRate', [bnbMantissa(rate)]);
 }
@@ -482,9 +539,10 @@ async function pretendBorrow(vToken, borrower, accountIndex, marketIndex, princi
   await send(vToken, 'harnessSetBlockNumber', [bnbUnsigned(blockNumber)]);
 }
 
-async function pretendVAIMint(vai, vaiMinter, accountIndex, totalSupply, blockNumber = 2e7) {
-  await send(vai, 'harnessIncrementTotalSupply', [bnbUnsigned(totalSupply)]);
-  await send(vai, 'harnessSetBalanceOf', [vaiMinter, bnbUnsigned(totalSupply), bnbMantissa(accountIndex)]);
+async function pretendVAIMint(comptroller, vaicontroller, vai, vaiMinter, principalRaw, totalSupply, blockNumber = 2e7) {
+  await send(comptroller, 'harnessSetMintedVAIOf', [vaiMinter, bnbUnsigned(principalRaw)]);
+  await send(vai, 'harnessIncrementTotalSupply', [bnbUnsigned(principalRaw)]);
+  await send(vai, 'harnessSetBalanceOf', [vaiMinter, bnbUnsigned(principalRaw)]);
 }
 
 module.exports = {
@@ -503,12 +561,16 @@ module.exports = {
   enterMarkets,
   fastForward,
   setBalance,
+  setMintedVAIOf,
+  setVAIBalance,
   setBNBBalance,
   getBalances,
   getBalancesWithVAI,
   adjustBalances,
+  adjustBalancesWithVAI,
 
   preApprove,
+  preApproveVAI,
   quickMint,
   quickMintVAI,
 
@@ -517,6 +579,7 @@ module.exports = {
   quickRedeemUnderlying,
 
   setOraclePrice,
+  setOraclePriceFromMantissa,
   setBorrowRate,
   getBorrowRate,
   getSupplyRate,

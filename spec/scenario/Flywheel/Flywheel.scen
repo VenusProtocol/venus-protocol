@@ -62,7 +62,7 @@ Test "Accrue XVS during a borrow"
     Assert Equal (Bep20 XVS TokenBalance Coburn) 300000e18
     Assert Equal (Comptroller VenusBorrowerIndex vZRX Coburn) 3.00001e41
 
-Test "Accrue XVS during a redeem"
+Skip "Accrue XVS during a redeem"
     FlywheelComptroller
     InitSpeeds
     FastForward 300000 Blocks
