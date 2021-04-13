@@ -241,7 +241,7 @@ Test "When price oracle for collateral token is whack"
     PriceOracle SetPrice vBAT 115792089237316195423570985008687907853269984665640564039457.584007913129639935 -- UInt256Max
     AllowFailures
     LiquidateVAI Torrey "->" Geoff 2e18 "Seizing" vBAT
-    --Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION MATH_ERROR
+    --Assert Revert "revert multiplication overflow"
 
 Test "When repay borrow fails"
     InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005

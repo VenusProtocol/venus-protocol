@@ -48,16 +48,16 @@ describe('Comptroller', () => {
     });
 
     it("fails if the repayAmount causes overflow ", async () => {
-      expect(
-        await calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
-      ).toHaveTrollErrorTuple(['MATH_ERROR', 0]);
+      await expect(
+        calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
+      ).rejects.toRevert("revert multiplication overflow");
     });
 
     it("fails if the borrowed asset price causes overflow ", async () => {
       await setOraclePrice(vTokenBorrowed, -1);
-      expect(
-        await calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)
-      ).toHaveTrollErrorTuple(['MATH_ERROR', 0]);
+      await expect(
+        calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)
+      ).rejects.toRevert("revert multiplication overflow");
     });
 
     it("reverts if it fails to calculate the exchange rate", async () => {

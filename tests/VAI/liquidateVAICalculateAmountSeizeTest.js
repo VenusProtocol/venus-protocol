@@ -44,9 +44,9 @@ describe('Comptroller', () => {
     });
 
     it("fails if the repayAmount causes overflow ", async () => {
-      expect(
-        await vaiCalculateSeizeTokens(comptroller, vTokenCollateral, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
-      ).toHaveTrollErrorTuple(['MATH_ERROR', 0]);
+      await expect(
+        vaiCalculateSeizeTokens(comptroller, vTokenCollateral, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
+      ).rejects.toRevert("revert multiplication overflow");
     });
 
     it("reverts if it fails to calculate the exchange rate", async () => {

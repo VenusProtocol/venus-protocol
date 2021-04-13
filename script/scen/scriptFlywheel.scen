@@ -8,7 +8,6 @@ ComptrollerImpl Deploy Scenario ComptrollerScen
 Unitroller SetPendingImpl ComptrollerScen
 ComptrollerImpl ComptrollerScen Become
 Comptroller SetPriceOracle (PriceOracleProxy Address)
-Comptroller SetMaxAssets 20
 Comptroller SetCloseFactor 0.5
 Comptroller LiquidationIncentive 1.1
 Comptroller SetVenusRate 1e18

@@ -7,19 +7,16 @@ Test "Standard Upgrade"
     ComptrollerImpl ScenComptroller Become
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.2
-    Comptroller SetMaxAssets 20
     ListedVToken ZRX vZRX
     ListedVToken DAI vDAI
     Assert Equal (Comptroller Implementation) (Address ScenComptroller)
     Assert Equal (Comptroller CloseFactor) 0.2
-    Assert Equal (Comptroller MaxAssets) 20
     -- Upgrade to V*
     ComptrollerImpl Deploy Scenario ScenComptroller_2
     Unitroller SetPendingImpl ScenComptroller_2
     ComptrollerImpl ScenComptroller_2 Become
     Assert Equal (Comptroller Implementation) (Address ScenComptroller_2)
     Assert Equal (Comptroller CloseFactor) 0.2
-    Assert Equal (Comptroller MaxAssets) 20
 
 Test "Once become, can become again"
     -- TODO: See why ABI is broken here
@@ -30,19 +27,15 @@ Test "Once become, can become again"
     ComptrollerImpl ScenComptroller Become
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.2
-    Comptroller SetMaxAssets 20
     Assert Equal (Comptroller Implementation) (Address ScenComptroller)
     Assert Equal (Comptroller CloseFactor) 0.2
-    Assert Equal (Comptroller MaxAssets) 20
     ComptrollerImpl Deploy Scenario ScenComptroller_2
     Unitroller SetPendingImpl ScenComptroller_2
     ComptrollerImpl ScenComptroller_2 Become
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.4
-    Comptroller SetMaxAssets 40
     Assert Equal (Comptroller Implementation) (Address ScenComptroller_2)
     Assert Equal (Comptroller CloseFactor) 0.4
-    Assert Equal (Comptroller MaxAssets) 40
 
 --bork
 Test "Bork and unbork"
@@ -54,10 +47,8 @@ Test "Bork and unbork"
     ComptrollerImpl ScenComptroller Become
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.2
-    Comptroller SetMaxAssets 20
     Assert Equal (Comptroller Implementation) (Address ScenComptroller)
     Assert Equal (Comptroller CloseFactor) 0.2
-    Assert Equal (Comptroller MaxAssets) 20
     -- Now move to a borked one that's bad
     ComptrollerImpl Deploy Borked MyBork
     Unitroller SetPendingImpl MyBork
@@ -139,7 +130,6 @@ Pending "Keeps all storage"
     ComptrollerImpl StandardComptroller Become
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.2
-    Comptroller SetMaxAssets 20
     Comptroller SetPendingAdmin Coburn
     ---
     NewVToken ZRX vZRX delegatorType:VBep20Delegator vTokenType:VBep20Delegate

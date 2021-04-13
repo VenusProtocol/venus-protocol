@@ -193,7 +193,6 @@ Test "Set Pending Comptroller implementation on Unitroller from Timelock"
     ComptrollerImpl ScenComptroller Become
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetCloseFactor 0.1
-    Comptroller SetMaxAssets 20
     Assert Equal (Unitroller PendingImplementation) (Address Zero)
     Assert Equal (Unitroller Implementation) (Address ScenComptroller)
     FreezeTime 90

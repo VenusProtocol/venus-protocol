@@ -33,17 +33,6 @@ Test "Entered Market Must Be Supported"
 	Assert True (Comptroller CheckMembership Geoff vZRX)
 	Assert True (Comptroller CheckMembership Geoff vOMG)
 
-Test "Cannot enter Markets beyond max assets"
-	NewComptroller
-	Comptroller SetMaxAssets 1
-	Assert Equal (Comptroller MembershipLength Geoff) Zero
-	ListedVToken ZRX vZRX
-	ListedVToken OMG vOMG
-	EnterMarkets Geoff vZRX vOMG
-	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 1)
-	Assert True (Comptroller CheckMembership Geoff vZRX)
-	Assert False (Comptroller CheckMembership Geoff vOMG)
-
 Test "Exit single market"
 	NewComptroller
 	ListedVToken ZRX vZRX

@@ -15,24 +15,22 @@ describe('Comptroller', function() {
     unitroller = await deploy('Unitroller');
   });
 
-  let initializeBrains = async (priceOracle, closeFactor, maxAssets) => {
+  let initializeBrains = async (priceOracle, closeFactor) => {
     await send(unitroller, '_setPendingImplementation', [brains._address]);
     await send(brains, '_become', [unitroller._address]);
     const unitrollerAsBrain = await saddle.getContractAt('Comptroller', unitroller._address);
     await send(unitrollerAsBrain, '_setPriceOracle', [priceOracle._address]);
     await send(unitrollerAsBrain, '_setCloseFactor', [closeFactor]);
-    await send(unitrollerAsBrain, '_setMaxAssets', [maxAssets]);
     await send(unitrollerAsBrain, '_setLiquidationIncentive', [bnbMantissa(1)]);
     return unitrollerAsBrain;
   };
 
   describe('delegating to comptroller', () => {
     const closeFactor = bnbMantissa(0.051);
-    const maxAssets = 10;
     let unitrollerAsComptroller, vToken;
 
     beforeEach(async () => {
-      unitrollerAsComptroller = await initializeBrains(oracle, bnbMantissa(0.06), 30);
+      unitrollerAsComptroller = await initializeBrains(oracle, bnbMantissa(0.06));
       vToken = await makeVToken({ comptroller: unitrollerAsComptroller });
     });
 
@@ -48,21 +46,9 @@ describe('Comptroller', function() {
         expect(await call(unitrollerAsComptroller, 'pendingAdmin')).toBeAddressZero();
       });
 
-      it('on success it sets closeFactor and maxAssets as specified', async () => {
-        const comptroller = await initializeBrains(oracle, closeFactor, maxAssets);
+      it('on success it sets closeFactor as specified', async () => {
+        const comptroller = await initializeBrains(oracle, closeFactor);
         expect(await call(comptroller, 'closeFactorMantissa')).toEqualNumber(closeFactor);
-        expect(await call(comptroller, 'maxAssets')).toEqualNumber(maxAssets);
-      });
-
-      it('allows 0 maxAssets', async () => {
-        const comptroller = await initializeBrains(oracle, closeFactor, 0);
-        expect(await call(comptroller, 'maxAssets')).toEqualNumber(0);
-      });
-
-      it('allows 5000 maxAssets', async () => {
-        // 5000 is an arbitrary number larger than what we expect to ever actually use
-        const comptroller = await initializeBrains(oracle, closeFactor, 5000);
-        expect(await call(comptroller, 'maxAssets')).toEqualNumber(5000);
       });
     });
 
