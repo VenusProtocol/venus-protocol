@@ -13,6 +13,7 @@ interface VAIControllerMethods {
   getMintableVAI(string): Callable<{0: number, 1: number}>
   liquidateVAI(borrower: string, repayAmount: encodedNumber, vTokenCollateral: string): Sendable<{0: number, 1: number}>
   _setTreasuryData(guardian, address, percent: encodedNumber): Sendable<number>
+  initialize(): Sendable<void>
 }
 
 export interface VAIController extends Contract {

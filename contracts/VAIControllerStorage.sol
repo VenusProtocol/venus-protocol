@@ -54,4 +54,7 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
 
     /// @notice Fee percent of accrued interest with decimal 18
     uint256 public treasuryPercent;
+
+    /// @notice Guard variable for re-entrancy checks
+    bool internal _notEntered;
 }

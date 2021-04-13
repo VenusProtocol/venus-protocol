@@ -67,6 +67,7 @@ Macro NewVAIController
     VAIControllerImpl Deploy Scenario ScenVAIController
     VAIUnitroller SetPendingImpl ScenVAIController
     VAIControllerImpl ScenVAIController Become
+    VAIController Initialize
 
 Macro NewVAI
     VAI Deploy Admin

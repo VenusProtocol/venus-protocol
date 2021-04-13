@@ -31,6 +31,7 @@ async function makeComptroller(opts = {}) {
 
     await send(vaiunitroller, '_setComptroller', [comptroller._address]);
     await send(vaiunitroller, 'setVAIAddress', [vai._address]);
+    await send(vaiunitroller, 'initialize');
     await send(vai, 'rely', [vaiunitroller._address]);
 
     //await send(unitroller, '_setTreasuryData', [treasuryGuardian, treasuryAddress, 1e14]);
@@ -113,6 +114,7 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, 'harnessSetVenusRate', [venusRate]);
     await send(unitroller, '_setVenusVAIRate', [venusVAIRate]);
     await send(vaiunitroller, '_initializeVenusVAIState', [0]);
+    await send(vaiunitroller, 'initialize');
     await send(vai, 'rely', [vaiunitroller._address]);
 
     await send(unitroller, '_setTreasuryData', [treasuryGuardian, treasuryAddress, 1e14]);

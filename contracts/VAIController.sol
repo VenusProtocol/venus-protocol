@@ -74,7 +74,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint mintAmount;
     }
 
-    function mintVAI(uint mintVAIAmount) external returns (uint) {
+    function mintVAI(uint mintVAIAmount) external nonReentrant returns (uint) {
         if(address(comptroller) != address(0)) {
             require(mintVAIAmount > 0, "mintVAIAmount cannt be zero");
 
@@ -147,7 +147,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @notice Repay VAI
      */
-    function repayVAI(uint repayVAIAmount) external returns (uint, uint) {
+    function repayVAI(uint repayVAIAmount) external nonReentrant returns (uint, uint) {
         if(address(comptroller) != address(0)) {
             require(repayVAIAmount > 0, "repayVAIAmount cannt be zero");
 
@@ -206,7 +206,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      * @param repayAmount The amount of the underlying borrowed asset to repay
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
-    function liquidateVAI(address borrower, uint repayAmount, VTokenInterface vTokenCollateral) external /* critical nonReentrant */ returns (uint, uint) {
+    function liquidateVAI(address borrower, uint repayAmount, VTokenInterface vTokenCollateral) external nonReentrant returns (uint, uint) {
         //critical
         uint error;
 
@@ -516,5 +516,27 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     function getVAIAddress() public view returns (address) {
         return 0x4BD17003473389A42DAF6a0a729f6Fdb328BbBd7;
+    }
+
+    function initialize() onlyAdmin public {
+        // The counter starts true to prevent changing it from zero to non-zero (i.e. smaller cost/refund)
+        _notEntered = true;
+    }
+
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "only admin can");
+        _;
+    }
+
+    /*** Reentrancy Guard ***/
+
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     */
+    modifier nonReentrant() {
+        require(_notEntered, "re-entered");
+        _notEntered = false;
+        _;
+        _notEntered = true; // get a gas-refund post-Istanbul
     }
 }

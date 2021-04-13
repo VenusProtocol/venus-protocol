@@ -154,6 +154,22 @@ async function setTreasuryData(
   return world;
 }
 
+async function initialize(
+  world: World,
+  from: string,
+  vaicontroller: VAIController
+): Promise<World> {
+  let invokation = await invoke(world, vaicontroller.methods.initialize(), from, VAIControllerErrorReporter);
+
+  world = addAction(
+    world,
+    `Initizlied the VAIController`,
+    invokation
+  );
+
+  return world;
+}
+
 export function vaicontrollerCommands() {
   return [
     new Command<{vaicontrollerParams: EventV}>(`
@@ -253,6 +269,18 @@ export function vaicontrollerCommands() {
         new Arg("percent", getNumberV)
       ],
       (world, from, {vaicontroller, guardian, address, percent}) => setTreasuryData(world, from, vaicontroller, guardian.val, address.val, percent)
+    ),
+
+    new Command<{vaicontroller: VAIController}>(`
+      #### Initialize
+      * "VAIController Initialize" - Call Initialize
+      * E.g. "VAIController Initialize
+      `,
+      "Initialize",
+      [
+        new Arg("vaicontroller", getVAIController, {implicit: true})
+      ],
+      (world, from, {vaicontroller}) => initialize(world, from, vaicontroller)
     )
   ];
 }
