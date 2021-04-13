@@ -17,7 +17,7 @@ on:
 jobs:
   test:
     name: Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    runs-on: self-hosted
     strategy:
       matrix:
         node_version: ['12']
