@@ -10,24 +10,66 @@ import "./Ownable.sol";
 contract VTreasury is Ownable {
     using SafeMath for uint256;
 
+    // WithdrawTreasuryBEP20 Event
+    event WithdrawTreasuryBEP20(address tokenAddress, uint256 withdrawAmount, address withdrawAddress);
+
+    // WithdrawTreasuryBNB Event
+    event WithdrawTreasuryBNB(uint256 withdrawAmount, address withdrawAddress);
+
     /**
-    * @notice Withdraw Treasury Token, Only owner call it
+     * @notice To receive BNB
+     */
+    function receiveBNB() external payable {}
+
+    /**
+    * @notice Withdraw Treasury BEP20 Tokens, Only owner call it
     * @param tokenAddress The address of treasury token
     * @param withdrawAmount The withdraw amount to owner
-    * @param withdrawAddress The withdraw address
+    * @param withdrawAddress The withdraw address, it will be time-lock address
     */
-    function withdrawTreasury(
+    function withdrawTreasuryBEP20(
       address tokenAddress,
       uint256 withdrawAmount,
       address withdrawAddress
     ) external onlyOwner {
+        uint256 actualWithdrawAmount = withdrawAmount;
         // Get Treasury Token Balance
         uint256 treasuryBalance = BEP20Interface(tokenAddress).balanceOf(address(this));
 
         // Check Withdraw Amount
-        require(treasuryBalance >= withdrawAmount, "The withdraw amount should be less than balance of treasury");
+        if (withdrawAmount > treasuryBalance) {
+            // Update actualWithdrawAmount
+            actualWithdrawAmount = treasuryBalance;
+        }
 
-        // Transfer withdrawAmount to withdrawAddress
-        BEP20Interface(tokenAddress).transfer(withdrawAddress, withdrawAmount);
+        // Transfer BEP20 Token to withdrawAddress
+        BEP20Interface(tokenAddress).transfer(withdrawAddress, actualWithdrawAmount);
+
+        emit WithdrawTreasuryBEP20(tokenAddress, withdrawAmount, withdrawAddress);
+    }
+
+    /**
+    * @notice Withdraw Treasury BNB, Only owner call it
+    * @param withdrawAmount The withdraw amount to owner
+    * @param withdrawAddress The withdraw address, it will be time-lock address
+    */
+    function withdrawTreasuryBNB(
+      uint256 withdrawAmount,
+      address withdrawAddress
+    ) external payable onlyOwner {
+        uint256 actualWithdrawAmount = withdrawAmount;
+        // Get Treasury BNB Balance
+        uint256 bnbBalance = address(this).balance;
+
+        // Check Withdraw Amount
+        if (withdrawAmount > bnbBalance) {
+            // Update actualWithdrawAmount
+            actualWithdrawAmount = bnbBalance;
+        }
+        // Transfer BNB to withdrawAddress
+        (bool sent, ) = withdrawAddress.call.value(actualWithdrawAmount)("");
+        require(sent, "Failed to Withdraw Treasury BNB");
+
+        emit WithdrawTreasuryBNB(withdrawAmount, withdrawAddress);
     }
 }
