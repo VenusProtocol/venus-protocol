@@ -1084,6 +1084,8 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_TREASURY_OWNER_CHECK);
         }
 
+        require(newTreasuryPercent < 1e18, "treasury percent cap overflow");
+
         address oldTreasuryGuardian = treasuryGuardian;
         address oldTreasuryAddress = treasuryAddress;
         uint oldTreasuryPercent = treasuryPercent;

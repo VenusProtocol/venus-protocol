@@ -226,3 +226,19 @@ Test "Mint, Enter, then Redeem Too Much (collateral factor: 0.1)"
     AllowFailures
     Redeem Geoff 501e8 vZRX
     Assert Failure COMPTROLLER_REJECTION REDEEM_COMPTROLLER_REJECTION INSUFFICIENT_LIQUIDITY
+
+Test "Redeem Fee Treasury Guardian"
+    NewFeeComptroller
+    Comptroller SetTreasuryData Guardian Jared 1e14
+    From Guardian (Comptroller SetTreasuryData Guardian Jared 1e14)
+    AllowFailures
+    From Jared (Comptroller SetTreasuryData Guardian Jared 1e14)
+    Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
+    From Jared (Comptroller SetTreasuryData Jared Jared 1e14)
+    Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
+
+Test "Redeem Treasury Percent Cap"
+    NewFeeComptroller
+    AllowFailures
+    Comptroller SetTreasuryData Guardian Jared 2e18
+    Assert Revert "revert treasury percent cap overflow"

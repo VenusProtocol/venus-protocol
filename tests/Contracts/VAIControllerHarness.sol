@@ -48,6 +48,10 @@ contract VAIControllerHarness is VAIController {
         return blockNumber;
     }
 
+    function harnessSetBlockNumber(uint newBlockNumber) public {
+        blockNumber = newBlockNumber;
+    }
+
     function setBlockNumber(uint number) public {
         blockNumber = number;
     }

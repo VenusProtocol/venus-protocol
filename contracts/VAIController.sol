@@ -207,17 +207,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     function liquidateVAI(address borrower, uint repayAmount, VTokenInterface vTokenCollateral) external nonReentrant returns (uint, uint) {
-        //critical
-        uint error;
-
         require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
-        //uint error = accrueInterest();
-        // if (error != uint(Error.NO_ERROR)) {
-        //     // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
-        //     return (fail(Error(error), FailureInfo.VAI_LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED), 0);
-        // }
 
-        error = vTokenCollateral.accrueInterest();
+        uint error = vTokenCollateral.accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
             return (fail(Error(error), FailureInfo.VAI_LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
@@ -244,16 +236,11 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
                 return (failOpaque(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_COMPTROLLER_REJECTION, allowed), 0);
             }
 
-            ///////////// critical
-            // /* Verify market's block number equals current block number */
-            // if (accrualBlockNumber != getBlockNumber()) {
-            //     return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_FRESHNESS_CHECK), 0);
-            // }
-
-            // /* Verify vTokenCollateral market's block number equals current block number */
-            // if (vTokenCollateral.accrualBlockNumber() != getBlockNumber()) {
-            //     return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
-            // }
+            /* Verify vTokenCollateral market's block number equals current block number */
+            //if (vTokenCollateral.accrualBlockNumber() != accrualBlockNumber) {
+            if (vTokenCollateral.accrualBlockNumber() != getBlockNumber()) {
+                return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
+            }
 
             /* Fail if borrower = liquidator */
             if (borrower == liquidator) {
@@ -490,6 +477,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         if (!(msg.sender == admin || msg.sender == treasuryGuardian)) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_TREASURY_OWNER_CHECK);
         }
+
+        require(newTreasuryPercent < 1e18, "treasury percent cap overflow");
 
         address oldTreasuryGuardian = treasuryGuardian;
         address oldTreasuryAddress = treasuryAddress;

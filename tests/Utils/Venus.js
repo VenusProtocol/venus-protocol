@@ -541,6 +541,7 @@ async function pretendVAIMint(comptroller, vaicontroller, vai, vaiMinter, princi
   await send(comptroller, 'harnessSetMintedVAIOf', [vaiMinter, bnbUnsigned(principalRaw)]);
   await send(vai, 'harnessIncrementTotalSupply', [bnbUnsigned(principalRaw)]);
   await send(vai, 'harnessSetBalanceOf', [vaiMinter, bnbUnsigned(principalRaw)]);
+  await send(vaicontroller, 'harnessSetBlockNumber', [bnbUnsigned(blockNumber)]);
 }
 
 module.exports = {

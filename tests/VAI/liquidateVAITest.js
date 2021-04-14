@@ -47,7 +47,7 @@ async function liquidateVAIFresh(vaicontroller, liquidator, borrower, repayAmoun
 
 async function liquidateVAI(vaicontroller, liquidator, borrower, repayAmount, vTokenCollateral) {
   // make sure to have a block delta so we accrue interest
-  // await fastForward(vToken, 1);
+  await fastForward(vaicontroller, 1);
   await fastForward(vTokenCollateral, 1);
   return send(vaicontroller, 'liquidateVAI', [borrower, repayAmount, vTokenCollateral._address], {from: liquidator});
 }
@@ -88,21 +88,13 @@ describe('VAIController', function () {
       ).toSucceed();
     });
 
-    // it("fails if market not fresh", async () => {
-    //   //await fastForward(vToken);
-    //   expect(
-    //     await liquidateVAIFresh(vaicontroller, liquidator, borrower, repayAmount, vTokenCollateral)
-    //   ).toHaveTokenFailure('REJECTION', 'VAI_LIQUIDATE_FRESHNESS_CHECK');
-    // });
-
-    // it("fails if collateral market not fresh", async () => {
-    //   //await fastForward(vToken);
-    //   await fastForward(vTokenCollateral);
-    //   //await send(vToken, 'accrueInterest');
-    //   expect(
-    //     await liquidateVAIFresh(vaicontroller, liquidator, borrower, repayAmount, vTokenCollateral)
-    //   ).toHaveTokenFailure('REJECTION', 'VAI_LIQUIDATE_COLLATERAL_FRESHNESS_CHECK');
-    // });
+    it("fails if collateral market not fresh", async () => {
+      await fastForward(vaicontroller);
+      await fastForward(vTokenCollateral);
+      expect(
+        await liquidateVAIFresh(vaicontroller, liquidator, borrower, repayAmount, vTokenCollateral)
+      ).toHaveVAITrollFailure('REJECTION', 'VAI_LIQUIDATE_COLLATERAL_FRESHNESS_CHECK');
+    });
 
     it("fails if borrower is equal to liquidator", async () => {
       expect(

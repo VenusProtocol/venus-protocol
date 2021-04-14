@@ -34,3 +34,9 @@ Test "VAI Mint Treasury Guardian"
     Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
     From Jared (VAIController SetTreasuryData Jared Jared 1e14)
     Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
+
+Test "VAI Mint Treasury Percent Cap"
+    NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18
+    AllowFailures
+    VAIController SetTreasuryData Guardian Jared 2e18
+    Assert Revert "revert treasury percent cap overflow"
