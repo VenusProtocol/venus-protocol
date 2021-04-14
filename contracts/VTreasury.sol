@@ -45,7 +45,7 @@ contract VTreasury is Ownable {
         // Transfer BEP20 Token to withdrawAddress
         BEP20Interface(tokenAddress).transfer(withdrawAddress, actualWithdrawAmount);
 
-        emit WithdrawTreasuryBEP20(tokenAddress, withdrawAmount, withdrawAddress);
+        emit WithdrawTreasuryBEP20(tokenAddress, actualWithdrawAmount, withdrawAddress);
     }
 
     /**
@@ -69,6 +69,6 @@ contract VTreasury is Ownable {
         // Transfer BNB to withdrawAddress
         withdrawAddress.transfer(actualWithdrawAmount);
 
-        emit WithdrawTreasuryBNB(withdrawAmount, withdrawAddress);
+        emit WithdrawTreasuryBNB(actualWithdrawAmount, withdrawAddress);
     }
 }
