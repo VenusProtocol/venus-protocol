@@ -25,7 +25,7 @@ contract VTreasury is Ownable {
     * @notice Withdraw Treasury BEP20 Tokens, Only owner call it
     * @param tokenAddress The address of treasury token
     * @param withdrawAmount The withdraw amount to owner
-    * @param withdrawAddress The withdraw address, it will be time-lock address
+    * @param withdrawAddress The withdraw address
     */
     function withdrawTreasuryBEP20(
       address tokenAddress,
@@ -51,7 +51,7 @@ contract VTreasury is Ownable {
     /**
     * @notice Withdraw Treasury BNB, Only owner call it
     * @param withdrawAmount The withdraw amount to owner
-    * @param withdrawAddress The withdraw address, it will be time-lock address
+    * @param withdrawAddress The withdraw address
     */
     function withdrawTreasuryBNB(
       uint256 withdrawAmount,
