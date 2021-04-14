@@ -55,7 +55,7 @@ contract VTreasury is Ownable {
     */
     function withdrawTreasuryBNB(
       uint256 withdrawAmount,
-      address withdrawAddress
+      address payable withdrawAddress
     ) external payable onlyOwner {
         uint256 actualWithdrawAmount = withdrawAmount;
         // Get Treasury BNB Balance
@@ -67,8 +67,7 @@ contract VTreasury is Ownable {
             actualWithdrawAmount = bnbBalance;
         }
         // Transfer BNB to withdrawAddress
-        (bool sent, ) = withdrawAddress.call.value(actualWithdrawAmount)("");
-        require(sent, "Failed to Withdraw Treasury BNB");
+        withdrawAddress.transfer(actualWithdrawAmount);
 
         emit WithdrawTreasuryBNB(withdrawAmount, withdrawAddress);
     }
