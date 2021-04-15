@@ -1,16 +1,17 @@
 const {
-  bnbGasCost,
   bnbMantissa,
   bnbUnsigned,
-  sendFallback
 } = require('./Utils/BSC');
 
+const BigNumber = require('bignumber.js');
+
 const {
-  makeToken,
-  balanceOf
+  makeToken
 } = require('./Utils/Venus');
 
 const transferAmount = bnbMantissa(1000);
+const bnbAmount = new BigNumber(1e17);
+const withdrawBNBAmount = new BigNumber(3e15);
 
 async function makeTreasury(opts = {}) {
   const {
@@ -23,10 +24,18 @@ async function makeTreasury(opts = {}) {
   }
 }
 
-async function withdrawTreausry(vTreasury, tokenAddress, withdrawAmount, withdrawAddress, caller) {
-  return send(vTreasury, 'withdrawTreasury', 
+async function withdrawTreasuryBEP20(vTreasury, tokenAddress, withdrawAmount, withdrawAddress, caller) {
+  return send(vTreasury, 'withdrawTreasuryBEP20', 
     [
       tokenAddress,
+      withdrawAmount,
+      withdrawAddress,      
+    ], { from: caller });
+}
+
+async function withdrawTreasuryBNB(vTreasury, withdrawAmount, withdrawAddress, caller) {
+  return send(vTreasury, 'withdrawTreasuryBNB', 
+    [
       withdrawAmount,
       withdrawAddress,      
     ], { from: caller });
@@ -43,8 +52,14 @@ describe('VTreasury', function () {
     bep20Token = await makeToken();
     // Create New vTreasury
     vTreasury = await makeTreasury();
-    // Transfer to vTreasury Contract
-    send(bep20Token, 'transfer', [vTreasury._address, transferAmount]);
+    // Transfer BEP20 to vTreasury Contract
+    await send(bep20Token, 'transfer', [vTreasury._address, transferAmount]);
+    // Transfer BNB to vTreasury Contract
+    await send(vTreasury, 'receiveBNB', [], { value: bnbAmount.toFixed()});
+  });
+
+  it ('Check BNB Balnce', async() => {
+    expect(await web3.eth.getBalance(vTreasury._address)).toEqual(bnbAmount.toFixed());
   });
 
   it ('Check Owner', async() => {
@@ -61,28 +76,21 @@ describe('VTreasury', function () {
 
   it ('Check Wrong Owner', async() => {
     // Call withdrawTreausry with wrong owner
-    await expect(withdrawTreausry(vTreasury, bep20Token._address, transferAmount, accounts[0], accounts[1]))
+    await expect(withdrawTreasuryBEP20(vTreasury, bep20Token._address, transferAmount, accounts[0], accounts[1]))
       .rejects
       .toRevert("revert Ownable: caller is not the owner");
   });
 
-  it ('Check Wrong Withdraw Amount', async() => {
-    const wrongWithdrawAmount = bnbMantissa(1001);
-    // Call withdrawTreasury with wrong amount
-    await expect(withdrawTreausry(vTreasury, bep20Token._address, wrongWithdrawAmount, accounts[0], root))
-      .rejects
-      .toRevert("revert The withdraw amount should be less than balance of treasury");
-  });
-
-  it ('Check withdrawTreasury', async() => {
-    // Check Before Balance
+  it ('Check Withdraw Treasury BEP20 Token, Over Balance of Treasury', async() => {
+    const overWithdrawAmount = bnbMantissa(1001);
+    // Check Before BEP20 Balance
     expect(bnbUnsigned(await call(bep20Token, 'balanceOf', [vTreasury._address]))).toEqual(transferAmount);
 
-    // Call withdrawTreasury
-    await withdrawTreausry(
+    // Call withdrawTreasury BEP20
+    await withdrawTreasuryBEP20(
       vTreasury,
       bep20Token._address,
-      transferAmount,
+      overWithdrawAmount,
       accounts[0],
       root
     );
@@ -91,5 +99,69 @@ describe('VTreasury', function () {
     expect(await call(bep20Token, 'balanceOf', [vTreasury._address])).toEqual('0');
     // Check withdrawAddress Balance
     expect(bnbUnsigned(await call(bep20Token, 'balanceOf', [accounts[0]]))).toEqual(transferAmount);
-  })
+  });
+
+  it ('Check Withdraw Treasury BEP20 Token, less Balance of Treasury', async() => {
+    const withdrawAmount = bnbMantissa(1);
+    const leftAmouont = bnbMantissa(999);
+    // Check Before BEP20 Balance
+    expect(bnbUnsigned(await call(bep20Token, 'balanceOf', [vTreasury._address]))).toEqual(transferAmount);
+
+    // Call withdrawTreasury BEP20
+    await withdrawTreasuryBEP20(
+      vTreasury,
+      bep20Token._address,
+      withdrawAmount,
+      accounts[0],
+      root
+    );
+
+    // Check After Balance
+    expect(bnbUnsigned(await call(bep20Token, 'balanceOf', [vTreasury._address]))).toEqual(leftAmouont);
+    // Check withdrawAddress Balance
+    expect(bnbUnsigned(await call(bep20Token, 'balanceOf', [accounts[0]]))).toEqual(withdrawAmount);
+  });
+
+  it ('Check Withdraw Treasury BNB, Over Balance of Treasury', async() => {
+    const overWithdrawAmount = bnbAmount.plus(1).toFixed();
+    // Get Original Balance of Withdraw Account
+    const originalBalance = await web3.eth.getBalance(accounts[0]);
+    // Get Expected New Balance of Withdraw Account
+    const newBalance = bnbAmount.plus(originalBalance);
+
+    // Call withdrawTreasury BNB
+    await withdrawTreasuryBNB(
+      vTreasury,
+      overWithdrawAmount,
+      accounts[0],
+      root
+    );
+
+    // Check After Balance
+    expect(await web3.eth.getBalance(vTreasury._address)).toEqual('0');
+    // Check withdrawAddress Balance
+    expect(await web3.eth.getBalance(accounts[0])).toEqual(newBalance.toFixed());
+  });
+
+  it ('Check Withdraw Treasury BNB, less Balance of Treasury', async() => {
+    const withdrawAmount = withdrawBNBAmount.toFixed();
+    const leftAmount = bnbAmount.minus(withdrawBNBAmount);
+    // Get Original Balance of Withdraw Account
+    const originalBalance = await web3.eth.getBalance(accounts[0]);
+    // Get Expected New Balance of Withdraw Account
+    const newBalance = withdrawBNBAmount.plus(originalBalance);
+
+    // Call withdrawTreasury BNB
+    await withdrawTreasuryBNB(
+      vTreasury,
+      withdrawAmount,
+      accounts[0],
+      root
+    );
+
+    // Check After Balance
+    expect(await web3.eth.getBalance(vTreasury._address)).toEqual(leftAmount.toFixed());
+    // Check withdrawAddress Balance
+    expect(await web3.eth.getBalance(accounts[0])).toEqual(newBalance.toFixed());
+  });  
 });
