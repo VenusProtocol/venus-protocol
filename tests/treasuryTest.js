@@ -52,9 +52,9 @@ describe('VTreasury', function () {
     bep20Token = await makeToken();
     // Create New vTreasury
     vTreasury = await makeTreasury();
-    // Transfer BEP20 to vTreasury Contract
+    // Transfer BEP20 to vTreasury Contract for test
     await send(bep20Token, 'transfer', [vTreasury._address, transferAmount]);
-    // Transfer BNB to vTreasury Contract
+    // Transfer BNB to vTreasury Contract for test
     await web3.eth.sendTransaction({ from: root, to: vTreasury._address, value: bnbAmount.toFixed()});
   });
 
