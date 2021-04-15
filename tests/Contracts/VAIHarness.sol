@@ -2,7 +2,7 @@ pragma solidity ^0.5.16;
 
 import "../../contracts/VAI/VAI.sol";
 
-contract VAIHarness is VAI {
+contract VAIScenario is VAI {
     uint blockNumber = 100000;
 
     constructor(uint chainId) VAI(chainId) public {}
@@ -21,6 +21,12 @@ contract VAIHarness is VAI {
 
     function harnessSetBalanceOf(address account, uint _amount) public {
         balanceOf[account] = _amount;
+    }
+
+    function allocateTo(address _owner, uint256 value) public {
+        balanceOf[_owner] += value;
+        totalSupply += value;
+        emit Transfer(address(this), _owner, value);
     }
 
 }

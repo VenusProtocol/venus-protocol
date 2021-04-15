@@ -56,6 +56,18 @@ async function approve(world: World, from: string, vai: VAI, address: string, am
   return world;
 }
 
+async function faucet(world: World, from: string, vai: VAI, address: string, amount: NumberV): Promise<World> {
+  let invokation = await invoke(world, vai.methods.allocateTo(address, amount.encode()), from, NoErrorReporter);
+
+  world = addAction(
+    world,
+    `Fauceted ${amount.show()} VAI tokens to ${address}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function transfer(world: World, from: string, vai: VAI, address: string, amount: NumberV): Promise<World> {
   let invokation = await invoke(world, vai.methods.transfer(address, amount.encode()), from, NoErrorReporter);
 
@@ -98,6 +110,18 @@ async function transferFromScenario(world: World, from: string, vai: VAIScenario
   world = addAction(
     world,
     `Transferred ${amount.show()} VAI tokens from ${addresses} to ${from}`,
+    invokation
+  );
+
+  return world;
+}
+
+async function rely(world: World, from: string, vai: VAI, address: string): Promise<World> {
+  let invokation = await invoke(world, vai.methods.rely(address), from, NoErrorReporter);
+
+  world = addAction(
+    world,
+    `Add rely to VAI token to ${address}`,
     invokation
   );
 
@@ -150,6 +174,23 @@ export function vaiCommands() {
       ],
       (world, from, { vai, spender, amount }) => {
         return approve(world, from, vai, spender.val, amount)
+      }
+    ),
+
+    new Command<{ vai: VAI, recipient: AddressV, amount: NumberV}>(`
+        #### Faucet
+
+        * "VAI Faucet recipient:<User> <Amount>" - Adds an arbitrary balance to given user
+          * E.g. "VAI Faucet Geoff 1.0e18"
+      `,
+      "Faucet",
+      [ 
+        new Arg("vai", getVAI, { implicit: true }),
+        new Arg("recipient", getAddressV),
+        new Arg("amount", getNumberV)
+      ],
+      (world, from, {vai, recipient, amount}) => {
+        return faucet(world, from, vai, recipient.val, amount)
       }
     ),
 
@@ -212,7 +253,23 @@ export function vaiCommands() {
         new Arg("amount", getNumberV)
       ],
       (world, from, { vai, froms, amount }) => transferFromScenario(world, from, vai, froms.map(_from => _from.val), amount)
-    )
+    ),
+
+    new Command<{ vai: VAI, address: AddressV, amount: NumberV }>(`
+        #### Rely
+
+        * "VAI Rely rely:<Address>" - Adds rely address
+          * E.g. "VAI Rely 0xXX..."
+      `,
+      "Rely",
+      [
+        new Arg("vai", getVAI, { implicit: true }),
+        new Arg("address", getAddressV)
+      ],
+      (world, from, { vai, address }) => {
+        return rely(world, from, vai, address.val)
+      }
+    ),
   ];
 }
 

@@ -110,6 +110,9 @@ async function checkIsVenus(world: World, comptroller: Comptroller, vToken: VTok
   return new BoolV(isVenus);
 }
 
+async function mintedVAIs(world: World, comptroller: Comptroller, user: string): Promise<NumberV> {
+  return new NumberV(await comptroller.methods.mintedVAIs(user).call());
+}
 
 export function comptrollerFetchers() {
   return [
@@ -476,6 +479,19 @@ export function comptrollerFetchers() {
       async (world, {comptroller, VToken}) => {
         return new NumberV(await comptroller.methods.venusSpeeds(VToken._address).call());
       }
+    ),
+    new Fetcher<{ comptroller: Comptroller, address: AddressV }, NumberV>(`
+        #### MintedVAI
+
+        * "Comptroller MintedVAI <User>" - Returns a user's minted vai amount
+          * E.g. "Comptroller MintedVAI Geoff"
+      `,
+      "MintedVAI",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg<AddressV>("address", getAddressV)
+      ],
+      (world, { comptroller, address }) => mintedVAIs(world, comptroller, address.val),
     ),
     new Fetcher<{comptroller: Comptroller}, AddressV>(`
         #### BorrowCapGuardian

@@ -15,7 +15,6 @@ Macro SetupPriceOracleProxy
     Comptroller SupportMarket vDAI
     Comptroller SupportMarket vUSDT
     Comptroller SetCloseFactor 0.1
-    Comptroller SetMaxAssets 20
     PriceOracleProxy Deploy Admin (PriceOracle Address) (Address vBNB) (Address vUSDC) (Address vSAI) (Address vDAI) (Address vUSDT)
     Comptroller SetPriceOracle (PriceOracleProxy Address)
 

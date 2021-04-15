@@ -118,7 +118,7 @@ contract ComptrollerHarness is Comptroller {
     }
 
     function harnessDistributeVAIMinterVenus(address vaiMinter) public {
-        distributeVAIMinterVenus(vaiMinter, false);
+        distributeVAIMinterVenus(vaiMinter);
     }
 
     function harnessTransferVenus(address user, uint userAccrued, uint threshold) public returns (uint) {
@@ -199,8 +199,18 @@ contract BoolComptroller is ComptrollerInterface {
     bool failCalculateSeizeTokens;
     uint calculatedSeizeTokens;
 
+    bool public protocolPaused = false;
+
+    mapping(address => uint) public mintedVAIs;
+    bool vaiFailCalculateSeizeTokens;
+    uint vaiCalculatedSeizeTokens;
+
     uint noError = 0;
     uint opaqueError = noError + 11; // an arbitrary, opaque error code
+
+    address public treasuryGuardian;
+    address public treasuryAddress;
+    uint public treasuryPercent;
 
     /*** Assets You Are In ***/
 
@@ -381,6 +391,16 @@ contract BoolComptroller is ComptrollerInterface {
         return failCalculateSeizeTokens ? (opaqueError, 0) : (noError, calculatedSeizeTokens);
     }
 
+    /*** Special Liquidation Calculation ***/
+
+    function liquidateVAICalculateSeizeTokens(
+        address _vTokenCollateral,
+        uint _repayAmount) external view returns (uint, uint) {
+        _vTokenCollateral;
+        _repayAmount;
+        return vaiFailCalculateSeizeTokens ? (opaqueError, 0) : (noError, vaiCalculatedSeizeTokens);
+    }
+
     /**** Mock Settors ****/
 
     /*** Policy Hooks ***/
@@ -451,10 +471,23 @@ contract BoolComptroller is ComptrollerInterface {
         failCalculateSeizeTokens = shouldFail;
     }
 
-    function mintedVAIs(address owner) external pure returns (uint) {
-        owner;
-        return 1e18;
+    function setVAICalculatedSeizeTokens(uint vaiSeizeTokens_) public {
+        vaiCalculatedSeizeTokens = vaiSeizeTokens_;
     }
+
+    function setVAIFailCalculateSeizeTokens(bool vaiShouldFail) public {
+        vaiFailCalculateSeizeTokens = vaiShouldFail;
+    }
+
+    function harnessSetMintedVAIOf(address owner, uint amount) external returns (uint) {
+        mintedVAIs[owner] = amount;
+        return noError;
+    }
+
+    // function mintedVAIs(address owner) external pure returns (uint) {
+    //     owner;
+    //     return 1e18;
+    // }
 
     function setMintedVAIOf(address owner, uint amount) external returns (uint) {
         owner;
@@ -464,6 +497,12 @@ contract BoolComptroller is ComptrollerInterface {
 
     function vaiMintRate() external pure returns (uint) {
         return 1e18;
+    }
+
+    function setTreasuryData(address treasuryGuardian_, address treasuryAddress_, uint treasuryPercent_) external {
+        treasuryGuardian = treasuryGuardian_;
+        treasuryAddress = treasuryAddress_;
+        treasuryPercent = treasuryPercent_;
     }
 }
 

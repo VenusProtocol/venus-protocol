@@ -170,6 +170,30 @@ async function setCloseFactor(world: World, from: string, comptroller: Comptroll
   return world;
 }
 
+async function setVAIMintRate(world: World, from: string, comptroller: Comptroller, vaiMintRate: NumberV): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setVAIMintRate(vaiMintRate.encode()), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Set vai mint rate to ${vaiMintRate.show()}`,
+    invokation
+  );
+
+  return world;
+}
+
+async function setVAIController(world: World, from: string, comptroller: Comptroller, vaicontroller: string): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setVAIController(vaicontroller), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Set VAIController to ${vaicontroller} as ${describeUser(world, from)}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function fastForward(world: World, from: string, comptroller: Comptroller, blocks: NumberV): Promise<World> {
   let invokation = await invoke(world, comptroller.methods.fastForward(blocks.encode()), from, ComptrollerErrorReporter);
 
@@ -332,6 +356,25 @@ async function setBorrowCapGuardian(world: World, from: string, comptroller: Com
   return world;
 }
 
+async function setTreasuryData(
+  world: World,
+  from: string,
+  comptroller: Comptroller,
+  guardian: string,
+  address: string,
+  percent: NumberV,
+): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setTreasuryData(guardian, address, percent.encode()), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Set treasury data to guardian: ${guardian}, address: ${address}, percent: ${percent.show()}`,
+    invokation
+  );
+
+  return world;
+}
+
 export function comptrollerCommands() {
   return [
     new Command<{comptrollerParams: EventV}>(`
@@ -474,6 +517,32 @@ export function comptrollerCommands() {
         new Arg("closeFactor", getPercentV)
       ],
       (world, from, {comptroller, closeFactor}) => setCloseFactor(world, from, comptroller, closeFactor)
+    ),
+    new Command<{comptroller: Comptroller, vaiMintRate: NumberV}>(`
+        #### SetVAIMintRate
+
+        * "Comptroller SetVAIMintRate <Number>" - Sets the vai mint rate to given value
+          * E.g. "Comptroller SetVAIMintRate 5e4"
+      `,
+      "SetVAIMintRate",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("vaiMintRate", getNumberV)
+      ],
+      (world, from, {comptroller, vaiMintRate}) => setVAIMintRate(world, from, comptroller, vaiMintRate)
+    ),
+    new Command<{comptroller: Comptroller, vaicontroller: AddressV}>(`
+        #### SetVAIController
+
+        * "Comptroller SetVAIController vaicontroller:<Address>" - Sets the vai controller address
+          * E.g. "Comptroller SetVAIController 0x..."
+      `,
+      "SetVAIController",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("vaicontroller", getAddressV)
+      ],
+      (world, from, {comptroller, vaicontroller}) => setVAIController(world, from, comptroller, vaicontroller.val)
     ),
     new Command<{comptroller: Comptroller, newPendingAdmin: AddressV}>(`
         #### SetPendingAdmin
@@ -654,6 +723,20 @@ export function comptrollerCommands() {
         new Arg("newBorrowCapGuardian", getAddressV)
       ],
       (world, from, {comptroller, newBorrowCapGuardian}) => setBorrowCapGuardian(world, from, comptroller, newBorrowCapGuardian.val)
+    ),
+    new Command<{comptroller: Comptroller, guardian: AddressV, address: AddressV, percent: NumberV}>(`
+      #### SetTreasuryData
+      * "Comptroller SetTreasuryData <guardian> <address> <rate>" - Sets Treasury Data
+      * E.g. "Comptroller SetTreasuryData 0x.. 0x.. 1e18
+      `,
+      "SetTreasuryData",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("guardian", getAddressV),
+        new Arg("address", getAddressV),
+        new Arg("percent", getNumberV)
+      ],
+      (world, from, {comptroller, guardian, address, percent}) => setTreasuryData(world, from, comptroller, guardian.val, address.val, percent)
     )
   ];
 }

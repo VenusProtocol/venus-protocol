@@ -22,6 +22,8 @@ interface ComptrollerMethods {
   _setPriceOracle(string): Sendable<number>
   _setCollateralFactor(string, encodedNumber): Sendable<number>
   _setCloseFactor(encodedNumber): Sendable<number>
+  _setVAIMintRate(encodedNumber): Sendable<number>
+  _setVAIController(string): Sendable<number>
   enterMarkets(markets: string[]): Sendable<number>
   exitMarket(market: string): Sendable<number>
   fastForward(encodedNumber): Sendable<number>
@@ -48,10 +50,12 @@ interface ComptrollerMethods {
   claimVenus(string): Sendable<void>
   _setVenusRate(encodedNumber): Sendable<void>
   _setVenusSpeed(vToken: string, encodedNumber): Sendable<void>
+  mintedVAIs(string): Callable<number>
   _setMarketBorrowCaps(vTokens:string[], borrowCaps:encodedNumber[]): Sendable<void>
   _setBorrowCapGuardian(string): Sendable<void>
   borrowCapGuardian(): Callable<string>
   borrowCaps(string): Callable<string>
+  _setTreasuryData(guardian, address, percent: encodedNumber): Sendable<number>
 }
 
 export interface Comptroller extends Contract {

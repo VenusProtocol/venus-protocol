@@ -126,7 +126,7 @@ describe('Flywheel', () => {
     it('should accrue xvs and then transfer xvs accrued', async () => {
       const xvsRemaining = venusVAIRate.mul(100), mintAmount = bnbUnsigned(12e18), deltaBlocks = 10;
       await send(comptroller.xvs, 'transfer', [comptroller._address, xvsRemaining], {from: root});
-      //await pretendVAIMint(vai, a1, 1, 1, 100);
+      //await pretendVAIMint(vai, a1, 1);
       const speed = await call(comptroller, 'venusVAIRate');
       const a2AccruedPre = await venusAccrued(comptroller, a2);
       const xvsBalancePre = await xvsBalance(comptroller, a2);

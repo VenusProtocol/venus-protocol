@@ -1,4 +1,4 @@
-import {ComptrollerErr, TokenErr} from './ErrorReporterConstants';
+import {ComptrollerErr, VAIControllerErr, TokenErr} from './ErrorReporterConstants';
 
 export interface ErrorReporter {
   getError(error: any): string | null
@@ -82,6 +82,37 @@ class ComptrollerErrorReporterType implements ErrorReporter {
     return detail.toString();
   }
 }
+class VAIControllerErrorReporterType implements ErrorReporter {
+  getError(error: any): string | null {
+    if (error === null) {
+      return null;
+    } else {
+      // TODO: This probably isn't right...
+      return VAIControllerErr.ErrorInv[Number(error)];
+    }
+  }
+
+  getInfo(info: any): string | null {
+    if (info === null) {
+      return null;
+    } else {
+      // TODO: This probably isn't right...
+      return VAIControllerErr.FailureInfoInv[Number(info)];
+    }
+  }
+
+  getDetail(error: any, detail: number): string {
+    if (this.getError(error) === "REJECTION") {
+      let vaicontrollerError = VAIControllerErrorReporter.getError(detail);
+
+      if (vaicontrollerError) {
+        return vaicontrollerError;
+      }
+    }
+
+    return detail.toString();
+  }
+}
 
 export function formatResult(errorReporter: ErrorReporter, result: any): string {
   const errorStr = errorReporter.getError(result);
@@ -96,3 +127,4 @@ export function formatResult(errorReporter: ErrorReporter, result: any): string 
 export const NoErrorReporter = new NoErrorReporterType();
 export const VTokenErrorReporter = new VTokenErrorReporterType();
 export const ComptrollerErrorReporter = new ComptrollerErrorReporterType();
+export const VAIControllerErrorReporter = new VAIControllerErrorReporterType();

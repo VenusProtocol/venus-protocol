@@ -14,7 +14,7 @@ import "./VAI/VAI.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract ComptrollerG2 is ComptrollerV1Storage, ComptrollerInterface, ComptrollerErrorReporter, Exponential {
+contract ComptrollerG2 is ComptrollerV1Storage, ComptrollerInterfaceG1, ComptrollerErrorReporter, Exponential {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 

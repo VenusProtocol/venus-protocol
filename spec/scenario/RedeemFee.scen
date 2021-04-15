@@ -1,0 +1,244 @@
+-- Redeem Tests
+
+Test "Mint then Redeem All"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff 70e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    -- Check current affairs
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 20e18
+    -- Any other good invariants?
+    Invariant Static (VToken vZRX ExchangeRateStored)
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    Redeem Geoff 500e8 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) Zero
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 6.9995e19
+    Assert Equal (Bep20 ZRX TokenBalance Jared) 5e15
+
+Test "Mint, Enter and then Redeem All"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff 70e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    -- Check current affairs
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 20e18
+    -- Any other good invariants?
+    Invariant Static (VToken vZRX ExchangeRateStored)
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    EnterMarkets Geoff vZRX
+    Redeem Geoff 500e8 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) Zero
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 6.9995e19
+
+Test "Mint then Redeem Part"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff 70e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    -- Check current affairs
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 20e18
+    -- Any other good invariants?
+    Invariant Static (VToken vZRX ExchangeRateStored)
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    Redeem Geoff 250e8 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 250e8
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 4.49975e19
+
+Test "Mint then Redeem Too Much"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff 70e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    -- Check and hold static
+    Invariant Static (VToken vZRX ExchangeRateStored)
+    Invariant Remains (Bep20 vZRX TokenBalance Geoff) 500e8
+    Invariant Remains (Bep20 ZRX TokenBalance Geoff) 20e18
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    AllowFailures
+    Redeem Geoff 501e8 vZRX
+    Assert Failure MATH_ERROR REDEEM_NEW_TOTAL_SUPPLY_CALCULATION_FAILED "3"
+
+Test "Mint then Redeem Zero"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff 70e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    -- Check current affairs
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 20e18
+    -- Any other good invariants?
+    Invariant Static (VToken vZRX ExchangeRateStored)
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    Redeem Geoff 0e18 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 20e18
+
+Test "Mint then redeem with interest - no reserves"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Invariant Remains (VToken vZRX Reserves) Zero
+    Prep Geoff 50e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 50e18
+    Assert Equal (VToken vZRX ExchangeRate) 1e9
+    -- Get some brah to borrow then repay
+    BorrowAndRepayWithInterest ZRX vZRX 10e18 5e18 interestRate:0.000001 blocks:500000
+    -- We've accrued .001% interest for 500000 blocks, or 50% of the principal,
+    --   thus, we should have accrued 5e18 of interest for the protocol
+    --   This is due pro-rata to all suppliers, but we just have one, so
+    --   let's check that account is given correct new balance.
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 55e18
+    Assert Equal (VToken vZRX ExchangeRate) 1.1e9
+    -- Now redeem all with interest
+    Redeem Geoff 500e8 vZRX
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 5.49945e19
+    Assert Equal (Bep20 ZRX TokenBalance vZRX) 0e18
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 0e8
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 0e18
+    Assert Equal (VToken vZRX ExchangeRate) 1e9
+
+Test "Mint then redeem part with interest - no reserves"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Invariant Remains (VToken vZRX Reserves) Zero
+    Prep Geoff 50e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 50e18
+    Assert Equal (VToken vZRX ExchangeRate) 1e9
+    -- Get some brah to borrow then repay
+    BorrowAndRepayWithInterest ZRX vZRX 10e18 5e18 interestRate:0.000001 blocks:500000
+    -- We've accrued .001% interest for 500000 blocks, or 50% of the principal,
+    --   thus, we should have accrued 5e18 of interest for the protocol
+    --   This is due pro-rata to all suppliers, but we just have one, so
+    --   let's check that account is given correct new balance.
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 55e18
+    Assert Equal (VToken vZRX ExchangeRate) 1.1e9
+    -- Now redeem all with interest
+    Redeem Geoff 499e8 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 1e8
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 0.11e18
+    Assert Equal (VToken vZRX ExchangeRate) 1.1e9
+
+Test "Mint then redeem with reserves and interest"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff 50e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 50e18
+    Assert Equal (VToken vZRX ExchangeRate) 1e9
+    -- Get some brah to borrow then repay
+    BorrowAndRepayWithInterest ZRX vZRX 10e18 5e18 interestRate:0.000001 blocks:500000 reserveRate:0.2
+    -- We've accrued .001% interest for 500000 blocks, or 50% of the principal,
+    --   thus, we should have accrued 5e18 of interest for the protocol
+    --   The reserves should get 20% of this, or 1e18, and the rest
+    --   is due pro-rata to all holders. We just have one, so
+    --   let's check that account is given correct new balance.
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
+    Assert Equal (VToken vZRX Reserves) 1e18
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 54e18
+    -- 55e18 + 0e18 - 1e18 / 500
+    Assert Equal (VToken vZRX ExchangeRate) 1.08e9
+    -- Now redeem all with interest
+    Redeem Geoff 500e8 vZRX
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) 5.39946e19
+    Assert Equal (Bep20 ZRX TokenBalance vZRX) 1e18
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 0e8
+    Assert Equal (VToken vZRX Reserves) 1e18
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 0e18
+    Assert Equal (VToken vZRX ExchangeRate) 1e9
+
+Test "Two users Mint, one redeems"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff Some ZRX vZRX
+    Prep Torrey Some ZRX vZRX
+    Mint Geoff 2e18 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 20e8
+    Assert Equal (Bep20 vZRX TotalSupply) 20e8
+    Mint Torrey 2e18 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 20e8
+    Assert Equal (Bep20 vZRX TokenBalance Torrey) 20e8
+    Assert Equal (Bep20 vZRX TotalSupply) 40e8
+    Redeem Torrey 10e8 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) 20e8
+    Assert Equal (Bep20 vZRX TokenBalance Torrey) 10e8
+    Assert Equal (Bep20 vZRX TotalSupply) 30e8
+
+Test "Redeem transfer out fails"
+    NewFeeComptroller
+    ListedVToken EVL vEVL initialExchangeRate:1e9 tokenType:Evil
+    Bep20 EVL SetFail False
+    Prep Geoff 70e18 EVL vEVL
+    Mint Geoff 50e18 vEVL
+    -- Check current affairs
+    Invariant Remains (Bep20 vEVL TokenBalance Geoff) 500e8
+    Invariant Remains (Bep20 EVL TokenBalance Geoff) 20e18
+    Invariant Static (VToken vEVL ExchangeRateStored)
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    Bep20 EVL SetFail True
+    AllowFailures
+    Redeem Geoff 500e8 vEVL
+    Assert Revert "revert TOKEN_TRANSFER_OUT_FAILED"
+
+Test "Mint, Enter, then Redeem Too Much (collateral factor: 0)"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff 70e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    -- Check and hold static
+    Invariant Static (VToken vZRX ExchangeRateStored)
+    Invariant Remains (Bep20 vZRX TokenBalance Geoff) 500e8
+    Invariant Remains (Bep20 ZRX TokenBalance Geoff) 20e18
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    EnterMarkets Geoff vZRX
+    AllowFailures
+    Redeem Geoff 501e8 vZRX
+    Assert Failure MATH_ERROR REDEEM_NEW_TOTAL_SUPPLY_CALCULATION_FAILED "3"
+
+Test "Mint, Enter, then Redeem Too Much (collateral factor: 0.1)"
+    NewFeeComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetCollateralFactor vZRX 0.1
+    Prep Geoff 70e18 ZRX vZRX
+    Mint Geoff 50e18 vZRX
+    -- Check and hold static
+    Invariant Static (VToken vZRX ExchangeRateStored)
+    Invariant Remains (Bep20 vZRX TokenBalance Geoff) 500e8
+    Invariant Remains (Bep20 ZRX TokenBalance Geoff) 20e18
+    -- Now redeem after some time
+    FastForward 2 Blocks
+    EnterMarkets Geoff vZRX
+    AllowFailures
+    Redeem Geoff 501e8 vZRX
+    Assert Failure COMPTROLLER_REJECTION REDEEM_COMPTROLLER_REJECTION INSUFFICIENT_LIQUIDITY
+
+Test "Redeem Fee Treasury Guardian"
+    NewFeeComptroller
+    Comptroller SetTreasuryData Guardian Jared 1e14
+    From Guardian (Comptroller SetTreasuryData Guardian Jared 1e14)
+    AllowFailures
+    From Jared (Comptroller SetTreasuryData Guardian Jared 1e14)
+    Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
+    From Jared (Comptroller SetTreasuryData Jared Jared 1e14)
+    Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
+
+Test "Redeem Treasury Percent Cap"
+    NewFeeComptroller
+    AllowFailures
+    Comptroller SetTreasuryData Guardian Jared 2e18
+    Assert Revert "revert treasury percent cap overflow"

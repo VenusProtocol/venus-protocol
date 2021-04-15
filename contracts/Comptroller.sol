@@ -2,7 +2,6 @@ pragma solidity ^0.5.16;
 
 import "./VToken.sol";
 import "./ErrorReporter.sol";
-import "./Exponential.sol";
 import "./PriceOracle.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
@@ -14,7 +13,7 @@ import "./VAI/VAI.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerErrorReporter, Exponential {
+contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -32,9 +31,6 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
 
     /// @notice Emitted when liquidation incentive is changed by admin
     event NewLiquidationIncentive(uint oldLiquidationIncentiveMantissa, uint newLiquidationIncentiveMantissa);
-
-    /// @notice Emitted when maxAssets is changed by admin
-    event NewMaxAssets(uint oldMaxAssets, uint newMaxAssets);
 
     /// @notice Emitted when price oracle is changed
     event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
@@ -87,6 +83,15 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
     /// @notice Emitted when borrow cap guardian is changed
     event NewBorrowCapGuardian(address oldBorrowCapGuardian, address newBorrowCapGuardian);
 
+    /// @notice Emitted when treasury guardian is changed
+    event NewTreasuryGuardian(address oldTreasuryGuardian, address newTreasuryGuardian);
+
+    /// @notice Emitted when treasury address is changed
+    event NewTreasuryAddress(address oldTreasuryAddress, address newTreasuryAddress);
+
+    /// @notice Emitted when treasury percent is changed
+    event NewTreasuryPercent(uint oldTreasuryPercent, uint newTreasuryPercent);
+
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
 
@@ -98,12 +103,6 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
 
     // No collateralFactorMantissa may exceed this value
     uint internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
-
-    // liquidationIncentiveMantissa must be no less than this value
-    uint internal constant liquidationIncentiveMinMantissa = 1.0e18; // 1.0
-
-    // liquidationIncentiveMantissa must be no greater than this value
-    uint internal constant liquidationIncentiveMaxMantissa = 1.5e18; // 1.5
 
     constructor() public {
         admin = msg.sender;
@@ -184,11 +183,6 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
         if (marketToJoin.accountMembership[borrower]) {
             // already joined
             return Error.NO_ERROR;
-        }
-
-        if (accountAssets[borrower].length >= maxAssets)  {
-            // no space, cannot join
-            return Error.TOO_MANY_ASSETS;
         }
 
         // survived the gauntlet, add to list
@@ -393,8 +387,7 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
         // Borrow cap of 0 corresponds to unlimited borrowing
         if (borrowCap != 0) {
             uint totalBorrows = VToken(vToken).totalBorrows();
-            (MathError mathErr, uint nextTotalBorrows) = addUInt(totalBorrows, borrowAmount);
-            require(mathErr == MathError.NO_ERROR, "total borrows overflow");
+            uint nextTotalBorrows = add_(totalBorrows, borrowAmount);
             require(nextTotalBorrows < borrowCap, "market borrow cap reached");
         }
 
@@ -505,7 +498,7 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
         // Shh - currently unused
         liquidator;
 
-        if (!markets[vTokenBorrowed].isListed || !markets[vTokenCollateral].isListed) {
+        if (!(markets[vTokenBorrowed].isListed || address(vTokenBorrowed) == address(vaiController)) || !markets[vTokenCollateral].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
@@ -519,11 +512,14 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
         }
 
         /* The liquidator may not repay more than what is allowed by the closeFactor */
-        uint borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
-        (MathError mathErr, uint maxClose) = mulScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
-        if (mathErr != MathError.NO_ERROR) {
-            return uint(Error.MATH_ERROR);
+        uint borrowBalance;
+        if (address(vTokenBorrowed) != address(vaiController)) {
+            borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
+        } else {
+            borrowBalance = mintedVAIs[borrower];
         }
+
+        uint maxClose = mul_ScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
         if (repayAmount > maxClose) {
             return uint(Error.TOO_MUCH_REPAY);
         }
@@ -580,7 +576,8 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
         // Shh - currently unused
         seizeTokens;
 
-        if (!markets[vTokenCollateral].isListed || !markets[vTokenBorrowed].isListed) {
+        // We've added VAIController as a borrowed token list check for seize
+        if (!markets[vTokenCollateral].isListed || !(markets[vTokenBorrowed].isListed || address(vTokenBorrowed) == address(vaiController))) {
             return uint(Error.MARKET_NOT_LISTED);
         }
 
@@ -741,7 +738,6 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
 
         AccountLiquidityLocalVars memory vars; // Holds all our calculation results
         uint oErr;
-        MathError mErr;
 
         // For each asset the account is in
         VToken[] memory assets = accountAssets[account];
@@ -764,47 +760,27 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
             vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
 
             // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
-            (mErr, vars.tokensToDenom) = mulExp3(vars.collateralFactor, vars.exchangeRate, vars.oraclePrice);
-            if (mErr != MathError.NO_ERROR) {
-                return (Error.MATH_ERROR, 0, 0);
-            }
+            vars.tokensToDenom = mul_(mul_(vars.collateralFactor, vars.exchangeRate), vars.oraclePrice);
 
             // sumCollateral += tokensToDenom * vTokenBalance
-            (mErr, vars.sumCollateral) = mulScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumCollateral);
-            if (mErr != MathError.NO_ERROR) {
-                return (Error.MATH_ERROR, 0, 0);
-            }
+            vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumCollateral);
 
             // sumBorrowPlusEffects += oraclePrice * borrowBalance
-            (mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
-            if (mErr != MathError.NO_ERROR) {
-                return (Error.MATH_ERROR, 0, 0);
-            }
+            vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
 
             // Calculate effects of interacting with vTokenModify
             if (asset == vTokenModify) {
                 // redeem effect
                 // sumBorrowPlusEffects += tokensToDenom * redeemTokens
-                (mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(vars.tokensToDenom, redeemTokens, vars.sumBorrowPlusEffects);
-                if (mErr != MathError.NO_ERROR) {
-                    return (Error.MATH_ERROR, 0, 0);
-                }
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.tokensToDenom, redeemTokens, vars.sumBorrowPlusEffects);
 
                 // borrow effect
                 // sumBorrowPlusEffects += oraclePrice * borrowAmount
-                (mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(vars.oraclePrice, borrowAmount, vars.sumBorrowPlusEffects);
-                if (mErr != MathError.NO_ERROR) {
-                    return (Error.MATH_ERROR, 0, 0);
-                }
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.oraclePrice, borrowAmount, vars.sumBorrowPlusEffects);
             }
         }
 
-        /// @dev VAI Integration^
-        (mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, mintedVAIs[account]);
-        if (mErr != MathError.NO_ERROR) {
-            return (Error.MATH_ERROR, 0, 0);
-        }
-        /// @dev VAI Integration$
+        vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, mintedVAIs[account]);
 
         // These are safe, as the underflow condition is checked first
         if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
@@ -841,27 +817,48 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
         Exp memory numerator;
         Exp memory denominator;
         Exp memory ratio;
-        MathError mathErr;
 
-        (mathErr, numerator) = mulExp(liquidationIncentiveMantissa, priceBorrowedMantissa);
-        if (mathErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0);
+        numerator = mul_(Exp({mantissa: liquidationIncentiveMantissa}), Exp({mantissa: priceBorrowedMantissa}));
+        denominator = mul_(Exp({mantissa: priceCollateralMantissa}), Exp({mantissa: exchangeRateMantissa}));
+        ratio = div_(numerator, denominator);
+
+        seizeTokens = mul_ScalarTruncate(ratio, actualRepayAmount);
+
+        return (uint(Error.NO_ERROR), seizeTokens);
+    }
+
+    /**
+     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
+     * @param vTokenCollateral The address of the collateral vToken
+     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
+     */
+    function liquidateVAICalculateSeizeTokens(address vTokenCollateral, uint actualRepayAmount) external view returns (uint, uint) {
+        /* Read oracle prices for borrowed and collateral markets */
+        uint priceBorrowedMantissa = 1e18;  // Note: this is VAI
+        uint priceCollateralMantissa = oracle.getUnderlyingPrice(VToken(vTokenCollateral));
+        if (priceCollateralMantissa == 0) {
+            return (uint(Error.PRICE_ERROR), 0);
         }
 
-        (mathErr, denominator) = mulExp(priceCollateralMantissa, exchangeRateMantissa);
-        if (mathErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0);
-        }
+        /*
+         * Get the exchange rate and calculate the number of collateral tokens to seize:
+         *  seizeAmount = actualRepayAmount * liquidationIncentive * priceBorrowed / priceCollateral
+         *  seizeTokens = seizeAmount / exchangeRate
+         *   = actualRepayAmount * (liquidationIncentive * priceBorrowed) / (priceCollateral * exchangeRate)
+         */
+        uint exchangeRateMantissa = VToken(vTokenCollateral).exchangeRateStored(); // Note: reverts on error
+        uint seizeTokens;
+        Exp memory numerator;
+        Exp memory denominator;
+        Exp memory ratio;
 
-        (mathErr, ratio) = divExp(numerator, denominator);
-        if (mathErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0);
-        }
+        numerator = mul_(Exp({mantissa: liquidationIncentiveMantissa}), Exp({mantissa: priceBorrowedMantissa}));
+        denominator = mul_(Exp({mantissa: priceCollateralMantissa}), Exp({mantissa: exchangeRateMantissa}));
+        ratio = div_(numerator, denominator);
 
-        (mathErr, seizeTokens) = mulScalarTruncate(ratio, actualRepayAmount);
-        if (mathErr != MathError.NO_ERROR) {
-            return (uint(Error.MATH_ERROR), 0);
-        }
+        seizeTokens = mul_ScalarTruncate(ratio, actualRepayAmount);
 
         return (uint(Error.NO_ERROR), seizeTokens);
     }
@@ -895,24 +892,11 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
       * @notice Sets the closeFactor used when liquidating borrows
       * @dev Admin function to set closeFactor
       * @param newCloseFactorMantissa New close factor, scaled by 1e18
-      * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
+      * @return uint 0=success, otherwise a failure
       */
     function _setCloseFactor(uint newCloseFactorMantissa) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_CLOSE_FACTOR_OWNER_CHECK);
-        }
-
-        Exp memory newCloseFactorExp = Exp({mantissa: newCloseFactorMantissa});
-        Exp memory lowLimit = Exp({mantissa: closeFactorMinMantissa});
-        if (lessThanOrEqualExp(newCloseFactorExp, lowLimit)) {
-            return fail(Error.INVALID_CLOSE_FACTOR, FailureInfo.SET_CLOSE_FACTOR_VALIDATION);
-        }
-
-        Exp memory highLimit = Exp({mantissa: closeFactorMaxMantissa});
-        if (lessThanExp(highLimit, newCloseFactorExp)) {
-            return fail(Error.INVALID_CLOSE_FACTOR, FailureInfo.SET_CLOSE_FACTOR_VALIDATION);
-        }
+    	require(msg.sender == admin, "only admin can set close factor");
 
         uint oldCloseFactorMantissa = closeFactorMantissa;
         closeFactorMantissa = newCloseFactorMantissa;
@@ -964,25 +948,6 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
     }
 
     /**
-      * @notice Sets maxAssets which controls how many markets can be entered
-      * @dev Admin function to set maxAssets
-      * @param newMaxAssets New max assets
-      * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
-      */
-    function _setMaxAssets(uint newMaxAssets) external returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_MAX_ASSETS_OWNER_CHECK);
-        }
-
-        uint oldMaxAssets = maxAssets;
-        maxAssets = newMaxAssets;
-        emit NewMaxAssets(oldMaxAssets, newMaxAssets);
-
-        return uint(Error.NO_ERROR);
-    }
-
-    /**
       * @notice Sets liquidationIncentive
       * @dev Admin function to set liquidationIncentive
       * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
@@ -992,18 +957,6 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
         // Check caller is admin
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_LIQUIDATION_INCENTIVE_OWNER_CHECK);
-        }
-
-        // Check de-scaled min <= newLiquidationIncentive <= max
-        Exp memory newLiquidationIncentive = Exp({mantissa: newLiquidationIncentiveMantissa});
-        Exp memory minLiquidationIncentive = Exp({mantissa: liquidationIncentiveMinMantissa});
-        if (lessThanExp(newLiquidationIncentive, minLiquidationIncentive)) {
-            return fail(Error.INVALID_LIQUIDATION_INCENTIVE, FailureInfo.SET_LIQUIDATION_INCENTIVE_VALIDATION);
-        }
-
-        Exp memory maxLiquidationIncentive = Exp({mantissa: liquidationIncentiveMaxMantissa});
-        if (lessThanExp(maxLiquidationIncentive, newLiquidationIncentive)) {
-            return fail(Error.INVALID_LIQUIDATION_INCENTIVE, FailureInfo.SET_LIQUIDATION_INCENTIVE_VALIDATION);
         }
 
         // Save current value for use in log
@@ -1059,7 +1012,7 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
       * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing.
       */
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint[] calldata newBorrowCaps) external {
-    	require(msg.sender == admin || msg.sender == borrowCapGuardian, "only admin or borrow cap guardian can set borrow caps"); 
+        require(msg.sender == admin || msg.sender == borrowCapGuardian, "only admin or borrow cap guardian can set borrow caps");
 
         uint numMarkets = vTokens.length;
         uint numBorrowCaps = newBorrowCaps.length;
@@ -1076,9 +1029,7 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
      * @notice Admin function to change the Borrow Cap Guardian
      * @param newBorrowCapGuardian The address of the new Borrow Cap Guardian
      */
-    function _setBorrowCapGuardian(address newBorrowCapGuardian) external {
-        require(msg.sender == admin, "only admin can set borrow cap guardian");
-
+    function _setBorrowCapGuardian(address newBorrowCapGuardian) external onlyAdmin {
         // Save current value for inclusion in log
         address oldBorrowCapGuardian = borrowCapGuardian;
 
@@ -1123,6 +1074,29 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
         uint oldVAIMintRate = vaiMintRate;
         vaiMintRate = newVAIMintRate;
         emit NewVAIMintRate(oldVAIMintRate, newVAIMintRate);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    function _setTreasuryData(address newTreasuryGuardian, address newTreasuryAddress, uint newTreasuryPercent) external returns (uint) {
+        // Check caller is admin
+        if (!(msg.sender == admin || msg.sender == treasuryGuardian)) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_TREASURY_OWNER_CHECK);
+        }
+
+        require(newTreasuryPercent < 1e18, "treasury percent cap overflow");
+
+        address oldTreasuryGuardian = treasuryGuardian;
+        address oldTreasuryAddress = treasuryAddress;
+        uint oldTreasuryPercent = treasuryPercent;
+
+        treasuryGuardian = newTreasuryGuardian;
+        treasuryAddress = newTreasuryAddress;
+        treasuryPercent = newTreasuryPercent;
+
+        emit NewTreasuryGuardian(oldTreasuryGuardian, newTreasuryGuardian);
+        emit NewTreasuryAddress(oldTreasuryAddress, newTreasuryAddress);
+        emit NewTreasuryPercent(oldTreasuryPercent, newTreasuryPercent);
 
         return uint(Error.NO_ERROR);
     }
@@ -1279,7 +1253,7 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
      * @dev VAI minters will not begin to accrue until after the first interaction with the protocol.
      * @param vaiMinter The address of the VAI minter to distribute XVS to
      */
-    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) public {
+    function distributeVAIMinterVenus(address vaiMinter) public {
         if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }
@@ -1329,7 +1303,7 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
             vaiController.updateVenusVAIMintIndex();
         }
         for (j = 0; j < holders.length; j++) {
-            distributeVAIMinterVenus(holders[j], true);
+            distributeVAIMinterVenus(holders[j]);
             venusAccrued[holders[j]] = grantXVSInternal(holders[j], venusAccrued[holders[j]]);
         }
         for (uint i = 0; i < vTokens.length; i++) {
@@ -1376,9 +1350,7 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
      * @notice Set the amount of XVS distributed per block to VAI Mint
      * @param venusVAIRate_ The amount of XVS wei per block to distribute to VAI Mint
      */
-    function _setVenusVAIRate(uint venusVAIRate_) public {
-        require(msg.sender == admin, "only admin can");
-
+    function _setVenusVAIRate(uint venusVAIRate_) public onlyAdmin {
         uint oldVAIRate = venusVAIRate;
         venusVAIRate = venusVAIRate_;
         emit NewVenusVAIRate(oldVAIRate, venusVAIRate_);
@@ -1388,9 +1360,7 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
      * @notice Set the amount of XVS distributed per block to VAI Vault
      * @param venusVAIVaultRate_ The amount of XVS wei per block to distribute to VAI Vault
      */
-    function _setVenusVAIVaultRate(uint venusVAIVaultRate_) public {
-        require(msg.sender == admin, "only admin can");
-
+    function _setVenusVAIVaultRate(uint venusVAIVaultRate_) public onlyAdmin {
         uint oldVenusVAIVaultRate = venusVAIVaultRate;
         venusVAIVaultRate = venusVAIVaultRate_;
         emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
@@ -1402,9 +1372,7 @@ contract Comptroller is ComptrollerV3Storage, ComptrollerInterface, ComptrollerE
      * @param releaseStartBlock_ The start block of release to VAI Vault
      * @param minReleaseAmount_ The minimum release amount to VAI Vault
      */
-    function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) public {
-        require(msg.sender == admin, "only admin can");
-
+    function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) public onlyAdmin {
         vaiVaultAddress = vault_;
         releaseStartBlock = releaseStartBlock_;
         minReleaseAmount = minReleaseAmount_;

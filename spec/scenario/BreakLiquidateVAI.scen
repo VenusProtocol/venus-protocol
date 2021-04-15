@@ -1,0 +1,86 @@
+
+Macro NewMintVAI mintVAIAmount mintAmount user=Geoff collateralPrice=1.0 borrowPrice=1.0 liquidationIncentive=1.1
+    PricedComptrollerWithVAIController closeFactor:0.9 -- Set the close factor high to reduce number of steps to demonstrate
+    Comptroller LiquidationIncentive liquidationIncentive
+    NewVToken ZRX vZRX
+    PriceOracle SetPrice vZRX collateralPrice
+    Support vZRX collateralFactor:0.7
+    Comptroller SetVAIMintRate 7e3
+    SimpleMintVAI user mintVAIAmount mintAmount
+
+Macro SimpleMintVAI user mintVAIAmount mintAmount
+    Prep user mintAmount ZRX vZRX
+    Mint user mintAmount vZRX
+    EnterMarkets user vZRX
+    MintVAI user mintVAIAmount
+
+Test "When account goes further underwater than the liquidation incentive and cannot pay down debt fully"
+    -- Happens whenever collateral ratio > liquidation discount (i.e. 1 / liquidation incentive)
+    --
+    -- Start right around the liquidity threshold
+    NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18 liquidationIncentive:1.1
+    --
+    -- Verify that the borrow results in the correct state
+    Assert Equal (Comptroller MintedVAI Geoff) 1e18
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 1.43e18
+    --
+    -- Put the account underwater s.t. 0.91 < Borrow/Supply
+    --      i.e. (1 / liquidationIncentive) < Borrow/Supply
+    PriceOracle SetPrice vZRX 0.76
+    --
+    -- Pay back a bunch of debt by liquidating
+    PrepVAI Jared 10e18 VAIController
+    Assert Equal (Comptroller MintedVAI Jared) 0
+    Assert Equal (VToken vZRX UnderlyingBalance Jared) 0
+    Assert Equal (VAI TokenBalance Jared) 10e18
+    LiquidateVAI Jared "->" Geoff 0.9e18 "Seizing" vZRX
+    Assert Equal (Comptroller MintedVAI Jared) 0
+    Assert Equal (VToken vZRX UnderlyingBalance Jared) 1.302631578e18
+    Assert Equal (VAI TokenBalance Jared) 9.1e18
+    Assert Equal (Comptroller MintedVAI Geoff) 1e17
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 0.127368422e18
+    LiquidateVAI Jared "->" Geoff 0.0880000008e18 "Seizing" vZRX
+    Assert Equal (Comptroller MintedVAI Jared) 0
+    Assert Equal (VToken vZRX UnderlyingBalance Jared) 1.43e18
+    Assert Equal (VAI TokenBalance Jared) 9.0119999992e18
+    Assert Equal (Comptroller MintedVAI Geoff) 0.0119999992e18
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 0
+
+Test "When liquidation incentive is too high to be effective"
+    -- Happens whenever liquidation discount < collateral factor
+    --
+    -- Start right around the liquidity threshold
+    NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18 liquidationIncentive:1.5
+    --
+    -- Verify that the borrow results in the correct state
+    Assert Equal (Comptroller MintedVAI Geoff) 1e18
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 1.43e18
+    --
+    -- Put the account underwater s.t. 0.7 < Borrow/Supply
+    --              i.e. collateral factor < Borrow/Supply
+    PriceOracle SetPrice vZRX 0.87
+    --
+    -- Now any amount of debt that we pay back by liquidating will make liquidity worse
+    --
+    -- First, prepare to liquidate
+    PrepVAI Jared 10e18 VAIController
+    Expect Changes (Comptroller Liquidity Geoff) -0.024999999076e18
+    -- Note that the account collateral ratio will become worse than before
+    --  although shortfall decreases in absolute terms
+    --  had Supply/Borrow = 1.430000000 * 0.87 / 1.0 = 1.244100000
+    --  now Supply/Borrow = 0.567931036 * 0.87 / 0.5 = 1.135862072
+    --
+    -- Now perform the liquidation
+    LiquidateVAI Jared "->" Geoff 0.5e18 "Seizing" vZRX
+    --
+    -- Verify that the liquidation went through
+    Assert Equal (Comptroller MintedVAI Geoff) 0.5e18
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 0.567931036e18
+    --
+    -- Test succeeded which means our expectation was correct
+    --  liquidity went down after a liquidation!
+    --
+    -- Now lets see that lowering the incentive and liquidating improves the situation
+    Comptroller LiquidationIncentive 1.2
+    Expect Changes (Comptroller Liquidity Geoff) 0.016000000294e18
+    LiquidateVAI Jared "->" Geoff 0.1e18 "Seizing" vZRX

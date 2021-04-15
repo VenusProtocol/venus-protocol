@@ -24,7 +24,7 @@ contract VAIUnitrollerAdminStorage {
     address public pendingVAIControllerImplementation;
 }
 
-contract VAIControllerStorage is VAIUnitrollerAdminStorage {
+contract VAIControllerStorageG1 is VAIUnitrollerAdminStorage {
     ComptrollerInterface public comptroller;
 
     struct VenusVAIState {
@@ -43,4 +43,18 @@ contract VAIControllerStorage is VAIUnitrollerAdminStorage {
 
     /// @notice The Venus VAI minter index as of the last time they accrued XVS
     mapping(address => uint) public venusVAIMinterIndex;
+}
+
+contract VAIControllerStorageG2 is VAIControllerStorageG1 {
+    /// @notice Treasury Guardian address
+    address public treasuryGuardian;
+
+    /// @notice Treasury address
+    address public treasuryAddress;
+
+    /// @notice Fee percent of accrued interest with decimal 18
+    uint256 public treasuryPercent;
+
+    /// @notice Guard variable for re-entrancy checks
+    bool internal _notEntered;
 }

@@ -33,9 +33,23 @@ contract VAIControllerHarness is VAIController {
         calcDistributeVAIMinterVenus(vaiMinter);
     }
 
+    function harnessRepayVAIFresh(address payer, address account, uint repayAmount) public returns (uint) {
+       (uint err,) = repayVAIFresh(payer, account, repayAmount);
+       return err;
+    }
+
+    function harnessLiquidateVAIFresh(address liquidator, address borrower, uint repayAmount, VToken vTokenCollateral) public returns (uint) {
+        (uint err,) = liquidateVAIFresh(liquidator, borrower, repayAmount, vTokenCollateral);
+        return err;
+    }
+
     function harnessFastForward(uint blocks) public returns (uint) {
         blockNumber += blocks;
         return blockNumber;
+    }
+
+    function harnessSetBlockNumber(uint newBlockNumber) public {
+        blockNumber = newBlockNumber;
     }
 
     function setBlockNumber(uint number) public {

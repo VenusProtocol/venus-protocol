@@ -167,3 +167,14 @@ contract ComptrollerV3Storage is ComptrollerV2Storage {
     /// @notice Borrow caps enforced by borrowAllowed for each vToken address. Defaults to zero which corresponds to unlimited borrowing.
     mapping(address => uint) public borrowCaps;
 }
+
+contract ComptrollerV4Storage is ComptrollerV3Storage {
+    /// @notice Treasury Guardian address
+    address public treasuryGuardian;
+
+    /// @notice Treasury address
+    address public treasuryAddress;
+
+    /// @notice Fee percent of accrued interest with decimal 18
+    uint256 public treasuryPercent;
+}

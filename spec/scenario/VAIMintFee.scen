@@ -1,0 +1,42 @@
+
+Macro NewMintVAI mintVAIAmount mintAmount user=Geoff collateralPrice=1.0 closeFactor=0.9
+    PricedComptrollerWithVAIController closeFactor:0.9
+    VAIController SetTreasuryData Guardian Jared 1e14
+    NewVToken ZRX vZRX
+    PriceOracle SetPrice vZRX collateralPrice
+    Support vZRX collateralFactor:0.7
+    Comptroller SetVAIMintRate 7e3
+    SimpleMintVAI user mintVAIAmount mintAmount
+
+Macro SimpleMintVAI user mintVAIAmount mintAmount
+    Prep user mintAmount ZRX vZRX
+    Mint user mintAmount vZRX
+    EnterMarkets user vZRX
+    MintVAI user mintVAIAmount
+
+Test "VAI Mint Fee"
+    NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18
+    --
+    -- Verify that the borrow results in the correct state
+    Assert Equal (Comptroller MintedVAI Geoff) 1e18
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 1.43e18
+    Assert Equal (VAI TokenBalance Geoff) 0.9999e18
+    Assert Equal (VAI TokenBalance Jared) 1e14
+
+Test "VAI Mint Treasury Guardian"
+    NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18
+    --
+    -- Verify that the borrow results in the correct state
+    VAIController SetTreasuryData Guardian Jared 1e14
+    From Guardian (VAIController SetTreasuryData Guardian Jared 1e14)
+    AllowFailures
+    From Jared (VAIController SetTreasuryData Guardian Jared 1e14)
+    Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
+    From Jared (VAIController SetTreasuryData Jared Jared 1e14)
+    Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
+
+Test "VAI Mint Treasury Percent Cap"
+    NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18
+    AllowFailures
+    VAIController SetTreasuryData Guardian Jared 2e18
+    Assert Revert "revert treasury percent cap overflow"

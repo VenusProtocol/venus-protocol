@@ -1,7 +1,7 @@
 const { last } = require('./Utils/JS');
 const { address, bnbUnsigned } = require('./Utils/BSC');
-const diff = require('jest-diff');
-const { ComptrollerErr, TokenErr, IRErr, MathErr } = require('./Errors');
+const diff = require('jest-diff').default;
+const { ComptrollerErr, VAIControllerErr, TokenErr, IRErr, MathErr } = require('./Errors');
 
 function opts(comment) {
   return {
@@ -306,6 +306,10 @@ expect.extend({
     return hasError.call(this, actual, expectedErrorName, ComptrollerErr);
   },
 
+  toHaveVAITrollError(actual, expectedErrorName) {
+    return hasError.call(this, actual, expectedErrorName, VAIControllerErr);
+  },
+
   toHaveTokenError(actual, expectedErrorName) {
     return hasError.call(this, actual, expectedErrorName, TokenErr);
   },
@@ -318,8 +322,16 @@ expect.extend({
     return hasFailure.call(this, result, err, info, detail, ComptrollerErr, 'toHaveTrollFailure');
   },
 
+  toHaveVAITrollFailure(result, err, info, detail=undefined) {
+    return hasFailure.call(this, result, err, info, detail, VAIControllerErr, 'toHaveVAITrollFailure');
+  },
+
   toHaveTokenFailure(result, err, info, detail=undefined) {
     return hasFailure.call(this, result, err, info, detail, TokenErr, 'toHaveTokenFailure');
+  },
+
+  toHaveVAITrollMathFailure(result, info, detail) {
+    return hasFailure.call(this, result, 'MATH_ERROR', info, detail && (MathErr.Error[detail] || -1), VAIControllerErr, 'toHaveVAITrollMathFailure');
   },
 
   toHaveTokenMathFailure(result, info, detail) {
@@ -332,6 +344,14 @@ expect.extend({
 
   toHaveTrollErrorTuple(result, tuple, cmp=undefined) {
     return hasErrorTuple.call(this, result, tuple, ComptrollerErr, cmp);
+  },
+
+  toHaveVAITrollReject(result, info, detail) {
+    return hasFailure.call(this, result, 'REJECTION', info, detail && ComptrollerErr.Error[detail], VAIControllerErr, 'toHaveVAITrollReject');
+  },
+
+  toHaveVAITrollErrorTuple(result, tuple, cmp=undefined) {
+    return hasErrorTuple.call(this, result, tuple, VAIControllerErr, cmp);
   },
 
   toEqualNumber(actual, expected) {

@@ -1,0 +1,440 @@
+
+Macro InKindMintVAI mintVAIAmount borrowRate user=Geoff borrowPrice=1.0 mintAmount=100e18 giveAmount=0e18 borrowTokenType=Standard
+    PricedComptrollerWithVAIController
+    Comptroller LiquidationIncentive 1.1
+    NewVToken BAT vBAT borrowRate 2e9 8 borrowTokenType -- note: cannot use macros with named args right now
+    Give vBAT giveAmount BAT -- Faucet some bat
+    PriceOracle SetPrice vBAT borrowPrice
+    Support vBAT collateralFactor:0.5
+    Comptroller SetVAIMintRate 5e3
+    Prep user mintAmount BAT vBAT
+    Mint user mintAmount vBAT
+    EnterMarkets user vBAT
+    MintVAI user mintVAIAmount
+
+Test "Insufficient in-kind shortfall"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    --Assert Equal (Comptroller MintedVAI Geoff) 1e18
+    ------Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (VAI TokenBalance Geoff) 1e18
+    ----Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 51e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 19600000 Blocks -- 1e18 * (1 + 19600000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    ------Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 99e18
+    ------Assert Equal (VToken vBAT TotalBorrows) 99e18
+    -- Check user liquidity and verify equals 0
+    --Assert Equal (Comptroller Liquidity Geoff) 0e18 -- ( ( 1.0 * ( 100e18 + 98e18 ) * 0.5 ) - ( ( 98 + 1 ) * 1e18 ) ) / 1e18
+    -- At exactly zero, should not be able to liquidate
+    PrepVAI Torrey 10e18 VAIController
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 10e18 "Seizing" vBAT
+    --Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION INSUFFICIENT_SHORTFALL
+
+Test "Cannot self-in-kind-liquidate"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 51e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    ----Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 101e18
+    -- Check user liquidity and verify < 0
+    --Assert Equal (Comptroller Liquidity Geoff) -1e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Geoff 10e18 VAIController
+    AllowFailures
+    LiquidateVAI Geoff "->" Geoff 2e18 "Seizing" vBAT
+    --Assert Failure INVALID_ACCOUNT_PAIR LIQUIDATE_LIQUIDATOR_IS_BORROWER
+
+Test "Liqidate in-kind beyond max close"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 51e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    ----Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 101e18
+    -- Check user liquidity and verify < 0
+    --Assert Equal (Comptroller Liquidity Geoff) -1e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 20e18 VAIController
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 20e18 "Seizing" vBAT
+    --Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION TOO_MUCH_REPAY
+
+Test "Proper In-Kind Liquidation"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    ----Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 101e18
+    -- Check user liquidity and verify < 0
+    --Assert Equal (Comptroller Liquidity Geoff) -1e18 -- ( ( 1.0 * ( 100e18 + 100e18 ) * 0.5 ) - ( 101 * 1e18 ) ) / 1e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 2e18 VAIController
+    --
+    -- Let's check how values start before liquidation
+    -- Note: we're going to be some-what exhausive in what we check
+    --Invariant Remains (Bep20 BAT TokenBalance Geoff) 1e18 -- all was minted, this is what was borrowed
+    --Assert Equal (Bep20 BAT TokenBalance Torrey) 2e18 -- from prep above
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18 -- from minting minus 1e18 lent to geoff
+    --Assert Equal (Bep20 vBAT TokenBalance Geoff) 50e9 -- from minting
+    --Assert Equal (Bep20 vBAT TokenBalance Torrey) 0e9 -- never had any
+    --Invariant Remains (Bep20 BAT TokenBalance Geoff) 1e18 -- original amount borrowed
+    ----Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 101e18 -- all that interest
+    ----Assert Equal (VToken vBAT TotalBorrows) 101e18 -- all those borrowers
+    --Assert Equal (VToken vBAT ExchangeRate) 4e9 --- XXX: Verify this
+    -- Do the liquidation
+    LiquidateVAI Torrey "->" Geoff 2e18 "Seizing" vBAT -- should now take twice as much collateral
+    --
+    -- And see what they are now
+    --Assert Equal (VToken vBAT ExchangeRate) 4e9 --- XXX: Verify this
+    --Assert Equal (Bep20 vBAT TokenBalance Geoff) 49.45e9 -- 1:1 -> 1 x 2e18 x 1.1 ÷ 4e9 [exchange rate] = 0.55e9 -> Torrey
+    --Assert Equal (Bep20 vBAT TokenBalance Torrey) 0.55e9 -- didn't have any beforehand
+    --Assert Equal (Bep20 BAT TokenBalance Torrey) 0e18 -- repaid
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 101e18 -- had 100e18, lent 1e18 to geoff, repaid 2
+    ----Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 99e18 -- less closed amount
+    ----Assert Equal (VToken vBAT TotalBorrows) 99e18 --
+    -- Prices are 1:1 and collateral factor is 0.5
+    -- User now has 49.45e9 outstanding supply (yielding 98.9 borrowing capacity due
+    -- to the collateral factor (0.5) and exchange rate (4e9)).
+    -- The user also has a 99e18 borrow outstanding which is weighted 1:1.
+    -- Thus the liquidity is (98.9-99)e18 or -0.1e18.
+    --Assert Equal (Comptroller Liquidity Geoff) -0.1e18
+
+Test "Liquidate exactly zero"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    --Invariant Remains (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    --Invariant Remains (VToken vBAT TotalBorrows) 101e18
+    -- Check user liquidity and verify < 0
+    --Invariant Remains (Comptroller Liquidity Geoff) -1e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 10e18 VAIController
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 0e18 "Seizing" vBAT
+    --Assert Failure INVALID_CLOSE_AMOUNT_REQUESTED LIQUIDATE_CLOSE_AMOUNT_IS_ZERO
+
+Test "When price oracle for collateral token is zero"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    --Invariant Remains (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    --Invariant Remains (VToken vBAT TotalBorrows) 101e18
+    -- Check user liquidity and verify < 0
+    --Assert Equal (Comptroller Liquidity Geoff) -1e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 10e18 VAIController
+    PriceOracle SetPrice vBAT 0
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 2e18 "Seizing" vBAT
+    --Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION PRICE_ERROR
+
+Test "When price oracle for collateral token is whack"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    --Invariant Remains (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    --Invariant Remains (VToken vBAT TotalBorrows) 101e18
+    -- Check user liquidity and verify < 0
+    --Assert Equal (Comptroller Liquidity Geoff) -1e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 10e18 VAIController
+    PriceOracle SetPrice vBAT 115792089237316195423570985008687907853269984665640564039457.584007913129639935 -- UInt256Max
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 2e18 "Seizing" vBAT
+    --Assert Revert "revert multiplication overflow"
+
+Test "When repay borrow fails"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    --Invariant Remains (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    --Invariant Remains (VToken vBAT TotalBorrows) 101e18
+    -- Check user liquidity and verify < 0
+    --Invariant Remains (Comptroller Liquidity Geoff) -1e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 10e18 VAIController allowanceAmount:0.1e18
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 2e18 "Seizing" vBAT
+    Assert Revert "revert VAI/insufficient-allowance"
+
+Test "Proper liquidation of paused WBTC as collateral"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005 borrowTokenType:WBTC
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    ----Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 101e18
+    -- Check user liquidity and verify < 0
+    --Assert Equal (Comptroller Liquidity Geoff) -1e18 -- recheck
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 2e18 VAIController
+    --
+    -- Let's check how values start before liquidation
+    -- Note: we're going to be some-what exhausive in what we check
+    --Invariant Remains (Bep20 BAT TokenBalance Geoff) 1e18 -- all was minted, this is what was borrowed
+    --Assert Equal (Bep20 BAT TokenBalance Torrey) 2e18 -- from prep above
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18 -- from minting minus 1e18 lent to geoff
+    --Assert Equal (Bep20 vBAT TokenBalance Geoff) 50e9 -- from minting
+    --Assert Equal (Bep20 vBAT TokenBalance Torrey) 0e9 -- never had any
+    --Invariant Remains (Bep20 BAT TokenBalance Geoff) 1e18 -- original amount borrowed
+    ----Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 101e18 -- all that interest
+    ----Assert Equal (VToken vBAT TotalBorrows) 101e18 -- all those borrowers
+    --Assert Equal (VToken vBAT ExchangeRate) 4e9 --- XXX: Verify this
+    --
+    -- Pause "WBTC"
+    Bep20 BAT Pause -- Actually a WBTC token
+    -- Do the liquidation
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 2e18 "Seizing" vBAT -- should now take twice as much collateral
+    Assert Revert -- Reverts since we can't transfer the BAT in due to pause
+
+Test "When seize not allowed due to unlisted collateral"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    --Invariant Remains (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    --Invariant Remains (VToken vBAT TotalBorrows) 101e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 10e18 VAIController
+    Comptroller UnList vBAT -- Mock unlist collateral
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 2e18 "Seizing" vBAT
+    --Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+
+Test "When seize not allowed due to unlisted borrow"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    --Invariant Remains (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    --Invariant Remains (VToken vBAT TotalBorrows) 101e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 10e18 VAIController
+    Comptroller UnList vBAT -- Mock unlist borrow
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 2e18 "Seizing" vBAT
+    --Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+
+Test "When there's insufficient collateral"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    Comptroller SetCloseFactor 0.9
+    Comptroller LiquidationIncentive 1.5
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 200000000 Blocks -- 1e18 * (1 + 200000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    --Invariant Remains (VToken vBAT BorrowBalanceStored Geoff) 1001e18
+    --Invariant Remains (VToken vBAT TotalBorrows) 1001e18
+    Comptroller SetCollateralFactor vBAT 0
+    -- Check user liquidity and verify < 0
+    --Invariant Remains (Comptroller Liquidity Geoff) -1001e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 900e18 VAIController
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 900e18 "Seizing" vBAT
+    Assert Revert "revert LIQUIDATE_SEIZE_TOO_MUCH"
+
+Test "when seize is paused"
+    InKindMintVAI mintVAIAmount:1e18 borrowRate:0.000005
+    ----Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
+    --Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
+    --Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 1e18 ) ) / 1e18
+    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
+    -- thus supplying 100e18 vBAT gives the user 50e18
+    -- capacity of BAT. User only borrowed 1BAT, but after
+    -- a lot blocks at a 0.0005% interest rate, he'll be
+    -- underwater. Note: with a reserve rate of zero, that
+    -- interest will be paid back to himself as supply
+    -- but that will be discounted by 50% by the collateral factor.
+    -- Thus, we will need to accumulate for twice as many blocks
+    -- to end up where we'd usually be underwater
+    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
+    AccrueInterest vBAT -- Note: we have to accrue interest
+                        -- since it's not automatic for liquidity
+    ----Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 101e18
+    ----Assert Equal (VToken vBAT TotalBorrows) 101e18
+    -- Check user liquidity and verify < 0
+    --Assert Equal (Comptroller Liquidity Geoff) -1e18
+    -- Okay, so we should be able to liquidate, so let's do that.
+    PrepVAI Torrey 2e18 VAIController
+    Comptroller SetProtocolPaused True
+    AllowFailures
+    LiquidateVAI Torrey "->" Geoff 2e18 "Seizing" vBAT
+    Assert Revert "revert protocol is paused"
+    -- unpause and check correct values
+    Invariant Success
+    Comptroller SetProtocolPaused False
+    LiquidateVAI Torrey "->" Geoff 2e18 "Seizing" vBAT
