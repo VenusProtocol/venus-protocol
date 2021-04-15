@@ -19,7 +19,7 @@ contract VTreasury is Ownable {
     /**
      * @notice To receive BNB
      */
-    function receiveBNB() external payable {}
+    function () external payable {}
 
     /**
     * @notice Withdraw Treasury BEP20 Tokens, Only owner call it
