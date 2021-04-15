@@ -55,7 +55,7 @@ describe('VTreasury', function () {
     // Transfer BEP20 to vTreasury Contract
     await send(bep20Token, 'transfer', [vTreasury._address, transferAmount]);
     // Transfer BNB to vTreasury Contract
-    await web3.eth.sendTransaction({ from: root, to: vTreasury._address, value: bnbAmount.toFixed()});    
+    await web3.eth.sendTransaction({ from: root, to: vTreasury._address, value: bnbAmount.toFixed()});
   });
 
   it ('Check BNB Balnce', async() => {
