@@ -1006,6 +1006,28 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     /**
+     * @notice Admin function to change the Pause Guardian
+     * @param newPauseGuardian The address of the new Pause Guardian
+     * @return uint 0=success, otherwise a failure. (See enum Error for details)
+     */
+    function _setPauseGuardian(address newPauseGuardian) public returns (uint) {
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PAUSE_GUARDIAN_OWNER_CHECK);
+        }
+
+        // Save current value for inclusion in log
+        address oldPauseGuardian = pauseGuardian;
+
+        // Store pauseGuardian with value newPauseGuardian
+        pauseGuardian = newPauseGuardian;
+
+        // Emit NewPauseGuardian(OldPauseGuardian, NewPauseGuardian)
+        emit NewPauseGuardian(oldPauseGuardian, newPauseGuardian);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /**
       * @notice Set the given borrow caps for the given vToken markets. Borrowing that brings total borrows to or above borrow cap will revert.
       * @dev Admin or borrowCapGuardian function to set the borrow caps. A borrow cap of 0 corresponds to unlimited borrowing.
       * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
@@ -1043,7 +1065,7 @@ contract Comptroller is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrolle
     /**
      * @notice Set whole protocol pause/unpause state
      */
-    function _setProtocolPaused(bool state) public onlyAdmin returns(bool) {
+    function _setProtocolPaused(bool state) public validPauseState(state) returns(bool) {
         protocolPaused = state;
         emit ActionProtocolPaused(state);
         return state;
