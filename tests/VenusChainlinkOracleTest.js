@@ -6,7 +6,7 @@ const {
 describe("VenusChainlinkOracle", () => {
   let root, accounts;
   let bnbFeed, daiFeed, usdcFeed, usdtFeed;
-  let oracle, vBnb, vDai, vExampleSet, vExampleUnset, vToken, vUsdc, vUsdt, xvs;
+  let oracle, vBnb, vDai, vExampleSet, vExampleUnset, vToken, vUsdc, vUsdt, vai, xvs;
 
   beforeEach(async () => {
     [root, ...accounts] = saddle.accounts;
@@ -14,6 +14,11 @@ describe("VenusChainlinkOracle", () => {
     vBnb = await makeVToken({kind: "vbnb",
       comptrollerOpts: {kind: "v1-no-proxy"},
       supportMarket: true
+    });
+    vai = await makeVToken({
+      comptroller: vBnb.comptroller,
+      supportMarket: true,
+      symbol: "VAI"
     });
     xvs = await makeVToken({
       comptroller: vBnb.comptroller,
@@ -127,7 +132,17 @@ describe("VenusChainlinkOracle", () => {
       expect(price).toEqual("1000000000000000000");
     });
 
-    it("gets the direct price of XVS", async () => {
+    it("gets the direct price of VAI", async () => {
+      let price = await call(
+        oracle,
+        "getUnderlyingPrice",
+        [vai._address],
+        {from: root}
+      );
+      expect(price).toEqual("1000000000000000000");
+    });
+
+    it("gets the constant price of XVS", async () => {
       let price = await call(
         oracle,
         "getUnderlyingPrice",
