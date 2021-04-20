@@ -119,12 +119,12 @@ describe("VenusChainlinkOracle", () => {
 
     it("gets the price from Chainlink for USDC", async () => {
       let price = await call(oracle, "getUnderlyingPrice", [vUsdc._address], {from: root});
-      expect(price).toEqual("1000000000000000000");
+      expect(price).toEqual("1000000000000000000000000000000");
     });
 
     it("gets the price from Chainlink for USDT", async () => {
       let price = await call(oracle, "getUnderlyingPrice", [vUsdt._address], {from: root});
-      expect(price).toEqual("1000000000000000000");
+      expect(price).toEqual("1000000000000000000000000000000");
     });
 
     it("gets the price from Chainlink for DAI", async () => {

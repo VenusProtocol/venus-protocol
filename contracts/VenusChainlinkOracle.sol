@@ -34,21 +34,21 @@ contract VenusChainlinkOracle is PriceOracle {
         }
     }
 
-    function getPrice(VToken vToken) internal view returns (uint) {
-        uint price;
+    function getPrice(VToken vToken) internal view returns (uint price) {
         BEP20Interface token = BEP20Interface(VBep20(address(vToken)).underlying());
 
         if (prices[address(token)] != 0) {
             price = prices[address(token)];
-            uint decimalDelta = uint(18).sub(uint(token.decimals()));
-            // Ensure that we don't multiply the result by 0
-            if (decimalDelta > 0) {
-                return price.mul(10**decimalDelta);
-            } else {
-                return price;
-            }
         } else {
-            return getChainlinkPrice(getFeed(token.symbol()));
+            price = getChainlinkPrice(getFeed(token.symbol()));
+        }
+
+        uint decimalDelta = uint(18).sub(uint(token.decimals()));
+        // Ensure that we don't multiply the result by 0
+        if (decimalDelta > 0) {
+            return price.mul(10**decimalDelta);
+        } else {
+            return price;
         }
     }
 
