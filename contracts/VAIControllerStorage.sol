@@ -57,4 +57,7 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
 
     /// @notice Guard variable for re-entrancy checks
     bool internal _notEntered;
+
+    /// @notice VAI Mint Capped Amount
+    uint public mintCappedAmount;
 }

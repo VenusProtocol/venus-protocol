@@ -41,6 +41,10 @@ async function getPendingAdmin(world: World, vaicontroller: VAIController): Prom
   return new AddressV(await vaicontroller.methods.pendingAdmin().call());
 }
 
+async function getMintCappedAmount(world: World, vaicontroller: VAIController): Promise<NumberV> {
+  return new NumberV(await vaicontroller.methods.mintCappedAmount().call());
+}
+
 
 export function vaicontrollerFetchers() {
   return [
@@ -87,6 +91,16 @@ export function vaicontrollerFetchers() {
         new Arg("vaicontroller", getVAIController, {implicit: true}),
       ],
       (world, {vaicontroller}) => getPendingAdmin(world, vaicontroller)
+    ),
+    new Fetcher<{vaicontroller: VAIController}, NumberV>(`
+        #### MintCappedAmount
+
+        * "VAIController MintCappedAmount" - Returns the mintCappedAmount of VAIController
+          * E.g. "VAIController MintCappedAmount"
+      `,
+      "MintCappedAmount",
+      [new Arg("vaicontroller", getVAIController, {implicit: true})],
+      (world, {vaicontroller}) => getMintCappedAmount(world, vaicontroller)
     ),
   ];
 }

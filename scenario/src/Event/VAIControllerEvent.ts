@@ -154,6 +154,28 @@ async function setTreasuryData(
   return world;
 }
 
+async function setMintCappedAmount(
+  world: World,
+  from: string,
+  vaicontroller: VAIController,
+  newMintCappedAmount: NumberV
+): Promise<World> {
+  let invokation = await invoke(
+    world,
+    vaicontroller.methods.setMintCappedAmount(newMintCappedAmount.encode()),
+    from,
+    VAIControllerErrorReporter
+  );
+
+  world = addAction(
+    world,
+    `VAIController: ${describeUser(world, from)} Set Mnt Capped Amount ${newMintCappedAmount}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function initialize(
   world: World,
   from: string,
@@ -254,6 +276,19 @@ export function vaicontrollerCommands() {
         new Arg("repayAmount", getNumberV, { nullable: true })
       ],
       (world, from, { vaicontroller, borrower, collateral, repayAmount }) => liquidateVAI(world, from, vaicontroller, borrower.val, collateral, repayAmount),
+    ),
+
+    new Command<{vaicontroller: VAIController, newMintCappedAmount: NumberV}>(`
+      #### SetMintCappedAmount
+      * "VAIController SetMintCappedAmount <newMintCappedAmount>" - Sets Vai Mint Capped Amount
+      * E.g. "VAIController SetMintCappedAmount 1e18
+      `,
+      "SetMintCappedAmount",
+      [
+        new Arg("vaicontroller", getVAIController, {implicit: true}),
+        new Arg("newMintCappedAmount", getNumberV)
+      ],
+      (world, from, {vaicontroller, newMintCappedAmount}) => setMintCappedAmount(world, from, vaicontroller, newMintCappedAmount)
     ),
 
     new Command<{vaicontroller: VAIController, guardian: AddressV, address: AddressV, percent: NumberV}>(`

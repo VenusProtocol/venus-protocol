@@ -12,7 +12,23 @@ Macro SimpleMintVAI user mintVAIAmount mintAmount
     Prep user mintAmount ZRX vZRX
     Mint user mintAmount vZRX
     EnterMarkets user vZRX
+    VAIController SetMintCappedAmount 10e18
     MintVAI user mintVAIAmount
+
+Test "VAI Set Mint Capped Amount"
+    NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18
+    AllowFailures
+    From Jared (VAIController SetMintCappedAmount 100e18)
+    Assert Failure UNAUTHORIZED SET_VAI_MINT_CAPPED_CHECK "0"
+
+Test "VAI Mint Capped"
+    NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18
+    Assert Equal (VAIController MintCappedAmount) 10e18
+
+Test "VAI Mint Over Capped"
+    AllowFailures
+    NewMintVAI mintVAIAmount:11e18 mintAmount:16e18
+    Assert Revert "revert vai mint amount over capped"
 
 Test "VAI Mint Fee"
     NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18
