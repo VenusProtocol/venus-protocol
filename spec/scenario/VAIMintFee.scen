@@ -24,11 +24,17 @@ Test "VAI Set Mint Capped Amount"
 Test "VAI Mint Capped"
     NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18
     Assert Equal (VAIController MintCappedAmount) 10e18
+    Assert Equal (Comptroller MintedVAI Geoff) 1e18
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 1.43e18
+    Assert Equal (VAI TokenBalance Geoff) 0.9999e18
+    Assert Equal (VAI TokenBalance Jared) 1e14
 
 Test "VAI Mint Over Capped"
     AllowFailures
     NewMintVAI mintVAIAmount:11e18 mintAmount:16e18
     Assert Revert "revert vai mint amount over capped"
+    Assert Equal (Comptroller MintedVAI Geoff) 0
+    Assert Equal (VToken vZRX UnderlyingBalance Geoff) 16e18
 
 Test "VAI Mint Fee"
     NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18
