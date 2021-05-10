@@ -12,6 +12,7 @@ Macro SimpleMintVAI user mintVAIAmount mintAmount
     Prep user mintAmount ZRX vZRX
     Mint user mintAmount vZRX
     EnterMarkets user vZRX
+    VAIController SetMintCappedAmount 10e18
     MintVAI user mintVAIAmount
 
 Test "When account goes further underwater than the liquidation incentive and cannot pay down debt fully"

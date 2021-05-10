@@ -10,6 +10,7 @@ Macro InKindMintVAI mintVAIAmount borrowRate user=Geoff borrowPrice=1.0 mintAmou
     Prep user mintAmount BAT vBAT
     Mint user mintAmount vBAT
     EnterMarkets user vBAT
+    VAIController SetMintCappedAmount 10e18
     MintVAI user mintVAIAmount
 
 Test "Insufficient in-kind shortfall"
