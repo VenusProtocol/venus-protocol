@@ -68,9 +68,14 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     event MintFee(address minter, uint feeAmount);
 
     /**
-     * @notice Emitted when set vai mint capped Amount
+     * @notice Emitted when set vai mint old capped Amount
      */
-    event SetMintCappedAmount(address admin, uint256 newVaiMintCappedAmount);
+    event SetMintCappedOldAmount(address admin, uint256 oldVaiMintCappedAmount);
+
+    /**
+     * @notice Emitted when set vai mint new capped Amount
+     */
+    event SetMintCappedNewAmount(address admin, uint256 newVaiMintCappedAmount);
 
     /*** Main Actions ***/
     struct MintLocalVars {
@@ -87,10 +92,12 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         if (!(msg.sender == admin)) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAI_MINT_CAPPED_CHECK);
         }
+        // Emit the event with old amount
+        emit SetMintCappedOldAmount(msg.sender, mintCappedAmount);
         // Set new vai mint capped amount
         mintCappedAmount = newMintCappedAmount;
-        // Emit the event
-        emit SetMintCappedAmount(msg.sender, newMintCappedAmount);
+        // Emit the event with new amount
+        emit SetMintCappedNewAmount(msg.sender, newMintCappedAmount);
 
         return uint(Error.NO_ERROR);
     }
