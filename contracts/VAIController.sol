@@ -68,14 +68,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     event MintFee(address minter, uint feeAmount);
 
     /**
-     * @notice Emitted when set vai mint old capped Amount
+     * @notice Emitted when set vai mint capped Amount
      */
-    event SetMintCappedOldAmount(address admin, uint256 oldVaiMintCappedAmount);
-
-    /**
-     * @notice Emitted when set vai mint new capped Amount
-     */
-    event SetMintCappedNewAmount(address admin, uint256 newVaiMintCappedAmount);
+    event SetMintCappedAmount(address admin, uint256 oldVaiMintCappedAmount, uint256 newVaiMintCappedAmount);
 
     /*** Main Actions ***/
     struct MintLocalVars {
@@ -92,12 +87,11 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         if (!(msg.sender == admin)) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAI_MINT_CAPPED_CHECK);
         }
-        // Emit the event with old amount
-        emit SetMintCappedOldAmount(msg.sender, mintCappedAmount);
+        uint originalMintCappedAmount = mintCappedAmount;
         // Set new vai mint capped amount
         mintCappedAmount = newMintCappedAmount;
-        // Emit the event with new amount
-        emit SetMintCappedNewAmount(msg.sender, newMintCappedAmount);
+        // Emit the event
+        emit SetMintCappedAmount(msg.sender, originalMintCappedAmount, newMintCappedAmount);
 
         return uint(Error.NO_ERROR);
     }
@@ -110,11 +104,12 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             require(mintVAIAmount > 0, "mintVAIAmount cannt be zero");
 
             // Check vai mint capped
-            uint vaiTotalAmount = VAI(getVAIAddress()).totalSupply();
-            (mErr, sumVaiMintAmount) = addUInt(vaiTotalAmount, mintVAIAmount);
-            require(mErr == MathError.NO_ERROR, "SUM_VAI_MINT_AMOUNT_CALCULATION_FAILED");
-            require(mintCappedAmount >= sumVaiMintAmount, "vai mint amount over capped");
-
+            if (mintCappedAmount != 0) {
+                uint vaiTotalAmount = VAI(getVAIAddress()).totalSupply();
+                (mErr, sumVaiMintAmount) = addUInt(vaiTotalAmount, mintVAIAmount);
+                require(mErr == MathError.NO_ERROR, "SUM_VAI_MINT_AMOUNT_CALCULATION_FAILED");
+                require(mintCappedAmount >= sumVaiMintAmount, "vai mint amount over capped");
+            }
             require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
 
             MintLocalVars memory vars;
