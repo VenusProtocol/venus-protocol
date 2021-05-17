@@ -87,7 +87,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @notice Set vai mint capped amount
      */
-    function setMintCappedAmount(uint newMintCappedAmount) external returns (uint) {
+    function setMintCappedAmount(uint newMintCappedAmount) public returns (uint) {
         // Check caller is admin
         if (!(msg.sender == admin)) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAI_MINT_CAPPED_CHECK);

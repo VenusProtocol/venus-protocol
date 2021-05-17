@@ -59,4 +59,13 @@ contract VAIControllerHarness is VAIController {
     function getBlockNumber() public view returns (uint) {
         return blockNumber;
     }
+
+    function harnessSetMintCappedAmount(uint mintCappedAmount) public returns (uint) {
+        uint err = setMintCappedAmount(mintCappedAmount);
+        return err;
+    }
+
+    function getMintCappedAmount() public view returns (uint) {
+        return mintCappedAmount;
+    }
 }

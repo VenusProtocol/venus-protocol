@@ -552,6 +552,10 @@ async function pretendVAIMint(comptroller, vaicontroller, vai, vaiMinter, princi
   await send(vaicontroller, 'harnessSetBlockNumber', [bnbUnsigned(blockNumber)]);
 }
 
+async function getVAIMintCappedAmount(vaicontroller) {
+  return call(vaicontroller, 'getMintCappedAmount', []);
+}
+
 module.exports = {
   makeComptroller,
   makeVToken,
@@ -592,5 +596,7 @@ module.exports = {
   getBorrowRate,
   getSupplyRate,
   pretendBorrow,
-  pretendVAIMint
+  pretendVAIMint,
+
+  getVAIMintCappedAmount
 };

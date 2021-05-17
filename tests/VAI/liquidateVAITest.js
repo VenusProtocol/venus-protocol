@@ -13,7 +13,8 @@ const {
   adjustBalancesWithVAI,
   pretendBorrow,
   pretendVAIMint,
-  preApproveVAI
+  preApproveVAI,
+  getVAIMintCappedAmount
 } = require('../Utils/Venus');
 
 const repayAmount = bnbUnsigned(10e2);
@@ -230,6 +231,17 @@ describe('VAIController', function () {
         [vTokenCollateral, liquidator, 'tokens', seizeTokens],
         [vTokenCollateral, borrower, 'tokens', -seizeTokens]
       ], vai));
+    });
+  });
+
+  describe('VAI Mint Capped', () => {
+    it("Set Mint Capped Amount", async() => {
+      const mintCappedAmount = bnbUnsigned(1e18);
+
+      // Set mintCappedAmount
+      await send(vaicontroller, "harnessSetMintCappedAmount", [mintCappedAmount]);
+      // Get mintCappedAmount
+      expect(mintCappedAmount).toEqual(bnbUnsigned(await getVAIMintCappedAmount(vaicontroller)));
     });
   });
 });
