@@ -48,6 +48,8 @@ interface ComptrollerMethods {
   venusBorrowerIndex(market: string, account: string): Callable<string>
   venusSpeeds(string): Callable<string>
   claimVenus(string): Sendable<void>
+  updateContributorRewards(account: string): Sendable<void>
+  _grantXVS(account: string, encodedNumber): Sendable<void>
   _setVenusRate(encodedNumber): Sendable<void>
   _setVenusSpeed(vToken: string, encodedNumber): Sendable<void>
   mintedVAIs(string): Callable<number>

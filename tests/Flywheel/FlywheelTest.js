@@ -39,6 +39,32 @@ describe('Flywheel', () => {
     vEVIL = await makeVToken({comptroller, supportMarket: false, underlyingPrice: 3, interestRateModelOpts});
   });
 
+  describe('_grantXVS()', () => {
+    beforeEach(async () => {
+      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
+    });
+
+    it('should award xvs if called by admin', async () => {
+      const tx = await send(comptroller, '_grantXVS', [a1, 100]);
+      expect(tx).toHaveLog('VenusGranted', {
+        recipient: a1,
+        amount: 100
+      });
+    });
+
+    it('should revert if not called by admin', async () => {
+      await expect(
+        send(comptroller, '_grantXVS', [a1, 100], {from: a1})
+      ).rejects.toRevert('revert only admin can grant xvs');
+    });
+
+    it('should revert if insufficient xvs', async () => {
+      await expect(
+        send(comptroller, '_grantXVS', [a1, bnbUnsigned(1e20)])
+      ).rejects.toRevert('revert insufficient xvs for grant');
+    });
+  });
+
   describe('getVenusMarkets()', () => {
     it('should return the venus markets', async () => {
       for (let mkt of [vLOW, vREP, vZRX]) {
@@ -697,6 +723,62 @@ describe('Flywheel', () => {
       const borrowState = await call(comptroller, 'venusBorrowState', [mkt]);
       expect(borrowState.block).toEqual(bn1.toString());
       expect(borrowState.index).toEqual(idx.toString());
+    });
+  });
+
+  describe('updateContributorRewards', () => {
+    it('should not fail when contributor rewards called on non-contributor', async () => {
+      const tx1 = await send(comptroller, 'updateContributorRewards', [a1]);
+    });
+
+    it('should accrue xvs to contributors', async () => {
+      const tx1 = await send(comptroller, '_setContributorVenusSpeed', [a1, 2000]);
+      await fastForward(comptroller, 50);
+
+      const a1Accrued = await venusAccrued(comptroller, a1);
+      expect(a1Accrued).toEqualNumber(0);
+
+      const tx2 = await send(comptroller, 'updateContributorRewards', [a1], {from: a1});
+      const a1Accrued2 = await venusAccrued(comptroller, a1);
+      expect(a1Accrued2).toEqualNumber(50 * 2000);
+    });
+
+    it('should accrue xvs with late set', async () => {
+      await fastForward(comptroller, 1000);
+      const tx1 = await send(comptroller, '_setContributorVenusSpeed', [a1, 2000]);
+      await fastForward(comptroller, 50);
+
+      const tx2 = await send(comptroller, 'updateContributorRewards', [a1], {from: a1});
+      const a1Accrued2 = await venusAccrued(comptroller, a1);
+      expect(a1Accrued2).toEqualNumber(50 * 2000);
+    });
+  });
+
+  describe('_setContributorVenusSpeed', () => {
+    it('should revert if not called by admin', async () => {
+      await expect(
+        send(comptroller, '_setContributorVenusSpeed', [a1, 1000], {from: a1})
+      ).rejects.toRevert('revert only admin can set xvs speed');
+    });
+
+    it('should start xvs stream if called by admin', async () => {
+      const tx = await send(comptroller, '_setContributorVenusSpeed', [a1, 1000]);
+      expect(tx).toHaveLog('ContributorVenusSpeedUpdated', {
+        contributor: a1,
+        newSpeed: 1000
+      });
+    });
+
+    it('should reset xvs stream if set to 0', async () => {
+      const tx1 = await send(comptroller, '_setContributorVenusSpeed', [a1, 2000]);
+      await fastForward(comptroller, 50);
+
+      const tx2 = await send(comptroller, '_setContributorVenusSpeed', [a1, 0]);
+      await fastForward(comptroller, 50);
+
+      const tx3 = await send(comptroller, 'updateContributorRewards', [a1], {from: a1});
+      const a1Accrued = await venusAccrued(comptroller, a1);
+      expect(a1Accrued).toEqualNumber(50 * 2000);
     });
   });
 });
