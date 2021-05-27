@@ -98,15 +98,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address recipient, uint amount);
 
-    /// @notice Emitted when XVS Vault info is changed
-    event NewXVSVaultInfo(address vault_, uint releaseStartBlock_, uint releaseInterval_);
-
-    /// @notice Emitted when Venus VAI Vault rate is changed
-    event NewVenusXVSVaultRate(uint oldVenusXVSVaultRate, uint newVenusXVSVaultRate);
-
-    /// @notice Emitted when XVS is distributed to XVS Vault
-    event DistributedXVSVaultVenus(uint amount);
-
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
 
@@ -1238,7 +1229,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @param supplier The address of the supplier to distribute XVS to
      */
     function distributeSupplierVenus(address vToken, address supplier) internal {
-        if (address(vaiVaultAddress) != address(0) || address(xvsVaultAddress) != address(0)) {
+        if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }
 
@@ -1266,7 +1257,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @param borrower The address of the borrower to distribute XVS to
      */
     function distributeBorrowerVenus(address vToken, address borrower, Exp memory marketBorrowIndex) internal {
-        if (address(vaiVaultAddress) != address(0) || address(xvsVaultAddress) != address(0)) {
+        if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }
 
@@ -1291,7 +1282,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @param vaiMinter The address of the VAI minter to distribute XVS to
      */
     function distributeVAIMinterVenus(address vaiMinter) public {
-        if (address(vaiVaultAddress) != address(0) || address(xvsVaultAddress) != address(0)) {
+        if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }
 
@@ -1467,30 +1458,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     /**
-     * @notice Set the amount of XVS distributed per block to XVS Vault
-     * @param venusXVSVaultRate_ The amount of XVS wei per block to distribute to XVS Vault
-     */
-    function _setVenusXVSVaultRate(uint venusXVSVaultRate_) public onlyAdmin {
-        uint oldVenusXVSVaultRate = venusXVSVaultRate_;
-        venusXVSVaultRate = venusXVSVaultRate_;
-        emit NewVenusXVSVaultRate(oldVenusXVSVaultRate, venusXVSVaultRate_);
-    }
-    
-    /**
-     * @notice Set the XVS Vault infos
-     * @param vault_ The address of the XVS Vault
-     * @param xvsVaultStartBlock_ The start block of release to XVS Vault
-     * @param minXVSReleaseAmount_ The minimum release amount to XVS Vault
-     */
-    function _setXVSVaultInfo(address vault_, uint256 xvsVaultStartBlock_, uint256 minXVSReleaseAmount_) public onlyAdmin {
-        xvsVaultAddress = vault_;
-        xvsVaultStartBlock = xvsVaultStartBlock_;
-        minXVSReleaseAmount = minXVSReleaseAmount_;
-        shouldVAIVault = true;
-        emit NewXVSVaultInfo(vault_, xvsVaultStartBlock_, minXVSReleaseAmount_);
-    }
-
-    /**
      * @notice Set XVS speed for a single market
      * @param vToken The market whose XVS speed to update
      * @param venusSpeed New XVS speed for market
@@ -1545,15 +1512,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @notice Transfer XVS to VAI Vault
      */
     function releaseToVault() public {
-        uint256 vaiVaultReward = 0;
-        uint256 xvsVaultReward = 0;
         if(releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
-            vaiVaultReward = 0;
-        }
-        if(xvsVaultStartBlock == 0 || getBlockNumber() < xvsVaultStartBlock) {
-            xvsVaultReward = 0;
-        }
-        if(vaiVaultReward == 0 && xvsVaultReward == 0) {
             return;
         }
 
@@ -1564,49 +1523,27 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
             return;
         }
 
+
         uint256 actualAmount;
         uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
-        uint256 deltaBlocksForXvsVault = sub_(getBlockNumber(), xvsVaultStartBlock);
         // releaseAmount = venusVAIVaultRate * deltaBlocks
-        vaiVaultReward = mul_(venusVAIVaultRate, deltaBlocks);
-        xvsVaultReward = mul_(venusXVSVaultRate, deltaBlocksForXvsVault);
+        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
 
-        if (shouldVAIVault && vaiVaultReward >= minReleaseAmount) {
-            if (xvsBalance >= vaiVaultReward) {
-                actualAmount = vaiVaultReward;
-            } else {
-                actualAmount = xvsBalance;
-            }
-
-            if (address(vaiVaultAddress) != address(0)) {
-                releaseStartBlock = getBlockNumber();
-
-                xvs.transfer(vaiVaultAddress, actualAmount);
-                emit DistributedVAIVaultVenus(actualAmount);
-
-                IVAIVault(vaiVaultAddress).updatePendingRewards();
-
-                xvsBalance = sub_(xvsBalance, actualAmount);
-
-                shouldVAIVault = true;
-            }
+        if (_releaseAmount < minReleaseAmount) {
+            return;
         }
 
-        if (!shouldVAIVault && xvsVaultReward >= minXVSReleaseAmount) {
-            if (xvsBalance >= xvsVaultReward) {
-                actualAmount = xvsVaultReward;
-            } else {
-                actualAmount = xvsBalance;
-            }
-
-            if (address(xvsVaultAddress) != address(0)) {
-                xvsVaultStartBlock = getBlockNumber();
-
-                xvs.transfer(xvsVaultAddress, actualAmount);
-                emit DistributedXVSVaultVenus(actualAmount);
-
-                shouldVAIVault = false;
-            }
+        if (xvsBalance >= _releaseAmount) {
+            actualAmount = _releaseAmount;
+        } else {
+            actualAmount = xvsBalance;
         }
+
+        releaseStartBlock = getBlockNumber();
+
+        xvs.transfer(vaiVaultAddress, actualAmount);
+        emit DistributedVAIVaultVenus(actualAmount);
+
+        IVAIVault(vaiVaultAddress).updatePendingRewards();
     }
 }

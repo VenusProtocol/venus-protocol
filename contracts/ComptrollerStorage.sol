@@ -184,4 +184,19 @@ contract ComptrollerV5Storage is ComptrollerV4Storage {
 
     /// @notice Last block at which a contributor's XVS rewards have been allocated
     mapping(address => uint) public lastContributorBlock;
+
+    /// @notice The rate at which the flywheel distributes XVS to XVS Vault, per block
+    uint public venusXVSVaultRate;
+
+    // address of XVS Vault
+    address public xvsVaultAddress;
+
+    // start block of release to XVS Vault
+    uint256 public xvsVaultStartBlock;
+
+    // minimum release amount to XVS Vault
+    uint256 public minXVSReleaseAmount;
+
+    // flag for xvs distribution to vaults
+    bool public shouldVAIVault;
 }
