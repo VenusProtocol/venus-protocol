@@ -478,7 +478,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     struct MintLocalVars {
-        Error err;
         MathError mathErr;
         uint exchangeRateMantissa;
         uint mintTokens;
@@ -593,7 +592,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     struct RedeemLocalVars {
-        Error err;
         MathError mathErr;
         uint exchangeRateMantissa;
         uint redeemTokens;
