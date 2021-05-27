@@ -1588,7 +1588,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
 
                 xvsBalance = sub_(xvsBalance, actualAmount);
 
-                shouldVAIVault = true;
+                shouldVAIVault = !shouldVAIVault;
             }
         }
 
@@ -1605,7 +1605,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
                 xvs.transfer(xvsVaultAddress, actualAmount);
                 emit DistributedXVSVaultVenus(actualAmount);
 
-                shouldVAIVault = false;
+                shouldVAIVault = !shouldVAIVault;
             }
         }
     }
