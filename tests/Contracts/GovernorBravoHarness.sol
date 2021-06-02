@@ -21,5 +21,6 @@ contract GovernorBravoDelegateHarness is GovernorBravoDelegate {
         votingPeriod = votingPeriod_;
         votingDelay = votingDelay_;
         proposalThreshold = proposalThreshold_;
+        proposalMaxOperations = 10;
     }
 }

@@ -23,7 +23,7 @@ describe("governorBravo#castVote/2", () => {
     [root, a1, ...accounts] = saddle.accounts;
     xvs = await deploy('XVS', [root]);
     govDelegate = await deploy('GovernorBravoDelegateHarness');
-    gov = await deploy('GovernorBravoDelegator', [address(0), xvs._address, root, govDelegate._address, 17280, 1, "100000000000000000000000"]);
+    gov = await deploy('GovernorBravoDelegator', [address(0), xvs._address, root, govDelegate._address, 86400, 1, "100000000000000000000000"]);
     mergeInterface(gov,govDelegate);
     await send(gov, '_initiate');
 

@@ -22,7 +22,7 @@ describe('GovernorBravo#queue/1', () => {
     it("reverts on queueing overlapping actions in same proposal", async () => {
       const timelock = await deploy('TimelockHarness', [root, 86400 * 2]);
       const xvs = await deploy('XVS', [root]);
-      const gov = await deploy('GovernorBravoImmutable', [timelock._address, xvs._address, root, 17280, 1, "100000000000000000000000"]);
+      const gov = await deploy('GovernorBravoImmutable', [timelock._address, xvs._address, root, 86400, 1, "100000000000000000000000"]);
       await send(gov, '_initiate');
       const txAdmin = await send(timelock, 'harnessSetAdmin', [gov._address]);
 
@@ -37,7 +37,7 @@ describe('GovernorBravo#queue/1', () => {
       await mineBlock();
 
       const txVote1 = await send(gov, 'castVote', [proposalId1, 1], {from: a1});
-      await advanceBlocks(20000);
+      await advanceBlocks(90000);
 
       await expect(
         send(gov, 'queue', [proposalId1])
@@ -47,7 +47,7 @@ describe('GovernorBravo#queue/1', () => {
     it("reverts on queueing overlapping actions in different proposals, works if waiting", async () => {
       const timelock = await deploy('TimelockHarness', [root, 86400 * 2]);
       const xvs = await deploy('XVS', [root]);
-      const gov = await deploy('GovernorBravoImmutable', [timelock._address, xvs._address, root, 17280, 1, "100000000000000000000000"]);
+      const gov = await deploy('GovernorBravoImmutable', [timelock._address, xvs._address, root, 86400, 1, "100000000000000000000000"]);
       await send(gov, '_initiate');
       const txAdmin = await send(timelock, 'harnessSetAdmin', [gov._address]);
 
@@ -65,7 +65,7 @@ describe('GovernorBravo#queue/1', () => {
 
       const txVote1 = await send(gov, 'castVote', [proposalId1, 1], {from: a1});
       const txVote2 = await send(gov, 'castVote', [proposalId2, 1], {from: a2});
-      await advanceBlocks(20000);
+      await advanceBlocks(90000);
       await freezeTime(100);
 
       const txQueue1 = await send(gov, 'queue', [proposalId1]);

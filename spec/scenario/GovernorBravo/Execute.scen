@@ -7,7 +7,7 @@ Macro DeployGov
     Enfranchise Root 600001e18
     Enfranchise Jared 600000e18
     GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
-    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address Xvs) (Address Root) (Address BravoDelegateHarness) 17280 1 100000e18
+    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address Xvs) (Address Root) (Address BravoDelegateHarness) 86400 1 100000e18
     GovernorBravo LegitGov MergeABI BravoDelegateHarness
     GovernorBravo LegitGov HarnessInitiate
     Timelock SetAdmin (Address LegitGov)
@@ -20,7 +20,7 @@ Macro SucceedProposal
     MineBlock
     GovernorBravo LegitGov Proposal LastProposal Vote For
     From Jared (GovernorBravo LegitGov Proposal LastProposal Vote For)
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     Assert Equal ("Succeeded") (GovernorBravo LegitGov Proposal LastProposal State)
 
 Macro GivenSucceededProposal
