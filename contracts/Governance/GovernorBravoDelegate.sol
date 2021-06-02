@@ -15,22 +15,19 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
     uint public constant MAX_PROPOSAL_THRESHOLD = 300000e18; //300,000 Xvs
 
     /// @notice The minimum setable voting period
-    uint public constant MIN_VOTING_PERIOD = 5760; // About 24 hours
+    uint public constant MIN_VOTING_PERIOD = 20 * 60 * 24; // About 24 hours, 3 secs per block
 
     /// @notice The max setable voting period
-    uint public constant MAX_VOTING_PERIOD = 80640; // About 2 weeks
+    uint public constant MAX_VOTING_PERIOD = 20 * 60 * 24 * 14; // About 2 weeks, 3 secs per block
 
     /// @notice The min setable voting delay
     uint public constant MIN_VOTING_DELAY = 1;
 
     /// @notice The max setable voting delay
-    uint public constant MAX_VOTING_DELAY = 40320; // About 1 week
+    uint public constant MAX_VOTING_DELAY = 20 * 60 * 24 * 7; // About 1 week, 3 secs per block
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
     uint public constant quorumVotes = 600000e18; // 600,000 = 2% of Xvs
-
-    /// @notice The maximum number of actions that can be included in a proposal
-    uint public constant proposalMaxOperations = 10; // 10 actions
 
     /// @notice The EIP-712 typehash for the contract's domain
     bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
@@ -60,6 +57,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         votingPeriod = votingPeriod_;
         votingDelay = votingDelay_;
         proposalThreshold = proposalThreshold_;
+        proposalMaxOperations = 10;
     }
 
     /**
@@ -326,6 +324,16 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         proposalCount = GovernorAlpha(governorAlpha).proposalCount();
         initialProposalId = proposalCount;
         timelock.acceptAdmin();
+    }
+
+    /**
+      * @notice Set max proposal operations
+      * @dev Admin only.
+      * @param proposalMaxOperations_ Max proposal operations
+      */
+    function _setProposalMaxOperations(uint proposalMaxOperations_) external {
+        require(msg.sender == admin, "GovernorBravo::_initiate: admin only");
+        proposalMaxOperations = proposalMaxOperations_;
     }
 
     /**

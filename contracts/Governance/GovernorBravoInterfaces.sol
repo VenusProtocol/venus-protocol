@@ -160,6 +160,9 @@ contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
         Expired,
         Executed
     }
+
+    /// @notice The maximum number of actions that can be included in a proposal
+    uint public proposalMaxOperations;
 }
 
 interface TimelockInterface {

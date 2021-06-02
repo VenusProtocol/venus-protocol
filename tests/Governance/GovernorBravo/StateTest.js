@@ -32,7 +32,7 @@ describe('GovernorBravo#state/1', () => {
     xvs = await deploy('XVS', [root]);
     delay = bnbUnsigned(2 * 24 * 60 * 60).mul(2)
     timelock = await deploy('TimelockHarness', [root, delay]);
-    gov = await deploy('GovernorBravoImmutable', [timelock._address, xvs._address, root, 17280, 1, "100000000000000000000000"]);
+    gov = await deploy('GovernorBravoImmutable', [timelock._address, xvs._address, root, 86400, 1, "100000000000000000000000"]);
     await send(gov, '_initiate');
     await send(timelock, "harnessSetAdmin", [gov._address])
     await send(xvs, 'transfer', [acct, bnbMantissa(4000000)]);
@@ -81,7 +81,7 @@ describe('GovernorBravo#state/1', () => {
 
   it("Defeated", async () => {
     // travel to end block
-    await advanceBlocks(20000)
+    await advanceBlocks(90000)
 
     expect(await call(gov, 'state', [trivialProposal.id])).toEqual(states["Defeated"])
   })
@@ -91,7 +91,7 @@ describe('GovernorBravo#state/1', () => {
     const { reply: newProposalId } = await both(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: acct })
     await mineBlock()
     await send(gov, 'castVote', [newProposalId, 1])
-    await advanceBlocks(20000)
+    await advanceBlocks(90000)
 
     expect(await call(gov, 'state', [newProposalId])).toEqual(states["Succeeded"])
   })
@@ -101,7 +101,7 @@ describe('GovernorBravo#state/1', () => {
     const { reply: newProposalId } = await both(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: acct })
     await mineBlock()
     await send(gov, 'castVote', [newProposalId, 1])
-    await advanceBlocks(20000)
+    await advanceBlocks(90000)
 
     await send(gov, 'queue', [newProposalId], { from: acct })
     expect(await call(gov, 'state', [newProposalId])).toEqual(states["Queued"])
@@ -112,7 +112,7 @@ describe('GovernorBravo#state/1', () => {
     const { reply: newProposalId } = await both(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: acct })
     await mineBlock()
     await send(gov, 'castVote', [newProposalId, 1])
-    await advanceBlocks(20000)
+    await advanceBlocks(90000)
 
     await increaseTime(1)
     await send(gov, 'queue', [newProposalId], { from: acct })
@@ -135,7 +135,7 @@ describe('GovernorBravo#state/1', () => {
     const { reply: newProposalId } = await both(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: acct })
     await mineBlock()
     await send(gov, 'castVote', [newProposalId, 1])
-    await advanceBlocks(20000)
+    await advanceBlocks(90000)
 
     await increaseTime(1)
     await send(gov, 'queue', [newProposalId], { from: acct })

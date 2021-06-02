@@ -3,7 +3,7 @@ Macro GivenProposal
     Xvs Deploy Bank
     Timelock Deploy Jared 604800
     GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
-    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address Xvs) (Address Root) (Address BravoDelegateHarness) 17280 1 300000e18
+    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address Xvs) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
     GovernorBravo LegitGov MergeABI BravoDelegateHarness
     GovernorBravo LegitGov HarnessInitiate
     Timelock SetAdmin (Address LegitGov)
@@ -62,7 +62,7 @@ Test "Cannot vote before vote starts"
 Test "Cannot vote after vote ends"
     GivenProposal
     AllowFailures
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     GovernorBravo LegitGov Proposal LastProposal Vote For
     Assert Revert "revert GovernorBravo::castVoteInternal: voting is closed"
 

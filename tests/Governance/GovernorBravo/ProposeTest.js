@@ -11,7 +11,7 @@ describe('GovernorBravo#propose/5', () => {
   beforeAll(async () => {
     [root, acct, ...accounts] = accounts;
     xvs = await deploy('XVS', [root]);
-    gov = await deploy('GovernorBravoImmutable', [address(0), xvs._address, root, 17280, 1, "100000000000000000000000"]);
+    gov = await deploy('GovernorBravoImmutable', [address(0), xvs._address, root, 86400, 1, "100000000000000000000000"]);
     await send(gov,'_initiate');
   });
 
@@ -47,7 +47,7 @@ describe('GovernorBravo#propose/5', () => {
     });
 
     it("End block is set to the current block number plus the sum of vote delay and vote period", async () => {
-      expect(trivialProposal.endBlock).toEqual(proposalBlock + 1 + 17280 + "");
+      expect(trivialProposal.endBlock).toEqual(proposalBlock + 1 + 86400 + "");
     });
 
     it("ForVotes and AgainstVotes are initialized to zero", async () => {
@@ -145,7 +145,7 @@ describe('GovernorBravo#propose/5', () => {
         signatures: signatures,
         calldatas: callDatas,
         startBlock: 15,
-        endBlock: 17295,
+        endBlock: 86415,
         description: "second proposal",
         proposer: accounts[3]
       });

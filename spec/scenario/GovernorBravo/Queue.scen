@@ -3,7 +3,7 @@ Macro DeployGov
     Timelock Deploy Jared 604800
     Xvs Deploy Bank
     GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
-    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address Xvs) (Address Root) (Address BravoDelegateHarness) 17280 1 300000e18
+    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address Xvs) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
     GovernorBravo LegitGov MergeABI BravoDelegateHarness
     GovernorBravo LegitGov HarnessInitiate
     Enfranchise Root 600001e18
@@ -38,7 +38,7 @@ Macro GivenSucceededProposal
 
 Macro SucceedProposal
     GovernorBravo LegitGov Proposal LastProposal Vote For
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     Assert Equal ("Succeeded") (GovernorBravo LegitGov Proposal LastProposal State)
 
 Test "Queue simple action"
@@ -57,7 +57,7 @@ Test "Queue simple action"
 Test "Queue 2 actions with multiple params"
     GivenActiveProposal
     GovernorBravo LegitGov Proposal LastProposal Vote For
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     QueueLastProposal
     Assert Log ProposalQueued (id 2)
     Assert Log ProposalQueued (eta (GovernorBravo LegitGov Proposal LastProposal Eta))
@@ -96,7 +96,7 @@ Test "Revert queue proposal is Active"
 Test "Revert queue when proposal is Defeated"
     GivenActiveProposal
     GovernorBravo LegitGov Proposal LastProposal Vote Against
-    AdvanceBlocks 20000
+    AdvanceBlocks 90000
     AllowFailures
     Assert Equal ("Defeated") (GovernorBravo LegitGov Proposal LastProposal State)
     GovernorBravo LegitGov Proposal LastProposal Queue
@@ -123,7 +123,7 @@ Test "Revert when queuing on invalid Timelock"
     Xvs Deploy Bank
     Enfranchise Root 600001e18
     Counter Deploy CNT1
-    GovernorBravo Deploy BravoImmutable LegitGov (Address Zero) (Address Xvs) (Address Root) 17280 1 100000e18
+    GovernorBravo Deploy BravoImmutable LegitGov (Address Zero) (Address Xvs) (Address Root) 86400 1 100000e18
     GovernorBravo LegitGov HarnessInitiate
     GovernorBravo LegitGov Propose "Add 5" [(Address CNT1)] [1] ["increment(uint256)"] [["2"]]
     MineBlock

@@ -28,6 +28,7 @@ contract GovernorBravoImmutable is GovernorBravoDelegate {
         votingPeriod = votingPeriod_;
         votingDelay = votingDelay_;
         proposalThreshold = proposalThreshold_;
+        proposalMaxOperations = 10;
     }
 
     function _initiate() public {
