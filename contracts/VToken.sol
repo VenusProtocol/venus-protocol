@@ -561,6 +561,97 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
+     * @notice Sender supplies assets into the market and receiver receives vTokens in exchange
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param receiver The address of the account which is receiving the vTokens
+     * @param mintAmount The amount of the underlying asset to supply
+     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
+     */
+    function mintBehalfInternal(address receiver, uint mintAmount) internal nonReentrant returns (uint, uint) {
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
+            return (fail(Error(error), FailureInfo.MINT_ACCRUE_INTEREST_FAILED), 0);
+        }
+        // mintBelahfFresh emits the actual Mint event if successful and logs on errors, so we don't need to
+        return mintBehalfFresh(msg.sender, receiver, mintAmount);
+    }
+
+    /**
+     * @notice Payer supplies assets into the market and receiver receives vTokens in exchange
+     * @dev Assumes interest has already been accrued up to the current block
+     * @param payer The address of the account which is paying the underlying token
+     * @param receiver The address of the account which is receiving vToken
+     * @param mintAmount The amount of the underlying asset to supply
+     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
+     */
+    function mintBehalfFresh(address payer, address receiver, uint mintAmount) internal returns (uint, uint) {
+        /* Fail if mint not allowed */
+        uint allowed = comptroller.mintAllowed(address(this), receiver, mintAmount);
+        if (allowed != 0) {
+            return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.MINT_COMPTROLLER_REJECTION, allowed), 0);
+        }
+
+        /* Verify market's block number equals current block number */
+        if (accrualBlockNumber != getBlockNumber()) {
+            return (fail(Error.MARKET_NOT_FRESH, FailureInfo.MINT_FRESHNESS_CHECK), 0);
+        }
+
+        MintLocalVars memory vars;
+
+        (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
+        if (vars.mathErr != MathError.NO_ERROR) {
+            return (failOpaque(Error.MATH_ERROR, FailureInfo.MINT_EXCHANGE_RATE_READ_FAILED, uint(vars.mathErr)), 0);
+        }
+
+        /////////////////////////
+        // EFFECTS & INTERACTIONS
+        // (No safe failures beyond this point)
+
+        /*
+         *  We call `doTransferIn` for the payer and the mintAmount.
+         *  Note: The vToken must handle variations between BEP-20 and BNB underlying.
+         *  `doTransferIn` reverts if anything goes wrong, since we can't be sure if
+         *  side-effects occurred. The function returns the amount actually transferred,
+         *  in case of a fee. On success, the vToken holds an additional `actualMintAmount`
+         *  of cash.
+         */
+        vars.actualMintAmount = doTransferIn(payer, mintAmount);
+
+        /*
+         * We get the current exchange rate and calculate the number of vTokens to be minted:
+         *  mintTokens = actualMintAmount / exchangeRate
+         */
+
+        (vars.mathErr, vars.mintTokens) = divScalarByExpTruncate(vars.actualMintAmount, Exp({mantissa: vars.exchangeRateMantissa}));
+        require(vars.mathErr == MathError.NO_ERROR, "MINT_EXCHANGE_CALCULATION_FAILED");
+
+        /*
+         * We calculate the new total supply of vTokens and receiver token balance, checking for overflow:
+         *  totalSupplyNew = totalSupply + mintTokens
+         *  accountTokensNew = accountTokens[receiver] + mintTokens
+         */
+        (vars.mathErr, vars.totalSupplyNew) = addUInt(totalSupply, vars.mintTokens);
+        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_TOTAL_SUPPLY_CALCULATION_FAILED");
+
+        (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[receiver], vars.mintTokens);
+        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
+
+        /* We write previously calculated values into storage */
+        totalSupply = vars.totalSupplyNew;
+        accountTokens[receiver] = vars.accountTokensNew;
+
+        /* We emit a MintBehalf event, and a Transfer event */
+        emit MintBehalf(payer, receiver, vars.actualMintAmount, vars.mintTokens);
+        emit Transfer(address(this), receiver, vars.mintTokens);
+
+        /* We call the defense hook */
+        comptroller.mintVerify(address(this), receiver, vars.actualMintAmount, vars.mintTokens);
+
+        return (uint(Error.NO_ERROR), vars.actualMintAmount);
+    }
+
+    /**
      * @notice Sender redeems vTokens in exchange for the underlying asset
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
      * @param redeemTokens The number of vTokens to redeem into underlying
