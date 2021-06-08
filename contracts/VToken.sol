@@ -478,7 +478,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     struct MintLocalVars {
-        Error err;
         MathError mathErr;
         uint exchangeRateMantissa;
         uint mintTokens;
@@ -593,7 +592,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     struct RedeemLocalVars {
-        Error err;
         MathError mathErr;
         uint exchangeRateMantissa;
         uint redeemTokens;
@@ -1149,8 +1147,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
     function _acceptAdmin() external returns (uint) {
-        // Check caller is pendingAdmin and pendingAdmin ≠ address(0)
-        if (msg.sender != pendingAdmin || msg.sender == address(0)) {
+        // Check caller is pendingAdmin
+        if (msg.sender != pendingAdmin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.ACCEPT_ADMIN_PENDING_ADMIN_CHECK);
         }
 
@@ -1239,7 +1237,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Accrues interest and reduces reserves by transferring from msg.sender
+     * @notice Accrues interest and adds reserves by transferring from msg.sender
      * @param addAmount Amount of addition to reserves
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
@@ -1351,8 +1349,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // (No safe failures beyond this point)
 
         totalReservesNew = totalReserves - reduceAmount;
-        // We checked reduceAmount <= totalReserves above, so this should never revert.
-        require(totalReservesNew <= totalReserves, "reduce reserves unexpected underflow");
 
         // Store reserves[n+1] = reserves[n] - reduceAmount
         totalReserves = totalReservesNew;

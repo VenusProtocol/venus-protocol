@@ -69,9 +69,11 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
     /*** Main Actions ***/
     struct MintLocalVars {
-        Error err;
+        uint oErr;
         MathError mathErr;
         uint mintAmount;
+        uint accountMintVAINew;
+        uint accountMintableVAI;
     }
 
     function mintVAI(uint mintVAIAmount) external nonReentrant returns (uint) {
@@ -88,24 +90,19 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             updateVenusVAIMintIndex();
             ComptrollerImplInterface(address(comptroller)).distributeVAIMinterVenus(minter);
 
-            uint oErr;
-            MathError mErr;
-            uint accountMintVAINew;
-            uint accountMintableVAI;
-
-            (oErr, accountMintableVAI) = getMintableVAI(minter);
-            if (oErr != uint(Error.NO_ERROR)) {
+            (vars.oErr, vars.accountMintableVAI) = getMintableVAI(minter);
+            if (vars.oErr != uint(Error.NO_ERROR)) {
                 return uint(Error.REJECTION);
             }
 
             // check that user have sufficient mintableVAI balance
-            if (mintVAIAmount > accountMintableVAI) {
+            if (mintVAIAmount > vars.accountMintableVAI) {
                 return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
             }
 
-            (mErr, accountMintVAINew) = addUInt(ComptrollerImplInterface(address(comptroller)).mintedVAIs(minter), mintVAIAmount);
-            require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
-            uint error = comptroller.setMintedVAIOf(minter, accountMintVAINew);
+            (vars.mathErr, vars.accountMintVAINew) = addUInt(ComptrollerImplInterface(address(comptroller)).mintedVAIs(minter), mintVAIAmount);
+            require(vars.mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
+            uint error = comptroller.setMintedVAIOf(minter, vars.accountMintVAINew);
             if (error != 0 ) {
                 return error;
             }
@@ -391,14 +388,14 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      *  whereas `borrowBalance` is the amount of underlying that the account has borrowed.
      */
     struct AccountAmountLocalVars {
-        uint totalSupplyAmount;
+        uint oErr;
+        MathError mErr;
         uint sumSupply;
         uint sumBorrowPlusEffects;
         uint vTokenBalance;
         uint borrowBalance;
         uint exchangeRateMantissa;
         uint oraclePriceMantissa;
-        Exp collateralFactor;
         Exp exchangeRate;
         Exp oraclePrice;
         Exp tokensToDenom;
@@ -410,9 +407,6 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
         AccountAmountLocalVars memory vars; // Holds all our calculation results
 
-        uint oErr;
-        MathError mErr;
-
         uint accountMintableVAI;
         uint i;
 
@@ -421,8 +415,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
          * totalSupplyAmount * VAIMintRate - (totalBorrowAmount + mintedVAIOf)
          */
         for (i = 0; i < enteredMarkets.length; i++) {
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = enteredMarkets[i].getAccountSnapshot(minter);
-            if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
+            (vars.oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = enteredMarkets[i].getAccountSnapshot(minter);
+            if (vars.oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (uint(Error.SNAPSHOT_ERROR), 0);
             }
             vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
@@ -434,38 +428,38 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             }
             vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
 
-            (mErr, vars.tokensToDenom) = mulExp(vars.exchangeRate, vars.oraclePrice);
-            if (mErr != MathError.NO_ERROR) {
+            (vars.mErr, vars.tokensToDenom) = mulExp(vars.exchangeRate, vars.oraclePrice);
+            if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
             }
 
             // sumSupply += tokensToDenom * vTokenBalance
-            (mErr, vars.sumSupply) = mulScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumSupply);
-            if (mErr != MathError.NO_ERROR) {
+            (vars.mErr, vars.sumSupply) = mulScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumSupply);
+            if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
             }
 
             // sumBorrowPlusEffects += oraclePrice * borrowBalance
-            (mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
-            if (mErr != MathError.NO_ERROR) {
+            (vars.mErr, vars.sumBorrowPlusEffects) = mulScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
+            if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
             }
         }
 
-        (mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, ComptrollerImplInterface(address(comptroller)).mintedVAIs(minter));
-        if (mErr != MathError.NO_ERROR) {
+        (vars.mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, ComptrollerImplInterface(address(comptroller)).mintedVAIs(minter));
+        if (vars.mErr != MathError.NO_ERROR) {
             return (uint(Error.MATH_ERROR), 0);
         }
 
-        (mErr, accountMintableVAI) = mulUInt(vars.sumSupply, ComptrollerImplInterface(address(comptroller)).vaiMintRate());
-        require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
+        (vars.mErr, accountMintableVAI) = mulUInt(vars.sumSupply, ComptrollerImplInterface(address(comptroller)).vaiMintRate());
+        require(vars.mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
 
-        (mErr, accountMintableVAI) = divUInt(accountMintableVAI, 10000);
-        require(mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
+        (vars.mErr, accountMintableVAI) = divUInt(accountMintableVAI, 10000);
+        require(vars.mErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
 
 
-        (mErr, accountMintableVAI) = subUInt(accountMintableVAI, vars.sumBorrowPlusEffects);
-        if (mErr != MathError.NO_ERROR) {
+        (vars.mErr, accountMintableVAI) = subUInt(accountMintableVAI, vars.sumBorrowPlusEffects);
+        if (vars.mErr != MathError.NO_ERROR) {
             return (uint(Error.REJECTION), 0);
         }
 
