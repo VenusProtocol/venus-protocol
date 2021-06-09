@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
-import "./SafeMath.sol";
-import "./BEP20Interface.sol";
+import "./Utils/IBEP20.sol";
+import "./Utils/SafeBEP20.sol";
 import "./Ownable.sol";
 
 /**
@@ -9,6 +9,7 @@ import "./Ownable.sol";
  */
 contract VTreasury is Ownable {
     using SafeMath for uint256;
+    using SafeBEP20 for IBEP20;
 
     // WithdrawTreasuryBEP20 Event
     event WithdrawTreasuryBEP20(address tokenAddress, uint256 withdrawAmount, address withdrawAddress);
@@ -34,7 +35,7 @@ contract VTreasury is Ownable {
     ) external onlyOwner {
         uint256 actualWithdrawAmount = withdrawAmount;
         // Get Treasury Token Balance
-        uint256 treasuryBalance = BEP20Interface(tokenAddress).balanceOf(address(this));
+        uint256 treasuryBalance = IBEP20(tokenAddress).balanceOf(address(this));
 
         // Check Withdraw Amount
         if (withdrawAmount > treasuryBalance) {
@@ -43,7 +44,7 @@ contract VTreasury is Ownable {
         }
 
         // Transfer BEP20 Token to withdrawAddress
-        BEP20Interface(tokenAddress).transfer(withdrawAddress, actualWithdrawAmount);
+        IBEP20(tokenAddress).safeTransfer(withdrawAddress, actualWithdrawAmount);
 
         emit WithdrawTreasuryBEP20(tokenAddress, actualWithdrawAmount, withdrawAddress);
     }
