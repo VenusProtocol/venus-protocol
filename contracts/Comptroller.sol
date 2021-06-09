@@ -1469,10 +1469,12 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     /**
      * @notice Set the amount of XVS distributed per block to XVS Vault
      * @param venusXVSVaultRate_ The amount of XVS wei per block to distribute to XVS Vault
+     * @param vaultStatus_ The status to determine XVS or VAI Vault reward distribution
      */
-    function _setVenusXVSVaultRate(uint venusXVSVaultRate_) public onlyAdmin {
+    function _setVenusXVSVaultRate(uint venusXVSVaultRate_, bool vaultStatus_) public onlyAdmin {
         uint oldVenusXVSVaultRate = venusXVSVaultRate_;
         venusXVSVaultRate = venusXVSVaultRate_;
+        shouldVAIVault = vaultStatus_;
         emit NewVenusXVSVaultRate(oldVenusXVSVaultRate, venusXVSVaultRate_);
     }
     
@@ -1487,14 +1489,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         xvsVaultStartBlock = xvsVaultStartBlock_;
         minXVSReleaseAmount = minXVSReleaseAmount_;
         emit NewXVSVaultInfo(vault_, xvsVaultStartBlock_, minXVSReleaseAmount_);
-    }
-
-    /**
-     * @notice Set the amount of XVS distributed per block to XVS Vault
-     * @param vaultStatus_ The status to determine XVS or VAI Vault reward distribution
-     */
-    function _setVaultStatus(bool vaultStatus_) public onlyAdmin {
-        shouldVAIVault = vaultStatus_;
     }
 
     /**
