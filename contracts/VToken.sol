@@ -470,7 +470,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function mintInternal(uint mintAmount) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted mint failed
             return (fail(Error(error), FailureInfo.MINT_ACCRUE_INTEREST_FAILED), 0);
         }
         // mintFresh emits the actual Mint event if successful and logs on errors, so we don't need to
@@ -569,7 +569,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function mintBehalfInternal(address receiver, uint mintAmount) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
+            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted mintBehalf failed
             return (fail(Error(error), FailureInfo.MINT_ACCRUE_INTEREST_FAILED), 0);
         }
         // mintBelahfFresh emits the actual Mint event if successful and logs on errors, so we don't need to
@@ -585,6 +585,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
      */
     function mintBehalfFresh(address payer, address receiver, uint mintAmount) internal returns (uint, uint) {
+        require(receiver != address(0), "receiver is invalid");
         /* Fail if mint not allowed */
         uint allowed = comptroller.mintAllowed(address(this), receiver, mintAmount);
         if (allowed != 0) {
