@@ -1488,7 +1488,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         xvsVaultAddress = vault_;
         xvsVaultStartBlock = xvsVaultStartBlock_;
         minXVSReleaseAmount = minXVSReleaseAmount_;
-        shouldVAIVault = true;
         emit NewXVSVaultInfo(vault_, xvsVaultStartBlock_, minXVSReleaseAmount_);
     }
 
@@ -1547,8 +1546,8 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @notice Transfer XVS to VAI Vault
      */
     function releaseToVault() public {
-        uint256 vaiVaultReward = 0;
-        uint256 xvsVaultReward = 0;
+        uint256 vaiVaultReward;
+        uint256 xvsVaultReward;
         if(releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
             vaiVaultReward = 0;
         }
@@ -1573,7 +1572,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         vaiVaultReward = mul_(venusVAIVaultRate, deltaBlocks);
         xvsVaultReward = mul_(venusXVSVaultRate, deltaBlocksForXvsVault);
 
-        if (shouldVAIVault && vaiVaultReward >= minReleaseAmount) {
+        if (!shouldVAIVault && vaiVaultReward >= minReleaseAmount) {
             if (xvsBalance >= vaiVaultReward) {
                 actualAmount = vaiVaultReward;
             } else {
@@ -1590,11 +1589,13 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
 
                 xvsBalance = sub_(xvsBalance, actualAmount);
 
-                shouldVAIVault = !shouldVAIVault;
+                if (xvsVaultReward > 0) {
+                    shouldVAIVault = !shouldVAIVault;
+                }
             }
         }
 
-        if (!shouldVAIVault && xvsVaultReward >= minXVSReleaseAmount) {
+        if (shouldVAIVault && xvsVaultReward >= minXVSReleaseAmount) {
             if (xvsBalance >= xvsVaultReward) {
                 actualAmount = xvsVaultReward;
             } else {
@@ -1607,7 +1608,9 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
                 xvs.transfer(xvsVaultAddress, actualAmount);
                 emit DistributedXVSVaultVenus(actualAmount);
 
-                shouldVAIVault = !shouldVAIVault;
+                if (vaiVaultReward > 0) {
+                    shouldVAIVault = !shouldVAIVault;
+                }
             }
         }
     }
