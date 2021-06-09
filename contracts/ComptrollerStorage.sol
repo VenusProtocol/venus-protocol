@@ -178,3 +178,10 @@ contract ComptrollerV4Storage is ComptrollerV3Storage {
     /// @notice Fee percent of accrued interest with decimal 18
     uint256 public treasuryPercent;
 }
+contract ComptrollerV5Storage is ComptrollerV4Storage {
+    /// @notice The portion of XVS that each contributor receives per block
+    mapping(address => uint) public venusContributorSpeeds;
+
+    /// @notice Last block at which a contributor's XVS rewards have been allocated
+    mapping(address => uint) public lastContributorBlock;
+}
