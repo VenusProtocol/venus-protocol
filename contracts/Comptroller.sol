@@ -1473,6 +1473,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     function _setVenusXVSVaultRate(uint venusXVSVaultRate_) public onlyAdmin {
         uint oldVenusXVSVaultRate = venusXVSVaultRate_;
         venusXVSVaultRate = venusXVSVaultRate_;
+        shouldVAIVault = true;
         emit NewVenusXVSVaultRate(oldVenusXVSVaultRate, venusXVSVaultRate_);
     }
     
