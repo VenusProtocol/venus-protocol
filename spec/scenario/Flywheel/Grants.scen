@@ -124,5 +124,13 @@ Test "XVS streaming can be changed for contributors"
     Assert Equal (Bep20 XVS TokenBalance Torrey) 900000
     Comptroller Send "_setContributorVenusSpeed(address,uint256)" (Address Torrey) 0
     FastForward 2000 Blocks
+    Comptroller UpdateContributorRewards Torrey
+    Comptroller ClaimVenus Torrey
     Assert Equal (Comptroller VenusAccrued Torrey) 0
     Assert Equal (Bep20 XVS TokenBalance Torrey) 900000
+    Comptroller Send "_setContributorVenusSpeed(address,uint256)" (Address Torrey) 300
+    FastForward 1000 Blocks
+    Comptroller UpdateContributorRewards Torrey
+    Comptroller ClaimVenus Torrey
+    Assert Equal (Comptroller VenusAccrued Torrey) 0
+    Assert Equal (Bep20 XVS TokenBalance Torrey) 1200000
