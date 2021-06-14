@@ -1546,18 +1546,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @notice Transfer XVS to VAI Vault
      */
     function releaseToVault() public {
-        uint256 vaiVaultReward;
-        uint256 xvsVaultReward;
-        if(releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
-            vaiVaultReward = 0;
-        }
-        if(xvsVaultStartBlock == 0 || getBlockNumber() < xvsVaultStartBlock) {
-            xvsVaultReward = 0;
-        }
-        if(vaiVaultReward == 0 && xvsVaultReward == 0) {
-            return;
-        }
-
         XVS xvs = XVS(getXVSAddress());
 
         uint256 xvsBalance = xvs.balanceOf(address(this));
@@ -1565,12 +1553,21 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
             return;
         }
 
+        uint256 vaiVaultReward;
+        uint256 xvsVaultReward;
         uint256 actualAmount;
-        uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
-        uint256 deltaBlocksForXvsVault = sub_(getBlockNumber(), xvsVaultStartBlock);
-        // releaseAmount = venusVAIVaultRate * deltaBlocks
-        vaiVaultReward = mul_(venusVAIVaultRate, deltaBlocks);
-        xvsVaultReward = mul_(venusXVSVaultRate, deltaBlocksForXvsVault);
+        uint256 deltaBlocks;
+        if(releaseStartBlock != 0 && getBlockNumber() < releaseStartBlock) {
+            deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
+            vaiVaultReward = mul_(venusVAIVaultRate, deltaBlocks);
+        }
+        if(xvsVaultStartBlock != 0 && getBlockNumber() < xvsVaultStartBlock) {
+            deltaBlocks = sub_(getBlockNumber(), xvsVaultStartBlock);
+            xvsVaultReward = mul_(venusXVSVaultRate, deltaBlocks);
+        }
+        if(vaiVaultReward == 0 && xvsVaultReward == 0) {
+            return;
+        }
 
         if (!shouldVAIVault && vaiVaultReward >= minReleaseAmount) {
             if (xvsBalance >= vaiVaultReward) {
