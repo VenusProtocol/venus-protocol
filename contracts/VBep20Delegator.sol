@@ -84,6 +84,17 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
     }
 
     /**
+     * @notice Sender supplies assets into the market and receiver receives vTokens in exchange
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param mintAmount The amount of the underlying asset to supply
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function mintBehalf(address receiver, uint mintAmount) external returns (uint) {
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("mintBehalf(address,uint256)", receiver, mintAmount));
+        return abi.decode(data, (uint));
+    }
+
+    /**
      * @notice Sender redeems vTokens in exchange for the underlying asset
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
      * @param redeemTokens The number of vTokens to redeem into underlying

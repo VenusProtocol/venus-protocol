@@ -99,6 +99,11 @@ contract VBep20Harness is VBep20Immutable {
         return err;
     }
 
+    function harnessMintBehalfFresh(address payer, address receiver, uint mintAmount) public returns (uint) {
+        (uint err,) = super.mintBehalfFresh(payer, receiver, mintAmount);
+        return err;
+    }
+
     function harnessRedeemFresh(address payable account, uint vTokenAmount, uint underlyingAmount) public returns (uint) {
         return super.redeemFresh(account, vTokenAmount, underlyingAmount);
     }
@@ -319,6 +324,11 @@ contract VBep20DelegateHarness is VBep20Delegate {
 
     function harnessMintFresh(address account, uint mintAmount) public returns (uint) {
         (uint err,) = super.mintFresh(account, mintAmount);
+        return err;
+    }
+
+    function harnessMintBehalfFresh(address payer, address receiver, uint mintAmount) public returns (uint) {
+        (uint err,) = super.mintBehalfFresh(payer, receiver, mintAmount);
         return err;
     }
 
