@@ -264,6 +264,30 @@ async function claimVenus(world: World, from: string, comptroller: Comptroller, 
   return world;
 }
 
+async function updateContributorRewards(world: World, from: string, comptroller: Comptroller, contributor: string): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods.updateContributorRewards(contributor), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Contributor rewards updated for ${contributor}`,
+    invokation
+  );
+
+  return world;
+}
+
+async function grantXVS(world: World, from: string, comptroller: Comptroller, recipient: string, amount: NumberV): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._grantXVS(recipient, amount.encode()), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `${amount.show()} xvs granted to ${recipient}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function setVenusRate(world: World, from: string, comptroller: Comptroller, rate: NumberV): Promise<World> {
   let invokation = await invoke(world, comptroller.methods._setVenusRate(rate.encode()), from, ComptrollerErrorReporter);
 
@@ -672,6 +696,31 @@ export function comptrollerCommands() {
         new Arg("holder", getAddressV)
       ],
       (world, from, {comptroller, holder}) => claimVenus(world, from, comptroller, holder.val)
+    ),
+    new Command<{comptroller: Comptroller, contributor: AddressV}>(`
+      #### UpdateContributorRewards
+      * "Comptroller UpdateContributorRewards <contributor>" - Updates rewards for a contributor
+      * E.g. "Comptroller UpdateContributorRewards Geoff
+      `,
+      "UpdateContributorRewards",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("contributor", getAddressV)
+      ],
+      (world, from, {comptroller, contributor}) => updateContributorRewards(world, from, comptroller, contributor.val)
+    ),
+    new Command<{comptroller: Comptroller, recipient: AddressV, amount: NumberV}>(`
+      #### GrantXVS
+      * "Comptroller GrantXVS <recipient> <amount>" - Grants XVS to a recipient
+      * E.g. "Comptroller GrantXVS Geoff 1e18
+      `,
+      "GrantXVS",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("recipient", getAddressV),
+        new Arg("amount", getNumberV)
+      ],
+      (world, from, {comptroller, recipient, amount}) => grantXVS(world, from, comptroller, recipient.val, amount)
     ),
     new Command<{comptroller: Comptroller, rate: NumberV}>(`
       #### SetVenusRate
