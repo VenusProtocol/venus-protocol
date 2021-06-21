@@ -56,9 +56,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when a new Venus speed is calculated for a market
     event VenusSpeedUpdated(VToken indexed vToken, uint newSpeed);
 
-    /// @notice Emitted when a new Venus speed is set for a contributor
-    event ContributorVenusSpeedUpdated(address indexed contributor, uint newSpeed);
-
     /// @notice Emitted when XVS is distributed to a supplier
     event DistributedSupplierVenus(VToken indexed vToken, address indexed supplier, uint venusDelta, uint venusSupplyIndex);
 
