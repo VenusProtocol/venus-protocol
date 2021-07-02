@@ -138,7 +138,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Restore access to frozen user funds
+     * @notice Restore access to frozen user funds. Additional info https://community.venus.io/t/proposal-defirex-stuck-money-recovery-help-needed-from-the-venus-community-team/676
      * @return Whether or not the transfer succeeded
      */
     function releaseStuckTokens() external nonReentrant returns (bool) {
