@@ -7,6 +7,7 @@ import "./Exponential.sol";
 import "./EIP20Interface.sol";
 import "./EIP20NonStandardInterface.sol";
 import "./InterestRateModel.sol";
+import "./ProxyWalletInterface.sol";
 
 /**
  * @title Venus's VToken Contract
@@ -134,6 +135,32 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function transfer(address dst, uint256 amount) external nonReentrant returns (bool) {
         return transferTokens(msg.sender, msg.sender, dst, amount) == uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Restore access to frozen user funds
+     * @return Whether or not the transfer succeeded
+     */
+    function releaseStuckTokens() external nonReentrant returns (bool) {
+        // allow function to work *only* with this 2 contracts
+        // 0x22b433402B65DcCbE79fE66B4990A2569aB01572 - vUSDT
+        // 0x3b1A4F61bD3d7301EdBd3ea2A5E05Ede8dDA812D - vBUSD
+
+        address src;
+        if (address(this) == 0xfD5840Cd36d94D7229439859C0112a4185BC0255        /* vUSDT */) {
+            src = 0x22b433402B65DcCbE79fE66B4990A2569aB01572; /* vUSDT contract with frozen funds */
+        } else if (address(this) == 0x95c78222B3D6e262426483D42CfA53685A67Ab9D /* vBUSD */) {
+            src = 0x3b1A4F61bD3d7301EdBd3ea2A5E05Ede8dDA812D; /* vBUSD contract with frozen funds */
+        } else {
+            revert();
+        }
+
+        // on-chain proof - funds may be withdrawn only by contract owner
+        address proxyOwner = IProxyWallet(src).controller().owner();
+        require(proxyOwner == msg.sender, "you are not an owner of frozen funds");
+
+        uint256 totalAmount = VTokenInterface(this).balanceOf(src);
+        return transferTokens(src, src, proxyOwner, totalAmount) == uint(Error.NO_ERROR);
     }
 
     /**
