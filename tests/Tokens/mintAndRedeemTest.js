@@ -22,8 +22,6 @@ const mintAmount = bnbUnsigned(10e4);
 const mintTokens = mintAmount.div(exchangeRate);
 const redeemTokens = bnbUnsigned(10e3);
 const redeemAmount = redeemTokens.mul(exchangeRate);
-const redeemedAmount = redeemAmount.mul(bnbUnsigned(9999e14)).div(bnbUnsigned(1e18));
-const feeAmount = redeemAmount.mul(bnbUnsigned(1e14)).div(bnbUnsigned(1e18));
 
 async function preMint(vToken, minter, mintAmount, mintTokens, exchangeRate) {
   await preApprove(vToken, minter, mintAmount);
@@ -37,6 +35,20 @@ async function preMint(vToken, minter, mintAmount, mintTokens, exchangeRate) {
 
 async function mintFresh(vToken, minter, mintAmount) {
   return send(vToken, 'harnessMintFresh', [minter, mintAmount]);
+}
+
+async function preMintBehalf(vToken, payer, mintAmount, mintTokens, exchangeRate) {
+  await preApprove(vToken, payer, mintAmount);
+  await send(vToken.comptroller, 'setMintAllowed', [true]);
+  await send(vToken.comptroller, 'setMintVerify', [true]);
+  await send(vToken.interestRateModel, 'setFailBorrowRate', [false]);
+  await send(vToken.underlying, 'harnessSetFailTransferFromAddress', [payer, false]);
+  await send(vToken, 'harnessSetBalance', [payer, 0]);
+  await send(vToken, 'harnessSetExchangeRate', [bnbMantissa(exchangeRate)]);
+}
+
+async function mintBehalfFresh(vToken, payer, receiver, mintAmount) {
+  return send(vToken, 'harnessMintBehalfFresh', [payer, receiver, mintAmount]);
 }
 
 async function preRedeem(vToken, redeemer, redeemTokens, redeemAmount, exchangeRate) {
@@ -59,11 +71,12 @@ async function redeemFreshAmount(vToken, redeemer, redeemTokens, redeemAmount) {
 }
 
 describe('VToken', function () {
-  let root, minter, redeemer, user1, devFee, accounts;
+  let root, minter, redeemer, accounts, payer, receiver;
   let vToken;
   beforeEach(async () => {
-    [root, minter, redeemer, user1, devFee, ...accounts] = saddle.accounts;
-    vToken = await makeVToken({comptrollerOpts: {kind: 'boolFee'}, exchangeRate});
+    [root, minter, redeemer, receiver, ...accounts] = saddle.accounts;
+    payer = minter;
+    vToken = await makeVToken({comptrollerOpts: {kind: 'bool'}, exchangeRate});
   });
 
   describe('mintFresh', () => {
@@ -134,6 +147,38 @@ describe('VToken', function () {
       expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
         [vToken, minter, 'cash', -mintAmount],
         [vToken, minter, 'tokens', mintTokens],
+        [vToken, 'cash', mintAmount],
+        [vToken, 'tokens', mintTokens]
+      ]));
+    });
+
+    it("transfers the underlying cash from payer, tokens to receiver, and emits MintBehalf, Transfer events", async () => {
+      const payerBeforeBalances = await getBalances([vToken], [payer]);
+      const receiverBeforeBalances = await getBalances([vToken], [receiver]);
+      const result = await mintBehalfFresh(vToken, payer, receiver, mintAmount);
+      const payerAfterBalances = await getBalances([vToken], [payer]);
+      const receiverAfterBalances = await getBalances([vToken], [receiver]);
+      expect(result).toSucceed();
+      expect(result).toHaveLog('MintBehalf', {
+        payer,
+        receiver,
+        mintAmount: mintAmount.toString(),
+        mintTokens: mintTokens.toString()
+      });
+      expect(result).toHaveLog(['Transfer', 1], {
+        from: vToken._address,
+        to: receiver,
+        amount: mintTokens.toString()
+      });
+      expect(payerAfterBalances).toEqual(await adjustBalances(payerBeforeBalances, [
+        [vToken, payer, 'cash', -mintAmount],
+        [vToken, payer, 'tokens', 0],
+        [vToken, 'cash', mintAmount],
+        [vToken, 'tokens', mintTokens]
+      ]));
+      expect(receiverAfterBalances).toEqual(await adjustBalances(receiverBeforeBalances, [
+        [vToken, receiver, 'cash', 0],
+        [vToken, receiver, 'tokens', mintTokens],
         [vToken, 'cash', mintAmount],
         [vToken, 'tokens', mintTokens]
       ]));
@@ -229,21 +274,16 @@ describe('VToken', function () {
         expect(result).toSucceed();
         expect(result).toHaveLog('Redeem', {
           redeemer,
-          redeemAmount: redeemedAmount.toString(),
+          redeemAmount: redeemAmount.toString(),
           redeemTokens: redeemTokens.toString()
         });
-        expect(result).toHaveLog('RedeemFee', {
-          redeemer,
-          feeAmount: feeAmount.toString(),
-          redeemTokens: redeemTokens.toString()
-        });
-        expect(result).toHaveLog(['Transfer', 2], {
+        expect(result).toHaveLog(['Transfer', 1], {
           from: redeemer,
           to: vToken._address,
           amount: redeemTokens.toString()
         });
         expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
-          [vToken, redeemer, 'cash', redeemedAmount],
+          [vToken, redeemer, 'cash', redeemAmount],
           [vToken, redeemer, 'tokens', -redeemTokens],
           [vToken, 'cash', -redeemAmount],
           [vToken, 'tokens', -redeemTokens]
@@ -273,7 +313,7 @@ describe('VToken', function () {
       ).toSucceed();
       expect(await quickRedeem(vToken, redeemer, redeemTokens, {exchangeRate})).toSucceed();
       expect(redeemAmount).not.toEqualNumber(0);
-      expect(await balanceOf(vToken.underlying, redeemer)).toEqualNumber(redeemedAmount);
+      expect(await balanceOf(vToken.underlying, redeemer)).toEqualNumber(redeemAmount);
     });
 
     it("returns success from redeemFresh and redeems the right amount of underlying", async () => {
@@ -284,8 +324,7 @@ describe('VToken', function () {
         await quickRedeemUnderlying(vToken, redeemer, redeemAmount, {exchangeRate})
       ).toSucceed();
       expect(redeemAmount).not.toEqualNumber(0);
-      expect(await balanceOf(vToken.underlying, redeemer)).toEqualNumber(redeemedAmount);
-      expect(await balanceOf(vToken.underlying, devFee)).toEqualNumber(feeAmount);
+      expect(await balanceOf(vToken.underlying, redeemer)).toEqualNumber(redeemAmount);
     });
 
     it("emits an AccrueInterest event", async () => {

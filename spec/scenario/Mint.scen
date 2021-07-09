@@ -8,6 +8,19 @@ Test "Mint 1 vZRX"
     Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 50e9)
     -- Assert Equal (VToken vZRX UnderlyingBalance Geoff) (Exactly 1.0e18)
 
+Test "MintBehalf 1 vZRX"
+    NewComptroller
+    ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Prep Geoff Some ZRX vZRX
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) (Exactly 100e18)
+    Assert Equal (Bep20 ZRX TokenBalance Torrey) (Exactly 0)
+    MintBehalf Geoff Torrey 50e18 vZRX
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 0)
+    Assert Equal (Bep20 vZRX TokenBalance Torrey) (Exactly 50e9)
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) (Exactly 50e18)
+    Assert Equal (Bep20 ZRX TokenBalance Torrey) (Exactly 0)
+    -- Assert Equal (VToken vZRX UnderlyingBalance Geoff) (Exactly 1.0e18)
+
 Test "Mint with insufficient allowance"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9

@@ -152,6 +152,9 @@ Macro AccrueInterest token
 Macro Mint user amount token
     From user (VToken token Mint amount)
 
+Macro MintBehalf payer receiver amount token
+    From payer (VToken token MintBehalf receiver amount)
+
 Macro SendMintBnb user amount token
     From user (Trx GasPrice 0 (Trx Value amount (Send token amount)))
 

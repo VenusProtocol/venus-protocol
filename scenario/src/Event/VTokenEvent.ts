@@ -82,6 +82,27 @@ async function mint(world: World, from: string, vToken: VToken, amount: NumberV 
   return world;
 }
 
+async function mintBehalf(world: World, from: string, vToken: VToken, receiver: string, amount: NumberV | NothingV): Promise<World> {
+  let invokation;
+  let showAmount;
+
+  if (amount instanceof NumberV) {
+    showAmount = amount.show();
+    invokation = await invoke(world, vToken.methods.mintBehalf(receiver, amount.encode()), from, VTokenErrorReporter);
+  } else {
+    showAmount = showTrxValue(world);
+    invokation = await invoke(world, vToken.methods.mintBehalf(receiver), from, VTokenErrorReporter);
+  }
+
+  world = addAction(
+    world,
+    `VToken ${vToken.name}: ${describeUser(world, from)} mints ${showAmount}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function redeem(world: World, from: string, vToken: VToken, tokens: NumberV): Promise<World> {
   let invokation = await invoke(world, vToken.methods.redeem(tokens.encode()), from, VTokenErrorReporter);
 
@@ -530,6 +551,21 @@ export function vTokenCommands() {
         new Arg("amount", getNumberV, { nullable: true })
       ],
       (world, from, { vToken, amount }) => mint(world, from, vToken, amount),
+      { namePos: 1 }
+    ),
+    new Command<{ vToken: VToken, receiver: AddressV, amount: NumberV | NothingV }>(`
+        #### MintBehalf
+
+        * "VToken <vToken> MintBehalf receiver:<User> amount:<Number>" - Mints the given amount of vToken as specified user
+          * E.g. "VToken vZRX MintBehalf Torrey 1.0e18"
+      `,
+      "MintBehalf",
+      [
+        new Arg("vToken", getVTokenV),
+        new Arg("receiver", getAddressV),
+        new Arg("amount", getNumberV, { nullable: true })
+      ],
+      (world, from, { vToken, receiver, amount }) => mintBehalf(world, from, vToken, receiver.val, amount),
       { namePos: 1 }
     ),
     new Command<{ vToken: VToken, tokens: NumberV }>(`

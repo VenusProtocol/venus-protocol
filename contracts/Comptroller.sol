@@ -1426,9 +1426,11 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         if (venusSpeed == 0) {
             // release storage
             delete lastContributorBlock[contributor];
+            delete venusContributorSpeeds[contributor];
+        } else {
+            lastContributorBlock[contributor] = getBlockNumber();
+            venusContributorSpeeds[contributor] = venusSpeed;
         }
-        lastContributorBlock[contributor] = getBlockNumber();
-        venusContributorSpeeds[contributor] = venusSpeed;
 
         emit ContributorVenusSpeedUpdated(contributor, venusSpeed);
     }

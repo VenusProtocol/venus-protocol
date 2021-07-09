@@ -18,12 +18,14 @@ export interface VTokenMethods {
   accrueInterest(): Sendable<number>;
   mint(): Sendable<number>;
   mint(amount: encodedNumber): Sendable<number>;
+  mintBehalf(address: string): Sendable<number>;
+  mintBehalf(address: string, amount: encodedNumber): Sendable<number>;
   redeem(amount: encodedNumber): Sendable<number>;
   redeemUnderlying(amount: encodedNumber): Sendable<number>;
   borrow(amount: encodedNumber): Sendable<number>;
   repayBorrow(): Sendable<number>;
   repayBorrow(amount: encodedNumber): Sendable<number>;
-  repayBorrowBehalf(amount: string): Sendable<number>;
+  repayBorrowBehalf(address: string): Sendable<number>;
   repayBorrowBehalf(address: string, amount: encodedNumber): Sendable<number>;
   liquidateBorrow(borrower: string, vTokenCollateral: string): Sendable<number>;
   liquidateBorrow(borrower: string, repayAmount: encodedNumber, vTokenCollateral: string): Sendable<number>;
