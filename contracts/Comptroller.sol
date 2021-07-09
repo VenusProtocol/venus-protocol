@@ -1548,6 +1548,21 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      * @notice Transfer XVS to VAI Vault
      */
     function releaseToVault() public {
+<<<<<<< HEAD
+=======
+        uint256 vaiVaultReward;
+        uint256 xvsVaultReward;
+        if(releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
+            vaiVaultReward = 0;
+        }
+        if(xvsVaultStartBlock == 0 || getBlockNumber() < xvsVaultStartBlock) {
+            xvsVaultReward = 0;
+        }
+        if(vaiVaultReward == 0 && xvsVaultReward == 0) {
+            return;
+        }
+
+>>>>>>> dde9e33036fdd814005964ca7b3e3213a791bc0a
         XVS xvs = XVS(getXVSAddress());
 
         uint256 xvsBalance = xvs.balanceOf(address(this));
@@ -1555,6 +1570,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
             return;
         }
 
+<<<<<<< HEAD
         uint256 vaiVaultReward;
         uint256 xvsVaultReward;
         uint256 actualAmount;
@@ -1581,6 +1597,25 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
             if (address(vaiVaultAddress) != address(0)) {
                 releaseStartBlock = getBlockNumber();
 
+=======
+        uint256 actualAmount;
+        uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
+        uint256 deltaBlocksForXvsVault = sub_(getBlockNumber(), xvsVaultStartBlock);
+        // releaseAmount = venusVAIVaultRate * deltaBlocks
+        vaiVaultReward = mul_(venusVAIVaultRate, deltaBlocks);
+        xvsVaultReward = mul_(venusXVSVaultRate, deltaBlocksForXvsVault);
+
+        if (!shouldVAIVault && vaiVaultReward >= minReleaseAmount) {
+            if (xvsBalance >= vaiVaultReward) {
+                actualAmount = vaiVaultReward;
+            } else {
+                actualAmount = xvsBalance;
+            }
+
+            if (address(vaiVaultAddress) != address(0)) {
+                releaseStartBlock = getBlockNumber();
+
+>>>>>>> dde9e33036fdd814005964ca7b3e3213a791bc0a
                 xvs.transfer(vaiVaultAddress, actualAmount);
                 emit DistributedVAIVaultVenus(actualAmount);
 
