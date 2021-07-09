@@ -17,8 +17,8 @@ contract XVSVault is XVSVaultStorage {
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
 
     /// @notice Event emitted when XVS withrawal
-    event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);    
-    
+    event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
+
     /// @notice Event emitted when admin changed
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
@@ -189,7 +189,7 @@ contract XVSVault is XVSVaultStorage {
     function updateAndPayOutPending(uint256 _pid, address _account) internal {
         uint256 pending = pendingXVS(_pid, _account);
 
-        if(pending > 0) {            
+        if(pending > 0) {
             IXVSStore(xvsStore).safeXVSTransfer(_account, pending);
             xvsBalance = xvs.balanceOf(address(xvsStore));
         }
@@ -228,7 +228,7 @@ contract XVSVault is XVSVaultStorage {
 
     function setVenusInfo(address _xvs) public onlyAdmin {
         xvs = IBEP20(_xvs);
-        
+
         _notEntered = true;
     }
 

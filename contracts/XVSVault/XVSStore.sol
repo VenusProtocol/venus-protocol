@@ -44,7 +44,7 @@ contract XVSStore {
             } else {
                 xvs.transfer(_to, _amount);
             }
-        }        
+        }
     }
 
     function setNewAdmin(address _admin) public onlyAdmin {

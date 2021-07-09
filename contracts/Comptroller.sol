@@ -1477,7 +1477,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         venusXVSVaultRate = venusXVSVaultRate_;
         emit NewVenusXVSVaultRate(oldVenusXVSVaultRate, venusXVSVaultRate_);
     }
-    
+
     /**
      * @notice Set the XVS Vault infos
      * @param vault_ The address of the XVS Vault
