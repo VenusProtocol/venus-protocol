@@ -264,18 +264,6 @@ async function claimVenus(world: World, from: string, comptroller: Comptroller, 
   return world;
 }
 
-async function updateContributorRewards(world: World, from: string, comptroller: Comptroller, contributor: string): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods.updateContributorRewards(contributor), from, ComptrollerErrorReporter);
-
-  world = addAction(
-    world,
-    `Contributor rewards updated for ${contributor}`,
-    invokation
-  );
-
-  return world;
-}
-
 async function grantXVS(world: World, from: string, comptroller: Comptroller, recipient: string, amount: NumberV): Promise<World> {
   let invokation = await invoke(world, comptroller.methods._grantXVS(recipient, amount.encode()), from, ComptrollerErrorReporter);
 
@@ -696,18 +684,6 @@ export function comptrollerCommands() {
         new Arg("holder", getAddressV)
       ],
       (world, from, {comptroller, holder}) => claimVenus(world, from, comptroller, holder.val)
-    ),
-    new Command<{comptroller: Comptroller, contributor: AddressV}>(`
-      #### UpdateContributorRewards
-      * "Comptroller UpdateContributorRewards <contributor>" - Updates rewards for a contributor
-      * E.g. "Comptroller UpdateContributorRewards Geoff
-      `,
-      "UpdateContributorRewards",
-      [
-        new Arg("comptroller", getComptroller, {implicit: true}),
-        new Arg("contributor", getAddressV)
-      ],
-      (world, from, {comptroller, contributor}) => updateContributorRewards(world, from, comptroller, contributor.val)
     ),
     new Command<{comptroller: Comptroller, recipient: AddressV, amount: NumberV}>(`
       #### GrantXVS
