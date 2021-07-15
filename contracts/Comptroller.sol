@@ -56,9 +56,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when a new Venus speed is calculated for a market
     event VenusSpeedUpdated(VToken indexed vToken, uint newSpeed);
 
-    /// @notice Emitted when a new Venus speed is set for a contributor
-    event ContributorVenusSpeedUpdated(address indexed contributor, uint newSpeed);
-
     /// @notice Emitted when XVS is distributed to a supplier
     event DistributedSupplierVenus(VToken indexed vToken, address indexed supplier, uint venusDelta, uint venusSupplyIndex);
 
@@ -1300,23 +1297,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     /**
-     * @notice Calculate additional accrued Venus for a contributor since last accrual
-     * @param contributor The address to calculate contributor rewards for
-     */
-    function updateContributorRewards(address contributor) public {
-        uint venusSpeed = venusContributorSpeeds[contributor];
-        uint blockNumber = getBlockNumber();
-        uint deltaBlocks = sub_(blockNumber, lastContributorBlock[contributor]);
-        if (deltaBlocks > 0 && venusSpeed > 0) {
-            uint newAccrued = mul_(deltaBlocks, venusSpeed);
-            uint contributorAccrued = add_(venusAccrued[contributor], newAccrued);
-
-            venusAccrued[contributor] = contributorAccrued;
-            lastContributorBlock[contributor] = blockNumber;
-        }
-    }
-
-    /**
      * @notice Claim all the xvs accrued by holder in all markets and VAI
      * @param holder The address to claim XVS for
      */
@@ -1402,28 +1382,6 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         uint amountLeft = grantXVSInternal(recipient, amount);
         require(amountLeft == 0, "insufficient xvs for grant");
         emit VenusGranted(recipient, amount);
-    }
-
-    /**
-     * @notice Set Venus speed for a single contributor
-     * @param contributor The contributor whose Venus speed to update
-     * @param venusSpeed New Venus speed for contributor
-     */
-    function _setContributorVenusSpeed(address contributor, uint venusSpeed) public {
-        require(adminOrInitializing(), "only admin can set xvs speed");
-
-        // note that Venus speed could be set to 0 to halt liquidity rewards for a contributor
-        updateContributorRewards(contributor);
-        if (venusSpeed == 0) {
-            // release storage
-            delete lastContributorBlock[contributor];
-            delete venusContributorSpeeds[contributor];
-        } else {
-            lastContributorBlock[contributor] = getBlockNumber();
-            venusContributorSpeeds[contributor] = venusSpeed;
-        }
-
-        emit ContributorVenusSpeedUpdated(contributor, venusSpeed);
     }
 
     /**
