@@ -16,6 +16,7 @@ import { VAIController } from './Contract/VAIController';
 import { VAIControllerImpl } from './Contract/VAIControllerImpl';
 import { VToken } from './Contract/VToken';
 import { Governor } from './Contract/Governor';
+import { GovernorBravo } from './Contract/GovernorBravo'
 import { Bep20 } from './Contract/Bep20';
 import { InterestRateModel } from './Contract/InterestRateModel';
 import { PriceOracle } from './Contract/PriceOracle';
@@ -123,6 +124,10 @@ export function getBep20Address(world: World, bep20Arg: string): string {
 
 export function getGovernorAddress(world: World, governorArg: string): string {
   return getContractDataString(world, [['Contracts', governorArg]]);
+}
+
+export function getGovernorBravo(world: World, governoBravoArg: string): Promise<GovernorBravo> {
+  return getWorldContract(world, [['Contracts', 'GovernorBravo']])
 }
 
 export async function getPriceOracleProxy(world: World): Promise<PriceOracle> {

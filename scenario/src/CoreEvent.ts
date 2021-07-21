@@ -33,6 +33,7 @@ import { xvsCommands, processXVSEvent } from './Event/XVSEvent';
 import { sxpCommands, processSXPEvent } from './Event/SXPEvent';
 import { vaiCommands, processVAIEvent } from './Event/VAIEvent';
 import { governorCommands, processGovernorEvent } from './Event/GovernorEvent';
+import { governorBravoCommands, processGovernorBravoEvent } from './Event/GovernorBravoEvent';
 import { processTrxEvent, trxCommands } from './Event/TrxEvent';
 import { getFetchers, getCoreValue } from './CoreValue';
 import { formatEvent } from './Formatter';
@@ -882,6 +883,20 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       return processGovernorEvent(world, event.val, from);
     },
     { subExpressions: governorCommands() }
+  ),
+
+  new Command<{ event: EventV }>(
+    `
+      #### GovernorBravo
+      * "GovernorBravo ...event" - Runs given governorBravo event
+      * E.g. "GovernorBravo Deploy BravoDelegate"
+    `,
+    'GovernorBravo',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => {
+      return processGovernorBravoEvent(world, event.val, from);
+    },
+    { subExpressions: governorBravoCommands() }
   ),
 
   buildContractEvent<Counter>("Counter", false),
