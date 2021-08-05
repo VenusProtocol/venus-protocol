@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+# SPDX-License-Identifier: CC0-1.0
+
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+Files: package.json yarn.lock scenario/package.json scenario/tsconfig.json scenario/yarn.lock
+Copyright: 2021 Venus Labs, Inc.
+License: BSD-3-Clause
+

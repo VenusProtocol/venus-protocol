@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+# SPDX-License-Identifier: BSD-3-Clause
+
 FROM node:12
 
 RUN apt-get update && apt-get install -y build-essential python3 git g++ make

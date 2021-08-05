@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+-- SPDX-License-Identifier: BSD-3-Clause
+
 
 Macro InKindMintVAI mintVAIAmount borrowRate user=Geoff borrowPrice=1.0 mintAmount=100e18 giveAmount=0e18 borrowTokenType=Standard
     PricedComptrollerWithVAIController

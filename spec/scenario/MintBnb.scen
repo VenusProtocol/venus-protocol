@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+-- SPDX-License-Identifier: BSD-3-Clause
+
 -- Mint Tests
 
 GasTest "Send Mint 1 vBNB"

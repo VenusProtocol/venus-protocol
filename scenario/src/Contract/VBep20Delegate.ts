@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { Contract } from '../Contract';
 import { Sendable } from '../Invokation';
 import { VTokenMethods, VTokenScenarioMethods } from './VToken';

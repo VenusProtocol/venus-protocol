@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+-- SPDX-License-Identifier: BSD-3-Clause
+
 -- Tests for the grants and math patch
 
 Macro FlywheelComptroller price=1.0 borrowRate=0.000005 venusInitAmount=5000000e18

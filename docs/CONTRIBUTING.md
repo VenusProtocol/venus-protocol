@@ -1,3 +1,8 @@
+<!--
+   - SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+   - SPDX-License-Identifier: BSD-3-Clause
+-->
+
 # Contribution guidelines
 
 We have a strict policy on how we should commit our work. Following these guidelines will help us to:

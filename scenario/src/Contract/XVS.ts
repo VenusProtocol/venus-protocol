@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { Contract } from '../Contract';
 import { encodedNumber } from '../Encoding';
 import { Callable, Sendable } from '../Invokation';

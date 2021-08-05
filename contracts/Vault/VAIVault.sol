@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity ^0.5.16;
 import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";

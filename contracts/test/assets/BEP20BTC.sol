@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 /**
  *Submitted for verification at BscScan.com on 2020-09-02
 */

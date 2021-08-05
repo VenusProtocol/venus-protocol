@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+-- SPDX-License-Identifier: BSD-3-Clause
+
 -- Tests for the grants and math patch
 
 -- NewComptroller, but with markets listed so that we can make them venus markets in constructor

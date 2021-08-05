@@ -1,3 +1,6 @@
+-- SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+-- SPDX-License-Identifier: BSD-3-Clause
+
 
 Macro NewMintVAI mintVAIAmount mintAmount user=Geoff collateralPrice=1.0 borrowPrice=1.0 liquidationIncentive=1.1
     PricedComptrollerWithVAIController closeFactor:0.9 -- Set the close factor high to reduce number of steps to demonstrate
