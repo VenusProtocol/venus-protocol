@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 const BigNum = require('bignumber.js');
 const {Ganache} = require('eth-saddle/dist/config');
 const {bnbUnsigned} = require('../Utils/BSC');

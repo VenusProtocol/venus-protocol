@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 const {address} = require('../Utils/BSC');
 
 describe('admin / _setPendingAdmin / _acceptAdmin', () => {

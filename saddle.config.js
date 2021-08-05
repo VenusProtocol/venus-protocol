@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
+
 module.exports = {
   // solc: "solc",                                          // Solc command to run
   solc_args: [                                              // Extra solc args

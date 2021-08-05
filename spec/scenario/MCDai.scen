@@ -1,3 +1,7 @@
+-- SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+-- SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+-- SPDX-License-Identifier: BSD-3-Clause
+
 -- Multi-collateral DAI tests
 -- These fork tests are very slow and highly dependent on ganache version, so we mark them pending
 

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { Event } from '../Event';
 import { addAction, World } from '../World';
 import { ComptrollerImpl } from '../Contract/ComptrollerImpl';

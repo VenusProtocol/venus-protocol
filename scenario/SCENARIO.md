@@ -1,3 +1,9 @@
+<!--
+   - SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+   - SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+   - SPDX-License-Identifier: BSD-3-Clause
+-->
+
 
 # Types
 * `name:<Type>` - Helper to describe arguments with names, not actually input this way

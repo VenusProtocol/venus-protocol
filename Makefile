@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+# SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+# SPDX-License-Identifier: BSD-3-Clause
 
 # Run a single cvl e.g.:
 #  make -B spec/certora/VBep20/borrowAndRepayFresh.cvl

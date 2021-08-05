@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 // tslint:disable:only-arrow-functions
 // tslint:disable:object-literal-shorthand
 // tslint:disable:trailing-comma

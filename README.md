@@ -1,3 +1,9 @@
+<!--
+   - SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+   - SPDX-FileCopyrightText: 2021 Venus Labs, Inc.
+   - SPDX-License-Identifier: BSD-3-Clause
+-->
+
 [![GitHub Actions](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml/badge.svg)](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml)
 
 Venus Protocol
