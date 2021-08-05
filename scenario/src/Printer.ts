@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 import {Value} from './Value';
 import {Action} from './Action';
 import {EventProcessingError} from './CoreEvent'

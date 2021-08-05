@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+# SPDX-License-Identifier: BSD-3-Clause
+
 set -eo pipefail
 
 dir=`dirname $0`

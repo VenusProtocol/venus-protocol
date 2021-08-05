@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { fromJS, Map } from 'immutable';
 import { World } from './World';
 import { Invokation } from './Invokation';

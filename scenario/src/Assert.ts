@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 export type Expect = (actual: any) => {
   toEqual: (expected: any) => any
   fail: (message: string) => any

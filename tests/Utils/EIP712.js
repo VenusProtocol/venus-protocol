@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 // Based on https://github.com/ethereum/EIPs/blob/master/assets/eip-712/Example.js
 const ethUtil = require('ethereumjs-util');
 const abi = require('ethereumjs-abi');

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { ErrorReporter, NoErrorReporter, ComptrollerErrorReporter } from './ErrorReporter';
 import { mustArray } from './Utils';
 import { World } from './World';

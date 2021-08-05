@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 import { parse } from './Parser';
 import { World, initWorld } from './World';
 import { throwExpect } from './Assert';

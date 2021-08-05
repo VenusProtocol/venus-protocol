@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 import {Invariant} from '../Invariant';
 import {fail, World} from '../World';
 import {getCoreValue} from '../CoreValue';

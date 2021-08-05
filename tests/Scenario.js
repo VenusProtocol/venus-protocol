@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 "use strict";
 
 const {initWorld, loadVerbose, loadInvokationOpts} = require('../scenario/.tsbuilt/World.js');

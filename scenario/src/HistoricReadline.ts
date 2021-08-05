@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2020 Compound Labs, Inc.
+// SPDX-License-Identifier: BSD-3-Clause
+
 import * as readline from 'readline';
 import * as fs from 'fs';
 import {readFile} from './File';
