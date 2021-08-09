@@ -3,6 +3,10 @@
 
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
+Files: .github/* networks/* .soliumrc.json
+Copyright: 2021 Venus Labs, Inc.
+License: CC0-1.0
+
 Files: package.json yarn.lock scenario/package.json scenario/tsconfig.json scenario/yarn.lock
 Copyright: 2021 Venus Labs, Inc.
 License: BSD-3-Clause
