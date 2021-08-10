@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2018 SmartContract ChainLink, Ltd.
+
 pragma solidity ^0.5.0;
 
 import "../AggregatorV2V3Interface.sol";
