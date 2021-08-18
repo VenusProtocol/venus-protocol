@@ -15,9 +15,9 @@
     "test:prepare": "NO_RUN=true ./script/test",
     "checksize": "npx run ./script/saddle/comptrollerSize.js"
   },
-  "repository": "git@github.com:SwipeWallet/venus-protocol.git",
-  "author": "Swipe",
-  "license": "UNLICENSED",
+  "repository": "git@github.com:VenusProtocol/venus-protocol.git",
+  "author": "Venus Labs, Inc.",
+  "license": "BSD-3-Clause",
   "devDependencies": {
     "bignumber.js": "9.0.0",
     "jest-diff": "^26.4.2",

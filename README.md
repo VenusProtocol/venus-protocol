@@ -71,7 +71,7 @@ Installation
 ------------
 To run venus, pull the repository from GitHub and install its dependencies. You will need [yarn](https://yarnpkg.com/lang/en/docs/install/) or [npm](https://docs.npmjs.com/cli/install) installed.
 
-    git clone https://github.com/SwipeWallet/venus-protocol
+    git clone https://github.com/VenusProtocol/venus-protocol
     cd venus-protocol
     yarn install --lock-file # or `npm install`
 
@@ -87,29 +87,29 @@ The Venus Protocol has a simple scenario evaluation tool to test and evaluate sc
     Command: Read VToken vBAT Address
     AddressV<val=0xAD53863b864AE703D31b819d29c14cDA93D7c6a6>
 
-You can read more about the scenario runner in the [Scenario Docs](https://github.com/SwipeWallet/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
+You can read more about the scenario runner in the [Scenario Docs](https://github.com/VenusProtocol/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
 
 Testing
 -------
-Jest contract tests are defined under the [tests directory](https://github.com/SwipeWallet/venus-protocol/tree/master/tests). To run the tests run:
+Jest contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
 
     yarn test
 
 Integration Specs
 -----------------
 
-There are additional tests under the [spec/scenario](https://github.com/SwipeWallet/venus-protocol/tree/master/spec/scenario) folder. These are high-level integration tests based on the scenario runner depicted above. The aim of these tests is to be highly literate and have high coverage in the interaction of contracts.
+There are additional tests under the [spec/scenario](https://github.com/VenusProtocol/venus-protocol/tree/master/spec/scenario) folder. These are high-level integration tests based on the scenario runner depicted above. The aim of these tests is to be highly literate and have high coverage in the interaction of contracts.
 
 Formal Verification Specs
 -------------------------
 
 The Venus Protocol has a number of formal verification specifications, powered by [Certik](https://certik.foundation/projects/swipe). The Certik Verification evaluates smart contracts for vulnerabilities and certifies their behavior with respect to a custom function specification.
 =======
-See the [Scenario Docs](https://github.com/SwipeWallet/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
+See the [Scenario Docs](https://github.com/VenusProtocol/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
 
 Testing
 -------
-Contract tests are defined under the [tests directory](https://github.com/SwipeWallet/venus-protocol/tree/master/tests). To run the tests run:
+Contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
 
     yarn test
 
