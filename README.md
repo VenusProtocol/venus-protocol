@@ -7,6 +7,8 @@ The Venus Protocol is an Binance Smart Chain smart contract for supplying or bor
 
 Before getting started with this repo, please read:
 
+- [Venus Whitepaper](https://github.com/VenusProtocol/venus-protocol/tree/master/docs/VenusWhitepaper.pdf)
+
 Contracts
 =========
 
