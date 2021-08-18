@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/SwipeWallet/venus-protocol/venus-protocol.svg?style=svg&circle-token=5ed19932325c559a06f71f87d69012aedd2cf3fb)](https://circleci.com/gh/SwipeWallet/venus-protocol) [![codecov](https://codecov.io/gh/SwipeWallet/venus-protocol/branch/master/graph/badge.svg?token=q4UvsvVzOX)](https://codecov.io/gh/SwipeWallet/venus-protocol)
+[![GitHub Actions](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml/badge.svg)](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml)
 
 Venus Protocol
 =================
