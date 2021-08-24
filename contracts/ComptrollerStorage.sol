@@ -101,10 +101,12 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /// @notice A list of all markets
     VToken[] public allMarkets;
 
-    /// @notice The rate at which the flywheel distributes XVS, per block
+    /// @notice (DEPRECATED) The rate at which the flywheel distributes XVS, per block
+    /// @dev This field is deprecated. venusBorrowSpeeds and venusSupplySpeeds now contain the rates for borrow & supply.
     uint public venusRate;
 
-    /// @notice The portion of venusRate that each market currently receives
+    /// @notice (DEPRECATED) The portion of venusRate that each market currently receives
+    /// @dev This field is deprecated. The contract now uses venusBorrowSpeeds and venusSupplySpeeds.
     mapping(address => uint) public venusSpeeds;
 
     /// @notice The Venus market supply state for each market
@@ -180,4 +182,12 @@ contract ComptrollerV4Storage is ComptrollerV3Storage {
 }
 
 contract ComptrollerV5Storage is ComptrollerV4Storage {
+    // The new asymetric speeds will take over the old venusSpeeds.
+    // The old venusSpeeds field will become DEPRECATED following the V4 -> V5 upgrade.
+
+    /// @notice The rate at which XVS is distributed to the corresponding borrow market (per block)
+    mapping(address => uint) public venusBorrowSpeeds;
+
+    /// @notice The rate at which XVS is distributed to the corresponding supply market (per block)
+    mapping(address => uint) public venusSupplySpeeds;
 }
