@@ -155,7 +155,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             revert();
         }
 
-        // on-chain proof - funds may be withdrawn only by contract owner
+        // on-chain proof - funds may be withdrawn only to the contract owner
         address proxyOwner = IProxyWallet(src).controller().owner();
 
         require(msg.sender == admin, "only admin");
