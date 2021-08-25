@@ -53,8 +53,11 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
 
-    /// @notice Emitted when a new Venus speed is calculated for a market
-    event VenusSpeedUpdated(VToken indexed vToken, uint newSpeed);
+    /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
+    event VenusBorrowSpeedUpdated(VToken indexed vToken, uint oldSpeed, uint newSpeed);
+
+    /// @notice Emitted when a new supply-side XVS speed is calculated for a market
+    event VenusSupplySpeedUpdated(VToken indexed vToken, uint oldSpeed, uint newSpeed);
 
     /// @notice Emitted when XVS is distributed to a supplier
     event DistributedSupplierVenus(VToken indexed vToken, address indexed supplier, uint venusDelta, uint venusSupplyIndex);
@@ -1184,16 +1187,25 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
 
     /*** Venus Distribution ***/
 
-    function setVenusSpeedInternal(VToken vToken, uint venusSpeed) internal {
-        uint currentVenusSpeed = venusSpeeds[address(vToken)];
+    function setVenusSpeedInternal(VToken vToken, uint newSupplySpeed, uint newBorrowSpeed) internal {
+        Market storage market = markets[address(vToken)];
+        require(market.isListed, "venus market is not listed");
 
-        Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
-        updateVenusSupplyIndex(address(vToken));
-        updateVenusBorrowIndex(address(vToken), borrowIndex);
+        uint currentSupplySpeed = venusSupplySpeeds[address(vToken)];
+        if (currentSupplySpeed != newSupplySpeed) {
+            // make sure XVS with the previous supply speed is accrued before the change
+            updateVenusSupplyIndex(address(vToken));
+            venusSupplySpeeds[address(vToken)] = newSupplySpeed;
+            emit VenusSupplySpeedUpdated(vToken, currentSupplySpeed, newSupplySpeed);
+        }
 
-        if (currentVenusSpeed != venusSpeed) {
-            venusSpeeds[address(vToken)] = venusSpeed;
-            emit VenusSpeedUpdated(vToken, venusSpeed);
+        uint currentBorrowSpeed = venusBorrowSpeeds[address(vToken)];
+        if (currentBorrowSpeed != newBorrowSpeed) {
+            // make sure XVS with the previous borrow speed is accrued before the change
+            Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
+            updateVenusBorrowIndex(address(vToken), borrowIndex);
+            venusBorrowSpeeds[address(vToken)] = newBorrowSpeed;
+            emit VenusBorrowSpeedUpdated(vToken, currentBorrowSpeed, newBorrowSpeed);
         }
     }
 
@@ -1203,7 +1215,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function updateVenusSupplyIndex(address vToken) internal {
         VenusMarketState storage supplyState = venusSupplyState[vToken];
-        uint supplySpeed = venusSpeeds[vToken];
+        uint supplySpeed = venusSupplySpeeds[vToken];
         uint blockNumber = getBlockNumber();
         uint deltaBlocks = sub_(blockNumber, uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
@@ -1226,7 +1238,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function updateVenusBorrowIndex(address vToken, Exp memory marketBorrowIndex) internal {
         VenusMarketState storage borrowState = venusBorrowState[vToken];
-        uint borrowSpeed = venusSpeeds[vToken];
+        uint borrowSpeed = venusBorrowSpeeds[vToken];
         uint blockNumber = getBlockNumber();
         uint deltaBlocks = sub_(blockNumber, uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
@@ -1443,11 +1455,12 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     /**
      * @notice Set XVS speed for a single market
      * @param vToken The market whose XVS speed to update
-     * @param venusSpeed New XVS speed for market
+     * @param newSupplySpeed New XVS speed for the suppliers of the corresponding market
+     * @param newBorrowSpeed New XVS speed for the borrowers of the corresponding market
      */
-    function _setVenusSpeed(VToken vToken, uint venusSpeed) public {
+    function _setVenusSpeed(VToken vToken, uint newSupplySpeed, uint newBorrowSpeed) public {
         require(adminOrInitializing(), "only admin can set venus speed");
-        setVenusSpeedInternal(vToken, venusSpeed);
+        setVenusSpeedInternal(vToken, newSupplySpeed, newBorrowSpeed);
     }
 
     /**

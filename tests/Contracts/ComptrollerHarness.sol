@@ -68,7 +68,7 @@ contract ComptrollerHarness is Comptroller {
         Exp[] memory utilities = new Exp[](allMarkets_.length);
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets_[i];
-            if (venusSpeeds[address(vToken)] > 0) {
+            if (venusSupplySpeeds[address(vToken)] > 0 || venusBorrowSpeeds[address(vToken)] > 0) {
                 Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(vToken)});
                 Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
                 utilities[i] = utility;
@@ -79,7 +79,7 @@ contract ComptrollerHarness is Comptroller {
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets[i];
             uint newSpeed = totalUtility.mantissa > 0 ? mul_(venusRate, div_(utilities[i], totalUtility)) : 0;
-            setVenusSpeedInternal(vToken, newSpeed);
+            setVenusSpeedInternal(vToken, newSpeed, newSpeed);
         }
     }
 
@@ -131,7 +131,7 @@ contract ComptrollerHarness is Comptroller {
     function harnessAddVenusMarkets(address[] memory vTokens) public {
         for (uint i = 0; i < vTokens.length; i++) {
             // temporarily set venusSpeed to 1 (will be fixed by `harnessRefreshVenusSpeeds`)
-            setVenusSpeedInternal(VToken(vTokens[i]), 1);
+            setVenusSpeedInternal(VToken(vTokens[i]), 1, 1);
         }
     }
 
