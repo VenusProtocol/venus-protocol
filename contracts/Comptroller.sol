@@ -995,6 +995,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         markets[address(vToken)] = Market({isListed: true, isVenus: false, collateralFactorMantissa: 0});
 
         _addMarketInternal(vToken);
+        _initializeMarket(vToken);
 
         emit MarketListed(vToken);
 
@@ -1006,6 +1007,35 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
             require(allMarkets[i] != vToken, "market already added");
         }
         allMarkets.push(vToken);
+    }
+
+    /** @dev Initializes {supply,borrow}State structure for the market.
+     *  Sets {supply,borrow}State.index to the default value and
+     *  {supply,borrow}State.block to the current block number.
+     */
+    function _initializeMarket(VToken vToken) internal {
+        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
+
+        VenusMarketState storage supplyState = venusSupplyState[address(vToken)];
+        VenusMarketState storage borrowState = venusBorrowState[address(vToken)];
+
+        // If the market has been removed and then added again, the indices values
+        // may be nonzero. Although market removal is not supported at the moment,
+        // we leave the `index == 0` check to prevent resetting the indices if/when
+        // this functionality gets implemented.
+        if (supplyState.index == 0) {
+            supplyState.index = venusInitialIndex;
+            supplyState.block = blockNumber;
+        }
+
+        if (borrowState.index == 0) {
+            borrowState.index = venusInitialIndex;
+            borrowState.block = blockNumber;
+        }
+
+        // If we re-initialize, we skip the blocks without accruing; if we initialize
+        // for the first time, we just set the current block number
+        supplyState.block = borrowState.block = blockNumber;
     }
 
     /**
@@ -1142,31 +1172,10 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
 
     function setVenusSpeedInternal(VToken vToken, uint venusSpeed) internal {
         uint currentVenusSpeed = venusSpeeds[address(vToken)];
-        if (currentVenusSpeed != 0) {
-            // note that XVS speed could be set to 0 to halt liquidity rewards for a market
-            Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
-            updateVenusSupplyIndex(address(vToken));
-            updateVenusBorrowIndex(address(vToken), borrowIndex);
-        } else if (venusSpeed != 0) {
-            // Add the XVS market
-            Market storage market = markets[address(vToken)];
-            require(market.isListed == true, "venus market is not listed");
 
-            if (venusSupplyState[address(vToken)].index == 0 && venusSupplyState[address(vToken)].block == 0) {
-                venusSupplyState[address(vToken)] = VenusMarketState({
-                    index: venusInitialIndex,
-                    block: safe32(getBlockNumber(), "block number exceeds 32 bits")
-                });
-            }
-
-
-        if (venusBorrowState[address(vToken)].index == 0 && venusBorrowState[address(vToken)].block == 0) {
-                venusBorrowState[address(vToken)] = VenusMarketState({
-                    index: venusInitialIndex,
-                    block: safe32(getBlockNumber(), "block number exceeds 32 bits")
-                });
-            }
-        }
+        Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
+        updateVenusSupplyIndex(address(vToken));
+        updateVenusBorrowIndex(address(vToken), borrowIndex);
 
         if (currentVenusSpeed != venusSpeed) {
             venusSpeeds[address(vToken)] = venusSpeed;
