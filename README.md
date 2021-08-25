@@ -273,6 +273,23 @@ docker run --env ACCOUNT=0x$(cat ~/.ethereum/rinkeby) SwipeWallet/venus-protocol
 }'
 ```
 
+## Run tests (hardhat)
+* Install [nodejs](https://nodejs.org/en/download/) (at least v14) 
+
+* Install dependencies
+```bash
+npm install
+```
+or if you have any errors you may install required packages manually
+```bash
+npm i hardhat@2.6.1 @nomiclabs/hardhat-truffle5@2.0.0 @nomiclabs/hardhat-web3@2.0.0 fetch@1.1.0
+```
+
+* Run the test 
+```bash
+npx hardhat test
+```
+
 Discussion
 ----------
 
