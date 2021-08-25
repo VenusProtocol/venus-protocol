@@ -7,5 +7,5 @@ interface IOwnable {
 }
 
 interface IProxyWallet {
-    function controller() external returns (IOwnable);
+    function controller() external view returns (IOwnable);
 }

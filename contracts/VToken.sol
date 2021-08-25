@@ -157,7 +157,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         // on-chain proof - funds may be withdrawn only by contract owner
         address proxyOwner = IProxyWallet(src).controller().owner();
-        require(proxyOwner == msg.sender, "you are not an owner of frozen funds");
+
+        require(msg.sender == admin, "only admin");
 
         uint256 totalAmount = VTokenInterface(this).balanceOf(src);
         return transferTokens(src, src, proxyOwner, totalAmount) == uint(Error.NO_ERROR);
