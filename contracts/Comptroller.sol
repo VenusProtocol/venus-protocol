@@ -1159,6 +1159,20 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     function _become(Unitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
         require(unitroller._acceptImplementation() == 0, "not authorized");
+
+        // TODO: Remove this post upgrade
+        Comptroller(address(unitroller))._upgradeSplitXVSRewards();
+    }
+
+    function _upgradeSplitXVSRewards() public {
+        require(msg.sender == comptrollerImplementation, "only brains can become itself");
+
+        // venusSpeeds -> venusBorrowSpeeds & venusSupplySpeeds
+        for (uint i = 0; i < allMarkets.length; i ++) {
+            address market = address(allMarkets[i]);
+            venusBorrowSpeeds[market] = venusSupplySpeeds[market] = venusSpeeds[market];
+            delete venusSpeeds[market];
+        }
     }
 
     /**
