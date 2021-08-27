@@ -25,20 +25,17 @@ contract XVSVaultAdminStorage {
 }
 
 contract XVSVaultStorage is XVSVaultAdminStorage {
-    /// @notice The XVS TOKEN!
-    IBEP20 public xvs;
-
-    /// @notice The XVS Store
-    address public xvsStore;
-
     /// @notice Guard variable for re-entrancy checks
     bool internal _notEntered;
 
-    /// @notice XVS balance of vault
-    uint256 public xvsBalance;
+    /// @notice The reward token store
+    address public xvsStore;
 
-    //// pending rewards awaiting anyone to massUpdate
-    uint256 public pendingRewards;
+    /// @notice The xvs token address
+    address public xvsAddress;
+
+    // Reward tokens created per block indentified by reward token address.
+    mapping(address => uint256) public rewardTokenAmountsPerBlock;
 
     /// @notice Info of each user.
     struct UserInfo {
@@ -48,17 +45,18 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
 
     // Info of each pool.
     struct PoolInfo {
-        IBEP20 token;             // Address of token contract.
+        IBEP20 token;             // Address of token contract to stake.
         uint256 allocPoint;       // How many allocation points assigned to this pool.
-        uint256 accXVSPerShare;   // Accumulated XVSs per share, times 1e12. See below.
+        uint256 lastRewardBlock; // Last block number that reward tokens distribution occurs.
+        uint256 accRewardPerShare;   // Accumulated per share, times 1e12. See below.
     }
 
     // Info of each user that stakes tokens.
-    mapping(uint256 => mapping(address => UserInfo)) public userInfo;
+    mapping(address => mapping(uint256 => mapping(address => UserInfo))) userInfos;
 
     // Info of each pool.
-    PoolInfo[] public poolInfo;
+    mapping(address => PoolInfo[]) public poolInfos;
 
     // Total allocation points. Must be the sum of all allocation points in all pools.
-    uint256 public totalAllocPoint = 0;
+    mapping(address => uint256) public totalAllocPoints;
 }

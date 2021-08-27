@@ -6,14 +6,14 @@ contract XVSStore {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
-    /// @notice The XVS Token Address
-    IBEP20 public xvs;
-
     /// @notice The Admin Address
     address public admin;
 
     /// @notice The Owner Address
     address public owner;
+
+    /// @notice The reward tokens
+    mapping(address => bool) public rewardTokens;
 
     /// @notice Event emitted when admin changed
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
@@ -35,31 +35,40 @@ contract XVSStore {
         _;
     }
 
-    // Safe xvs transfer function, just in case if rounding error causes pool to not have enough XVSs.
-    function safeXVSTransfer(address _to, uint256 _amount) public onlyOwner {
-        if (address(xvs) != address(0)) {
-            uint256 xvsBal = xvs.balanceOf(address(this));
-            if (_amount > xvsBal) {
-                xvs.transfer(_to, xvsBal);
+    // Safe reward token transfer function, just in case if rounding error causes pool to not have enough tokens.
+    function safeRewardTransfer(address token, address _to, uint256 _amount) public onlyOwner {
+        require(rewardTokens[token] == true, "only reward token can");
+
+        if (address(token) != address(0)) {
+            uint256 tokenBalance = IBEP20(token).balanceOf(address(this));
+            if (_amount > tokenBalance) {
+                IBEP20(token).transfer(_to, tokenBalance);
             } else {
-                xvs.transfer(_to, _amount);
+                IBEP20(token).transfer(_to, _amount);
             }
         }
     }
 
     function setNewAdmin(address _admin) public onlyAdmin {
         require(_admin != address(0), "new admin is the zero address");
-        emit AdminTransferred(admin, _admin);
+        address oldAdmin = admin;
         admin = _admin;
+        emit AdminTransferred(oldAdmin, _admin);
     }
 
     function setNewOwner(address _owner) public onlyAdmin {
         require(_owner != address(0), "new owner is the zero address");
-        emit OwnerTransferred(owner, _owner);
+        address oldOwner = owner;
         owner = _owner;
+        emit OwnerTransferred(oldOwner, _owner);
     }
 
-    function setVenusInfo(address _xvs) public onlyAdmin {
-        xvs = IBEP20(_xvs);
+    function setRewardToken(address _tokenAddress, bool status) public {
+        require(msg.sender == admin || msg.sender == owner, "only admin or owner can");
+        rewardTokens[_tokenAddress] = status;
+    }
+
+    function emergencyRewardWithdraw(address _tokenAddress, uint256 _amount) external onlyOwner {
+        IBEP20(_tokenAddress).transfer(address(msg.sender), _amount);
     }
 }
