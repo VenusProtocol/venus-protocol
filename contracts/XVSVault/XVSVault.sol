@@ -23,12 +23,6 @@ contract XVSVault is XVSVaultStorage {
     /// @notice Event emitted when admin changed
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
-    /// @notice An event thats emitted when an account changes its delegate
-    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
-
-    /// @notice An event thats emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(address indexed delegate, uint256 previousBalance, uint256 newBalance);
-
 
     constructor() public {
         admin = msg.sender;
