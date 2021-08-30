@@ -285,6 +285,11 @@ or if you have any errors you may install required packages manually
 npm i hardhat@2.6.1 @nomiclabs/hardhat-truffle5@2.0.0 @nomiclabs/hardhat-web3@2.0.0 fetch@1.1.0
 ```
 
+* Configure BSC node. You may use our own BSC node or get access to public BSC node at https://getblock.io 
+    * Go to https://getblock.io and register a new account. 
+    * Create new API Key (it's for free) at GetBlock Dashboard. 
+    * Then replace API KEY at hardhat.config.js (located at project root) to your API KEY.
+
 * Run the test 
 ```bash
 npx hardhat test

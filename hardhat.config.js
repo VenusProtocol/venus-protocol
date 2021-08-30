@@ -19,7 +19,8 @@ module.exports = {
   networks: {
     hardhat: {
       forking: {
-        url: "http://bnode1.tk:43758"
+        //    https://bsc.getblock.io/?api_key=<YOUR-API_KEY>
+        url: "https://bsc.getblock.io/?api_key=251db1eb-eb29-48b0-8108-a060efce5b7f"
       }
     }
   },
@@ -27,4 +28,8 @@ module.exports = {
   paths: {
     tests: "./hardhat-tests",
   },
+
+  mocha: {
+    timeout: 80000
+  }
 };
