@@ -44,8 +44,8 @@ Macro InitSpeeds
     Mint Coburn 6e18 vBAT--tokenbalance = 6e18 / 2e9 = 3e9
     EnterMarkets Coburn vBAT
     Borrow Coburn 1e18 vZRX
-    Comptroller SetVenusSpeed vZRX 1
-    Comptroller SetVenusSpeed vBAT 1
+    Comptroller SetVenusSpeed vZRX 1 1
+    Comptroller SetVenusSpeed vBAT 1 1
     Comptroller RefreshVenusSpeeds
     Comptroller Send "setXVSAddress(address)" (Address XVS)
 
@@ -56,19 +56,19 @@ Test "XVS speed can be set per market"
     Assert Equal (Comptroller VenusAccrued Geoff) 0
     Assert Equal (Bep20 XVS TokenBalance Geoff) 0
     -- Venus speed can be set
-    Comptroller SetVenusSpeed vZRX 2
+    Comptroller SetVenusSpeed vZRX 2 2
     FastForward 1000 Blocks
     Comptroller ClaimVenus Geoff
     Assert Equal (Comptroller VenusAccrued Geoff) 0
     Assert Equal (Bep20 XVS TokenBalance Geoff) 2000
     -- Venus speed can be changed
-    Comptroller SetVenusSpeed vZRX 4
+    Comptroller SetVenusSpeed vZRX 4 4
     FastForward 1000 Blocks
     Comptroller ClaimVenus Geoff
     Assert Equal (Comptroller VenusAccrued Geoff) 0
     Assert Equal (Bep20 XVS TokenBalance Geoff) 6000
     -- Venus speed can be removed
-    Comptroller SetVenusSpeed vZRX 0
+    Comptroller SetVenusSpeed vZRX 0 0
     FastForward 1000 Blocks
     Comptroller ClaimVenus Geoff
     Assert Equal (Comptroller VenusAccrued Geoff) 0
@@ -83,7 +83,7 @@ Test "Set xvs rate is removed"
 Test "XVS is not claimed automatically"
     GrantsComptroller
     InitSpeeds
-    Comptroller SetVenusSpeed vZRX 2
+    Comptroller SetVenusSpeed vZRX 2 2
     FastForward 100000 Blocks
     -- Check xvs is not claimed automatically
     Mint Geoff 50e18 vZRX

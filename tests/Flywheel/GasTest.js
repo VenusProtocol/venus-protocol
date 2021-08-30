@@ -18,13 +18,13 @@ describe.skip('Flywheel trace ops', () => {
     [root, a1, a2, a3, ...accounts] = saddle.accounts;
     comptroller = await makeComptroller();
     market = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 3, interestRateModelOpts});
-    await send(comptroller, '_addVenusMarkets', [[market].map(c => c._address)]);
+    await send(comptroller, 'harnessAddVenusMarkets', [[market].map(c => c._address)]);
   });
 
   it('update supply index SSTOREs', async () => {
     await send(comptroller, 'setBlockNumber', [100]);
     await send(market, 'harnessSetTotalBorrows', [bnbUnsigned(11e18)]);
-    await send(comptroller, 'setVenusSpeed', [market._address, bnbExp(0.5)]);
+    await send(comptroller, '_setVenusSpeed', [market._address, bnbExp(0.5), bnbExp(0.5)]);
 
     const tx = await send(comptroller, 'harnessUpdateVenusSupplyIndex', [market._address]);
 
@@ -42,7 +42,7 @@ describe.skip('Flywheel trace ops', () => {
   it('update borrow index SSTOREs', async () => {
     await send(comptroller, 'setBlockNumber', [100]);
     await send(market, 'harnessSetTotalBorrows', [bnbUnsigned(11e18)]);
-    await send(comptroller, 'setVenusSpeed', [market._address, bnbExp(0.5)]);
+    await send(comptroller, '_setVenusSpeed', [market._address, bnbExp(0.5), bnbExp(0.5)]);
 
     const tx = await send(comptroller, 'harnessUpdateVenusBorrowIndex', [market._address, bnbExp(1.1)]);
 

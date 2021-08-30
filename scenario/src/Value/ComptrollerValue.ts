@@ -371,7 +371,7 @@ export function comptrollerFetchers() {
         #### CallNum
 
         * "CallNum signature:<String> ...callArgs<CoreValue>" - Simple direct call method
-          * E.g. "Comptroller CallNum \"venusSpeeds(address)\" (Address Coburn)"
+          * E.g. "Comptroller CallNum \"venusSupplySpeeds(address)\" (Address Coburn)"
       `,
       "CallNum",
       [
@@ -467,7 +467,7 @@ export function comptrollerFetchers() {
       }
     ),
     new Fetcher<{comptroller: Comptroller, VToken: VToken}, NumberV>(`
-        #### VenusSpeed
+        #### VenusSpeed (DEPRECATED)
 
         * "Comptroller VenusSpeed vZRX
       `,
@@ -478,6 +478,34 @@ export function comptrollerFetchers() {
       ],
       async (world, {comptroller, VToken}) => {
         return new NumberV(await comptroller.methods.venusSpeeds(VToken._address).call());
+      }
+    ),
+    new Fetcher<{comptroller: Comptroller, VToken: VToken}, NumberV>(`
+        #### VenusSupplySpeed
+
+        * "Comptroller VenusSupplySpeed vZRX
+      `,
+      "VenusSupplySpeed",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("VToken", getVTokenV),
+      ],
+      async (world, {comptroller, VToken}) => {
+        return new NumberV(await comptroller.methods.venusSupplySpeeds(VToken._address).call());
+      }
+    ),
+    new Fetcher<{comptroller: Comptroller, VToken: VToken}, NumberV>(`
+        #### VenusBorrowSpeed
+
+        * "Comptroller VenusBorrowSpeed vZRX
+      `,
+      "VenusBorrowSpeed",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("VToken", getVTokenV),
+      ],
+      async (world, {comptroller, VToken}) => {
+        return new NumberV(await comptroller.methods.venusBorrowSpeeds(VToken._address).call());
       }
     ),
     new Fetcher<{ comptroller: Comptroller, address: AddressV }, NumberV>(`

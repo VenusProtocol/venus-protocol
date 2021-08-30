@@ -288,12 +288,24 @@ async function setVenusRate(world: World, from: string, comptroller: Comptroller
   return world;
 }
 
-async function setVenusSpeed(world: World, from: string, comptroller: Comptroller, vToken: VToken, speed: NumberV): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setVenusSpeed(vToken._address, speed.encode()), from, ComptrollerErrorReporter);
+async function setVenusSpeed(
+    world: World,
+    from: string,
+    comptroller: Comptroller,
+    vToken: VToken,
+    supplySpeed: NumberV,
+    borrowSpeed: NumberV
+  ): Promise<World> {
+  let invokation = await invoke(
+      world,
+      comptroller.methods._setVenusSpeed(vToken._address, supplySpeed.encode(), borrowSpeed.encode()),
+      from,
+      ComptrollerErrorReporter
+  );
 
   world = addAction(
     world,
-    `Venus speed for market ${vToken._address} set to ${speed.show()}`,
+    `Venus speeds for market ${vToken._address} set to ${supplySpeed.show()} (supply), ${borrowSpeed.show()} (borrow)`,
     invokation
   );
 
@@ -711,18 +723,20 @@ export function comptrollerCommands() {
       ],
       (world, from, {comptroller, rate}) => setVenusRate(world, from, comptroller, rate)
     ),
-    new Command<{comptroller: Comptroller, vToken: VToken, speed: NumberV}>(`
+    new Command<{comptroller: Comptroller, vToken: VToken, supplySpeed: NumberV, borrowSpeed: NumberV}>(`
       #### SetVenusSpeed
-      * "Comptroller SetVenusSpeed <vToken> <rate>" - Sets XVS speed for market
-      * E.g. "Comptroller SetVenusSpeed vToken 1000
+      * "Comptroller SetVenusSpeed <vToken> <rate>" - Sets XVS speed for market (for suppliers and borrowers separately)
+      * E.g. "Comptroller SetVenusSpeed vToken 1000 2000
       `,
       "SetVenusSpeed",
       [
         new Arg("comptroller", getComptroller, {implicit: true}),
         new Arg("vToken", getVTokenV),
-        new Arg("speed", getNumberV)
+        new Arg("supplySpeed", getNumberV),
+        new Arg("borrowSpeed", getNumberV)
       ],
-      (world, from, {comptroller, vToken, speed}) => setVenusSpeed(world, from, comptroller, vToken, speed)
+      (world, from, {comptroller, vToken, supplySpeed, borrowSpeed}) =>
+          setVenusSpeed(world, from, comptroller, vToken, supplySpeed, borrowSpeed)
     ),
     new Command<{comptroller: Comptroller, vTokens: VToken[], borrowCaps: NumberV[]}>(`
       #### SetMarketBorrowCaps

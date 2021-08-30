@@ -145,8 +145,9 @@ let filterInitialized = async (borrowersByVToken) => {
 	let batchSize = 75;
 	console.log(`Calling venusBorrowerIndex for borrowers in batches of ${batchSize}...\n`);
 	for(let vTokenAddr of Object.keys(borrowersByVToken)) {
-		let speed = await call(Comptroller, 'venusSpeeds', [vTokenAddr]);
-		if (Number(speed) != 0){
+		let supplySpeed = await call(Comptroller, 'venusSupplySpeeds', [vTokenAddr]);
+		let borrowSpeed = await call(Comptroller, 'venusBorrowSpeeds', [vTokenAddr]);
+		if (Number(supplySpeed) != 0 || Number(borrowSpeed) != 0 ){
 			for (let borrowerChunk of getChunks(borrowersByVToken[vTokenAddr], batchSize)) {
 				try {
 					let indices = await Promise.all(borrowerChunk.map(

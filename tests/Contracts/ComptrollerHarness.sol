@@ -156,7 +156,7 @@ contract ComptrollerHarness is Comptroller {
         uint m = allMarkets.length;
         uint n = 0;
         for (uint i = 0; i < m; i++) {
-            if (venusSpeeds[address(allMarkets[i])] > 0) {
+            if (isVenusMarket(address(allMarkets[i]))) {
                 n++;
             }
         }
@@ -164,11 +164,15 @@ contract ComptrollerHarness is Comptroller {
         address[] memory venusMarkets = new address[](n);
         uint k = 0;
         for (uint i = 0; i < m; i++) {
-            if (venusSpeeds[address(allMarkets[i])] > 0) {
+            if (isVenusMarket(address(allMarkets[i]))) {
                 venusMarkets[k++] = address(allMarkets[i]);
             }
         }
         return venusMarkets;
+    }
+
+    function isVenusMarket(address market) internal view returns (bool) {
+        return venusSupplySpeeds[market] > 0 || venusBorrowSpeeds[market] > 0;
     }
 }
 

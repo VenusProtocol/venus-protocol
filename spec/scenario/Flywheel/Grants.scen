@@ -49,8 +49,8 @@ Macro InitSpeeds
     Mint Coburn 6e18 vBAT--tokenbalance = 6e18 / 2e9 = 3e9
     EnterMarkets Coburn vBAT
     Borrow Coburn 1e18 vZRX
-    Comptroller SetVenusSpeed vZRX 1
-    Comptroller SetVenusSpeed vBAT 1
+    Comptroller SetVenusSpeed vZRX 1 1
+    Comptroller SetVenusSpeed vBAT 1 1
     Comptroller RefreshVenusSpeeds
     Comptroller Send "setXVSAddress(address)" (Address XVS)
 

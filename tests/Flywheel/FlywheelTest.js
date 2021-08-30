@@ -69,7 +69,7 @@ describe('Flywheel', () => {
   describe('getVenusMarkets()', () => {
     it('should return the venus markets', async () => {
       for (let mkt of [vLOW, vREP, vZRX]) {
-        await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
+        await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5), bnbExp(0.5)]);
       }
       expect(await call(comptroller, 'getVenusMarkets')).toEqual(
         [vLOW, vREP, vZRX].map((c) => c._address)
@@ -83,9 +83,9 @@ describe('Flywheel', () => {
       await send(comptroller, 'setBlockNumber', [0]);
       await send(mkt, 'harnessSetTotalSupply', [bnbUnsigned(10e18)]);
 
-      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
+      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5), bnbExp(0.5)]);
       await fastForward(comptroller, 20);
-      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(1)]);
+      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(1), bnbExp(1)]);
 
       const {index, block} = await call(comptroller, 'venusSupplyState', [mkt._address]);
       expect(index).toEqualNumber(2e36);
@@ -94,23 +94,29 @@ describe('Flywheel', () => {
 
     it('should correctly drop a xvs market if called by admin', async () => {
       for (let mkt of [vLOW, vREP, vZRX]) {
-        await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
+        await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5), bnbExp(0.5)]);
       }
-      const tx = await send(comptroller, '_setVenusSpeed', [vLOW._address, 0]);
+      const tx = await send(comptroller, '_setVenusSpeed', [vLOW._address, 0, 0]);
       expect(await call(comptroller, 'getVenusMarkets')).toEqual(
         [vREP, vZRX].map((c) => c._address)
       );
-      expect(tx).toHaveLog('VenusSpeedUpdated', {
+      expect(tx).toHaveLog('VenusSupplySpeedUpdated', {
         vToken: vLOW._address,
+        oldSpeed: bnbExp(0.5),
+        newSpeed: 0
+      });
+      expect(tx).toHaveLog('VenusBorrowSpeedUpdated', {
+        vToken: vLOW._address,
+        oldSpeed: bnbExp(0.5),
         newSpeed: 0
       });
     });
 
     it('should correctly drop a xvs market from middle of array', async () => {
       for (let mkt of [vLOW, vREP, vZRX]) {
-        await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
+        await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5), bnbExp(0.5)]);
       }
-      await send(comptroller, '_setVenusSpeed', [vREP._address, 0]);
+      await send(comptroller, '_setVenusSpeed', [vREP._address, 0, 0]);
       expect(await call(comptroller, 'getVenusMarkets')).toEqual(
         [vLOW, vZRX].map((c) => c._address)
       );
@@ -118,10 +124,10 @@ describe('Flywheel', () => {
 
     it('should not drop a xvs market unless called by admin', async () => {
       for (let mkt of [vLOW, vREP, vZRX]) {
-        await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
+        await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5), bnbExp(0.5)]);
       }
       await expect(
-        send(comptroller, '_setVenusSpeed', [vLOW._address, 0], {from: a1})
+        send(comptroller, '_setVenusSpeed', [vLOW._address, 0, 0], {from: a1})
       ).rejects.toRevert('revert only admin can set venus speed');
     });
 
@@ -139,7 +145,7 @@ describe('Flywheel', () => {
   describe('updateVenusBorrowIndex()', () => {
     it('should calculate xvs borrower index correctly', async () => {
       const mkt = vREP;
-      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
+      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5), bnbExp(0.5)]);
       await send(comptroller, 'setBlockNumber', [100]);
       await send(mkt, 'harnessSetTotalBorrows', [bnbUnsigned(11e18)]);
       await send(comptroller, 'harnessUpdateVenusBorrowIndex', [
@@ -177,13 +183,15 @@ describe('Flywheel', () => {
       const {index, block} = await call(comptroller, 'venusBorrowState', [mkt._address]);
       expect(index).toEqualNumber(venusInitialIndex);
       expect(block).toEqualNumber(100);
-      const speed = await call(comptroller, 'venusSpeeds', [mkt._address]);
-      expect(speed).toEqualNumber(0);
+      const supplySpeed = await call(comptroller, 'venusSupplySpeeds', [mkt._address]);
+      const borrowSpeed = await call(comptroller, 'venusBorrowSpeeds', [mkt._address]);
+      expect(supplySpeed).toEqualNumber(0);
+      expect(borrowSpeed).toEqualNumber(0);
     });
 
     it('should not update index if no blocks passed since last accrual', async () => {
       const mkt = vREP;
-      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
+      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5), bnbExp(0.5)]);
       await send(comptroller, 'harnessUpdateVenusBorrowIndex', [
         mkt._address,
         bnbExp(1.1),
@@ -196,9 +204,9 @@ describe('Flywheel', () => {
 
     it('should not update index if venus speed is 0', async () => {
       const mkt = vREP;
-      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
+      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5), bnbExp(0.5)]);
       await send(comptroller, 'setBlockNumber', [100]);
-      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0)]);
+      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0), bnbExp(0)]);
       await send(comptroller, 'harnessUpdateVenusBorrowIndex', [
         mkt._address,
         bnbExp(1.1),
@@ -213,7 +221,7 @@ describe('Flywheel', () => {
   describe('updateVenusSupplyIndex()', () => {
     it('should calculate xvs supplier index correctly', async () => {
       const mkt = vREP;
-      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
+      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5), bnbExp(0.5)]);
       await send(comptroller, 'setBlockNumber', [100]);
       await send(mkt, 'harnessSetTotalSupply', [bnbUnsigned(10e18)]);
       await send(comptroller, 'harnessUpdateVenusSupplyIndex', [mkt._address]);
@@ -243,8 +251,10 @@ describe('Flywheel', () => {
       const {index, block} = await call(comptroller, 'venusSupplyState', [mkt._address]);
       expect(index).toEqualNumber(venusInitialIndex);
       expect(block).toEqualNumber(100);
-      const speed = await call(comptroller, 'venusSpeeds', [mkt._address]);
-      expect(speed).toEqualNumber(0);
+      const supplySpeed = await call(comptroller, 'venusSupplySpeeds', [mkt._address]);
+      const borrowSpeed = await call(comptroller, 'venusBorrowSpeeds', [mkt._address]);
+      expect(supplySpeed).toEqualNumber(0);
+      expect(borrowSpeed).toEqualNumber(0);
       // vtoken could have no venus speed or xvs supplier state if not in venus markets
       // this logic could also possibly be implemented in the allowed hook
     });
@@ -253,7 +263,7 @@ describe('Flywheel', () => {
       const mkt = vREP;
       await send(comptroller, 'setBlockNumber', [0]);
       await send(mkt, 'harnessSetTotalSupply', [bnbUnsigned(10e18)]);
-      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
+      await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5), bnbExp(0.5)]);
       await send(comptroller, 'harnessUpdateVenusSupplyIndex', [mkt._address]);
 
       const {index, block} = await call(comptroller, 'venusSupplyState', [mkt._address]);
@@ -507,9 +517,10 @@ describe('Flywheel', () => {
       const venusRemaining = venusRate.mul(100), mintAmount = bnbUnsigned(12e18), deltaBlocks = 10;
       await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
       await pretendBorrow(vLOW, a1, 1, 1, 100);
-      await send(comptroller, '_setVenusSpeed', [vLOW._address, bnbExp(0.5)]);
+      await send(comptroller, '_setVenusSpeed', [vLOW._address, bnbExp(0.5), bnbExp(0.5)]);
       await send(comptroller, 'harnessRefreshVenusSpeeds');
-      const speed = await call(comptroller, 'venusSpeeds', [vLOW._address]);
+      const supplySpeed = await call(comptroller, 'venusSupplySpeeds', [vLOW._address]);
+      const borrowSpeed = await call(comptroller, 'venusBorrowSpeeds', [vLOW._address]);
       const a2AccruedPre = await venusAccrued(comptroller, a2);
       const xvsBalancePre = await xvsBalance(comptroller, a2);
       await quickMint(vLOW, a2, mintAmount);
@@ -517,8 +528,10 @@ describe('Flywheel', () => {
       const tx = await send(comptroller, 'claimVenus', [a2]);
       const a2AccruedPost = await venusAccrued(comptroller, a2);
       const xvsBalancePost = await xvsBalance(comptroller, a2);
+
       expect(tx.gasUsed).toBeLessThan(500000);
-      expect(speed).toEqualNumber(venusRate);
+      expect(supplySpeed).toEqualNumber(venusRate);
+      expect(borrowSpeed).toEqualNumber(venusRate);
       expect(a2AccruedPre).toEqualNumber(0);
       expect(a2AccruedPost).toEqualNumber(0);
       expect(xvsBalancePre).toEqualNumber(0);
@@ -531,7 +544,8 @@ describe('Flywheel', () => {
       await pretendBorrow(vLOW, a1, 1, 1, 100);
       await send(comptroller, 'harnessAddVenusMarkets', [[vLOW._address]]);
       await send(comptroller, 'harnessRefreshVenusSpeeds');
-      const speed = await call(comptroller, 'venusSpeeds', [vLOW._address]);
+      const supplySpeed = await call(comptroller, 'venusSupplySpeeds', [vLOW._address]);
+      const borrowSpeed = await call(comptroller, 'venusBorrowSpeeds', [vLOW._address]);
       const a2AccruedPre = await venusAccrued(comptroller, a2);
       const xvsBalancePre = await xvsBalance(comptroller, a2);
       await quickMint(vLOW, a2, mintAmount);
@@ -540,7 +554,8 @@ describe('Flywheel', () => {
       const a2AccruedPost = await venusAccrued(comptroller, a2);
       const xvsBalancePost = await xvsBalance(comptroller, a2);
       expect(tx.gasUsed).toBeLessThan(220000);
-      expect(speed).toEqualNumber(venusRate);
+      expect(supplySpeed).toEqualNumber(venusRate);
+      expect(borrowSpeed).toEqualNumber(venusRate);
       expect(a2AccruedPre).toEqualNumber(0);
       expect(a2AccruedPost).toEqualNumber(0);
       expect(xvsBalancePre).toEqualNumber(0);
@@ -662,19 +677,29 @@ describe('Flywheel', () => {
   describe('harnessRefreshVenusSpeeds', () => {
     it('should start out 0', async () => {
       await send(comptroller, 'harnessRefreshVenusSpeeds');
-      const speed = await call(comptroller, 'venusSpeeds', [vLOW._address]);
-      expect(speed).toEqualNumber(0);
+      const supplySpeed = await call(comptroller, 'venusSupplySpeeds', [vLOW._address]);
+      const borrowSpeed = await call(comptroller, 'venusBorrowSpeeds', [vLOW._address]);
+      expect(supplySpeed).toEqualNumber(0);
+      expect(borrowSpeed).toEqualNumber(0);
     });
 
     it('should get correct speeds with borrows', async () => {
       await pretendBorrow(vLOW, a1, 1, 1, 100);
       await send(comptroller, 'harnessAddVenusMarkets', [[vLOW._address]]);
       const tx = await send(comptroller, 'harnessRefreshVenusSpeeds');
-      const speed = await call(comptroller, 'venusSpeeds', [vLOW._address]);
-      expect(speed).toEqualNumber(venusRate);
-      expect(tx).toHaveLog(['VenusSpeedUpdated', 0], {
+      const supplySpeed = await call(comptroller, 'venusSupplySpeeds', [vLOW._address]);
+      const borrowSpeed = await call(comptroller, 'venusBorrowSpeeds', [vLOW._address]);
+      expect(supplySpeed).toEqualNumber(venusRate);
+      expect(borrowSpeed).toEqualNumber(venusRate);
+      expect(tx).toHaveLog(['VenusSupplySpeedUpdated', 0], {
         vToken: vLOW._address,
-        newSpeed: speed
+        oldSpeed: 1,  // since harnessAddVenusMarkets sets speeds to 1
+        newSpeed: supplySpeed
+      });
+      expect(tx).toHaveLog(['VenusBorrowSpeedUpdated', 0], {
+        vToken: vLOW._address,
+        oldSpeed: 1,  // since harnessAddVenusMarkets sets speeds to 1
+        newSpeed: borrowSpeed
       });
     });
 
@@ -683,12 +708,18 @@ describe('Flywheel', () => {
       await pretendBorrow(vZRX, a1, 1, 1, 100);
       await send(comptroller, 'harnessAddVenusMarkets', [[vLOW._address, vZRX._address]]);
       await send(comptroller, 'harnessRefreshVenusSpeeds');
-      const speed1 = await call(comptroller, 'venusSpeeds', [vLOW._address]);
-      const speed2 = await call(comptroller, 'venusSpeeds', [vREP._address]);
-      const speed3 = await call(comptroller, 'venusSpeeds', [vZRX._address]);
-      expect(speed1).toEqualNumber(venusRate.div(4));
-      expect(speed2).toEqualNumber(0);
-      expect(speed3).toEqualNumber(venusRate.div(4).mul(3));
+      const supplySpeed1 = await call(comptroller, 'venusSupplySpeeds', [vLOW._address]);
+      const supplySpeed2 = await call(comptroller, 'venusSupplySpeeds', [vREP._address]);
+      const supplySpeed3 = await call(comptroller, 'venusSupplySpeeds', [vZRX._address]);
+      const borrowSpeed1 = await call(comptroller, 'venusBorrowSpeeds', [vLOW._address]);
+      const borrowSpeed2 = await call(comptroller, 'venusBorrowSpeeds', [vREP._address]);
+      const borrowSpeed3 = await call(comptroller, 'venusBorrowSpeeds', [vZRX._address]);
+      expect(supplySpeed1).toEqualNumber(venusRate.div(4));
+      expect(borrowSpeed1).toEqualNumber(venusRate.div(4));
+      expect(supplySpeed2).toEqualNumber(0);
+      expect(borrowSpeed2).toEqualNumber(0);
+      expect(supplySpeed3).toEqualNumber(venusRate.div(4).mul(3));
+      expect(borrowSpeed3).toEqualNumber(venusRate.div(4).mul(3));
     });
   });
 
@@ -699,8 +730,14 @@ describe('Flywheel', () => {
       const tx2 = await send(comptroller, 'harnessAddVenusMarkets', [[vBAT._address]]);
       const markets = await call(comptroller, 'getVenusMarkets');
       expect(markets).toEqual([vLOW, vREP, vZRX, vBAT].map((c) => c._address));
-      expect(tx2).toHaveLog('VenusSpeedUpdated', {
+      expect(tx2).toHaveLog('VenusSupplySpeedUpdated', {
         vToken: vBAT._address,
+        oldSpeed: 0,
+        newSpeed: 1
+      });
+      expect(tx2).toHaveLog('VenusBorrowSpeedUpdated', {
+        vToken: vBAT._address,
+        oldSpeed: 0,
         newSpeed: 1
       });
     });
@@ -714,7 +751,7 @@ describe('Flywheel', () => {
       await send(comptroller, "setVenusSupplyState", [mkt, idx, bn0]);
       await send(comptroller, "setVenusBorrowState", [mkt, idx, bn0]);
       await send(comptroller, "setBlockNumber", [bn1]);
-      await send(comptroller, "_setVenusSpeed", [mkt, 0]);
+      await send(comptroller, "_setVenusSpeed", [mkt, 0, 0]);
       await send(comptroller, "harnessAddVenusMarkets", [[mkt]]);
 
       const supplyState = await call(comptroller, 'venusSupplyState', [mkt]);
