@@ -2,9 +2,11 @@ const {
   makeComptroller,
   makeVToken,
   balanceOf,
+  enterMarkets,
   fastForward,
   pretendBorrow,
-  quickMint
+  quickMint,
+  quickBorrow
 } = require('../Utils/Venus');
 const {
   bnbExp,
@@ -38,6 +40,7 @@ describe('Flywheel', () => {
     vREP = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 2, interestRateModelOpts});
     vZRX = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 3, interestRateModelOpts});
     vEVIL = await makeVToken({comptroller, supportMarket: false, underlyingPrice: 3, interestRateModelOpts});
+    vUSD = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 1, collateralFactor: 0.5, interestRateModelOpts});
   });
 
   describe('_grantXVS()', () => {
@@ -139,6 +142,95 @@ describe('Flywheel', () => {
 
       const markets = await call(comptroller, 'getVenusMarkets');
       expect(markets).toEqual([]);
+    });
+
+    it('should correctly set differing XVS supply and borrow speeds', async () => {
+      const desiredVenusSupplySpeed = 3;
+      const desiredVenusBorrowSpeed = 20;
+      const tx = await send(
+        comptroller, '_setVenusSpeed',
+        [vLOW._address, desiredVenusSupplySpeed, desiredVenusBorrowSpeed]
+      );
+      expect(tx).toHaveLog(['VenusSupplySpeedUpdated', 0], {
+        vToken: vLOW._address,
+        oldSpeed: 0,
+        newSpeed: desiredVenusSupplySpeed
+      });
+      expect(tx).toHaveLog(['VenusBorrowSpeedUpdated', 0], {
+        vToken: vLOW._address,
+        oldSpeed: 0,
+        newSpeed: desiredVenusBorrowSpeed
+      });
+      const currentVenusSupplySpeed = await call(comptroller, 'venusSupplySpeeds', [vLOW._address]);
+      const currentVenusBorrowSpeed = await call(comptroller, 'venusBorrowSpeeds', [vLOW._address]);
+      expect(currentVenusSupplySpeed).toEqualNumber(desiredVenusSupplySpeed);
+      expect(currentVenusBorrowSpeed).toEqualNumber(desiredVenusBorrowSpeed);
+    });
+
+    const checkAccrualsBorrowAndSupply = async ({ venusSupplySpeed, venusBorrowSpeed }) => {
+      const mintAmount = bnbUnsigned(1000e18)
+      const borrowAmount = bnbUnsigned(1e18)
+      const borrowCollateralAmount = bnbUnsigned(1000e18)
+      const venusRemaining = venusRate.mul(100)
+      const deltaBlocks = 10;
+
+      // Transfer XVS to the comptroller
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+
+      // Set XVS speeds to 0 while we setup
+      await send(comptroller, '_setVenusSpeed', [vLOW._address, 0, 0]);
+      await send(comptroller, '_setVenusSpeed', [vUSD._address, 0, 0]);
+
+      // a2 - supply
+      await quickMint(vLOW, a2, mintAmount); // a2 is the supplier
+
+      // a1 - borrow (with supplied collateral)
+      await quickMint(vUSD, a1, borrowCollateralAmount);
+      await enterMarkets([vUSD], a1);
+      expect(await quickBorrow(vLOW, a1, borrowAmount)).toSucceed(); // a1 is the borrower
+
+      // Initialize XVS speeds
+      await send(comptroller, '_setVenusSpeed', [vLOW._address, venusSupplySpeed, venusBorrowSpeed]);
+
+      // Get initial XVS balances
+      const a1TotalVenusPre = await totalVenusAccrued(comptroller, a1);
+      const a2TotalVenusPre = await totalVenusAccrued(comptroller, a2);
+
+      // Start off with no XVS accrued and no XVS balance
+      expect(a1TotalVenusPre).toEqualNumber(0);
+      expect(a2TotalVenusPre).toEqualNumber(0);
+
+      // Fast forward blocks
+      await fastForward(comptroller, deltaBlocks);
+
+      // Accrue XVS
+      await send(comptroller, 'claimVenus', [[a1, a2], [vLOW._address], true, true]);
+
+      // Get accrued XVS balances
+      const a1TotalVenusPost = await totalVenusAccrued(comptroller, a1);
+      const a2TotalVenusPost = await totalVenusAccrued(comptroller, a2);
+
+      // check accrual for borrow
+      if (Number(venusBorrowSpeed) == 0) {
+        expect(a1TotalVenusPost).toEqualNumber(0);
+      } else {
+        expect(a1TotalVenusPost).toEqualNumber(venusBorrowSpeed.mul(deltaBlocks).sub(1));
+      }
+
+      // check accrual for supply
+      if (Number(venusSupplySpeed) == 0) {
+        expect(a2TotalVenusPost).toEqualNumber(0);
+      } else {
+        expect(a2TotalVenusPost).toEqualNumber(venusSupplySpeed.mul(deltaBlocks));
+      }
+    };
+
+    it('should accrue XVS correctly with only supply-side rewards', async () => {
+      await checkAccrualsBorrowAndSupply({ venusSupplySpeed: bnbExp(0.5), venusBorrowSpeed: bnbExp(0.5) });
+    });
+
+    it('should accrue XVS correctly with only borrow-side rewards', async () => {
+      await checkAccrualsBorrowAndSupply({ venusSupplySpeed: 0, venusBorrowSpeed: bnbExp(0.5) });
     });
   });
 
