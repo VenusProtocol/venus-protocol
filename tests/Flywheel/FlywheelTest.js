@@ -13,6 +13,7 @@ const {
 } = require('../Utils/BSC');
 
 const venusRate = bnbUnsigned(1e18);
+const venusInitialIndex = 1e36;
 
 async function venusAccrued(comptroller, user) {
   return bnbUnsigned(await call(comptroller, 'venusAccrued', [user]));
@@ -174,7 +175,7 @@ describe('Flywheel', () => {
       ]);
 
       const {index, block} = await call(comptroller, 'venusBorrowState', [mkt._address]);
-      expect(index).toEqualNumber(0);
+      expect(index).toEqualNumber(venusInitialIndex);
       expect(block).toEqualNumber(100);
       const speed = await call(comptroller, 'venusSpeeds', [mkt._address]);
       expect(speed).toEqualNumber(0);
@@ -240,7 +241,7 @@ describe('Flywheel', () => {
       ]);
 
       const {index, block} = await call(comptroller, 'venusSupplyState', [mkt._address]);
-      expect(index).toEqualNumber(0);
+      expect(index).toEqualNumber(venusInitialIndex);
       expect(block).toEqualNumber(100);
       const speed = await call(comptroller, 'venusSpeeds', [mkt._address]);
       expect(speed).toEqualNumber(0);
@@ -377,7 +378,7 @@ describe('Flywheel', () => {
       await send(comptroller, "harnessDistributeBorrowerVenus", [mkt._address, a1, bnbExp(1.1)]);
       expect(await venusAccrued(comptroller, a1)).toEqualNumber(0);
       expect(await xvsBalance(comptroller, a1)).toEqualNumber(0);
-      expect(await call(comptroller, 'venusBorrowerIndex', [mkt._address, a1])).toEqualNumber(0);
+      expect(await call(comptroller, 'venusBorrowerIndex', [mkt._address, a1])).toEqualNumber(venusInitialIndex);
     });
   });
 
