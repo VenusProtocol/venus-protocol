@@ -229,9 +229,9 @@ contract XVSVault is XVSVaultStorage {
      * @param blockNumber The block number to get the vote balance at
      * @return The balance that user staked
      */
-    function getPriorVotes(address account, uint256 blockNumber) external view returns (uint256) {
-        require(blockNumber < block.number, 'XVSVault::getPriorVotes: not yet determined');
-        require(xvsAddress != address(0), 'XVSVault:getPriorVotes: xvs address is not set');
+    function getPriorVotes(address account, uint256 blockNumber) external view returns (uint96) {
+        require(blockNumber < block.number, "XVSVault::getPriorVotes: not yet determined");
+        require(xvsAddress != address(0), "XVSVault:getPriorVotes: xvs address is not set");
 
         PoolInfo[] storage poolInfo = poolInfos[xvsAddress];
 
@@ -239,10 +239,10 @@ contract XVSVault is XVSVaultStorage {
         for (uint256 pid = 0; pid < length; ++pid) {
             if (address(poolInfo[pid].token) == address(xvsAddress)) {
                 UserInfo storage user = userInfos[xvsAddress][pid][account];
-                return user.amount;
+                return uint96(user.amount);
             }
         }
-        return 0;        
+        return uint96(0);
     }
 
     /**
