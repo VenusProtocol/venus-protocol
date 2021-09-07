@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/SwipeWallet/venus-protocol/venus-protocol.svg?style=svg&circle-token=5ed19932325c559a06f71f87d69012aedd2cf3fb)](https://circleci.com/gh/SwipeWallet/venus-protocol) [![codecov](https://codecov.io/gh/SwipeWallet/venus-protocol/branch/master/graph/badge.svg?token=q4UvsvVzOX)](https://codecov.io/gh/SwipeWallet/venus-protocol)
+[![GitHub Actions](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml/badge.svg)](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml)
 
 Venus Protocol
 =================
@@ -6,6 +6,8 @@ Venus Protocol
 The Venus Protocol is an Binance Smart Chain smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain *supply* capital (BNB or BEP-20 tokens) to receive vTokens or *borrow* assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers.
 
 Before getting started with this repo, please read:
+
+- [Venus Whitepaper](https://github.com/VenusProtocol/venus-protocol/tree/master/docs/VenusWhitepaper.pdf)
 
 Contracts
 =========
@@ -71,7 +73,7 @@ Installation
 ------------
 To run venus, pull the repository from GitHub and install its dependencies. You will need [yarn](https://yarnpkg.com/lang/en/docs/install/) or [npm](https://docs.npmjs.com/cli/install) installed.
 
-    git clone https://github.com/SwipeWallet/venus-protocol
+    git clone https://github.com/VenusProtocol/venus-protocol
     cd venus-protocol
     yarn install --lock-file # or `npm install`
 
@@ -87,29 +89,29 @@ The Venus Protocol has a simple scenario evaluation tool to test and evaluate sc
     Command: Read VToken vBAT Address
     AddressV<val=0xAD53863b864AE703D31b819d29c14cDA93D7c6a6>
 
-You can read more about the scenario runner in the [Scenario Docs](https://github.com/SwipeWallet/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
+You can read more about the scenario runner in the [Scenario Docs](https://github.com/VenusProtocol/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
 
 Testing
 -------
-Jest contract tests are defined under the [tests directory](https://github.com/SwipeWallet/venus-protocol/tree/master/tests). To run the tests run:
+Jest contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
 
     yarn test
 
 Integration Specs
 -----------------
 
-There are additional tests under the [spec/scenario](https://github.com/SwipeWallet/venus-protocol/tree/master/spec/scenario) folder. These are high-level integration tests based on the scenario runner depicted above. The aim of these tests is to be highly literate and have high coverage in the interaction of contracts.
+There are additional tests under the [spec/scenario](https://github.com/VenusProtocol/venus-protocol/tree/master/spec/scenario) folder. These are high-level integration tests based on the scenario runner depicted above. The aim of these tests is to be highly literate and have high coverage in the interaction of contracts.
 
 Formal Verification Specs
 -------------------------
 
 The Venus Protocol has a number of formal verification specifications, powered by [Certik](https://certik.foundation/projects/swipe). The Certik Verification evaluates smart contracts for vulnerabilities and certifies their behavior with respect to a custom function specification.
 =======
-See the [Scenario Docs](https://github.com/SwipeWallet/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
+See the [Scenario Docs](https://github.com/VenusProtocol/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
 
 Testing
 -------
-Contract tests are defined under the [tests directory](https://github.com/SwipeWallet/venus-protocol/tree/master/tests). To run the tests run:
+Contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
 
     yarn test
 
@@ -166,7 +168,7 @@ After you deploy, as above, you can run a truffle console with the following com
 
     yarn console -n goerli
 
-This command will start a saddle console conencted to Goerli testnet (see [Saddle README](https://github.com/SwipeWallet/saddle#cli)):
+This command will start a saddle console conencted to Goerli testnet (see [Saddle README](https://github.com/compound-finance/saddle#cli)):
 
 ```javascript
     Using network goerli https://goerli.infura.io/v3/e1a5d4d2c06a4e81945fca56d0d5d8ea
