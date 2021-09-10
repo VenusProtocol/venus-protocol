@@ -3,7 +3,6 @@ import {
   checkExpectations,
   checkInvariants,
   clearInvariants,
-  describeUser,
   holdInvariants,
   setEvent,
   World
@@ -30,9 +29,13 @@ import { invariantCommands, processInvariantEvent } from './Event/InvariantEvent
 import { expectationCommands, processExpectationEvent } from './Event/ExpectationEvent';
 import { timelockCommands, processTimelockEvent } from './Event/TimelockEvent';
 import { xvsCommands, processXVSEvent } from './Event/XVSEvent';
+import { xvsVaultCommands, processXVSVaultEvent } from './Event/XVSVaultEvent';
+import { xvsVaultImplCommands, processXVSVaultImplEvent } from './Event/XVSVaultImplEvent';
+import { xvsVaultProxyCommands, processXVSVaultProxyEvent } from './Event/XVSVaultProxyEvent';
 import { sxpCommands, processSXPEvent } from './Event/SXPEvent';
 import { vaiCommands, processVAIEvent } from './Event/VAIEvent';
 import { governorCommands, processGovernorEvent } from './Event/GovernorEvent';
+import { governorBravoCommands, processGovernorBravoEvent } from './Event/GovernorBravoEvent';
 import { processTrxEvent, trxCommands } from './Event/TrxEvent';
 import { getFetchers, getCoreValue } from './CoreValue';
 import { formatEvent } from './Formatter';
@@ -47,7 +50,7 @@ import { buildContractEvent } from './EventBuilder';
 import { Counter } from './Contract/Counter';
 import { VenusLens } from './Contract/VenusLens';
 import { Reservoir } from './Contract/Reservoir';
-import Web3 from 'web3';
+import { XVSStore } from './Contract/XVSVault';
 
 export class EventProcessingError extends Error {
   error: Error;
@@ -841,6 +844,51 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
 
   new Command<{ event: EventV }>(
     `
+      #### XVSVault
+
+      * "XVSVault ...event" - Runs given XVS Vault event
+      * E.g. "XVSVault Deploy"
+    `,
+    'XVSVault',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => {
+      return processXVSVaultEvent(world, event.val, from);
+    },
+    { subExpressions: xvsVaultCommands() }
+  ),
+
+  new Command<{ event: EventV }>(
+    `
+      #### XVSVaultImpl
+
+      * "XVSVaultImpl ...event" - Runs given XVS Vault implementation event
+      * E.g. "XVSVaultImpl Deploy MyVaultImpl"
+    `,
+    'XVSVaultImpl',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => {
+      return processXVSVaultImplEvent(world, event.val, from);
+    },
+    { subExpressions: xvsVaultImplCommands() }
+  ),
+
+  new Command<{ event: EventV }>(
+    `
+      #### XVSVaultProxy
+
+      * "XVSVaultProxy ...event" - Runs given XVS Vault proxy event
+      * E.g. "XVSVaultProxy Deploy"
+    `,
+    'XVSVaultProxy',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => {
+      return processXVSVaultProxyEvent(world, event.val, from);
+    },
+    { subExpressions: xvsVaultProxyCommands() }
+  ),
+
+  new Command<{ event: EventV }>(
+    `
       #### SXP
 
       * "SXP ...event" - Runs given sxp event
@@ -884,9 +932,24 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     { subExpressions: governorCommands() }
   ),
 
+  new Command<{ event: EventV }>(
+    `
+      #### GovernorBravo
+      * "GovernorBravo ...event" - Runs given governorBravo event
+      * E.g. "GovernorBravo Deploy BravoDelegate"
+    `,
+    'GovernorBravo',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => {
+      return processGovernorBravoEvent(world, event.val, from);
+    },
+    { subExpressions: governorBravoCommands() }
+  ),
+
   buildContractEvent<Counter>("Counter", false),
   buildContractEvent<VenusLens>("VenusLens", false),
   buildContractEvent<Reservoir>("Reservoir", true),
+  buildContractEvent<XVSStore>("XVSStore", true),
 
   new View<{ event: EventV }>(
     `

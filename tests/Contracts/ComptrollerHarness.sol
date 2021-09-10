@@ -117,10 +117,6 @@ contract ComptrollerHarness is Comptroller {
         distributeSupplierVenus(vToken, supplier);
     }
 
-    function harnessDistributeVAIMinterVenus(address vaiMinter) public {
-        distributeVAIMinterVenus(vaiMinter);
-    }
-
     function harnessTransferVenus(address user, uint userAccrued, uint threshold) public returns (uint) {
         if (userAccrued > 0 && userAccrued >= threshold) {
             return grantXVSInternal(user, userAccrued);
