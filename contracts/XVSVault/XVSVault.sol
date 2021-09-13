@@ -17,8 +17,11 @@ contract XVSVault is XVSVaultStorage {
     /// @notice Event emitted when deposit
     event Deposit(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
-    /// @notice Event emitted when withrawal
-    event Withdraw(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
+    /// @notice Event emitted when execute withrawal
+    event ExecutedWithdraw(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
+
+    /// @notice Event emitted when request withrawal
+    event ReqestedWithdrawal(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
     /// @notice Event emitted when admin changed
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
@@ -109,8 +112,17 @@ contract XVSVault is XVSVaultStorage {
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardAmount;
     }
 
+    // Update the given reward token's amount per block
+    function setWithdrawalLockingPeriod(
+        uint256 _newPeriod
+    ) public onlyAdmin {
+        require(_newPeriod > 0, "Invalid new locking period");
+        lockPeriod = _newPeriod;
+    }
+
     /**
      * @notice Deposit XVSVault for XVS allocation
+     * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _amount The amount to deposit to vault
      */
@@ -132,18 +144,24 @@ contract XVSVault is XVSVaultStorage {
         );
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
-        emit Deposit(_rewardToken, msg.sender, _pid, _amount);
+        emit Deposit(msg.sender, _rewardToken, _pid, _amount);
     }
 
     /**
-     * @notice Withdraw XVS to XVSVault for XVS allocation
+     * @notice Execute withdrawal to XVSVault for XVS allocation
+     * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
-     * @param _amount The amount to withdraw to vault
      */
-    function withdraw(address _rewardToken, uint256 _pid, uint256 _amount) public nonReentrant {
+    function ExecuteWithdrawal(address _rewardToken, uint256 _pid) public nonReentrant {
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
-        require(user.amount >= _amount, "withdraw: not good");
+        WithdrawalInfo storage withdrawal = withdrawlInfos[_rewardToken][_pid][msg.sender];
+        uint256 curTimestamp = block.timestamp;
+        uint256 _amount = withdrawal.amount;
+
+        require(withdrawal.amount > 0, "no request to execute");
+        require(lockPeriod.add(withdrawal.timestamp) < curTimestamp, "your request is locked yet");
+
         updatePool(_rewardToken, _pid);
         uint256 pending =
             user.amount.mul(pool.accRewardPerShare).div(1e12).sub(
@@ -153,7 +171,46 @@ contract XVSVault is XVSVaultStorage {
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         pool.token.transfer(address(msg.sender), _amount);
-        emit Withdraw(_rewardToken, msg.sender, _pid, _amount);
+
+        withdrawal.amount = 0;
+
+        emit ExecutedWithdraw(msg.sender, _rewardToken, _pid, _amount);
+    }
+
+    /**
+     * @notice Request withdrawal to XVSVault for XVS allocation
+     * @param _rewardToken The Reward Token Address
+     * @param _pid The Pool Index
+     * @param _amount The amount to withdraw to vault
+     */
+    function RequestWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount) public nonReentrant {
+        UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
+        WithdrawalInfo storage withdrawal = withdrawlInfos[_rewardToken][_pid][msg.sender];
+        require(_amount > 0, "requested amount cant be zero");
+        require(user.amount >= _amount, "requested amount is invalid");
+        require(withdrawal.amount == 0, "request again after execute");
+        
+        withdrawal.amount = _amount;
+        withdrawal.timestamp = block.timestamp;
+        emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);        
+    }
+
+    /**
+     * @notice Get unlocked withdrawal amount
+     * @param _rewardToken The Reward Token Address
+     * @param _pid The Pool Index
+     */
+    function getEligibleWithdrawalAmount(address _rewardToken, uint256 _pid)
+        public
+        view
+        returns (uint256)
+    {
+        WithdrawalInfo storage withdrawal = withdrawlInfos[_rewardToken][_pid][msg.sender];
+        uint256 curTimestamp = block.timestamp;
+        if(withdrawal.amount > 0 && lockPeriod.add(withdrawal.timestamp) < curTimestamp)  {
+            return withdrawal.amount;
+        }
+        return 0;
     }
 
     // View function to see pending XVSs on frontend.
