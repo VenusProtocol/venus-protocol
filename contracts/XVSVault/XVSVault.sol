@@ -199,18 +199,34 @@ contract XVSVault is XVSVaultStorage {
      * @notice Get unlocked withdrawal amount
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
+     * @param _user The User Address
      */
-    function getEligibleWithdrawalAmount(address _rewardToken, uint256 _pid)
+    function getEligibleWithdrawalAmount(address _rewardToken, uint256 _pid, address _user)
         public
         view
         returns (uint256)
     {
-        WithdrawalInfo storage withdrawal = withdrawlInfos[_rewardToken][_pid][msg.sender];
+        WithdrawalInfo storage withdrawal = withdrawlInfos[_rewardToken][_pid][_user];
         uint256 curTimestamp = block.timestamp;
         if(withdrawal.amount > 0 && lockPeriod.add(withdrawal.timestamp) < curTimestamp)  {
             return withdrawal.amount;
         }
         return 0;
+    }
+
+    /**
+     * @notice Get requested amount
+     * @param _rewardToken The Reward Token Address
+     * @param _pid The Pool Index
+     * @param _user The User Address
+     */
+    function getRequestedAmount(address _rewardToken, uint256 _pid, address _user)
+        public
+        view
+        returns (uint256)
+    {
+        WithdrawalInfo storage withdrawal = withdrawlInfos[_rewardToken][_pid][_user];
+        return withdrawal.amount;
     }
 
     // View function to see pending XVSs on frontend.
