@@ -34,6 +34,9 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
     /// @notice The xvs token address
     address public xvsAddress;
 
+    /// @notice The withdrawal locking period
+    uint256 public lockPeriod;
+
     // Reward tokens created per block indentified by reward token address.
     mapping(address => uint256) public rewardTokenAmountsPerBlock;
 
@@ -51,6 +54,12 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
         uint256 accRewardPerShare;   // Accumulated per share, times 1e12. See below.
     }
 
+    // Info of requested withdrawal
+    struct WithdrawalInfo {
+        uint256 amount;
+        uint256 timestamp;
+    }
+
     // Info of each user that stakes tokens.
     mapping(address => mapping(uint256 => mapping(address => UserInfo))) userInfos;
 
@@ -59,4 +68,7 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
 
     // Total allocation points. Must be the sum of all allocation points in all pools.
     mapping(address => uint256) public totalAllocPoints;
+
+    // Info of requested withdrawals
+    mapping(address => mapping(uint256 => mapping(address => WithdrawalInfo))) withdrawlInfos;
 }
