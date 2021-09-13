@@ -2,6 +2,7 @@ pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
 import "../../contracts/Governance/GovernorBravoDelegate.sol";
+import "./XVSVaultHarness.sol";
 
 contract GovernorBravoDelegateHarness is GovernorBravoDelegate {
 	// @notice Harness initiate the GovenorBravo contract
@@ -12,12 +13,12 @@ contract GovernorBravoDelegateHarness is GovernorBravoDelegate {
         initialProposalId = 1;
     }
 
-    function initialize(address timelock_, address xvs_, uint votingPeriod_, uint votingDelay_, uint proposalThreshold_) public {
+    function initialize(address timelock_, address xvsVault_, uint votingPeriod_, uint votingDelay_, uint proposalThreshold_) public {
         require(msg.sender == admin, "GovernorBravo::initialize: admin only");
         require(address(timelock) == address(0), "GovernorBravo::initialize: can only initialize once");
 
         timelock = TimelockInterface(timelock_);
-        xvs = XvsInterface(xvs_);
+        xvsVault = XvsVaultInterface(xvsVault_);
         votingPeriod = votingPeriod_;
         votingDelay = votingDelay_;
         proposalThreshold = proposalThreshold_;
