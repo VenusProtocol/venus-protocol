@@ -70,5 +70,5 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
     mapping(address => uint256) public totalAllocPoints;
 
     // Info of requested withdrawals
-    mapping(address => mapping(uint256 => mapping(address => WithdrawalInfo))) withdrawlInfos;
+    mapping(address => mapping(uint256 => mapping(address => WithdrawalInfo))) withdrawalInfos;
 }
