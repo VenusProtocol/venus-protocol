@@ -71,10 +71,6 @@ describe('XVSVaultProxy', () => {
       });
     });
 
-    it.skip("rejects if pending impl is address(0)", async () => {
-      // XXX TODO?
-    });
-
     describe("the vaultImpl must accept the responsibility of implementation", () => {
       let result;
       beforeEach(async () => {
@@ -89,31 +85,6 @@ describe('XVSVaultProxy', () => {
 
       it("Unset pendingXVSVaultImplementation", async () => {
         expect(await call(vaultProxy, 'pendingXVSVaultImplementation')).toBeAddressZero();
-      });
-
-      it.skip("Emit NewImplementation(oldImplementation, newImplementation)", async () => {
-        // TODO:
-        // Does our log decoder expect it to come from the same contract?
-        // assert.toHaveLog(
-        //   result,
-        //   "NewImplementation",
-        //   {
-        //     newImplementation: vaultImpl._address,
-        //     oldImplementation: "0x0000000000000000000000000000000000000000"
-        //   });
-      });
-
-      it.skip("Emit NewPendingImplementation(oldPendingImplementation, 0)", async () => {
-        // TODO:
-        // Does our log decoder expect it to come from the same contract?
-        // Having difficulty decoding these events
-        // assert.toHaveLog(
-        //   result,
-        //   "NewPendingImplementation",
-        //   {
-        //     oldPendingImplementation: vaultImpl._address,
-        //     newPendingImplementation: "0x0000000000000000000000000000000000000000"
-        //   });
       });
     });
 
