@@ -133,21 +133,21 @@ module.exports = {
     rinkeby: {
       providers: [
         {env: "PROVIDER"},
-        {file: "~/.ethereum/rinkeby-url"},                    // Load from given file with contents as the URL (e.g. https://infura.io/api-key)
-        {http: "https://rinkeby-eth.compound.finance"}
+        {file: "~/.ethereum/rinkeby-url"}
       ],
       web3: {
         gas: [
           {env: "GAS"},
-          {default: "5600000"}
+          {default: "29000000"}
+                     
         ],
         gas_price: [
           {env: "GAS_PRICE"},
-          {default: "12000000000"}
+          {default: "20000000000"} //20 GWei
         ],
         options: {
           transactionConfirmationBlocks: 1,
-          transactionBlockTimeout: 5
+          transactionBlockTimeout: 500
         }
       },
       accounts: [
