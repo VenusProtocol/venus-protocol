@@ -36,6 +36,7 @@ import { getXVSValue, xvsFetchers } from './Value/XVSValue';
 import { getSXPValue, sxpFetchers } from './Value/SXPValue';
 import { getVAIValue, vaiFetchers } from './Value/VAIValue';
 import { getGovernorValue, governorFetchers } from './Value/GovernorValue';
+import { getGovernorBravoValue, governorBravoFetchers } from './Value/GovernorBravoValue';
 import { getAddress } from './ContractLookup';
 import { getCurrentBlockNumber, getCurrentTimestamp, mustArray, sendRPC } from './Utils';
 import { toEncodableNum } from './Encoding';
@@ -1013,6 +1014,16 @@ const fetchers = [
     [new Arg('res', getGovernorValue, { variadic: true })],
     async (world, { res }) => res,
     { subExpressions: governorFetchers() }
+  ),
+  new Fetcher<{ res: Value }, Value>(
+    `
+      #### GovernorBravo
+      * "GovernorBravo ...governorArgs" - Returns GovernorBravo value
+    `,
+    'GovernorBravo',
+    [new Arg('res', getGovernorBravoValue, { variadic: true })],
+    async (world, { res }) => res,
+    { subExpressions: governorBravoFetchers() }
   ),
 ];
 
