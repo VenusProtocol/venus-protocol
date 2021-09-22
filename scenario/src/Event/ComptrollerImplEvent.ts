@@ -135,6 +135,29 @@ async function becomeG4(
   return world;
 }
 
+async function becomeG5(
+  world: World,
+  from: string,
+  comptrollerImpl: ComptrollerImpl,
+  unitroller: Unitroller
+): Promise<World> {
+  let invokation = await invoke(
+    world,
+    comptrollerImpl.methods._become(unitroller._address),
+    from,
+    ComptrollerErrorReporter
+  );
+
+  if (!world.dryRun) {
+    // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
+    world = await mergeContractABI(world, 'Comptroller', unitroller, unitroller.name, comptrollerImpl.name);
+  }
+
+  world = addAction(world, `Become ${unitroller._address}'s Comptroller Impl`, invokation);
+
+  return world;
+}
+
 async function become(
   world: World,
   from: string,
@@ -280,6 +303,26 @@ export function comptrollerImplCommands() {
       ],
       (world, from, { unitroller, comptrollerImpl }) => {
         return becomeG4(world, from, comptrollerImpl, unitroller)
+      },
+      { namePos: 1 }
+    ),
+
+    new Command<{
+      unitroller: Unitroller;
+      comptrollerImpl: ComptrollerImpl;
+    }>(
+      `
+        #### BecomeG5
+        * "ComptrollerImpl <Impl> BecomeG5" - Become the comptroller, if possible.
+          * E.g. "ComptrollerImpl MyImpl BecomeG5
+      `,
+      'BecomeG5',
+      [
+        new Arg('unitroller', getUnitroller, { implicit: true }),
+        new Arg('comptrollerImpl', getComptrollerImpl)
+      ],
+      (world, from, { unitroller, comptrollerImpl }) => {
+        return becomeG5(world, from, comptrollerImpl, unitroller)
       },
       { namePos: 1 }
     ),
