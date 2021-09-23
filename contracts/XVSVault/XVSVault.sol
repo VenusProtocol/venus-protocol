@@ -32,12 +32,6 @@ contract XVSVault is XVSVaultStorage {
     /// @notice An event thats emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
 
-    /// @notice The standard BEP-20 transfer event
-    event Transfer(address indexed from, address indexed to, uint256 amount);
-
-    /// @notice The standard BEP-20 approval event
-    event Approval(address indexed owner, address indexed spender, uint256 amount);
-
     constructor() public {
         admin = msg.sender;
     }
