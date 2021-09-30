@@ -29,6 +29,9 @@
         "BNB": "0xe800da86830a012dbede538f834b3a1fcc9cb642",
         "vBNB": "0x5CAF01A6c80740640519B308022a9bbA751a31eb"
     },
+    "Accounts": {
+        "TimelockAdmin": "0xaC01AFA9F45dD61F234a401f4650FFF5a3971117"
+    },
     "Blocks": {
         "vUSDC": 9329751,
         "Maximillion": 9329617,
