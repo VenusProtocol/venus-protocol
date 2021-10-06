@@ -44,6 +44,7 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
     struct UserInfo {
         uint256 amount;
         uint256 rewardDebt;
+        uint256 pendingWithdrawals;
     }
 
     // Info of each pool.
@@ -54,10 +55,10 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
         uint256 accRewardPerShare;   // Accumulated per share, times 1e12. See below.
     }
 
-    // Info of requested withdrawal
-    struct WithdrawalInfo {
+    // Infomation about a withdrawal request
+    struct WithdrawalRequest {
         uint256 amount;
-        uint256 timestamp;
+        uint256 lockedUntil;
     }
 
     // Info of each user that stakes tokens.
@@ -69,8 +70,8 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
     // Total allocation points. Must be the sum of all allocation points in all pools.
     mapping(address => uint256) public totalAllocPoints;
 
-    // Info of requested withdrawals
-    mapping(address => mapping(uint256 => mapping(address => WithdrawalInfo))) withdrawalInfos;
+    // Info of requested but not yet executed withdrawals
+    mapping(address => mapping(uint256 => mapping(address => WithdrawalRequest[]))) withdrawalRequests;
 
     /// @notice A record of each accounts delegate
     mapping (address => address) public delegates;
