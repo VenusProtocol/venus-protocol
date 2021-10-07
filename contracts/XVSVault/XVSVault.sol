@@ -63,6 +63,7 @@ contract XVSVault is XVSVaultStorage {
         uint256 _allocPoint,
         IBEP20 _token,
         uint256 _rewardPerBlock,
+        uint256 _lockPeriod,
         bool _withUpdate
     ) public onlyAdmin {
         require(address(xvsStore) != address(0), "Store contract addres is empty");
@@ -87,7 +88,8 @@ contract XVSVault is XVSVaultStorage {
                 token: _token,
                 allocPoint: _allocPoint,
                 lastRewardBlock: block.number,
-                accRewardPerShare: 0
+                accRewardPerShare: 0,
+                lockPeriod: _lockPeriod
             })
         );
 
@@ -122,10 +124,13 @@ contract XVSVault is XVSVaultStorage {
 
     // Update the given reward token's amount per block
     function setWithdrawalLockingPeriod(
+        address _rewardToken,
+        uint256 _pid,
         uint256 _newPeriod
     ) public onlyAdmin {
         require(_newPeriod > 0, "Invalid new locking period");
-        lockPeriod = _newPeriod;
+        PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+        pool.lockPeriod = _newPeriod;
     }
 
     /**
@@ -173,18 +178,18 @@ contract XVSVault is XVSVaultStorage {
     function pushWithdrawalRequest(
         UserInfo storage _user,
         WithdrawalRequest[] storage _requests,
-        uint _amount
+        uint _amount,
+        uint _lockedUntil
     )
         internal
     {
         uint i = _requests.length;
-        uint newRequestUnlockTime = lockPeriod.add(block.timestamp);
         _requests.push(WithdrawalRequest(0, 0));
         // Keep it sorted so that the first to get unlocked request is always at the end
-        for (; i > 0 && _requests[i - 1].lockedUntil <= newRequestUnlockTime; --i) {
+        for (; i > 0 && _requests[i - 1].lockedUntil <= _lockedUntil; --i) {
             _requests[i] = _requests[i - 1];
         }
-        _requests[i] = WithdrawalRequest(_amount, newRequestUnlockTime);
+        _requests[i] = WithdrawalRequest(_amount, _lockedUntil);
         _user.pendingWithdrawals = _user.pendingWithdrawals.add(_amount);
     }
 
@@ -260,13 +265,15 @@ contract XVSVault is XVSVaultStorage {
      * @param _amount The amount to withdraw to vault
      */
     function requestWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount) public nonReentrant {
-        UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
-
-        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
         require(_amount > 0, "requested amount cannot be zero");
+        UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
         require(user.amount >= user.pendingWithdrawals.add(_amount), "requested amount is invalid");
 
-        pushWithdrawalRequest(user, requests, _amount);
+        PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
+        uint lockedUntil = pool.lockPeriod.add(block.timestamp);
+
+        pushWithdrawalRequest(user, requests, _amount, lockedUntil);
 
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {

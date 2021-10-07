@@ -5,6 +5,7 @@ const {
 } = require('../Utils/BSC');
 
 const rewardPerBlock = bnbUnsigned(1e16);
+const defaultLockPeriod = 300;
 const tokenAmount = bnbUnsigned(1e22);
 
 describe('XVSVault', () => {
@@ -25,7 +26,6 @@ describe('XVSVault', () => {
 
     await send(xvsStore, 'setNewOwner', [xvsVault._address], { from: root });
     await send(xvsVault, 'setXvsStore', [xvs._address, xvsStore._address], { from: root });
-    await send(xvsVault, 'setWithdrawalLockingPeriod', [300], { from: root });
     await send(xvs, 'transfer', [xvsStore._address, tokenAmount], { from: root });
     await send(sxp, 'transfer', [xvsStore._address, tokenAmount], { from: root });
 
@@ -68,10 +68,6 @@ describe('XVSVault', () => {
     it('check xvs store address', async () => {
       expect(await call(xvsVault, 'xvsStore', [])).toEqual(xvsStore._address);
     });
-
-    it('check withdrawal unlock period', async () => {
-      expect(await call(xvsVault, 'lockPeriod', [])).toEqual("300");
-    });
   });
 
   describe('test to manage reward pool config', () => {
@@ -81,12 +77,14 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0], { from: root });
 
       const poolInfo = await call(xvsVault, 'poolInfos', [xvs._address, 0]);
       expect(poolInfo['token']).toEqual(xvs._address);
       expect(poolInfo['allocPoint']).toEqual('100');
       expect(poolInfo['accRewardPerShare']).toEqual('0');
+      expect(poolInfo['lockPeriod']).toEqual('300');
 
       expect(await call(xvsStore, 'rewardTokens', [xvs._address])).toEqual(true);
     });
@@ -97,6 +95,7 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0], { from: root });
 
       let poolInfo = await call(xvsVault, 'poolInfos', [xvs._address, 0]);
@@ -124,6 +123,7 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
       await send(xvs, 'transfer', [notAdmin, tokenAmount], { from: root });
@@ -158,6 +158,7 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
       await send(xvs, 'transfer', [notAdmin, tokenAmount], { from: root });
@@ -183,6 +184,7 @@ describe('XVSVault', () => {
         100,
         sxp._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
       await send(sxp, 'transfer', [notAdmin, tokenAmount], { from: root });
@@ -194,7 +196,7 @@ describe('XVSVault', () => {
     // and to correctly test the order of requests, we need to arbitrarily set the lock period.
     // This function makes our tests a bit more concise.
     async function requestWithdrawalWithLockPeriod({ amount, lockPeriod }) {
-      await send(xvsVault, 'setWithdrawalLockingPeriod',  [lockPeriod], { from: root });
+      await send(xvsVault, 'setWithdrawalLockingPeriod',  [xvs._address, 0, lockPeriod], { from: root });
       await send( xvsVault, 'requestWithdrawal', [xvs._address, 0, amount], { from: notAdmin });
     }
 
@@ -300,6 +302,61 @@ describe('XVSVault', () => {
         expect(requestedAmount).toEqual('1100');
       });
     });
+
+    describe('lock period', () => {
+      it('is possible to set lock period when a new pool is created', async () => {
+        const lockPeriod1 = '123456';
+        await send(
+            xvsVault,
+            'add',
+            [xvs._address, 100, sxp._address, rewardPerBlock, lockPeriod1, 0],
+            { from: root }
+        );
+        const lockPeriod2 = '654321';
+        await send(
+          xvsVault,
+          'add',
+          [sxp._address, 100, xvs._address, rewardPerBlock, lockPeriod2, 0],
+          { from: root }
+        );
+        const pool1 = await call(xvsVault, 'poolInfos', [xvs._address, 0]);
+        const pool2 = await call(xvsVault, 'poolInfos', [sxp._address, 0]);
+        expect(pool1.lockPeriod).toEqual('123456');
+        expect(pool2.lockPeriod).toEqual('654321');
+      });
+
+      it('sets lock period separately for each pool', async () => {
+        async function newPool(stakingToken, rewardToken, pid) {
+          await send(
+            xvsVault,
+            'add',
+            [rewardToken._address, 100, stakingToken._address, rewardPerBlock, 0, 0],
+            { from: root }
+          );
+          // pair (reward token, pid) uniquely identifies a pool
+          return [rewardToken._address, pid];
+        }
+        const pool1Id = await newPool(xvs, xvs, 0);
+        const pool2Id = await newPool(xvs, sxp, 0);
+        const pool3Id = await newPool(sxp, xvs, 1);
+        const pool4Id = await newPool(sxp, sxp, 1);
+
+        await send(xvsVault, 'setWithdrawalLockingPeriod',  [...pool1Id, '1111111'], { from: root });
+        await send(xvsVault, 'setWithdrawalLockingPeriod',  [...pool2Id, '2222222'], { from: root });
+        await send(xvsVault, 'setWithdrawalLockingPeriod',  [...pool3Id, '3333333'], { from: root });
+        await send(xvsVault, 'setWithdrawalLockingPeriod',  [...pool4Id, '4444444'], { from: root });
+
+        const pool1 = await call(xvsVault, 'poolInfos', pool1Id);
+        const pool2 = await call(xvsVault, 'poolInfos', pool2Id);
+        const pool3 = await call(xvsVault, 'poolInfos', pool3Id);
+        const pool4 = await call(xvsVault, 'poolInfos', pool4Id);
+
+        expect(pool1.lockPeriod).toEqual('1111111');
+        expect(pool2.lockPeriod).toEqual('2222222');
+        expect(pool3.lockPeriod).toEqual('3333333');
+        expect(pool4.lockPeriod).toEqual('4444444');
+      });
+    })
   });
 
   describe('withdraw xvs token', () => {
@@ -309,6 +366,7 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
       await send(xvs, 'transfer', [notAdmin, tokenAmount], { from: root });
@@ -359,6 +417,7 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
       await send(xvsVault, 'add', [
@@ -366,6 +425,7 @@ describe('XVSVault', () => {
         100,
         sxp._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
 
@@ -374,6 +434,7 @@ describe('XVSVault', () => {
         200,
         xvs._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
       await send(xvsVault, 'add', [
@@ -381,6 +442,7 @@ describe('XVSVault', () => {
         200,
         sxp._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
 
@@ -397,6 +459,7 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
       await send(xvsVault, 'add', [
@@ -404,6 +467,7 @@ describe('XVSVault', () => {
         100,
         sxp._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
 
@@ -412,6 +476,7 @@ describe('XVSVault', () => {
         200,
         xvs._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
       await send(xvsVault, 'add', [
@@ -419,6 +484,7 @@ describe('XVSVault', () => {
         200,
         sxp._address,
         rewardPerBlock,
+        defaultLockPeriod,
         0
       ], { from: root });
 
@@ -450,7 +516,7 @@ describe('XVSVault', () => {
 
   // describe('get prior votes', () => {
   //   it('check votes value', async () => {
-  //     await send(xvsVault, 'add', [xvs._address, 100, xvs._address, rewardPerBlock, 0], { from: root });
+  //     await send(xvsVault, 'add', [xvs._address, 100, xvs._address, rewardPerBlock, defaultLockPeriod, 0], { from: root });
   //     await send(xvs, 'transfer', [notAdmin, tokenAmount], { from: root });
   //     await send(xvs, 'approve', [xvsVault._address, tokenAmount], { from: notAdmin });
   //     await send(xvsVault, 'deposit', [xvs._address, 0, tokenAmount], { from: notAdmin });

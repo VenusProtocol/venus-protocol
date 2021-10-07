@@ -34,9 +34,6 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
     /// @notice The xvs token address
     address public xvsAddress;
 
-    /// @notice The withdrawal locking period
-    uint256 public lockPeriod;
-
     // Reward tokens created per block indentified by reward token address.
     mapping(address => uint256) public rewardTokenAmountsPerBlock;
 
@@ -49,10 +46,11 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
 
     // Info of each pool.
     struct PoolInfo {
-        IBEP20 token;             // Address of token contract to stake.
-        uint256 allocPoint;       // How many allocation points assigned to this pool.
-        uint256 lastRewardBlock; // Last block number that reward tokens distribution occurs.
-        uint256 accRewardPerShare;   // Accumulated per share, times 1e12. See below.
+        IBEP20 token;               // Address of token contract to stake.
+        uint256 allocPoint;         // How many allocation points assigned to this pool.
+        uint256 lastRewardBlock;    // Last block number that reward tokens distribution occurs.
+        uint256 accRewardPerShare;  // Accumulated per share, times 1e12. See below.
+        uint256 lockPeriod;         // Min time between withdrawal request and its execution.
     }
 
     // Infomation about a withdrawal request
