@@ -160,7 +160,8 @@ contract XVSVault is XVSVaultStorage {
 
         // Update Delegate Amount
         if (address(pool.token) == address(xvsAddress)) {
-            _updateDelegate(address(msg.sender), uint96(user.amount));
+            uint256 updatedAmount = user.amount.sub(user.pendingWithdrawals);
+            _updateDelegate(address(msg.sender), uint96(updatedAmount));
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
@@ -407,7 +408,7 @@ contract XVSVault is XVSVaultStorage {
     }
 
     /**
-     * @notice Get the XVS stake balance of an account
+     * @notice Get the XVS stake balance of an account (excluding the pending withdrawals)
      * @param account The address of the account to check
      * @return The balance that user staked
      */
@@ -420,7 +421,7 @@ contract XVSVault is XVSVaultStorage {
         for (uint256 pid = 0; pid < length; ++pid) {
             if (address(poolInfo[pid].token) == address(xvsAddress)) {
                 UserInfo storage user = userInfos[xvsAddress][pid][account];
-                return uint96(user.amount);
+                return uint96(user.amount.sub(user.pendingWithdrawals));
             }
         }
         return uint96(0);
