@@ -186,11 +186,6 @@ contract XVSVault is XVSVaultStorage {
 
         withdrawal.amount = 0;
 
-        // Update Delegate Amount
-        if (address(pool.token) == address(xvsAddress)) {
-            _updateDelegate(address(msg.sender), uint96(user.amount));
-        }
-
         emit ExecutedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }
 
@@ -209,6 +204,13 @@ contract XVSVault is XVSVaultStorage {
         
         withdrawal.amount = _amount;
         withdrawal.timestamp = block.timestamp;
+
+        // Update Delegate Amount
+        if (_rewardToken == address(xvsAddress)) {
+            uint256 updatedAmount = user.amount.sub(_amount);
+            _updateDelegate(address(msg.sender), uint96(updatedAmount));
+        }
+
         emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);        
     }
 
