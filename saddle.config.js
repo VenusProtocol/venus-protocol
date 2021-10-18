@@ -156,6 +156,31 @@ module.exports = {
         {unlocked: 0}
       ]
     },
+    testnet: {
+      providers: [
+        {env: "PROVIDER"},
+        {file: "~/.bsc/testnet-url"}
+      ],
+      web3: {
+        gas: [
+          {env: "GAS"},
+          {default: "5900000"}
+        ],
+        gas_price: [
+          {env: "GAS_PRICE"},
+          {default: "20000000000"} //20 GWei
+        ],
+        options: {
+          transactionConfirmationBlocks: 1,
+          transactionBlockTimeout: 500
+        }
+      },
+      accounts: [
+        {env: "ACCOUNT"},
+        {file: "~/.bsc/testnet"},                        // Load from given file with contents as the private key (e.g. 0x...)
+        {unlocked: 0}
+      ]
+    },
     kovan: {
       providers: [
         {env: "PROVIDER"},
