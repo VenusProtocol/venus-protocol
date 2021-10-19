@@ -2,8 +2,9 @@ Macro DeployGov
     Counter Deploy CNT1
     Timelock Deploy Jared 604800
     Xvs Deploy Bank
+    DeployVault Xvs
     GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
-    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address Xvs) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
+    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
     GovernorBravo LegitGov MergeABI BravoDelegateHarness
     GovernorBravo LegitGov HarnessInitiate
     Enfranchise Root 600001e18
@@ -12,7 +13,9 @@ Macro DeployGov
 
 Macro Enfranchise user amount
     From Bank (Xvs Transfer user amount)
-    From user (Xvs Delegate user)
+    From user (Xvs Approve (Address XVSVault) amount)
+    From user (XVSVault Deposit (Address Xvs) 0 amount)
+    From user (XVSVault Delegate user)
     MineBlock
 
 Macro QueueLastProposal
@@ -121,9 +124,10 @@ Test "Revert when queuing an already executed proposal"
 
 Test "Revert when queuing on invalid Timelock"
     Xvs Deploy Bank
+    DeployVault Xvs
     Enfranchise Root 600001e18
     Counter Deploy CNT1
-    GovernorBravo Deploy BravoImmutable LegitGov (Address Zero) (Address Xvs) (Address Root) 86400 1 100000e18
+    GovernorBravo Deploy BravoImmutable LegitGov (Address Zero) (Address XVSVault) (Address Root) 86400 1 100000e18
     GovernorBravo LegitGov HarnessInitiate
     GovernorBravo LegitGov Propose "Add 5" [(Address CNT1)] [1] ["increment(uint256)"] [["2"]]
     MineBlock
