@@ -325,6 +325,6 @@ Discussion
 
 For any concerns with the protocol, open an issue or visit us on [Telegram](https://t.me/venusprotocol) to discuss.
 
-For security concerns, please email [security@swipe.io](mailto:security@swipe.io).
+For security concerns, please contact the administrators of our telegram chat.
 
-_© Copyright 2020, Swipe Wallet
+© Copyright 2021, Venus Protocol
