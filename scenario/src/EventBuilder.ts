@@ -14,6 +14,7 @@ import {
   EventV,
   NumberV,
   StringV,
+  BoolV,
   Value
 } from './Value';
 import {
@@ -22,6 +23,7 @@ import {
   getEventV,
   getNumberV,
   getStringV,
+  getBoolV,
 } from './CoreValue';
 import { AbiItem, AbiInput } from 'web3-utils';
 
@@ -60,7 +62,11 @@ const typeMappings = () => ({
   'uint96[]': {
     builder: (x) => new ArrayV<NumberV>(x),
     getter: (x) => getArrayV<NumberV>(x),
-  }
+  },
+  'bool': {
+    builder: (x) => new BoolV(x),
+    getter: getBoolV,
+  },
 });
 
 function buildArg(contractName: string, name: string, input: AbiInput): Arg<Value> {
@@ -184,12 +190,16 @@ export function buildContractEvent<T extends Contract>(contractName: string, imp
 
     function commands<T extends Contract>() {
       async function buildOutput(world: World, from: string, fn: string, inputs: object, output: AbiItem): Promise<World> {
-        const sendable = <Sendable<any>>(inputs['contract'].methods[fn](...Object.values(inputs).slice(1)));
+
+        const paramsEncoded = Object.values(inputs).slice(1).map(
+          (param) => typeof(param['encode']) === 'function' ? param.encode() : param.val
+        );
+        const sendable = <Sendable<any>>(inputs['contract'].methods[fn](...paramsEncoded));
         let invokation = await invoke(world, sendable, from);
 
         world = addAction(
           world,
-          `Invokation of ${fn} with inputs ${inputs}`,
+          `Invokation of ${fn} with inputs ${paramsEncoded}`,
           invokation
         );
 
