@@ -1,4 +1,6 @@
 pragma solidity ^0.5.16;
+pragma experimental ABIEncoderV2;
+
 import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
 import "./XVSVaultProxy.sol";
@@ -61,6 +63,7 @@ contract XVSVault is XVSVaultStorage {
         uint256 _allocPoint,
         IBEP20 _token,
         uint256 _rewardPerBlock,
+        uint256 _lockPeriod,
         bool _withUpdate
     ) public onlyAdmin {
         require(address(xvsStore) != address(0), "Store contract addres is empty");
@@ -85,7 +88,8 @@ contract XVSVault is XVSVaultStorage {
                 token: _token,
                 allocPoint: _allocPoint,
                 lastRewardBlock: block.number,
-                accRewardPerShare: 0
+                accRewardPerShare: 0,
+                lockPeriod: _lockPeriod
             })
         );
 
@@ -120,10 +124,13 @@ contract XVSVault is XVSVaultStorage {
 
     // Update the given reward token's amount per block
     function setWithdrawalLockingPeriod(
+        address _rewardToken,
+        uint256 _pid,
         uint256 _newPeriod
     ) public onlyAdmin {
         require(_newPeriod > 0, "Invalid new locking period");
-        lockPeriod = _newPeriod;
+        PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+        pool.lockPeriod = _newPeriod;
     }
 
     /**
@@ -153,10 +160,77 @@ contract XVSVault is XVSVaultStorage {
 
         // Update Delegate Amount
         if (address(pool.token) == address(xvsAddress)) {
-            _updateDelegate(address(msg.sender), uint96(user.amount));
+            uint256 updatedAmount = user.amount.sub(user.pendingWithdrawals);
+            _updateDelegate(address(msg.sender), uint96(updatedAmount));
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
+    }
+
+    /**
+     * @notice Pushes withdrawal request to the requests array and updates
+     *   the pending withdrawals amount. The requests are always sorted
+     *   by unlock time (descending) so that the earliest to execute requests
+     *   are always at the end of the array.
+     * @param _user The user struct storage pointer
+     * @param _requests The user's requests array storage pointer
+     * @param _amount The amount being requested
+     */
+    function pushWithdrawalRequest(
+        UserInfo storage _user,
+        WithdrawalRequest[] storage _requests,
+        uint _amount,
+        uint _lockedUntil
+    )
+        internal
+    {
+        uint i = _requests.length;
+        _requests.push(WithdrawalRequest(0, 0));
+        // Keep it sorted so that the first to get unlocked request is always at the end
+        for (; i > 0 && _requests[i - 1].lockedUntil <= _lockedUntil; --i) {
+            _requests[i] = _requests[i - 1];
+        }
+        _requests[i] = WithdrawalRequest(_amount, _lockedUntil);
+        _user.pendingWithdrawals = _user.pendingWithdrawals.add(_amount);
+    }
+
+    /**
+     * @notice Pops the requests with unlock time < now from the requests
+     *   array and deducts the computed amount from the user's pending
+     *   withdrawals counter. Assumes that the requests array is sorted
+     *   by unclock time (descending).
+     * @dev This function **removes** the eligible requests from the requests
+     *   array. If this function is called, the withdrawal should actually
+     *   happen (or the transaction should be reverted).
+     * @param _user The user struct storage pointer
+     * @param _requests The user's requests array storage pointer
+     * @return The amount eligible for withdrawal (this amount should be
+     *   sent to the user, otherwise the state would be inconsistent).
+     */
+    function popEligibleWithdrawalRequests(
+        UserInfo storage _user,
+        WithdrawalRequest[] storage _requests
+    )
+        internal
+        returns (uint withdrawalAmount)
+    {
+        // Since the requests are sorted by their unlock time, we can just
+        // pop them from the array and stop at the first not-yet-eligible one
+        for (uint i = _requests.length; i > 0 && isUnlocked(_requests[i - 1]); --i) {
+            withdrawalAmount = withdrawalAmount.add(_requests[i - 1].amount);
+            _requests.pop();
+        }
+        _user.pendingWithdrawals = _user.pendingWithdrawals.sub(withdrawalAmount);
+        return withdrawalAmount;
+    }
+
+    /**
+     * @notice Checks if the request is eligible for withdrawal.
+     * @param _request The request struct storage pointer
+     * @return True if the request is eligible for withdrawal, false otherwise
+     */
+    function isUnlocked(WithdrawalRequest storage _request) private view returns (bool) {
+        return _request.lockedUntil <= block.timestamp;
     }
 
     /**
@@ -167,12 +241,10 @@ contract XVSVault is XVSVaultStorage {
     function executeWithdrawal(address _rewardToken, uint256 _pid) public nonReentrant {
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
-        WithdrawalInfo storage withdrawal = withdrawalInfos[_rewardToken][_pid][msg.sender];
-        uint256 curTimestamp = block.timestamp;
-        uint256 _amount = withdrawal.amount;
+        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
 
-        require(withdrawal.amount > 0, "no request to execute");
-        require(lockPeriod.add(withdrawal.timestamp) < curTimestamp, "your request is locked yet");
+        uint256 _amount = popEligibleWithdrawalRequests(user, requests);
+        require(_amount > 0, "nothing to withdraw");
 
         updatePool(_rewardToken, _pid);
         uint256 pending =
@@ -184,8 +256,6 @@ contract XVSVault is XVSVaultStorage {
         user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
         pool.token.transfer(address(msg.sender), _amount);
 
-        withdrawal.amount = 0;
-
         emit ExecutedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }
 
@@ -196,22 +266,23 @@ contract XVSVault is XVSVaultStorage {
      * @param _amount The amount to withdraw to vault
      */
     function requestWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount) public nonReentrant {
+        require(_amount > 0, "requested amount cannot be zero");
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
-        WithdrawalInfo storage withdrawal = withdrawalInfos[_rewardToken][_pid][msg.sender];
-        require(_amount > 0, "requested amount cant be zero");
-        require(user.amount >= _amount, "requested amount is invalid");
-        require(withdrawal.amount == 0, "request again after execute");
-        
-        withdrawal.amount = _amount;
-        withdrawal.timestamp = block.timestamp;
+        require(user.amount >= user.pendingWithdrawals.add(_amount), "requested amount is invalid");
+
+        PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
+        uint lockedUntil = pool.lockPeriod.add(block.timestamp);
+
+        pushWithdrawalRequest(user, requests, _amount, lockedUntil);
 
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {
-            uint256 updatedAmount = user.amount.sub(_amount);
+            uint256 updatedAmount = user.amount.sub(user.pendingWithdrawals);
             _updateDelegate(address(msg.sender), uint96(updatedAmount));
         }
 
-        emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);        
+        emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }
 
     /**
@@ -223,14 +294,16 @@ contract XVSVault is XVSVaultStorage {
     function getEligibleWithdrawalAmount(address _rewardToken, uint256 _pid, address _user)
         public
         view
-        returns (uint256)
+        returns (uint withdrawalAmount)
     {
-        WithdrawalInfo storage withdrawal = withdrawalInfos[_rewardToken][_pid][_user];
-        uint256 curTimestamp = block.timestamp;
-        if(withdrawal.amount > 0 && lockPeriod.add(withdrawal.timestamp) < curTimestamp)  {
-            return withdrawal.amount;
+        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][_user];
+        // Since the requests are sorted by their unlock time, we can take
+        // the entries from the end of the array and stop at the first
+        // not-yet-eligible one
+        for (uint i = requests.length; i > 0 && isUnlocked(requests[i - 1]); --i) {
+            withdrawalAmount = withdrawalAmount.add(requests[i - 1].amount);
         }
-        return 0;
+        return withdrawalAmount;
     }
 
     /**
@@ -244,25 +317,22 @@ contract XVSVault is XVSVaultStorage {
         view
         returns (uint256)
     {
-        WithdrawalInfo storage withdrawal = withdrawalInfos[_rewardToken][_pid][_user];
-        return withdrawal.amount;
+        UserInfo storage user = userInfos[_rewardToken][_pid][_user];
+        return user.pendingWithdrawals;
     }
 
     /**
-     * @notice Get withdrawl info
+     * @notice Returns the array of withdrawal requests that have not been executed yet
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _user The User Address
      */
-    function getWithdrawalInfo(address _rewardToken, uint256 _pid, address _user)
+    function getWithdrawalRequests(address _rewardToken, uint256 _pid, address _user)
         public
         view
-        returns (uint256 amount, uint256 startTimestamp, uint256 endTimestamp)
+        returns (WithdrawalRequest[] memory)
     {
-        WithdrawalInfo storage withdrawal = withdrawalInfos[_rewardToken][_pid][_user];
-        amount = withdrawal.amount;
-        startTimestamp = withdrawal.timestamp;
-        endTimestamp = lockPeriod.add(withdrawal.timestamp);
+        return withdrawalRequests[_rewardToken][_pid][_user];
     }
 
     // View function to see pending XVSs on frontend.
@@ -327,14 +397,18 @@ contract XVSVault is XVSVaultStorage {
         uint256 _pid,
         address _user
     )
-    public view returns (uint256 amount, uint256 rewardDebt) {
+        public
+        view
+        returns (uint256 amount, uint256 rewardDebt, uint256 pendingWithdrawals)
+    {
         UserInfo storage user = userInfos[_rewardToken][_pid][_user];
         amount = user.amount;
         rewardDebt = user.rewardDebt;
+        pendingWithdrawals = user.pendingWithdrawals;
     }
 
     /**
-     * @notice Get the XVS stake balance of an account
+     * @notice Get the XVS stake balance of an account (excluding the pending withdrawals)
      * @param account The address of the account to check
      * @return The balance that user staked
      */
@@ -347,7 +421,7 @@ contract XVSVault is XVSVaultStorage {
         for (uint256 pid = 0; pid < length; ++pid) {
             if (address(poolInfo[pid].token) == address(xvsAddress)) {
                 UserInfo storage user = userInfos[xvsAddress][pid][account];
-                return uint96(user.amount);
+                return uint96(user.amount.sub(user.pendingWithdrawals));
             }
         }
         return uint96(0);
