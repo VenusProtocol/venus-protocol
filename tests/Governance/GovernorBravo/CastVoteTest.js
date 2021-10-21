@@ -4,58 +4,81 @@ const {
   encodeParameters,
   mineBlock,
   unlockedAccount,
-  mergeInterface
+  mergeInterface,
+  bnbUnsigned,
 } = require('../../Utils/BSC');
 const EIP712 = require('../../Utils/EIP712');
 const BigNumber = require('bignumber.js');
 const chalk = require('chalk');
 
-async function enfranchise(xvs, actor, amount) {
-  await send(xvs, 'transfer', [actor, bnbMantissa(amount)]);
-  await send(xvs, 'delegate', [actor], { from: actor });
-}
-
 describe("governorBravo#castVote/2", () => {
-  let xvs, gov, root, a1, accounts, govDelegate;
+  let gov, root, a1, accounts, govDelegate, xvsVault, xvs;
   let targets, values, signatures, callDatas, proposalId;
+  
+  async function enfranchise(actor, amount) {
+    await send(xvsVault, 'delegate', [actor], { from: actor });
+    await send(xvs, 'approve', [xvsVault._address, bnbMantissa(1e10)], { from: actor });
+    // in test cases, we transfer enough token to actor for convenience
+    await send(xvs, 'transfer', [actor, bnbMantissa(amount)]);
+    await send(xvsVault, 'deposit', [xvs._address, 0, bnbMantissa(amount)], { from: actor });
+  }
 
   beforeAll(async () => {
     [root, a1, ...accounts] = saddle.accounts;
-    xvs = await deploy('XVS', [root]);
+
+    // init xvs vault
+    xvsVault = await deploy('XVSVault', []);
+    xvsStore = await deploy('XVSStore', []);
+    xvs = await deploy('XVSScenario', [root]);
+    await send(xvsStore, 'setNewOwner', [xvsVault._address], { from: root });
+    await send(xvsVault, 'setXvsStore', [xvs._address, xvsStore._address], { from: root });
+    // address _rewardToken, uint256 _allocPoint, IBEP20 _token, uint256 _rewardPerBlock, uint256 _lockPeriod, bool _withUpdate
+    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300, 0], { from: root }); // lock period 300ms
+    await send(xvsVault, 'delegate', [root]);
+
     govDelegate = await deploy('GovernorBravoDelegateHarness');
-    gov = await deploy('GovernorBravoDelegator', [address(0), xvs._address, root, govDelegate._address, 86400, 1, "100000000000000000000000"]);
+    gov = await deploy('GovernorBravoDelegator', [address(0), xvsVault._address, root, govDelegate._address, 86400, 1, bnbMantissa(1e4)]);
     mergeInterface(gov,govDelegate);
     await send(gov, '_initiate');
-
 
     targets = [a1];
     values = ["0"];
     signatures = ["getBalanceOf(address)"];
     callDatas = [encodeParameters(['address'], [a1])];
-    await send(xvs, 'delegate', [root]);
-    await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"]);
-    proposalId = await call(gov, 'latestProposalIds', [root]);
+    
   });
 
   describe("We must revert if:", () => {
-    it("There does not exist a proposal with matching proposal id where the current block number is between the proposal's start block (exclusive) and end block (inclusive)", async () => {
+    it("We cannot propose without enough voting power by depositing xvs to the vault", async () => {
       await expect(
-        call(gov, 'castVote', [proposalId, 1])
-      ).rejects.toRevert("revert GovernorBravo::castVoteInternal: voting is closed");
+        send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"])
+      ).rejects.toRevert('revert GovernorBravo::propose: proposer votes below proposal threshold');
     });
-
-    it("Such proposal already has an entry in its voters set matching the sender", async () => {
-      await mineBlock();
-      await mineBlock();
-
-      let vote = await send(gov, 'castVote', [proposalId, 1], { from: accounts[4] });
-
-      let vote2 = await send(gov, 'castVoteWithReason', [proposalId, 1, ""], { from: accounts[3] });
-
-      await expect(
-        gov.methods['castVote'](proposalId, 1).call({ from: accounts[4] })
-      ).rejects.toRevert("revert GovernorBravo::castVoteInternal: voter already voted");
-    });
+    describe("after we deposit xvs to the vault", () => {
+      beforeAll(async () => {
+        await enfranchise(root, 400001);
+        await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"]);
+        proposalId = await call(gov, 'latestProposalIds', [root]);
+      });
+      it("There does not exist a proposal with matching proposal id where the current block number is between the proposal's start block (exclusive) and end block (inclusive)", async () => {
+        await expect(
+          call(gov, 'castVote', [proposalId, 1])
+        ).rejects.toRevert("revert GovernorBravo::castVoteInternal: voting is closed");
+      });
+  
+      it("Such proposal already has an entry in its voters set matching the sender", async () => {
+        await mineBlock();
+        await mineBlock();
+  
+        let vote = await send(gov, 'castVote', [proposalId, 1], { from: accounts[4] });
+  
+        let vote2 = await send(gov, 'castVoteWithReason', [proposalId, 1, ""], { from: accounts[3] });
+  
+        await expect(
+          gov.methods['castVote'](proposalId, 1).call({ from: accounts[4] })
+        ).rejects.toRevert("revert GovernorBravo::castVoteInternal: voter already voted");
+      });
+    })
   });
 
   describe("Otherwise", () => {
@@ -66,11 +89,11 @@ describe("governorBravo#castVote/2", () => {
     });
 
     describe("and we take the balance returned by GetPriorVotes for the given sender and the proposal's start block, which may be zero,", () => {
-      let actor; // an account that will propose, receive tokens, delegate to self, and vote on own proposal
+      let actor; // an account that will propose, deposit token to be franchised
 
       it("and we add that ForVotes", async () => {
         actor = accounts[1];
-        await enfranchise(xvs, actor, 400001);
+        await enfranchise(actor, 400001);
 
         await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: actor });
         proposalId = await call(gov, 'latestProposalIds', [actor]);
@@ -85,7 +108,7 @@ describe("governorBravo#castVote/2", () => {
 
       it("or AgainstVotes corresponding to the caller's support flag.", async () => {
         actor = accounts[3];
-        await enfranchise(xvs, actor, 400001);
+        await enfranchise(actor, 400001);
 
         await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: actor });
         proposalId = await call(gov, 'latestProposalIds', [actor]);;
@@ -117,7 +140,7 @@ describe("governorBravo#castVote/2", () => {
       });
 
       it('casts vote on behalf of the signatory', async () => {
-        await enfranchise(xvs, a1, 400001);
+        await enfranchise(a1, 400001);
         await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: a1 });
         proposalId = await call(gov, 'latestProposalIds', [a1]);;
 
@@ -136,8 +159,8 @@ describe("governorBravo#castVote/2", () => {
      it("receipt uses two loads", async () => {
       let actor = accounts[2];
       let actor2 = accounts[3];
-      await enfranchise(xvs, actor, 400001);
-      await enfranchise(xvs, actor2, 400001);
+      await enfranchise(actor, 400001);
+      await enfranchise(actor2, 400001);
       await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: actor });
       proposalId = await call(gov, 'latestProposalIds', [actor]);
 

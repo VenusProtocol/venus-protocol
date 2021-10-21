@@ -24,19 +24,35 @@ const statesInverted = solparse
 const states = Object.entries(statesInverted).reduce((obj, [key, value]) => ({ ...obj, [value]: key }), {});
 
 describe('GovernorBravo#state/1', () => {
-  let xvs, gov, root, acct, delay, timelock;
+  let xvs, xvsVault, gov, root, acct, delay, timelock;
+
+  async function enfranchise(actor, amount) {
+    await send(xvsVault, 'delegate', [actor], { from: actor });
+    await send(xvs, 'approve', [xvsVault._address, bnbMantissa(1e10)], { from: actor });
+    // in test cases, we transfer enough token to actor for convenience
+    await send(xvs, 'transfer', [actor, bnbMantissa(amount)]); 
+    await send(xvsVault, 'deposit', [xvs._address, 0, bnbMantissa(amount)], { from: actor });
+  }
 
   beforeAll(async () => {
     await freezeTime(100);
     [root, acct, ...accounts] = accounts;
     xvs = await deploy('XVS', [root]);
+
+    xvsVault = await deploy('XVSVault', []);
+    const xvsStore = await deploy('XVSStore', []);
+    await send(xvsStore, 'setNewOwner', [xvsVault._address], { from: root });
+    await send(xvsVault, 'setXvsStore', [xvs._address, xvsStore._address], { from: root });
+    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300, 0], { from: root }); // lock period 300ms
+    
     delay = bnbUnsigned(2 * 24 * 60 * 60).mul(2)
     timelock = await deploy('TimelockHarness', [root, delay]);
-    gov = await deploy('GovernorBravoImmutable', [timelock._address, xvs._address, root, 86400, 1, "100000000000000000000000"]);
+
+    gov = await deploy('GovernorBravoImmutable', [timelock._address, xvsVault._address, root, 86400, 1, "100000000000000000000000"]);
     await send(gov, '_initiate');
     await send(timelock, "harnessSetAdmin", [gov._address])
-    await send(xvs, 'transfer', [acct, bnbMantissa(4000000)]);
-    await send(xvs, 'delegate', [acct], { from: acct });
+    
+    await enfranchise(acct, 400001);
   });
 
   let trivialProposal, targets, values, signatures, callDatas;
@@ -45,7 +61,9 @@ describe('GovernorBravo#state/1', () => {
     values = ["0"];
     signatures = ["getBalanceOf(address)"]
     callDatas = [encodeParameters(['address'], [acct])];
-    await send(xvs, 'delegate', [root]);
+
+    await enfranchise(root, 400001);
+
     await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"]);
     proposalId = await call(gov, 'latestProposalIds', [root]);
     trivialProposal = await call(gov, "proposals", [proposalId])
@@ -66,14 +84,14 @@ describe('GovernorBravo#state/1', () => {
   })
 
   it("Canceled", async () => {
-    await send(xvs, 'transfer', [accounts[0], bnbMantissa(4000000)]);
+    await enfranchise(accounts[0], 400000);
     await send(xvs, 'delegate', [accounts[0]], { from: accounts[0] });
     await mineBlock()
     await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: accounts[0] })
     let newProposalId = await call(gov, 'proposalCount')
 
     // send away the delegates
-    await send(xvs, 'delegate', [root], { from: accounts[0] });
+    await send(xvsVault, 'delegate', [root], { from: accounts[0] });
     await send(gov, 'cancel', [newProposalId])
 
     expect(await call(gov, 'state', [+newProposalId])).toEqual(states["Canceled"])

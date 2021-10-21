@@ -2,16 +2,35 @@ const {
   address,
   bnbMantissa,
   encodeParameters,
-  mineBlock
+  mineBlock,
+  bnbUnsigned
 } = require('../../Utils/BSC');
 
+const votingDelay = 1;
+const votingPeriod = 86400;
+
 describe('GovernorBravo#propose/5', () => {
-  let gov, root, acct;
+  let gov, root, acct, xvs, xvsVault;
+
+  async function enfranchise(actor, amount) {
+    await send(xvsVault, 'delegate', [actor], { from: actor });
+    await send(xvs, 'approve', [xvsVault._address, bnbMantissa(1e10)], { from: actor });
+    // in test cases, we transfer enough token to actor for convenience
+    await send(xvs, 'transfer', [actor, bnbMantissa(amount)]);
+    await send(xvsVault, 'deposit', [xvs._address, 0, bnbMantissa(amount)], { from: actor });
+  }
 
   beforeAll(async () => {
     [root, acct, ...accounts] = accounts;
     xvs = await deploy('XVS', [root]);
-    gov = await deploy('GovernorBravoImmutable', [address(0), xvs._address, root, 86400, 1, "100000000000000000000000"]);
+    
+    xvsVault = await deploy('XVSVault', []);
+    xvsStore = await deploy('XVSStore', []);
+    await send(xvsStore, 'setNewOwner', [xvsVault._address], { from: root });
+    await send(xvsVault, 'setXvsStore', [xvs._address, xvsStore._address], { from: root });
+    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300, 0], { from: root }); // lock period 300ms
+
+    gov = await deploy('GovernorBravoImmutable', [address(0), xvsVault._address, root, votingPeriod, votingDelay, "100000000000000000000000"]);
     await send(gov,'_initiate');
   });
 
@@ -22,7 +41,7 @@ describe('GovernorBravo#propose/5', () => {
     values = ["0"];
     signatures = ["getBalanceOf(address)"];
     callDatas = [encodeParameters(['address'], [acct])];
-    await send(xvs, 'delegate', [root]);
+    await enfranchise(root, 400000);
     await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"]);
     proposalBlock = +(await web3.eth.getBlockNumber());
     proposalId = await call(gov, 'latestProposalIds', [root]);
@@ -120,8 +139,7 @@ describe('GovernorBravo#propose/5', () => {
     });
 
     it("This function returns the id of the newly created proposal. # proposalId(n) = succ(proposalId(n-1))", async () => {
-      await send(xvs, 'transfer', [accounts[2], bnbMantissa(400001)]);
-      await send(xvs, 'delegate', [accounts[2]], { from: accounts[2] });
+      await enfranchise(accounts[2], 400001);
 
       await mineBlock();
       let nextProposalId = await gov.methods['propose'](targets, values, signatures, callDatas, "yoot").call({ from: accounts[2] });
@@ -131,11 +149,12 @@ describe('GovernorBravo#propose/5', () => {
     });
 
     it("emits log with id and description", async () => {
-      await send(xvs, 'transfer', [accounts[3], bnbMantissa(400001)]);
-      await send(xvs, 'delegate', [accounts[3]], { from: accounts[3] });
+      await enfranchise(accounts[3], 400001);
+
       await mineBlock();
       let nextProposalId = await gov.methods['propose'](targets, values, signatures, callDatas, "yoot").call({ from: accounts[3] });
-
+      const currentBlockNumber = await web3.eth.getBlockNumber();
+      const proposeStartBlock = currentBlockNumber + votingDelay + 1;
       expect(
         await send(gov, 'propose', [targets, values, signatures, callDatas, "second proposal"], { from: accounts[3] })
       ).toHaveLog("ProposalCreated", {
@@ -144,8 +163,8 @@ describe('GovernorBravo#propose/5', () => {
         values: values,
         signatures: signatures,
         calldatas: callDatas,
-        startBlock: 15,
-        endBlock: 86415,
+        startBlock: proposeStartBlock,
+        endBlock: proposeStartBlock + votingPeriod,
         description: "second proposal",
         proposer: accounts[3]
       });
