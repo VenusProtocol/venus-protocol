@@ -308,3 +308,14 @@ Macro BorrowAndRepayBnbWithInterest vBnb amount interestAmount interestRate bloc
     RepayBorrowBnb Torrey amount vBnb
     RepayBorrowBnb Torrey interestAmount vBnb
     Assert Equal (VToken vBnb BorrowBalance Torrey) Zero
+
+Macro DeployVault xvs
+    XVSVaultImpl Deploy VaultImpl
+    XVSVaultProxy Deploy
+    XVSVaultProxy SetPendingImplementation VaultImpl
+    XVSVaultImpl VaultImpl Become
+    XVSStore Deploy
+    XVSStore SetNewOwner (Address XVSVault)
+    XVSVault SetXvsStore (Address xvs) (Address XVSStore)
+    XVSVault Add (Address xvs) 1000 (Address xvs) 12345 False
+    XVSVault SetWithdrawalLockingPeriod 300

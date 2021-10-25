@@ -1,4 +1,4 @@
-import { Contract } from 'ethers';
+import { Contract } from '../Contract';
 import { encodedNumber } from '../Encoding';
 import { Callable, Sendable } from '../Invokation';
 
@@ -17,17 +17,30 @@ export interface XVSStore extends Contract {
   name: string;
 }
 
-export interface XVSVaultMethods {
+export interface XVSVaultProxyMethods {
   admin(): Callable<string>;
   pendingAdmin(): Callable<string>;
   xvsVaultImplementation(): Callable<string>;
-  _setPendingImplementation(newPendingImpl: string): Sendable<number>;
-  _setPendingImplementation(): Sendable<number>;
-  setXvsStore(xvs: string, xvsStore: XVSStore): Sendable<void>;
+  pendingXVSVaultImplementation(): Callable<string>;
+  _setPendingImplementation(newPendingImplementation: string): Sendable<number>;
+  _acceptImplementation(): Sendable<number>;
+  _setPendingAdmin(newPendingAdmin: string): Sendable<number>;
+  _acceptAdmin(): Sendable<number>;
+}
+
+export interface XVSVaultProxy extends Contract {
+  methods: XVSVaultProxyMethods;
+  name: string;
+}
+
+export interface XVSVaultImplMethods {
+  _become(xvsVaultProxy: string): Sendable<void>;
+  setXvsStore(xvs: string, xvsStore: string): Sendable<void>;
   add(rewardToken: string, allocPoint: encodedNumber, token: string, rewardPerBlock: encodedNumber, withUpdate: boolean): Sendable<void>;
   deposit(rewardToken: string, pid: number, amount: encodedNumber): Sendable<void>;
   requestWithdrawal(rewardToken: string, pid: number, amount: encodedNumber): Sendable<void>;
   executeWithdrawal(rewardToken: string, pid: number): Sendable<void>;
+  setWithdrawalLockingPeriod(newPeriod: number): Sendable<void>;
   checkpoints(account: string, index: number): Callable<Checkpoint>;
   numCheckpoints(account: string): Callable<number>;
   delegate(account: string): Sendable<void>;
@@ -35,7 +48,23 @@ export interface XVSVaultMethods {
   getPriorVotes(account: string, blockNumber: encodedNumber): Callable<number>;
 }
 
+export interface XVSVaultImpl extends Contract {
+  methods: XVSVaultImplMethods;
+  name: string;
+}
+
+export interface XVSVaultMethods extends XVSVaultProxyMethods, XVSVaultImplMethods { }
+
 export interface XVSVault extends Contract {
   methods: XVSVaultMethods;
+  name: string;
+}
+
+interface XVSVaultHarnessMethods extends XVSVaultMethods {
+  getPriorVotesHarness(account: string, blockNumber: encodedNumber, votePower: encodedNumber): Callable<number>;
+}
+
+export interface XVSVaultHarness extends Contract {
+  methods: XVSVaultHarnessMethods;
   name: string;
 }

@@ -3,8 +3,9 @@ Macro DeployGov
     Counter Deploy CNT1
     Timelock Deploy Scenario Jared 604800
     Xvs Deploy Bank
+    DeployVault Xvs
     GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
-    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address Xvs) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
+    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
     GovernorBravo LegitGov MergeABI BravoDelegateHarness
     GovernorBravo LegitGov HarnessInitiate
     Timelock SetAdmin (Address LegitGov)
@@ -16,7 +17,9 @@ Macro DeployGov
 
 Macro Enfranchise user amount
     From Bank (Xvs Transfer user amount)
-    From user (Xvs Delegate user)
+    From user (Xvs Approve (Address XVSVault) amount)
+    From user (XVSVault Deposit (Address Xvs) 0 amount)
+    From user (XVSVault Delegate user)
 
 Macro GivenPendingProposal
     DeployGov

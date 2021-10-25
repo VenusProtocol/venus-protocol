@@ -3,10 +3,11 @@ Macro DeployGov
     SetTime 10
     Counter Deploy CNT1
     Xvs Deploy Bank
+    DeployVault Xvs
     Enfranchise Root 800001e18
     Timelock Deploy Jared 604800
     GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
-    GovernorBravo Deploy BravoDelegator Alpha (Address Timelock) (Address Xvs) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
+    GovernorBravo Deploy BravoDelegator Alpha (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
     GovernorBravo Alpha MergeABI BravoDelegateHarness
     GovernorBravo Alpha HarnessInitiate
     Timelock SetAdmin (Address Alpha)
@@ -27,12 +28,14 @@ Macro SucceedQueueExecuteLastProposal gov
 
 Macro Enfranchise user amount
     From Bank (Xvs Transfer user amount)
-    From user (Xvs Delegate user)
+    From user (Xvs Approve (Address XVSVault) amount)
+    From user (XVSVault Deposit (Address Xvs) 0 amount)
+    From user (XVSVault Delegate user)
 
 Test "Governor can switch to a new governor"
     DeployGov
     GovernorBravo Deploy BravoDelegate BravoDelegate
-    GovernorBravo Deploy BravoDelegator Bravo (Address Timelock) (Address Xvs) (Address Timelock) (Address BravoDelegate) 86400 1 300000e18
+    GovernorBravo Deploy BravoDelegator Bravo (Address Timelock) (Address XVSVault) (Address Timelock) (Address BravoDelegate) 86400 1 300000e18
     GovernorBravo Bravo MergeABI BravoDelegate
     GovernorBravo Alpha Propose "Upgrade Governor" [(Address Timelock) (Address Bravo)] [0 0] ["setPendingAdmin(address)" "_initiate(address)"] [[(Address Bravo)] [(Address Alpha)]]
     SucceedQueueExecuteLastProposal Alpha

@@ -2,7 +2,6 @@ import { Map } from 'immutable';
 
 import { Event } from './Event';
 import { World } from './World';
-import { accountMap } from './Accounts';
 import { Contract } from './Contract';
 import { mustString } from './Utils';
 
@@ -21,6 +20,7 @@ import { Bep20 } from './Contract/Bep20';
 import { InterestRateModel } from './Contract/InterestRateModel';
 import { PriceOracle } from './Contract/PriceOracle';
 import { Timelock } from './Contract/Timelock';
+import { XVSVaultImpl, XVSVaultProxy, XVSVault } from './Contract/XVSVault';
 
 type ContractDataEl = string | Map<string, object> | undefined;
 
@@ -128,6 +128,18 @@ export function getGovernorAddress(world: World, governorArg: string): string {
 
 export function getGovernorBravo(world: World, governoBravoArg: string): Promise<GovernorBravo> {
   return getWorldContract(world, [['Contracts', 'GovernorBravo']])
+}
+
+export function getXVSVault(world: World): Promise<XVSVault> {
+  return getWorldContract(world, [['Contracts', 'XVSVault']])
+}
+
+export function getXVSVaultProxy(world: World): Promise<XVSVaultProxy> {
+  return getWorldContract(world, [['Contracts', 'XVSVaultProxy']])
+}
+
+export async function getXVSVaultImpl(world: World, xvsVaultImplArg: Event): Promise<XVSVaultImpl> {
+  return getWorldContract(world, [['XVSVault', mustString(xvsVaultImplArg), 'address']]);
 }
 
 export async function getPriceOracleProxy(world: World): Promise<PriceOracle> {
