@@ -40,6 +40,9 @@ contract GovernorBravoEvents {
 
     /// @notice Emitted when pendingAdmin is accepted, which means admin is updated
     event NewAdmin(address oldAdmin, address newAdmin);
+
+    /// @notice Emitted when the new guardian address is set
+    event NewGuardian(address oldGuardian, address newGuardian);
 }
 
 contract GovernorBravoDelegatorStorage {
@@ -163,6 +166,9 @@ contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
 
     /// @notice The maximum number of actions that can be included in a proposal
     uint public proposalMaxOperations;
+
+    /// @notice A privileged role that can cancel any proposal
+    address public guardian;
 }
 
 interface TimelockInterface {

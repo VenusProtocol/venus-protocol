@@ -43,7 +43,16 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
       * @param votingDelay_ The initial voting delay
       * @param proposalThreshold_ The initial proposal threshold
       */
-    function initialize(address timelock_, address xvsVault_, uint votingPeriod_, uint votingDelay_, uint proposalThreshold_) public {
+    function initialize(
+        address timelock_,
+        address xvsVault_,
+        uint votingPeriod_,
+        uint votingDelay_,
+        uint proposalThreshold_,
+        address guardian_
+    )
+        public
+    {
         require(address(timelock) == address(0), "GovernorBravo::initialize: can only initialize once");
         require(msg.sender == admin, "GovernorBravo::initialize: admin only");
         require(timelock_ != address(0), "GovernorBravo::initialize: invalid timelock address");
@@ -58,6 +67,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         votingDelay = votingDelay_;
         proposalThreshold = proposalThreshold_;
         proposalMaxOperations = 10;
+        guardian = guardian_;
     }
 
     /**
@@ -154,7 +164,12 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         require(state(proposalId) != ProposalState.Executed, "GovernorBravo::cancel: cannot cancel executed proposal");
 
         Proposal storage proposal = proposals[proposalId];
-        require(msg.sender == proposal.proposer || xvsVault.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold, "GovernorBravo::cancel: proposer above threshold");
+        require(
+            msg.sender == guardian
+            || msg.sender == proposal.proposer
+            || xvsVault.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold,
+            "GovernorBravo::cancel: proposer above threshold"
+        );
 
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -274,6 +289,18 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
     }
 
     /**
+      * @notice Sets the new governance guardian
+      * @param newGuardian the address of the new guardian
+      */
+    function _setGuardian(address newGuardian) external {
+        require(msg.sender == guardian || msg.sender == admin, "GovernorBravo::_setGuardian: admin or guardian only");
+        address oldGuardian = guardian;
+        guardian = newGuardian;
+
+        emit NewGuardian(oldGuardian, newGuardian);
+    }
+
+    /**
       * @notice Admin function for setting the voting delay
       * @param newVotingDelay new voting delay, in blocks
       */
@@ -283,7 +310,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         uint oldVotingDelay = votingDelay;
         votingDelay = newVotingDelay;
 
-        emit VotingDelaySet(oldVotingDelay,votingDelay);
+        emit VotingDelaySet(oldVotingDelay, votingDelay);
     }
 
     /**
