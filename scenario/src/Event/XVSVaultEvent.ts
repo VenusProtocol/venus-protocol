@@ -70,11 +70,16 @@ async function addPool(
   allocPoint: NumberV,
   token: string,
   rewardPerBlock: NumberV,
+  lockPeriod: NumberV,
   withUpdate: BoolV
 ): Promise<World> {
   let invokation = await invoke(
     world,
-    xvsVault.methods.add(rewardToken, allocPoint.encode(), token, rewardPerBlock.encode(), withUpdate.val),
+    xvsVault.methods.add(
+      rewardToken, allocPoint.encode(), token,
+      rewardPerBlock.encode(), lockPeriod.encode(),
+      withUpdate.val
+    ),
     from,
     NoErrorReporter
   );
@@ -166,11 +171,13 @@ async function setWithdrawalLockingPeriod(
   world: World,
   from: string,
   xvsVault: XVSVault,
+  rewardToken: string,
+  pid: NumberV,
   newPeriod: NumberV
 ): Promise<World> {
   let invokation = await invoke(
     world,
-    xvsVault.methods.setWithdrawalLockingPeriod(newPeriod.toNumber()),
+    xvsVault.methods.setWithdrawalLockingPeriod(rewardToken, pid.toNumber(), newPeriod.toNumber()),
     from,
     NoErrorReporter
   );
@@ -238,6 +245,7 @@ export function xvsVaultCommands() {
       allocPoint: NumberV,
       token: AddressV,
       rewardPerBlock: NumberV,
+      lockPeriod: NumberV,
       withUpdate: BoolV
     }>(
       `
@@ -254,10 +262,14 @@ export function xvsVaultCommands() {
         new Arg("allocPoint", getNumberV),
         new Arg("token", getAddressV),
         new Arg("rewardPerBlock", getNumberV),
+        new Arg("lockPeriod", getNumberV),
         new Arg("withUpdate", getBoolV),
       ],
-      (world, from, { xvsVault, rewardToken, allocPoint, token, rewardPerBlock, withUpdate }) =>
-          addPool(world, from, xvsVault, rewardToken.val, allocPoint, token.val, rewardPerBlock, withUpdate)
+      (world, from, { xvsVault, rewardToken, allocPoint, token, rewardPerBlock, lockPeriod, withUpdate }) =>
+          addPool(
+            world, from, xvsVault, rewardToken.val, allocPoint,
+            token.val, rewardPerBlock, lockPeriod, withUpdate
+          )
     ),
 
     new Command<{
@@ -332,22 +344,26 @@ export function xvsVaultCommands() {
 
     new Command<{
       xvsVault: XVSVault,
+      rewardToken: AddressV,
+      pid: NumberV,
       newPeriod: NumberV
     }>(
       `
         #### SetWithdrawalLockingPeriod
 
-        * "XVSVault SetWithdrawalLockingPeriod newPeriod:<Number>"
+        * "XVSVault SetWithdrawalLockingPeriod rewardToken:<Address> pid:<Number> newPeriod:<Number>"
             - Sets the locking period for withdrawals
-        * E.g. "XVSVault SetWithdrawalLockingPeriod 42"
+        * E.g. "XVSVault SetWithdrawalLockingPeriod (Address XVS) 0 42"
       `,
       "SetWithdrawalLockingPeriod",
       [
         new Arg("xvsVault", getXVSVault, { implicit: true }),
+        new Arg("rewardToken", getAddressV),
+        new Arg("pid", getNumberV),
         new Arg("newPeriod", getNumberV),
       ],
-      (world, from, { xvsVault, newPeriod }) =>
-        setWithdrawalLockingPeriod(world, from, xvsVault, newPeriod)
+      (world, from, { xvsVault, rewardToken, pid, newPeriod }) =>
+        setWithdrawalLockingPeriod(world, from, xvsVault, rewardToken.val, pid, newPeriod)
     ),
   ];
 }

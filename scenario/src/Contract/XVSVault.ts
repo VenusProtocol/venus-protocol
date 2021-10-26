@@ -36,11 +36,14 @@ export interface XVSVaultProxy extends Contract {
 export interface XVSVaultImplMethods {
   _become(xvsVaultProxy: string): Sendable<void>;
   setXvsStore(xvs: string, xvsStore: string): Sendable<void>;
-  add(rewardToken: string, allocPoint: encodedNumber, token: string, rewardPerBlock: encodedNumber, withUpdate: boolean): Sendable<void>;
+  add(
+    rewardToken: string, allocPoint: encodedNumber, token: string, rewardPerBlock: encodedNumber,
+    lockPeriod: encodedNumber, withUpdate: boolean
+  ): Sendable<void>;
   deposit(rewardToken: string, pid: number, amount: encodedNumber): Sendable<void>;
   requestWithdrawal(rewardToken: string, pid: number, amount: encodedNumber): Sendable<void>;
   executeWithdrawal(rewardToken: string, pid: number): Sendable<void>;
-  setWithdrawalLockingPeriod(newPeriod: number): Sendable<void>;
+  setWithdrawalLockingPeriod(rewardToken: string, pid: number, newPeriod: number): Sendable<void>;
   checkpoints(account: string, index: number): Callable<Checkpoint>;
   numCheckpoints(account: string): Callable<number>;
   delegate(account: string): Sendable<void>;
