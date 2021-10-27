@@ -9,7 +9,7 @@ const {
 } = require('../../Utils/BSC');
 
 describe('GovernorBravo#queue/1', () => {
-  let root, a1, a2, accounts;
+  let root, a1, a2, guardian, accounts;
 
   async function enfranchise(xvs, xvsVault, actor, amount) {
     await send(xvsVault, 'delegate', [actor], { from: actor });
@@ -29,7 +29,7 @@ describe('GovernorBravo#queue/1', () => {
   }
 
   beforeAll(async () => {
-    [root, a1, a2, ...accounts] = saddle.accounts;
+    [root, a1, a2, guardian, ...accounts] = saddle.accounts;
   });
 
   describe("overlapping actions", () => {
@@ -37,7 +37,10 @@ describe('GovernorBravo#queue/1', () => {
       const timelock = await deploy('TimelockHarness', [root, 86400 * 2]);
       const xvs = await deploy('XVS', [root]);
       const xvsVault = await makeVault(xvs, root);
-      const gov = await deploy('GovernorBravoImmutable', [timelock._address, xvsVault._address, root, 86400, 1, "100000000000000000000000"]);
+      const gov = await deploy(
+        'GovernorBravoImmutable',
+        [timelock._address, xvsVault._address, root, 86400, 1, "100000000000000000000000", guardian]
+      );
       await send(gov, '_initiate');
       const txAdmin = await send(timelock, 'harnessSetAdmin', [gov._address]);
 
@@ -63,7 +66,10 @@ describe('GovernorBravo#queue/1', () => {
       const timelock = await deploy('TimelockHarness', [root, 86400 * 2]);
       const xvs = await deploy('XVS', [root]);
       const xvsVault = await makeVault(xvs, root);
-      const gov = await deploy('GovernorBravoImmutable', [timelock._address, xvsVault._address, root, 86400, 1, "100000000000000000000000"]);
+      const gov = await deploy(
+        'GovernorBravoImmutable',
+        [timelock._address, xvsVault._address, root, 86400, 1, "100000000000000000000000", guardian]
+      );
       await send(gov, '_initiate');
       const txAdmin = await send(timelock, 'harnessSetAdmin', [gov._address]);
 

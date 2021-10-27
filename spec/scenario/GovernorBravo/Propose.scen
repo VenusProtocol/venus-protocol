@@ -3,7 +3,7 @@ Macro DeployGov
     DeployVault Xvs
     Timelock Deploy Jared 604800
     GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
-    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
+    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18 Guardian
     GovernorBravo LegitGov MergeABI BravoDelegateHarness
     GovernorBravo LegitGov HarnessInitiate
     Timelock SetAdmin (Address LegitGov)
@@ -24,14 +24,14 @@ Test "Propose 💍 [1 Action]"
     Assert Log ProposalCreated (targets [(Address Counter)])
     Assert Log ProposalCreated (values [1])
     Assert Log ProposalCreated (signatures ["increment(uint256)"])
-    Assert Log ProposalCreated (startBlock 22)
-    Assert Log ProposalCreated (endBlock 86422)
+    Assert Log ProposalCreated (startBlock 21)
+    Assert Log ProposalCreated (endBlock 86421)
     Assert Log ProposalCreated (calldatas ["0x0000000000000000000000000000000000000000000000000000000000000005"])
     Assert Log ProposalCreated (proposer (Address Root))
     Assert Equal (GovernorBravo LegitGov Proposal LastProposal Id) 2
     Assert Equal (GovernorBravo LegitGov Proposal LastProposal Proposer) (Address Root)
-    Assert Equal (GovernorBravo LegitGov Proposal LastProposal StartBlock) 22
-    Assert Equal (GovernorBravo LegitGov Proposal LastProposal EndBlock) 86422
+    Assert Equal (GovernorBravo LegitGov Proposal LastProposal StartBlock) 21
+    Assert Equal (GovernorBravo LegitGov Proposal LastProposal EndBlock) 86421
     Assert Equal (GovernorBravo LegitGov Proposal LastProposal ForVotes) 0
     Assert Equal (GovernorBravo LegitGov Proposal LastProposal AgainstVotes) 0
     Assert Equal (GovernorBravo LegitGov Proposal LastProposal Eta) 0

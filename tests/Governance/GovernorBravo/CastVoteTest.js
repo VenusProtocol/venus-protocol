@@ -12,7 +12,7 @@ const BigNumber = require('bignumber.js');
 const chalk = require('chalk');
 
 describe("governorBravo#castVote/2", () => {
-  let gov, root, a1, accounts, govDelegate, xvsVault, xvs;
+  let gov, root, a1, guardian, accounts, govDelegate, xvsVault, xvs;
   let targets, values, signatures, callDatas, proposalId;
   
   async function enfranchise(actor, amount) {
@@ -24,7 +24,7 @@ describe("governorBravo#castVote/2", () => {
   }
 
   beforeAll(async () => {
-    [root, a1, ...accounts] = saddle.accounts;
+    [root, a1, guardian, ...accounts] = saddle.accounts;
 
     // init xvs vault
     xvsVault = await deploy('XVSVault', []);
@@ -37,7 +37,10 @@ describe("governorBravo#castVote/2", () => {
     await send(xvsVault, 'delegate', [root]);
 
     govDelegate = await deploy('GovernorBravoDelegateHarness');
-    gov = await deploy('GovernorBravoDelegator', [address(0), xvsVault._address, root, govDelegate._address, 86400, 1, bnbMantissa(1e4)]);
+    gov = await deploy(
+      'GovernorBravoDelegator',
+      [address(0), xvsVault._address, root, govDelegate._address, 86400, 1, bnbMantissa(1e4), guardian]
+    );
     mergeInterface(gov,govDelegate);
     await send(gov, '_initiate');
 

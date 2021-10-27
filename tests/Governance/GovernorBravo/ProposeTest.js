@@ -10,7 +10,7 @@ const votingDelay = 1;
 const votingPeriod = 86400;
 
 describe('GovernorBravo#propose/5', () => {
-  let gov, root, acct, xvs, xvsVault;
+  let gov, root, guardian, acct, xvs, xvsVault;
 
   async function enfranchise(actor, amount) {
     await send(xvsVault, 'delegate', [actor], { from: actor });
@@ -21,7 +21,7 @@ describe('GovernorBravo#propose/5', () => {
   }
 
   beforeAll(async () => {
-    [root, acct, ...accounts] = accounts;
+    [root, acct, guardian, ...accounts] = accounts;
     xvs = await deploy('XVS', [root]);
     
     xvsVault = await deploy('XVSVault', []);
@@ -30,7 +30,10 @@ describe('GovernorBravo#propose/5', () => {
     await send(xvsVault, 'setXvsStore', [xvs._address, xvsStore._address], { from: root });
     await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300, 0], { from: root }); // lock period 300ms
 
-    gov = await deploy('GovernorBravoImmutable', [address(0), xvsVault._address, root, votingPeriod, votingDelay, "100000000000000000000000"]);
+    gov = await deploy(
+      'GovernorBravoImmutable',
+      [address(0), xvsVault._address, root, votingPeriod, votingDelay, "100000000000000000000000", guardian]
+    );
     await send(gov,'_initiate');
   });
 

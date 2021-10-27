@@ -24,7 +24,7 @@ const statesInverted = solparse
 const states = Object.entries(statesInverted).reduce((obj, [key, value]) => ({ ...obj, [value]: key }), {});
 
 describe('GovernorBravo#state/1', () => {
-  let xvs, xvsVault, gov, root, acct, delay, timelock;
+  let xvs, xvsVault, gov, root, acct, guardian, delay, timelock;
 
   async function enfranchise(actor, amount) {
     await send(xvsVault, 'delegate', [actor], { from: actor });
@@ -36,7 +36,7 @@ describe('GovernorBravo#state/1', () => {
 
   beforeAll(async () => {
     await freezeTime(100);
-    [root, acct, ...accounts] = accounts;
+    [root, acct, guardian, ...accounts] = accounts;
     xvs = await deploy('XVS', [root]);
 
     xvsVault = await deploy('XVSVault', []);
@@ -48,7 +48,10 @@ describe('GovernorBravo#state/1', () => {
     delay = bnbUnsigned(2 * 24 * 60 * 60).mul(2)
     timelock = await deploy('TimelockHarness', [root, delay]);
 
-    gov = await deploy('GovernorBravoImmutable', [timelock._address, xvsVault._address, root, 86400, 1, "100000000000000000000000"]);
+    gov = await deploy(
+      'GovernorBravoImmutable',
+      [timelock._address, xvsVault._address, root, 86400, 1, "100000000000000000000000", guardian]
+    );
     await send(gov, '_initiate');
     await send(timelock, "harnessSetAdmin", [gov._address])
     
