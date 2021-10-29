@@ -88,7 +88,7 @@ describe('GovernorBravo#state/1', () => {
 
   it("Canceled", async () => {
     await enfranchise(accounts[0], 400000);
-    await send(xvs, 'delegate', [accounts[0]], { from: accounts[0] });
+    await send(xvsVault, 'delegate', [accounts[0]], { from: accounts[0] });
     await mineBlock()
     await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: accounts[0] })
     let newProposalId = await call(gov, 'proposalCount')
@@ -102,7 +102,7 @@ describe('GovernorBravo#state/1', () => {
 
   it("Canceled by Guardian", async () => {
     await enfranchise(accounts[0], 400000);
-    await send(xvs, 'delegate', [accounts[0]], { from: accounts[0] });
+    await send(xvsVault, 'delegate', [accounts[0]], { from: accounts[0] });
     await mineBlock()
     await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: accounts[0] })
     let newProposalId = await call(gov, 'proposalCount')
