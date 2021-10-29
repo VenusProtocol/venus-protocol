@@ -100,6 +100,20 @@ describe('GovernorBravo#state/1', () => {
     expect(await call(gov, 'state', [+newProposalId])).toEqual(states["Canceled"])
   })
 
+  it("Canceled by Guardian", async () => {
+    await enfranchise(accounts[0], 400000);
+    await send(xvs, 'delegate', [accounts[0]], { from: accounts[0] });
+    await mineBlock()
+    await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"], { from: accounts[0] })
+    let newProposalId = await call(gov, 'proposalCount')
+
+    // send away the delegates
+    await send(xvsVault, 'delegate', [root], { from: accounts[0] });
+    await send(gov, 'cancel', [newProposalId], { from: guardian })
+
+    expect(await call(gov, 'state', [+newProposalId])).toEqual(states["Canceled"])
+  })
+
   it("Defeated", async () => {
     // travel to end block
     await advanceBlocks(90000)
