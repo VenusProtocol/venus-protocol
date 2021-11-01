@@ -5,6 +5,8 @@ pragma solidity ^0.5.0;
  * the optional functions; to access them see {BEP20Detailed}.
  */
 interface IBEP20 {
+    function decimals() external view returns (uint8);
+
     /**
      * @dev Returns the amount of tokens in existence.
      */
