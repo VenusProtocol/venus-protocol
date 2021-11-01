@@ -32,6 +32,7 @@ export interface GovernorBravoMethods {
   admin(): Callable<string>;
   pendingAdmin(): Callable<string>;
   implementation(): Callable<string>;
+  guardian(): Callable<string>;
   propose(targets: string[], values: encodedNumber[], signatures: string[], calldatas: string[], description: string): Sendable<void>
   proposals(proposalId: number): Callable<Proposal>;
   proposalCount(): Callable<number>;
@@ -56,6 +57,7 @@ export interface GovernorBravoMethods {
   _setImplementation(address: string): Sendable<void>;
   _setPendingAdmin(address: string): Sendable<void>;
   _acceptAdmin(): Sendable<void>;
+  _setGuardian(address: string): Sendable<void>;
 }
 
 export interface GovernorBravo extends Contract {

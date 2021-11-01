@@ -5,7 +5,7 @@ Macro DeployGov
     Xvs Deploy Bank
     DeployVault Xvs
     GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
-    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
+    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18 Guardian
     GovernorBravo LegitGov MergeABI BravoDelegateHarness
     GovernorBravo LegitGov HarnessInitiate
     Timelock SetAdmin (Address LegitGov)
@@ -103,3 +103,13 @@ Test "Proposer can cancel their own proposal"
     GovernorBravo LegitGov Proposal LastProposal Cancel
     Assert Log ProposalCanceled (id 2)
     Assert Equal (GovernorBravo LegitGov Proposal LastProposal State) "Canceled"
+
+Test "Guardian can cancel a queued proposal"
+    GivenQueuedProposal
+    Assert True (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "increment(uint256,uint256)" 7 4))
+    Assert True (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "decrement(uint256)" 2))
+    From Guardian (GovernorBravo LegitGov Proposal LastProposal Cancel)
+    Assert Log ProposalCanceled (id 2)
+    Assert False (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "increment(uint256,uint256)" 7 4))
+    Assert False (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "decrement(uint256)" 2))
+    Assert Equal ("Canceled") (GovernorBravo LegitGov Proposal LastProposal State)

@@ -39,6 +39,13 @@ async function getAdmin(
   return new AddressV(await governor.methods.admin().call());
 }
 
+async function getGuardian(
+  world: World,
+  governor: GovernorBravo
+): Promise<AddressV> {
+  return new AddressV(await governor.methods.guardian().call());
+}
+
 async function getPendingAdmin(
   world: World,
   governor: GovernorBravo
@@ -97,6 +104,18 @@ export function governorBravoFetchers() {
       "Admin",
       [new Arg("governor", getGovernorV)],
       (world, { governor }) => getAdmin(world, governor),
+      { namePos: 1 }
+    ),
+
+    new Fetcher<{ governor: GovernorBravo }, AddressV>(
+      `
+        #### Guardian
+        * "GovernorBravo <Governor> Guardian" - Returns the address of governorBravo guardian
+        * E.g. "GovernorBravo GovernorBravoScenario Guardian"
+      `,
+      "Guardian",
+      [new Arg("governor", getGovernorV)],
+      (world, { governor }) => getGuardian(world, governor),
       { namePos: 1 }
     ),
 

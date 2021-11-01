@@ -4,7 +4,7 @@ Macro DeployGov
     Xvs Deploy Bank
     DeployVault Xvs
     GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
-    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18
+    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18 Guardian
     GovernorBravo LegitGov MergeABI BravoDelegateHarness
     GovernorBravo LegitGov HarnessInitiate
     Enfranchise Root 600001e18

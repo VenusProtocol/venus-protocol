@@ -261,6 +261,27 @@ async function acceptAdmin(
   return world;
 }
 
+async function setGuardian(
+  world: World,
+  from: string,
+  governor: GovernorBravo,
+  newGuardian: string
+): Promise<World> {
+  let invokation = await invoke(
+    world,
+    governor.methods._setGuardian(newGuardian),
+    from
+  );
+
+  world = addAction(
+    world,
+    `Governor guardian set to ${newGuardian}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function setBlockNumber(
   world: World,
   from: string,
@@ -511,7 +532,21 @@ export function governorBravoCommands() {
       (world, from, { governor }) => acceptAdmin(world, from, governor),
       { namePos: 1 }
     ),
-
+    new Command<{ governor: GovernorBravo; newGuardian: AddressV }>(
+      `
+        #### SetGuardian
+        * "GovernorBravo <Governor> SetGuardian <AddressV>" - Sets the address for the GovernorBravo guardian
+        * E.g. "GovernorBravo GovernorBravoScenario SetGuardian newGuardian"
+    `,
+      "SetGuardian",
+      [
+        new Arg("governor", getGovernorV),
+        new Arg("newGuardian", getAddressV),
+      ],
+      (world, from, { governor, newGuardian }) =>
+        setGuardian(world, from, governor, newGuardian.val),
+      { namePos: 1 }
+    ),
     new Command<{
       governorDelegator: GovernorBravo;
       governorDelegate: GovernorBravo;
