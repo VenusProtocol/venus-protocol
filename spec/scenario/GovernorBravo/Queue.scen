@@ -127,7 +127,7 @@ Test "Revert when queuing on invalid Timelock"
     DeployVault Xvs
     Enfranchise Root 600001e18
     Counter Deploy CNT1
-    GovernorBravo Deploy BravoImmutable LegitGov (Address Zero) (Address XVSVault) (Address Root) 86400 1 100000e18
+    GovernorBravo Deploy BravoImmutable LegitGov (Address Zero) (Address XVSVault) (Address Root) 86400 1 100000e18 Guardian
     GovernorBravo LegitGov HarnessInitiate
     GovernorBravo LegitGov Propose "Add 5" [(Address CNT1)] [1] ["increment(uint256)"] [["2"]]
     MineBlock
