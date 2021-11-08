@@ -30,8 +30,8 @@
       "Base200bps_Slope2000bps_Jump2000bps_Kink90":  "0x3d845879cdB70bCC9aF73145d7FFD6C5FF8C1c6c"
     },
     "Accounts": {
-        "admin": "0x2Ce1d0ffD7E869D9DF33e28552b12DdDed326706",
-        "Guardian" : "0x2Ce1d0ffD7E869D9DF33e28552b12DdDed326706",
+        "admin": "0xfea1c651a47fe29db9b1bf3cc1f224d8d9cff68c",
+        "Guardian" : "0xfea1c651a47fe29db9b1bf3cc1f224d8d9cff68c",
         "eta": 0
     },
     "Blocks": {
