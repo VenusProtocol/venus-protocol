@@ -164,7 +164,7 @@ module.exports = {
       web3: {
         gas: [
           {env: "GAS"},
-          {default: "30000000"}
+          {default: "10000000"}
         ],
         gas_price: [
           {env: "GAS_PRICE"},

@@ -37,6 +37,12 @@ npx saddle script script/deploy/governor-bravo/02-deploy-governor-bravo-delegato
 
 ## post Deployment Steps
 
+1. set `proposalCount` to `GovernorBravoDelegate` via `init` function call
+
+```sh
+npx saddle script script/deploy/governor-bravo/03-set-proposal-count-to-governor-bravo-delegate.js - n testnet
+```
+
 1. Queue `GovernorBravoDelegator` as Admin in `Timelock`
 
 ```sh
