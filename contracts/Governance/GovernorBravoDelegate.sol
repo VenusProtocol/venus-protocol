@@ -9,13 +9,13 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
     string public constant name = "Venus Governor Bravo";
 
     /// @notice The minimum setable proposal threshold
-    uint public constant MIN_PROPOSAL_THRESHOLD = 1e18; // 150,000 Xvs
+    uint public constant MIN_PROPOSAL_THRESHOLD = 150000e18; // 150,000 Xvs
 
     /// @notice The maximum setable proposal threshold
     uint public constant MAX_PROPOSAL_THRESHOLD = 300000e18; //300,000 Xvs
 
     /// @notice The minimum setable voting period
-    uint public constant MIN_VOTING_PERIOD = 200; // About 24 hours, 3 secs per block
+    uint public constant MIN_VOTING_PERIOD = 20 * 60 * 24; // About 24 hours, 3 secs per block
 
     /// @notice The max setable voting period
     uint public constant MAX_VOTING_PERIOD = 20 * 60 * 24 * 14; // About 2 weeks, 3 secs per block
@@ -67,7 +67,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         votingPeriod = votingPeriod_;
         votingDelay = votingDelay_;
         proposalThreshold = proposalThreshold_;
-        proposalMaxOperations = 10;
+        proposalMaxOperations = 30;
         guardian = guardian_;
     }
 
