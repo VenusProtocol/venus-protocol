@@ -8,6 +8,7 @@ const contractConfigData = require("../../../networks/testnet.json");
   const guardian = await governorBravoDelegateContractInstance.methods.guardian().call();
   const proposalCount = await governorBravoDelegateContractInstance.methods.proposalCount().call();
   const proposalThreshold = await governorBravoDelegateContractInstance.methods.proposalThreshold().call();
+  const votingPeriod = await governorBravoDelegateContractInstance.methods.votingPeriod().call();
 
-  console.log(`GovernorBravoDelegate admin is: ${admin} - guardian is: ${guardian} - proposalCount is: ${proposalCount} - proposalThreshold: ${proposalThreshold}`);
+  console.log(`GovernorBravoDelegate admin is: ${admin} - \n guardian is:${guardian} - \n proposalCount is: ${proposalCount} - \n proposalThreshold: ${proposalThreshold} \n votingPeriod: ${votingPeriod}`);
 })();

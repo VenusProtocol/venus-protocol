@@ -26,13 +26,15 @@
       "GovernorBravoDelegator": "0xD6Bd8aE3f9b073488194d723CBed342AEeaDFE23",
       "XVSVault": "0xa4Fd54cACdA379FB7CaA783B83Cc846f8ac0Faa6",
       "XVSVaultProxy": "0x09902c65729Bc245d2D3133B3C8Cc0DA93518ED3",
+      "XVSStore": "0x7B4dba3b320E7D421A213e1a73bB9858bb6839F8",
       "VenusPriceOracle": "0xd61c7Fa07dF7241812eA6D21744a61f1257D1818",
       "Base200bps_Slope2000bps_Jump2000bps_Kink90":  "0x3d845879cdB70bCC9aF73145d7FFD6C5FF8C1c6c"
     },
     "Accounts": {
         "admin": "0xfea1c651a47fe29db9b1bf3cc1f224d8d9cff68c",
         "Guardian" : "0xfea1c651a47fe29db9b1bf3cc1f224d8d9cff68c",
-        "eta": 1636392899
+        "eta": 1636392899,
+        "Delegatee": "0x2Ce1d0ffD7E869D9DF33e28552b12DdDed326706"
     },
     "Blocks": {
       "VenusLens": 2918075,
