@@ -6,9 +6,9 @@ const contractConfigData = require("../../../networks/testnet.json");
 
   const governorBravoContractInstance = await saddle.getContractAt('GovernorBravoDelegate', GovernorBravoDelegatorAddress);
 
-  const proposalId = 65;
+  const proposalId = 67;
 
-  const castVoteTxn = await governorBravoContractInstance.methods.queue(proposalId).send();
+  const queueProposalTxn = await governorBravoContractInstance.methods.queue(proposalId).send();
 
-  console.log(`Queued Proposal: ${proposalId} on GovernorBravo with transactionStatus: ${castVoteTxn.status}`);
+  console.log(`Queued Proposal: ${proposalId} on GovernorBravo with transactionStatus: ${queueProposalTxn.status}`);
 })();
