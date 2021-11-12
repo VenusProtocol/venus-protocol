@@ -63,14 +63,11 @@ contract XVSVault is XVSVaultStorage {
         uint256 _allocPoint,
         IBEP20 _token,
         uint256 _rewardPerBlock,
-        uint256 _lockPeriod,
-        bool _withUpdate
+        uint256 _lockPeriod
     ) public onlyAdmin {
         require(address(xvsStore) != address(0), "Store contract addres is empty");
 
-        if (_withUpdate) {
-            massUpdatePools(_rewardToken);
-        }
+        massUpdatePools(_rewardToken);
 
         PoolInfo[] storage poolInfo = poolInfos[_rewardToken];
 
@@ -100,12 +97,9 @@ contract XVSVault is XVSVaultStorage {
     function set(
         address _rewardToken,
         uint256 _pid,
-        uint256 _allocPoint,
-        bool _withUpdate
+        uint256 _allocPoint
     ) public onlyAdmin {
-        if (_withUpdate) {
-            massUpdatePools(_rewardToken);
-        }
+        massUpdatePools(_rewardToken);
 
         PoolInfo[] storage poolInfo = poolInfos[_rewardToken];
         totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken].sub(poolInfo[_pid].allocPoint).add(
@@ -119,6 +113,7 @@ contract XVSVault is XVSVaultStorage {
         address _rewardToken,
         uint256 _rewardAmount
     ) public onlyAdmin {
+        massUpdatePools(_rewardToken);
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardAmount;
     }
 

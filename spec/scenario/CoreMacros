@@ -317,4 +317,4 @@ Macro DeployVault xvs
     XVSStore Deploy
     XVSStore SetNewOwner (Address XVSVault)
     XVSVault SetXvsStore (Address xvs) (Address XVSStore)
-    XVSVault Add (Address xvs) 1000 (Address xvs) 300 12345 False
+    XVSVault Add (Address xvs) 1000 (Address xvs) 300 12345

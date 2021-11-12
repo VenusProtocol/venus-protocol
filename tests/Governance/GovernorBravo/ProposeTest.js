@@ -28,7 +28,7 @@ describe('GovernorBravo#propose/5', () => {
     xvsStore = await deploy('XVSStore', []);
     await send(xvsStore, 'setNewOwner', [xvsVault._address], { from: root });
     await send(xvsVault, 'setXvsStore', [xvs._address, xvsStore._address], { from: root });
-    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300, 0], { from: root }); // lock period 300ms
+    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300], { from: root }); // lock period 300s
 
     gov = await deploy(
       'GovernorBravoImmutable',

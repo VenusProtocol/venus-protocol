@@ -43,7 +43,7 @@ describe('GovernorBravo#state/1', () => {
     const xvsStore = await deploy('XVSStore', []);
     await send(xvsStore, 'setNewOwner', [xvsVault._address], { from: root });
     await send(xvsVault, 'setXvsStore', [xvs._address, xvsStore._address], { from: root });
-    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300, 0], { from: root }); // lock period 300ms
+    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300], { from: root }); // lock period 300s
     
     delay = bnbUnsigned(2 * 24 * 60 * 60).mul(2)
     timelock = await deploy('TimelockHarness', [root, delay]);

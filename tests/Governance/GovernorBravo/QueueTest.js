@@ -24,7 +24,7 @@ describe('GovernorBravo#queue/1', () => {
     const xvsStore = await deploy('XVSStore', []);
     await send(xvsStore, 'setNewOwner', [xvsVault._address], { from: actor });
     await send(xvsVault, 'setXvsStore', [xvs._address, xvsStore._address], { from: actor });
-    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300, 0], { from: actor }); // lock period 300ms
+    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300], { from: actor }); // lock period 300s
     return xvsVault;
   }
 

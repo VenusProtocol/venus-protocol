@@ -70,15 +70,13 @@ async function addPool(
   allocPoint: NumberV,
   token: string,
   rewardPerBlock: NumberV,
-  lockPeriod: NumberV,
-  withUpdate: BoolV
+  lockPeriod: NumberV
 ): Promise<World> {
   let invokation = await invoke(
     world,
     xvsVault.methods.add(
       rewardToken, allocPoint.encode(), token,
-      rewardPerBlock.encode(), lockPeriod.encode(),
-      withUpdate.val
+      rewardPerBlock.encode(), lockPeriod.encode()
     ),
     from,
     NoErrorReporter
@@ -245,15 +243,14 @@ export function xvsVaultCommands() {
       allocPoint: NumberV,
       token: AddressV,
       rewardPerBlock: NumberV,
-      lockPeriod: NumberV,
-      withUpdate: BoolV
+      lockPeriod: NumberV
     }>(
       `
         #### Add
 
-        * "XVSVault Add rewardToken:<Address> allocPoint:<Number> token:<Address> rewardPerBlock:<Number> withUpdate:<Bool>"
+        * "XVSVault Add rewardToken:<Address> allocPoint:<Number> token:<Address> rewardPerBlock:<Number>"
             - Adds a new token pool
-        * E.g. "XVSVault Add (Address XVS) 1000 (Address XVS) 12345 False"
+        * E.g. "XVSVault Add (Address XVS) 1000 (Address XVS) 12345"
       `,
       "Add",
       [
@@ -262,13 +259,12 @@ export function xvsVaultCommands() {
         new Arg("allocPoint", getNumberV),
         new Arg("token", getAddressV),
         new Arg("rewardPerBlock", getNumberV),
-        new Arg("lockPeriod", getNumberV),
-        new Arg("withUpdate", getBoolV),
+        new Arg("lockPeriod", getNumberV)
       ],
-      (world, from, { xvsVault, rewardToken, allocPoint, token, rewardPerBlock, lockPeriod, withUpdate }) =>
+      (world, from, { xvsVault, rewardToken, allocPoint, token, rewardPerBlock, lockPeriod }) =>
           addPool(
             world, from, xvsVault, rewardToken.val, allocPoint,
-            token.val, rewardPerBlock, lockPeriod, withUpdate
+            token.val, rewardPerBlock, lockPeriod
           )
     ),
 

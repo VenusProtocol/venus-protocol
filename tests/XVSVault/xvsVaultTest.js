@@ -77,8 +77,8 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0], { from: root });
+        defaultLockPeriod
+        ], { from: root });
 
       const poolInfo = await call(xvsVault, 'poolInfos', [xvs._address, 0]);
       expect(poolInfo['token']).toEqual(xvs._address);
@@ -95,8 +95,8 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0], { from: root });
+        defaultLockPeriod
+        ], { from: root });
 
       let poolInfo = await call(xvsVault, 'poolInfos', [xvs._address, 0]);
       expect(poolInfo['allocPoint']).toEqual('100');
@@ -104,8 +104,8 @@ describe('XVSVault', () => {
       await send(xvsVault, 'set', [
         xvs._address,
         0,
-        1000,
-        0], { from: root });
+        1000
+        ], { from: root });
 
       poolInfo = await call(xvsVault, 'poolInfos', [xvs._address, 0]);
       expect(poolInfo['token']).toEqual(xvs._address);
@@ -123,8 +123,7 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
       await send(xvs, 'transfer', [notAdmin, tokenAmount], { from: root });
 
@@ -158,8 +157,7 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
       await send(xvs, 'transfer', [notAdmin, tokenAmount], { from: root });
       await send(xvs, 'approve', [xvsVault._address, tokenAmount], { from: notAdmin });
@@ -184,8 +182,7 @@ describe('XVSVault', () => {
         100,
         sxp._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
       await send(sxp, 'transfer', [notAdmin, tokenAmount], { from: root });
       await send(sxp, 'approve', [xvsVault._address, tokenAmount], { from: notAdmin });
@@ -309,14 +306,14 @@ describe('XVSVault', () => {
         await send(
             xvsVault,
             'add',
-            [xvs._address, 100, sxp._address, rewardPerBlock, lockPeriod1, 0],
+            [xvs._address, 100, sxp._address, rewardPerBlock, lockPeriod1],
             { from: root }
         );
         const lockPeriod2 = '654321';
         await send(
           xvsVault,
           'add',
-          [sxp._address, 100, xvs._address, rewardPerBlock, lockPeriod2, 0],
+          [sxp._address, 100, xvs._address, rewardPerBlock, lockPeriod2],
           { from: root }
         );
         const pool1 = await call(xvsVault, 'poolInfos', [xvs._address, 0]);
@@ -330,7 +327,7 @@ describe('XVSVault', () => {
           await send(
             xvsVault,
             'add',
-            [rewardToken._address, 100, stakingToken._address, rewardPerBlock, 0, 0],
+            [rewardToken._address, 100, stakingToken._address, rewardPerBlock, 0],
             { from: root }
           );
           // pair (reward token, pid) uniquely identifies a pool
@@ -366,8 +363,7 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
       await send(xvs, 'transfer', [notAdmin, tokenAmount], { from: root });
       await send(xvs, 'approve', [xvsVault._address, tokenAmount], { from: notAdmin });
@@ -417,16 +413,14 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
       await send(xvsVault, 'add', [
         xvs._address,
         100,
         sxp._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
 
       await send(xvsVault, 'add', [
@@ -434,16 +428,14 @@ describe('XVSVault', () => {
         200,
         xvs._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
       await send(xvsVault, 'add', [
         sxp._address,
         200,
         sxp._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
 
       const totalAllocPoint1 = await call(xvsVault, 'totalAllocPoints', [xvs._address]);
@@ -459,16 +451,14 @@ describe('XVSVault', () => {
         100,
         xvs._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
       await send(xvsVault, 'add', [
         xvs._address,
         100,
         sxp._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
 
       await send(xvsVault, 'add', [
@@ -476,16 +466,14 @@ describe('XVSVault', () => {
         200,
         xvs._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
       await send(xvsVault, 'add', [
         sxp._address,
         200,
         sxp._address,
         rewardPerBlock,
-        defaultLockPeriod,
-        0
+        defaultLockPeriod
       ], { from: root });
 
       await send(xvs, 'transfer', [notAdmin, tokenAmount], { from: root });

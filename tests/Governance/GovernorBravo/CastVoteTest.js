@@ -32,8 +32,8 @@ describe("governorBravo#castVote/2", () => {
     xvs = await deploy('XVSScenario', [root]);
     await send(xvsStore, 'setNewOwner', [xvsVault._address], { from: root });
     await send(xvsVault, 'setXvsStore', [xvs._address, xvsStore._address], { from: root });
-    // address _rewardToken, uint256 _allocPoint, IBEP20 _token, uint256 _rewardPerBlock, uint256 _lockPeriod, bool _withUpdate
-    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300, 0], { from: root }); // lock period 300ms
+    // address _rewardToken, uint256 _allocPoint, IBEP20 _token, uint256 _rewardPerBlock, uint256 _lockPeriod
+    await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300], { from: root }); // lock period 300s
     await send(xvsVault, 'delegate', [root]);
 
     govDelegate = await deploy('GovernorBravoDelegateHarness');

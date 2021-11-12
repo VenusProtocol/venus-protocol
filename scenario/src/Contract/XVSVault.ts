@@ -37,8 +37,8 @@ export interface XVSVaultImplMethods {
   _become(xvsVaultProxy: string): Sendable<void>;
   setXvsStore(xvs: string, xvsStore: string): Sendable<void>;
   add(
-    rewardToken: string, allocPoint: encodedNumber, token: string, rewardPerBlock: encodedNumber,
-    lockPeriod: encodedNumber, withUpdate: boolean
+    rewardToken: string, allocPoint: encodedNumber, token: string,
+    rewardPerBlock: encodedNumber, lockPeriod: encodedNumber
   ): Sendable<void>;
   deposit(rewardToken: string, pid: number, amount: encodedNumber): Sendable<void>;
   requestWithdrawal(rewardToken: string, pid: number, amount: encodedNumber): Sendable<void>;
