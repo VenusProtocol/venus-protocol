@@ -145,7 +145,7 @@ contract XVSVault is XVSVaultStorage {
                 );
             IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
         }
-        pool.token.transferFrom(
+        pool.token.safeTransferFrom(
             address(msg.sender),
             address(this),
             _amount
@@ -249,7 +249,7 @@ contract XVSVault is XVSVaultStorage {
         IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
-        pool.token.transfer(address(msg.sender), _amount);
+        pool.token.safeTransfer(address(msg.sender), _amount);
 
         emit ExecutedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }

@@ -42,9 +42,9 @@ contract XVSStore {
         if (address(token) != address(0)) {
             uint256 tokenBalance = IBEP20(token).balanceOf(address(this));
             if (_amount > tokenBalance) {
-                IBEP20(token).transfer(_to, tokenBalance);
+                IBEP20(token).safeTransfer(_to, tokenBalance);
             } else {
-                IBEP20(token).transfer(_to, _amount);
+                IBEP20(token).safeTransfer(_to, _amount);
             }
         }
     }
@@ -69,6 +69,6 @@ contract XVSStore {
     }
 
     function emergencyRewardWithdraw(address _tokenAddress, uint256 _amount) external onlyOwner {
-        IBEP20(_tokenAddress).transfer(address(msg.sender), _amount);
+        IBEP20(_tokenAddress).safeTransfer(address(msg.sender), _amount);
     }
 }
