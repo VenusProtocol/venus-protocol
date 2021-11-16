@@ -57,7 +57,13 @@ contract XVSVault is XVSVaultStorage {
         return poolInfos[rewardToken].length;
     }
 
-    // Add a new token pool. Can only be called by the admin.
+    /**
+     * @notice Add a new token pool. Can only be called by the admin.
+     * @dev This vault DOES NOT support deflationary tokens — it expects that
+     *   the amount of transferred tokens would equal the actually deposited
+     *   amount. In practice this means that this vault DOES NOT support USDT
+     *   and similar tokens (that do not provide these guarantees).
+     */
     function add(
         address _rewardToken,
         uint256 _allocPoint,
