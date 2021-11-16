@@ -104,7 +104,11 @@ contract XVSVault is XVSVaultStorage {
         address _rewardToken,
         uint256 _pid,
         uint256 _allocPoint
-    ) public onlyAdmin {
+    )
+        public
+        onlyAdmin
+    {
+        _ensureValidPool(_rewardToken, _pid);
         massUpdatePools(_rewardToken);
 
         PoolInfo[] storage poolInfo = poolInfos[_rewardToken];
@@ -128,7 +132,11 @@ contract XVSVault is XVSVaultStorage {
         address _rewardToken,
         uint256 _pid,
         uint256 _newPeriod
-    ) public onlyAdmin {
+    )
+        public
+        onlyAdmin
+    {
+        _ensureValidPool(_rewardToken, _pid);
         require(_newPeriod > 0, "Invalid new locking period");
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         pool.lockPeriod = _newPeriod;
@@ -140,10 +148,14 @@ contract XVSVault is XVSVaultStorage {
      * @param _pid The Pool Index
      * @param _amount The amount to deposit to vault
      */
-    function deposit(address _rewardToken, uint256 _pid, uint256 _amount) public nonReentrant {
+    function deposit(address _rewardToken, uint256 _pid, uint256 _amount)
+        public
+        nonReentrant
+    {
+        _ensureValidPool(_rewardToken, _pid);
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
-        updatePool(_rewardToken, _pid);
+        _updatePool(_rewardToken, _pid);
         if (user.amount > 0) {
             uint256 pending =
                 user.amount.mul(pool.accRewardPerShare).div(1e12).sub(
@@ -239,7 +251,11 @@ contract XVSVault is XVSVaultStorage {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      */
-    function executeWithdrawal(address _rewardToken, uint256 _pid) public nonReentrant {
+    function executeWithdrawal(address _rewardToken, uint256 _pid)
+        public
+        nonReentrant
+    {
+        _ensureValidPool(_rewardToken, _pid);
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
@@ -247,7 +263,7 @@ contract XVSVault is XVSVaultStorage {
         uint256 _amount = popEligibleWithdrawalRequests(user, requests);
         require(_amount > 0, "nothing to withdraw");
 
-        updatePool(_rewardToken, _pid);
+        _updatePool(_rewardToken, _pid);
         uint256 pending =
             user.amount.mul(pool.accRewardPerShare).div(1e12).sub(
                 user.rewardDebt
@@ -266,7 +282,11 @@ contract XVSVault is XVSVaultStorage {
      * @param _pid The Pool Index
      * @param _amount The amount to withdraw to vault
      */
-    function requestWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount) public nonReentrant {
+    function requestWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount)
+        public
+        nonReentrant
+    {
+        _ensureValidPool(_rewardToken, _pid);
         require(_amount > 0, "requested amount cannot be zero");
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
         require(user.amount >= user.pendingWithdrawals.add(_amount), "requested amount is invalid");
@@ -297,6 +317,7 @@ contract XVSVault is XVSVaultStorage {
         view
         returns (uint withdrawalAmount)
     {
+        _ensureValidPool(_rewardToken, _pid);
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][_user];
         // Since the requests are sorted by their unlock time, we can take
         // the entries from the end of the array and stop at the first
@@ -318,6 +339,7 @@ contract XVSVault is XVSVaultStorage {
         view
         returns (uint256)
     {
+        _ensureValidPool(_rewardToken, _pid);
         UserInfo storage user = userInfos[_rewardToken][_pid][_user];
         return user.pendingWithdrawals;
     }
@@ -333,6 +355,7 @@ contract XVSVault is XVSVaultStorage {
         view
         returns (WithdrawalRequest[] memory)
     {
+        _ensureValidPool(_rewardToken, _pid);
         return withdrawalRequests[_rewardToken][_pid][_user];
     }
 
@@ -342,6 +365,7 @@ contract XVSVault is XVSVaultStorage {
         view
         returns (uint256)
     {
+        _ensureValidPool(_rewardToken, _pid);
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][_user];
         uint256 accRewardPerShare = pool.accRewardPerShare;
@@ -365,12 +389,21 @@ contract XVSVault is XVSVaultStorage {
     function massUpdatePools(address _rewardToken) public {
         uint256 length = poolInfos[_rewardToken].length;
         for (uint256 pid = 0; pid < length; ++pid) {
-            updatePool(_rewardToken, pid);
+            _updatePool(_rewardToken, pid);
         }
     }
 
+    function updatePool(address _rewardToken, uint256 _pid)
+        external
+    {
+        _ensureValidPool(_rewardToken, _pid);
+        _updatePool(_rewardToken, _pid);
+    }
+
     // Update reward variables of the given pool to be up-to-date.
-    function updatePool(address _rewardToken, uint256 _pid) public {
+    function _updatePool(address _rewardToken, uint256 _pid)
+        internal
+    {
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         if (block.number <= pool.lastRewardBlock) {
             return;
@@ -392,6 +425,10 @@ contract XVSVault is XVSVaultStorage {
         pool.lastRewardBlock = block.number;
     }
 
+    function _ensureValidPool(address rewardToken, uint256 pid) internal view {
+        require(pid < poolInfos[rewardToken].length , "vault: pool exists?");
+    }
+
     // Get user info with reward token address and pid
     function getUserInfo(
         address _rewardToken,
@@ -402,6 +439,7 @@ contract XVSVault is XVSVaultStorage {
         view
         returns (uint256 amount, uint256 rewardDebt, uint256 pendingWithdrawals)
     {
+        _ensureValidPool(_rewardToken, _pid);
         UserInfo storage user = userInfos[_rewardToken][_pid][_user];
         amount = user.amount;
         rewardDebt = user.rewardDebt;

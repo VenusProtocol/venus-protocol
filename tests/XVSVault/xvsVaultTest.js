@@ -89,7 +89,7 @@ describe('XVSVault', () => {
       expect(await call(xvsStore, 'rewardTokens', [xvs._address])).toEqual(true);
     });
 
-    it('update xvs pool alloc coing', async () => {
+    it('update xvs pool alloc config', async () => {
       await send(xvsVault, 'add', [
         xvs._address,
         100,
@@ -113,6 +113,12 @@ describe('XVSVault', () => {
       expect(poolInfo['accRewardPerShare']).toEqual('0');
 
       expect(await call(xvsStore, 'rewardTokens', [xvs._address])).toEqual(true);
+    });
+
+    it('fails to update config for nonexistent pools', async () => {
+      await expect(
+        send(xvsVault, 'set', [xvs._address, 0, 1000 ], { from: root })
+      ).rejects.toRevert('revert vault: pool exists?');
     });
   });
 
@@ -144,9 +150,9 @@ describe('XVSVault', () => {
       expect(userInfo['amount']).toEqual('10000000000000000000000');
       expect(userInfo['rewardDebt']).toEqual('0');
 
-      userInfo = await call(xvsVault, 'getUserInfo', [sxp._address, 0, notAdmin]);
-      expect(userInfo['amount']).toEqual('0');
-      expect(userInfo['rewardDebt']).toEqual('0');
+      await expect(
+        call(xvsVault, 'getUserInfo', [sxp._address, 0, notAdmin])
+      ).rejects.toRevert('revert vault: pool exists?');
     });
   });
 
@@ -173,6 +179,12 @@ describe('XVSVault', () => {
       xvsBalance = await call(xvs, 'balanceOf', [notAdmin]);
       expect(xvsBalance).toEqual('20000000000000000');
     });
+
+    it('reverts when trying to deposit to a nonexisting pool', async () => {
+      await expect(
+        send(xvsVault, 'deposit', [xvs._address, 0, tokenAmount], { from: notAdmin })
+      ).rejects.toRevert('revert vault: pool exists?');
+    });
   });
 
   describe('withdrawals', () => {
@@ -198,7 +210,15 @@ describe('XVSVault', () => {
     }
 
     describe('request withdrawal', () => {
+      it('reverts when trying to request a withdrawal from a nonexisting pool', async () => {
+        await deposit();
+        await expect(
+          send(xvsVault, 'requestWithdrawal', [xvs._address, 1, 0], { from: notAdmin })
+        ).rejects.toRevert('revert vault: pool exists?');
+      });
+
       it('prohibits requests with zero amount', async () => {
+        await deposit();
         await expect(
           send(xvsVault, 'requestWithdrawal', [xvs._address, 0, 0], { from: notAdmin })
         ).rejects.toRevert('revert requested amount cannot be zero');
@@ -250,6 +270,13 @@ describe('XVSVault', () => {
         ).rejects.toRevert('revert nothing to withdraw');
       });
 
+      it('reverts when trying to withdraw from a nonexisting pool', async () => {
+        await deposit();
+        await expect(
+          send(xvsVault, 'executeWithdrawal', [xvs._address, 1], { from: notAdmin })
+        ).rejects.toRevert('revert vault: pool exists?');
+      });
+
       it('fails with "nothing to withdraw" if the requests are still pending', async () => {
         await deposit();
         await requestWithdrawalWithLockPeriod({ amount: '10', lockPeriod: '100' }); // lockedUntil = 200
@@ -278,6 +305,18 @@ describe('XVSVault', () => {
         await send(xvsVault, 'executeWithdrawal', [xvs._address, 0], { from: notAdmin });
         sxpBalance = await call(sxp, 'balanceOf', [notAdmin]);
         expect(sxpBalance).toEqual('11');
+      });
+
+      it('reverts when trying to compute the withdrawal amounts for a nonexisting pool', async () => {
+        await deposit();
+
+        await expect(
+          call(xvsVault, 'getEligibleWithdrawalAmount', [xvs._address, 1, notAdmin])
+        ).rejects.toRevert('revert vault: pool exists?');
+
+        await expect(
+          call(xvsVault, 'getRequestedAmount', [xvs._address, 1, notAdmin])
+        ).rejects.toRevert('revert vault: pool exists?');
       });
 
       it('clears the eligible withdrawals from the queue', async () => {
@@ -320,6 +359,12 @@ describe('XVSVault', () => {
         const pool2 = await call(xvsVault, 'poolInfos', [sxp._address, 0]);
         expect(pool1.lockPeriod).toEqual('123456');
         expect(pool2.lockPeriod).toEqual('654321');
+      });
+
+      it('reverts when trying to set lock period for a nonexisting pool', async () => {
+        await expect(
+          send(xvsVault, 'setWithdrawalLockingPeriod', [xvs._address, 0, 42], { from: root })
+        ).rejects.toRevert('revert vault: pool exists?');
       });
 
       it('sets lock period separately for each pool', async () => {
@@ -500,6 +545,28 @@ describe('XVSVault', () => {
       xvsBalance = await call(sxp, 'balanceOf', [notAdmin]);
       expect(xvsBalance).toEqual('10000000000000000');
     });
+
+    it('fails when a pool does not exist', async () => {
+      await send(xvsVault, 'add', [
+        xvs._address,
+        100,
+        xvs._address,
+        rewardPerBlock,
+        defaultLockPeriod
+      ], { from: root });
+
+      await send(xvsVault, 'add', [
+        xvs._address,
+        100,
+        sxp._address,
+        rewardPerBlock,
+        defaultLockPeriod
+      ], { from: root });
+
+      await expect(
+        send(xvsVault, 'deposit', [xvs._address, 2, tokenAmount], { from: notAdmin })
+      ).rejects.toRevert('revert vault: pool exists?');
+    })
   });
 
   // describe('get prior votes', () => {
