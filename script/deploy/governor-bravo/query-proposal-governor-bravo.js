@@ -6,7 +6,7 @@ const contractConfigData = require("../../../networks/testnet.json");
 
   const governorBravoContractInstance = await saddle.getContractAt('GovernorBravoDelegate', governorBravoAddress);
 
-  const proposalId = 67;
+  const proposalId = 73;
   const proposalInfo = await governorBravoContractInstance.methods.proposals(proposalId).call();
   const state = await governorBravoContractInstance.methods.state(proposalId).call();
 

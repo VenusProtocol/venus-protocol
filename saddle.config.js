@@ -177,7 +177,7 @@ module.exports = {
       },
       accounts: [
         {env: "ACCOUNT"},
-        {file: "~/.bsc/testnet_admin"},                        // Load from given file with contents as the private key (e.g. 0x...)
+        {file: "~/.bsc/testnet"},                        // Load from given file with contents as the private key (e.g. 0x...)
         {unlocked: 0}
       ]
     },

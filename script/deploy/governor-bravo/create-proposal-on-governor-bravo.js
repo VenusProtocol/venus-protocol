@@ -11,9 +11,9 @@ const contractConfigData = require("../../../networks/testnet.json");
   const txn = await governorBravoDelegateContractInstance.methods.propose(
     [timelockAddress],
     [0],
-    ['_setPendingAdmin(address)'], 
+    ['_setPendingAdmin(address)'],
     [payload],
-    "test on GovernorBravoDelegate for _setPendingAdmin to 0x address ").send();
+    "test for voting against with reason-7 on GovernorBravoDelegate for _setPendingAdmin to 0x address").send();
 
   console.log(`GovernorBravoDelegate - proposed ZeroAddress as PendingAdmin for timelock :: with transactionStatus ${txn.status}`);  
 
