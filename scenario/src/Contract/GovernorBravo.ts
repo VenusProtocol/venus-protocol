@@ -47,11 +47,13 @@ export interface GovernorBravoMethods {
   setBlockTimestamp(blockTimestamp: encodedNumber): Sendable<void>;
   state(proposalId: encodedNumber): Callable<number>;
   proposalThreshold(): Callable<number>;
+  proposalMaxOperations(): Callable<number>;
   votingPeriod(): Callable<number>;
   votingDelay(): Callable<number>;
   _setVotingDelay(newVotingDelay: encodedNumber): Sendable<void>;
   _setVotingPeriod(newVotingPeriod: encodedNumber): Sendable<void>;
   _setProposalThreshold(newProposalThreshold: encodedNumber): Sendable<void>;
+  _setProposalMaxOperations(newProposalMaxOperations: encodedNumber): Sendable<void>;
   _initiate(governorAlpha: string): Sendable<void>;
   _initiate(): Sendable<void>;
   _setImplementation(address: string): Sendable<void>;

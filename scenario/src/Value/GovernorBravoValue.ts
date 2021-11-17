@@ -67,6 +67,13 @@ async function getProposalThreshold(
   return new NumberV(await governor.methods.proposalThreshold().call());
 }
 
+async function getProposalMaxOperations(
+  world: World,
+  governor: GovernorBravo
+): Promise<NumberV> {
+  return new NumberV(await governor.methods.proposalMaxOperations().call());
+}
+
 async function getVotingPeriod(
   world: World,
   governor: GovernorBravo
@@ -146,7 +153,7 @@ export function governorBravoFetchers() {
     new Fetcher<{ governor: GovernorBravo }, NumberV>(
       `
         #### ProposalThreshold
-        * "GovernorBravo <Governor> ProposalThreshold" - Returns the proposal threshold of the given governorBravo 
+        * "GovernorBravo <Governor> ProposalThreshold" - Returns the proposal threshold of the given governorBravo
         * E.g. "GovernorBravo GovernorBravoScenario ProposalThreshold"
       `,
       "ProposalThreshold",
@@ -157,8 +164,20 @@ export function governorBravoFetchers() {
 
     new Fetcher<{ governor: GovernorBravo }, NumberV>(
       `
+        #### ProposalMaxOperations
+        * "GovernorBravo <Governor> ProposalMaxOperations" - Returns the max number of operations per one proposal
+        * E.g. "GovernorBravo GovernorBravoScenario ProposalMaxOperations"
+      `,
+      "ProposalMaxOperations",
+      [new Arg("governor", getGovernorV)],
+      (world, { governor }) => getProposalMaxOperations(world, governor),
+      { namePos: 1 }
+    ),
+
+    new Fetcher<{ governor: GovernorBravo }, NumberV>(
+      `
         #### VotingPeriod
-        * "GovernorBravo <Governor> VotingPeriod" - Returns the voting period of the given governorBravo 
+        * "GovernorBravo <Governor> VotingPeriod" - Returns the voting period of the given governorBravo
         * E.g. "GovernorBravo GovernorBravoScenario VotingPeriod"
       `,
       "VotingPeriod",
@@ -170,7 +189,7 @@ export function governorBravoFetchers() {
     new Fetcher<{ governor: GovernorBravo }, NumberV>(
       `
         #### VotingDelay
-        * "GovernorBravo <Governor> VotingDelay" - Returns the voting delay of the given governorBravo 
+        * "GovernorBravo <Governor> VotingDelay" - Returns the voting delay of the given governorBravo
         * E.g. "GovernorBravo GovernorBravoScenario VotingDelay"
       `,
       "VotingDelay",

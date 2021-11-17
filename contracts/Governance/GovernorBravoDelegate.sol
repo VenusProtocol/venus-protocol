@@ -359,8 +359,11 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
       * @param proposalMaxOperations_ Max proposal operations
       */
     function _setProposalMaxOperations(uint proposalMaxOperations_) external {
-        require(msg.sender == admin, "GovernorBravo::_initiate: admin only");
+        require(msg.sender == admin, "GovernorBravo::_setProposalMaxOperations: admin only");
+        uint oldProposalMaxOperations = proposalMaxOperations;
         proposalMaxOperations = proposalMaxOperations_;
+
+        emit ProposalMaxOperationsUpdated(oldProposalMaxOperations, proposalMaxOperations_);
     }
 
     /**

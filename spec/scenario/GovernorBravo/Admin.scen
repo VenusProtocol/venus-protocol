@@ -88,6 +88,12 @@ Test "Enforce Proposal Threshold min"
 	GovernorBravo LegitGov SetProposalThreshold 15000e18
 	Assert Revert "revert GovernorBravo::_setProposalThreshold: invalid proposal threshold"
 
+Test "Set Proposal Max Operations"
+	DeployGov
+	GovernorBravo LegitGov SetProposalMaxOperations 42
+	Assert Log ProposalMaxOperationsUpdated (newMaxOperations 42)
+	Assert Equal (GovernorBravo LegitGov ProposalMaxOperations) 42
+
 Test "Enforce admin"
 	DeployGov
 	AllowFailures
@@ -101,6 +107,8 @@ Test "Enforce admin"
 	Assert Revert "revert GovernorBravo::_initiate: admin only"
 	From Robert (GovernorBravo LegitGov SetImplementation (Address BravoDelegateHarness))
 	Assert Revert "revert GovernorBravoDelegator::_setImplementation: admin only"
+	From Robert (GovernorBravo LegitGov SetProposalMaxOperations 42)
+	Assert Revert "revert GovernorBravo::_setProposalMaxOperations: admin only"
 
 Test "Transfer Admin"
 	DeployGov

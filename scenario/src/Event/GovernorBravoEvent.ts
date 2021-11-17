@@ -168,6 +168,27 @@ async function setProposalThreshold(
   return world;
 }
 
+async function setProposalMaxOperations(
+  world: World,
+  from: string,
+  governor: GovernorBravo,
+  newProposalMaxOperations: NumberV
+): Promise<World> {
+  let invokation = await invoke(
+    world,
+    governor.methods._setProposalMaxOperations(newProposalMaxOperations.encode()),
+    from
+  );
+
+  world = addAction(
+    world,
+    `Set proposal max operations to ${newProposalMaxOperations.show()}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function setImplementation(
   world: World,
   from: string,
@@ -463,6 +484,21 @@ export function governorBravoCommands() {
       ],
       (world, from, { governor, newProposalThreshold }) =>
         setProposalThreshold(world, from, governor, newProposalThreshold),
+      { namePos: 1 }
+    ),
+    new Command<{ governor: GovernorBravo; newProposalMaxOperations: NumberV }>(
+      `
+        #### SetProposalMaxOperations
+        * "GovernorBravo <Governor> SetProposalMaxOperations <Number>" - Sets the max number of operations per one proposal
+        * E.g. "GovernorBravo GovernorBravoScenario SetProposalMaxOperations 42"
+    `,
+      "SetProposalMaxOperations",
+      [
+        new Arg("governor", getGovernorV),
+        new Arg("newProposalMaxOperations", getNumberV),
+      ],
+      (world, from, { governor, newProposalMaxOperations }) =>
+        setProposalMaxOperations(world, from, governor, newProposalMaxOperations),
       { namePos: 1 }
     ),
     new Command<{ governor: GovernorBravo; governorAlpha: AddressV }>(

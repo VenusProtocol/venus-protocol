@@ -72,13 +72,21 @@ describe('XVSVault', () => {
 
   describe('test to manage reward pool config', () => {
     it('add xvs pool', async () => {
-      await send(xvsVault, 'add', [
-        xvs._address,
-        100,
-        xvs._address,
-        rewardPerBlock,
-        defaultLockPeriod
-        ], { from: root });
+      const addTx = await send(
+        xvsVault,
+        'add',
+        [xvs._address, 100, xvs._address, rewardPerBlock, defaultLockPeriod],
+        { from: root }
+      );
+
+      expect(addTx).toHaveLog('PoolAdded', {
+        rewardToken: xvs._address,
+        pid: '0',
+        token: xvs._address,
+        allocPoints: '100',
+        rewardPerBlock: rewardPerBlock.toString(),
+        lockPeriod: '300'
+      });
 
       const poolInfo = await call(xvsVault, 'poolInfos', [xvs._address, 0]);
       expect(poolInfo['token']).toEqual(xvs._address);
@@ -101,11 +109,18 @@ describe('XVSVault', () => {
       let poolInfo = await call(xvsVault, 'poolInfos', [xvs._address, 0]);
       expect(poolInfo['allocPoint']).toEqual('100');
 
-      await send(xvsVault, 'set', [
-        xvs._address,
-        0,
-        1000
-        ], { from: root });
+      const setTx = await send(
+        xvsVault, 'set',
+        [xvs._address, 0, 1000 ],
+        { from: root }
+      );
+
+      expect(setTx).toHaveLog('PoolUpdated', {
+        rewardToken: xvs._address,
+        pid: '0',
+        oldAllocPoints: '100',
+        newAllocPoints: '1000'
+      });
 
       poolInfo = await call(xvsVault, 'poolInfos', [xvs._address, 0]);
       expect(poolInfo['token']).toEqual(xvs._address);
@@ -113,6 +128,28 @@ describe('XVSVault', () => {
       expect(poolInfo['accRewardPerShare']).toEqual('0');
 
       expect(await call(xvsStore, 'rewardTokens', [xvs._address])).toEqual(true);
+    });
+
+    it('sets the reward amount per block', async () => {
+      await send(
+        xvsVault,
+        'add',
+        [xvs._address, 100, xvs._address, rewardPerBlock, defaultLockPeriod],
+        { from: root }
+      );
+
+      const tx = await send(
+        xvsVault,
+        'setRewardAmountPerBlock',
+        [xvs._address, rewardPerBlock.mul(2)],
+        { from: root }
+      );
+
+      expect(tx).toHaveLog('RewardAmountUpdated', {
+        rewardToken: xvs._address,
+        oldReward: rewardPerBlock.toString(),
+        newReward: rewardPerBlock.mul(2).toString(),
+      });
     });
 
     it('fails to update config for nonexistent pools', async () => {
@@ -366,6 +403,32 @@ describe('XVSVault', () => {
           send(xvsVault, 'setWithdrawalLockingPeriod', [xvs._address, 0, 42], { from: root })
         ).rejects.toRevert('revert vault: pool exists?');
       });
+
+      it('sets the lock period for a pool', async () => {
+        await send(
+          xvsVault,
+          'add',
+          [sxp._address, 100, xvs._address, rewardPerBlock, 0],
+          { from: root }
+        );
+
+        const tx = await send(
+          xvsVault,
+          'setWithdrawalLockingPeriod',
+          [sxp._address, 0, '1111111'],
+          { from: root }
+        );
+
+        expect(tx).toHaveLog('WithdrawalLockingPeriodUpdated', {
+          rewardToken: sxp._address,
+          pid: '0',
+          oldPeriod: '0',
+          newPeriod: '1111111'
+        });
+
+        const pool = await call(xvsVault, 'poolInfos', [sxp._address, 0]);
+        expect(pool.lockPeriod).toEqual('1111111');
+      })
 
       it('sets lock period separately for each pool', async () => {
         async function newPool(stakingToken, rewardToken, pid) {

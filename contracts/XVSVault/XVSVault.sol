@@ -34,6 +34,38 @@ contract XVSVault is XVSVaultStorage {
     /// @notice An event thats emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
 
+    /// @notice An event emitted when the reward store address is updated
+    event StoreUpdated(address oldXvs, address oldStore, address newXvs, address newStore);
+
+    /// @notice An event emitted when the withdrawal locking period is updated for a pool
+    event WithdrawalLockingPeriodUpdated(
+        address indexed rewardToken,
+        uint indexed pid,
+        uint oldPeriod,
+        uint newPeriod
+    );
+
+    /// @notice An event emitted when the reward amount per block is modified for a pool
+    event RewardAmountUpdated(address indexed rewardToken, uint oldReward, uint newReward);
+
+    /// @notice An event emitted when a new pool is added
+    event PoolAdded(
+        address indexed rewardToken,
+        uint indexed pid,
+        address indexed token,
+        uint allocPoints,
+        uint rewardPerBlock,
+        uint lockPeriod
+    );
+
+    /// @notice An event emitted when a pool allocation points are updated
+    event PoolUpdated(
+        address indexed rewardToken,
+        uint indexed pid,
+        uint oldAllocPoints,
+        uint newAllocPoints
+    );
+
     constructor() public {
         admin = msg.sender;
     }
@@ -97,6 +129,15 @@ contract XVSVault is XVSVaultStorage {
         );
 
         IXVSStore(xvsStore).setRewardToken(_rewardToken, true);
+
+        emit PoolAdded(
+            _rewardToken,
+            poolInfo.length - 1,
+            address(_token),
+            _allocPoint,
+            _rewardPerBlock,
+            _lockPeriod
+        );
     }
 
     // Update the given pool's reward allocation point. Can only be called by the admin.
@@ -115,7 +156,10 @@ contract XVSVault is XVSVaultStorage {
         totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken].sub(poolInfo[_pid].allocPoint).add(
             _allocPoint
         );
+        uint256 oldAllocPoints = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
+
+        emit PoolUpdated(_rewardToken, _pid, oldAllocPoints, _allocPoint);
     }
 
     // Update the given reward token's amount per block
@@ -124,7 +168,10 @@ contract XVSVault is XVSVaultStorage {
         uint256 _rewardAmount
     ) public onlyAdmin {
         massUpdatePools(_rewardToken);
+        uint256 oldReward = rewardTokenAmountsPerBlock[_rewardToken];
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardAmount;
+
+        emit RewardAmountUpdated(_rewardToken, oldReward, _rewardAmount);
     }
 
     // Update the given reward token's amount per block
@@ -139,7 +186,10 @@ contract XVSVault is XVSVaultStorage {
         _ensureValidPool(_rewardToken, _pid);
         require(_newPeriod > 0, "Invalid new locking period");
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+        uint256 oldPeriod = pool.lockPeriod;
         pool.lockPeriod = _newPeriod;
+
+        emit WithdrawalLockingPeriodUpdated(_rewardToken, _pid, oldPeriod, _newPeriod);
     }
 
     /**
@@ -659,9 +709,13 @@ contract XVSVault is XVSVaultStorage {
     }
 
     function setXvsStore(address _xvs, address _xvsStore) public onlyAdmin {
+        address oldXvsContract = xvsAddress;
+        address oldStore = xvsStore;
         xvsAddress = _xvs;
         xvsStore = _xvsStore;
 
         _notEntered = true;
+
+        emit StoreUpdated(oldXvsContract, oldStore, _xvs, _xvsStore);
     }
 }

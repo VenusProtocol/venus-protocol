@@ -43,6 +43,9 @@ contract GovernorBravoEvents {
 
     /// @notice Emitted when the new guardian address is set
     event NewGuardian(address oldGuardian, address newGuardian);
+
+    /// @notice Emitted when the maximum number of operations in one proposal is updated
+    event ProposalMaxOperationsUpdated(uint oldMaxOperations, uint newMaxOperations);
 }
 
 contract GovernorBravoDelegatorStorage {
