@@ -36,6 +36,26 @@
         "eta": 1636392899,
         "Delegatee": "0x2Ce1d0ffD7E869D9DF33e28552b12DdDed326706"
     },
+    "XVSVaultPools": {
+      "VAI": {
+        "allocPoint": 100,
+        "rewardPerBlock": 1e16,
+        "lockPeriod": 300,
+        "withUpdate": 0
+      },
+      "XVS": {
+        "allocPoint": 100,
+        "rewardPerBlock": 1e16,
+        "lockPeriod": 300,
+        "withUpdate": 0
+      },
+      "VRT": {
+        "allocPoint": 100,
+        "rewardPerBlock": 1e16,
+        "lockPeriod": 300,
+        "withUpdate": 0
+      }
+    },
     "Blocks": {
       "VenusLens": 2918075,
       "WhitepaperInterestRateModel": 2821193,
