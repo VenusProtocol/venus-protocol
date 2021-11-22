@@ -67,7 +67,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         votingPeriod = votingPeriod_;
         votingDelay = votingDelay_;
         proposalThreshold = proposalThreshold_;
-        proposalMaxOperations = 30;
+        proposalMaxOperations = 10;
         guardian = guardian_;
     }
 
