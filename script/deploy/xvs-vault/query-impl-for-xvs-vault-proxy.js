@@ -7,3 +7,4 @@ const contractConfigData = require("../../../networks/testnet.json");
   const implementationAddress = await xvsVaultProxyContractInstance.methods.xvsVaultImplementation().call();
   console.log(`XVSVaultProxy-> has Implementation: ${implementationAddress}`);
 })();
+ 
