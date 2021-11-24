@@ -700,15 +700,6 @@ contract XVSVault is XVSVaultStorage {
         admin = address(0);
     }
 
-    /**
-     * @dev Set the current admin to new address
-     */
-    function setNewAdmin(address newAdmin) external onlyAdmin {
-        require(newAdmin != address(0), "new owner is the zero address");
-        emit AdminTransferred(admin, newAdmin);
-        admin = newAdmin;
-    }
-
     /*** Admin Functions ***/
 
     function _become(XVSVaultProxy xvsVaultProxy) external {

@@ -9,11 +9,17 @@ contract XVSStore {
     /// @notice The Admin Address
     address public admin;
 
+    /// @notice The pending admin address
+    address public pendingAdmin;
+
     /// @notice The Owner Address
     address public owner;
 
     /// @notice The reward tokens
     mapping(address => bool) public rewardTokens;
+
+    /// @notice Emitted when pendingAdmin is changed
+    event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 
     /// @notice Event emitted when admin changed
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
@@ -49,11 +55,22 @@ contract XVSStore {
         }
     }
 
-    function setNewAdmin(address _admin) external onlyAdmin {
-        require(_admin != address(0), "new admin is the zero address");
+    function setPendingAdmin(address _admin) external onlyAdmin {
+        address oldPendingAdmin = pendingAdmin;
+        pendingAdmin = _admin;
+        emit NewPendingAdmin(oldPendingAdmin, _admin);
+    }
+
+    function acceptAdmin() external {
+        require(msg.sender == pendingAdmin, "only pending admin");
         address oldAdmin = admin;
-        admin = _admin;
-        emit AdminTransferred(oldAdmin, _admin);
+        address oldPendingAdmin = pendingAdmin;
+
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+
+        emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
+        emit AdminTransferred(oldAdmin, admin);
     }
 
     function setNewOwner(address _owner) external onlyAdmin {
