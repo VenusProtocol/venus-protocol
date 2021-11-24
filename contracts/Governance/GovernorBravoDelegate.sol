@@ -60,6 +60,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         require(votingPeriod_ >= MIN_VOTING_PERIOD && votingPeriod_ <= MAX_VOTING_PERIOD, "GovernorBravo::initialize: invalid voting period");
         require(votingDelay_ >= MIN_VOTING_DELAY && votingDelay_ <= MAX_VOTING_DELAY, "GovernorBravo::initialize: invalid voting delay");
         require(proposalThreshold_ >= MIN_PROPOSAL_THRESHOLD && proposalThreshold_ <= MAX_PROPOSAL_THRESHOLD, "GovernorBravo::initialize: invalid proposal threshold");
+        require(guardian_ != address(0), "GovernorBravo::initialize: invalid guardian");
 
         timelock = TimelockInterface(timelock_);
         xvsVault = XvsVaultInterface(xvsVault_);
@@ -294,6 +295,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
       */
     function _setGuardian(address newGuardian) external {
         require(msg.sender == guardian || msg.sender == admin, "GovernorBravo::_setGuardian: admin or guardian only");
+        require(newGuardian != address(0), "GovernorBravo::_setGuardian: cannot live without a guardian");
         address oldGuardian = guardian;
         guardian = newGuardian;
 
