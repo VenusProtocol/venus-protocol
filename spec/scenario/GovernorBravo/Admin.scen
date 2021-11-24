@@ -126,3 +126,9 @@ Test "Only guardian and admin can set new guardian"
 	AllowFailures
 	From Robert (GovernorBravo LegitGov SetGuardian Admin)
 	Assert Revert "revert GovernorBravo::_setGuardian: admin or guardian only"
+
+Test "Guardian cannot be zero"
+	DeployGov
+	AllowFailures
+	From Guardian (GovernorBravo LegitGov SetGuardian (Address Zero))
+	Assert Revert "revert GovernorBravo::_setGuardian: cannot live without a guardian"
