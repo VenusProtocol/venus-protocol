@@ -563,7 +563,7 @@ contract XVSVault is XVSVaultStorage {
         address signatory = ecrecover(digest, v, r, s);
         require(signatory != address(0), "XVSVault::delegateBySig: invalid signature");
         require(nonce == nonces[signatory]++, "XVSVault::delegateBySig: invalid nonce");
-        require(now <= expiry, "XVSVault::delegateBySig: signature expired");
+        require(block.timestamp <= expiry, "XVSVault::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
