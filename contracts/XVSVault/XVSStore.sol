@@ -36,7 +36,7 @@ contract XVSStore {
     }
 
     // Safe reward token transfer function, just in case if rounding error causes pool to not have enough tokens.
-    function safeRewardTransfer(address token, address _to, uint256 _amount) public onlyOwner {
+    function safeRewardTransfer(address token, address _to, uint256 _amount) external onlyOwner {
         require(rewardTokens[token] == true, "only reward token can");
 
         if (address(token) != address(0)) {
@@ -49,21 +49,21 @@ contract XVSStore {
         }
     }
 
-    function setNewAdmin(address _admin) public onlyAdmin {
+    function setNewAdmin(address _admin) external onlyAdmin {
         require(_admin != address(0), "new admin is the zero address");
         address oldAdmin = admin;
         admin = _admin;
         emit AdminTransferred(oldAdmin, _admin);
     }
 
-    function setNewOwner(address _owner) public onlyAdmin {
+    function setNewOwner(address _owner) external onlyAdmin {
         require(_owner != address(0), "new owner is the zero address");
         address oldOwner = owner;
         owner = _owner;
         emit OwnerTransferred(oldOwner, _owner);
     }
 
-    function setRewardToken(address _tokenAddress, bool status) public {
+    function setRewardToken(address _tokenAddress, bool status) external {
         require(msg.sender == admin || msg.sender == owner, "only admin or owner can");
         rewardTokens[_tokenAddress] = status;
     }

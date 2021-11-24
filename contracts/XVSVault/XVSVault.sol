@@ -102,7 +102,10 @@ contract XVSVault is XVSVaultStorage {
         IBEP20 _token,
         uint256 _rewardPerBlock,
         uint256 _lockPeriod
-    ) public onlyAdmin {
+    )
+        external
+        onlyAdmin
+    {
         require(address(xvsStore) != address(0), "Store contract addres is empty");
 
         massUpdatePools(_rewardToken);
@@ -146,7 +149,7 @@ contract XVSVault is XVSVaultStorage {
         uint256 _pid,
         uint256 _allocPoint
     )
-        public
+        external
         onlyAdmin
     {
         _ensureValidPool(_rewardToken, _pid);
@@ -166,7 +169,10 @@ contract XVSVault is XVSVaultStorage {
     function setRewardAmountPerBlock(
         address _rewardToken,
         uint256 _rewardAmount
-    ) public onlyAdmin {
+    )
+        external
+        onlyAdmin
+    {
         massUpdatePools(_rewardToken);
         uint256 oldReward = rewardTokenAmountsPerBlock[_rewardToken];
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardAmount;
@@ -180,7 +186,7 @@ contract XVSVault is XVSVaultStorage {
         uint256 _pid,
         uint256 _newPeriod
     )
-        public
+        external
         onlyAdmin
     {
         _ensureValidPool(_rewardToken, _pid);
@@ -199,7 +205,7 @@ contract XVSVault is XVSVaultStorage {
      * @param _amount The amount to deposit to vault
      */
     function deposit(address _rewardToken, uint256 _pid, uint256 _amount)
-        public
+        external
         nonReentrant
     {
         _ensureValidPool(_rewardToken, _pid);
@@ -302,7 +308,7 @@ contract XVSVault is XVSVaultStorage {
      * @param _pid The Pool Index
      */
     function executeWithdrawal(address _rewardToken, uint256 _pid)
-        public
+        external
         nonReentrant
     {
         _ensureValidPool(_rewardToken, _pid);
@@ -333,7 +339,7 @@ contract XVSVault is XVSVaultStorage {
      * @param _amount The amount to withdraw to vault
      */
     function requestWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount)
-        public
+        external
         nonReentrant
     {
         _ensureValidPool(_rewardToken, _pid);
@@ -363,7 +369,7 @@ contract XVSVault is XVSVaultStorage {
      * @param _user The User Address
      */
     function getEligibleWithdrawalAmount(address _rewardToken, uint256 _pid, address _user)
-        public
+        external
         view
         returns (uint withdrawalAmount)
     {
@@ -385,7 +391,7 @@ contract XVSVault is XVSVaultStorage {
      * @param _user The User Address
      */
     function getRequestedAmount(address _rewardToken, uint256 _pid, address _user)
-        public
+        external
         view
         returns (uint256)
     {
@@ -401,7 +407,7 @@ contract XVSVault is XVSVaultStorage {
      * @param _user The User Address
      */
     function getWithdrawalRequests(address _rewardToken, uint256 _pid, address _user)
-        public
+        external
         view
         returns (WithdrawalRequest[] memory)
     {
@@ -411,7 +417,7 @@ contract XVSVault is XVSVaultStorage {
 
     // View function to see pending XVSs on frontend.
     function pendingReward(address _rewardToken, uint256 _pid, address _user)
-        public
+        external
         view
         returns (uint256)
     {
@@ -485,7 +491,7 @@ contract XVSVault is XVSVaultStorage {
         uint256 _pid,
         address _user
     )
-        public
+        external
         view
         returns (uint256 amount, uint256 rewardDebt, uint256 pendingWithdrawals)
     {
@@ -535,7 +541,7 @@ contract XVSVault is XVSVaultStorage {
      * @notice Delegate votes from `msg.sender` to `delegatee`
      * @param delegatee The address to delegate votes to
      */
-    function delegate(address delegatee) public {
+    function delegate(address delegatee) external {
         return _delegate(msg.sender, delegatee);
     }
 
@@ -548,7 +554,9 @@ contract XVSVault is XVSVaultStorage {
      * @param r Half of the ECDSA signature pair
      * @param s Half of the ECDSA signature pair
      */
-    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s) public {
+    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s)
+        external
+    {
         bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("XVSVault")), getChainId(), address(this)));
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -680,14 +688,14 @@ contract XVSVault is XVSVaultStorage {
     /**
      * @dev Returns the address of the current admin
      */
-    function getAdmin() public view returns (address) {
+    function getAdmin() external view returns (address) {
         return admin;
     }
 
     /**
      * @dev Burn the current admin
      */
-    function burnAdmin() public onlyAdmin {
+    function burnAdmin() external onlyAdmin {
         emit AdminTransferred(admin, address(0));
         admin = address(0);
     }
@@ -695,7 +703,7 @@ contract XVSVault is XVSVaultStorage {
     /**
      * @dev Set the current admin to new address
      */
-    function setNewAdmin(address newAdmin) public onlyAdmin {
+    function setNewAdmin(address newAdmin) external onlyAdmin {
         require(newAdmin != address(0), "new owner is the zero address");
         emit AdminTransferred(admin, newAdmin);
         admin = newAdmin;
@@ -703,12 +711,12 @@ contract XVSVault is XVSVaultStorage {
 
     /*** Admin Functions ***/
 
-    function _become(XVSVaultProxy xvsVaultProxy) public {
+    function _become(XVSVaultProxy xvsVaultProxy) external {
         require(msg.sender == xvsVaultProxy.admin(), "only proxy admin can change brains");
         require(xvsVaultProxy._acceptImplementation() == 0, "change not authorized");
     }
 
-    function setXvsStore(address _xvs, address _xvsStore) public onlyAdmin {
+    function setXvsStore(address _xvs, address _xvsStore) external onlyAdmin {
         address oldXvsContract = xvsAddress;
         address oldStore = xvsStore;
         xvsAddress = _xvs;
