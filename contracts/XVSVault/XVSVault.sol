@@ -1,6 +1,7 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
+import "../Utils/ECDSA.sol";
 import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
 import "./XVSVaultProxy.sol";
@@ -12,7 +13,7 @@ interface IXVSStore {
     function setRewardToken(address _tokenAddress, bool status) external;
 }
 
-contract XVSVault is XVSVaultStorage {
+contract XVSVault is XVSVaultStorage, ECDSA {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -560,8 +561,7 @@ contract XVSVault is XVSVaultStorage {
         bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("XVSVault")), getChainId(), address(this)));
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "XVSVault::delegateBySig: invalid signature");
+        address signatory = ECDSA.recover(digest, v, r, s);
         require(nonce == nonces[signatory]++, "XVSVault::delegateBySig: invalid nonce");
         require(block.timestamp <= expiry, "XVSVault::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
