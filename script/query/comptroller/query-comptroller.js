@@ -3,9 +3,9 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 
 (async () => {  
 
-  const comptrollerAddress = contractConfigData.Contracts.Comptroller;
-  const comptrollerContractInstance = await saddle.getContractAt('Comptroller', comptrollerAddress);
+  const unitrollerAddress = contractConfigData.Contracts.Unitroller;
+  const comptrollerContractInstance = await saddle.getContractAt('Comptroller', unitrollerAddress);
   const allMarkets = await comptrollerContractInstance.methods.getAllMarkets().call();
-  console.log(`Comptroller -> ${comptrollerAddress} has Markets: ${allMarkets}`);
+  console.log(`Comptroller -> ${unitrollerAddress} has Markets: ${allMarkets}`);
 
 })();
