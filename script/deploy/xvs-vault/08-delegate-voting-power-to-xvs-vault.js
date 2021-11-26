@@ -3,9 +3,9 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 
 (async () => {  
 
-  const xvsVaultAddress = contractConfigData.Contracts.XVSVault;
-  const xvsVaultContractInstance = await saddle.getContractAt('XVSVault', xvsVaultAddress);
+  const xvsVaultProxyAddress = contractConfigData.Contracts.XVSVault;
+  const xvsVaultContractInstance = await saddle.getContractAt('XVSVault', xvsVaultProxyAddress);
   const delegatee = contractConfigData.Accounts.Delegatee;
   const delegateTxn = await xvsVaultContractInstance.methods.delegate(delegatee).send();
-  console.log(`xvsVault-> deleagted to: ${delegatee} on xvsVaultAddress: ${xvsVaultAddress} - with transactionStatus: ${delegateTxn.status}`);
+  console.log(`xvsVault-> deleagted to: ${delegatee} on xvsVaultProxyAddress: ${xvsVaultProxyAddress} - with transactionStatus: ${delegateTxn.status}`);
 })();

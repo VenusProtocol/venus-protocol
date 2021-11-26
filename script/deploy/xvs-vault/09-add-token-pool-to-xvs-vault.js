@@ -4,10 +4,8 @@ const { bnbUnsigned } = require('../utils/web3-utils');
 
 (async () => {
 
-  const XVSVaultAddress = contractConfigData.Contracts.XVSVault;
-  const xvsVaultContractInstance = await saddle.getContractAt('XVSVault', XVSVaultAddress);
-
-
+  const xvsVaultProxyAddress = contractConfigData.Contracts.XVSVaultProxy;
+  const xvsVaultContractInstance = await saddle.getContractAt('XVSVault', xvsVaultProxyAddress);
   const xvsVaultPoolConfig = contractConfigData.XVSVaultPools[tokenSymbol];
 
   const _rewardToken = contractConfigData.Contracts.XVS;
@@ -27,6 +25,6 @@ const { bnbUnsigned } = require('../utils/web3-utils');
   const createXVSTokenPoolOnXVSVaultTxn = await xvsVaultContractInstance.methods.add(_rewardToken, _allocPoint, _token,
     _rewardPerBlock, _lockPeriod, _withUpdate).send();
 
-  console.log(`XVS -> created TokenPool for: ${_rewardToken} on XVSVaultAddress: ${XVSVaultAddress} 
+  console.log(`XVS -> created TokenPool for: ${_rewardToken} on xvsVaultProxyAddress: ${xvsVaultProxyAddress} 
     - with transactionStatus: ${createXVSTokenPoolOnXVSVaultTxn.status}`);
 })();
