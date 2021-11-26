@@ -181,6 +181,31 @@ module.exports = {
         {unlocked: 0}
       ]
     },
+    mainnet: {
+      providers: [
+        {env: "PROVIDER"},
+        {file: "~/.bsc/mainnet-url"}
+      ],
+      web3: {
+        gas: [
+          {env: "GAS"},
+          {default: "10000000"}
+        ],
+        gas_price: [
+          {env: "GAS_PRICE"},
+          {default: "20000000000"} //20 GWei
+        ],
+        options: {
+          transactionConfirmationBlocks: 1,
+          transactionBlockTimeout: 500
+        }
+      },
+      accounts: [
+        {env: "ACCOUNT"},
+        {file: "~/.bsc/mainnet"},                        // Load from given file with contents as the private key (e.g. 0x...)
+        {unlocked: 0}
+      ]
+    },
     kovan: {
       providers: [
         {env: "PROVIDER"},
@@ -207,7 +232,7 @@ module.exports = {
         {unlocked: 0}
       ]
     },
-    mainnet: {
+    ethmainnet: {
       providers: [
         {env: "PROVIDER"},
         {file: "~/.ethereum/mainnet-url"},                    // Load from given file with contents as the URL (e.g. https://infura.io/api-key)
