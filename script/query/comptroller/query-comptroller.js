@@ -1,4 +1,5 @@
-const contractConfigData = require("../../../networks/mainnet.json");
+const [network] = args;
+const contractConfigData = require(`../../../networks/${network}.json`);
 
 (async () => {  
 
