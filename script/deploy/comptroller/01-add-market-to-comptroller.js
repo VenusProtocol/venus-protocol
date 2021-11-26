@@ -9,7 +9,7 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 
   console.log(`Comptroller -> Adding market for ${tokenSymbol} with Address: ${market} to Comtproller :${comptrollerAddress}`)
 
-  const addMarketToComptrollerTxn = await comptrollerContractInstance.methods.supplyMarket(market).send();
+  const addMarketToComptrollerTxn = await comptrollerContractInstance.methods._supportMarket(market).send();
 
   console.log(`Comptroller -> Added Market for: ${tokenSymbol} to Comptroller: ${comptrollerAddress} - with transactionStatus: ${addMarketToComptrollerTxn.status}`);
 })();
