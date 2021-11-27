@@ -23,7 +23,7 @@ describe('XVSVaultProxy', () => {
       expect(await call(vaultProxy, 'admin')).toEqual(root);
       expect(await call(vaultProxy, 'pendingAdmin')).toBeAddressZero();
       expect(await call(vaultProxy, 'pendingXVSVaultImplementation')).toBeAddressZero();
-      expect(await call(vaultProxy, 'xvsVaultImplementation')).toBeAddressZero();
+      expect(await call(vaultProxy, 'implementation')).toBeAddressZero();
     });
   });
 
@@ -67,7 +67,7 @@ describe('XVSVaultProxy', () => {
       });
 
       it("does not change current implementation address", async () => {
-        expect(await call(vaultProxy, 'xvsVaultImplementation')).not.toEqual(vaultProxy._address);
+        expect(await call(vaultProxy, 'implementation')).not.toEqual(vaultProxy._address);
       });
     });
 
@@ -79,8 +79,8 @@ describe('XVSVaultProxy', () => {
         expect(result).toSucceed();
       });
 
-      it("Store xvsVaultImplementation with value pendingXVSVaultImplementation", async () => {
-        expect(await call(vaultProxy, 'xvsVaultImplementation')).toEqual(vaultImpl._address);
+      it("Store implementation with value pendingXVSVaultImplementation", async () => {
+        expect(await call(vaultProxy, 'implementation')).toEqual(vaultImpl._address);
       });
 
       it("Unset pendingXVSVaultImplementation", async () => {
