@@ -16,7 +16,7 @@ contract XVSVaultAdminStorage {
     /**
     * @notice Active brains of XVS Vault
     */
-    address public xvsVaultImplementation;
+    address public implementation;
 
     /**
     * @notice Pending brains of XVS Vault

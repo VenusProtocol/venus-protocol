@@ -58,14 +58,14 @@ contract XVSVaultProxy is XVSVaultAdminStorage, XVSVaultErrorReporter {
         }
 
         // Save current values for inclusion in log
-        address oldImplementation = xvsVaultImplementation;
+        address oldImplementation = implementation;
         address oldPendingImplementation = pendingXVSVaultImplementation;
 
-        xvsVaultImplementation = pendingXVSVaultImplementation;
+        implementation = pendingXVSVaultImplementation;
 
         pendingXVSVaultImplementation = address(0);
 
-        emit NewImplementation(oldImplementation, xvsVaultImplementation);
+        emit NewImplementation(oldImplementation, implementation);
         emit NewPendingImplementation(oldPendingImplementation, pendingXVSVaultImplementation);
 
         return uint(Error.NO_ERROR);
@@ -130,7 +130,7 @@ contract XVSVaultProxy is XVSVaultAdminStorage, XVSVaultErrorReporter {
      */
     function () external payable {
         // delegate all other functions to current implementation
-        (bool success, ) = xvsVaultImplementation.delegatecall(msg.data);
+        (bool success, ) = implementation.delegatecall(msg.data);
 
         assembly {
               let free_mem_ptr := mload(0x40)
