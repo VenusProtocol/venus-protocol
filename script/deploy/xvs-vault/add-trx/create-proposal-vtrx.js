@@ -19,7 +19,7 @@ const { encodeParameters } = require('../../utils/web3-utils');
     [0, 0, 0, 0],
     ['_setReserveFactor(uint256)', '_supportMarket(address)', '_setCollateralFactor(address,uint256)', '_setVenusSpeed(address,uint256)'],
     [payload_setReserveFactor, payload_supportMarket, payload_setCollateralFactor, payload_setVenusSpeed],
-    "test for voting against with reason-7 on GovernorBravoDelegate for _setPendingAdmin to 0x address").send();
+    "Support TRON on Venus").send();
 
   console.log(`GovernorBravoDelegate - propose Add vTRX to SupportedMarkets :: with transactionStatus ${txn.status}`);
 
