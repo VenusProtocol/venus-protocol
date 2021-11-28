@@ -1,4 +1,4 @@
-const [network] = args;
+const [network, proposalId] = args;
 const contractConfigData = require(`../../../networks/${network}.json`);
 
 (async () => {  
@@ -7,8 +7,7 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 
   const governorBravoContractInstance = await saddle.getContractAt('GovernorBravoDelegate', governorBravoAddress);
 
-  const proposalId = 73;
-  const proposalInfo = await governorBravoContractInstance.methods.proposals(proposalId).call();
+  const proposalInfo = await governorBravoContractInstance.methods.proposals(parseInt(proposalId)).call();
   const state = await governorBravoContractInstance.methods.state(proposalId).call();
 
   console.log(`proposalInfo on governorBravo ${governorBravoAddress} is: ${JSON.stringify(proposalInfo)} with state: ${state}`);

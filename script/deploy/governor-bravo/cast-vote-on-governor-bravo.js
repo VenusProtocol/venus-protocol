@@ -1,4 +1,4 @@
-const [network] = args;
+const [network, proposalId, support] = args;
 const contractConfigData = require(`../../../networks/${network}.json`);
 
 (async () => {  
@@ -8,7 +8,7 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 
   const governorBravoContractInstance = await saddle.getContractAt('GovernorBravoDelegate', GovernorBravoDelegator);
 
-  const castVoteTxn = await governorBravoContractInstance.methods.castVoteWithReason(76, 2, "Naah. Dont execute this proposal :-(").send();
+  const castVoteTxn = await governorBravoContractInstance.methods.castVote(parseInt(proposalId), parseInt(support)).send();
   
   console.log(`casted Vote on GovernorBravo with transactionStatus: ${castVoteTxn.status}`);
 })();
