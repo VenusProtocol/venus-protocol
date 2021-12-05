@@ -14,7 +14,7 @@ const contractConfigData = require(`../../../networks/${network}.json`);
     [0],
     ['_setPendingAdmin(address)'],
     [payload],
-    "test for voting against with reason-7 on GovernorBravoDelegate for _setPendingAdmin to 0x address").send();
+    "test for voting against with reason-82 on GovernorBravoDelegate for _setPendingAdmin to 0x address").send();
 
   console.log(`GovernorBravoDelegate - proposed ZeroAddress as PendingAdmin for timelock :: with transactionStatus ${txn.status}`);  
 

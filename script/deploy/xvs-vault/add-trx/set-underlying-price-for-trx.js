@@ -8,5 +8,5 @@ const contractConfigData = require(`../../../../networks/${network}.json`);
   const venusChainlinkOracleContractInstance = await saddle.getContractAt('VenusChainlinkOracle', venusChainlinkOracleAddress);
 
   await venusChainlinkOracleContractInstance.methods.setUnderlyingPrice(contractConfigData.Contracts.vTRX,
-                                                                        contractConfigData.PriceFeed.TRX.defaultPrice).send();
+    1000000000000000000n).send();
 })();

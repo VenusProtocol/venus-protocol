@@ -60,7 +60,7 @@
   "PriceFeed": {
     "TRX": {
       "chainlinkFeed": "",
-      "defaultPrice": 1000000
+      "defaultPrice": 1000000000000000000
     }
   },
   "Blocks": {
