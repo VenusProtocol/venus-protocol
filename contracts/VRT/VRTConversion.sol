@@ -58,32 +58,33 @@ contract VRTConversion is VRTConversionV1Storage {
     {
         require(conversionRatio > 0, "conversion ratio is incorrect");
         require(
-            conversionStartTime < block.timestamp,
-            "conversions didnt start yet"
+            conversionStartTime > block.timestamp,
+            "conversions didn't start yet"
         );
 
         uint256 beforeAmount = IBEP20(vrtAddresses).balanceOf(address(this));
-        IBEP20(vrtAddresses).transferFrom(msg.sender, address(this), amountA);
+        IBEP20(vrtAddresses).transferFrom(msg.sender, address(this), vrtAmount);
         uint256 afterAmount = IBEP20(vrtAddresses).balanceOf(address(this));
 
         uint256 actualAmount = afterAmount.sub(beforeAmount);
         require(actualAmount > 0, "token A transfer failed");
 
         uint256 redeemAmount = actualAmount
-            .mul(ratio)
+            .mul(conversionRatio)
             .mul(xvsDecimals)
             .div(1e18)
             .div(vrtDecimals);
         require(
             redeemAmount <= IBEP20(xvsAddress).balanceOf(address(this)),
-            "token B is not enough"
+            "not enough XVSTokens"
         );
+
         IBEP20(xvsAddress).safeTransfer(msg.sender, redeemAmount);
 
         emit TokenConverted(
             msg.sender,
-            vrtDecimals,
-            xvsDecimals,
+            vrtAddresses,
+            xvsAddress,
             actualAmount,
             redeemAmount
         );
@@ -107,8 +108,8 @@ contract VRTConversion is VRTConversionV1Storage {
 
     /**
      * @notice Set XVS -> VRT conversion info
-     * @param ratio The conversion ratio from XVS to VRT with decimal 18
-     * @param cycle The conversion available cycle with timestamp
+     * @param _conversionRatio The conversion ratio from XVS to VRT with decimal 18
+     * @param _conversionStartTime The conversion available cycle with timestamp
      */
     function _setXVSVRTConversionInfo(
         uint256 _conversionRatio,
