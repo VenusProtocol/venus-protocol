@@ -36,7 +36,7 @@ contract VRTConversion is VRTConversionV1Storage {
         admin = msg.sender;
         vrtAddresses = _xvsAddress;
         xvsAddress = _xvsAddress;
-        vrtDecimalMultiplier = 10**(uint256(IBEP20(vrtAddresses).decimals()));
+        vrtDecimalsMultiplier = 10**(uint256(IBEP20(vrtAddresses).decimals()));
         xvsDecimalsMultiplier = 10**(uint256(IBEP20(xvsAddress).decimals()));
     }
 
@@ -71,9 +71,9 @@ contract VRTConversion is VRTConversionV1Storage {
 
         uint256 redeemAmount = actualAmount
             .mul(conversionRatio)
-            .mul(xvsDecimalMultiplier)
+            .mul(xvsDecimalsMultiplier)
             .div(1e18)
-            .div(vrtDecimalMultiplier);
+            .div(vrtDecimalsMultiplier);
         require(
             redeemAmount <= IBEP20(xvsAddress).balanceOf(address(this)),
             "not enough XVSTokens"
@@ -112,7 +112,7 @@ contract VRTConversion is VRTConversionV1Storage {
      * @param _conversionStartTime The conversion available cycle with timestamp
      */
     function _setXVSVRTConversionInfo(
-        uint256 _conversionRatio,
+        uint _conversionRatio,
         uint256 _conversionStartTime
     ) public onlyAdmin {
         conversionRatio = _conversionRatio;
