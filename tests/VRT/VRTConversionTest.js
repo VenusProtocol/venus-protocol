@@ -9,8 +9,7 @@ const { makeToken } = require('../Utils/Venus');
 
 describe('VRTConversionProxy', () => {
   let root, accounts;
-  let vrtConversionProxy, vrtConversionProxyAddress,
-    vrtConversion, vrtConversionAddress,
+  let vrtConversion, vrtConversionAddress,
     vrtToken, vrtTokenAddress,
     xvsToken, xvsTokenAddress;
   let blockTimestamp;
@@ -33,28 +32,34 @@ describe('VRTConversionProxy', () => {
     xvsToken = await deploy('XVS', [root]);
     xvsTokenAddress = xvsToken._address;
 
+    //deploy VRTConversion
     vrtConversion = await deploy('VRTConversion', [vrtTokenAddress, xvsTokenAddress]);
     vrtConversionAddress = vrtConversion._address;
 
-    vrtConversionProxy = await deploy('VRTConversionProxy');
-    vrtConversionProxyAddress = vrtConversionProxy._address;
-
-    await send(vrtConversionProxy, '_setPendingImplementation', [vrtConversionAddress], { root });
-
-    result = await send(vrtConversion, '_become', [vrtConversionProxyAddress]);
-
+    //set conversionInfo
     await send(vrtConversion, '_setXVSVRTConversionInfo', [conversionRatio, conversionStartTime]);
   });
 
   describe("constructor", () => {
-    it("sets conversionRatio for VTR -> XVS", async () => {
+    it("sets conversionRatio for VRT -> XVS", async () => {
       let conversionRatioQueryResponse = await call(vrtConversion, "conversionRatio");
       expect(parseFloat(conversionRatioQueryResponse)).toEqual(parseFloat(conversionRatio));
     });
 
-    it("sets conversionStartTime for VTR -> XVS", async () => {
+    it("sets conversionStartTime for VRT -> XVS", async () => {
       let conversionStartTimeQueryResponse = await call(vrtConversion, "conversionStartTime");
       expect(parseInt(conversionStartTimeQueryResponse)).toEqual(parseInt(conversionStartTime));
+    });
+
+
+    it("sets decimalsMultiplier for VRT", async () => {
+      let vrtDecimalsMultiplierQueryResponse = await call(vrtConversion, "vrtDecimalsMultiplier");
+      expect(parseInt(vrtDecimalsMultiplierQueryResponse)).toEqual(10**18);
+    });
+
+    it("sets decimalsMultiplier for  XVS", async () => {
+      let xvsDecimalsMultiplierQueryResponse = await call(vrtConversion, "xvsDecimalsMultiplier");
+      expect(parseInt(xvsDecimalsMultiplierQueryResponse)).toEqual(10**18);
     });
 
   });
