@@ -22,11 +22,11 @@ contract VRTConversion is VRTConversionV1Storage {
 
     /// @notice Emitted when token conversion is done
     event TokenConverted(
-        address,
-        address tokenA,
-        address tokenB,
-        uint256 amountA,
-        uint256 amountB
+        address reedeemer,
+        address vrtAddresses,
+        address xvsAddress,
+        uint256 vrtAmount,
+        uint256 xvsAmount
     );
 
     /// @notice Emitted when an admin withdraw converted token
@@ -36,8 +36,8 @@ contract VRTConversion is VRTConversionV1Storage {
         admin = msg.sender;
         vrtAddresses = _xvsAddress;
         xvsAddress = _xvsAddress;
-        vrtDecimals = 10**(uint256(IBEP20(vrtAddresses).decimals()));
-        xvsDecimals = 10**(uint256(IBEP20(xvsAddress).decimals()));
+        vrtDecimalMultiplier = 10**(uint256(IBEP20(vrtAddresses).decimals()));
+        xvsDecimalsMultiplier = 10**(uint256(IBEP20(xvsAddress).decimals()));
     }
 
     modifier onlyAdmin() {
@@ -71,9 +71,9 @@ contract VRTConversion is VRTConversionV1Storage {
 
         uint256 redeemAmount = actualAmount
             .mul(conversionRatio)
-            .mul(xvsDecimals)
+            .mul(xvsDecimalMultiplier)
             .div(1e18)
-            .div(vrtDecimals);
+            .div(vrtDecimalMultiplier);
         require(
             redeemAmount <= IBEP20(xvsAddress).balanceOf(address(this)),
             "not enough XVSTokens"

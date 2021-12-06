@@ -31,13 +31,13 @@ contract VRTConversionV1Storage is VRTConversionAdminStorage {
     address public vrtAddresses;
 
     /// @notice decimal precision for VRT
-    uint public vrtDecimals;
+    uint public vrtDecimalFactor;
     
     /// @notice XVSToken address
     address public xvsAddress;
 
     /// @notice decimal precision for XVS
-    uint public xvsDecimals;
+    uint public xvsDecimalFactor;
 
     /**
      * @notice Conversion ratio from VRT to XVS with decimal 18
