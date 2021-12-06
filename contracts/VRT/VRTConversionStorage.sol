@@ -27,13 +27,25 @@ contract VRTConversionV1Storage is VRTConversionAdminStorage {
     /// @notice Guard variable for re-entrancy checks
     bool internal _notEntered;
 
-    /**
-     * @notice Conversion ratio from token A to token B with decimal 18
-     */
-    mapping(address => mapping(address => uint)) public conversionRatio;
+    /// @notice VRTToken Address
+    address public vrtAddresses;
+
+    /// @notice decimal precision for VRT
+    uint public vrtDecimals;
+    
+    /// @notice XVSToken address
+    address public xvsAddress;
+
+    /// @notice decimal precision for XVS
+    uint public xvsDecimals;
 
     /**
-     * @notice Conversion available cycle timestamp from token A to token B
+     * @notice Conversion ratio from VRT to XVS with decimal 18
      */
-    mapping(address => mapping(address => uint)) public conversionCycle;
+     uint256 public conversionRatio;
+
+    /**
+     * @notice timestamp from which VRT to XVS is allowed
+     */
+    uint256 public conversionStartTime;
 }
