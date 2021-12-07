@@ -81,10 +81,6 @@ async function mineBlock() {
   return rpc({ method: 'evm_mine' });
 }
 
-async function getLatestBlock() {
-  return rpc({ method: 'eth_getBlock', params: [null, "latest", null] });
-}
-
 async function increaseTime(seconds) {
   await rpc({ method: 'evm_increaseTime', params: [seconds] });
   return rpc({ method: 'evm_mine' });
@@ -158,6 +154,5 @@ module.exports = {
   setTime,
 
   both,
-  sendFallback,
-  getLatestBlock
+  sendFallback
 };
