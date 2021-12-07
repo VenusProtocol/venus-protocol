@@ -23,11 +23,17 @@ contract VRTConversion {
     /// @notice VRTToken Address
     address public vrtAddress;
 
+    /// @notice The VRT TOKEN!
+    IBEP20 public vrt;
+
     /// @notice decimal precision for VRT
     uint256 public vrtDecimalsMultiplier = 10**18;
 
     /// @notice XVSToken address
     address public xvsAddress;
+
+    /// @notice The XVS TOKEN!
+    IBEP20 public xvs;
 
     /// @notice decimal precision for XVS
     uint256 public xvsDecimalsMultiplier = 10**18;
@@ -64,8 +70,10 @@ contract VRTConversion {
 
     constructor(address _vrtAddress, address _xvsAddress) public {
         admin = msg.sender;
-        vrtAddress = _xvsAddress;
+        vrtAddress = _vrtAddress;
+        vrt = IBEP20(vrtAddress);
         xvsAddress = _xvsAddress;
+        xvs = IBEP20(xvsAddress);
         _notEntered = true;
     }
 
@@ -129,8 +137,8 @@ contract VRTConversion {
         require(vrtAmount > 0, "VRT amount must be non-zero");
         require(conversionRatio > 0, "conversion ratio is incorrect");
         require(
-            conversionStartTime > block.timestamp,
-            "conversions didn't start yet"
+            conversionStartTime <= block.timestamp,
+            "conversions didnot start yet"
         );
 
         uint256 redeemAmount = vrtAmount
@@ -151,12 +159,13 @@ contract VRTConversion {
             redeemAmount
         );
 
-        IBEP20(vrtAddress).safeTransferFrom(
-            msg.sender,
+        vrt.safeTransferFrom(
+            address(msg.sender),
             address(this),
             vrtAmount
         );
-        IBEP20(xvsAddress).safeTransfer(msg.sender, redeemAmount);
+
+        xvs.safeTransfer(address(msg.sender), redeemAmount);
 
         return redeemAmount;
     }
