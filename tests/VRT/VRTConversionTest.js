@@ -53,7 +53,12 @@ describe('VRTConversionProxy', () => {
     await send(xvsToken, 'transfer', [vrtConversionAddress, xvsTokenMintAmount], { from: root });
 
     //set conversionInfo
-    await send(vrtConversion, '_setXVSVRTConversionInfo', [conversionRatio, conversionStartTime]);
+    const setConversionInfoTxn = await send(vrtConversion, '_setXVSVRTConversionInfo', [conversionRatio, conversionStartTime]);
+
+    expect(setConversionInfoTxn).toHaveLog('ConversionInfoSet', {
+      conversionRatio: conversionRatio,
+      conversionStartTime: conversionStartTime
+    });
   });
 
   describe("constructor", () => {
@@ -65,7 +70,6 @@ describe('VRTConversionProxy', () => {
 
     it("sets conversionStartTime for VRT -> XVS", async () => {
       let conversionStartTimeQueryResponse = await call(vrtConversion, "conversionStartTime");
-      console.log(`conversionStartTime is: ${conversionStartTimeQueryResponse}`);
       expect(parseInt(conversionStartTimeQueryResponse)).toEqual(parseInt(conversionStartTime));
     });
 
@@ -102,18 +106,18 @@ describe('VRTConversionProxy', () => {
   });
 
   describe("convert VRT to XVS with incorrect conversionInfo", () => {
-    
+
     beforeEach(async () => {
       await send(vrtConversion, '_setXVSVRTConversionInfo', [0, conversionStartTime]);
     });
 
     it("alice can convert her VRT to XVS as conversion ratio is incorrect", async () => {
       vrtTransferAmount = bnbMantissa(1000000000);
-      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], {from: alice});
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
       const newBlockTimestamp = blockTimestamp.add(delay).add(1);
       await freezeTime(newBlockTimestamp.toNumber());
-      await expect(send(vrtConversion, "convert", [ vrtTransferAmount], {from: alice}))
-            .rejects.toRevert('revert conversion ratio is incorrect');
+      await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
+        .rejects.toRevert('revert conversion ratio is incorrect');
     });
 
   });
@@ -122,40 +126,106 @@ describe('VRTConversionProxy', () => {
 
     it("alice cannot convert her VRT to XVS - as VRTAmount is invalid", async () => {
       vrtTransferAmount = bnbMantissa(100);
-      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], {from: alice});
-      await expect(send(vrtConversion, "convert", [ 0 ], {from: alice}))
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
+      await expect(send(vrtConversion, "convert", [0], { from: alice }))
         .rejects.toRevert('revert VRT amount must be non-zero');
     });
 
     it("alice cannot convert her VRT to XVS as conversionStartTime is in future", async () => {
       vrtTransferAmount = bnbMantissa(100);
-      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], {from: alice});
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
 
       const newBlockTimestamp = blockTimestamp.sub(delay);
       await freezeTime(newBlockTimestamp.toNumber());
 
-      await expect(send(vrtConversion, "convert", [ vrtTransferAmount], {from: alice}))
+      await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
         .rejects.toRevert('revert conversions didnot start yet');
     });
 
     it("alice can convert her VRT to XVS as conversionContract doesnot have sufficient XVS-Amount", async () => {
       vrtTransferAmount = bnbMantissa(1000000000);
-      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], {from: alice});
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
       const newBlockTimestamp = blockTimestamp.add(delay).add(1);
       await freezeTime(newBlockTimestamp.toNumber());
-      await expect(send(vrtConversion, "convert", [ vrtTransferAmount], {from: alice}))
-            .rejects.toRevert('revert not enough XVSTokens');
+      await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
+        .rejects.toRevert('revert not enough XVSTokens');
     });
 
     it("alice can convert her VRT to XVS", async () => {
       vrtTransferAmount = bnbMantissa(10000);
-      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], {from: alice});
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
       const newBlockTimestamp = blockTimestamp.add(delay).add(1);
       await freezeTime(newBlockTimestamp.toNumber());
-      await send(vrtConversion, "convert", [ vrtTransferAmount], {from: alice});
+      const convertVRTTxn = await send(vrtConversion, "convert", [vrtTransferAmount], { from: alice });
       let xvsTokenBalanceOfAliceAfterConversion = await call(xvsToken, "balanceOf", [alice]);
       const expectedXVSBalance = new BigNumber(vrtTransferAmount).multipliedBy(conversionRatio).dividedBy(new BigNumber(1e18));
       expect(new BigNumber(xvsTokenBalanceOfAliceAfterConversion)).toEqual(expectedXVSBalance);
+
+      expect(convertVRTTxn).toHaveLog('TokenConverted', {
+        reedeemer: alice,
+        vrtAddress: vrtTokenAddress,
+        xvsAddress: xvsTokenAddress,
+        vrtAmount: vrtTransferAmount,
+        xvsAmount: xvsTokenBalanceOfAliceAfterConversion
+      });
+
+    });
+
+  });
+
+  describe("Withdraw funds from VRTConversion", () => {
+
+    it("Admin can withdraw XVS from VRTConversion", async () => {
+
+      const xvsBalanceOfRoot_BeforeWithdrawal = await call(xvsToken, "balanceOf", [root]);
+      const xvsBalanceOfVRTConversion_BeforeWithdrawal = await call(xvsToken, "balanceOf", [vrtConversionAddress]);
+
+      const withdrawXVSTxn = await send(vrtConversion, "withdraw", [xvsTokenAddress, xvsTokenMintAmount, root], { from: root });
+
+      const xvsBalanceOfRoot_AfterWithdrawal = await call(xvsToken, "balanceOf", [root]);
+      const xvsBalanceOfVRTConversion_AfterWithdrawal = await call(xvsToken, "balanceOf", [vrtConversionAddress]);
+
+      expect(bnbUnsigned(xvsBalanceOfVRTConversion_AfterWithdrawal)).toEqual(bnbUnsigned(0));
+      const expected_XVSBalanceOfRoot_AfterWithdrawal = (bnbUnsigned(xvsBalanceOfRoot_BeforeWithdrawal))
+        .add(bnbUnsigned(xvsBalanceOfVRTConversion_BeforeWithdrawal));
+
+      expect(bnbUnsigned(xvsBalanceOfRoot_AfterWithdrawal)).toEqual(bnbUnsigned(expected_XVSBalanceOfRoot_AfterWithdrawal));
+
+      expect(withdrawXVSTxn).toHaveLog('TokenWithdraw', {
+        token: xvsTokenAddress,
+        to: root,
+        amount: xvsTokenMintAmount
+      });
+    });
+
+    it("Admin can withdraw VRT from VRTConversion", async () => {
+
+      vrtTransferAmount = bnbMantissa(10000);
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
+      const newBlockTimestamp = blockTimestamp.add(delay).add(1);
+      await freezeTime(newBlockTimestamp.toNumber());
+      await send(vrtConversion, "convert", [vrtTransferAmount], { from: alice });
+
+      const vrtBalanceOfRoot_BeforeWithdrawal = await call(vrtToken, "balanceOf", [root]);
+      const vrtBalanceOfVRTConversion_BeforeWithdrawal = await call(vrtToken, "balanceOf", [vrtConversionAddress]);
+
+      const withdrawVRTTxn = await send(vrtConversion, "withdraw", [vrtTokenAddress, vrtTransferAmount, root], { from: root });
+
+      const vrtBalanceOfRoot_AfterWithdrawal = await call(vrtToken, "balanceOf", [root]);
+      const vrtBalanceOfVRTConversion_AfterWithdrawal = await call(vrtToken, "balanceOf", [vrtConversionAddress]);
+
+      expect(bnbUnsigned(vrtBalanceOfVRTConversion_AfterWithdrawal)).toEqual(bnbUnsigned(0));
+
+      const expected_VRTBalanceOfRoot_AfterWithdrawal = (bnbUnsigned(vrtBalanceOfRoot_BeforeWithdrawal))
+        .add(bnbUnsigned(vrtBalanceOfVRTConversion_BeforeWithdrawal));
+
+      expect(bnbUnsigned(vrtBalanceOfRoot_AfterWithdrawal)).toEqual(bnbUnsigned(expected_VRTBalanceOfRoot_AfterWithdrawal));
+
+      expect(withdrawVRTTxn).toHaveLog('TokenWithdraw', {
+        token: vrtTokenAddress,
+        to: root,
+        amount: vrtTransferAmount
+      });
     });
 
   });
