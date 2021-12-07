@@ -59,14 +59,14 @@ contract VRTConversion {
     /// @notice Emitted when token conversion is done
     event TokenConverted(
         address reedeemer,
-        address vrtAddresses,
+        address vrtAddress,
         address xvsAddress,
         uint256 vrtAmount,
         uint256 xvsAmount
     );
 
     /// @notice Emitted when an admin withdraw converted token
-    event TokenWithdraw(address token, address to, uint256);
+    event TokenWithdraw(address token, address to, uint256 amount);
 
     constructor(address _vrtAddress, address _xvsAddress) public {
         admin = msg.sender;
