@@ -44,16 +44,28 @@ contract VRTConversion {
     /// @notice timestamp from which VRT to XVS is allowed
     uint256 public conversionStartTime;
 
+    /// @notice timestamp at which VRT to XVS is disabled
+    uint256 public conversionEndTime;
+
+    uint256 public vrtDailyLimit;
+
+    uint256 public vrtDailyUtilised;
+
+    uint8 public lastDayUpdated;
+
+    uint8 public secondsInADay = 24 * 60 * 60;
+
     /// @notice Emitted when pendingAdmin is accepted, which means admin is updated
     event NewAdmin(address oldAdmin, address newAdmin);
 
     /// @notice Emitted when pendingAdmin is changed
     event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 
-    /// @notice Emitted when an admin set convrsion info
+    /// @notice Emitted when an admin set conversion info
     event ConversionInfoSet(
         uint256 conversionRatio,
-        uint256 conversionStartTime
+        uint256 conversionStartTime,
+        uint256 conversionEndTime
     );
 
     /// @notice Emitted when token conversion is done
@@ -74,6 +86,10 @@ contract VRTConversion {
         vrt = IBEP20(vrtAddress);
         xvsAddress = _xvsAddress;
         xvs = IBEP20(xvsAddress);
+        conversionRatio = _conversionRatio;
+        conversionStartTime = _conversionStartTime;
+        conversionEndTime = conversionStartTime.add(365 * 24 * 60 * 60);
+        emit ConversionInfoSet(conversionRatio, conversionStartTime, conversionEndTime);
         _notEntered = true;
     }
 
@@ -134,12 +150,23 @@ contract VRTConversion {
         nonReentrant
         returns (uint256)
     {
+        require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
         require(vrtAmount > 0, "VRT amount must be non-zero");
         require(conversionRatio > 0, "conversion ratio is incorrect");
         require(
             conversionStartTime <= block.timestamp,
             "conversions didnot start yet"
         );
+
+        uint8 _currentDayNumber = ((block.timestamp).sub(conversionStartTime)).div(secondsInADay);
+
+        if(_currentDayNumber > lastDayUpdated) {
+            lastDayUpdated = _currentDayNumber;
+            vrtDailyUtilised = 0;
+        } else {
+           require(vrtAmount <= vrtDailyLimit.sub(vrtDailyUtilised) , "daily limit reached for VRT-Conversion");
+           vrtDailyUtilised = vrtDailyUtilised.add(vrtAmount);
+        }
 
         uint256 redeemAmount = vrtAmount
             .mul(conversionRatio)
@@ -161,27 +188,13 @@ contract VRTConversion {
 
         vrt.safeTransferFrom(
             address(msg.sender),
-            address(this),
+            address(0),
             vrtAmount
         );
 
         xvs.safeTransfer(address(msg.sender), redeemAmount);
 
         return redeemAmount;
-    }
-
-    /**
-     * @notice Set XVS -> VRT conversion info
-     * @param _conversionRatio The conversion ratio from XVS to VRT with decimal 18
-     * @param _conversionStartTime The conversion available cycle with timestamp
-     */
-    function _setXVSVRTConversionInfo(
-        uint256 _conversionRatio,
-        uint256 _conversionStartTime
-    ) public onlyAdmin {
-        conversionRatio = _conversionRatio;
-        conversionStartTime = _conversionStartTime;
-        emit ConversionInfoSet(conversionRatio, conversionStartTime);
     }
 
     /**
