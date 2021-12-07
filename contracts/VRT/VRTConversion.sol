@@ -51,9 +51,9 @@ contract VRTConversion {
 
     uint256 public vrtDailyUtilised;
 
-    uint8 public lastDayUpdated;
+    uint256 public lastDayUpdated;
 
-    uint8 public secondsInADay = 24 * 60 * 60;
+    uint public secondsInADay = 24 * 60 * 60;
 
     /// @notice Emitted when pendingAdmin is accepted, which means admin is updated
     event NewAdmin(address oldAdmin, address newAdmin);
@@ -162,7 +162,7 @@ contract VRTConversion {
             "conversions didnot start yet"
         );
 
-        uint8 _currentDayNumber = ((block.timestamp).sub(conversionStartTime)).div(secondsInADay);
+        uint256 _currentDayNumber = ((block.timestamp).sub(conversionStartTime)).div(secondsInADay);
 
         if(_currentDayNumber > lastDayUpdated) {
             lastDayUpdated = _currentDayNumber;
