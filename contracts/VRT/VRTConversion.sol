@@ -68,6 +68,9 @@ contract VRTConversion {
         uint256 conversionEndTime
     );
 
+    /// @notice Emitted when vrtDailyLimit is set
+    event VRTDailyLimitSet(uint256 vrtDailyLimit);
+
     /// @notice Emitted when token conversion is done
     event TokenConverted(
         address reedeemer,
@@ -80,7 +83,7 @@ contract VRTConversion {
     /// @notice Emitted when an admin withdraw converted token
     event TokenWithdraw(address token, address to, uint256 amount);
 
-    constructor(address _vrtAddress, address _xvsAddress) public {
+    constructor(address _vrtAddress, address _xvsAddress, uint256 _conversionRatio, uint256 _conversionStartTime, uint256 _vrtDailyLimit) public {
         admin = msg.sender;
         vrtAddress = _vrtAddress;
         vrt = IBEP20(vrtAddress);
@@ -90,6 +93,7 @@ contract VRTConversion {
         conversionStartTime = _conversionStartTime;
         conversionEndTime = conversionStartTime.add(365 * 24 * 60 * 60);
         emit ConversionInfoSet(conversionRatio, conversionStartTime, conversionEndTime);
+        vrtDailyLimit = _vrtDailyLimit;
         _notEntered = true;
     }
 
@@ -222,6 +226,15 @@ contract VRTConversion {
         IBEP20(tokenAddress).safeTransfer(withdrawTo, actualWithdrawAmount);
 
         emit TokenWithdraw(tokenAddress, withdrawTo, actualWithdrawAmount);
+    }
+
+    /**
+     * @notice Set VRTDailyLimit
+     * @param _vrtDailyLimit The daily Limit  on VRT for conversion to XVSTokens
+     */
+    function setVRTDailyLimit(uint256 _vrtDailyLimit) external onlyAdmin {
+        vrtDailyLimit = _vrtDailyLimit;
+        emit VRTDailyLimitSet(vrtDailyLimit);
     }
 
     /*** Reentrancy Guard ***/
