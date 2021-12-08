@@ -50,10 +50,6 @@ describe('VRTConversionProxy', () => {
 
     //deploy VRTConversion
     vrtConversion = await deploy('VRTConversion', [vrtTokenAddress, xvsTokenAddress, conversionRatio, conversionStartTime, vrtDailyLimit]);
-    // expect(setConversionInfoTxn).toHaveLog('ConversionInfoSet', {
-    //   conversionRatio: conversionRatio,
-    //   conversionStartTime: conversionStartTime
-    // });
 
     vrtConversionAddress = vrtConversion._address;
     xvsTokenMintAmount = bnbMantissa(100000);
@@ -113,17 +109,6 @@ describe('VRTConversionProxy', () => {
         .rejects.toRevert('revert VRT amount must be non-zero');
     });
 
-    it("alice cannot convert her VRT to XVS as conversionStartTime is in future", async () => {
-      vrtTransferAmount = bnbMantissa(100);
-      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
-
-      const newBlockTimestamp = blockTimestamp.sub(delay);
-      await freezeTime(newBlockTimestamp.toNumber());
-
-      await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
-        .rejects.toRevert('revert conversions didnot start yet');
-    });
-
     it("alice can convert her VRT to XVS as conversionContract doesnot have sufficient XVS-Amount", async () => {
       vrtTransferAmount = bnbMantissa(2000005);
       await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
@@ -165,22 +150,46 @@ describe('VRTConversionProxy', () => {
 
     it("alice cannot convert her VRT to XVS as Conversion has-not started yet", async () => {
 
+      vrtTransferAmount = bnbMantissa(100);
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
+
+      const newBlockTimestamp = blockTimestamp.sub(delay);
+      await freezeTime(newBlockTimestamp.toNumber());
+
+      await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
+        .rejects.toRevert('revert VRT conversion didnot start yet');
 
     });
 
     it("alice cannot convert her VRT to XVS as Conversion period ended", async () => {
 
+      vrtTransferAmount = bnbMantissa(100);
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
+      const conversionEndTime = await call(vrtConversion, "conversionEndTime", { from: root });
+      const newConversionEndTimeWithDelay = bnbUnsigned(conversionEndTime).add(delay);
+      await freezeTime(newConversionEndTimeWithDelay.toNumber());
+      await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
+        .rejects.toRevert('revert VRT conversion period ended');
 
     });
-
-
   });
 
   describe("convert VRT to XVS - DailyLimit Tests", () => {
 
     it("alice cannot convert her VRT to XVS as vrtDailyUtilised reached DailyLimit ", async () => {
+      vrtDailyLimit = bnbMantissa(200);
+      await send(vrtConversion, "setVRTDailyLimit", [ vrtDailyLimit ], { from: root });
 
+      const vrtDailyLimitFromContract = await call(vrtConversion, "vrtDailyLimit", { from: root});
+      const vrtDailyUtilisedtFromContract = await call(vrtConversion, "vrtDailyUtilised", { from: root});
 
+      console.log(`vrtDailyLimitFromContract: ${vrtDailyLimitFromContract} - vrtDailyUtilisedtFromContract: ${vrtDailyUtilisedtFromContract}`);
+      vrtTransferAmount = bnbMantissa(201);
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
+      const newBlockTimestamp = blockTimestamp.add(delay).add(1);
+      await freezeTime(newBlockTimestamp.toNumber());
+      await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
+      .rejects.toRevert('revert daily limit reached for VRT-Conversion');
     });
 
   });

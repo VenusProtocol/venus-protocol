@@ -160,7 +160,7 @@ contract VRTConversion {
         require(conversionRatio > 0, "conversion ratio is incorrect");
         require(
             conversionStartTime <= block.timestamp,
-            "conversions didnot start yet"
+            "VRT conversion didnot start yet"
         );
 
         uint256 _currentDayNumber = ((block.timestamp).sub(conversionStartTime)).div(secondsInADay);
