@@ -94,6 +94,7 @@ contract VRTConversion {
         conversionEndTime = conversionStartTime.add(365 * 24 * 60 * 60);
         emit ConversionInfoSet(conversionRatio, conversionStartTime, conversionEndTime);
         vrtDailyLimit = _vrtDailyLimit;
+        vrtDailyUtilised = 0;
         _notEntered = true;
     }
 
@@ -212,20 +213,34 @@ contract VRTConversion {
         uint256 withdrawAmount,
         address withdrawTo
     ) external onlyAdmin {
-        uint256 actualWithdrawAmount = withdrawAmount;
+
+        // Get Treasury Token Balance
+        uint256 currentBalance = IBEP20(tokenAddress).balanceOf(address(this));
+        require(withdrawAmount <= currentBalance, "Insufficient funds to withdraw");
+
+        // Transfer BEP20 Token to withdrawTo
+        IBEP20(tokenAddress).safeTransfer(withdrawTo, withdrawAmount);
+
+        emit TokenWithdraw(tokenAddress, withdrawTo, withdrawAmount);
+    }
+
+    /**
+     * @notice Withdraw All BEP20 Tokens
+     * @param tokenAddress The address of token to withdraw
+     * @param withdrawTo The address to withdraw
+     */
+    function withdrawAll(
+        address tokenAddress,
+        address withdrawTo
+    ) external onlyAdmin {
+
         // Get Treasury Token Balance
         uint256 currentBalance = IBEP20(tokenAddress).balanceOf(address(this));
 
-        // Check Withdraw Amount
-        if (withdrawAmount > currentBalance) {
-            // Update actualWithdrawAmount
-            actualWithdrawAmount = currentBalance;
-        }
-
         // Transfer BEP20 Token to withdrawTo
-        IBEP20(tokenAddress).safeTransfer(withdrawTo, actualWithdrawAmount);
+        IBEP20(tokenAddress).safeTransfer(withdrawTo, currentBalance);
 
-        emit TokenWithdraw(tokenAddress, withdrawTo, actualWithdrawAmount);
+        emit TokenWithdraw(tokenAddress, withdrawTo, currentBalance);
     }
 
     /**
