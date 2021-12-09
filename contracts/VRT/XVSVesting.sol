@@ -157,8 +157,7 @@ contract XVSVesting {
             _vestionAction = 1;
             VestingRecord storage vestingForUpdate = vestings[_recipient];
             _vestingStartTime = vestingForUpdate.vestingStartTime;
-            _vestingEndTime = block.timestamp.add(vestingDuration);
-            vestingForUpdate.vestingEndTime = _vestingEndTime;
+            _vestingEndTime = vestingForUpdate.vestingEndTime;
             vestingForUpdate.amount = _amount;
         }
 
