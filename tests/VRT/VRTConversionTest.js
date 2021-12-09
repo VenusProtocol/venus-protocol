@@ -178,10 +178,10 @@ describe('VRTConversionProxy', () => {
 
     it("alice cannot convert her VRT to XVS as vrtDailyUtilised reached DailyLimit ", async () => {
       vrtDailyLimit = bnbMantissa(200);
-      await send(vrtConversion, "setVRTDailyLimit", [ vrtDailyLimit ], { from: root });
+      await send(vrtConversion, "setVRTDailyLimit", [vrtDailyLimit], { from: root });
 
-      const vrtDailyLimitFromContract = await call(vrtConversion, "vrtDailyLimit", { from: root});
-      const vrtDailyUtilisedtFromContract = await call(vrtConversion, "vrtDailyUtilised", { from: root});
+      const vrtDailyLimitFromContract = await call(vrtConversion, "vrtDailyLimit", { from: root });
+      const vrtDailyUtilisedtFromContract = await call(vrtConversion, "vrtDailyUtilised", { from: root });
 
       console.log(`vrtDailyLimitFromContract: ${vrtDailyLimitFromContract} - vrtDailyUtilisedtFromContract: ${vrtDailyUtilisedtFromContract}`);
       vrtTransferAmount = bnbMantissa(201);
@@ -189,7 +189,7 @@ describe('VRTConversionProxy', () => {
       const newBlockTimestamp = blockTimestamp.add(delay).add(1);
       await freezeTime(newBlockTimestamp.toNumber());
       await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
-      .rejects.toRevert('revert daily limit reached for VRT-Conversion');
+        .rejects.toRevert('revert daily limit reached for VRT-Conversion');
     });
 
   });
