@@ -24,10 +24,15 @@ contract XVSVesting {
     /// @notice The XVS TOKEN!
     IBEP20 public xvs;
 
+    /// @notice VRTConversion Contract Address
+    address public vrtConversionAddress;
+
     uint256 public vestingDuration;
 
     /// @notice decimal precision for XVS
     uint256 public xvsDecimalsMultiplier = 10**18;
+
+    uint256 public vestingFrequency;
 
     event XVSVested(
         address indexed recipient,
@@ -35,6 +40,7 @@ contract XVSVesting {
         uint256 vestingStartTime,
         uint256 vestingEndTime,
         uint256 amount,
+        uint256 totalVestedAmount,
         uint256 vestingDuration
     );
 
@@ -51,8 +57,12 @@ contract XVSVesting {
         uint256 vestingStartTime;
         uint256 vestingEndTime;
         uint256 amount;
+        uint256 totalVestedAmount;
         uint256 vestingDuration;
+        //uint256 claimableAmount;
         uint256 totalClaimed;
+        uint256 createdAt;
+        uint256 updatedAt;
     }
 
     mapping(address => VestingRecord) public vestings;
@@ -62,10 +72,12 @@ contract XVSVesting {
         _;
     }
 
-    constructor(address _xvsAddress, uint256 _vestingDuration)
-        public
-        nonZeroAddress(_xvsAddress)
-    {
+    constructor(
+        address _xvsAddress,
+        uint256 _vestingDuration,
+        address _vrtConversionAddress,
+        uint256 _vestingFrequency
+    ) public nonZeroAddress(_xvsAddress) nonZeroAddress(_vrtConversionAddress) {
         admin = msg.sender;
         require(
             _vestingDuration > 0,
@@ -74,11 +86,21 @@ contract XVSVesting {
         xvsAddress = _xvsAddress;
         xvs = IBEP20(xvsAddress);
         vestingDuration = _vestingDuration;
+        vrtConversionAddress = _vrtConversionAddress;
+        vestingFrequency = _vestingFrequency;
         _notEntered = true;
     }
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "only admin can");
+        _;
+    }
+
+    modifier onlyVrtConverter() {
+        require(
+            msg.sender == vrtConversionAddress,
+            "only VRTConversion Address can call the function"
+        );
         _;
     }
 
@@ -129,7 +151,7 @@ contract XVSVesting {
     /// @param _amount Total number of tokens Vested
     function addVesting(address _recipient, uint128 _amount)
         external
-        onlyAdmin
+        onlyVrtConverter
         nonZeroAddress(_recipient)
     {
         require(_amount > 0, "Vested XVS tokens must be greater than zero");
@@ -137,28 +159,37 @@ contract XVSVesting {
         uint8 _vestionAction;
         uint256 _vestingStartTime;
         uint256 _vestingEndTime;
+        uint256 _totalVestedAmount;
 
         if (vestings[_recipient].vestingStartTime == 0) {
             _vestionAction = 0;
             _vestingStartTime = block.timestamp;
             _vestingEndTime = _vestingStartTime.add(vestingDuration);
+            _totalVestedAmount = _amount;
 
             VestingRecord memory vestingRecord = VestingRecord({
                 recipient: _recipient,
                 vestingStartTime: block.timestamp,
                 vestingEndTime: _vestingEndTime,
                 amount: _amount,
+                totalVestedAmount: _totalVestedAmount,
                 vestingDuration: vestingDuration,
-                totalClaimed: 0
+                totalClaimed: 0,
+                createdAt: block.timestamp,
+                updatedAt: 0
             });
 
             vestings[_recipient] = vestingRecord;
         } else {
             _vestionAction = 1;
             VestingRecord storage vestingForUpdate = vestings[_recipient];
+            _totalVestedAmount = vestingForUpdate.amount.add(_amount);
             _vestingStartTime = vestingForUpdate.vestingStartTime;
-            _vestingEndTime = vestingForUpdate.vestingEndTime;
-            vestingForUpdate.amount = _amount;
+            _vestingEndTime = _vestingStartTime.add(block.timestamp);
+            vestingForUpdate.vestingEndTime = _vestingEndTime;
+            vestingForUpdate.amount = vestingForUpdate.amount.add(_amount).sub(vestingForUpdate.totalClaimed);
+            vestingForUpdate.totalVestedAmount = _totalVestedAmount;
+            vestingForUpdate.updatedAt = block.timestamp;
         }
 
         emit XVSVested(
@@ -167,6 +198,7 @@ contract XVSVesting {
             _vestingStartTime,
             _vestingEndTime,
             _amount,
+            _totalVestedAmount,
             vestingDuration
         );
 
@@ -181,10 +213,8 @@ contract XVSVesting {
 
         VestingRecord storage vestingRecord = vestings[msg.sender];
         vestingRecord.totalClaimed = amountVested;
-
-        xvs.safeTransferFrom(address(this), msg.sender, amountVested);
-
         emit VestedTokensClaimed(msg.sender, amountVested);
+        xvs.safeTransferFrom(address(this), msg.sender, amountVested);
     }
 
     /// @notice Calculate the vested tokens available for `_recepient` to claim
@@ -192,7 +222,9 @@ contract XVSVesting {
     function calculateClaim(address _recipient) public view returns (uint256) {
         VestingRecord memory vestingRecord = vestings[_recipient];
 
-        uint256 elapsedTime = block.timestamp.sub(vestingRecord.vestingStartTime);
+        uint256 elapsedTime = block.timestamp.sub(
+            vestingRecord.vestingStartTime
+        );
 
         // For Vesting created with a future start date, that hasn't been reached, return 0
         if (elapsedTime < SECONDS_PER_YEAR) {
