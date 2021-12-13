@@ -183,11 +183,11 @@ contract XVSVesting {
         } else {
             _vestionAction = 1;
             VestingRecord storage vestingForUpdate = vestings[_recipient];
-            _totalVestedAmount = vestingForUpdate.amount.add(_amount);
             _vestingStartTime = vestingForUpdate.vestingStartTime;
             _vestingEndTime = _vestingStartTime.add(block.timestamp);
             vestingForUpdate.vestingEndTime = _vestingEndTime;
-            vestingForUpdate.amount = vestingForUpdate.amount.add(_amount).sub(vestingForUpdate.totalClaimed);
+            vestingForUpdate.amount = vestingForUpdate.amount.add(_amount);
+            _totalVestedAmount = vestingForUpdate.totalVestedAmount.add(_amount);
             vestingForUpdate.totalVestedAmount = _totalVestedAmount;
             vestingForUpdate.updatedAt = block.timestamp;
         }
