@@ -208,13 +208,15 @@ contract XVSVesting {
 
     /// @notice Allows a recipient to claim their vested tokens. Errors if no tokens have vested
     function claimVestedTokens() external nonReentrant {
-        uint256 amountVested = calculateClaim(msg.sender);
+        uint256 claimableAmount = calculateClaim(msg.sender);
         require(amountVested > 0, "zero-amount-vested");
 
         VestingRecord storage vestingRecord = vestings[msg.sender];
-        vestingRecord.totalClaimed = amountVested;
-        emit VestedTokensClaimed(msg.sender, amountVested);
-        xvs.safeTransferFrom(address(this), msg.sender, amountVested);
+        vestingRecord.totalClaimed = vestingRecord.totalClaimed.add(claimableAmount);
+        vestingRecord.amount = vestingRecord.amount.sub(claimableAmount);
+        
+        emit VestedTokensClaimed(msg.sender, claimableAmount);
+        xvs.safeTransferFrom(address(this), msg.sender, claimableAmount);
     }
 
     /// @notice Calculate the vested tokens available for `_recepient` to claim
