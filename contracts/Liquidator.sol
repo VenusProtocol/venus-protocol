@@ -26,6 +26,9 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     ///         that goes to treasury.
     event NewLiquidationTreasuryPercent(uint256 oldPercent, uint256 newPercent);
 
+    /// @notice Event emitted when a borrow is liquidated
+    event LiquidateBorrowedTokens(address liquidator, address borrower, uint256 repayAmount, address vTokenCollateral, uint256 seizeTokensForTreasury, uint256 seizeTokensForLiquidator);
+
     using SafeMath for uint256;
 
     constructor(
@@ -71,7 +74,8 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         }
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
         uint256 seizedAmount = ourBalanceAfter.sub(ourBalanceBefore);
-        _distributeLiquidationIncentive(vTokenCollateral, seizedAmount);
+        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(vTokenCollateral, seizedAmount);
+        emit LiquidateBorrowedTokens(msg.sender, borrower, repayAmount, address(vTokenCollateral), ours, theirs);
     }
 
     /// @notice Sets the new percent of the seized amount that goes to treasury. Should
@@ -106,11 +110,12 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
 
     /// @dev Splits the received vTokens between the liquidator and treasury.
     function _distributeLiquidationIncentive(VToken vTokenCollateral, uint256 siezedAmount)
-        internal
+        internal returns (uint256 ours, uint256 theirs)
     {
-        (uint256 ours, uint256 theirs) = _splitLiquidationIncentive(siezedAmount);
+        (ours, theirs) = _splitLiquidationIncentive(siezedAmount);
         vTokenCollateral.transfer(msg.sender, theirs);
         vTokenCollateral.transfer(treasury, ours);
+        return (ours, theirs);
     }
 
     /// @dev Computes the amounts that would go to treasury and to the liquidator.
