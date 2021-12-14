@@ -32,12 +32,15 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     using SafeMath for uint256;
 
     constructor(
+        address admin_,
         address payable vBnb_,
         address comptroller_,
         address treasury_,
         uint256 treasuryPercentMantissa_
     )
         public
+        WithAdmin(admin_)
+        ReentrancyGuard()
     {
         vBnb = VBNB(vBnb_);
         comptroller = IComptroller(comptroller_);
