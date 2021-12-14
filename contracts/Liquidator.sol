@@ -105,8 +105,8 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         EIP20Interface borrowedToken = EIP20Interface(vToken.underlying());
         borrowedToken.transferFrom(msg.sender, address(this), repayAmount);
         borrowedToken.approve(address(vToken), repayAmount);
-        require(
-            vToken.liquidateBorrow(borrower, repayAmount, vTokenCollateral) == 0,
+        requireNoError(
+            vToken.liquidateBorrow(borrower, repayAmount, vTokenCollateral),
             "failed to liquidate"
         );
     }
@@ -116,8 +116,14 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         internal returns (uint256 ours, uint256 theirs)
     {
         (ours, theirs) = _splitLiquidationIncentive(siezedAmount);
-        vTokenCollateral.transfer(msg.sender, theirs);
-        vTokenCollateral.transfer(treasury, ours);
+        require(
+            vTokenCollateral.transfer(msg.sender, theirs),
+            "failed to transfer to liquidator"
+        );
+        require(
+            vTokenCollateral.transfer(treasury, ours),
+            "failed to transfer to treasury"
+        );
         return (ours, theirs);
     }
 
@@ -130,7 +136,28 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         uint256 totalIncentive = comptroller.liquidationIncentiveMantissa();
         uint256 seizedForRepayment = seizedAmount.mul(1e18).div(totalIncentive);
         ours = seizedForRepayment.mul(treasuryPercentMantissa).div(1e18);
-        theirs = seizedForRepayment.sub(ours);
+        theirs = seizedAmount.sub(ours);
         return (ours, theirs);
+    }
+
+    function requireNoError(uint errCode, string memory message) internal pure {
+        if (errCode == uint(0)) {
+            return;
+        }
+
+        bytes memory fullMessage = new bytes(bytes(message).length + 5);
+        uint i;
+
+        for (i = 0; i < bytes(message).length; i++) {
+            fullMessage[i] = bytes(message)[i];
+        }
+
+        fullMessage[i+0] = byte(uint8(32));
+        fullMessage[i+1] = byte(uint8(40));
+        fullMessage[i+2] = byte(uint8(48 + ( errCode / 10 )));
+        fullMessage[i+3] = byte(uint8(48 + ( errCode % 10 )));
+        fullMessage[i+4] = byte(uint8(41));
+
+        require(errCode == uint(0), string(fullMessage));
     }
 }
