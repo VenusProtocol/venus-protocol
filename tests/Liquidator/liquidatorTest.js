@@ -219,4 +219,59 @@ describe('Liquidator', function () {
     });
   });
 
+  describe('setTreasuryPercent', () => {
+    it('updates treasury percent in storage', async () => {
+      const result =
+        await liquidatorContract.methods.setTreasuryPercent(bnbMantissa('0.8')).send({ from: root });
+      expect(result).toHaveLog('NewLiquidationTreasuryPercent', {
+        oldPercent: treasuryPercent,
+        newPercent: bnbMantissa('0.8')
+      });
+      const newPercent = await liquidatorContract.methods.treasuryPercentMantissa().call();
+      expect(newPercent).toEqual(bnbMantissa('0.8').toString());
+    });
+
+    it('fails when called from non-admin', async () => {
+      await expect(
+        liquidatorContract.methods.setTreasuryPercent(bnbMantissa('0.8')).send({ from: borrower })
+      ).rejects.toRevert("revert only admin allowed");
+    });
+
+    it('uses the new treasury percent during distributions', async () => {
+      await preLiquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral);
+      await liquidatorContract.methods.setTreasuryPercent(bnbMantissa('0.8')).send({ from: root });
+      const result = await liquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral);
+      const treasuryDelta =
+        seizeTokens
+          .mul(bnbMantissa('1')).div(announcedIncentive)  // / 1.1
+          .mul(bnbMantissa('0.8')).div(bnbMantissa('1')); // * 0.8
+      const liquidatorDelta = seizeTokens.sub(treasuryDelta);
+      expect(result).toHaveLog('LiquidateBorrowedTokens', {
+        liquidator,
+        borrower,
+        repayAmount: repayAmount.toString(),
+        vTokenCollateral: vTokenCollateral._address,
+        seizeTokensForTreasury: treasuryDelta.toString(),
+        seizeTokensForLiquidator: liquidatorDelta.toString()
+      });
+    });
+  });
+
+  describe('_setPendingAdmin', () => {
+    it('updates pending admin', async () => {
+      const result =
+        await liquidatorContract.methods._setPendingAdmin(borrower).send({ from: root });
+      expect(await liquidatorContract.methods.pendingAdmin().call()).toEqual(borrower);
+      expect(result).toHaveLog('NewPendingAdmin', {
+        oldPendingAdmin: '0x0000000000000000000000000000000000000000',
+        newPendingAdmin: borrower
+      });
+    });
+
+    it('fails when called from non-admin', async () => {
+      await expect(
+        liquidatorContract.methods._setPendingAdmin(borrower).send({ from: borrower })
+      ).rejects.toRevert("revert only admin allowed");
+    });
+  })
 });
