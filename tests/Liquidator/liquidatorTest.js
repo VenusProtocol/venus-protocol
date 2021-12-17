@@ -179,6 +179,34 @@ describe('Liquidator', function () {
         [vTokenCollateral, borrower, 'tokens', -seizeTokens]
       ]));
     });
+
+    it('liquidate-vBNB and repay-BNB should return success from liquidateBorrow and transfers the correct amounts', async () => {
+      await setBalance(vBnb, borrower, seizeTokens.add(1000));
+      const beforeBalances = await getBalances([vBnb, vBnb], [treasury, liquidator, borrower]);
+      const result = await liquidatevBnb(liquidatorContract, vBnb, liquidator, borrower, repayAmount, vBnb);
+      const gasCost = await bnbGasCost(result);
+      const afterBalances = await getBalances([vBnb], [treasury, liquidator, borrower]);
+
+      const { treasuryDelta, liquidatorDelta } = calculateSplitSeizedTokens(seizeTokens);
+      expect(result).toHaveLog('LiquidateBorrowedTokens', {
+        liquidator,
+        borrower,
+        repayAmount: repayAmount.toString(),
+        vTokenCollateral: vBnb._address,
+        seizeTokensForTreasury: treasuryDelta.toString(),
+        seizeTokensForLiquidator: liquidatorDelta.toString()
+      });
+
+      expect(afterBalances).toEqual(await adjustBalances(beforeBalances, [
+        [vBnb, 'bnb', repayAmount],
+        [vBnb, 'borrows', -repayAmount],
+        [vBnb, liquidator, 'bnb', -(gasCost.add(repayAmount))],
+        [vBnb, liquidator, 'tokens', liquidatorDelta],
+        [vBnb, treasury, 'tokens', treasuryDelta],
+        [vBnb, borrower, 'borrows', -repayAmount],
+        [vBnb, borrower, 'tokens', -seizeTokens]
+      ]));
+    });
   });
 
 });
