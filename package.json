@@ -16,7 +16,7 @@
     "checksize": "npx run ./script/saddle/comptrollerSize.js"
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
-  "author": "Venus Labs, Inc.",
+  "author": "Venus",
   "license": "BSD-3-Clause",
   "devDependencies": {
     "bignumber.js": "9.0.0",
@@ -26,7 +26,10 @@
     "solparse": "^2.2.8"
   },
   "dependencies": {
-    "eth-saddle": "^0.1.21"
+    "@nomiclabs/hardhat-truffle5": "^2.0.3",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "eth-saddle": "^0.1.21",
+    "hardhat": "^2.8.0"
   },
   "resolutions": {
     "scrypt.js": "https://registry.npmjs.org/@compound-finance/ethereumjs-wallet/-/ethereumjs-wallet-0.6.3.tgz",
