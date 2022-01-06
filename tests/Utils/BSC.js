@@ -13,30 +13,32 @@ function encodeParameters(types, values) {
 }
 
 async function bnbBalance(addr) {
-  return ethers.utils.bigNumberify(new BigNum(await web3.eth.getBalance(addr)).toFixed());
+  return ethers.BigNumber.from(new BigNum(await web3.eth.getBalance(addr)).toFixed());
 }
 
 async function vaiBalance(vai, addr) {
-  return ethers.utils.bigNumberify(new BigNum(await web3.eth.getBalance(addr)).toFixed());
+  return ethers.BigNumber.from(new BigNum(await web3.eth.getBalance(addr)).toFixed());
 }
 
 async function bnbGasCost(receipt) {
   const tx = await web3.eth.getTransaction(receipt.transactionHash);
   const gasUsed = new BigNum(receipt.gasUsed);
   const gasPrice = new BigNum(tx.gasPrice);
-  return ethers.utils.bigNumberify(gasUsed.times(gasPrice).toFixed());
+  return ethers.BigNumber.from(gasUsed.times(gasPrice).toFixed());
 }
 
 function bnbExp(num) { return bnbMantissa(num, 1e18) }
 function bnbDouble(num) { return bnbMantissa(num, 1e36) }
 function bnbMantissa(num, scale = 1e18) {
   if (num < 0)
-    return ethers.utils.bigNumberify(new BigNum(2).pow(256).plus(num).toFixed());
-  return ethers.utils.bigNumberify(new BigNum(num).times(scale).toFixed());
+    return ethers.BigNumber.from(new BigNum(2).pow(256).plus(num).toFixed());
+  return ethers.BigNumber.from(new BigNum(num).times(scale).toFixed());
 }
-
 function bnbUnsigned(num) {
-  return ethers.utils.bigNumberify(new BigNum(num).toFixed());
+  if (num instanceof ethers.BigNumber) {
+    return num;
+  }
+  return ethers.BigNumber.from(new BigNum(num).toFixed());
 }
 
 function mergeInterface(into, from) {
