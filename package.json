@@ -13,20 +13,44 @@
     "profile": "yarn test tests/gasProfiler.js",
     "test": "./script/test",
     "test:prepare": "NO_RUN=true ./script/test",
-    "checksize": "npx run ./script/saddle/comptrollerSize.js"
+    "checksize": "npx run ./script/saddle/comptrollerSize.js",
+    "compile:hardhat": "hardhat compile",
+    "test:hardhat": "hardhat test",
+    "clean:hardhat": "hardhat clean"
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus Labs, Inc.",
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-etherscan": "^2.1.1",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@openzeppelin/hardhat-upgrades": "^1.6.0",
+    "@typechain/ethers-v5": "^6.0.5",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "^14.14.37",
     "bignumber.js": "9.0.0",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.3.0",
+    "ethers": "^5.1.0",
+    "fs": "0.0.1-security",
+    "hardhat": "^2.1.2",
+    "hardhat-typechain": "^0.3.5",
     "jest-diff": "^26.4.2",
     "jest-junit": "^11.1.0",
+    "shelljs": "^0.8.4",
     "solium": "^1.2.5",
-    "solparse": "^2.2.8"
+    "solparse": "^2.2.8",
+    "ts-generator": "^0.1.1",
+    "ts-node": "^9.1.1",
+    "typechain": "^4.0.3",
+    "typescript": "^4.2.3"
   },
   "dependencies": {
-    "eth-saddle": "^0.1.21"
+    "eth-saddle": "^0.1.21",
+    "mocha-chai-jest-snapshot": "^1.1.3",
+    "path": "^0.12.7",
+    "sleep-ts": "^0.1.1"
   },
   "resolutions": {
     "scrypt.js": "https://registry.npmjs.org/@compound-finance/ethereumjs-wallet/-/ethereumjs-wallet-0.6.3.tgz",

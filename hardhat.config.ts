@@ -11,9 +11,9 @@ import fs from "fs";
 import path from "path";
 const USER_HOME = process.env.HOME || process.env.USERPROFILE
 let data = {
-  "PrivateKey": "",
-  "InfuraApiKey": "",
-  "EtherscanApiKey": "",
+  "PrivateKey": "a0974f086e7dfbe3702f781a06e3a90de50ddd5ac5839cb673acd74f8882df87",
+  "InfuraApiKey": "api",
+  "EtherscanApiKey": "api",
 };
 
 let filePath = path.join(USER_HOME+'/.hardhat.data.json');

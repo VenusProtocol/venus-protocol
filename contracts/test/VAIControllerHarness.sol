@@ -1,12 +1,12 @@
 pragma solidity ^0.5.16;
 
-import "../VAIControllerDev.sol";
+import "../VAIController.sol";
 
-contract VAIControllerHarness is VAIControllerDev {
+contract VAIControllerHarness is VAIController {
     address vaiAddress;
     uint public blockNumber;
 
-    constructor() VAIControllerDev() public {
+    constructor() VAIController() public {
         admin = msg.sender;
     }
 
@@ -21,18 +21,6 @@ contract VAIControllerHarness is VAIControllerDev {
 
     function getVAIAddress() public view returns (address) {
         return vaiAddress;
-    }
-
-    function setVenusVAIMinterIndex(address vaiMinter, uint index) public {
-        venusVAIMinterIndex[vaiMinter] = index;
-    }
-
-    function harnessUpdateVenusVAIMintIndex() public {
-        updateVenusVAIMintIndex();
-    }
-
-    function harnessCalcDistributeVAIMinterVenus(address vaiMinter) public {
-        calcDistributeVAIMinterVenus(vaiMinter);
     }
 
     function harnessRepayVAIFresh(address payer, address account, uint repayAmount) public returns (uint) {

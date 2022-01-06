@@ -1,7 +1,6 @@
 pragma solidity ^0.5.16;
 
 import "../Comptroller.sol";
-import "../ComptrollerDev.sol";
 import "../PriceOracle.sol";
 
 contract ComptrollerKovan is Comptroller {
@@ -16,11 +15,11 @@ contract ComptrollerRopsten is Comptroller {
   }
 }
 
-contract ComptrollerHarness is ComptrollerDev {
+contract ComptrollerHarness is Comptroller {
     address xvsAddress;
     uint public blockNumber;
 
-    constructor() ComptrollerDev() public {}
+    constructor() Comptroller() public {}
 
     function setVenusSupplyState(address vToken, uint224 index, uint32 blockNumber_) public {
         venusSupplyState[vToken].index = index;
@@ -118,10 +117,6 @@ contract ComptrollerHarness is ComptrollerDev {
         distributeSupplierVenus(vToken, supplier);
     }
 
-    function harnessDistributeVAIMinterVenus(address vaiMinter) public {
-        distributeVAIMinterVenus(vaiMinter);
-    }
-
     function harnessTransferVenus(address user, uint userAccrued, uint threshold) public returns (uint) {
         if (userAccrued > 0 && userAccrued >= threshold) {
             return grantXVSInternal(user, userAccrued);
@@ -196,7 +191,7 @@ contract BoolComptroller is ComptrollerInterface {
     bool verifyLiquidateBorrow = true;
     bool verifySeize = true;
     bool verifyTransfer = true;
-
+    uint public liquidationIncentiveMantissa = 11e17;
     bool failCalculateSeizeTokens;
     uint calculatedSeizeTokens;
 
@@ -460,6 +455,11 @@ contract BoolComptroller is ComptrollerInterface {
 
     function setTransferVerify(bool verifyTransfer_) public {
         verifyTransfer = verifyTransfer_;
+    }
+
+    /*** Liquidity/Liquidation Calculations ***/
+    function setAnnouncedLiquidationIncentiveMantissa(uint mantissa_) external {
+        liquidationIncentiveMantissa = mantissa_;
     }
 
     /*** Liquidity/Liquidation Calculations ***/

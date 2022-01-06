@@ -185,3 +185,12 @@ contract ComptrollerV5Storage is ComptrollerV4Storage {
     /// @notice Last block at which a contributor's XVS rewards have been allocated
     mapping(address => uint) public lastContributorBlock;
 }
+
+contract ComptrollerV6Storage is ComptrollerV5Storage {
+  /// @notice BaseRate for VAI repay (scaled by 1e18)
+  uint256 public baseRateMantissa;
+  /// @notice FloatRate for VAI repay (scaled by 1e18)
+  uint256 public floatRateMantissa;
+  /// @notice Address receiver VAI
+  address public receiver;
+}

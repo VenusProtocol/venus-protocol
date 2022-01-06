@@ -16,6 +16,10 @@ interface ComptrollerImplInterface {
     function venusAccrued(address account) external view returns(uint);
     function getAssetsIn(address account) external view returns (VToken[] memory);
     function oracle() external view returns (PriceOracle);
+
+    function getVAIRepayAmount(address account) external view returns (uint);
+    function getVAICalculateRepayAmount(address account, uint repayAmount) external view returns (uint);
+    function receiver() external view returns (address);
 }
 
 /**
@@ -160,20 +164,17 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     function repayVAIFresh(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
         uint actualBurnAmount;
+        MathError mErr;
 
         uint vaiBalanceBorrower = ComptrollerImplInterface(address(comptroller)).mintedVAIs(borrower);
-
-        if(vaiBalanceBorrower > repayAmount) {
-            actualBurnAmount = repayAmount;
-        } else {
-            actualBurnAmount = vaiBalanceBorrower;
-        }
-
-        MathError mErr;
-        uint accountVAINew;
-
+        actualBurnAmount = ComptrollerImplInterface(address(comptroller)).getVAICalculateRepayAmount(borrower, repayAmount);
+        uint interestAmount;
+        (mErr, interestAmount) = subUInt(repayAmount, actualBurnAmount);
+        require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
         VAI(getVAIAddress()).burn(payer, actualBurnAmount);
+        VAI(getVAIAddress()).transferFrom(payer, ComptrollerImplInterface(address(comptroller)).receiver(), interestAmount);
 
+        uint accountVAINew;
         (mErr, accountVAINew) = subUInt(vaiBalanceBorrower, actualBurnAmount);
         require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
 

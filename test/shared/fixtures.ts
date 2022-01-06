@@ -69,7 +69,6 @@ export const comptrollerFixture: Fixture<ComptrollerFixture> = async function ([
     const vai = (await vaiFactory.deploy(BigNumber.from(97))) as VAIScenario
 
     const venusRate = bigNumber18
-    const venusVAIRate = bigNumber17.mul(5)
 
     // await unitroller._setPendingImplementation(comptroller.address)
     // await comptroller._become(unitroller.address)
@@ -99,10 +98,6 @@ export const comptrollerFixture: Fixture<ComptrollerFixture> = async function ([
     // console.log('=========setVAIAddress==========')
     await comptroller.harnessSetVenusRate(venusRate)
     // console.log('=========harnessSetVenusRate==========')
-    await comptroller._setVenusVAIRate(venusVAIRate)
-    // console.log('=========_setVenusVAIRate==========')
-    await vaiController._initializeVenusVAIState(BigNumber.from(0))
-    // console.log('=========_initializeVenusVAIState==========')
     // await vaiController.initialize()
     // console.log('=========initialize==========')
     await vai.rely(vaiController.address)
@@ -113,10 +108,12 @@ export const comptrollerFixture: Fixture<ComptrollerFixture> = async function ([
     await comptroller._setReceiver(treasuryAddress.address)
     await vaiController.initialize()
 
+
     const interestRateModelHarnessFactory = await ethers.getContractFactory('InterestRateModelHarness')
     const InterestRateModelHarness = (await interestRateModelHarnessFactory.deploy(BigNumber.from(0))) as InterestRateModelHarness
 
     const vTokenFactory = await ethers.getContractFactory('VBep20Harness')
+
     const vusdt = (await vTokenFactory.deploy(
         usdt.address,
         comptroller.address,

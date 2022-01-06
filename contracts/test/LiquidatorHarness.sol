@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/Liquidator.sol";
+import "../Liquidator.sol";
 import "./ComptrollerScenario.sol";
 
 contract LiquidatorHarness is Liquidator {
