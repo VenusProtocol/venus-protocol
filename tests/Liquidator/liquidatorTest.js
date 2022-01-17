@@ -32,6 +32,7 @@ async function preApprove(vToken, from, spender, amount, opts = {}) {
 
 async function preLiquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral) {
   // setup for success in liquidating
+  await send(vToken.comptroller, 'setUseLiquidatorContract', [true]);
   await send(vToken.comptroller, 'setLiquidateBorrowAllowed', [true]);
   await send(vToken.comptroller, 'setLiquidateBorrowVerify', [true]);
   await send(vToken.comptroller, 'setRepayBorrowAllowed', [true]);
@@ -115,7 +116,14 @@ describe('Liquidator', function () {
       await preLiquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral);
     });
 
+    it('should revert when no eligible liquidator contract is set', async () => {
+      await expect(
+        liquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral)
+      ).rejects.toRevert("revert failed to liquidate (03)");
+    });
+
     it('returns success from liquidateBorrow and transfers the correct amounts', async () => {
+      await send(vToken.comptroller, '_setLiquidatorContract', [liquidatorContract._address]);
       const beforeBalances = await getBalances([vToken, vTokenCollateral], [treasury, liquidator, borrower]);
       const result = await liquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral);
       const gasCost = await bnbGasCost(result);
@@ -150,6 +158,7 @@ describe('Liquidator', function () {
 
     beforeEach(async () => {
       await preLiquidate(liquidatorContract, vBnb, liquidator, borrower, repayAmount, vTokenCollateral);
+      await send(vToken.comptroller, '_setLiquidatorContract', [liquidatorContract._address]);
     });
 
     it('liquidate-vBNB and returns success from liquidateBorrow and transfers the correct amounts', async () => {

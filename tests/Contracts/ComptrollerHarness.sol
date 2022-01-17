@@ -208,6 +208,11 @@ contract BoolComptroller is ComptrollerInterface {
     address public treasuryAddress;
     uint public treasuryPercent;
 
+    // add this flag to avoid touching previous liquidation test cases in `liquidatorTest.js`
+    bool public useLiquidatorContract;
+
+    address public liquidatorContract;
+
     /*** Assets You Are In ***/
 
     function enterMarkets(address[] calldata _vTokens) external returns (uint[] memory) {
@@ -293,17 +298,28 @@ contract BoolComptroller is ComptrollerInterface {
         require(verifyRepayBorrow, "repayBorrowVerify rejected repayBorrow");
     }
 
+    function setUseLiquidatorContract(bool useLiquidatorContract_) external {
+        useLiquidatorContract = useLiquidatorContract_;
+    }
+
+    function _setLiquidatorContract(address liquidatorContract_) external {
+        liquidatorContract = liquidatorContract_;
+    }
+
     function liquidateBorrowAllowed(
         address _vTokenBorrowed,
         address _vTokenCollateral,
         address _liquidator,
         address _borrower,
         uint _repayAmount) external returns (uint) {
-        _vTokenBorrowed;
         _vTokenCollateral;
         _liquidator;
         _borrower;
         _repayAmount;
+        // set this flag to enable liquidator check which is the same as main Comptroller
+        if (useLiquidatorContract) {
+            return liquidatorContract == _liquidator ? noError : opaqueError;
+        }
         return allowLiquidateBorrow ? noError : opaqueError;
     }
 
