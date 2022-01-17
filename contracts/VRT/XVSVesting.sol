@@ -78,10 +78,9 @@ contract XVSVesting {
 
     constructor(
         address _xvsAddress,
-        address _vrtConversionAddress,
         uint256 _vestingDuration,
         uint256 _vestingFrequency
-    ) public nonZeroAddress(_xvsAddress) nonZeroAddress(_vrtConversionAddress) {
+    ) public nonZeroAddress(_xvsAddress)  {
         admin = msg.sender;
         require(
             _vestingDuration > 0,
@@ -89,7 +88,6 @@ contract XVSVesting {
         );
         xvsAddress = _xvsAddress;
         xvs = IBEP20(xvsAddress);
-        vrtConversionAddress = _vrtConversionAddress;
         vestingDuration = _vestingDuration;
         vestingFrequency = _vestingFrequency;
         _notEntered = true;
@@ -158,7 +156,7 @@ contract XVSVesting {
     /// The amount of XVS tokens here need to be preapproved for transfer by this `Vesting` contract before this call
     /// @param _recipient Address of the Vesting. recipient entitled to claim the vested funds
     /// @param _amount Total number of tokens Vested
-    function addVesting(address _recipient, uint128 _amount)
+    function addVesting(address _recipient, uint256 _amount)
         external
         onlyVrtConverter
         nonZeroAddress(_recipient)

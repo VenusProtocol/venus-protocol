@@ -85,9 +85,6 @@ contract VRTConverter {
         uint256 conversionEndTime
     );
 
-    /// @notice Emitted when vrtDailyLimit is set
-    event VRTDailyLimitSet(uint256 vrtDailyLimit);
-
     /// @notice Emitted when token conversion is done
     event TokenConverted(
         address reedeemer,
@@ -168,12 +165,10 @@ contract VRTConverter {
      * @notice Transfer VRT and redeem XVS
      * @dev Note: If there is not enough XVS, we do not perform the conversion.
      * @param vrtAmount The amount of VRT
-     * @return The amount of XVS which is converted
      */
     function convert(uint256 vrtAmount)
         external
         nonReentrant
-        returns (uint256)
     {
         require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
         require(vrtAmount > 0, "VRT amount must be non-zero");
@@ -221,10 +216,9 @@ contract VRTConverter {
             vrtAmount
         );
 
-        xvsVesting.addVesting(xvsVestingAddress, redeemAmount);
-        xvs.safeTransfer(xvsVestingAddress, redeemAmount);
-
-        return redeemAmount;
+        //xvs.safeTransfer(xvsVestingAddress, redeemAmount);
+        xvs.approve(xvsVestingAddress, redeemAmount);
+        xvsVesting.addVesting(msg.sender, redeemAmount);
     }
 
     function computeVrtDailyLimit() public view returns (uint256) {
@@ -236,11 +230,8 @@ contract VRTConverter {
         uint256 remainingPeriods = TOTAL_PERIODS.sub(numberOfPeriodsPassed);
 
         if(remainingPeriods <= 0){
-            
             return 0;
-        
         } else {
-            
             //remainingVRTForSwap = vrtTotalSupply - totalVrtConverted
             uint256 remainingVRTForSwap = vrtTotalSupply.sub(totalVrtConverted);
 
@@ -288,15 +279,6 @@ contract VRTConverter {
         IBEP20(tokenAddress).safeTransfer(withdrawTo, currentBalance);
 
         emit TokenWithdraw(tokenAddress, withdrawTo, currentBalance);
-    }
-
-    /**
-     * @notice Set VRTDailyLimit
-     * @param _vrtDailyLimit The daily Limit  on VRT for conversion to XVSTokens
-     */
-    function setVRTDailyLimit(uint256 _vrtDailyLimit) external onlyAdmin {
-        vrtDailyLimit = _vrtDailyLimit;
-        emit VRTDailyLimitSet(vrtDailyLimit);
     }
 
     /*** Reentrancy Guard ***/
