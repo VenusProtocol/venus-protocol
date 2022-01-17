@@ -18,7 +18,7 @@ describe('VRTConverterProxy', () => {
     vrtToken, vrtTokenAddress,
     xvsToken, xvsTokenAddress;
   let blockTimestamp, delay = 10;
-  let conversionRatio, conversionStartTime, vrtDailyLimit, vrtTotalSupply;
+  let conversionRatio, conversionRatioMultiplier, conversionStartTime, vrtDailyLimit, vrtTotalSupply;
   let vrtTransferAmount, vrtFundingAmount;
   let vrtForMint, xvsTokenMintAmount;
   let xvsVesting, xvsVestingAddress;
@@ -29,6 +29,7 @@ describe('VRTConverterProxy', () => {
     blockTimestamp = bnbUnsigned(100);
     await freezeTime(blockTimestamp.toNumber());
     conversionStartTime = blockTimestamp;
+    conversionRatioMultiplier = 0.75;
     conversionRatio = new BigNumber(0.75e18);
     vrtTotalSupply = bnbMantissa(2000000000);
 
@@ -185,21 +186,6 @@ describe('VRTConverterProxy', () => {
 
   describe("convert VRT to XVS", () => {
 
-    it("assert converted with ONE-Day timeTraversal", async () => {
-      const currentTimeForFreeze = blockTimestamp.add(ONE_DAY);
-      await freezeTime(currentTimeForFreeze.toNumber());
-      const vrtTransferAmount = bnbMantissa(200);
-      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: root });
-      const vrtConvertTxnResponse = await send(vrtConversion, "convert", [vrtTransferAmount], { from: root });
-      console.log(`vrtConvertTxnResponse is: ${JSON.stringify(vrtConvertTxnResponse)}`);
-
-      const vestingRecord = await call(xvsVesting, "vestings", [root]);
-    });
-  });
- 
-
-  describe("convert VRT to XVS", () => {
-
     it("alice cannot convert her VRT to XVS - as VRTAmount is invalid", async () => {
       vrtTransferAmount = bnbMantissa(100);
       await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
@@ -223,9 +209,6 @@ describe('VRTConverterProxy', () => {
       await freezeTime(newBlockTimestamp.toNumber());
 
       const convertVRTTxn = await send(vrtConversion, "convert", [vrtTransferAmount], { from: alice });
-      let xvsTokenBalanceOfAliceAfterConversion = await call(xvsToken, "balanceOf", [alice]);
-      const expectedXVSBalance = new BigNumber(vrtTransferAmount).multipliedBy(conversionRatio).dividedBy(new BigNumber(1e18));
-      expect(new BigNumber(xvsTokenBalanceOfAliceAfterConversion)).toEqual(expectedXVSBalance);
 
       let vrtTokensInConversion = await call(vrtToken, "balanceOf", [vrtConversionAddress]);
       expect(new BigNumber(vrtTokensInConversion)).toEqual(new BigNumber(0));
@@ -233,17 +216,48 @@ describe('VRTConverterProxy', () => {
       let vrtTokensInBurnAddress = await call(vrtToken, "balanceOf", [BURN_ADDRESS]);
       expect(new BigNumber(vrtTokensInBurnAddress)).toEqual(new BigNumber(vrtTransferAmount));
 
+      let xvsVestedAmount = new BigNumber(vrtTransferAmount).multipliedBy(new BigNumber(conversionRatioMultiplier));
+
       expect(convertVRTTxn).toHaveLog('TokenConverted', {
         reedeemer: alice,
         vrtAddress: vrtTokenAddress,
         xvsAddress: xvsTokenAddress,
         vrtAmount: vrtTransferAmount,
-        xvsAmount: xvsTokenBalanceOfAliceAfterConversion
+        xvsAmount: xvsVestedAmount.toFixed(0)
       });
 
     });
-
   });
+
+  describe("convert VRT to XVS - TimeRange tests For Failed Conversions", () => {
+
+    it("alice cannot convert her VRT to XVS as Conversion has-not started yet", async () => {
+
+      vrtTransferAmount = bnbMantissa(100);
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
+
+      delay = 10;
+      const newBlockTimestamp = blockTimestamp.sub(delay);
+      await freezeTime(newBlockTimestamp.toNumber());
+
+      await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
+        .rejects.toRevert('revert VRT conversion didnot start yet');
+
+    });
+
+    it("alice cannot convert her VRT to XVS as Conversion period ended", async () => {
+
+      vrtTransferAmount = bnbMantissa(100);
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
+      const conversionEndTime = await call(vrtConversion, "conversionEndTime", { from: root });
+      const newConversionEndTimeWithDelay = bnbUnsigned(conversionEndTime).add(delay);
+      await freezeTime(newConversionEndTimeWithDelay.toNumber());
+      await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
+        .rejects.toRevert('revert VRT conversion period ended');
+
+    });
+  });
+
 
   describe("Withdraw funds from VRTConversion", () => {
 
