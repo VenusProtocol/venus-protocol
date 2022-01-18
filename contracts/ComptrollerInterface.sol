@@ -85,6 +85,7 @@ interface IVAIVault {
 }
 
 interface IComptroller {
+    function liquidationIncentiveMantissa() external view returns (uint);
     /*** Treasury Data ***/
     function treasuryAddress() external view returns (address);
     function treasuryPercent() external view returns (uint);

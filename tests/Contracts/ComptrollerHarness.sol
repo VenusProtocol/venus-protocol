@@ -191,7 +191,7 @@ contract BoolComptroller is ComptrollerInterface {
     bool verifyLiquidateBorrow = true;
     bool verifySeize = true;
     bool verifyTransfer = true;
-
+    uint public liquidationIncentiveMantissa = 11e17;
     bool failCalculateSeizeTokens;
     uint calculatedSeizeTokens;
 
@@ -455,6 +455,11 @@ contract BoolComptroller is ComptrollerInterface {
 
     function setTransferVerify(bool verifyTransfer_) public {
         verifyTransfer = verifyTransfer_;
+    }
+
+    /*** Liquidity/Liquidation Calculations ***/
+    function setAnnouncedLiquidationIncentiveMantissa(uint mantissa_) external {
+        liquidationIncentiveMantissa = mantissa_;
     }
 
     /*** Liquidity/Liquidation Calculations ***/
