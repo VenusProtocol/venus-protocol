@@ -1,0 +1,115 @@
+Macro DeployGov
+    SetBlockNumber 1
+    Counter Deploy CNT1
+    Timelock Deploy Scenario Jared 604800
+    Xvs Deploy Bank
+    DeployVault Xvs
+    GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
+    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18 Guardian
+    GovernorBravo LegitGov MergeABI BravoDelegateHarness
+    GovernorBravo LegitGov HarnessInitiate
+    Timelock SetAdmin (Address LegitGov)
+    Enfranchise Root 600001e18
+    Enfranchise Jared 600000e18
+
+Macro Enfranchise user amount
+    From Bank (Xvs Transfer user amount)
+    From user (Xvs Approve (Address XVSVault) amount)
+    From user (XVSVault Deposit (Address Xvs) 0 amount)
+    From user (XVSVault Delegate user)
+
+Macro GivenPendingProposal
+    DeployGov
+    MineBlock
+    MineBlock
+    GovernorBravo LegitGov Propose "Add and sub" [(Address CNT1) (Address CNT1)] [0 0] ["increment(uint256,uint256)" "decrement(uint256)"] [["7" "4"] ["2"]]
+    Assert Equal ("Pending") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Macro GivenActiveProposal
+    GivenPendingProposal
+    MineBlock
+    MineBlock
+    Assert Equal ("Active") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Macro GivenSucceededProposal
+    GivenActiveProposal
+    GovernorBravo LegitGov Proposal LastProposal Vote For
+    From Jared (GovernorBravo LegitGov Proposal LastProposal Vote For)
+    AdvanceBlocks 90000
+    Assert Equal ("Succeeded") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Macro GivenQueuedProposal
+    GivenSucceededProposal
+    FreezeTime 100
+    GovernorBravo LegitGov Proposal LastProposal Queue
+    Assert Log ProposalQueued (id 2)
+    Assert Equal ("Queued") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Macro GivenExecutedProposal
+    GivenQueuedProposal
+    FreezeTime 604901
+    GovernorBravo LegitGov Proposal LastProposal Execute
+    Assert Equal ("Executed") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Test "Cancel a Pending proposal"
+    GivenPendingProposal
+    From Root (XVSVault Delegate Geoff)
+    Assert Equal ("Pending") (GovernorBravo LegitGov Proposal LastProposal State)
+    --sending away delegates takes a block, so proposal will be "Active" by time it is cancelable
+    GovernorBravo LegitGov Proposal LastProposal Cancel
+    Assert Log ProposalCanceled (id 2)
+    Assert Equal ("Canceled") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Test "Cancel an Active proposal"
+    GivenActiveProposal
+    From Root (XVSVault Delegate Geoff)
+    GovernorBravo LegitGov Proposal LastProposal Cancel
+    Assert Log ProposalCanceled (id 2)
+    Assert Equal ("Canceled") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Test "Cancel a Succeded proposal"
+    GivenSucceededProposal
+    From Root (XVSVault Delegate Geoff)
+    GovernorBravo LegitGov Proposal LastProposal Cancel
+    Assert Log ProposalCanceled (id 2)
+    Assert Equal ("Canceled") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Test "Cancel a queued proposal"
+    GivenQueuedProposal
+    Assert True (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "increment(uint256,uint256)" 7 4))
+    Assert True (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "decrement(uint256)" 2))
+    From Root (XVSVault Delegate Geoff)
+    GovernorBravo LegitGov Proposal LastProposal Cancel
+    Assert Log ProposalCanceled (id 2)
+    Assert False (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "increment(uint256,uint256)" 7 4))
+    Assert False (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "decrement(uint256)" 2))
+    Assert Equal ("Canceled") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Test "Revert when trying to cancel an executed proposal"
+    GivenExecutedProposal
+    From Root (XVSVault Delegate Geoff)
+    AllowFailures
+    GovernorBravo LegitGov Proposal LastProposal Cancel
+    Assert Revert "revert GovernorBravo::cancel: cannot cancel executed proposal"
+
+Test "Revert when canceling if proposer has votes"
+    GivenPendingProposal
+    AllowFailures
+    From Jared (GovernorBravo LegitGov Proposal LastProposal Cancel)
+    Assert Revert "revert GovernorBravo::cancel: proposer above threshold"
+
+Test "Proposer can cancel their own proposal"
+    GivenActiveProposal
+    GovernorBravo LegitGov Proposal LastProposal Cancel
+    Assert Log ProposalCanceled (id 2)
+    Assert Equal (GovernorBravo LegitGov Proposal LastProposal State) "Canceled"
+
+Test "Guardian can cancel a queued proposal"
+    GivenQueuedProposal
+    Assert True (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "increment(uint256,uint256)" 7 4))
+    Assert True (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "decrement(uint256)" 2))
+    From Guardian (GovernorBravo LegitGov Proposal LastProposal Cancel)
+    Assert Log ProposalCanceled (id 2)
+    Assert False (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "increment(uint256,uint256)" 7 4))
+    Assert False (Timelock QueuedTransaction (Timelock TxHash (Address CNT1) 0 (GovernorBravo LegitGov Proposal LastProposal Eta) "decrement(uint256)" 2))
+    Assert Equal ("Canceled") (GovernorBravo LegitGov Proposal LastProposal State)

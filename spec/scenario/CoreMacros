@@ -43,6 +43,10 @@ Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
     ComptrollerImpl Deploy ScenarioG4 ComptrollerG4
     Unitroller SetPendingImpl ComptrollerG4
     ComptrollerImpl ComptrollerG4 BecomeG4
+    --g5
+    ComptrollerImpl Deploy ScenarioG5 ComptrollerG5
+    Unitroller SetPendingImpl ComptrollerG5
+    ComptrollerImpl ComptrollerG5 BecomeG5
     --current
     ComptrollerImpl Deploy Scenario ScenComptroller
     Unitroller SetPendingImpl ScenComptroller
@@ -304,3 +308,13 @@ Macro BorrowAndRepayBnbWithInterest vBnb amount interestAmount interestRate bloc
     RepayBorrowBnb Torrey amount vBnb
     RepayBorrowBnb Torrey interestAmount vBnb
     Assert Equal (VToken vBnb BorrowBalance Torrey) Zero
+
+Macro DeployVault xvs
+    XVSVaultImpl Deploy VaultImpl
+    XVSVaultProxy Deploy
+    XVSVaultProxy SetPendingImplementation VaultImpl
+    XVSVaultImpl VaultImpl Become
+    XVSStore Deploy
+    XVSStore SetNewOwner (Address XVSVault)
+    XVSVault SetXvsStore (Address xvs) (Address XVSStore)
+    XVSVault Add (Address xvs) 1000 (Address xvs) 300 12345

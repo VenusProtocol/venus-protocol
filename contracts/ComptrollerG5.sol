@@ -13,7 +13,7 @@ import "./VAI/VAI.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract ComptrollerG5 is ComptrollerV5Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -1274,6 +1274,29 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     /**
+     * @notice Calculate XVS accrued by a VAI minter and possibly transfer it to them
+     * @dev VAI minters will not begin to accrue until after the first interaction with the protocol.
+     * @param vaiMinter The address of the VAI minter to distribute XVS to
+     */
+    function distributeVAIMinterVenus(address vaiMinter) public {
+        if (address(vaiVaultAddress) != address(0)) {
+            releaseToVault();
+        }
+
+        if (address(vaiController) != address(0)) {
+            uint vaiMinterAccrued;
+            uint vaiMinterDelta;
+            uint vaiMintIndexMantissa;
+            uint err;
+            (err, vaiMinterAccrued, vaiMinterDelta, vaiMintIndexMantissa) = vaiController.calcDistributeVAIMinterVenus(vaiMinter);
+            if (err == uint(Error.NO_ERROR)) {
+                venusAccrued[vaiMinter] = vaiMinterAccrued;
+                emit DistributedVAIMinterVenus(vaiMinter, vaiMinterDelta, vaiMintIndexMantissa);
+            }
+        }
+    }
+
+    /**
      * @notice Claim all the xvs accrued by holder in all markets and VAI
      * @param holder The address to claim XVS for
      */
@@ -1301,6 +1324,13 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function claimVenus(address[] memory holders, VToken[] memory vTokens, bool borrowers, bool suppliers) public {
         uint j;
+        if(address(vaiController) != address(0)) {
+            vaiController.updateVenusVAIMintIndex();
+        }
+        for (j = 0; j < holders.length; j++) {
+            distributeVAIMinterVenus(holders[j]);
+            venusAccrued[holders[j]] = grantXVSInternal(holders[j], venusAccrued[holders[j]]);
+        }
         for (uint i = 0; i < vTokens.length; i++) {
             VToken vToken = vTokens[i];
             require(markets[address(vToken)].isListed, "not listed market");
@@ -1352,6 +1382,16 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         uint amountLeft = grantXVSInternal(recipient, amount);
         require(amountLeft == 0, "insufficient xvs for grant");
         emit VenusGranted(recipient, amount);
+    }
+
+    /**
+     * @notice Set the amount of XVS distributed per block to VAI Mint
+     * @param venusVAIRate_ The amount of XVS wei per block to distribute to VAI Mint
+     */
+    function _setVenusVAIRate(uint venusVAIRate_) public onlyAdmin {
+        uint oldVAIRate = venusVAIRate;
+        venusVAIRate = venusVAIRate_;
+        emit NewVenusVAIRate(oldVAIRate, venusVAIRate_);
     }
 
     /**

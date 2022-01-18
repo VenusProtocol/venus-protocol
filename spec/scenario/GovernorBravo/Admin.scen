@@ -1,0 +1,134 @@
+Macro DeployGov
+    SetBlockNumber 1
+    Counter Deploy CNT1
+    Timelock Deploy Scenario Jared 604800
+    Xvs Deploy Bank
+	DeployVault Xvs
+    GovernorBravo Deploy BravoDelegateHarness BravoDelegateHarness
+    GovernorBravo Deploy BravoDelegator LegitGov (Address Timelock) (Address XVSVault) (Address Root) (Address BravoDelegateHarness) 86400 1 300000e18 Guardian
+    GovernorBravo LegitGov MergeABI BravoDelegateHarness
+    GovernorBravo LegitGov HarnessInitiate
+    Timelock SetAdmin (Address LegitGov)
+    Enfranchise Root 600001e18
+    Enfranchise Jared 150001e18
+
+Macro Enfranchise user amount
+    From Bank (Xvs Transfer user amount)
+    From user (Xvs Approve (Address XVSVault) amount)
+    From user (XVSVault Deposit (Address Xvs) 0 amount)
+    From user (XVSVault Delegate user)
+
+Macro GivenPendingProposal
+    DeployGov
+    MineBlock
+    MineBlock
+    GovernorBravo LegitGov Propose "Add and sub" [(Address CNT1) (Address CNT1)] [0 0] ["increment(uint256,uint256)" "decrement(uint256)"] [["7" "4"] ["2"]]
+    Assert Equal ("Pending") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Macro GivenActiveProposal
+    GivenPendingProposal
+    MineBlock
+    MineBlock
+    Assert Equal ("Active") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Macro GivenSucceededProposal
+    GivenActiveProposal
+    GovernorBravo LegitGov Proposal LastProposal Vote For
+    From Jared (GovernorBravo LegitGov Proposal LastProposal VoteWithReason For "Hello World")
+    Assert Equal ("Hello World") (GovernorBravo LegitGov Proposal LastProposal Reason Jared)
+    AdvanceBlocks 90000
+    Assert Equal ("Succeeded") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Macro GivenQueuedProposal
+    GivenSucceededProposal
+    FreezeTime 100
+    GovernorBravo LegitGov Proposal LastProposal Queue
+    Assert Log ProposalQueued (id 2)
+    Assert Equal ("Queued") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Macro GivenExecutedProposal
+    GivenQueuedProposal
+    FreezeTime 604901
+    GovernorBravo LegitGov Proposal LastProposal Execute
+    Assert Equal ("Executed") (GovernorBravo LegitGov Proposal LastProposal State)
+
+Test "Set Voting delay"
+	DeployGov
+	GovernorBravo LegitGov SetVotingDelay 100
+	GovernorBravo LegitGov Propose "Add and sub" [(Address CNT1) (Address CNT1)] [0 0] ["increment(uint256,uint256)" "decrement(uint256)"] [["7" "4"] ["2"]]
+	Assert Log ProposalCreated (startBlock 126)
+	Assert Equal (GovernorBravo LegitGov VotingDelay) 100
+
+Test "Originally set voting delay to 1"
+	DeployGov
+	GovernorBravo LegitGov SetVotingDelay 1
+	GovernorBravo LegitGov Propose "Add and sub" [(Address CNT1) (Address CNT1)] [0 0] ["increment(uint256,uint256)" "decrement(uint256)"] [["7" "4"] ["2"]]
+	Assert Log ProposalCreated (startBlock 27)
+
+Test "Set Voting Period"
+	DeployGov
+	GovernorBravo LegitGov SetVotingPeriod 57601
+	GovernorBravo LegitGov Propose "Add and sub" [(Address CNT1) (Address CNT1)] [0 0] ["increment(uint256,uint256)" "decrement(uint256)"] [["7" "4"] ["2"]]
+	Assert Log ProposalCreated (endBlock 57628)
+	Assert Equal (GovernorBravo LegitGov VotingPeriod) 57601
+
+Test "Set Proposal Threshold"
+	DeployGov
+	AllowFailures
+	From Jared (GovernorBravo LegitGov Propose "Add and sub" [(Address CNT1) (Address CNT1)] [0 0] ["increment(uint256,uint256)" "decrement(uint256)"] [["7" "4"] ["2"]])
+	Assert Revert "revert GovernorBravo::propose: proposer votes below proposal threshold"
+	Successfully
+	GovernorBravo LegitGov SetProposalThreshold 150000e18
+	Assert Equal (GovernorBravo LegitGov ProposalThreshold) 150000e18
+	From Jared (GovernorBravo LegitGov Propose "Add and sub" [(Address CNT1) (Address CNT1)] [0 0] ["increment(uint256,uint256)" "decrement(uint256)"] [["7" "4"] ["2"]])
+
+Test "Enforce Proposal Threshold min"
+	DeployGov
+	AllowFailures
+	GovernorBravo LegitGov SetProposalThreshold 15000e18
+	Assert Revert "revert GovernorBravo::_setProposalThreshold: invalid proposal threshold"
+
+Test "Set Proposal Max Operations"
+	DeployGov
+	GovernorBravo LegitGov SetProposalMaxOperations 42
+	Assert Log ProposalMaxOperationsUpdated (newMaxOperations 42)
+	Assert Equal (GovernorBravo LegitGov ProposalMaxOperations) 42
+
+Test "Enforce admin"
+	DeployGov
+	AllowFailures
+	From Robert (GovernorBravo LegitGov SetProposalThreshold 15000e18)
+	Assert Revert "revert GovernorBravo::_setProposalThreshold: admin only"
+	From Robert (GovernorBravo LegitGov SetVotingPeriod 10)
+	Assert Revert "revert GovernorBravo::_setVotingPeriod: admin only"
+	From Robert (GovernorBravo LegitGov SetVotingDelay 100)
+	Assert Revert "revert GovernorBravo::_setVotingDelay: admin only"
+	From Robert (GovernorBravo LegitGov Initiate (Address Robert))
+	Assert Revert "revert GovernorBravo::_initiate: admin only"
+	From Robert (GovernorBravo LegitGov SetImplementation (Address BravoDelegateHarness))
+	Assert Revert "revert GovernorBravoDelegator::_setImplementation: admin only"
+	From Robert (GovernorBravo LegitGov SetProposalMaxOperations 42)
+	Assert Revert "revert GovernorBravo::_setProposalMaxOperations: admin only"
+
+Test "Transfer Admin"
+	DeployGov
+	Assert Equal (Address Root) (GovernorBravo LegitGov Admin)
+	GovernorBravo LegitGov SetPendingAdmin (Address Robert)
+	From Robert (GovernorBravo LegitGov AcceptAdmin)
+	Assert Equal (Address Robert) (GovernorBravo LegitGov Admin)
+
+Test "Only guardian and admin can set new guardian"
+	DeployGov
+	From Guardian (GovernorBravo LegitGov SetGuardian Robert)
+	Assert Equal (Address Robert) (GovernorBravo LegitGov Guardian)
+	From Admin (GovernorBravo LegitGov SetGuardian Jared)
+	Assert Equal (Address Jared) (GovernorBravo LegitGov Guardian)
+	AllowFailures
+	From Robert (GovernorBravo LegitGov SetGuardian Admin)
+	Assert Revert "revert GovernorBravo::_setGuardian: admin or guardian only"
+
+Test "Guardian cannot be zero"
+	DeployGov
+	AllowFailures
+	From Guardian (GovernorBravo LegitGov SetGuardian (Address Zero))
+	Assert Revert "revert GovernorBravo::_setGuardian: cannot live without a guardian"

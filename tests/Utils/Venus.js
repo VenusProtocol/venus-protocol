@@ -90,8 +90,6 @@ async function makeComptroller(opts = {}) {
     const xvs = opts.xvs || await deploy('XVS', [opts.venusOwner || root]);
     const vai = opts.vai || await makeVAI();
     const venusRate = bnbUnsigned(dfn(opts.venusRate, 1e18));
-    const venusVAIRate = bnbUnsigned(dfn(opts.venusVAIRate, 5e17));
-    const venusMarkets = opts.venusMarkets || [];
 
     await send(unitroller, '_setPendingImplementation', [comptroller._address]);
     await send(comptroller, '_become', [unitroller._address]);
@@ -112,8 +110,6 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, 'setXVSAddress', [xvs._address]); // harness only
     await send(vaiunitroller, 'setVAIAddress', [vai._address]); // harness only
     await send(unitroller, 'harnessSetVenusRate', [venusRate]);
-    await send(unitroller, '_setVenusVAIRate', [venusVAIRate]);
-    await send(vaiunitroller, '_initializeVenusVAIState', [0]);
     await send(vaiunitroller, 'initialize');
     await send(vai, 'rely', [vaiunitroller._address]);
 

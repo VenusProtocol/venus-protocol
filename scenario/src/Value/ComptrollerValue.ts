@@ -208,7 +208,7 @@ export function comptrollerFetchers() {
     new Fetcher<{comptroller: Comptroller}, NumberV>(`
         #### CloseFactor
 
-        * "Comptroller CloseFactor" - Returns the Comptrollers's price oracle
+        * "Comptroller CloseFactor" - Returns the Comptrollers's close factor
           * E.g. "Comptroller CloseFactor"
       `,
       "CloseFactor",
@@ -218,7 +218,7 @@ export function comptrollerFetchers() {
     new Fetcher<{comptroller: Comptroller}, NumberV>(`
         #### MaxAssets
 
-        * "Comptroller MaxAssets" - Returns the Comptrollers's price oracle
+        * "Comptroller MaxAssets" - Returns the Comptrollers's max assets
           * E.g. "Comptroller MaxAssets"
       `,
       "MaxAssets",

@@ -1,4 +1,4 @@
-pragma solidity 0.5.16;
+pragma solidity ^0.5.16;
 
 import "./PriceOracle.sol";
 import "./VBep20.sol";
