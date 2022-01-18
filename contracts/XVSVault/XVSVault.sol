@@ -230,8 +230,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
 
         // Update Delegate Amount
         if (address(pool.token) == address(xvsAddress)) {
-            uint256 updatedAmount = user.amount.sub(user.pendingWithdrawals);
-            _updateDelegate(address(msg.sender), uint96(updatedAmount));
+            _moveDelegates(address(0), delegates[msg.sender], uint96(_amount));
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
@@ -356,8 +355,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
 
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {
-            uint256 updatedAmount = user.amount.sub(user.pendingWithdrawals);
-            _updateDelegate(address(msg.sender), uint96(updatedAmount));
+            _moveDelegates(delegates[msg.sender], address(0), uint96(_amount));
         }
 
         emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
@@ -521,21 +519,6 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             }
         }
         return uint96(0);
-    }
-
-    /**
-     * @notice Update Delegates - voting power
-     * @param delegator The address of Delegator
-     * @param amount Updated delegate amount
-     */
-    function _updateDelegate(address delegator, uint96 amount) internal {
-        address currentDelegate = delegates[delegator];
-
-        if (currentDelegate != address(0)) {
-            uint32 delegateRepNum = numCheckpoints[currentDelegate];
-            uint96 delegateRepOld = delegateRepNum > 0 ? checkpoints[currentDelegate][delegateRepNum - 1].votes : 0;
-            _writeCheckpoint(currentDelegate, delegateRepNum, delegateRepOld, amount);
-        }
     }
 
     /**
