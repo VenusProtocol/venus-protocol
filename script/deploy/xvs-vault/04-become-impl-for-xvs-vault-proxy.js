@@ -14,6 +14,6 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 
   //query Implementation of XVSVaultProxy
   const xvsVaultProxyContractInstance = await saddle.getContractAt('XVSVaultProxy', XVSVaultProxyAddress);
-  const implementationAddress = await xvsVaultProxyContractInstance.methods.xvsVaultImplementation().call();
+  const implementationAddress = await xvsVaultProxyContractInstance.methods.implementation().call();
   console.log(`XVSVaultProxy-> has Implementation: ${implementationAddress}`);
 })();

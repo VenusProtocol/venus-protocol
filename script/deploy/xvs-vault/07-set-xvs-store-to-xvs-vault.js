@@ -2,7 +2,7 @@ const [network] = args;
 const contractConfigData = require(`../../../networks/${network}.json`);
 
 (async () => {  
-  const xvsVaultProxyAddress = contractConfigData.Contracts.XVSVaultProxyAddress;
+  const xvsVaultProxyAddress = contractConfigData.Contracts.XVSVaultProxy;
   const xvsVaultContractInstance = await saddle.getContractAt('XVSVault', xvsVaultProxyAddress);
   
   const xvsAddress = contractConfigData.Contracts.XVS;

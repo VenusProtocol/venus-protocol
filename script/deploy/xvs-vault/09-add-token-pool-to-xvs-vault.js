@@ -23,7 +23,7 @@ const { bnbUnsigned } = require('../utils/web3-utils');
    \n witnUpdate: ${_withUpdate}`)
 
   const createXVSTokenPoolOnXVSVaultTxn = await xvsVaultContractInstance.methods.add(_rewardToken, _allocPoint, _token,
-    _rewardPerBlock, _lockPeriod, _withUpdate).send();
+    _rewardPerBlock, _lockPeriod).send();
 
   console.log(`XVS -> created TokenPool for: ${_rewardToken} on xvsVaultProxyAddress: ${xvsVaultProxyAddress} 
     - with transactionStatus: ${createXVSTokenPoolOnXVSVaultTxn.status}`);
