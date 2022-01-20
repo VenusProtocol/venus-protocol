@@ -9,7 +9,7 @@ task("deploy-governor-bravo-delegator", "deploys GovernorBravoDelegator contract
     const GovernorBravoDelegatorContract = await hre.ethers.getContractFactory(`contracts/Governance/GovernorBravoDelegator.sol:GovernorBravoDelegator`);
 
     const timelockAddress = contractConfigData.Contracts.Timelock;
-    const xvsVaultAddress = contractConfigData.Contracts.XVSVault;
+    const xvsVaultAddress = contractConfigData.Contracts.XVSVaultProxy;
     const admin = contractConfigData.Accounts.Guardian;
     const governorBravoDelegateAddress = contractConfigData.Contracts.GovernorBravoDelegate;
     const votingPeriod = 200;

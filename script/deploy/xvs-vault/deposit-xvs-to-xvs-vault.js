@@ -9,7 +9,7 @@ const { bnbMantissa } = require('../utils/web3-utils');
 
   const xvsAddress = contractConfigData.Contracts.XVS;
   const amount = bnbMantissa(7e5);
-  const depositXVSToXVSVaultTxn = await xvsVaultContractInstance.methods.deposit(xvsAddress, 0, amount).send();
+  const depositXVSToXVSVaultTxn = await xvsVaultContractInstance.methods.deposit(xvsAddress, 1, amount).send();
 
   console.log(`XVS -> deposit : ${amount} to xvsVaultAddress: ${xvsVaultAddress} - with transactionStatus: ${depositXVSToXVSVaultTxn.status}`);
 })();
