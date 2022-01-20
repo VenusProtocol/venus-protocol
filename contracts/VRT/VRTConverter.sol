@@ -7,7 +7,7 @@ interface IXVSVesting {
   
     /// @param _recipient Address of the Vesting. recipient entitled to claim the vested funds
     /// @param _amount Total number of tokens Vested
-    function addVesting(address _recipient, uint256 _amount) external;
+    function deposit(address _recipient, uint256 _amount) external;
 }
 
 /**
@@ -218,7 +218,7 @@ contract VRTConverter {
 
         //xvs.safeTransfer(xvsVestingAddress, redeemAmount);
         xvs.approve(xvsVestingAddress, redeemAmount);
-        xvsVesting.addVesting(msg.sender, redeemAmount);
+        xvsVesting.deposit(msg.sender, redeemAmount);
     }
 
     function computeVrtDailyLimit() public view returns (uint256) {

@@ -54,7 +54,7 @@ describe('VRTConverterProxy', () => {
 
     let vestingDuration = 365 * 24 * 60 * 60;
     let vestingFrequency = 100;
-    xvsVesting = await deploy('XVSVesting', [xvsTokenAddress, vestingDuration, vestingFrequency]);
+    xvsVesting = await deploy('XVSVesting', [xvsTokenAddress]);
     xvsVestingAddress = xvsVesting._address;
 
     //deploy VRTConversion
