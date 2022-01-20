@@ -8,6 +8,8 @@ contract XVSVesting {
     using SafeBEP20 for IBEP20;
 
     uint256 public SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
+    uint256 private constant BLOCKS_PER_DAY = (24 * 3600) / 3;
+    uint256 public constant VESTING_PERIOD = 360 * BLOCKS_PER_DAY;
 
     /// @notice Administrator for this contract
     address public admin;
@@ -36,12 +38,10 @@ contract XVSVesting {
 
     event XVSVested(
         address indexed recipient,
-        uint8 indexed vestingAction,
-        uint256 vestingStartTime,
-        uint256 vestingEndTime,
-        uint256 amount,
+        uint8 indexed vestingStartBlock,
+        uint256 vestingEndBlock,
         uint256 totalVestedAmount,
-        uint256 vestingDuration
+        uint256 createdAt
     );
 
     event VestedTokensClaimed(address recipient, uint256 amountClaimed);
@@ -57,16 +57,10 @@ contract XVSVesting {
 
     struct VestingRecord {
         address recipient;
-        uint256 vestingStartTime;
-        uint256 vestingEndTime;
-        uint256 amount;
+        uint256 vestingStartBlock;
         uint256 totalVestedAmount;
-        uint256 vestingDuration;
-        uint256 totalClaimed;
+        uint256 withdrawnAmount;
         uint256 createdAt;
-        uint256 lastVestedAt;
-        uint256 lastClaimedAt;
-        uint256 updatedAt;
     }
 
     mapping(address => VestingRecord) public vestings;
@@ -76,24 +70,18 @@ contract XVSVesting {
         _;
     }
 
-    constructor(
-        address _xvsAddress,
-        uint256 _vestingDuration,
-        uint256 _vestingFrequency
-    ) public nonZeroAddress(_xvsAddress)  {
+    constructor(address _xvsAddress) public nonZeroAddress(_xvsAddress) {
         admin = msg.sender;
-        require(
-            _vestingDuration > 0,
-            "VestingDuration should be greater than zero"
-        );
         xvsAddress = _xvsAddress;
         xvs = IBEP20(xvsAddress);
-        vestingDuration = _vestingDuration;
-        vestingFrequency = _vestingFrequency;
         _notEntered = true;
     }
 
-    function _setVrtConversion(address _vrtConversionAddress) external onlyAdmin nonZeroAddress(_vrtConversionAddress) {
+    function _setVrtConversion(address _vrtConversionAddress)
+        external
+        onlyAdmin
+        nonZeroAddress(_vrtConversionAddress)
+    {
         vrtConversionAddress = _vrtConversionAddress;
         emit vrtConversionAddressSet(_vrtConversionAddress);
     }
@@ -152,104 +140,47 @@ contract XVSVesting {
         emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
     }
 
-    /// @notice Add a new VestingRecord for user `_recipient`. Only one Vesting per user is allowed
-    /// The amount of XVS tokens here need to be preapproved for transfer by this `Vesting` contract before this call
-    /// @param _recipient Address of the Vesting. recipient entitled to claim the vested funds
-    /// @param _amount Total number of tokens Vested
-    function addVesting(address _recipient, uint256 _amount)
+    function deposit(address recipient, uint256 amount)
         external
-        onlyVrtConverter
-        nonZeroAddress(_recipient)
+        onlyVrtConverter nonReentrant 
+        nonZeroAddress(recipient)
     {
-        require(_amount > 0, "Vested XVS tokens must be greater than zero");
+        VestingRecord storage vesting = vestings[recipient];
+        uint256 toWithdraw = calculateWithdrawal(vesting);
+        uint256 remainingAmount = (vesting.totalVestedAmount.sub(vesting.withdrawnAmount)).sub(toWithdraw);
+        vesting.totalVestedAmount = remainingAmount.add(amount);
+        vesting.withdrawnAmount = 0;
 
-        uint8 _vestionAction;
-        uint256 _vestingStartTime;
-        uint256 _vestingEndTime;
-        uint256 _totalVestedAmount;
+        // Note that we reset the start date after we compute the withdrawn amount
+        vesting.totalVestedAmount += amount;
+        vesting.vestingStartBlock = block.number;
 
-        if (vestings[_recipient].vestingStartTime == 0) {
-            _vestionAction = 0;
-            _vestingStartTime = block.timestamp;
-            _vestingEndTime = _vestingStartTime.add(vestingDuration);
-            _totalVestedAmount = _amount;
+        xvs.safeTransferFrom(msg.sender, address(this), amount);
 
-            VestingRecord memory vestingRecord = VestingRecord({
-                recipient: _recipient,
-                vestingStartTime: block.timestamp,
-                vestingEndTime: _vestingEndTime,
-                amount: _amount,
-                totalVestedAmount: _totalVestedAmount,
-                vestingDuration: vestingDuration,
-                totalClaimed: 0,
-                createdAt: block.timestamp,
-                lastVestedAt: block.timestamp,
-                lastClaimedAt: 0,
-                updatedAt: 0
-            });
-
-            vestings[_recipient] = vestingRecord;
-        } else {
-            _vestionAction = 1;
-            VestingRecord storage vestingForUpdate = vestings[_recipient];
-            _vestingStartTime = vestingForUpdate.vestingStartTime;
-            _vestingEndTime = _vestingStartTime.add(block.timestamp);
-            vestingForUpdate.vestingEndTime = _vestingEndTime;
-            vestingForUpdate.amount = vestingForUpdate.amount.add(_amount);
-            _totalVestedAmount = vestingForUpdate.totalVestedAmount.add(
-                _amount
-            );
-            vestingForUpdate.totalVestedAmount = _totalVestedAmount;
-            vestingForUpdate.lastVestedAt = block.timestamp;
-            vestingForUpdate.updatedAt = block.timestamp;
+        if (toWithdraw > 0) {
+            xvs.safeTransfer(recipient, toWithdraw);
         }
-
-        emit XVSVested(
-            _recipient,
-            _vestionAction,
-            _vestingStartTime,
-            _vestingEndTime,
-            _amount,
-            _totalVestedAmount,
-            vestingDuration
-        );
-
-        // Transfer the XVStokens to vesting contract
-        xvs.safeTransferFrom(address(msg.sender), address(this), _amount);
     }
 
-    /// @notice Allows a recipient to claim their vested tokens. Errors if no tokens have vested
-    function claimVestedTokens() external nonReentrant {
-        uint256 claimableAmount = calculateClaim(msg.sender);
-        require(claimableAmount > 0, "zero claimableAmount");
+    function withdraw(address recipient) external nonZeroAddress(recipient) nonReentrant {
+        require(msg.sender == recipient, "Only recipient can withdraw");
+        VestingRecord storage vesting = vestings[recipient];
+        uint256 toWithdraw = calculateWithdrawal(vesting);
 
-        VestingRecord storage vestingRecord = vestings[msg.sender];
-        vestingRecord.totalClaimed = vestingRecord.totalClaimed.add(
-            claimableAmount
-        );
-        vestingRecord.amount = vestingRecord.amount.sub(claimableAmount);
-        vestingRecord.lastClaimedAt = block.timestamp;
-
-        emit VestedTokensClaimed(msg.sender, claimableAmount);
-        xvs.safeTransferFrom(address(this), msg.sender, claimableAmount);
+        if(toWithdraw > 0){
+            vesting.withdrawnAmount = vesting.withdrawnAmount.add(toWithdraw);
+            xvs.safeTransfer(recipient, toWithdraw);
+        }
     }
 
-    /// @notice Calculate the vested tokens available for `_recepient` to claim
-    /// Returns 0 if vesting-period is not completed
-    function calculateClaim(address _recipient) public view returns (uint256) {
-        VestingRecord memory vestingRecord = vestings[_recipient];
-
-        uint256 elapsedTime = block.timestamp.sub(
-            vestingRecord.vestingStartTime
-        );
-
-        // For Vesting created with a future start date, that hasn't been reached, return 0
-        if (elapsedTime < SECONDS_PER_YEAR) {
-            return 0;
-        }
-
-        // If over vesting duration, all tokens vested
-        return vestingRecord.amount;
+    function calculateWithdrawal(VestingRecord storage vesting)
+        internal
+        view
+        returns (uint256 toWithdraw)
+    {
+        uint256 unlocked = (vesting.totalVestedAmount.mul(block.number.sub(vesting.vestingStartBlock))).div(VESTING_PERIOD);
+        uint256 amount = vesting.totalVestedAmount.sub(vesting.withdrawnAmount);
+        return (amount >= unlocked ? unlocked : amount);
     }
 
     /*** Reentrancy Guard ***/
