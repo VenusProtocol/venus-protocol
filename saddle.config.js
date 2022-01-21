@@ -12,7 +12,7 @@ module.exports = {
   extra_build_files: ['remote/*.json'],                     // Additional build files to deep merge
   // coverage_dir: "coverage",                              // Directory to place coverage files
   // coverage_ignore: [],                                   // List of files to ignore for coverage
-  contracts: process.env['SADDLE_CONTRACTS'] || "$(ls {contracts,contracts/**}/*.sol | grep -Ev 'ComptrollerG|VAIControllerG|ComptrollerScenarioG' )",
+  contracts: process.env['SADDLE_CONTRACTS'] || "{contracts,contracts/**}/*.sol",
                                                             // Glob to match contract files
   trace: false,                                             // Compile with debug artifacts
   // TODO: Separate contracts for test?
