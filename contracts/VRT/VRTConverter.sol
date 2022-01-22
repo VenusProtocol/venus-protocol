@@ -216,7 +216,6 @@ contract VRTConverter {
             vrtAmount
         );
 
-        //xvs.safeTransfer(xvsVestingAddress, redeemAmount);
         xvs.approve(xvsVestingAddress, redeemAmount);
         xvsVesting.deposit(msg.sender, redeemAmount);
     }
