@@ -35,13 +35,6 @@ contract XVSVesting {
 
     uint256 public vestingFrequency;
 
-    event XVSVested(
-        address indexed recipient,
-        uint8 indexed vestingStartBlock,
-        uint256 vestingEndBlock,
-        uint256 totalVestedAmount
-    );
-
     event VestedTokensClaimed(address recipient, uint256 amountClaimed);
 
     /// @notice Emitted when pendingAdmin is accepted, which means admin is updated
@@ -52,6 +45,14 @@ contract XVSVesting {
 
     /// @notice Emitted when vrtConversionAddress is set
     event vrtConversionAddressSet(address vrtConversionAddress);
+
+    /// @notice Emitted when XVS is deposited for vesting
+    event XVSVested(
+        address recipient,
+        uint256 amount,
+        uint256 withdrawnAmount,
+        uint256 vestingStartBlock
+    );
 
     /// @notice Emitted when XVS is withdrawn by recipient
     event XVSWithdrawn(address recipient, uint256 amount);
@@ -146,28 +147,38 @@ contract XVSVesting {
         nonReentrant
         nonZeroAddress(recipient)
     {
+        require(amount > 0, "Deposit mamount must be non-zero");
+
         VestingRecord storage vesting = vestings[recipient];
 
         if (vesting.recipient == address(0)) {
             vesting.recipient = recipient;
+            vesting.vestingStartBlock = block.number;
+            vesting.totalVestedAmount = amount;
+            xvs.safeTransferFrom(msg.sender, address(this), amount);
+        }else{
+            vesting.totalVestedAmount = vesting.totalVestedAmount.add(amount);
+
+            uint256 toWithdraw = calculateWithdrawal(vesting);
+
+            if(toWithdraw > 0){
+                uint256 remainingAmount = (vesting.totalVestedAmount.sub(vesting.withdrawnAmount)).sub(toWithdraw);
+                vesting.withdrawnAmount = vesting.withdrawnAmount.add(toWithdraw);
+            }
+
+            // Note that we reset the start date after we compute the withdrawn amount
+            vesting.vestingStartBlock = block.number;
+
+            xvs.safeTransferFrom(msg.sender, address(this), amount);
+
+            if (toWithdraw > 0) {
+                uint256 xvsBalance = xvs.balanceOf(address(this));
+                require(xvsBalance >= toWithdraw , "Insufficient XVS in XVSVesting Contract");
+                xvs.safeTransferFrom(address(this), recipient, toWithdraw);
+            }
         }
 
-        uint256 toWithdraw = calculateWithdrawal(vesting);
-        uint256 remainingAmount = (
-            vesting.totalVestedAmount.sub(vesting.withdrawnAmount)
-        ).sub(toWithdraw);
-        vesting.totalVestedAmount = remainingAmount.add(amount);
-        vesting.withdrawnAmount = 0;
-
-        // Note that we reset the start date after we compute the withdrawn amount
-        vesting.totalVestedAmount += amount;
-        vesting.vestingStartBlock = block.number;
-
-        xvs.safeTransferFrom(msg.sender, address(this), amount);
-
-        if (toWithdraw > 0) {
-            xvs.safeTransfer(recipient, toWithdraw);
-        }
+        emit XVSVested(recipient, vesting.totalVestedAmount, vesting.withdrawnAmount, vesting.vestingStartBlock);
     }
 
     function withdraw(address recipient)
