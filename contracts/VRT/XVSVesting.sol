@@ -48,7 +48,7 @@ contract XVSVesting {
 
     /// @notice Emitted when XVS is deposited for vesting
     event XVSVested(
-        address recipient,
+        address indexed recipient,
         uint256 amount,
         uint256 withdrawnAmount,
         uint256 vestingStartBlock
@@ -147,7 +147,7 @@ contract XVSVesting {
         nonReentrant
         nonZeroAddress(recipient)
     {
-        require(amount > 0, "Deposit mamount must be non-zero");
+        require(amount > 0, "Deposit amount must be non-zero");
 
         VestingRecord storage vesting = vestings[recipient];
 
@@ -181,19 +181,18 @@ contract XVSVesting {
         emit XVSVested(recipient, vesting.totalVestedAmount, vesting.withdrawnAmount, vesting.vestingStartBlock);
     }
 
-    function withdraw(address recipient)
-        external
-        nonZeroAddress(recipient)
-        nonReentrant
+    function withdraw(address recipient) external nonReentrant nonZeroAddress(recipient)
     {
-        require(msg.sender == recipient, "Only recipient can withdraw");
+        require(vestings[recipient].vestingStartBlock > 0, "Address doesnot have any vested amount for withdrawal");
         VestingRecord storage vesting = vestings[recipient];
         uint256 toWithdraw = calculateWithdrawal(vesting);
 
         if (toWithdraw > 0) {
+            uint256 xvsBalance = xvs.balanceOf(address(this));
+            require(xvsBalance >= toWithdraw , "Insufficient XVS in XVSVesting Contract");
             vesting.withdrawnAmount = vesting.withdrawnAmount.add(toWithdraw);
-            xvs.safeTransfer(recipient, toWithdraw);
             emit XVSWithdrawn(recipient, toWithdraw);
+            xvs.safeTransfer(recipient, toWithdraw);
         }
     }
 
