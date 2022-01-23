@@ -41,7 +41,6 @@ describe('XVSVesting', () => {
   let xvsVesting, xvsVestingAddress;
 
   beforeEach(async () => {
-    await minerStart();
     [root, alice, bob, vrtConversionAddress, redeemerAddress, ...accounts] = saddle.accounts;
     blockTimestamp = bnbUnsigned(100);
     await freezeTime(blockTimestamp.toNumber());
@@ -83,7 +82,6 @@ describe('XVSVesting', () => {
     it("sets vrtConversion Address in XVSVesting", async () => {
       let vrtConversionAddressActual = await call(xvsVesting, "vrtConversionAddress");
       expect(vrtConversionAddressActual).toEqual(vrtConversionAddress);
-      await minerStop();
     });
 
     it("sets XVS Address in XVSVesting", async () => {
@@ -158,8 +156,6 @@ describe('XVSVesting', () => {
       const expectedWithdrawalAmount_Vesting_2 =
         calculatedExpectedWithdrawalAmount(expectedVestedAmount_Vesting_2, 0, vestingRecord_After_Vesting_1["vestingStartBlock"], blocknumberAfter_Vesting_2);
 
-      const remainingAmount_Vesting_2 = new BigNumber(expectedVestedAmount_Vesting_2).minus(expectedWithdrawalAmount_Vesting_2);
-
       expect(depositTxn_Vesting_2).toHaveLog('XVSVested', {
         recipient: redeemerAddress,
         amount: expectedVestedAmount_Vesting_2,
@@ -172,8 +168,8 @@ describe('XVSVesting', () => {
     it("Multiple XVS-Vestings - with a Vesting after 360 Days of 1st Vesting", async () => {
 
       const redeemAmount_Vesting_1 = bnbMantissa(100);
-      await send(xvsToken, 'transfer', [vrtConversionAddress, redeemAmount_Vesting_1], { from: root });
 
+      await send(xvsToken, 'transfer', [vrtConversionAddress, redeemAmount_Vesting_1], { from: root });
       await send(xvsToken, 'approve', [xvsVestingAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
 
       const xvsBalance_Before_Vesting_1 = await call(xvsToken, 'balanceOf', [xvsVestingAddress]);
@@ -192,9 +188,13 @@ describe('XVSVesting', () => {
         vestingStartBlock: vestingStartBlock_Vesting_1
       });
 
-      const xvsBalance_After_Vesting_1 = await call(xvsToken, 'balanceOf', [xvsVestingAddress]);
-      expect(new BigNumber(xvsBalance_After_Vesting_1).isGreaterThan(new BigNumber(xvsBalance_Before_Vesting_1)));
+      const xvsBalance_of_XVSVesting_After_Vesting_1 = await call(xvsToken, 'balanceOf', [xvsVestingAddress]);
+      expect(new BigNumber(xvsBalance_of_XVSVesting_After_Vesting_1).isEqualTo(new BigNumber(xvsBalance_Before_Vesting_1).plus(redeemAmount_Vesting_1)));
 
+      const xvsBalance_Of_Redeemer_After_Vesting_1 = await call(xvsToken, 'balanceOf', [redeemerAddress]);
+      expect(new BigNumber(xvsBalance_Of_Redeemer_After_Vesting_1).isEqualTo(0));
+
+      // Advance by 360 Days
       await advanceBlocks(getBlocksbyDays(360));
 
       const redeemAmount_Vesting_2 = bnbMantissa(100);
@@ -207,26 +207,27 @@ describe('XVSVesting', () => {
       depositTxn_Vesting_2 = await send(xvsVesting, 'deposit', [redeemerAddress, redeemAmount_Vesting_2], { from: vrtConversionAddress });
       const vestingStartBlock_Vesting_2 = await blockNumber();
 
-      const xvsBalance_After_Vesting_2 = await call(xvsToken, 'balanceOf', [xvsVestingAddress]);
-      expect(new BigNumber(xvsBalance_After_Vesting_2).isEqualTo(new BigNumber(0)));
+      const xvsBalance_Of_XVSVesting_After_Vesting_2 = await call(xvsToken, 'balanceOf', [xvsVestingAddress]);
+      expect(new BigNumber(xvsBalance_Of_XVSVesting_After_Vesting_2).isEqualTo(new BigNumber(0)));
 
-      const expectedVestedAmount_Vesting_2 = BigNumber.sum.apply(null, [redeemAmount_Vesting_1, redeemAmount_Vesting_2]);
+      const expected_TotalVestedAmount_After_Vesting_2 = BigNumber.sum.apply(null, [redeemAmount_Vesting_1, redeemAmount_Vesting_2]);
 
       const blocknumberAfter_Vesting_2 = await blockNumber();
       const expectedWithdrawalAmount_Vesting_2 =
-        calculatedExpectedWithdrawalAmount(expectedVestedAmount_Vesting_2, 0, vestingRecord_After_Vesting_1["vestingStartBlock"], blocknumberAfter_Vesting_2);
+        calculatedExpectedWithdrawalAmount(expected_TotalVestedAmount_After_Vesting_2, 0, vestingRecord_After_Vesting_1["vestingStartBlock"], blocknumberAfter_Vesting_2);
+
+      const xvsBalance_Of_Redeemer_After_Vesting_2 = await call(xvsToken, 'balanceOf', [redeemerAddress]);
+      expect(new BigNumber(xvsBalance_Of_Redeemer_After_Vesting_2).isEqualTo(expected_TotalVestedAmount_After_Vesting_2));
 
       expect(depositTxn_Vesting_2).toHaveLog('XVSVested', {
         recipient: redeemerAddress,
-        amount: expectedVestedAmount_Vesting_2,
+        amount: expected_TotalVestedAmount_After_Vesting_2,
         vestingStartBlock: vestingStartBlock_Vesting_2,
         "withdrawnAmount": new BigNumber(expectedWithdrawalAmount_Vesting_2)
       });
 
     });
 
-
   });
-
 
 });
