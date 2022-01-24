@@ -9,6 +9,7 @@ contract LiquidatorHarness is Liquidator {
         address admin_,
         address payable vBnb_,
         address comptroller_,
+        address vaiController_,
         address treasury_,
         uint256 treasuryPercentMantissa_
     )
@@ -17,6 +18,7 @@ contract LiquidatorHarness is Liquidator {
             admin_,
             vBnb_,
             comptroller_,
+            vaiController_,
             treasury_,
             treasuryPercentMantissa_
         )

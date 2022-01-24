@@ -36,6 +36,7 @@ describe('Liquidator', function () {
       root,
       vBnb._address,
       vToken.comptroller._address,
+      vToken.comptroller.vaicontroller._address,
       treasury,
       treasuryPercent
     ]

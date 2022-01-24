@@ -1,6 +1,7 @@
 pragma solidity ^0.5.16;
 
 import "./ComptrollerInterface.sol";
+import "./VAIControllerInterface.sol";
 import "./VBNB.sol";
 import "./VBep20.sol";
 import "./Utils/ReentrancyGuard.sol";
@@ -16,6 +17,9 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
 
     /// @notice Address of Venus Unitroller contract.
     IComptroller comptroller;
+
+    /// @notice Address of VAIUnitroller contract.
+    VAIControllerInterface vaiController;
 
     /// @notice Address of Venus Treasury.
     address public treasury;
@@ -37,6 +41,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         address admin_,
         address payable vBnb_,
         address comptroller_,
+        address vaiController_,
         address treasury_,
         uint256 treasuryPercentMantissa_
     )
@@ -46,6 +51,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     {
         vBnb = VBNB(vBnb_);
         comptroller = IComptroller(comptroller_);
+        vaiController = VAIControllerInterface(vaiController_);
         treasury = treasury_;
         treasuryPercentMantissa = treasuryPercentMantissa_;
     }
@@ -75,7 +81,11 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
             vBnb.liquidateBorrow.value(msg.value)(borrower, vTokenCollateral);
         } else {
             require(msg.value == 0, "you shouldn't pay for this");
-            _liquidateBep20(VBep20(vToken), borrower, repayAmount, vTokenCollateral);
+            if (vToken == address(vaiController)) {
+                _liquidateVAI(borrower, repayAmount, vTokenCollateral);
+            } else {
+                _liquidateBep20(VBep20(vToken), borrower, repayAmount, vTokenCollateral);
+            }
         }
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
         uint256 seizedAmount = ourBalanceAfter.sub(ourBalanceBefore);
@@ -111,6 +121,18 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
             vToken.liquidateBorrow(borrower, repayAmount, vTokenCollateral),
             "failed to liquidate"
         );
+    }
+
+    /// @dev Transfers BEP20 tokens to self, then approves vToken to take these tokens.
+    function _liquidateVAI(address borrower, uint256 repayAmount, VToken vTokenCollateral)
+        internal
+    {
+        IBEP20 vai = IBEP20(vaiController.getVAIAddress());
+        vai.safeTransferFrom(msg.sender, address(this), repayAmount);
+        vai.safeApprove(address(vai), repayAmount);
+
+        (uint err,) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
+        requireNoError(err, "failed to liquidate");
     }
 
     /// @dev Splits the received vTokens between the liquidator and treasury.
