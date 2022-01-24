@@ -1,12 +1,13 @@
 pragma solidity ^0.5.16;
 
 import "./ComptrollerInterface.sol";
-import "./EIP20Interface.sol";
-import "./SafeMath.sol";
 import "./VBNB.sol";
 import "./VBep20.sol";
 import "./Utils/ReentrancyGuard.sol";
 import "./Utils/WithAdmin.sol";
+import "./Utils/SafeMath.sol";
+import "./Utils/IBEP20.sol";
+import "./Utils/SafeBEP20.sol";
 
 contract Liquidator is WithAdmin, ReentrancyGuard {
 
@@ -30,6 +31,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     event LiquidateBorrowedTokens(address liquidator, address borrower, uint256 repayAmount, address vTokenCollateral, uint256 seizeTokensForTreasury, uint256 seizeTokensForLiquidator);
 
     using SafeMath for uint256;
+    using SafeBEP20 for IBEP20;
 
     constructor(
         address admin_,
@@ -86,7 +88,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     /// @param newTreasuryPercentMantissa New treasury percent (scaled by 10^18).
     function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external onlyAdmin {
         require(
-            newTreasuryPercentMantissa <= comptroller.liquidationIncentiveMantissa(),
+            newTreasuryPercentMantissa <= comptroller.liquidationIncentiveMantissa().sub(1e18),
             "appetite too big"
         );
         emit NewLiquidationTreasuryPercent(treasuryPercentMantissa, newTreasuryPercentMantissa);
@@ -102,9 +104,9 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     )
         internal
     {
-        EIP20Interface borrowedToken = EIP20Interface(vToken.underlying());
-        borrowedToken.transferFrom(msg.sender, address(this), repayAmount);
-        borrowedToken.approve(address(vToken), repayAmount);
+        IBEP20 borrowedToken = IBEP20(vToken.underlying());
+        borrowedToken.safeTransferFrom(msg.sender, address(this), repayAmount);
+        borrowedToken.safeApprove(address(vToken), repayAmount);
         requireNoError(
             vToken.liquidateBorrow(borrower, repayAmount, vTokenCollateral),
             "failed to liquidate"
