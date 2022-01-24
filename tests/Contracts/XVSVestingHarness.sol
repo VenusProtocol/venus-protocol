@@ -6,6 +6,8 @@ contract XVSVestingHarness is XVSVesting {
 
    constructor(address _xvsAddress) XVSVesting(_xvsAddress) public {}
 
+   uint public blockNumber;
+
    function calculateWithdrawal(address recipient) public view returns (uint256)
    {
       VestingRecord storage vesting = vestings[recipient]; 
@@ -22,4 +24,16 @@ contract XVSVestingHarness is XVSVesting {
       return (toWithdraw, vesting.withdrawnAmount, remainingAmount, totalVestedAmount, xvsBalance);
    }
 
+   function harnessFastForward(uint blocks) public returns (uint) {
+      blockNumber += blocks;
+      return blockNumber;
+   }
+
+   function setBlockNumber(uint number) public {
+      blockNumber = number;
+   }
+
+   function getBlockNumber() public view returns (uint) {
+      return blockNumber;
+   }
 }
