@@ -162,7 +162,6 @@ contract XVSVesting {
             uint256 toWithdraw = calculateWithdrawal(vesting);
 
             if(toWithdraw > 0){
-                uint256 remainingAmount = (vesting.totalVestedAmount.sub(vesting.withdrawnAmount)).sub(toWithdraw);
                 vesting.withdrawnAmount = vesting.withdrawnAmount.add(toWithdraw);
             }
 
