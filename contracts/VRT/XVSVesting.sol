@@ -59,7 +59,7 @@ contract XVSVesting {
 
     struct VestingRecord {
         address recipient;
-        uint256 vestingStartBlock;
+        uint vestingStartBlock;
         uint256 totalVestedAmount;
         uint256 withdrawnAmount;
     }
@@ -153,7 +153,7 @@ contract XVSVesting {
 
         if (vesting.recipient == address(0)) {
             vesting.recipient = recipient;
-            vesting.vestingStartBlock = block.number;
+            vesting.vestingStartBlock = getBlockNumber();
             vesting.totalVestedAmount = amount;
             xvs.safeTransferFrom(msg.sender, address(this), amount);
         }else{
@@ -166,7 +166,7 @@ contract XVSVesting {
             }
 
             // Note that we reset the start date after we compute the withdrawn amount
-            vesting.vestingStartBlock = block.number;
+            vesting.vestingStartBlock = getBlockNumber();
 
             xvs.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -200,9 +200,10 @@ contract XVSVesting {
         view
         returns (uint256 toWithdraw)
     {
+        uint blockNumber = getBlockNumber();
         uint256 unlocked = (
             vesting.totalVestedAmount.mul(
-                block.number.sub(vesting.vestingStartBlock)
+                blockNumber.sub(vesting.vestingStartBlock)
             )
         ).div(VESTING_PERIOD);
         uint256 amount = vesting.totalVestedAmount.sub(vesting.withdrawnAmount);
@@ -219,5 +220,9 @@ contract XVSVesting {
         _notEntered = false;
         _;
         _notEntered = true; // get a gas-refund post-Istanbul
+    }
+
+    function getBlockNumber() public view returns (uint) {
+        return block.number;
     }
 }
