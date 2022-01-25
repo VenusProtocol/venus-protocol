@@ -21,6 +21,7 @@ contract VRTConverter {
     uint256 public constant ONE_YEAR = 360 * 24 * 60 * 60;
     uint256 public constant ONE_DAY = 24 * 60 * 60;
     uint256 public constant TOTAL_PERIODS = 360;
+    address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     /// @notice Administrator for this contract
     address public admin;
@@ -170,6 +171,7 @@ contract VRTConverter {
         external
         nonReentrant
     {
+        require(xvsVestingAddress != address(0), "XVS-Vesting Address is not set");
         require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
         require(vrtAmount > 0, "VRT amount must be non-zero");
         require(conversionRatio > 0, "conversion ratio is incorrect");
@@ -177,6 +179,8 @@ contract VRTConverter {
             conversionStartTime <= block.timestamp,
             "VRT conversion didnot start yet"
         );
+        uint256 vrtBalanceOfUser = vrt.balanceOf(msg.sender);
+        require(vrtBalanceOfUser >= vrtAmount , "Insufficient VRT-Balance for conversion");
 
         uint256 _currentDayNumber = ((block.timestamp).sub(conversionStartTime)).div(ONE_DAY);
         uint256 vrtDailyLimit = computeVrtDailyLimit();
@@ -210,9 +214,9 @@ contract VRTConverter {
             redeemAmount
         );
 
-        vrt.safeTransferFrom(
-            address(msg.sender),
-            address(0),
+        vrt.transferFrom(
+            msg.sender,
+            DEAD_ADDRESS,
             vrtAmount
         );
 
@@ -274,10 +278,11 @@ contract VRTConverter {
         // Get Treasury Token Balance
         uint256 currentBalance = IBEP20(tokenAddress).balanceOf(address(this));
 
-        // Transfer BEP20 Token to withdrawTo
-        IBEP20(tokenAddress).safeTransfer(withdrawTo, currentBalance);
-
-        emit TokenWithdraw(tokenAddress, withdrawTo, currentBalance);
+        if(currentBalance > 0){
+            emit TokenWithdraw(tokenAddress, withdrawTo, currentBalance);
+            // Transfer BEP20 Token to withdrawTo
+            IBEP20(tokenAddress).safeTransfer(withdrawTo, currentBalance);
+        }
     }
 
     /*** Reentrancy Guard ***/
