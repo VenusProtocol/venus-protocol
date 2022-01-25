@@ -5,9 +5,7 @@ const {
   freezeTime
 } = require('../Utils/BSC');
 
-const { makeToken } = require('../Utils/Venus');
-
-const BURN_ADDRESS = "0x0000000000000000000000000000000000000000";
+const BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
 const ONE_DAY = 24 * 60 * 60;
 const ONE_YEAR = 360 * 24 * 60 * 60;
 const TOTAL_PERIODS = 360;
@@ -39,7 +37,8 @@ describe('VRTConverterProxy', () => {
 
     //deploy VRT
     // Create New Bep20 Token
-    vrtToken = await makeToken();
+    vrtToken = await deploy('VRT', [root]);
+
     vrtTokenAddress = vrtToken._address;
     vrtForMint = bnbMantissa(200000);
     await send(vrtToken, 'transfer', [root, vrtForMint], { from: root });
@@ -58,17 +57,18 @@ describe('VRTConverterProxy', () => {
 
     let vestingDuration = 365 * 24 * 60 * 60;
     let vestingFrequency = 100;
-    xvsVesting = await deploy('XVSVesting', [xvsTokenAddress]);
+    xvsVesting = await deploy('XVSVestingHarness', [xvsTokenAddress]);
     xvsVestingAddress = xvsVesting._address;
 
     //deploy VRTConversion
-    vrtConversion = await deploy('VRTConverter', [vrtTokenAddress, xvsTokenAddress, xvsVestingAddress, conversionRatio, conversionStartTime, vrtTotalSupply]);
+    vrtConversion = await deploy('VRTConverterHarness', [vrtTokenAddress, xvsTokenAddress, xvsVestingAddress, conversionRatio, conversionStartTime, vrtTotalSupply]);
 
     vrtConversionAddress = vrtConversion._address;
-    xvsTokenMintAmount = bnbMantissa(100000);
-    await send(xvsToken, 'transfer', [vrtConversionAddress, xvsTokenMintAmount], { from: root });
 
     await send(xvsVesting, '_setVrtConversion', [vrtConversionAddress], { from: root });
+
+    await send(vrtToken, "approve", [vrtConversionAddress, 0], { from: alice });
+    await send(vrtToken, "approve", [vrtConversionAddress, 0], { from: bob });
   });
 
   describe("constructor", () => {
@@ -99,6 +99,9 @@ describe('VRTConverterProxy', () => {
   describe("contract balances", () => {
 
     it("vrtConversion should be funded with XVS", async () => {
+      const xvsTokenMintAmount = bnbMantissa(100000);
+      await send(xvsToken, 'transfer', [vrtConversionAddress, xvsTokenMintAmount], { from: root });
+
       let xvsTokenBalanceOfVRTConversion = await call(xvsToken, "balanceOf", [vrtConversionAddress]);
       expect(bnbUnsigned(xvsTokenBalanceOfVRTConversion)).toEqual(xvsTokenMintAmount);
     });
@@ -121,8 +124,7 @@ describe('VRTConverterProxy', () => {
       const vrtDailyLimitFromContract = await call(vrtConversion, "computeVrtDailyLimit", { from: root });
       const summer = new BigNum(vrtTotalSupply).plus(new BigNum(360)).toFixed(0);
       let expectedDailyLimit = new BigNum(vrtTotalSupply).dividedToIntegerBy(new BigNum(360)).toFixed(0);
-      console.log(`expectedDailyLimit for VRT is: ${expectedDailyLimit}`);
-      expect(new BigNum(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);      
+      expect(new BigNum(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);
     });
 
     it("assert dailyLimit computed With TimeTravel of 1 Hour", async () => {
@@ -199,7 +201,7 @@ describe('VRTConverterProxy', () => {
     });
 
     it("alice cannot convert her VRT to XVS as conversionContract doesnot have sufficient XVS-Amount", async () => {
-      vrtTransferAmount = bnbMantissa(2000005);
+      vrtTransferAmount = bnbMantissa(20000);
       await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
       const newBlockTimestamp = blockTimestamp.add(delay).add(1);
       await freezeTime(newBlockTimestamp.toNumber());
@@ -213,15 +215,19 @@ describe('VRTConverterProxy', () => {
       const newBlockTimestamp = blockTimestamp.add(ONE_DAY);
       await freezeTime(newBlockTimestamp.toNumber());
 
+      let xvsVestedAmount = new BigNum(vrtTransferAmount).multipliedBy(new BigNum(conversionRatioMultiplier));
+
+      const redeemableXVSAmountFromHarness = await call(vrtConversion, 'getXVSRedeemedAmount', [vrtTransferAmount]);
+      await send(xvsToken, 'transfer', [vrtConversionAddress, redeemableXVSAmountFromHarness], { from: root });
+
       const convertVRTTxn = await send(vrtConversion, "convert", [vrtTransferAmount], { from: alice });
+      expect(convertVRTTxn).toSucceed();
 
       let vrtTokensInConversion = await call(vrtToken, "balanceOf", [vrtConversionAddress]);
       expect(new BigNum(vrtTokensInConversion)).toEqual(new BigNum(0));
 
       let vrtTokensInBurnAddress = await call(vrtToken, "balanceOf", [BURN_ADDRESS]);
       expect(new BigNum(vrtTokensInBurnAddress)).toEqual(new BigNum(vrtTransferAmount));
-
-      let xvsVestedAmount = new BigNum(vrtTransferAmount).multipliedBy(new BigNum(conversionRatioMultiplier));
 
       expect(convertVRTTxn).toHaveLog('TokenConverted', {
         reedeemer: alice,
@@ -247,7 +253,6 @@ describe('VRTConverterProxy', () => {
 
       await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
         .rejects.toRevert('revert VRT conversion didnot start yet');
-
     });
 
     it("alice cannot convert her VRT to XVS as Conversion period ended", async () => {
@@ -259,7 +264,6 @@ describe('VRTConverterProxy', () => {
       await freezeTime(newConversionEndTimeWithDelay.toNumber());
       await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
         .rejects.toRevert('revert VRT conversion period ended');
-
     });
   });
 
@@ -268,25 +272,95 @@ describe('VRTConverterProxy', () => {
 
     it("Admin can withdraw XVS from VRTConversion", async () => {
 
+      const xvsTokenMintAmount = bnbMantissa(100000);
+      await send(xvsToken, 'transfer', [vrtConversionAddress, xvsTokenMintAmount], { from: root });
       const xvsBalanceOfRoot_BeforeWithdrawal = await call(xvsToken, "balanceOf", [root]);
-      const xvsBalanceOfVRTConversion_BeforeWithdrawal = await call(xvsToken, "balanceOf", [vrtConversionAddress]);
 
-      const withdrawXVSTxn = await send(vrtConversion, "withdraw", [xvsTokenAddress, xvsTokenMintAmount, root], { from: root });
+      const xvsTokenWithdrawAmount = bnbMantissa(50000);
+      const withdrawXVSTxn = await send(vrtConversion, "withdraw", [xvsTokenAddress, xvsTokenWithdrawAmount, root], { from: root });
+      expect(withdrawXVSTxn).toSucceed();
 
-      const xvsBalanceOfRoot_AfterWithdrawal = await call(xvsToken, "balanceOf", [root]);
-      const xvsBalanceOfVRTConversion_AfterWithdrawal = await call(xvsToken, "balanceOf", [vrtConversionAddress]);
-
-      expect(bnbUnsigned(xvsBalanceOfVRTConversion_AfterWithdrawal)).toEqual(bnbUnsigned(0));
-      const expected_XVSBalanceOfRoot_AfterWithdrawal = (bnbUnsigned(xvsBalanceOfRoot_BeforeWithdrawal))
-        .add(bnbUnsigned(xvsBalanceOfVRTConversion_BeforeWithdrawal));
-
-      expect(bnbUnsigned(xvsBalanceOfRoot_AfterWithdrawal)).toEqual(bnbUnsigned(expected_XVSBalanceOfRoot_AfterWithdrawal));
-
+      //Assert WithdrawalEvent
       expect(withdrawXVSTxn).toHaveLog('TokenWithdraw', {
         token: xvsTokenAddress,
         to: root,
-        amount: xvsTokenMintAmount.toFixed()
+        amount: xvsTokenWithdrawAmount.toFixed()
       });
+
+      //Assert XVS-Balance of VRTConversion (Before and After Withdrawal)
+      const expected_XVS_Balanace_Of_VRTConversion_AfterWithdrawal =
+        (xvsTokenMintAmount).sub(xvsTokenWithdrawAmount);
+      const xvsBalanceOfVRTConversion_AfterWithdrawal = await call(xvsToken, "balanceOf", [vrtConversionAddress]);
+      expect(bnbUnsigned(xvsBalanceOfVRTConversion_AfterWithdrawal)).toEqual(expected_XVS_Balanace_Of_VRTConversion_AfterWithdrawal);
+
+      //Assert XVS-Balance of Root (Before and After Withdrawal)
+      const xvsBalanceOfRoot_AfterWithdrawal = await call(xvsToken, "balanceOf", [root]);
+      const expected_XVSBalanceOfRoot_AfterWithdrawal = (bnbUnsigned(xvsBalanceOfRoot_BeforeWithdrawal))
+        .add(xvsTokenWithdrawAmount);
+     
+      expect(bnbUnsigned(xvsBalanceOfRoot_AfterWithdrawal)).toEqual(expected_XVSBalanceOfRoot_AfterWithdrawal);
+    });
+
+
+    it("Admin can withdrawAll XVS from VRTConversion", async () => {
+
+      const xvsTokenMintAmount = bnbMantissa(100000);
+      await send(xvsToken, 'transfer', [vrtConversionAddress, xvsTokenMintAmount], { from: root });
+      const xvsBalanceOfRoot_BeforeWithdrawal = await call(xvsToken, "balanceOf", [root]);
+
+      const xvsTokenWithdrawAmount = xvsTokenMintAmount;
+
+      const withdrawXVSTxn = await send(vrtConversion, "withdrawAll", [xvsTokenAddress, root], { from: root });
+      expect(withdrawXVSTxn).toSucceed();
+
+      //Assert WithdrawalEvent
+      expect(withdrawXVSTxn).toHaveLog('TokenWithdraw', {
+        token: xvsTokenAddress,
+        to: root,
+        amount: xvsTokenWithdrawAmount.toFixed()
+      });
+
+      //Assert XVS-Balance of VRTConversion (Before and After Withdrawal)
+      const expected_XVS_Balanace_Of_VRTConversion_AfterWithdrawal =
+        (xvsTokenMintAmount).sub(xvsTokenWithdrawAmount);
+      const xvsBalanceOfVRTConversion_AfterWithdrawal = await call(xvsToken, "balanceOf", [vrtConversionAddress]);
+      expect(bnbUnsigned(xvsBalanceOfVRTConversion_AfterWithdrawal)).toEqual(expected_XVS_Balanace_Of_VRTConversion_AfterWithdrawal);
+
+      //Assert XVS-Balance of Root (Before and After Withdrawal)
+      const xvsBalanceOfRoot_AfterWithdrawal = await call(xvsToken, "balanceOf", [root]);
+      const expected_XVSBalanceOfRoot_AfterWithdrawal = (bnbUnsigned(xvsBalanceOfRoot_BeforeWithdrawal))
+        .add(xvsTokenWithdrawAmount);
+     
+      expect(bnbUnsigned(xvsBalanceOfRoot_AfterWithdrawal)).toEqual(expected_XVSBalanceOfRoot_AfterWithdrawal);
+    });
+
+    it("Admin call withdrawAll with Zero-XVS in VRTConversion", async () => {
+
+      const xvsBalanceOfRoot_BeforeWithdrawal = await call(xvsToken, "balanceOf", [root]);
+      const xvsBalanceOf_VRTConverter_BeforeWithdrawal = await call(xvsToken, "balanceOf", [vrtConversionAddress]);
+
+      const withdrawXVSTxn = await send(vrtConversion, "withdrawAll", [xvsTokenAddress, root], { from: root });
+      expect(withdrawXVSTxn).toSucceed();
+
+      //Assert XVS-Balance of VRTConversion (Before and After Withdrawal)
+      const expected_XVS_Balanace_Of_VRTConversion_AfterWithdrawal = xvsBalanceOf_VRTConverter_BeforeWithdrawal;
+      const xvsBalanceOfVRTConversion_AfterWithdrawal = await call(xvsToken, "balanceOf", [vrtConversionAddress]);
+      console.log(`xvsBalanceOfVRTConversion_AfterWithdrawal is: ${xvsBalanceOfVRTConversion_AfterWithdrawal}`);
+      expect(xvsBalanceOfVRTConversion_AfterWithdrawal).toEqual(expected_XVS_Balanace_Of_VRTConversion_AfterWithdrawal);
+
+      //Assert XVS-Balance of Root (Before and After Withdrawal)
+      const xvsBalanceOfRoot_AfterWithdrawal = await call(xvsToken, "balanceOf", [root]);
+      const expected_XVSBalanceOfRoot_AfterWithdrawal = xvsBalanceOfRoot_BeforeWithdrawal;
+      expect(xvsBalanceOfRoot_AfterWithdrawal).toEqual(expected_XVSBalanceOfRoot_AfterWithdrawal);
+    });
+
+    it("Admin fails to withdraw XVS from VRTConversion", async () => {
+      const xvsTokenMintAmount = bnbMantissa(100000);
+      await send(xvsToken, 'transfer', [vrtConversionAddress, xvsTokenMintAmount], { from: root });
+
+      const xvsAmountForWithdrawal = bnbMantissa(100001);
+      await expect(send(vrtConversion, "withdraw", [xvsTokenAddress, xvsAmountForWithdrawal, root], { from: root }))
+        .rejects.toRevert("revert Insufficient funds to withdraw");
     });
 
   });
