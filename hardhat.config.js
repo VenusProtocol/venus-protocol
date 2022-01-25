@@ -12,6 +12,8 @@ require("./script/hardhat/deploy-vrt-converter.task.js")
 require("./script/hardhat/verify-vrt-converter.task.js");
 require("./script/hardhat/deploy-xvs-vesting.task.js")
 require("./script/hardhat/verify-xvs-vesting.task.js")
+require("./script/hardhat/deploy-vrt-token.task.js")
+require("./script/hardhat/verify-vrt-token.task.js")
 
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY || "";
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "";
