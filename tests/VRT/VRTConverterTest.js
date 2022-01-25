@@ -35,7 +35,7 @@ describe('VRTConverterProxy', () => {
     conversionRatioMultiplier = 0.000083;
 
     conversionRatio = new BigNum(0.000083e18);
-    vrtTotalSupply = bnbMantissa(30000000);
+    vrtTotalSupply = bnbMantissa(30000000000);
 
     //deploy VRT
     // Create New Bep20 Token
@@ -119,13 +119,10 @@ describe('VRTConverterProxy', () => {
 
     it("assert dailyLimit computed", async () => {
       const vrtDailyLimitFromContract = await call(vrtConversion, "computeVrtDailyLimit", { from: root });
-      const summer = new BigNum(vrtTotalSupply).plus(new BigNum(360));
-      console.log(`[DailyLimit Tests] summer: ${summer} `);
-      let expectedDailyLimit = new BigNum(vrtTotalSupply).dividedToIntegerBy(new BigNum(360));
-      console.log(`[DailyLimit Tests] vrtTotalSupply: ${vrtTotalSupply} expectedDailyLimit is: ${expectedDailyLimit}`);
-      expectedDailyLimit = new BigNum(expectedDailyLimit).toFixed(0);
-      console.log(`[DailyLimit Tests] expectedDailyLimit formatted is: ${expectedDailyLimit}`);
-      expect(new BigNum(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);
+      const summer = new BigNum(vrtTotalSupply).plus(new BigNum(360)).toFixed(0);
+      let expectedDailyLimit = new BigNum(vrtTotalSupply).dividedToIntegerBy(new BigNum(360)).toFixed(0);
+      console.log(`expectedDailyLimit for VRT is: ${expectedDailyLimit}`);
+      expect(new BigNum(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);      
     });
 
     it("assert dailyLimit computed With TimeTravel of 1 Hour", async () => {
@@ -230,8 +227,8 @@ describe('VRTConverterProxy', () => {
         reedeemer: alice,
         vrtAddress: vrtTokenAddress,
         xvsAddress: xvsTokenAddress,
-        vrtAmount: vrtTransferAmount,
-        xvsAmount: xvsVestedAmount.toFixed(0)
+        vrtAmount: vrtTransferAmount.toFixed(),
+        xvsAmount: xvsVestedAmount.toFixed()
       });
 
     });
@@ -288,7 +285,7 @@ describe('VRTConverterProxy', () => {
       expect(withdrawXVSTxn).toHaveLog('TokenWithdraw', {
         token: xvsTokenAddress,
         to: root,
-        amount: xvsTokenMintAmount
+        amount: xvsTokenMintAmount.toFixed()
       });
     });
 

@@ -2,6 +2,9 @@
 
 const BigNum = require('bignumber.js');
 const ethers = require('ethers');
+BigNum.prototype.add = BigNum.prototype.plus;
+BigNum.prototype.mul = BigNum.prototype.times;
+BigNum.prototype.sub = BigNum.prototype.minus;
 
 function address(n) {
   return `0x${n.toString(16).padStart(40, '0')}`;
@@ -13,30 +16,32 @@ function encodeParameters(types, values) {
 }
 
 async function bnbBalance(addr) {
-  return ethers.BigNumber.from(new BigNum(await web3.eth.getBalance(addr)).toFixed());
+  return new BigNum(await web3.eth.getBalance(addr));
 }
 
 async function vaiBalance(vai, addr) {
-  return ethers.BigNumber.from(new BigNum(await web3.eth.getBalance(addr)).toFixed());
+  return new BigNum(await web3.eth.getBalance(addr));
 }
 
 async function bnbGasCost(receipt) {
   const tx = await web3.eth.getTransaction(receipt.transactionHash);
   const gasUsed = new BigNum(receipt.gasUsed);
   const gasPrice = new BigNum(tx.gasPrice);
-  return ethers.BigNumber.from(gasUsed.times(gasPrice).toFixed());
+  return gasUsed.times(gasPrice);
 }
 
 function bnbExp(num) { return bnbMantissa(num, 1e18) }
 function bnbDouble(num) { return bnbMantissa(num, 1e36) }
 function bnbMantissa(num, scale = 1e18) {
-  if (num < 0)
-    return ethers.BigNumber.from(new BigNum(2).pow(256).plus(num).toFixed());
-  return ethers.BigNumber.from(new BigNum(num).times(scale).toFixed());
+  if (num < 0) {
+    return new BigNum(2).pow(256).plus(num);
+  } else {
+    return new BigNum(num).times(scale);
+  }
 }
 
 function bnbUnsigned(num) {
-  return ethers.BigNumber.from(new BigNum(num).toFixed());
+  return new BigNum(num);
 }
 
 function mergeInterface(into, from) {
@@ -74,7 +79,7 @@ function unlockedAccount(a) {
 }
 
 async function mineBlockNumber(blockNumber) {
-  return rpc({method: 'evm_mineBlockNumber', params: [blockNumber]});
+  return rpc({ method: 'evm_mineBlockNumber', params: [blockNumber] });
 }
 
 async function mineBlock() {

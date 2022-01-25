@@ -130,7 +130,7 @@ describe('XVSVesting', () => {
 
       expect(depositTxn).toHaveLog('XVSVested', {
         recipient: redeemerAddress,
-        amount: redeemAmount,
+        amount: redeemAmount.toFixed(),
         withdrawnAmount: new BigNumber(expectedWithdrawalAmount),
         vestingStartBlock: vestingStartBlock
       });

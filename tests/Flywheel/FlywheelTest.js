@@ -30,18 +30,18 @@ describe('Flywheel', () => {
   let root, a1, a2, a3, accounts;
   let comptroller, vLOW, vREP, vZRX, vEVIL;
   beforeEach(async () => {
-    let interestRateModelOpts = {borrowRate: 0.000001};
+    let interestRateModelOpts = { borrowRate: 0.000001 };
     [root, a1, a2, a3, ...accounts] = saddle.accounts;
     comptroller = await makeComptroller();
-    vLOW = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 1, interestRateModelOpts});
-    vREP = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 2, interestRateModelOpts});
-    vZRX = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 3, interestRateModelOpts});
-    vEVIL = await makeVToken({comptroller, supportMarket: false, underlyingPrice: 3, interestRateModelOpts});
+    vLOW = await makeVToken({ comptroller, supportMarket: true, underlyingPrice: 1, interestRateModelOpts });
+    vREP = await makeVToken({ comptroller, supportMarket: true, underlyingPrice: 2, interestRateModelOpts });
+    vZRX = await makeVToken({ comptroller, supportMarket: true, underlyingPrice: 3, interestRateModelOpts });
+    vEVIL = await makeVToken({ comptroller, supportMarket: false, underlyingPrice: 3, interestRateModelOpts });
   });
 
   describe('_grantXVS()', () => {
     beforeEach(async () => {
-      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], { from: root });
     });
 
     it('should award xvs if called by admin', async () => {
@@ -54,7 +54,7 @@ describe('Flywheel', () => {
 
     it('should revert if not called by admin', async () => {
       await expect(
-        send(comptroller, '_grantXVS', [a1, 100], {from: a1})
+        send(comptroller, '_grantXVS', [a1, 100], { from: a1 })
       ).rejects.toRevert('revert only admin can grant xvs');
     });
 
@@ -86,7 +86,7 @@ describe('Flywheel', () => {
       await fastForward(comptroller, 20);
       await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(1)]);
 
-      const {index, block} = await call(comptroller, 'venusSupplyState', [mkt._address]);
+      const { index, block } = await call(comptroller, 'venusSupplyState', [mkt._address]);
       expect(index).toEqualNumber(2e36);
       expect(block).toEqualNumber(20);
     });
@@ -120,7 +120,7 @@ describe('Flywheel', () => {
         await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
       }
       await expect(
-        send(comptroller, '_setVenusSpeed', [vLOW._address, 0], {from: a1})
+        send(comptroller, '_setVenusSpeed', [vLOW._address, 0], { from: a1 })
       ).rejects.toRevert('revert only admin can set venus speed');
     });
 
@@ -156,7 +156,7 @@ describe('Flywheel', () => {
                     = 1e36 + 50e18 * 1e36 / 10e18 = 6e36
       */
 
-      const {index, block} = await call(comptroller, 'venusBorrowState', [mkt._address]);
+      const { index, block } = await call(comptroller, 'venusBorrowState', [mkt._address]);
       expect(index).toEqualNumber(6e36);
       expect(block).toEqualNumber(100);
     });
@@ -173,7 +173,7 @@ describe('Flywheel', () => {
         bnbExp(1.1),
       ]);
 
-      const {index, block} = await call(comptroller, 'venusBorrowState', [mkt._address]);
+      const { index, block } = await call(comptroller, 'venusBorrowState', [mkt._address]);
       expect(index).toEqualNumber(0);
       expect(block).toEqualNumber(100);
       const speed = await call(comptroller, 'venusSpeeds', [mkt._address]);
@@ -188,7 +188,7 @@ describe('Flywheel', () => {
         bnbExp(1.1),
       ]);
 
-      const {index, block} = await call(comptroller, 'venusBorrowState', [mkt._address]);
+      const { index, block } = await call(comptroller, 'venusBorrowState', [mkt._address]);
       expect(index).toEqualNumber(1e36);
       expect(block).toEqualNumber(0);
     });
@@ -203,7 +203,7 @@ describe('Flywheel', () => {
         bnbExp(1.1),
       ]);
 
-      const {index, block} = await call(comptroller, 'venusBorrowState', [mkt._address]);
+      const { index, block } = await call(comptroller, 'venusBorrowState', [mkt._address]);
       expect(index).toEqualNumber(1e36);
       expect(block).toEqualNumber(100);
     });
@@ -223,7 +223,7 @@ describe('Flywheel', () => {
         newIndex   += venusAccrued * 1e36 / supplyTokens
                     = 1e36 + 50e18 * 1e36 / 10e18 = 6e36
       */
-      const {index, block} = await call(comptroller, 'venusSupplyState', [mkt._address]);
+      const { index, block } = await call(comptroller, 'venusSupplyState', [mkt._address]);
       expect(index).toEqualNumber(6e36);
       expect(block).toEqualNumber(100);
     });
@@ -239,7 +239,7 @@ describe('Flywheel', () => {
         mkt._address
       ]);
 
-      const {index, block} = await call(comptroller, 'venusSupplyState', [mkt._address]);
+      const { index, block } = await call(comptroller, 'venusSupplyState', [mkt._address]);
       expect(index).toEqualNumber(0);
       expect(block).toEqualNumber(100);
       const speed = await call(comptroller, 'venusSpeeds', [mkt._address]);
@@ -255,7 +255,7 @@ describe('Flywheel', () => {
       await send(comptroller, '_setVenusSpeed', [mkt._address, bnbExp(0.5)]);
       await send(comptroller, 'harnessUpdateVenusSupplyIndex', [mkt._address]);
 
-      const {index, block} = await call(comptroller, 'venusSupplyState', [mkt._address]);
+      const { index, block } = await call(comptroller, 'venusSupplyState', [mkt._address]);
       expect(index).toEqualNumber(1e36);
       expect(block).toEqualNumber(0);
     });
@@ -263,7 +263,7 @@ describe('Flywheel', () => {
     it('should not matter if the index is updated multiple times', async () => {
       const venusRemaining = venusRate.mul(100)
       await send(comptroller, 'harnessAddVenusMarkets', [[vLOW._address]]);
-      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
       await pretendBorrow(vLOW, a1, 1, 1, 100);
       await send(comptroller, 'harnessRefreshVenusSpeeds');
 
@@ -277,7 +277,7 @@ describe('Flywheel', () => {
 
       await fastForward(comptroller, 20);
 
-      const txT1 = await send(vLOW, 'transfer', [a2, a3Balance0.sub(a2Balance0)], {from: a3});
+      const txT1 = await send(vLOW, 'transfer', [a2, a3Balance0.sub(a2Balance0)], { from: a3 });
 
       const a2Accrued1 = await totalVenusAccrued(comptroller, a2);
       const a3Accrued1 = await totalVenusAccrued(comptroller, a3);
@@ -288,7 +288,7 @@ describe('Flywheel', () => {
       await send(comptroller, 'harnessUpdateVenusSupplyIndex', [vLOW._address]);
       await fastForward(comptroller, 10);
 
-      const txT2 = await send(vLOW, 'transfer', [a3, a2Balance1.sub(a3Balance1)], {from: a2});
+      const txT2 = await send(vLOW, 'transfer', [a3, a2Balance1.sub(a3Balance1)], { from: a2 });
 
       const a2Accrued2 = await totalVenusAccrued(comptroller, a2);
       const a3Accrued2 = await totalVenusAccrued(comptroller, a3);
@@ -316,12 +316,12 @@ describe('Flywheel', () => {
 
       await send(comptroller, "harnessDistributeBorrowerVenus", [mkt._address, root, bnbExp(1.1)]);
       expect(await call(comptroller, "venusAccrued", [root])).toEqualNumber(0);
-      expect(await call(comptroller, "venusBorrowerIndex", [ mkt._address, root])).toEqualNumber(6e36);
+      expect(await call(comptroller, "venusBorrowerIndex", [mkt._address, root])).toEqualNumber(6e36);
     });
 
     it('should transfer xvs and update borrow index checkpoint correctly for repeat time user', async () => {
       const mkt = vREP;
-      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], { from: root });
       await send(mkt, "harnessSetAccountBorrows", [a1, bnbUnsigned(5.5e18), bnbExp(1)]);
       await send(comptroller, "setVenusBorrowState", [mkt._address, bnbDouble(6), 10]);
       await send(comptroller, "setVenusBorrowerIndex", [mkt._address, a1, bnbDouble(1)]);
@@ -342,14 +342,14 @@ describe('Flywheel', () => {
       expect(tx).toHaveLog('DistributedBorrowerVenus', {
         vToken: mkt._address,
         borrower: a1,
-        venusDelta: bnbUnsigned(25e18).toString(),
-        venusBorrowIndex: bnbDouble(6).toString()
+        venusDelta: bnbUnsigned(25e18).toFixed(),
+        venusBorrowIndex: bnbDouble(6).toFixed()
       });
     });
 
     it('should not transfer xvs automatically', async () => {
       const mkt = vREP;
-      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], { from: root });
       await send(mkt, "harnessSetAccountBorrows", [a1, bnbUnsigned(5.5e17), bnbExp(1)]);
       await send(comptroller, "setVenusBorrowState", [mkt._address, bnbDouble(1.0019), 10]);
       await send(comptroller, "setVenusBorrowerIndex", [mkt._address, a1, bnbDouble(1)]);
@@ -384,7 +384,7 @@ describe('Flywheel', () => {
   describe('distributeSupplierVenus()', () => {
     it('should transfer xvs and update supply index correctly for first time user', async () => {
       const mkt = vREP;
-      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], { from: root });
 
       await send(mkt, "harnessSetBalance", [a1, bnbUnsigned(5e18)]);
       await send(comptroller, "setVenusSupplyState", [mkt._address, bnbDouble(6), 10]);
@@ -404,14 +404,14 @@ describe('Flywheel', () => {
       expect(tx).toHaveLog('DistributedSupplierVenus', {
         vToken: mkt._address,
         supplier: a1,
-        venusDelta: bnbUnsigned(25e18).toString(),
-        venusSupplyIndex: bnbDouble(6).toString()
+        venusDelta: bnbUnsigned(25e18).toFixed(),
+        venusSupplyIndex: bnbDouble(6).toFixed()
       });
     });
 
     it('should update xvs accrued and supply index for repeat user', async () => {
       const mkt = vREP;
-      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], { from: root });
 
       await send(mkt, "harnessSetBalance", [a1, bnbUnsigned(5e18)]);
       await send(comptroller, "setVenusSupplyState", [mkt._address, bnbDouble(6), 10]);
@@ -424,14 +424,14 @@ describe('Flywheel', () => {
                         = 5e18 * 4e36 / 1e36 = 20e18
       */
 
-     await send(comptroller, "harnessDistributeAllSupplierVenus", [mkt._address, a1]);
+      await send(comptroller, "harnessDistributeAllSupplierVenus", [mkt._address, a1]);
       expect(await venusAccrued(comptroller, a1)).toEqualNumber(0);
       expect(await xvsBalance(comptroller, a1)).toEqualNumber(20e18);
     });
 
     it('should not transfer when venusAccrued below threshold', async () => {
       const mkt = vREP;
-      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, bnbUnsigned(50e18)], { from: root });
 
       await send(mkt, "harnessSetBalance", [a1, bnbUnsigned(5e17)]);
       await send(comptroller, "setVenusSupplyState", [mkt._address, bnbDouble(1.0019), 10]);
@@ -467,7 +467,7 @@ describe('Flywheel', () => {
     it('should transfer xvs accrued when amount is above threshold', async () => {
       const venusRemaining = 1000, a1AccruedPre = 100, threshold = 1;
       const xvsBalancePre = await xvsBalance(comptroller, a1);
-      const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
       const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
       const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
       const a1AccruedPost = await venusAccrued(comptroller, a1);
@@ -479,7 +479,7 @@ describe('Flywheel', () => {
     it('should not transfer when xvs accrued is below threshold', async () => {
       const venusRemaining = 1000, a1AccruedPre = 100, threshold = 101;
       const xvsBalancePre = await call(comptroller.xvs, 'balanceOf', [a1]);
-      const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
       const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
       const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
       const a1AccruedPost = await venusAccrued(comptroller, a1);
@@ -491,7 +491,7 @@ describe('Flywheel', () => {
     it('should not transfer xvs if xvs accrued is greater than xvs remaining', async () => {
       const venusRemaining = 99, a1AccruedPre = 100, threshold = 1;
       const xvsBalancePre = await xvsBalance(comptroller, a1);
-      const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
       const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
       const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
       const a1AccruedPost = await venusAccrued(comptroller, a1);
@@ -504,7 +504,7 @@ describe('Flywheel', () => {
   describe('claimVenus', () => {
     it('should accrue xvs and then transfer xvs accrued', async () => {
       const venusRemaining = venusRate.mul(100), mintAmount = bnbUnsigned(12e18), deltaBlocks = 10;
-      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
       await pretendBorrow(vLOW, a1, 1, 1, 100);
       await send(comptroller, '_setVenusSpeed', [vLOW._address, bnbExp(0.5)]);
       await send(comptroller, 'harnessRefreshVenusSpeeds');
@@ -526,7 +526,7 @@ describe('Flywheel', () => {
 
     it('should accrue xvs and then transfer xvs accrued in a single market', async () => {
       const venusRemaining = venusRate.mul(100), mintAmount = bnbUnsigned(12e18), deltaBlocks = 10;
-      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
       await pretendBorrow(vLOW, a1, 1, 1, 100);
       await send(comptroller, 'harnessAddVenusMarkets', [[vLOW._address]]);
       await send(comptroller, 'harnessRefreshVenusSpeeds');
@@ -548,7 +548,7 @@ describe('Flywheel', () => {
 
     it('should claim when xvs accrued is below threshold', async () => {
       const venusRemaining = bnbExp(1), accruedAmt = bnbUnsigned(0.0009e18)
-      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
       await send(comptroller, 'setVenusAccrued', [a1, accruedAmt]);
       await send(comptroller, 'claimVenus', [a1, [vLOW._address]]);
       expect(await venusAccrued(comptroller, a1)).toEqualNumber(0);
@@ -556,7 +556,7 @@ describe('Flywheel', () => {
     });
 
     it('should revert when a market is not listed', async () => {
-      const cNOT = await makeVToken({comptroller});
+      const cNOT = await makeVToken({ comptroller });
       await expect(
         send(comptroller, 'claimVenus', [a1, [cNOT._address]])
       ).rejects.toRevert('revert not listed market');
@@ -566,10 +566,10 @@ describe('Flywheel', () => {
   describe('claimVenus batch', () => {
     it('should revert when claiming xvs from non-listed market', async () => {
       const venusRemaining = venusRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10);
-      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
       let [_, __, ...claimAccts] = saddle.accounts;
 
-      for(let from of claimAccts) {
+      for (let from of claimAccts) {
         expect(await send(vLOW.underlying, 'harnessSetBalance', [from, mintAmount], { from })).toSucceed();
         send(vLOW.underlying, 'approve', [vLOW._address, mintAmount], { from });
         send(vLOW, 'mint', [mintAmount], { from });
@@ -585,9 +585,9 @@ describe('Flywheel', () => {
 
     it('should claim the expected amount when holders and vtokens arg is duplicated', async () => {
       const venusRemaining = venusRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10);
-      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
       let [_, __, ...claimAccts] = saddle.accounts;
-      for(let from of claimAccts) {
+      for (let from of claimAccts) {
         expect(await send(vLOW.underlying, 'harnessSetBalance', [from, mintAmount], { from })).toSucceed();
         send(vLOW.underlying, 'approve', [vLOW._address, mintAmount], { from });
         send(vLOW, 'mint', [mintAmount], { from });
@@ -600,7 +600,7 @@ describe('Flywheel', () => {
 
       const tx = await send(comptroller, 'claimVenus', [[...claimAccts, ...claimAccts], [vLOW._address, vLOW._address], false, true]);
       // xvs distributed => 10e18
-      for(let acct of claimAccts) {
+      for (let acct of claimAccts) {
         expect(await call(comptroller, 'venusSupplierIndex', [vLOW._address, acct])).toEqualNumber(bnbDouble(1.125));
         expect(await xvsBalance(comptroller, acct)).toEqualNumber(bnbExp(1.25));
       }
@@ -608,9 +608,9 @@ describe('Flywheel', () => {
 
     it('claims xvs for multiple suppliers only', async () => {
       const venusRemaining = venusRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10);
-      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
       let [_, __, ...claimAccts] = saddle.accounts;
-      for(let from of claimAccts) {
+      for (let from of claimAccts) {
         expect(await send(vLOW.underlying, 'harnessSetBalance', [from, mintAmount], { from })).toSucceed();
         send(vLOW.underlying, 'approve', [vLOW._address, mintAmount], { from });
         send(vLOW, 'mint', [mintAmount], { from });
@@ -623,7 +623,7 @@ describe('Flywheel', () => {
 
       const tx = await send(comptroller, 'claimVenus', [claimAccts, [vLOW._address], false, true]);
       // xvs distributed => 10e18
-      for(let acct of claimAccts) {
+      for (let acct of claimAccts) {
         expect(await call(comptroller, 'venusSupplierIndex', [vLOW._address, acct])).toEqualNumber(bnbDouble(1.125));
         expect(await xvsBalance(comptroller, acct)).toEqualNumber(bnbExp(1.25));
       }
@@ -631,10 +631,10 @@ describe('Flywheel', () => {
 
     it('claims xvs for multiple borrowers only, primes uninitiated', async () => {
       const venusRemaining = venusRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10), borrowAmt = bnbExp(1), borrowIdx = bnbExp(1)
-      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
-      let [_,__, ...claimAccts] = saddle.accounts;
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], { from: root });
+      let [_, __, ...claimAccts] = saddle.accounts;
 
-      for(let acct of claimAccts) {
+      for (let acct of claimAccts) {
         await send(vLOW, 'harnessIncrementTotalBorrows', [borrowAmt]);
         await send(vLOW, 'harnessSetAccountBorrows', [acct, borrowAmt, borrowIdx]);
       }
@@ -644,14 +644,14 @@ describe('Flywheel', () => {
       await send(comptroller, 'harnessFastForward', [10]);
 
       const tx = await send(comptroller, 'claimVenus', [claimAccts, [vLOW._address], true, false]);
-      for(let acct of claimAccts) {
+      for (let acct of claimAccts) {
         expect(await call(comptroller, 'venusBorrowerIndex', [vLOW._address, acct])).toEqualNumber(bnbDouble(2.25));
         expect(await call(comptroller, 'venusSupplierIndex', [vLOW._address, acct])).toEqualNumber(0);
       }
     });
 
     it('should revert when a market is not listed', async () => {
-      const cNOT = await makeVToken({comptroller});
+      const cNOT = await makeVToken({ comptroller });
       await expect(
         send(comptroller, 'claimVenus', [[a1, a2], [cNOT._address], true, true])
       ).rejects.toRevert('revert not listed market');
@@ -693,7 +693,7 @@ describe('Flywheel', () => {
 
   describe('harnessAddVenusMarkets', () => {
     it('should correctly add a venus market if called by admin', async () => {
-      const vBAT = await makeVToken({comptroller, supportMarket: true});
+      const vBAT = await makeVToken({ comptroller, supportMarket: true });
       const tx1 = await send(comptroller, 'harnessAddVenusMarkets', [[vLOW._address, vREP._address, vZRX._address]]);
       const tx2 = await send(comptroller, 'harnessAddVenusMarkets', [[vBAT._address]]);
       const markets = await call(comptroller, 'getVenusMarkets');
@@ -717,12 +717,12 @@ describe('Flywheel', () => {
       await send(comptroller, "harnessAddVenusMarkets", [[mkt]]);
 
       const supplyState = await call(comptroller, 'venusSupplyState', [mkt]);
-      expect(supplyState.block).toEqual(bn1.toString());
-      expect(supplyState.index).toEqual(idx.toString());
+      expect(supplyState.block).toEqual(bn1.toFixed());
+      expect(supplyState.index).toEqual(idx.toFixed());
 
       const borrowState = await call(comptroller, 'venusBorrowState', [mkt]);
-      expect(borrowState.block).toEqual(bn1.toString());
-      expect(borrowState.index).toEqual(idx.toString());
+      expect(borrowState.block).toEqual(bn1.toFixed());
+      expect(borrowState.index).toEqual(idx.toFixed());
     });
   });
 });
