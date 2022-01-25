@@ -1,4 +1,4 @@
-const BigNumber = require('bignumber.js');
+const BigNum = require('bignumber.js');
 const {
   bnbUnsigned,
   bnbMantissa,
@@ -29,9 +29,13 @@ describe('VRTConverterProxy', () => {
     blockTimestamp = bnbUnsigned(100);
     await freezeTime(blockTimestamp.toNumber());
     conversionStartTime = blockTimestamp;
-    conversionRatioMultiplier = 0.75;
-    conversionRatio = new BigNumber(0.75e18);
-    vrtTotalSupply = bnbMantissa(2000000000);
+
+    // 12,000 VRT =  1 XVS
+    // 1 VRT = 1/12,000 = 0.000083
+    conversionRatioMultiplier = 0.000083;
+
+    conversionRatio = new BigNum(0.000083e18);
+    vrtTotalSupply = bnbMantissa(30000000);
 
     //deploy VRT
     // Create New Bep20 Token
@@ -115,9 +119,13 @@ describe('VRTConverterProxy', () => {
 
     it("assert dailyLimit computed", async () => {
       const vrtDailyLimitFromContract = await call(vrtConversion, "computeVrtDailyLimit", { from: root });
-      let expectedDailyLimit = new BigNumber(vrtTotalSupply).dividedToIntegerBy(new BigNumber(360));
-      expectedDailyLimit = new BigNumber(expectedDailyLimit).toFixed(0);
-      expect(new BigNumber(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);
+      const summer = new BigNum(vrtTotalSupply).plus(new BigNum(360));
+      console.log(`[DailyLimit Tests] summer: ${summer} `);
+      let expectedDailyLimit = new BigNum(vrtTotalSupply).dividedToIntegerBy(new BigNum(360));
+      console.log(`[DailyLimit Tests] vrtTotalSupply: ${vrtTotalSupply} expectedDailyLimit is: ${expectedDailyLimit}`);
+      expectedDailyLimit = new BigNum(expectedDailyLimit).toFixed(0);
+      console.log(`[DailyLimit Tests] expectedDailyLimit formatted is: ${expectedDailyLimit}`);
+      expect(new BigNum(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);
     });
 
     it("assert dailyLimit computed With TimeTravel of 1 Hour", async () => {
@@ -127,15 +135,15 @@ describe('VRTConverterProxy', () => {
       const vrtDailyLimitFromContract = await call(vrtConversion, "computeVrtDailyLimit", { from: root });
 
       // numberOfPeriodsPassed = (currentTime - conversionStartTime) / (1 Day Period)
-      let numberOfPeriodsPassed = (new BigNumber(currentTimeForFreeze).minus(blockTimestamp)).dividedToIntegerBy(ONE_DAY);
+      let numberOfPeriodsPassed = (new BigNum(currentTimeForFreeze).minus(blockTimestamp)).dividedToIntegerBy(ONE_DAY);
 
       // remainingPeriods = totalPeriods - numberOfPeriodsPassed
-      let remainingPeriods = new BigNumber(TOTAL_PERIODS).minus(numberOfPeriodsPassed);
-      expect(remainingPeriods).toEqual(new BigNumber(TOTAL_PERIODS));
-      let expectedDailyLimit = new BigNumber(vrtTotalSupply).dividedToIntegerBy(new BigNumber(remainingPeriods));
-      expectedDailyLimit = new BigNumber(expectedDailyLimit).toFixed(0);
+      let remainingPeriods = new BigNum(TOTAL_PERIODS).minus(numberOfPeriodsPassed);
+      expect(remainingPeriods).toEqual(new BigNum(TOTAL_PERIODS));
+      let expectedDailyLimit = new BigNum(vrtTotalSupply).dividedToIntegerBy(new BigNum(remainingPeriods));
+      expectedDailyLimit = new BigNum(expectedDailyLimit).toFixed(0);
 
-      expect(new BigNumber(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);
+      expect(new BigNum(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);
     });
 
 
@@ -146,16 +154,16 @@ describe('VRTConverterProxy', () => {
       const vrtDailyLimitFromContract = await call(vrtConversion, "computeVrtDailyLimit", { from: root });
 
       // numberOfPeriodsPassed = (currentTime - conversionStartTime) / (1 Day Period)
-      let numberOfPeriodsPassed = (new BigNumber(currentTimeForFreeze).minus(blockTimestamp)).dividedToIntegerBy(ONE_DAY);
+      let numberOfPeriodsPassed = (new BigNum(currentTimeForFreeze).minus(blockTimestamp)).dividedToIntegerBy(ONE_DAY);
 
       // remainingPeriods = totalPeriods - numberOfPeriodsPassed
-      let remainingPeriods = new BigNumber(TOTAL_PERIODS).minus(numberOfPeriodsPassed);
-      expect(remainingPeriods).toEqual(new BigNumber(TOTAL_PERIODS));
+      let remainingPeriods = new BigNum(TOTAL_PERIODS).minus(numberOfPeriodsPassed);
+      expect(remainingPeriods).toEqual(new BigNum(TOTAL_PERIODS));
 
-      let expectedDailyLimit = new BigNumber(vrtTotalSupply).dividedToIntegerBy(new BigNumber(remainingPeriods));
-      expectedDailyLimit = new BigNumber(expectedDailyLimit).toFixed(0);
+      let expectedDailyLimit = new BigNum(vrtTotalSupply).dividedToIntegerBy(new BigNum(remainingPeriods));
+      expectedDailyLimit = new BigNum(expectedDailyLimit).toFixed(0);
 
-      expect(new BigNumber(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);
+      expect(new BigNum(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);
     });
 
     it("assert dailyLimit computed With TimeTravel of 1 Day", async () => {
@@ -165,21 +173,21 @@ describe('VRTConverterProxy', () => {
       const vrtDailyLimitFromContract = await call(vrtConversion, "computeVrtDailyLimit", { from: root });
 
       // numberOfPeriodsPassed = (currentTime - conversionStartTime) / (1 Day Period)
-      let numberOfPeriodsPassed = (new BigNumber(currentTimeForFreeze).minus(blockTimestamp)).dividedToIntegerBy(ONE_DAY);
+      let numberOfPeriodsPassed = (new BigNum(currentTimeForFreeze).minus(blockTimestamp)).dividedToIntegerBy(ONE_DAY);
 
       // remainingPeriods = totalPeriods - numberOfPeriodsPassed
-      let remainingPeriods = new BigNumber(TOTAL_PERIODS).minus(numberOfPeriodsPassed);
-      let expectedDailyLimit = new BigNumber(vrtTotalSupply).dividedToIntegerBy(new BigNumber(remainingPeriods));
-      expectedDailyLimit = new BigNumber(expectedDailyLimit).toFixed(0);
+      let remainingPeriods = new BigNum(TOTAL_PERIODS).minus(numberOfPeriodsPassed);
+      let expectedDailyLimit = new BigNum(vrtTotalSupply).dividedToIntegerBy(new BigNum(remainingPeriods));
+      expectedDailyLimit = new BigNum(expectedDailyLimit).toFixed(0);
 
-      expect(new BigNumber(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);
+      expect(new BigNum(vrtDailyLimitFromContract).toFixed(0)).toEqual(expectedDailyLimit);
     });
 
     it("assert dailyLimit computed With TimeTravel of 360 Days", async () => {
       const currentTimeForFreeze = blockTimestamp.add(ONE_YEAR);
       await freezeTime(currentTimeForFreeze.toNumber());
       const vrtDailyLimitFromContract = await call(vrtConversion, "computeVrtDailyLimit", { from: root });
-      expect(new BigNumber(vrtDailyLimitFromContract)).toEqual(new BigNumber(0));
+      expect(new BigNum(vrtDailyLimitFromContract)).toEqual(new BigNum(0));
     });
 
   });
@@ -211,12 +219,12 @@ describe('VRTConverterProxy', () => {
       const convertVRTTxn = await send(vrtConversion, "convert", [vrtTransferAmount], { from: alice });
 
       let vrtTokensInConversion = await call(vrtToken, "balanceOf", [vrtConversionAddress]);
-      expect(new BigNumber(vrtTokensInConversion)).toEqual(new BigNumber(0));
+      expect(new BigNum(vrtTokensInConversion)).toEqual(new BigNum(0));
 
       let vrtTokensInBurnAddress = await call(vrtToken, "balanceOf", [BURN_ADDRESS]);
-      expect(new BigNumber(vrtTokensInBurnAddress)).toEqual(new BigNumber(vrtTransferAmount));
+      expect(new BigNum(vrtTokensInBurnAddress)).toEqual(new BigNum(vrtTransferAmount));
 
-      let xvsVestedAmount = new BigNumber(vrtTransferAmount).multipliedBy(new BigNumber(conversionRatioMultiplier));
+      let xvsVestedAmount = new BigNum(vrtTransferAmount).multipliedBy(new BigNum(conversionRatioMultiplier));
 
       expect(convertVRTTxn).toHaveLog('TokenConverted', {
         reedeemer: alice,
