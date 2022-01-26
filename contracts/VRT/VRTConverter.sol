@@ -191,6 +191,27 @@ contract VRTConverter {
         xvs.approve(xvsVestingAddress, redeemAmount);
         xvsVesting.deposit(msg.sender, redeemAmount);
     }
+    
+    function computeMaximumRedeemableAmount() public view returns (uint256 maxRedeemableAmount, uint256 currentVrtDailyUtilised) {
+
+        require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
+        require(conversionRatio > 0, "conversion ratio is incorrect");
+        require(
+            conversionStartTime <= block.timestamp,
+            "VRT conversion didnot start yet"
+        );
+
+        uint256 _currentDayNumber = ((block.timestamp).sub(conversionStartTime)).div(ONE_DAY);
+        uint256 vrtDailyLimit = computeVrtDailyLimit();
+
+        if(_currentDayNumber > lastDayUpdated) {
+            maxRedeemableAmount = vrtDailyLimit;
+            currentVrtDailyUtilised = 0;
+        } else {
+           maxRedeemableAmount = vrtDailyLimit.sub(vrtDailyUtilised);
+           currentVrtDailyUtilised = vrtDailyUtilised;
+        }
+    }
 
     function computeVrtDailyLimit() public view returns (uint256) {
         uint256 numberOfPeriodsPassed = (block.timestamp.sub(conversionStartTime)).div(ONE_DAY);
@@ -202,7 +223,7 @@ contract VRTConverter {
             return remainingVRTForSwap.div(remainingPeriods);
         }
     }
-
+    
     /**
      * @notice Withdraw BEP20 Tokens
      * @param tokenAddress The address of token to withdraw
