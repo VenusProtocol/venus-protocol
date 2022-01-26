@@ -118,7 +118,7 @@ describe('VRTConverterProxy', () => {
 
   });
 
-  describe("DailyLimit Tests", () => {
+  describe("DailyLimit And RedeemableAmount Tests", () => {
 
     it("assert dailyLimit computed", async () => {
       const vrtDailyLimitFromContract = await call(vrtConversion, "computeVrtDailyLimit", { from: root });
@@ -188,7 +188,63 @@ describe('VRTConverterProxy', () => {
       const vrtDailyLimitFromContract = await call(vrtConversion, "computeVrtDailyLimit", { from: root });
       expect(new BigNum(vrtDailyLimitFromContract)).toEqual(new BigNum(0));
     });
+    
+    it("assert redeemableAmount computed With TimeTravel of 1 Day to 1Day-1Hour to 2 Days", async () => {
 
+      let currentTimeForFreeze = blockTimestamp.add(24 * 60 * 60);
+      await freezeTime(currentTimeForFreeze.toNumber());
+      let redeemableAmountResponse_After_1Day = await call(vrtConversion, "computeRedeemableAmountAndDailyUtilisation", { from: root });
+      const redeemAmount_After_1Day = redeemableAmountResponse_After_1Day["redeemableAmount"];
+
+      currentTimeForFreeze = currentTimeForFreeze.add(60 * 60);
+      await freezeTime(currentTimeForFreeze.toNumber());
+      let redeemableAmountResponse_After_1Day1Hr = await call(vrtConversion, "computeRedeemableAmountAndDailyUtilisation", { from: root });
+      const redeemAmount_After_1Day1Hr = redeemableAmountResponse_After_1Day1Hr["redeemableAmount"];
+
+      expect(new BigNum(redeemAmount_After_1Day1Hr)).toEqual(new BigNum(redeemAmount_After_1Day));
+
+      currentTimeForFreeze = currentTimeForFreeze.add(23 * 60 * 60);
+      await freezeTime(currentTimeForFreeze.toNumber());
+      let redeemableAmountResponse_After_2Days = await call(vrtConversion, "computeRedeemableAmountAndDailyUtilisation", { from: root });
+      const redeemAmount_After_2Days = redeemableAmountResponse_After_2Days["redeemableAmount"];
+      expect(new BigNum(redeemAmount_After_2Days).isGreaterThan(redeemAmount_After_1Day)).toBe(true);
+
+    });
+
+
+    it("assert redeemableAmount computed With TimeTravel and Varying dailyUtilisation", async () => {
+
+      let currentTimeForFreeze = blockTimestamp.add(24 * 60 * 60);
+      await freezeTime(currentTimeForFreeze.toNumber());
+      let redeemableAmountResponse_After_1Day = await call(vrtConversion, "computeRedeemableAmountAndDailyUtilisation", { from: root });
+      const redeemAmount_After_1Day = redeemableAmountResponse_After_1Day["redeemableAmount"];
+      const dailyUtilisation_After_1Day = redeemableAmountResponse_After_1Day["dailyUtilisation"];
+      console.log(`redeemAmount_After_1Day: ${redeemAmount_After_1Day} - dailyUtilisation_After_1Day: ${dailyUtilisation_After_1Day}`);
+      expect(new BigNum(dailyUtilisation_After_1Day)).toEqual(new BigNum(0));  
+      const vrtDailyLimit_After_1Day = await call(vrtConversion, 'computeVrtDailyLimit', []);
+      expect(new BigNum(redeemAmount_After_1Day)).toEqual(new BigNum(vrtDailyLimit_After_1Day));  
+
+      vrtTransferAmount = bnbMantissa(10000);
+
+      const redeemableXVSAmountFromHarness = await call(vrtConversion, 'getXVSRedeemedAmount', [vrtTransferAmount]);
+      await send(xvsToken, 'transfer', [vrtConversionAddress, redeemableXVSAmountFromHarness], { from: root });
+      await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
+      const convertVRTTxn = await send(vrtConversion, "convert", [vrtTransferAmount], { from: alice });
+      expect(convertVRTTxn).toSucceed();
+
+      currentTimeForFreeze = currentTimeForFreeze.add(60 * 60);
+      await freezeTime(currentTimeForFreeze.toNumber());
+      let redeemableAmountResponse_After_1Day1Hr = await call(vrtConversion, "computeRedeemableAmountAndDailyUtilisation", { from: root });
+      const redeemAmount_After_1Day1Hr = redeemableAmountResponse_After_1Day1Hr["redeemableAmount"];
+      const dailyUtilisation_After_1Day1Hr = redeemableAmountResponse_After_1Day1Hr["dailyUtilisation"];
+
+      const vrtDailyLimit_After_1Day1Hr = await call(vrtConversion, 'computeVrtDailyLimit', []);
+      const expectedReedemAmount_After_1Day1Hr = new BigNum(vrtDailyLimit_After_1Day1Hr).minus(new BigNum(dailyUtilisation_After_1Day1Hr));
+      expect(new BigNum(redeemAmount_After_1Day1Hr)).toEqual(new BigNum(expectedReedemAmount_After_1Day1Hr));      
+      expect(new BigNum(redeemAmount_After_1Day1Hr).isLessThan(new BigNum(redeemAmount_After_1Day))).toBe(true);
+      expect(new BigNum(dailyUtilisation_After_1Day1Hr)).toEqual(new BigNum(vrtTransferAmount));  
+    });
+    
   });
 
   describe("convert VRT to XVS", () => {

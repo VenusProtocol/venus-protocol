@@ -192,7 +192,7 @@ contract VRTConverter {
         xvsVesting.deposit(msg.sender, redeemAmount);
     }
     
-    function computeMaximumRedeemableAmount() public view returns (uint256 maxRedeemableAmount, uint256 currentVrtDailyUtilised) {
+    function computeRedeemableAmountAndDailyUtilisation() public view returns (uint256 redeemableAmount, uint256 dailyUtilisation) {
 
         require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
         require(conversionRatio > 0, "conversion ratio is incorrect");
@@ -205,11 +205,11 @@ contract VRTConverter {
         uint256 vrtDailyLimit = computeVrtDailyLimit();
 
         if(_currentDayNumber > lastDayUpdated) {
-            maxRedeemableAmount = vrtDailyLimit;
-            currentVrtDailyUtilised = 0;
+            redeemableAmount = vrtDailyLimit;
+            dailyUtilisation = 0;
         } else {
-           maxRedeemableAmount = vrtDailyLimit.sub(vrtDailyUtilised);
-           currentVrtDailyUtilised = vrtDailyUtilised;
+           redeemableAmount = vrtDailyLimit.sub(vrtDailyUtilised);
+           dailyUtilisation = vrtDailyUtilised;
         }
     }
 
