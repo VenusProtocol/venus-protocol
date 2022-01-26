@@ -30,10 +30,10 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
     /// @notice An event thats emitted when an account changes its delegate
-    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
+    event DelegateChangedV2(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
     /// @notice An event thats emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
+    event DelegateVotesChangedV2(address indexed delegate, uint previousBalance, uint newBalance);
 
     /// @notice An event emitted when the reward store address is updated
     event StoreUpdated(address oldXvs, address oldStore, address newXvs, address newStore);
@@ -565,7 +565,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         uint96 delegatorBalance = getStakeAmount(delegator);
         delegates[delegator] = delegatee;
 
-        emit DelegateChanged(delegator, currentDelegate, delegatee);
+        emit DelegateChangedV2(delegator, currentDelegate, delegatee);
 
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
@@ -598,7 +598,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             numCheckpoints[delegatee] = nCheckpoints + 1;
         }
 
-        emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
+        emit DelegateVotesChangedV2(delegatee, oldVotes, newVotes);
     }
 
     function safe32(uint n, string memory errorMessage) internal pure returns (uint32) {
