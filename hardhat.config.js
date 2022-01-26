@@ -14,6 +14,7 @@ require("./script/hardhat/deploy-xvs-vesting.task.js")
 require("./script/hardhat/verify-xvs-vesting.task.js")
 require("./script/hardhat/deploy-vrt-token.task.js")
 require("./script/hardhat/verify-vrt-token.task.js")
+require("./script/hardhat/set-vrt-converter-in-xvs-vesting.task.js");
 
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY || "";
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "";
@@ -24,7 +25,7 @@ const config = {
       url: `https://data-seed-prebsc-2-s3.binance.org:8545`,
       chainId: 97,
       accounts: [`0x${DEPLOYER_PRIVATE_KEY}`],
-      gasPrice: ethers.utils.parseUnits("50", "gwei").toNumber(),
+      gasPrice: ethers.utils.parseUnits("10", "gwei").toNumber(),
       gasMultiplier: 10,
       timeout: 12000000,
     }
