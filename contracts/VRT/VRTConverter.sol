@@ -4,7 +4,7 @@ import "../Utils/IBEP20.sol";
 import "../Utils/SafeBEP20.sol";
 
 interface IXVSVesting {
-  
+
     /// @param _recipient Address of the Vesting. recipient entitled to claim the vested funds
     /// @param _amount Total number of tokens Vested
     function deposit(address _recipient, uint256 _amount) external;
@@ -80,20 +80,10 @@ contract VRTConverter {
     event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 
     /// @notice Emitted when an admin set conversion info
-    event ConversionInfoSet(
-        uint256 conversionRatio,
-        uint256 conversionStartTime,
-        uint256 conversionEndTime
-    );
+    event ConversionInfoSet(uint256 conversionRatio, uint256 conversionStartTime, uint256 conversionEndTime);
 
     /// @notice Emitted when token conversion is done
-    event TokenConverted(
-        address reedeemer,
-        address vrtAddress,
-        address xvsAddress,
-        uint256 vrtAmount,
-        uint256 xvsAmount
-    );
+    event TokenConverted(address reedeemer, address vrtAddress, address xvsAddress, uint256 vrtAmount, uint256 xvsAmount);
 
     /// @notice Emitted when an admin withdraw converted token
     event TokenWithdraw(address token, address to, uint256 amount);
@@ -127,16 +117,9 @@ contract VRTConverter {
      * @param newPendingAdmin New pending admin.
      */
     function _setPendingAdmin(address newPendingAdmin) external {
-        // Check caller = admin
         require(msg.sender == admin, "SET_PENDING_ADMIN_OWNER_CHECK");
-
-        // Save current value, if any, for inclusion in log
         address oldPendingAdmin = pendingAdmin;
-
-        // Store pendingAdmin with value newPendingAdmin
         pendingAdmin = newPendingAdmin;
-
-        // Emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin)
         emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin);
     }
 
@@ -157,7 +140,6 @@ contract VRTConverter {
 
         // Clear the pending value
         pendingAdmin = address(0);
-
         emit NewAdmin(oldAdmin, admin);
         emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
     }
@@ -167,9 +149,7 @@ contract VRTConverter {
      * @dev Note: If there is not enough XVS, we do not perform the conversion.
      * @param vrtAmount The amount of VRT
      */
-    function convert(uint256 vrtAmount)
-        external
-        nonReentrant
+    function convert(uint256 vrtAmount) external nonReentrant
     {
         require(xvsVestingAddress != address(0), "XVS-Vesting Address is not set");
         require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
@@ -206,39 +186,19 @@ contract VRTConverter {
             "not enough XVSTokens"
         );
 
-        emit TokenConverted(
-            msg.sender,
-            vrtAddress,
-            xvsAddress,
-            vrtAmount,
-            redeemAmount
-        );
-
-        vrt.transferFrom(
-            msg.sender,
-            DEAD_ADDRESS,
-            vrtAmount
-        );
-
+        emit TokenConverted(msg.sender, vrtAddress, xvsAddress, vrtAmount, redeemAmount);
+        vrt.transferFrom(msg.sender, DEAD_ADDRESS, vrtAmount);
         xvs.approve(xvsVestingAddress, redeemAmount);
         xvsVesting.deposit(msg.sender, redeemAmount);
     }
 
     function computeVrtDailyLimit() public view returns (uint256) {
-
-        // numberOfPeriodsPassed = (currentTime - conversionStartTime) / (1 Day Period)
         uint256 numberOfPeriodsPassed = (block.timestamp.sub(conversionStartTime)).div(ONE_DAY);
-
-        // remainingPeriods = totalPeriods - numberOfPeriodsPassed
         uint256 remainingPeriods = TOTAL_PERIODS.sub(numberOfPeriodsPassed);
-
         if(remainingPeriods <= 0){
             return 0;
         } else {
-            //remainingVRTForSwap = vrtTotalSupply - totalVrtConverted
             uint256 remainingVRTForSwap = vrtTotalSupply.sub(totalVrtConverted);
-
-            // vrtDailyLimit = remainingVRTForSwap / remainingPeriods
             return remainingVRTForSwap.div(remainingPeriods);
         }
     }
@@ -249,20 +209,11 @@ contract VRTConverter {
      * @param withdrawAmount The amount to withdraw
      * @param withdrawTo The address to withdraw
      */
-    function withdraw(
-        address tokenAddress,
-        uint256 withdrawAmount,
-        address withdrawTo
-    ) external onlyAdmin {
-
-        // Get Treasury Token Balance
+    function withdraw(address tokenAddress, uint256 withdrawAmount, address withdrawTo) external onlyAdmin {
         uint256 currentBalance = IBEP20(tokenAddress).balanceOf(address(this));
         require(withdrawAmount <= currentBalance, "Insufficient funds to withdraw");
-
-        // Transfer BEP20 Token to withdrawTo
-        IBEP20(tokenAddress).safeTransfer(withdrawTo, withdrawAmount);
-
         emit TokenWithdraw(tokenAddress, withdrawTo, withdrawAmount);
+        IBEP20(tokenAddress).safeTransfer(withdrawTo, withdrawAmount);
     }
 
     /**
@@ -270,14 +221,8 @@ contract VRTConverter {
      * @param tokenAddress The address of token to withdraw
      * @param withdrawTo The address to withdraw
      */
-    function withdrawAll(
-        address tokenAddress,
-        address withdrawTo
-    ) external onlyAdmin {
-
-        // Get Treasury Token Balance
+    function withdrawAll(address tokenAddress, address withdrawTo) external onlyAdmin {
         uint256 currentBalance = IBEP20(tokenAddress).balanceOf(address(this));
-
         if(currentBalance > 0){
             emit TokenWithdraw(tokenAddress, withdrawTo, currentBalance);
             // Transfer BEP20 Token to withdrawTo
@@ -286,7 +231,6 @@ contract VRTConverter {
     }
 
     /*** Reentrancy Guard ***/
-
     /**
      * @dev Prevents a contract from calling itself, directly or indirectly.
      */
