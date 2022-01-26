@@ -19,9 +19,6 @@ contract XVSVesting {
     /// @notice Guard variable for re-entrancy checks
     bool internal _notEntered;
 
-    /// @notice XVSToken address
-    address public xvsAddress;
-
     /// @notice The XVS TOKEN!
     IBEP20 public xvs;
 
@@ -73,8 +70,7 @@ contract XVSVesting {
 
     constructor(address _xvsAddress) public nonZeroAddress(_xvsAddress) {
         admin = msg.sender;
-        xvsAddress = _xvsAddress;
-        xvs = IBEP20(xvsAddress);
+        xvs = IBEP20(_xvsAddress);
         _notEntered = true;
     }
 
