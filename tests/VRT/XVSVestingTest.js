@@ -96,7 +96,7 @@ describe('XVSVesting', () => {
     });
 
     it("sets XVS Address in XVSVesting", async () => {
-      let xvsAddressActual = await call(xvsVesting, "xvsAddress");
+      let xvsAddressActual = await call(xvsVesting, "xvs");
       expect(xvsAddressActual).toEqual(xvsTokenAddress);
     });
 
