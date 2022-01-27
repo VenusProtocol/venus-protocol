@@ -1,16 +1,11 @@
 const BigNumber = require('bignumber.js');
-
 const {
   bnbUnsigned,
   bnbMantissa,
   freezeTime,
+  address
 } = require('../Utils/BSC');
 
-const { makeToken } = require('../Utils/Venus');
-
-const ONE_DAY = 24 * 60 * 60;
-const ONE_YEAR = 360 * 24 * 60 * 60;
-const TOTAL_PERIODS = 360;
 const BLOCKS_PER_DAY = (new BigNumber(24).multipliedBy(new BigNumber(3600))).dividedToIntegerBy(new BigNumber(3));
 const VESTING_PERIOD = new BigNumber(360).multipliedBy(BLOCKS_PER_DAY);
 
@@ -41,7 +36,7 @@ const getBlockNumber = async (xvsVesting) => {
 }
 
 describe('XVSVesting', () => {
-  let root, alice, bob, redeemerAddress;
+  let root, alice, bob, redeemerAddress, randomAddress;
   let vrtConversion, vrtConversionAddress,
     vrtToken, vrtTokenAddress,
     xvsToken, xvsTokenAddress;
@@ -52,7 +47,7 @@ describe('XVSVesting', () => {
   let xvsVesting, xvsVestingAddress;
 
   beforeEach(async () => {
-    [root, alice, bob, vrtConversionAddress, redeemerAddress, ...accounts] = saddle.accounts;
+    [root, alice, bob, vrtConversionAddress, redeemerAddress, randomAddress, ...accounts] = saddle.accounts;
     blockTimestamp = bnbUnsigned(100);
     await freezeTime(blockTimestamp.toNumber());
     conversionStartTime = blockTimestamp;
@@ -61,8 +56,7 @@ describe('XVSVesting', () => {
     vrtTotalSupply = bnbMantissa(2000000000);
 
     //deploy VRT
-    // Create New Bep20 Token
-    vrtToken = await makeToken();
+    vrtToken = await deploy('VRT', [root]);
 
     vrtTokenAddress = vrtToken._address;
     vrtForMint = bnbMantissa(200000);
@@ -99,8 +93,6 @@ describe('XVSVesting', () => {
       let xvsAddressActual = await call(xvsVesting, "xvs");
       expect(xvsAddressActual).toEqual(xvsTokenAddress);
     });
-
-
   });
 
   describe("Vest XVS", () => {
@@ -265,6 +257,12 @@ describe('XVSVesting', () => {
 
     });
 
+    it("deposit Zero XVSAmount should Fail with Revert Reason", async () => {
+      const redeemAmount = bnbMantissa(0);
+      await expect(send(xvsVesting, 'deposit', [redeemerAddress, redeemAmount], { from: vrtConversionAddress }))
+        .rejects.toRevert("revert Deposit amount must be non-zero");
+    });
+
   });
 
   describe("Withdraw XVS After Vesting", () => {
@@ -324,7 +322,145 @@ describe('XVSVesting', () => {
       });
     });
 
+    it("Withdraw XVS - Fails to withdraw with no-balance", async () => {
+      await expect(send(xvsVesting, 'withdraw', [redeemerAddress], { from: redeemerAddress }))
+        .rejects.toRevert("revert Address doesnot have any vested amount for withdrawal");
+    });
+
+    it("Withdraw XVS - Fails due to invalid VRTConversion Address", async () => {
+      await send(xvsVesting, 'overWriteVRTConversionAddress');
+      await expect(send(xvsVesting, 'withdraw', [redeemerAddress], { from: redeemerAddress }))
+        .rejects.toRevert("revert VRT-Conversion Address is not set");
+    });
+
+    it("Withdraw XVS - Fails to withdraw with Insufficient XVS in XVSVesting Contractt", async () => {
+
+      const redeemAmount_Vesting_1 = bnbMantissa(100);
+      await setBlockNumber(xvsVesting, 0);
+
+      await send(xvsToken, 'transfer', [vrtConversionAddress, redeemAmount_Vesting_1], { from: root });
+      await incrementBlocks(xvsVesting, 1);
+
+      await send(xvsToken, 'approve', [xvsVestingAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
+      await incrementBlocks(xvsVesting, 1);
+
+      const vestingStartBlock_Vesting_1 = await getBlockNumber(xvsVesting);
+      let depositTxn_Vesting_1 = await send(xvsVesting, 'deposit', [redeemerAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
+      await incrementBlocks(xvsVesting, 1);
+
+      const blocknumberAfter_Vesting_1 = vestingStartBlock_Vesting_1;
+      const expectedWithdrawalAmount_Vesting_1 =
+        calculatedExpectedWithdrawalAmount(redeemAmount_Vesting_1, 0, vestingStartBlock_Vesting_1, blocknumberAfter_Vesting_1);
+
+      expect(depositTxn_Vesting_1).toHaveLog('XVSVested', {
+        recipient: redeemerAddress,
+        amount: redeemAmount_Vesting_1,
+        withdrawnAmount: BigNumber(expectedWithdrawalAmount_Vesting_1),
+        vestingStartBlock: vestingStartBlock_Vesting_1
+      });
+
+      await send(xvsToken, 'approve', [xvsVestingAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
+      await incrementBlocks(xvsVesting, 1);
+
+      // Advance by 180 Days
+      await incrementBlocks(xvsVesting, getBlocksbyDays(180));
+
+      await send(xvsVesting, 'recoverXVS', [randomAddress]);
+
+      await expect(send(xvsVesting, 'withdraw', [redeemerAddress], { from: redeemerAddress }))
+        .rejects.toRevert("revert Insufficient XVS in XVSVesting Contract");
+    });
+
   });
 
+  describe('admin()', () => {
+    it('should return correct admin', async () => {
+      expect(await call(xvsVesting, 'admin')).toEqual(root);
+    });
+  });
+
+  describe('pendingAdmin()', () => {
+    it('should return correct pending admin', async () => {
+      expect(await call(xvsVesting, 'pendingAdmin')).toBeAddressZero()
+    });
+  });
+
+  describe('_setPendingAdmin()', () => {
+    it('should only be callable by admin', async () => {
+      await expect(send(xvsVesting, '_setPendingAdmin', [accounts[0]], { from: accounts[0] }))
+        .rejects.toRevert('revert Only Admin can set the PendingAdmin');
+
+      // Check admin stays the same
+      expect(await call(xvsVesting, 'admin')).toEqual(root);
+      expect(await call(xvsVesting, 'pendingAdmin')).toBeAddressZero();
+    });
+
+    it('should properly set pending admin', async () => {
+      expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
+
+      // Check admin stays the same
+      expect(await call(xvsVesting, 'admin')).toEqual(root);
+      expect(await call(xvsVesting, 'pendingAdmin')).toEqual(accounts[0]);
+    });
+
+    it('should properly set pending admin twice', async () => {
+      expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
+      expect(await send(xvsVesting, '_setPendingAdmin', [accounts[1]])).toSucceed();
+
+      // Check admin stays the same
+      expect(await call(xvsVesting, 'admin')).toEqual(root);
+      expect(await call(xvsVesting, 'pendingAdmin')).toEqual(accounts[1]);
+    });
+
+    it('should emit event', async () => {
+      const result = await send(xvsVesting, '_setPendingAdmin', [accounts[0]]);
+      expect(result).toHaveLog('NewPendingAdmin', {
+        oldPendingAdmin: address(0),
+        newPendingAdmin: accounts[0],
+      });
+    });
+  });
+
+  describe('_acceptAdmin()', () => {
+    it('should fail when pending admin is zero', async () => {
+      await expect(send(xvsVesting, '_acceptAdmin')).rejects.toRevert('revert Only PendingAdmin can accept as Admin');
+
+      // Check admin stays the same
+      expect(await call(xvsVesting, 'admin')).toEqual(root);
+      expect(await call(xvsVesting, 'pendingAdmin')).toBeAddressZero();
+    });
+
+    it('should fail when called by another account (e.g. root)', async () => {
+      expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
+      await expect(send(xvsVesting, '_acceptAdmin')).rejects.toRevert('revert Only PendingAdmin can accept as Admin');
+
+      // Check admin stays the same
+      expect(await call(xvsVesting, 'admin')).toEqual(root);
+      expect(await call(xvsVesting, 'pendingAdmin')).toEqual(accounts[0]);
+    });
+
+    it('should succeed and set admin and clear pending admin', async () => {
+      expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
+      expect(await send(xvsVesting, '_acceptAdmin', [], {from: accounts[0]})).toSucceed();
+
+      // Check admin stays the same
+      expect(await call(xvsVesting, 'admin')).toEqual(accounts[0]);
+      expect(await call(xvsVesting, 'pendingAdmin')).toBeAddressZero();
+    });
+
+    it('should emit log on success', async () => {
+      expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
+      const result = await send(xvsVesting, '_acceptAdmin', [], {from: accounts[0]});
+      expect(result).toHaveLog('NewAdmin', {
+        oldAdmin: root,
+        newAdmin: accounts[0],
+      });
+      expect(result).toHaveLog('NewPendingAdmin', {
+        oldPendingAdmin: accounts[0],
+        newPendingAdmin: address(0),
+      });
+    });
+
+  });
 
 });

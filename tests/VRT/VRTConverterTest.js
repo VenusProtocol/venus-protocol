@@ -2,7 +2,8 @@ const BigNum = require('bignumber.js');
 const {
   bnbUnsigned,
   bnbMantissa,
-  freezeTime
+  freezeTime,
+  address
 } = require('../Utils/BSC');
 
 const BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
@@ -36,7 +37,6 @@ describe('VRTConverterProxy', () => {
     vrtTotalSupply = bnbMantissa(30000000000);
 
     //deploy VRT
-    // Create New Bep20 Token
     vrtToken = await deploy('VRT', [root]);
 
     vrtTokenAddress = vrtToken._address;
@@ -188,7 +188,7 @@ describe('VRTConverterProxy', () => {
       const vrtDailyLimitFromContract = await call(vrtConversion, "computeVrtDailyLimit", { from: root });
       expect(new BigNum(vrtDailyLimitFromContract)).toEqual(new BigNum(0));
     });
-    
+
     it("assert redeemableAmount computed With TimeTravel of 1 Day to 1Day-1Hour to 2 Days", async () => {
 
       let currentTimeForFreeze = blockTimestamp.add(24 * 60 * 60);
@@ -219,10 +219,11 @@ describe('VRTConverterProxy', () => {
       let redeemableAmountResponse_After_1Day = await call(vrtConversion, "computeRedeemableAmountAndDailyUtilisation", { from: root });
       const redeemAmount_After_1Day = redeemableAmountResponse_After_1Day["redeemableAmount"];
       const dailyUtilisation_After_1Day = redeemableAmountResponse_After_1Day["dailyUtilisation"];
-      console.log(`redeemAmount_After_1Day: ${redeemAmount_After_1Day} - dailyUtilisation_After_1Day: ${dailyUtilisation_After_1Day}`);
-      expect(new BigNum(dailyUtilisation_After_1Day)).toEqual(new BigNum(0));  
-      const vrtDailyLimit_After_1Day = await call(vrtConversion, 'computeVrtDailyLimit', []);
-      expect(new BigNum(redeemAmount_After_1Day)).toEqual(new BigNum(vrtDailyLimit_After_1Day));  
+      expect(new BigNum(dailyUtilisation_After_1Day)).toEqual(new BigNum(0));
+      const vrtDailyLimit_After_1Day = redeemableAmountResponse_After_1Day["vrtDailyLimit"];
+      expect(new BigNum(redeemAmount_After_1Day)).toEqual(new BigNum(vrtDailyLimit_After_1Day));
+      const numberOfDaysSinceStart_After_1Day = redeemableAmountResponse_After_1Day["numberOfDaysSinceStart"];
+      expect(new BigNum(numberOfDaysSinceStart_After_1Day)).toEqual(new BigNum(1));
 
       vrtTransferAmount = bnbMantissa(10000);
 
@@ -235,16 +236,18 @@ describe('VRTConverterProxy', () => {
       currentTimeForFreeze = currentTimeForFreeze.add(60 * 60);
       await freezeTime(currentTimeForFreeze.toNumber());
       let redeemableAmountResponse_After_1Day1Hr = await call(vrtConversion, "computeRedeemableAmountAndDailyUtilisation", { from: root });
-      const redeemAmount_After_1Day1Hr = redeemableAmountResponse_After_1Day1Hr["redeemableAmount"];
-      const dailyUtilisation_After_1Day1Hr = redeemableAmountResponse_After_1Day1Hr["dailyUtilisation"];
+      const numberOfDaysSinceStart_After_1Day1Hr = redeemableAmountResponse_After_1Day1Hr["numberOfDaysSinceStart"];
+      expect(new BigNum(numberOfDaysSinceStart_After_1Day1Hr)).toEqual(new BigNum(1));
 
-      const vrtDailyLimit_After_1Day1Hr = await call(vrtConversion, 'computeVrtDailyLimit', []);
+      const dailyUtilisation_After_1Day1Hr = redeemableAmountResponse_After_1Day1Hr["dailyUtilisation"];
+      const vrtDailyLimit_After_1Day1Hr = redeemableAmountResponse_After_1Day1Hr["vrtDailyLimit"];
       const expectedReedemAmount_After_1Day1Hr = new BigNum(vrtDailyLimit_After_1Day1Hr).minus(new BigNum(dailyUtilisation_After_1Day1Hr));
-      expect(new BigNum(redeemAmount_After_1Day1Hr)).toEqual(new BigNum(expectedReedemAmount_After_1Day1Hr));      
+      const redeemAmount_After_1Day1Hr = redeemableAmountResponse_After_1Day1Hr["redeemableAmount"];
+      expect(new BigNum(redeemAmount_After_1Day1Hr)).toEqual(new BigNum(expectedReedemAmount_After_1Day1Hr));
       expect(new BigNum(redeemAmount_After_1Day1Hr).isLessThan(new BigNum(redeemAmount_After_1Day))).toBe(true);
-      expect(new BigNum(dailyUtilisation_After_1Day1Hr)).toEqual(new BigNum(vrtTransferAmount));  
+      expect(new BigNum(dailyUtilisation_After_1Day1Hr)).toEqual(new BigNum(vrtTransferAmount));
     });
-    
+
   });
 
   describe("convert VRT to XVS", () => {
@@ -353,7 +356,7 @@ describe('VRTConverterProxy', () => {
       const xvsBalanceOfRoot_AfterWithdrawal = await call(xvsToken, "balanceOf", [root]);
       const expected_XVSBalanceOfRoot_AfterWithdrawal = (bnbUnsigned(xvsBalanceOfRoot_BeforeWithdrawal))
         .add(xvsTokenWithdrawAmount);
-     
+
       expect(bnbUnsigned(xvsBalanceOfRoot_AfterWithdrawal)).toEqual(expected_XVSBalanceOfRoot_AfterWithdrawal);
     });
 
@@ -386,7 +389,7 @@ describe('VRTConverterProxy', () => {
       const xvsBalanceOfRoot_AfterWithdrawal = await call(xvsToken, "balanceOf", [root]);
       const expected_XVSBalanceOfRoot_AfterWithdrawal = (bnbUnsigned(xvsBalanceOfRoot_BeforeWithdrawal))
         .add(xvsTokenWithdrawAmount);
-     
+
       expect(bnbUnsigned(xvsBalanceOfRoot_AfterWithdrawal)).toEqual(expected_XVSBalanceOfRoot_AfterWithdrawal);
     });
 
@@ -401,7 +404,6 @@ describe('VRTConverterProxy', () => {
       //Assert XVS-Balance of VRTConversion (Before and After Withdrawal)
       const expected_XVS_Balanace_Of_VRTConversion_AfterWithdrawal = xvsBalanceOf_VRTConverter_BeforeWithdrawal;
       const xvsBalanceOfVRTConversion_AfterWithdrawal = await call(xvsToken, "balanceOf", [vrtConversionAddress]);
-      console.log(`xvsBalanceOfVRTConversion_AfterWithdrawal is: ${xvsBalanceOfVRTConversion_AfterWithdrawal}`);
       expect(xvsBalanceOfVRTConversion_AfterWithdrawal).toEqual(expected_XVS_Balanace_Of_VRTConversion_AfterWithdrawal);
 
       //Assert XVS-Balance of Root (Before and After Withdrawal)
@@ -417,6 +419,95 @@ describe('VRTConverterProxy', () => {
       const xvsAmountForWithdrawal = bnbMantissa(100001);
       await expect(send(vrtConversion, "withdraw", [xvsTokenAddress, xvsAmountForWithdrawal, root], { from: root }))
         .rejects.toRevert("revert Insufficient funds to withdraw");
+    });
+  });
+
+  describe('admin()', () => {
+    it('should return correct admin', async () => {
+      expect(await call(vrtConversion, 'admin')).toEqual(root);
+    });
+  });
+
+  describe('pendingAdmin()', () => {
+    it('should return correct pending admin', async () => {
+      expect(await call(vrtConversion, 'pendingAdmin')).toBeAddressZero()
+    });
+  });
+
+  describe('_setPendingAdmin()', () => {
+    it('should only be callable by admin', async () => {
+      await expect(send(vrtConversion, '_setPendingAdmin', [accounts[0]], { from: accounts[0] }))
+        .rejects.toRevert('revert Only Admin can set the PendingAdmin');
+
+      // Check admin stays the same
+      expect(await call(vrtConversion, 'admin')).toEqual(root);
+      expect(await call(vrtConversion, 'pendingAdmin')).toBeAddressZero();
+    });
+
+    it('should properly set pending admin', async () => {
+      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[0]])).toSucceed();
+
+      // Check admin stays the same
+      expect(await call(vrtConversion, 'admin')).toEqual(root);
+      expect(await call(vrtConversion, 'pendingAdmin')).toEqual(accounts[0]);
+    });
+
+    it('should properly set pending admin twice', async () => {
+      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[0]])).toSucceed();
+      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[1]])).toSucceed();
+
+      // Check admin stays the same
+      expect(await call(vrtConversion, 'admin')).toEqual(root);
+      expect(await call(vrtConversion, 'pendingAdmin')).toEqual(accounts[1]);
+    });
+
+    it('should emit event', async () => {
+      const result = await send(vrtConversion, '_setPendingAdmin', [accounts[0]]);
+      expect(result).toHaveLog('NewPendingAdmin', {
+        oldPendingAdmin: address(0),
+        newPendingAdmin: accounts[0],
+      });
+    });
+  });
+
+  describe('_acceptAdmin()', () => {
+    it('should fail when pending admin is zero', async () => {
+      await expect(send(vrtConversion, '_acceptAdmin')).rejects.toRevert('revert Only PendingAdmin can accept as Admin');
+
+      // Check admin stays the same
+      expect(await call(vrtConversion, 'admin')).toEqual(root);
+      expect(await call(vrtConversion, 'pendingAdmin')).toBeAddressZero();
+    });
+
+    it('should fail when called by another account (e.g. root)', async () => {
+      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[0]])).toSucceed();
+      await expect(send(vrtConversion, '_acceptAdmin')).rejects.toRevert('revert Only PendingAdmin can accept as Admin');
+
+      // Check admin stays the same
+      expect(await call(vrtConversion, 'admin')).toEqual(root);
+      expect(await call(vrtConversion, 'pendingAdmin')).toEqual(accounts[0]);
+    });
+
+    it('should succeed and set admin and clear pending admin', async () => {
+      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[0]])).toSucceed();
+      expect(await send(vrtConversion, '_acceptAdmin', [], { from: accounts[0] })).toSucceed();
+
+      // Check admin stays the same
+      expect(await call(vrtConversion, 'admin')).toEqual(accounts[0]);
+      expect(await call(vrtConversion, 'pendingAdmin')).toBeAddressZero();
+    });
+
+    it('should emit log on success', async () => {
+      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[0]])).toSucceed();
+      const result = await send(vrtConversion, '_acceptAdmin', [], { from: accounts[0] });
+      expect(result).toHaveLog('NewAdmin', {
+        oldAdmin: root,
+        newAdmin: accounts[0],
+      });
+      expect(result).toHaveLog('NewPendingAdmin', {
+        oldPendingAdmin: accounts[0],
+        newPendingAdmin: address(0),
+      });
     });
 
   });
