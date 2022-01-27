@@ -2,13 +2,7 @@ pragma solidity ^0.5.16;
 
 import "../Utils/IBEP20.sol";
 import "../Utils/SafeBEP20.sol";
-
-interface IXVSVesting {
-
-    /// @param _recipient Address of the Vesting. recipient entitled to claim the vested funds
-    /// @param _amount Total number of tokens Vested
-    function deposit(address _recipient, uint256 _amount) external;
-}
+import "./IXVSVesting.sol";
 
 /**
  * @title Venus's VRTConversion Contract
@@ -88,7 +82,8 @@ contract VRTConverter {
     /// @notice Emitted when an admin withdraw converted token
     event TokenWithdraw(address token, address to, uint256 amount);
 
-    constructor(address _vrtAddress, address _xvsAddress, address _xvsVestingAddress, uint256 _conversionRatio, uint256 _conversionStartTime, uint256 _vrtTotalSupply) public {
+    constructor(address _vrtAddress, address _xvsAddress, address _xvsVestingAddress,
+                uint256 _conversionRatio, uint256 _conversionStartTime, uint256 _vrtTotalSupply) public {
         admin = msg.sender;
         vrtAddress = _vrtAddress;
         vrt = IBEP20(vrtAddress);
@@ -117,7 +112,7 @@ contract VRTConverter {
      * @param newPendingAdmin New pending admin.
      */
     function _setPendingAdmin(address newPendingAdmin) external {
-        require(msg.sender == admin, "SET_PENDING_ADMIN_OWNER_CHECK");
+        require(msg.sender == admin, "Only Admin can set the PendingAdmin");
         address oldPendingAdmin = pendingAdmin;
         pendingAdmin = newPendingAdmin;
         emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin);
@@ -129,7 +124,7 @@ contract VRTConverter {
      */
     function _acceptAdmin() external {
         // Check caller is pendingAdmin
-        require(msg.sender == pendingAdmin, "ACCEPT_ADMIN_PENDING_ADMIN_CHECK");
+        require(msg.sender == pendingAdmin, "Only PendingAdmin can accept as Admin");
 
         // Save current values for inclusion in log
         address oldAdmin = admin;
@@ -192,7 +187,8 @@ contract VRTConverter {
         xvsVesting.deposit(msg.sender, redeemAmount);
     }
     
-    function computeRedeemableAmountAndDailyUtilisation() public view returns (uint256 redeemableAmount, uint256 dailyUtilisation) {
+    function computeRedeemableAmountAndDailyUtilisation() public view returns 
+    (uint256 redeemableAmount, uint256 dailyUtilisation, uint256 vrtDailyLimit, uint256 numberOfDaysSinceStart) {
 
         require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
         require(conversionRatio > 0, "conversion ratio is incorrect");
@@ -201,10 +197,10 @@ contract VRTConverter {
             "VRT conversion didnot start yet"
         );
 
-        uint256 _currentDayNumber = ((block.timestamp).sub(conversionStartTime)).div(ONE_DAY);
-        uint256 vrtDailyLimit = computeVrtDailyLimit();
+        numberOfDaysSinceStart = ((block.timestamp).sub(conversionStartTime)).div(ONE_DAY);
+        vrtDailyLimit = computeVrtDailyLimit();
 
-        if(_currentDayNumber > lastDayUpdated) {
+        if(numberOfDaysSinceStart > lastDayUpdated) {
             redeemableAmount = vrtDailyLimit;
             dailyUtilisation = 0;
         } else {

@@ -103,7 +103,7 @@ contract XVSVesting {
      */
     function _setPendingAdmin(address newPendingAdmin) external {
         // Check caller = admin
-        require(msg.sender == admin, "SET_PENDING_ADMIN_OWNER_CHECK");
+        require(msg.sender == admin, "Only Admin can set the PendingAdmin");
 
         // Save current value, if any, for inclusion in log
         address oldPendingAdmin = pendingAdmin;
@@ -121,7 +121,7 @@ contract XVSVesting {
      */
     function _acceptAdmin() external {
         // Check caller is pendingAdmin
-        require(msg.sender == pendingAdmin, "ACCEPT_ADMIN_PENDING_ADMIN_CHECK");
+        require(msg.sender == pendingAdmin, "Only PendingAdmin can accept as Admin");
 
         // Save current values for inclusion in log
         address oldAdmin = admin;
@@ -143,10 +143,6 @@ contract XVSVesting {
         nonReentrant
         nonZeroAddress(recipient)
     {
-        require(
-            vrtConversionAddress != address(0),
-            "VRT-Conversion Address is not set"
-        );
         require(amount > 0, "Deposit amount must be non-zero");
 
         VestingRecord storage vesting = vestings[recipient];
@@ -161,23 +157,15 @@ contract XVSVesting {
 
             uint256 toWithdraw = calculateWithdrawal(vesting);
 
-            if (toWithdraw > 0) {
-                vesting.withdrawnAmount = vesting.withdrawnAmount.add(
-                    toWithdraw
-                );
-            }
-
-            // Note that we reset the start date after we compute the withdrawn amount
+            //we reset the start date after we compute the withdrawn amount
             vesting.vestingStartBlock = getBlockNumber();
 
             xvs.safeTransferFrom(msg.sender, address(this), amount);
 
             if (toWithdraw > 0) {
+                vesting.withdrawnAmount = vesting.withdrawnAmount.add(toWithdraw);
                 uint256 xvsBalance = xvs.balanceOf(address(this));
-                require(
-                    xvsBalance >= toWithdraw,
-                    "Insufficient XVS in XVSVesting Contract"
-                );
+                require(xvsBalance >= toWithdraw,"Insufficient XVS in XVSVesting Contract");
                 xvs.safeTransferFrom(address(this), recipient, toWithdraw);
             }
         }
