@@ -13,7 +13,7 @@ task("verify-vrt-converter", "verifies deployed VRTConverter contract")
    const _xvsAddress = contractConfigData.Contracts.XVS;
    const _xvsVestingAddress = contractConfigData.Contracts.XVSVesting;
    const _conversionRatio = bnbMantissa(0.000083);
-   const _conversionStartTime = 1643106726;
+   const _conversionStartTime = 1643251386;
    const _vrtTotalSupply = bnbMantissa(30000000000);
 
     const vrtConverterConstructorArgumentArray = [_vrtAddress, _xvsAddress, _xvsVestingAddress, _conversionRatio, _conversionStartTime, _vrtTotalSupply];
