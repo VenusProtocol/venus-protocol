@@ -61,11 +61,11 @@ describe('VRTConverterProxy', () => {
     xvsVestingAddress = xvsVesting._address;
 
     //deploy VRTConversion
-    vrtConversion = await deploy('VRTConverterHarness', [vrtTokenAddress, xvsTokenAddress, xvsVestingAddress, conversionRatio, conversionStartTime, vrtTotalSupply]);
-
+    vrtConversion = await deploy('VRTConverterHarness', [vrtTokenAddress, xvsTokenAddress, conversionRatio, conversionStartTime, vrtTotalSupply]);
     vrtConversionAddress = vrtConversion._address;
 
-    await send(xvsVesting, '_setVrtConversion', [vrtConversionAddress], { from: root });
+    await send(vrtConversion, '_setXVSVesting', [xvsVestingAddress], { from: root });
+    await send(xvsVesting, '_setVRTConversion', [vrtConversionAddress], { from: root });
 
     await send(vrtToken, "approve", [vrtConversionAddress, 0], { from: alice });
     await send(vrtToken, "approve", [vrtConversionAddress, 0], { from: bob });

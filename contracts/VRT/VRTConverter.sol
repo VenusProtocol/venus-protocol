@@ -26,20 +26,11 @@ contract VRTConverter {
     /// @notice Guard variable for re-entrancy checks
     bool internal _notEntered;
 
-    /// @notice VRTToken Address
-    address public vrtAddress;
-
     /// @notice The VRT TOKEN!
     IBEP20 public vrt;
 
     /// @notice decimal precision for VRT
     uint256 public vrtDecimalsMultiplier = 10**18;
-    
-    /// @notice XVSToken address
-    address public xvsAddress;
-
-    /// @notice XVSVesting address
-    address public xvsVestingAddress;
 
     /// @notice XVSVesting Contract reference
     IXVSVesting public xvsVesting;
@@ -82,15 +73,14 @@ contract VRTConverter {
     /// @notice Emitted when an admin withdraw converted token
     event TokenWithdraw(address token, address to, uint256 amount);
 
-    constructor(address _vrtAddress, address _xvsAddress, address _xvsVestingAddress,
-                uint256 _conversionRatio, uint256 _conversionStartTime, uint256 _vrtTotalSupply) public {
+    /// @notice Emitted when XVSVestingAddress is set
+    event XVSVestingSet(address xvsVestingAddress);
+
+    constructor(address _vrtAddress, address _xvsAddress, uint256 _conversionRatio,
+                uint256 _conversionStartTime, uint256 _vrtTotalSupply) public {
         admin = msg.sender;
-        vrtAddress = _vrtAddress;
-        vrt = IBEP20(vrtAddress);
-        xvsAddress = _xvsAddress;
-        xvs = IBEP20(xvsAddress);
-        xvsVestingAddress = _xvsVestingAddress;
-        xvsVesting = IXVSVesting(xvsVestingAddress);
+        vrt = IBEP20(_vrtAddress);
+        xvs = IBEP20(_xvsAddress);
         conversionRatio = _conversionRatio;
         conversionStartTime = _conversionStartTime;
         conversionEndTime = conversionStartTime.add(ONE_YEAR);
@@ -101,8 +91,19 @@ contract VRTConverter {
         _notEntered = true;
     }
 
+    function _setXVSVesting(address _xvsVestingAddress) external onlyAdmin nonZeroAddress(_xvsVestingAddress)
+    {
+        xvsVesting = IXVSVesting(_xvsVestingAddress);
+        emit XVSVestingSet(_xvsVestingAddress);
+    }
+
     modifier onlyAdmin() {
         require(msg.sender == admin, "only admin can");
+        _;
+    }
+
+    modifier nonZeroAddress(address _address) {
+        require(_address != address(0), "Address cannot be Zero");
         _;
     }
 
@@ -146,7 +147,7 @@ contract VRTConverter {
      */
     function convert(uint256 vrtAmount) external nonReentrant
     {
-        require(xvsVestingAddress != address(0), "XVS-Vesting Address is not set");
+        require(address(xvsVesting) != address(0), "XVS-Vesting Address is not set");
         require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
         require(vrtAmount > 0, "VRT amount must be non-zero");
         require(conversionRatio > 0, "conversion ratio is incorrect");
@@ -177,19 +178,19 @@ contract VRTConverter {
             .div(1e18)
             .div(vrtDecimalsMultiplier);
         require(
-            redeemAmount <= IBEP20(xvsAddress).balanceOf(address(this)),
+            redeemAmount <= xvs.balanceOf(address(this)),
             "not enough XVSTokens"
         );
 
-        emit TokenConverted(msg.sender, vrtAddress, xvsAddress, vrtAmount, redeemAmount);
+        emit TokenConverted(msg.sender, address(vrt), address(xvs), vrtAmount, redeemAmount);
         vrt.transferFrom(msg.sender, DEAD_ADDRESS, vrtAmount);
-        xvs.approve(xvsVestingAddress, redeemAmount);
+        xvs.approve(address(xvsVesting), redeemAmount);
         xvsVesting.deposit(msg.sender, redeemAmount);
     }
     
     function computeRedeemableAmountAndDailyUtilisation() public view returns 
-    (uint256 redeemableAmount, uint256 dailyUtilisation, uint256 vrtDailyLimit, uint256 numberOfDaysSinceStart) {
-
+        (uint256 redeemableAmount, uint256 dailyUtilisation, uint256 vrtDailyLimit, uint256 numberOfDaysSinceStart) {
+        require(address(xvsVesting) != address(0), "XVS-Vesting Address is not set");
         require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
         require(conversionRatio > 0, "conversion ratio is incorrect");
         require(

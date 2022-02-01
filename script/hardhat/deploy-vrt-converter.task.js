@@ -10,15 +10,13 @@ task("deploy-vrt-converter", "deploys VRTConverter contract")
 
         const _vrtAddress = contractConfigData.Contracts.VRT;
         const _xvsAddress = contractConfigData.Contracts.XVS;
-        const _xvsVestingAddress = contractConfigData.Contracts.XVSVesting;
         const _conversionRatio = bnbMantissa(0.000083);
-        const _conversionStartTime = 1643251386;
+        const _conversionStartTime = 1643586873;
         const _vrtTotalSupply = bnbMantissa(30000000000);
         
         const vrtConverterContractInstance = await VRTConverterContract.deploy(
             _vrtAddress,
             _xvsAddress,
-            _xvsVestingAddress,
             _conversionRatio,
             _conversionStartTime,
             _vrtTotalSupply, { gasLimit: 10000000 }

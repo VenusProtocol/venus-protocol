@@ -16,7 +16,7 @@ task("set-vrt-converter-in-xvs-vesting", "sets VRTConverter Address in XVSVestin
         const _vrtConverterAddress = contractConfigData.Contracts.VRTConverter;
 
         //set VRTConverter-Address in XVSVesting
-        const txResponse = await xvsVestingContractInstance._setVrtConversion(_vrtConverterAddress);
+        const txResponse = await xvsVestingContractInstance._setVRTConversion(_vrtConverterAddress);
         await txResponse.wait();
         console.log(`txResponse to set VRTConverter-Address in XVSVesting is: ${JSON.stringify(txResponse)}`);
     });

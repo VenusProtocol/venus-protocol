@@ -79,7 +79,7 @@ describe('XVSVesting', () => {
 
     xvsTokenMintAmount = bnbMantissa(100000);
     await send(xvsToken, 'transfer', [vrtConversionAddress, xvsTokenMintAmount], { from: root });
-    await send(xvsVesting, '_setVrtConversion', [vrtConversionAddress], { from: root });
+    await send(xvsVesting, '_setVRTConversion', [vrtConversionAddress], { from: root });
   });
 
   describe("constructor", () => {

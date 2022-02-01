@@ -25,12 +25,8 @@ contract XVSVesting {
     /// @notice VRTConversion Contract Address
     address public vrtConversionAddress;
 
-    uint256 public vestingDuration;
-
     /// @notice decimal precision for XVS
     uint256 public xvsDecimalsMultiplier = 10**18;
-
-    uint256 public vestingFrequency;
 
     event VestedTokensClaimed(address recipient, uint256 amountClaimed);
 
@@ -41,7 +37,7 @@ contract XVSVesting {
     event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 
     /// @notice Emitted when vrtConversionAddress is set
-    event vrtConversionAddressSet(address vrtConversionAddress);
+    event VRTConversionSet(address vrtConversionAddress);
 
     /// @notice Emitted when XVS is deposited for vesting
     event XVSVested(
@@ -74,13 +70,13 @@ contract XVSVesting {
         _notEntered = true;
     }
 
-    function _setVrtConversion(address _vrtConversionAddress)
+    function _setVRTConversion(address _vrtConversionAddress)
         external
         onlyAdmin
         nonZeroAddress(_vrtConversionAddress)
     {
         vrtConversionAddress = _vrtConversionAddress;
-        emit vrtConversionAddressSet(_vrtConversionAddress);
+        emit VRTConversionSet(_vrtConversionAddress);
     }
 
     modifier onlyAdmin() {
@@ -204,6 +200,19 @@ contract XVSVesting {
             emit XVSWithdrawn(recipient, toWithdraw);
             xvs.safeTransfer(recipient, toWithdraw);
         }
+    }
+
+    function getWithdrawableAmount(address recipient) view public nonZeroAddress(recipient) returns (uint256 toWithdraw)
+    {
+        VestingRecord memory vesting = vestings[recipient];
+        uint256 blockNumber = getBlockNumber();
+        uint256 unlocked = (
+            vesting.totalVestedAmount.mul(
+                blockNumber.sub(vesting.vestingStartBlock)
+            )
+        ).div(VESTING_PERIOD);
+        uint256 amount = vesting.totalVestedAmount.sub(vesting.withdrawnAmount);
+        return (amount >= unlocked ? unlocked : amount);
     }
 
     function calculateWithdrawal(VestingRecord storage vesting)

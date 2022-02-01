@@ -6,7 +6,6 @@ contract VRTConverterHarness is VRTConverter {
     constructor(
         address _vrtAddress,
         address _xvsAddress,
-        address _xvsVestingAddress,
         uint256 _conversionRatio,
         uint256 _conversionStartTime,
         uint256 _vrtTotalSupply
@@ -15,7 +14,6 @@ contract VRTConverterHarness is VRTConverter {
         VRTConverter(
             _vrtAddress,
             _xvsAddress,
-            _xvsVestingAddress,
             _conversionRatio,
             _conversionStartTime,
             _vrtTotalSupply

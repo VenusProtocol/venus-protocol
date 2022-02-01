@@ -11,13 +11,12 @@ task("verify-vrt-converter", "verifies deployed VRTConverter contract")
 
    const _vrtAddress = contractConfigData.Contracts.VRT;
    const _xvsAddress = contractConfigData.Contracts.XVS;
-   const _xvsVestingAddress = contractConfigData.Contracts.XVSVesting;
    const _conversionRatio = bnbMantissa(0.000083);
-   const _conversionStartTime = 1643251386;
+   const _conversionStartTime = 1643586873;
    const _vrtTotalSupply = bnbMantissa(30000000000);
 
-    const vrtConverterConstructorArgumentArray = [_vrtAddress, _xvsAddress, _xvsVestingAddress, _conversionRatio, _conversionStartTime, _vrtTotalSupply];
-    console.log(`Verifying VRTConverter with _vrtAddress, _xvsAddress, _xvsVestingAddress, _conversionRatio, _conversionStartTime, _vrtTotalSupply in constructorArguments: ${vrtConverterConstructorArgumentArray}`);
+    const vrtConverterConstructorArgumentArray = [_vrtAddress, _xvsAddress, _conversionRatio, _conversionStartTime, _vrtTotalSupply];
+    console.log(`Verifying VRTConverter with _vrtAddress, _xvsAddress, _conversionRatio, _conversionStartTime, _vrtTotalSupply in constructorArguments: ${vrtConverterConstructorArgumentArray}`);
 
     await hre.run("verify:verify", {
        address: vrtConverterAddress,
