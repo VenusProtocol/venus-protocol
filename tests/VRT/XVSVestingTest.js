@@ -35,6 +35,13 @@ const getBlockNumber = async (xvsVesting) => {
   return blockNumber;
 }
 
+
+const getWithdrawableAmount = async (currentBlockNumber, vestingStartBlock, totalVestedAmount, withdrawnAmount) => {
+  const unlocked = (new BigNumber(totalVestedAmount).multipliedBy(new BigNumber(currentBlockNumber).minus(new BigNumber(vestingStartBlock)))).dividedToIntegerBy(VESTING_PERIOD);
+  const amount = new BigNumber(totalVestedAmount).minus(new BigNumber(withdrawnAmount));
+  return (amount.isGreaterThanOrEqualTo(unlocked) ? unlocked : amount);
+}
+
 describe('XVSVesting', () => {
   let root, alice, bob, redeemerAddress, randomAddress;
   let vrtConversion, vrtConversionAddress,
@@ -265,6 +272,81 @@ describe('XVSVesting', () => {
 
   });
 
+  describe("get Withdrawable XVS After Vesting For Varying Periods", () => {
+
+    it("get Withdrawable XVS - After 1st Vesting With a wait of 180 days", async () => {
+
+      const redeemAmount_Vesting_1 = bnbMantissa(100);
+      await setBlockNumber(xvsVesting, 0);
+
+      await send(xvsToken, 'transfer', [vrtConversionAddress, redeemAmount_Vesting_1], { from: root });
+      await incrementBlocks(xvsVesting, 1);
+
+      await send(xvsToken, 'approve', [xvsVestingAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
+      await incrementBlocks(xvsVesting, 1);
+
+      const vestingStartBlock_Vesting_1 = await getBlockNumber(xvsVesting);
+      let depositTxn_Vesting_1 = await send(xvsVesting, 'deposit', [redeemerAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
+      await incrementBlocks(xvsVesting, 1);
+
+      const blocknumberAfter_Vesting_1 = vestingStartBlock_Vesting_1;
+      const expectedWithdrawalAmount_Vesting_1 =
+        calculatedExpectedWithdrawalAmount(redeemAmount_Vesting_1, 0, vestingStartBlock_Vesting_1, blocknumberAfter_Vesting_1);
+
+      expect(depositTxn_Vesting_1).toHaveLog('XVSVested', {
+        recipient: redeemerAddress,
+        amount: redeemAmount_Vesting_1,
+        withdrawnAmount: BigNumber(expectedWithdrawalAmount_Vesting_1),
+        vestingStartBlock: vestingStartBlock_Vesting_1
+      });
+
+      console.log(`vestingStartBlock is: ${vestingStartBlock_Vesting_1}`);
+
+      await send(xvsToken, 'approve', [xvsVestingAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
+      await incrementBlocks(xvsVesting, 1);
+
+      // Advance by 180 Days
+      await incrementBlocks(xvsVesting, getBlocksbyDays(180));
+
+      const blockNumberAfterIncrement = await getBlockNumber(xvsVesting);
+      const expected_WithdrawableAmount = await getWithdrawableAmount(blockNumberAfterIncrement, vestingStartBlock_Vesting_1, redeemAmount_Vesting_1, 0);
+      const xvs_Withdrawable_Amount_From_Contract = await call(xvsVesting, 'getWithdrawableAmount', [redeemerAddress]);
+      expect(new BigNumber(xvs_Withdrawable_Amount_From_Contract)).toEqual(new BigNumber(expected_WithdrawableAmount));
+    });
+
+    it("get Withdrawable XVS - After 1st Vesting With a wait of 0 days", async () => {
+
+      const redeemAmount_Vesting_1 = bnbMantissa(100);
+      await setBlockNumber(xvsVesting, 0);
+
+      await send(xvsToken, 'transfer', [vrtConversionAddress, redeemAmount_Vesting_1], { from: root });
+      await incrementBlocks(xvsVesting, 1);
+
+      await send(xvsToken, 'approve', [xvsVestingAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
+      await incrementBlocks(xvsVesting, 1);
+
+      const vestingStartBlock_Vesting_1 = await getBlockNumber(xvsVesting);
+      let depositTxn_Vesting_1 = await send(xvsVesting, 'deposit', [redeemerAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
+
+      const blocknumberAfter_Vesting_1 = vestingStartBlock_Vesting_1;
+      const expectedWithdrawalAmount_Vesting_1 =
+        calculatedExpectedWithdrawalAmount(redeemAmount_Vesting_1, 0, vestingStartBlock_Vesting_1, blocknumberAfter_Vesting_1);
+
+      expect(depositTxn_Vesting_1).toHaveLog('XVSVested', {
+        recipient: redeemerAddress,
+        amount: redeemAmount_Vesting_1,
+        withdrawnAmount: BigNumber(expectedWithdrawalAmount_Vesting_1),
+        vestingStartBlock: vestingStartBlock_Vesting_1
+      });
+
+      const expected_WithdrawableAmount = await getWithdrawableAmount(vestingStartBlock_Vesting_1, vestingStartBlock_Vesting_1, redeemAmount_Vesting_1, 0);
+      const xvs_Withdrawable_Amount_From_Contract = await call(xvsVesting, 'getWithdrawableAmount', [redeemerAddress]);
+      expect(new BigNumber(xvs_Withdrawable_Amount_From_Contract)).toEqual(new BigNumber(expected_WithdrawableAmount));
+    });
+
+  });
+
+
   describe("Withdraw XVS After Vesting", () => {
 
     it("Withdraw XVS - After 1st Vesting With a wait of 360 days", async () => {
@@ -293,7 +375,7 @@ describe('XVSVesting', () => {
         vestingStartBlock: vestingStartBlock_Vesting_1
       });
 
-      await send(xvsToken, 'approve', [xvsVestingAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
+      //await send(xvsToken, 'approve', [xvsVestingAddress, redeemAmount_Vesting_1], { from: vrtConversionAddress });
       await incrementBlocks(xvsVesting, 1);
 
       // Advance by 360 Days
@@ -301,6 +383,8 @@ describe('XVSVesting', () => {
 
       const xvs_balance_of_redeemer_before_withdraw = await call(xvsToken, 'balanceOf', [redeemerAddress]);
       const xvs_balance_of_vestingContract_before_withdraw = await call(xvsToken, 'balanceOf', [xvsVestingAddress]);
+
+      const xvs_Withdrawable_Amount_From_Contract = await call(xvsVesting, 'getWithdrawableAmount', [redeemerAddress]);
 
       let withdrawTxn_After_Vesting_1 = await send(xvsVesting, 'withdraw', [redeemerAddress], { from: redeemerAddress });
       await incrementBlocks(xvsVesting, 1);
@@ -320,6 +404,13 @@ describe('XVSVesting', () => {
         recipient: redeemerAddress,
         amount: new BigNumber(redeemAmount_Vesting_1)
       });
+
+      expect(withdrawTxn_After_Vesting_1).toHaveLog('XVSWithdrawn', {
+        recipient: redeemerAddress,
+        amount: new BigNumber(xvs_Withdrawable_Amount_From_Contract)
+      });
+
+      expect(new BigNumber(redeemAmount_Vesting_1)).toEqual(new BigNumber(xvs_Withdrawable_Amount_From_Contract));
     });
 
     it("Withdraw XVS - Fails to withdraw with no-balance", async () => {
@@ -333,7 +424,7 @@ describe('XVSVesting', () => {
         .rejects.toRevert("revert VRT-Conversion Address is not set");
     });
 
-    it("Withdraw XVS - Fails to withdraw with Insufficient XVS in XVSVesting Contractt", async () => {
+    it("Withdraw XVS - Fails to withdraw with Insufficient XVS in XVSVesting Contract", async () => {
 
       const redeemAmount_Vesting_1 = bnbMantissa(100);
       await setBlockNumber(xvsVesting, 0);
@@ -441,7 +532,7 @@ describe('XVSVesting', () => {
 
     it('should succeed and set admin and clear pending admin', async () => {
       expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
-      expect(await send(xvsVesting, '_acceptAdmin', [], {from: accounts[0]})).toSucceed();
+      expect(await send(xvsVesting, '_acceptAdmin', [], { from: accounts[0] })).toSucceed();
 
       // Check admin stays the same
       expect(await call(xvsVesting, 'admin')).toEqual(accounts[0]);
@@ -450,7 +541,7 @@ describe('XVSVesting', () => {
 
     it('should emit log on success', async () => {
       expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
-      const result = await send(xvsVesting, '_acceptAdmin', [], {from: accounts[0]});
+      const result = await send(xvsVesting, '_acceptAdmin', [], { from: accounts[0] });
       expect(result).toHaveLog('NewAdmin', {
         oldAdmin: root,
         newAdmin: accounts[0],
