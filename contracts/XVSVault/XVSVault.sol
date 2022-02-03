@@ -30,10 +30,10 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
     /// @notice An event thats emitted when an account changes its delegate
-    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
+    event DelegateChangedV2(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
     /// @notice An event thats emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
+    event DelegateVotesChangedV2(address indexed delegate, uint previousBalance, uint newBalance);
 
     /// @notice An event emitted when the reward store address is updated
     event StoreUpdated(address oldXvs, address oldStore, address newXvs, address newStore);
@@ -230,8 +230,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
 
         // Update Delegate Amount
         if (address(pool.token) == address(xvsAddress)) {
-            uint256 updatedAmount = user.amount.sub(user.pendingWithdrawals);
-            _updateDelegate(address(msg.sender), uint96(updatedAmount));
+            _moveDelegates(address(0), delegates[msg.sender], uint96(_amount));
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
@@ -356,8 +355,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
 
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {
-            uint256 updatedAmount = user.amount.sub(user.pendingWithdrawals);
-            _updateDelegate(address(msg.sender), uint96(updatedAmount));
+            _moveDelegates(delegates[msg.sender], address(0), uint96(_amount));
         }
 
         emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
@@ -524,21 +522,6 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     }
 
     /**
-     * @notice Update Delegates - voting power
-     * @param delegator The address of Delegator
-     * @param amount Updated delegate amount
-     */
-    function _updateDelegate(address delegator, uint96 amount) internal {
-        address currentDelegate = delegates[delegator];
-
-        if (currentDelegate != address(0)) {
-            uint32 delegateRepNum = numCheckpoints[currentDelegate];
-            uint96 delegateRepOld = delegateRepNum > 0 ? checkpoints[currentDelegate][delegateRepNum - 1].votes : 0;
-            _writeCheckpoint(currentDelegate, delegateRepNum, delegateRepOld, amount);
-        }
-    }
-
-    /**
      * @notice Delegate votes from `msg.sender` to `delegatee`
      * @param delegatee The address to delegate votes to
      */
@@ -582,7 +565,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         uint96 delegatorBalance = getStakeAmount(delegator);
         delegates[delegator] = delegatee;
 
-        emit DelegateChanged(delegator, currentDelegate, delegatee);
+        emit DelegateChangedV2(delegator, currentDelegate, delegatee);
 
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
@@ -615,7 +598,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             numCheckpoints[delegatee] = nCheckpoints + 1;
         }
 
-        emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
+        emit DelegateVotesChangedV2(delegatee, oldVotes, newVotes);
     }
 
     function safe32(uint n, string memory errorMessage) internal pure returns (uint32) {

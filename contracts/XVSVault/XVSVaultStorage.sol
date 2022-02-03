@@ -24,7 +24,7 @@ contract XVSVaultAdminStorage {
     address public pendingXVSVaultImplementation;
 }
 
-contract XVSVaultStorage is XVSVaultAdminStorage {
+contract XVSVaultStorageV1 is XVSVaultAdminStorage {
     /// @notice Guard variable for re-entrancy checks
     bool internal _notEntered;
 
@@ -71,8 +71,8 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
     // Info of requested but not yet executed withdrawals
     mapping(address => mapping(uint256 => mapping(address => WithdrawalRequest[]))) withdrawalRequests;
 
-    /// @notice A record of each accounts delegate
-    mapping (address => address) public delegates;
+    /// @notice DEPRECATED A record of each accounts delegate (before the voting power fix)
+    mapping (address => address) private __oldDelegatesSlot;
 
     /// @notice A checkpoint for marking number of votes from a given block
     struct Checkpoint {
@@ -80,11 +80,11 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
         uint96 votes;
     }
 
-    /// @notice A record of votes checkpoints for each account, by index
-    mapping (address => mapping (uint32 => Checkpoint)) public checkpoints;
+    /// @notice DEPRECATED A record of votes checkpoints for each account, by index (before the voting power fix)
+    mapping (address => mapping (uint32 => Checkpoint)) private __oldCheckpointsSlot;
 
-    /// @notice The number of checkpoints for each account
-    mapping (address => uint32) public numCheckpoints;
+    /// @notice DEPRECATED The number of checkpoints for each account (before the voting power fix)
+    mapping (address => uint32) private __oldNumCheckpointsSlot;
 
     /// @notice A record of states for signing / validating signatures
     mapping (address => uint) public nonces;
@@ -95,4 +95,15 @@ contract XVSVaultStorage is XVSVaultAdminStorage {
     /// @notice The EIP-712 typehash for the delegation struct used by the contract
     bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
+}
+
+contract XVSVaultStorage is XVSVaultStorageV1 {
+    /// @notice A record of each accounts delegate
+    mapping (address => address) public delegates;
+
+    /// @notice A record of votes checkpoints for each account, by index
+    mapping (address => mapping (uint32 => Checkpoint)) public checkpoints;
+
+    /// @notice The number of checkpoints for each account
+    mapping (address => uint32) public numCheckpoints;
 }

@@ -1,7 +1,10 @@
 const {
   bnbUnsigned,
   freezeTime,
-  advanceBlocks
+  address,
+  minerStart,
+  minerStop,
+  mineBlock
 } = require('../Utils/BSC');
 
 const rewardPerBlock = bnbUnsigned(1e16);
@@ -9,7 +12,7 @@ const defaultLockPeriod = 300;
 const tokenAmount = bnbUnsigned(1e22);
 
 describe('XVSVault', () => {
-  let root, notAdmin;
+  let root, notAdmin, a1, a2, a3;
   let blockTimestamp;
   let xvsVault;
   let xvsStore;
@@ -17,7 +20,7 @@ describe('XVSVault', () => {
   let sxp;
 
   beforeEach(async () => {
-    [root, notAdmin, newAdmin] = accounts;
+    [root, notAdmin, a1, a2, a3] = accounts;
 
     xvsVault = await deploy('XVSVault', []);
     xvsStore = await deploy('XVSStore', []);
@@ -632,15 +635,203 @@ describe('XVSVault', () => {
     })
   });
 
-  // describe('get prior votes', () => {
-  //   it('check votes value', async () => {
-  //     await send(xvsVault, 'add', [xvs._address, 100, xvs._address, rewardPerBlock, defaultLockPeriod, 0], { from: root });
-  //     await send(xvs, 'transfer', [notAdmin, tokenAmount], { from: root });
-  //     await send(xvs, 'approve', [xvsVault._address, tokenAmount], { from: notAdmin });
-  //     await send(xvsVault, 'deposit', [xvs._address, 0, tokenAmount], { from: notAdmin });
+  describe('voting power', () => {
+    beforeEach(async () => {
+      await send(
+        xvsVault,
+        'add',
+        [xvs._address, 100, xvs._address, rewardPerBlock, defaultLockPeriod],
+        { from: root }
+      );
+      await send(xvs, 'transfer', [a1, bnbUnsigned('29000000000000000000000000')], { from: root });
+      await send(xvs, 'approve', [xvsVault._address, bnbUnsigned('29000000000000000000000000')], { from: a1 });
+    });
 
-  //     const votes = await call(xvsVault, 'getPriorVotes', [notAdmin, 0]);
-  //     expect(votes).toEqual('10000000000000000000000');
-  //   });
-  // });
+    async function deposit(amount, { from }) {
+      return await send(xvsVault, 'deposit', [xvs._address, 0, amount], { from });
+    }
+
+    async function requestWithdrawal(amount, { from }) {
+      return await send(xvsVault, 'requestWithdrawal', [xvs._address, 0, amount], { from });
+    }
+
+    async function delegate(delegatee, { from }) {
+      return await send(xvsVault, 'delegate', [delegatee], { from });
+    }
+
+    describe('checkpoints', () => {
+      it('correctly computes checkpoints', async () => {
+        await deposit(1000, { from: a1 });
+        await expect(call(xvsVault, 'numCheckpoints', [a1])).resolves.toEqual('0');
+        await expect(call(xvsVault, 'numCheckpoints', [a2])).resolves.toEqual('0');
+
+        const t1 = await delegate(a2, { from: a1 });
+        await expect(call(xvsVault, 'numCheckpoints', [a1])).resolves.toEqual('0');
+        await expect(call(xvsVault, 'numCheckpoints', [a2])).resolves.toEqual('1');
+
+        const t2 = await requestWithdrawal(900, { from: a1 });
+        await expect(call(xvsVault, 'numCheckpoints', [a1])).resolves.toEqual('0');
+        await expect(call(xvsVault, 'numCheckpoints', [a2])).resolves.toEqual('2');
+
+        const t3 = await requestWithdrawal(90, { from: a1 });
+        await expect(call(xvsVault, 'numCheckpoints', [a1])).resolves.toEqual('0');
+        await expect(call(xvsVault, 'numCheckpoints', [a2])).resolves.toEqual('3');
+
+        const t4 = await deposit(42, { from: a1 });;
+        await expect(call(xvsVault, 'numCheckpoints', [a1])).resolves.toEqual('0');
+        await expect(call(xvsVault, 'numCheckpoints', [a2])).resolves.toEqual('4');
+
+        await expect(call(xvsVault, 'checkpoints', [a2, 0])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t1.blockNumber.toString(), votes: '1000' })
+        );
+        await expect(call(xvsVault, 'checkpoints', [a2, 1])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t2.blockNumber.toString(), votes: '100' })
+        );
+        await expect(call(xvsVault, 'checkpoints', [a2, 2])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t3.blockNumber.toString(), votes: '10' })
+        );
+        await expect(call(xvsVault, 'checkpoints', [a2, 3])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t4.blockNumber.toString(), votes: '52' })
+        );
+      });
+
+      it('correctly computes checkpoints for multiple delegators', async () => {
+        await send(xvs, 'transfer', [a2, tokenAmount], { from: root });
+        await send(xvs, 'approve', [xvsVault._address, tokenAmount], { from: a2 });
+
+        await deposit(4444, { from: a1 });
+        await deposit(5555, { from: a2 });
+
+        const t1 = await delegate(a3, { from: a1 });
+        await expect(call(xvsVault, 'numCheckpoints', [a3])).resolves.toEqual('1');
+
+        const t2 = await delegate(a3, { from: a2 });
+        await expect(call(xvsVault, 'numCheckpoints', [a3])).resolves.toEqual('2');
+
+        const t3 = await requestWithdrawal(444, { from: a1 });
+        await expect(call(xvsVault, 'numCheckpoints', [a3])).resolves.toEqual('3');
+
+        const t4 = await requestWithdrawal(555, { from: a2 });
+        await expect(call(xvsVault, 'numCheckpoints', [a3])).resolves.toEqual('4');
+
+        const t5 = await deposit(10, { from: a2 });
+        await expect(call(xvsVault, 'numCheckpoints', [a3])).resolves.toEqual('5');
+
+        const t6 = await delegate(address(0), { from: a1 });
+        await expect(call(xvsVault, 'numCheckpoints', [a3])).resolves.toEqual('6');
+
+        await expect(call(xvsVault, 'checkpoints', [a3, 0])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t1.blockNumber.toString(), votes: '4444' })
+        );
+        await expect(call(xvsVault, 'checkpoints', [a3, 1])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t2.blockNumber.toString(), votes: '9999' })
+        );
+        await expect(call(xvsVault, 'checkpoints', [a3, 2])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t3.blockNumber.toString(), votes: '9555' })
+        );
+        await expect(call(xvsVault, 'checkpoints', [a3, 3])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t4.blockNumber.toString(), votes: '9000' })
+        );
+        await expect(call(xvsVault, 'checkpoints', [a3, 4])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t5.blockNumber.toString(), votes: '9010' })
+        );
+        await expect(call(xvsVault, 'checkpoints', [a3, 5])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t6.blockNumber.toString(), votes: '5010' })
+        );
+      });
+
+      it('does not add more than one checkpoint in a block', async () => {
+        await minerStop();
+
+        let t1 = delegate(a2, { from: a1 });
+        let t2 = deposit(100, { from: a1 });
+        let t3 = requestWithdrawal(10, { from: a1 });
+
+        await minerStart();
+        t1 = await t1;
+        t2 = await t2;
+        t3 = await t3;
+
+        await expect(call(xvsVault, 'numCheckpoints', [a2])).resolves.toEqual('1');
+
+        await expect(call(xvsVault, 'checkpoints', [a2, 0])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t1.blockNumber.toString(), votes: '90' })
+        );
+        await expect(call(xvsVault, 'checkpoints', [a2, 1])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: '0', votes: '0' })
+        );
+        await expect(call(xvsVault, 'checkpoints', [a2, 2])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: '0', votes: '0' })
+        );
+
+        const t4 = await deposit(20, { from: a1 });
+        await expect(call(xvsVault, 'numCheckpoints', [a2])).resolves.toEqual('2');
+        await expect(call(xvsVault, 'checkpoints', [a2, 1])).resolves.toEqual(
+          expect.objectContaining({ fromBlock: t4.blockNumber.toString(), votes: '110' })
+        );
+      });
+    });
+
+    describe('getPriorVotes', () => {
+      it('reverts if block number >= current block', async () => {
+        await expect(call(xvsVault, 'getPriorVotes', [a1, 5e10])).rejects.toRevert("revert XVSVault::getPriorVotes: not yet determined");
+      });
+
+      it('returns 0 if there are no checkpoints', async () => {
+        expect(await call(xvsVault, 'getPriorVotes', [a1, 0])).toEqual('0');
+      });
+
+      it('returns the latest block if >= last checkpoint block', async () => {
+        await deposit('20000000000000000000000000', { from: a1 });
+        const t1 = await delegate(a1, { from: a1 });
+        await mineBlock();
+        await mineBlock();
+
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t1.blockNumber])).toEqual('20000000000000000000000000');
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('20000000000000000000000000');
+      });
+
+      it('returns zero if < first checkpoint block', async () => {
+        await deposit('20000000000000000000000000', { from: a1 });
+        await mineBlock();
+        const t1 = await delegate(a1, { from: a1 });
+        await mineBlock();
+        await mineBlock();
+
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t1.blockNumber - 1])).toEqual('0');
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('20000000000000000000000000');
+      });
+
+      it('generally returns the voting balance at the appropriate checkpoint', async () => {
+        await deposit('20000000000000000000000000', { from: a1 });
+
+        await send(xvs, 'transfer', [a2, '20'], { from: root });
+        await send(xvs, 'approve', [xvsVault._address, '20'], { from: a2 });
+        await deposit('20', { from: a2 });
+
+        const t1 = await delegate(a1, { from: a1 });
+        await mineBlock();
+        await mineBlock();
+        const t2 = await requestWithdrawal('30', { from: a1 });
+        await mineBlock();
+        await mineBlock();
+        const t3 = await delegate(a1, { from: a2 });
+        await mineBlock();
+        await mineBlock();
+        const t4 = await deposit('10', { from: a1 });
+        await mineBlock();
+        await mineBlock();
+
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t1.blockNumber - 1])).toEqual('0');
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t1.blockNumber])).toEqual('20000000000000000000000000');
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t1.blockNumber + 1])).toEqual('20000000000000000000000000');
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t2.blockNumber])).toEqual('19999999999999999999999970');
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t2.blockNumber + 1])).toEqual('19999999999999999999999970');
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t3.blockNumber])).toEqual('19999999999999999999999990');
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t3.blockNumber + 1])).toEqual('19999999999999999999999990');
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t4.blockNumber])).toEqual('20000000000000000000000000');
+        expect(await call(xvsVault, 'getPriorVotes', [a1, t4.blockNumber + 1])).toEqual('20000000000000000000000000');
+      });
+    });
+  });
 });
