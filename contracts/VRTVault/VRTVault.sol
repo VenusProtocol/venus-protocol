@@ -13,12 +13,32 @@ contract VRTVault is VRTVaultStorage {
     /// @notice Event emitted when admin changed
     event AdminTransfered(address indexed oldAdmin, address indexed newAdmin);
 
+    /// @notice Event emitted on VRT deposit
+    event Deposit(address indexed user, uint256 amount);
+
+    /// @notice Event emitted when accruedInterest and VRT PrincipalAmount is withrawn
+    event Withdraw(address indexed user, uint256 withdrawnAmount, uint256 totalPrincipalAmount, uint256 accruedInterest);
+
+    /// @notice Event emitted when accruedInterest is claimed
+    event Claim(address indexed user, uint256 interestAmount);
+
     constructor() public {
         admin = msg.sender;
     }
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "only admin can");
+        _;
+    }
+
+    modifier nonZeroAddress(address _address) {
+        require(_address != address(0), "Address cannot be Zero");
+        _;
+    }
+
+    modifier userHasPosition(address userAddress) {
+        UserInfo storage user = userInfo[userAddress];
+        require(user.userAddress != address(0), "User doesnot have any position in the Vault.");
         _;
     }
 
@@ -32,6 +52,102 @@ contract VRTVault is VRTVaultStorage {
         _notEntered = false;
         _;
         _notEntered = true; // get a gas-refund post-Istanbul
+    }
+
+    /**
+     * @notice Deposit VRT to VRTVault for a fixed-interest-rate
+     * @param depositAmount The amount to deposit to vault
+     */
+    function deposit(address userAddress, uint256 depositAmount) public nonReentrant nonZeroAddress(userAddress) {
+        require(depositAmount > 0, "Deposit amount must be non-zero");
+
+        UserInfo storage user = userInfo[userAddress];
+
+        if(user.userAddress == address(0)){
+            user.userAddress = userAddress;
+            user.accrualStartBlockNumber = getBlockNumber();
+            user.totalPrincipalAmount = depositAmount;
+        } else{
+            user.totalPrincipalAmount = user.totalPrincipalAmount.add(depositAmount);
+
+            // accrue Interest and transfer to the user
+            uint256 accruedInterest = computeAccruedInterest(user.totalPrincipalAmount, user.accrualStartBlockNumber);
+
+            if(accruedInterest > 0){
+                uint256 vrtBalance = vrt.balanceOf(address(this));
+                require(vrtBalance >= accruedInterest, "Failed to transfer accruedInterest, Insufficient VRT in Vault.");
+                user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
+                vrt.safeTransferFrom(address(this), user.userAddress, accruedInterest);
+            }
+        }
+
+        emit Deposit(userAddress, depositAmount);
+        vrt.safeTransferFrom(userAddress, address(this), depositAmount);
+    }
+
+    /**
+     * @notice get accruedInterest of the user's VRTDeposits in the Vault
+     * @param userAddress Address of User in the the Vault
+     */
+    function getAccruedInterest(address userAddress) public view nonZeroAddress(userAddress) userHasPosition(userAddress) returns (uint256) {
+        UserInfo storage user = userInfo[userAddress];
+        return computeAccruedInterest(user.totalPrincipalAmount, user.accrualStartBlockNumber);
+    }
+
+    /**
+     * @notice get accruedInterest of the user's VRTDeposits in the Vault
+     * @param totalPrincipalAmount of the User
+     * @param accrualStartBlockNumber of the User
+     */
+    function computeAccruedInterest(uint256 totalPrincipalAmount, uint256 accrualStartBlockNumber) internal view returns (uint256) {
+
+        uint256 blockNumber = getBlockNumber();
+
+        if(accrualStartBlockNumber == blockNumber){
+            return 0;
+        }
+
+        //number of blocks Since Deposit
+        uint256 blockDelta = blockNumber.sub(accrualStartBlockNumber);
+        uint256 accruedInterest = (totalPrincipalAmount.mul(interestRatePerBlock).mul(blockDelta)).div(1e18);
+        return accruedInterest;
+    }
+
+    /**
+     * @notice claim the accruedInterest of the user's VRTDeposits in the Vault
+     * @param userAddress Address of User in the the Vault
+     */
+    function claim(address userAddress) external nonReentrant nonZeroAddress(userAddress) userHasPosition(userAddress) {
+        uint256 accruedInterest = getAccruedInterest(userAddress);
+
+        if(accruedInterest > 0){
+            UserInfo storage user = userInfo[userAddress];
+            user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);        uint256 vrtBalance = vrt.balanceOf(address(this));
+            require(vrtBalance >= accruedInterest, "Failed to transfer VRT, Insufficient VRT in Vault.");
+            emit Claim(userAddress, accruedInterest);
+            vrt.safeTransferFrom(address(this), user.userAddress, accruedInterest);
+        }
+    }
+
+    /**
+     * @notice withdraw accruedInterest and totalPrincipalAmount of the user's VRTDeposit in the Vault
+     * @param userAddress Address of User in the the Vault
+     */
+    function withdraw(address userAddress) external nonReentrant nonZeroAddress(userAddress) userHasPosition(userAddress) {
+        uint256 accruedInterest = getAccruedInterest(userAddress);
+        UserInfo storage user = userInfo[userAddress];
+
+        if(accruedInterest > 0){
+            user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
+        }
+
+        uint256 totalPrincipalAmount = user.totalPrincipalAmount;
+        uint256 vrtForWithdrawal = accruedInterest.add(totalPrincipalAmount);
+
+        uint256 vrtBalance = vrt.balanceOf(address(this));
+        require(vrtBalance >= vrtForWithdrawal, "Failed to transfer VRT, Insufficient VRT in Vault.");
+        emit Withdraw(userAddress, vrtForWithdrawal, totalPrincipalAmount, accruedInterest);
+        vrt.safeTransferFrom(address(this), user.userAddress, vrtForWithdrawal);
     }
 
     /**
@@ -69,5 +185,9 @@ contract VRTVault is VRTVaultStorage {
         vrt = IBEP20(_vrt);
 
         _notEntered = true;
+    }
+
+    function getBlockNumber() public view returns (uint256) {
+        return block.number;
     }
 }

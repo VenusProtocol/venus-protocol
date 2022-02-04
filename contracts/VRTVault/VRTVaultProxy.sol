@@ -58,14 +58,14 @@ contract VRTVaultProxy is VRTVaultAdminStorage, VRTVaultErrorReporter {
         }
 
         // Save current values for inclusion in log
-        address oldImplementation = vaiVaultImplementation;
+        address oldImplementation = vrtVaultImplementation;
         address oldPendingImplementation = pendingVRTVaultImplementation;
 
-        vaiVaultImplementation = pendingVRTVaultImplementation;
+        vrtVaultImplementation = pendingVRTVaultImplementation;
 
         pendingVRTVaultImplementation = address(0);
 
-        emit NewImplementation(oldImplementation, vaiVaultImplementation);
+        emit NewImplementation(oldImplementation, vrtVaultImplementation);
         emit NewPendingImplementation(oldPendingImplementation, pendingVRTVaultImplementation);
 
         return uint(Error.NO_ERROR);
@@ -130,7 +130,7 @@ contract VRTVaultProxy is VRTVaultAdminStorage, VRTVaultErrorReporter {
      */
     function () external payable {
         // delegate all other functions to current implementation
-        (bool success, ) = vaiVaultImplementation.delegatecall(msg.data);
+        (bool success, ) = vrtVaultImplementation.delegatecall(msg.data);
 
         assembly {
               let free_mem_ptr := mload(0x40)

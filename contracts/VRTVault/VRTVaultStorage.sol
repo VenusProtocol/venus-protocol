@@ -39,7 +39,6 @@ contract VRTVaultStorage is VRTVaultAdminStorage {
     struct UserInfo {
         address userAddress;
         uint256 accrualStartBlockNumber;
-        uint256 vrtAmount;
         uint256 totalInterestAmount;
         uint256 totalPrincipalAmount;
         uint256 totalWithdrawnAmount;
