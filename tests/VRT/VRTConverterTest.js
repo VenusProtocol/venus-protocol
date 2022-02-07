@@ -20,7 +20,7 @@ describe('VRTConverterProxy', () => {
   let conversionRatio, conversionRatioMultiplier, conversionStartTime, vrtDailyLimit, vrtTotalSupply;
   let vrtTransferAmount, vrtFundingAmount;
   let vrtForMint, xvsTokenMintAmount;
-  let xvsVesting, xvsVestingAddress;
+  let xvsVesting, xvsVestingAddress, xvsPerDay;
 
   beforeEach(async () => {
     [root, alice, bob, ...accounts] = saddle.accounts;
@@ -55,9 +55,8 @@ describe('VRTConverterProxy', () => {
     xvsToken = await deploy('XVS', [root]);
     xvsTokenAddress = xvsToken._address;
 
-    let vestingDuration = 365 * 24 * 60 * 60;
-    let vestingFrequency = 100;
-    xvsVesting = await deploy('XVSVestingHarness', [xvsTokenAddress]);
+    xvsPerDay = bnbMantissa(10000);
+    xvsVesting = await deploy('XVSVestingHarness', [xvsTokenAddress, xvsPerDay]);
     xvsVestingAddress = xvsVesting._address;
 
     //deploy VRTConversion
