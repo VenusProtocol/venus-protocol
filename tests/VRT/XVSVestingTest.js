@@ -51,7 +51,7 @@ describe('XVSVesting', () => {
   let conversionRatio, conversionRatioMultiplier, conversionStartTime, vrtDailyLimit, vrtTotalSupply;
   let vrtTransferAmount, vrtFundingAmount;
   let vrtForMint, xvsTokenMintAmount;
-  let xvsVesting, xvsVestingAddress;
+  let xvsVesting, xvsVestingAddress, xvsPerDay;
 
   beforeEach(async () => {
     [root, alice, bob, vrtConversionAddress, redeemerAddress, randomAddress, ...accounts] = saddle.accounts;
@@ -81,7 +81,8 @@ describe('XVSVesting', () => {
     xvsToken = await deploy('XVS', [root]);
     xvsTokenAddress = xvsToken._address;
 
-    xvsVesting = await deploy('XVSVestingHarness', [xvsTokenAddress]);
+    xvsPerDay = bnbMantissa(10000);
+    xvsVesting = await deploy('XVSVestingHarness', [xvsTokenAddress, xvsPerDay]);
     xvsVestingAddress = xvsVesting._address;
 
     xvsTokenMintAmount = bnbMantissa(100000);
