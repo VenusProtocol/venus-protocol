@@ -27,19 +27,19 @@ async function bnbGasCost(receipt) {
   const tx = await web3.eth.getTransaction(receipt.transactionHash);
   const gasUsed = new BigNum(receipt.gasUsed);
   const gasPrice = new BigNum(tx.gasPrice);
-  return gasUsed.times(gasPrice);
+  return ethers.utils.bigNumberify(gasUsed.times(gasPrice).toFixed());
 }
 
 function bnbExp(num) { return bnbMantissa(num, 1e18) }
 function bnbDouble(num) { return bnbMantissa(num, 1e36) }
 function bnbMantissa(num, scale = 1e18) {
   if (num < 0)
-    return new BigNum(2).pow(256).plus(num);
-  return new BigNum(num).times(scale);
+    return ethers.utils.bigNumberify(new BigNum(2).pow(256).plus(num).toFixed());
+  return ethers.utils.bigNumberify(new BigNum(num).times(scale).toFixed());
 }
 
 function bnbUnsigned(num) {
-  return new BigNum(num);
+  return ethers.utils.bigNumberify(new BigNum(num).toFixed());
 }
 
 function mergeInterface(into, from) {
