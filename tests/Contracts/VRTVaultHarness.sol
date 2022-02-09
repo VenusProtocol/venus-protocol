@@ -1,11 +1,17 @@
 pragma solidity ^0.5.16;
 
-import "../../../contracts/VRTVault/VRTVault.sol";
+import "../../contracts/VRTVault/VRTVault.sol";
 
 contract VRTVaultHarness is VRTVault {
     address public constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000;
 
-    constructor() public VRTVault() {}
+    uint public blockNumber;
+
+    constructor(address _vrtAddress, uint256 _interestRatePerBlock) VRTVault(_vrtAddress, _interestRatePerBlock) public {}
+
+    function overrideInterestRatePerBlock(uint256 _interestRatePerBlock) public {
+        interestRatePerBlock = _interestRatePerBlock;
+    }
 
     function balanceOfUser() public view returns (uint256, address) {
         uint256 vrtBalanceOfUser = vrt.balanceOf(msg.sender);

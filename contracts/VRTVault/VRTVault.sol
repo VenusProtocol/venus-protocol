@@ -22,10 +22,12 @@ contract VRTVault is VRTVaultStorage {
     /// @notice Event emitted when accruedInterest is claimed
     event Claim(address indexed user, uint256 interestAmount);
 
-    constructor(uint256 _interestRatePerBlock) public {
-        require(interestRatePerBlock > 0 , "invalid interestRatePerBlock");
+    constructor(address _vrtAddress, uint256 _interestRatePerBlock) public {
+        require(_interestRatePerBlock > 0 , "invalid interestRatePerBlock");
         admin = msg.sender;
+        vrt = IBEP20(_vrtAddress);
         interestRatePerBlock = _interestRatePerBlock;
+        _notEntered = true;
     }
 
     modifier onlyAdmin() {
@@ -78,13 +80,14 @@ contract VRTVault is VRTVaultStorage {
                 uint256 vrtBalance = vrt.balanceOf(address(this));
                 require(vrtBalance >= accruedInterest, "Failed to transfer accruedInterest, Insufficient VRT in Vault.");
                 user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
+                emit Claim(userAddress, accruedInterest);
                 vrt.safeTransferFrom(address(this), user.userAddress, accruedInterest);
             }
         }
 
         user.accrualStartBlockNumber = getBlockNumber();
         emit Deposit(userAddress, depositAmount);
-        vrt.safeTransferFrom(userAddress, address(this), depositAmount);
+        vrt.transferFrom(userAddress, address(this), depositAmount);
     }
 
     /**
@@ -151,7 +154,7 @@ contract VRTVault is VRTVaultStorage {
 
         uint256 vrtBalance = vrt.balanceOf(address(this));
         require(vrtBalance >= vrtForWithdrawal, "Failed to transfer VRT, Insufficient VRT in Vault.");
-        
+
         emit Withdraw(userAddress, vrtForWithdrawal, totalPrincipalAmount, accruedInterest);
         vrt.safeTransferFrom(address(this), user.userAddress, vrtForWithdrawal);
     }
