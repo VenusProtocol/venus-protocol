@@ -405,7 +405,7 @@ describe('Flywheel', () => {
         vToken: mkt._address,
         supplier: a1,
         venusDelta: bnbUnsigned(25e18).toString(),
-        venusBorrowIndex: bnbDouble(6).toString()
+        venusSupplyIndex: bnbDouble(6).toString()
       });
     });
 
