@@ -112,9 +112,9 @@ describe('VToken', () => {
       expect(receipt).toSucceed();
       expect(receipt).toHaveLog('AccrueInterest', {
         cashPrior: 0,
-        interestAccumulated: bnbUnsigned(expectedTotalBorrows).sub(bnbUnsigned(startingTotalBorrows)).toFixed(),
-        borrowIndex: bnbUnsigned(expectedBorrowIndex).toFixed(),
-        totalBorrows: bnbUnsigned(expectedTotalBorrows).toFixed()
+        interestAccumulated: bnbUnsigned(expectedTotalBorrows).sub(bnbUnsigned(startingTotalBorrows)),
+        borrowIndex: bnbUnsigned(expectedBorrowIndex),
+        totalBorrows: bnbUnsigned(expectedTotalBorrows)
       })
       expect(await call(vToken, 'accrualBlockNumber')).toEqualNumber(expectedAccrualBlockNumber);
       expect(await call(vToken, 'borrowIndex')).toEqualNumber(expectedBorrowIndex);
