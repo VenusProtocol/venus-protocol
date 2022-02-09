@@ -25,7 +25,6 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/hardhat-upgrades": "^1.8.2",
     "bignumber.js": "9.0.0",
-    "ethers": "^5.2.0",
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-deploy": "^0.7.10",
     "jest-diff": "^26.4.2",
