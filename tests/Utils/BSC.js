@@ -2,6 +2,9 @@
 
 const BigNum = require('bignumber.js');
 const ethers = require('ethers');
+BigNum.prototype.add = BigNum.prototype.plus;
+BigNum.prototype.mul = BigNum.prototype.times;
+BigNum.prototype.sub = BigNum.prototype.minus;
 
 function address(n) {
   return `0x${n.toString(16).padStart(40, '0')}`;
@@ -13,11 +16,11 @@ function encodeParameters(types, values) {
 }
 
 async function bnbBalance(addr) {
-  return ethers.utils.bigNumberify(new BigNum(await web3.eth.getBalance(addr)).toFixed());
+  return new BigNum(await web3.eth.getBalance(addr));
 }
 
 async function vaiBalance(vai, addr) {
-  return ethers.utils.bigNumberify(new BigNum(await web3.eth.getBalance(addr)).toFixed());
+  return new BigNum(await web3.eth.getBalance(addr));
 }
 
 async function bnbGasCost(receipt) {

@@ -1,4 +1,5 @@
-const contractConfigData = require("../../../networks/testnet.json");
+const [network] = args;
+const contractConfigData = require(`../../../networks/${network}.json`);
 
 (async () => {  
 
@@ -11,7 +12,7 @@ const contractConfigData = require("../../../networks/testnet.json");
   const txn = await governorAlpha2ContractInstance.methods.propose(
     [timelockAddress],
     [0],
-    ['_setPendingAdmin(address)'], 
+    ['_setPendingAdmin(address)'],
     [payload],
     "test on governorAlpha2 for _setPendingAdmin to 0x address ").send();
 
