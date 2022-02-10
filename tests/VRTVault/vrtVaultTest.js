@@ -175,7 +175,7 @@ describe('XVSVault', () => {
 
   describe("Claim VRT", () => {
 
-    it("Claim AccruedInterest after 2nd VRT-Deposit", async () => {
+    it("Claim AccruedInterest after VRT-Deposit", async () => {
       let blockNumber = 0;
       await setBlockNumber(vrtVault, blockNumber);
       const vrtDepositAmount = bnbUnsigned(1e22);
@@ -202,6 +202,35 @@ describe('XVSVault', () => {
 
   describe("Withdraw VRT", () => {
 
+    it("Withdraw after 1st VRT-Deposit", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      const vrtDepositAmount = bnbUnsigned(1e22);
+
+      await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
+      await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
+
+      const currentBlockNumber = await getBlockNumber(vrtVault);
+      const accrualStartBlockNumber = await getAccrualStartBlockNumber(vrtVault, user1);
+      const expectedAccruedInterest = await calculateAccruedInterest(vrtDepositAmount, accrualStartBlockNumber, currentBlockNumber)
+      const expectedPrincipalAmount = await getTotalPrincipalAmount(vrtVault, user1);
+      const totalWithdrawnAmount = new BigNum(expectedAccruedInterest).plus(new BigNum(expectedPrincipalAmount));
+
+      expect(new BigNum(totalWithdrawnAmount)).toEqual(new BigNum(expectedPrincipalAmount));
+      expect(new BigNum(expectedAccruedInterest)).toEqual(new BigNum(0));
+
+      const vrtClaimTransaction = await send(vrtVault, "withdraw", [user1], { from: user1 });
+
+      expect(vrtClaimTransaction).toHaveLog('Withdraw', {
+        user: user1,
+        withdrawnAmount: new BigNum(totalWithdrawnAmount).toFixed(),
+        totalPrincipalAmount: new BigNum(expectedPrincipalAmount).toFixed(),
+        accruedInterest: new BigNum(expectedAccruedInterest).toFixed()
+      });
+
+    });
+
     it("Withdraw AccruedInterest and Deposit after 2nd VRT-Deposit", async () => {
       let blockNumber = 0;
       await setBlockNumber(vrtVault, blockNumber);
@@ -218,9 +247,85 @@ describe('XVSVault', () => {
       const expectedPrincipalAmount = await getTotalPrincipalAmount(vrtVault, user1);
       const totalWithdrawnAmount = new BigNum(expectedAccruedInterest).plus(new BigNum(expectedPrincipalAmount));
 
-      const vrtClaimTransaction = await send(vrtVault, "withdraw", [user1], { from: user1 });
+      const vrtWithdrawTransaction = await send(vrtVault, "withdraw", [user1], { from: user1 });
 
-      expect(vrtClaimTransaction).toHaveLog('Withdraw', {
+      expect(vrtWithdrawTransaction).toHaveLog('Withdraw', {
+        user: user1,
+        withdrawnAmount: new BigNum(totalWithdrawnAmount).toFixed(),
+        totalPrincipalAmount: new BigNum(expectedPrincipalAmount).toFixed(),
+        accruedInterest: new BigNum(expectedAccruedInterest).toFixed()
+      });
+
+    });
+
+    it("VRT-Deposit and wait for 1000 blocks folloed by a Claim and Withdrawal", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      const vrtDepositAmount = bnbUnsigned(1e22);
+
+      await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
+      await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
+
+      await incrementBlocks(vrtVault, 1000);
+      const currentBlockNumber = await getBlockNumber(vrtVault);
+      const accrualStartBlockNumber = await getAccrualStartBlockNumber(vrtVault, user1);
+      const expectedAccruedInterest = await calculateAccruedInterest(vrtDepositAmount, accrualStartBlockNumber, currentBlockNumber)
+
+      //claim
+      const vrtClaimTransaction = await send(vrtVault, "claim", [user1], { from: user1 });
+
+      expect(vrtClaimTransaction).toHaveLog('Claim', {
+        user: user1,
+        interestAmount: expectedAccruedInterest
+      });
+
+      //withdraw
+      const vrtWithdrawTransaction = await send(vrtVault, "withdraw", [user1], { from: user1 });
+
+      expect(vrtWithdrawTransaction).toHaveLog('Withdraw', {
+        user: user1,
+        withdrawnAmount: new BigNum(vrtDepositAmount).toFixed(),
+        totalPrincipalAmount: new BigNum(vrtDepositAmount).toFixed(),
+        accruedInterest: new BigNum(0)
+      });
+
+    });
+
+
+    it("VRT-Deposit and wait for 1000 blocks followed by a Claim and wait for 1000 blocks followed by Withdrawal", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      const vrtDepositAmount = bnbUnsigned(1e22);
+
+      await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
+      await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
+
+      await incrementBlocks(vrtVault, 1000);
+      let currentBlockNumber = await getBlockNumber(vrtVault);
+      let accrualStartBlockNumber = await getAccrualStartBlockNumber(vrtVault, user1);
+      let expectedAccruedInterest = await calculateAccruedInterest(vrtDepositAmount, accrualStartBlockNumber, currentBlockNumber)
+
+      //claim
+      const vrtClaimTransaction = await send(vrtVault, "claim", [user1], { from: user1 });
+
+      expect(vrtClaimTransaction).toHaveLog('Claim', {
+        user: user1,
+        interestAmount: expectedAccruedInterest
+      });
+
+      await incrementBlocks(vrtVault, 1000);
+
+      currentBlockNumber = await getBlockNumber(vrtVault);
+      accrualStartBlockNumber = await getAccrualStartBlockNumber(vrtVault, user1);
+      expectedAccruedInterest = await calculateAccruedInterest(vrtDepositAmount, accrualStartBlockNumber, currentBlockNumber)
+      const expectedPrincipalAmount = await getTotalPrincipalAmount(vrtVault, user1);
+      const totalWithdrawnAmount = new BigNum(expectedAccruedInterest).plus(new BigNum(expectedPrincipalAmount));
+
+      const vrtWithdrawTransaction = await send(vrtVault, "withdraw", [user1], { from: user1 });
+
+      expect(vrtWithdrawTransaction).toHaveLog('Withdraw', {
         user: user1,
         withdrawnAmount: new BigNum(totalWithdrawnAmount).toFixed(),
         totalPrincipalAmount: new BigNum(expectedPrincipalAmount).toFixed(),
