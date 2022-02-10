@@ -7,6 +7,7 @@ const BigNum = require('bignumber.js');
 
 const interestRatePerBlock = bnbUnsigned(28935185000);
 const vrtTotalSupply = bnbMantissa(30000000000);
+const zeroAddress = "0x0000000000000000000000000000000000000000";
 
 const calculateAccruedInterest = (principalAmount, accrualStartBlockNumber, currentBlockNumber) => {
   return ((new BigNum(principalAmount)
@@ -83,14 +84,14 @@ const depositVRT = async (vrt, vrtVault, userAddress, vrtDepositAmount) => {
 }
 
 describe('XVSVault', () => {
-  let root, notAdmin, user1, user2, user3;
+  let root, notAdmin, user1, user2, user3, treasury;
   let blockTimestamp;
   let vrtVault, vrtVaultAddress;
   let vrt, vrtAddress;
   let preFundedVRTInVault = bnbUnsigned(10e18);
 
   beforeEach(async () => {
-    [root, notAdmin, user1, user2, user3] = accounts;
+    [root, notAdmin, user1, user2, user3, treasury] = accounts;
 
     vrt = await deploy('VRT', [root]);
     vrtAddress = vrt._address;
@@ -136,6 +137,7 @@ describe('XVSVault', () => {
       const vrtDepositAmount = bnbUnsigned(1e22);
 
       await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await incrementBlocks(vrtVault, 1);
       await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
       await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
 
@@ -154,19 +156,45 @@ describe('XVSVault', () => {
       });
     });
 
+    it("Deposit Failure for Zero amount", async () => {
+      await expect(send(vrtVault, "deposit", [user1, new BigNum(0)], { from: user1 })).rejects.toRevert("revert Deposit amount must be non-zero");
+    });
+
+    it("2nd VRT-Deposit to fail - due to insufficient Balance while claiming accrued-Interest", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      const vrtDepositAmount = bnbUnsigned(1e22);
+
+      await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await incrementBlocks(vrtVault, 1);
+
+      await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
+      await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
+
+      await incrementBlocks(vrtVault, 1000);
+      await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+
+      const vrtBalanceOfVault = await call(vrt, "balanceOf", [vrtVaultAddress]);
+      await send(vrtVault, 'withdrawBep20', [vrtAddress, user2, vrtBalanceOfVault], { from: root });
+      await expect(send(vrtVault, "deposit", [user1, vrtDepositAmount], {from: user1})).rejects.toRevert("revert Failed to transfer accruedInterest, Insufficient VRT in Vault.");
+    });
+
   });
 
   describe("Interest Accrual", () => {
 
-    it("should accrue Interest on VRT Deposit with timeTravel of 100 Blocks", async () => {
+    it("should accrue Interest on VRT Deposit with timeTravel of 1000 Blocks", async () => {
       let blockNumber = 0;
       await setBlockNumber(vrtVault, blockNumber);
       const vrtDepositAmount = bnbUnsigned(1e22);
       await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await incrementBlocks(vrtVault, 1);
+
       await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
       const accruedInterestBeforeTimeAdvance = await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
 
       await incrementBlocks(vrtVault, 1000);
+
       const accruedInterestAfterTimeAdvance = await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
       expect(new BigNum(accruedInterestAfterTimeAdvance).isGreaterThan(new BigNum(accruedInterestBeforeTimeAdvance))).toEqual(true);
     });
@@ -181,6 +209,8 @@ describe('XVSVault', () => {
       const vrtDepositAmount = bnbUnsigned(1e22);
 
       await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await incrementBlocks(vrtVault, 1);
+
       await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
       await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
 
@@ -190,12 +220,20 @@ describe('XVSVault', () => {
       const expectedAccruedInterest = await calculateAccruedInterest(vrtDepositAmount, accrualStartBlockNumber, currentBlockNumber)
 
       const vrtClaimTransaction = await send(vrtVault, "claim", [user1], { from: user1 });
+      expect(vrtClaimTransaction).toSucceed();
 
       expect(vrtClaimTransaction).toHaveLog('Claim', {
         user: user1,
         interestAmount: expectedAccruedInterest
       });
+    });
 
+    it("Claim Failure for user with no VRT Deposits", async () => {
+      await expect(send(vrtVault, "claim", [user2], { from: user2 })).rejects.toRevert("revert User doesnot have any position in the Vault.");
+    });
+
+    it("Claim Failure for Zero Address as recipient", async () => {
+      await expect(send(vrtVault, "claim", [zeroAddress], { from: user2 })).rejects.toRevert("revert Address cannot be Zero");
     });
 
   });
@@ -228,7 +266,6 @@ describe('XVSVault', () => {
         totalPrincipalAmount: new BigNum(expectedPrincipalAmount).toFixed(),
         accruedInterest: new BigNum(expectedAccruedInterest).toFixed()
       });
-
     });
 
     it("Withdraw AccruedInterest and Deposit after 2nd VRT-Deposit", async () => {
@@ -237,6 +274,8 @@ describe('XVSVault', () => {
       const vrtDepositAmount = bnbUnsigned(1e22);
 
       await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await incrementBlocks(vrtVault, 1);
+
       await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
       await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
 
@@ -264,6 +303,8 @@ describe('XVSVault', () => {
       const vrtDepositAmount = bnbUnsigned(1e22);
 
       await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await incrementBlocks(vrtVault, 1);
+
       await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
       await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
 
@@ -292,13 +333,14 @@ describe('XVSVault', () => {
 
     });
 
-
     it("VRT-Deposit and wait for 1000 blocks followed by a Claim and wait for 1000 blocks followed by Withdrawal", async () => {
       let blockNumber = 0;
       await setBlockNumber(vrtVault, blockNumber);
       const vrtDepositAmount = bnbUnsigned(1e22);
 
       await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await incrementBlocks(vrtVault, 1);
+
       await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
       await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
 
@@ -331,7 +373,67 @@ describe('XVSVault', () => {
         totalPrincipalAmount: new BigNum(expectedPrincipalAmount).toFixed(),
         accruedInterest: new BigNum(expectedAccruedInterest).toFixed()
       });
+    });
 
+    it("Withdraw Failure due to insufficient funds", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      const vrtDepositAmount = bnbUnsigned(1e22);
+
+      await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
+      await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
+
+      const currentBlockNumber = await getBlockNumber(vrtVault);
+      const accrualStartBlockNumber = await getAccrualStartBlockNumber(vrtVault, user1);
+      const expectedAccruedInterest = await calculateAccruedInterest(vrtDepositAmount, accrualStartBlockNumber, currentBlockNumber)
+      const expectedPrincipalAmount = await getTotalPrincipalAmount(vrtVault, user1);
+      const totalWithdrawnAmount = new BigNum(expectedAccruedInterest).plus(new BigNum(expectedPrincipalAmount));
+
+      expect(new BigNum(totalWithdrawnAmount)).toEqual(new BigNum(expectedPrincipalAmount));
+      expect(new BigNum(expectedAccruedInterest)).toEqual(new BigNum(0));
+
+      //admin withdraw VRT
+      await send(vrtVault, 'withdrawBep20', [vrtAddress, user2, new BigNum(totalWithdrawnAmount)], { from: root });
+
+      await expect(send(vrtVault, "withdraw", [user1], { from: user1 })).rejects.toRevert("revert Failed to transfer VRT, Insufficient VRT in Vault.");
+    });
+
+    it("Withdraw Failure for user with no VRT Deposits", async () => {
+      await expect(send(vrtVault, "withdraw", [user2], { from: user2 })).rejects.toRevert("revert User doesnot have any position in the Vault.");
+    });
+
+    it("Withdraw Failure for Zero Address as recipient", async () => {
+      await expect(send(vrtVault, "withdraw", [zeroAddress], { from: user2 })).rejects.toRevert("revert Address cannot be Zero");
+    });
+  });
+
+  describe("Withdraw BEP20", () => {
+
+    it("Admin can withdraw VRT", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      const withdrawBep20Txn = await send(vrtVault, "withdrawBep20", [vrtAddress, treasury, preFundedVRTInVault], { from: root });
+      expect(withdrawBep20Txn).toSucceed();
+      expect(withdrawBep20Txn).toHaveLog('WithdrawToken', {
+        tokenAddress: vrtAddress,
+        receiver: treasury,
+        amount: new BigNum(preFundedVRTInVault).toFixed()
+      });
+    });
+
+    it("Admin Fails to withdraw VRT - Insufficient funds", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      await expect(send(vrtVault, "withdrawBep20", [vrtAddress, treasury, new BigNum(preFundedVRTInVault).plus(new BigNum(100))], { from: root }))
+      .rejects.toRevert("revert Insufficient amount in Vault");
+    });
+
+    it("NonAdmin should Fail to withdraw VRT", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      await expect(send(vrtVault, "withdrawBep20", [vrtAddress, treasury, new BigNum(preFundedVRTInVault)], { from: user1 }))
+      .rejects.toRevert("revert only admin can");
     });
 
   });

@@ -19,6 +19,9 @@ contract VRTVault is VRTVaultStorage {
     /// @notice Event emitted when accruedInterest and VRT PrincipalAmount is withrawn
     event Withdraw(address indexed user, uint256 withdrawnAmount, uint256 totalPrincipalAmount, uint256 accruedInterest);
 
+    /// @notice Event emitted when Admin withdraw BEP20 token from contract
+    event WithdrawToken(address indexed tokenAddress, address indexed receiver, uint256 amount);
+
     /// @notice Event emitted when accruedInterest is claimed
     event Claim(address indexed user, uint256 interestAmount);
 
@@ -94,8 +97,12 @@ contract VRTVault is VRTVaultStorage {
      * @notice get accruedInterest of the user's VRTDeposits in the Vault
      * @param userAddress Address of User in the the Vault
      */
-    function getAccruedInterest(address userAddress) public view nonZeroAddress(userAddress) userHasPosition(userAddress) returns (uint256) {
-        UserInfo storage user = userInfo[userAddress];
+    function getAccruedInterest(address userAddress) public view nonZeroAddress(userAddress) returns (uint256) {
+        UserInfo memory user = userInfo[userAddress];
+        if(user.accrualStartBlockNumber == 0){
+            return 0;
+        }
+
         return computeAccruedInterest(user.totalPrincipalAmount, user.accrualStartBlockNumber);
     }
 
@@ -105,10 +112,10 @@ contract VRTVault is VRTVaultStorage {
      * @param accrualStartBlockNumber of the User
      */
     function computeAccruedInterest(uint256 totalPrincipalAmount, uint256 accrualStartBlockNumber) internal view returns (uint256) {
-
+        
         uint256 blockNumber = getBlockNumber();
 
-        if(accrualStartBlockNumber == blockNumber){
+        if(accrualStartBlockNumber == 0 || accrualStartBlockNumber == blockNumber){
             return 0;
         }
 
@@ -157,6 +164,20 @@ contract VRTVault is VRTVaultStorage {
 
         emit Withdraw(userAddress, vrtForWithdrawal, totalPrincipalAmount, accruedInterest);
         vrt.safeTransferFrom(address(this), user.userAddress, vrtForWithdrawal);
+    }
+
+    /**
+     * @notice withdraw BEP20 tokens from the contract to a recipient address.
+     * @param tokenAddress address of the BEP20 token
+     * @param receiver recipient of the BEP20 token
+     * @param amount tokenAmount
+     */
+    function withdrawBep20(address tokenAddress, address receiver, uint256 amount) onlyAdmin nonZeroAddress(tokenAddress) nonZeroAddress(receiver) public {
+        require(amount > 0 , "amount is invalid");
+        IBEP20 token = IBEP20(tokenAddress);
+        require(amount <= token.balanceOf(address(this)), "Insufficient amount in Vault");
+        emit WithdrawToken(tokenAddress, receiver, amount);
+        token.safeTransferFrom(address(this), receiver, amount);
     }
 
     /**
