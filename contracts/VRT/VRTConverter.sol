@@ -12,9 +12,6 @@ contract VRTConverter {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
-    uint256 public constant ONE_YEAR = 360 * 24 * 60 * 60;
-    uint256 public constant ONE_DAY = 24 * 60 * 60;
-    uint256 public constant TOTAL_PERIODS = 360;
     address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     /// @notice Administrator for this contract
@@ -35,24 +32,13 @@ contract VRTConverter {
     /// @notice XVSVesting Contract reference
     IXVSVesting public xvsVesting;
 
-    /// @notice The XVS TOKEN!
-    IBEP20 public xvs;
-
     /// @notice decimal precision for XVS
     uint256 public xvsDecimalsMultiplier = 10**18;
 
     /// @notice Conversion ratio from VRT to XVS with decimal 18
     uint256 public conversionRatio;
 
-    /// @notice timestamp from which VRT to XVS is allowed
-    uint256 public conversionStartTime;
-
-    /// @notice timestamp at which VRT to XVS is disabled
-    uint256 public conversionEndTime;
-
     uint256 public vrtTotalSupply;
-
-    uint256 public vrtDailyUtilised;
 
     uint256 public lastDayUpdated;
 
@@ -65,10 +51,10 @@ contract VRTConverter {
     event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 
     /// @notice Emitted when an admin set conversion info
-    event ConversionInfoSet(uint256 conversionRatio, uint256 conversionStartTime, uint256 conversionEndTime);
+    event ConversionInfoSet(uint256 conversionRatio);
 
     /// @notice Emitted when token conversion is done
-    event TokenConverted(address reedeemer, address vrtAddress, address xvsAddress, uint256 vrtAmount, uint256 xvsAmount);
+    event TokenConverted(address reedeemer, address vrtAddress, uint256 vrtAmount, uint256 xvsAmount);
 
     /// @notice Emitted when an admin withdraw converted token
     event TokenWithdraw(address token, address to, uint256 amount);
@@ -76,17 +62,13 @@ contract VRTConverter {
     /// @notice Emitted when XVSVestingAddress is set
     event XVSVestingSet(address xvsVestingAddress);
 
-    constructor(address _vrtAddress, address _xvsAddress, uint256 _conversionRatio,
-                uint256 _conversionStartTime, uint256 _vrtTotalSupply) public {
+    constructor(address _vrtAddress, uint256 _conversionRatio,
+                uint256 _vrtTotalSupply) public {
         admin = msg.sender;
         vrt = IBEP20(_vrtAddress);
-        xvs = IBEP20(_xvsAddress);
         conversionRatio = _conversionRatio;
-        conversionStartTime = _conversionStartTime;
-        conversionEndTime = conversionStartTime.add(ONE_YEAR);
-        emit ConversionInfoSet(conversionRatio, conversionStartTime, conversionEndTime);
+        emit ConversionInfoSet(conversionRatio);
         vrtTotalSupply = _vrtTotalSupply;
-        vrtDailyUtilised = 0;
         totalVrtConverted = 0;
         _notEntered = true;
     }
@@ -148,28 +130,10 @@ contract VRTConverter {
     function convert(uint256 vrtAmount) external nonReentrant
     {
         require(address(xvsVesting) != address(0), "XVS-Vesting Address is not set");
-        require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
         require(vrtAmount > 0, "VRT amount must be non-zero");
         require(conversionRatio > 0, "conversion ratio is incorrect");
-        require(
-            conversionStartTime <= block.timestamp,
-            "VRT conversion didnot start yet"
-        );
         uint256 vrtBalanceOfUser = vrt.balanceOf(msg.sender);
         require(vrtBalanceOfUser >= vrtAmount , "Insufficient VRT-Balance for conversion");
-
-        uint256 _currentDayNumber = ((block.timestamp).sub(conversionStartTime)).div(ONE_DAY);
-        uint256 vrtDailyLimit = computeVrtDailyLimit();
-
-        if(_currentDayNumber > lastDayUpdated) {
-            lastDayUpdated = _currentDayNumber;
-            require(vrtAmount <= vrtDailyLimit , "cannot convert more than daily limit for VRT-Conversion");
-            vrtDailyUtilised = vrtAmount;
-        } else {
-           require(vrtAmount <= vrtDailyLimit.sub(vrtDailyUtilised) , "daily limit reached for VRT-Conversion");
-            vrtDailyUtilised = vrtDailyUtilised.add(vrtAmount);
-        }
-
         totalVrtConverted = totalVrtConverted.add(vrtAmount);
 
         uint256 redeemAmount = vrtAmount
@@ -177,48 +141,9 @@ contract VRTConverter {
             .mul(xvsDecimalsMultiplier)
             .div(1e18)
             .div(vrtDecimalsMultiplier);
-        require(
-            redeemAmount <= xvs.balanceOf(address(this)),
-            "not enough XVSTokens"
-        );
 
-        emit TokenConverted(msg.sender, address(vrt), address(xvs), vrtAmount, redeemAmount);
-        vrt.transferFrom(msg.sender, DEAD_ADDRESS, vrtAmount);
-        xvs.approve(address(xvsVesting), redeemAmount);
+        emit TokenConverted(msg.sender, address(vrt), vrtAmount, redeemAmount);
         xvsVesting.deposit(msg.sender, redeemAmount);
-    }
-    
-    function computeRedeemableAmountAndDailyUtilisation() public view returns 
-        (uint256 redeemableAmount, uint256 dailyUtilisation, uint256 vrtDailyLimit, uint256 numberOfDaysSinceStart) {
-        require(address(xvsVesting) != address(0), "XVS-Vesting Address is not set");
-        require(block.timestamp <= conversionEndTime, "VRT conversion period ended");
-        require(conversionRatio > 0, "conversion ratio is incorrect");
-        require(
-            conversionStartTime <= block.timestamp,
-            "VRT conversion didnot start yet"
-        );
-
-        numberOfDaysSinceStart = ((block.timestamp).sub(conversionStartTime)).div(ONE_DAY);
-        vrtDailyLimit = computeVrtDailyLimit();
-
-        if(numberOfDaysSinceStart > lastDayUpdated) {
-            redeemableAmount = vrtDailyLimit;
-            dailyUtilisation = 0;
-        } else {
-           redeemableAmount = vrtDailyLimit.sub(vrtDailyUtilised);
-           dailyUtilisation = vrtDailyUtilised;
-        }
-    }
-
-    function computeVrtDailyLimit() public view returns (uint256) {
-        uint256 numberOfPeriodsPassed = (block.timestamp.sub(conversionStartTime)).div(ONE_DAY);
-        uint256 remainingPeriods = TOTAL_PERIODS.sub(numberOfPeriodsPassed);
-        if(remainingPeriods <= 0){
-            return 0;
-        } else {
-            uint256 remainingVRTForSwap = vrtTotalSupply.sub(totalVrtConverted);
-            return remainingVRTForSwap.div(remainingPeriods);
-        }
     }
     
     /**

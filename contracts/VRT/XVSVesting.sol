@@ -7,7 +7,7 @@ contract XVSVesting {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
-    uint256 private constant BLOCKS_PER_DAY = 28800;
+    uint256 private constant TOTAL_VESTING_TIME = 360 * 24 * 60 * 60;
 
     /// @notice Administrator for this contract
     address public admin;
@@ -20,10 +20,6 @@ contract XVSVesting {
 
     /// @notice The XVS TOKEN!
     IBEP20 public xvs;
-
-    uint256 public vestingSpeed;
-
-    uint256 public xvsPerDay;
 
     /// @notice VRTConversion Contract Address
     address public vrtConversionAddress;
@@ -55,23 +51,21 @@ contract XVSVesting {
 
     struct VestingRecord {
         address recipient;
-        uint256 startBlock;
-        uint256 totalAmount;
+        uint256 startTime;
+        uint256 amount;
         uint256 withdrawnAmount;
     }
 
-    mapping(address => VestingRecord) public vestings;
+    mapping(address => VestingRecord[]) public vestings;
 
     modifier nonZeroAddress(address _address) {
         require(_address != address(0), "Address cannot be Zero");
         _;
     }
 
-    constructor(address _xvsAddress, uint256 _xvsPerDay) public nonZeroAddress(_xvsAddress) {
+    constructor(address _xvsAddress) public nonZeroAddress(_xvsAddress) {
         admin = msg.sender;
         xvs = IBEP20(_xvsAddress);
-        xvsPerDay = _xvsPerDay;
-        vestingSpeed = xvsPerDay.div(BLOCKS_PER_DAY);
         _notEntered = true;
     }
 
@@ -138,82 +132,104 @@ contract XVSVesting {
         emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
     }
 
+    modifier vestingExistCheck(address recipient) {
+        require(
+            vestings[recipient].length > 0,
+            "Address doesnot have any vestingRecord"
+        );
+
+        _;
+    }
+
     function deposit(address recipient, uint depositAmount) external onlyVrtConverter
         nonReentrant
         nonZeroAddress(recipient) {
         require(depositAmount > 0, "Deposit amount must be non-zero");
 
-        VestingRecord storage vesting = vestings[recipient];
+        VestingRecord[] storage vestingsOfRecipient = vestings[recipient];
 
-        if(vesting.startBlock == 0){
-            vesting.recipient = recipient;
-            vesting.startBlock = getBlockNumber();
-            vesting.totalAmount = depositAmount;
-        } else {
-            withdrawPendingAndDeposit(recipient, depositAmount);
-        }
+        VestingRecord memory vesting = VestingRecord({
+            recipient: recipient,
+            startTime: block.timestamp,
+            amount: depositAmount,
+            withdrawnAmount: 0
+        });
+
+        vestingsOfRecipient.push(vesting);
 
         emit XVSVested(
             recipient,
-            vesting.totalAmount,
-            vesting.withdrawnAmount,
-            vesting.startBlock
+            vesting.startTime,
+            vesting.amount,
+            vesting.withdrawnAmount
         );
     }
 
-    function withdrawPendingAndDeposit(address recipient, uint256 depositAmount)
-    internal
-    {
-        VestingRecord storage vesting = vestings[recipient];
-        (uint256 toWithdraw, uint256 remainingAmount) = calculateWithdrawableAmount(recipient);
-        vesting.totalAmount = remainingAmount.add(depositAmount);
-        vesting.startBlock = getBlockNumber();
-        
-        if (depositAmount > 0) {
-            xvs.safeTransferFrom(msg.sender, address(this), depositAmount);
-        }
-
-        if(toWithdraw > 0){
-            uint256 xvsBalance = xvs.balanceOf(address(this));
-            require(xvsBalance >= toWithdraw,"Insufficient XVS in XVSVesting Contract");
-            emit XVSWithdrawn(recipient, toWithdraw);
-            xvs.safeTransfer(recipient, toWithdraw);
-        }
-    }
-
-    function withdraw(address recipient) external {
+    function withdraw(address recipient) external vestingExistCheck(recipient) {
         require(
             vrtConversionAddress != address(0),
             "VRT-Conversion Address is not set"
         );
-        require(
-            vestings[recipient].startBlock > 0,
-            "Address doesnot have any vested amount for withdrawal"
-        );
 
-       withdrawPendingAndDeposit(recipient, 0);
+        VestingRecord[] storage vestingsOfRecipient = vestings[recipient];
+        uint256 numberOfVestings = vestingsOfRecipient.length;
+        uint256 totalWithdrawableAmount = 0;
+
+        for(uint i = 0; i < numberOfVestings; i++) {
+            VestingRecord storage vesting = vestingsOfRecipient[i];
+            (uint256 vestedAmount, uint256 toWithdraw) = calculateWithdrawableAmount(vesting.amount, vesting.startTime, vesting.withdrawnAmount);
+            if(toWithdraw > 0){
+                totalWithdrawableAmount.add(toWithdraw);
+                vesting.withdrawnAmount = vesting.withdrawnAmount.add(toWithdraw);
+            }
+        }
+
+       if(totalWithdrawableAmount > 0){
+           uint256 xvsBalance = xvs.balanceOf(address(this));
+           require(xvsBalance >= totalWithdrawableAmount, "Insufficient XVS for withdrawal");
+           emit XVSWithdrawn(recipient, totalWithdrawableAmount);
+           xvs.safeTransfer(recipient, totalWithdrawableAmount);
+       }
     }
 
     function getWithdrawableAmount(address recipient) view public nonZeroAddress(recipient) 
-    returns (uint256){
-       (uint256 toWithdraw, uint256 remainingAmount) = calculateWithdrawableAmount(recipient);
-       return toWithdraw;
+    returns (uint256 totalWithdrawableAmount, uint256 totalVestedAmount, uint256 totalWithdrawnAmount)
+    {
+        VestingRecord[] memory vestingsOfRecipient = vestings[recipient];
+        uint256 numberOfVestings = vestingsOfRecipient.length;
+
+        for(uint i = 0; i < numberOfVestings; i++) {
+            VestingRecord memory vesting = vestingsOfRecipient[i];
+            (uint256 vestedAmount, uint256 toWithdraw) = calculateWithdrawableAmount(vesting.amount, vesting.startTime, vesting.withdrawnAmount);
+            totalVestedAmount.add(vestedAmount);
+            totalWithdrawableAmount.add(toWithdraw);
+            totalWithdrawnAmount.add(vesting.withdrawnAmount);
+        }
     }
 
-    function calculateWithdrawableAmount(address recipient) view public nonZeroAddress(recipient) 
-    returns (uint256 toWithdraw, uint256 remainingAmount)
-    {
-        VestingRecord memory vesting = vestings[recipient];
-        uint256 startBlock = vesting.startBlock;
-        uint256 totalAmount = vesting.totalAmount;
-        uint256 blockNumber = getBlockNumber();
-        uint256 unlocked = ((blockNumber.sub(startBlock)).mul(vestingSpeed)).div(xvsDecimalsMultiplier);
-        uint256 amount = totalAmount;
-        if (amount >= unlocked) {
-            return (unlocked, amount.sub(unlocked));
-        } else {
-            return (amount, 0);
+    function calculateWithdrawableAmount(uint256 amount, uint256 vestingStartTime, uint256 withdrawnAmount)
+     internal view returns (uint256 vestedAmount, uint256 toWithdraw) {
+        vestedAmount = calculateVestedAmount(amount, vestingStartTime);
+        toWithdraw = vestedAmount.sub(withdrawnAmount);
+    }
+
+    function getVestedAmount(address recipient) view public nonZeroAddress(recipient) returns (uint256) {
+
+        VestingRecord[] memory vestingsOfRecipient = vestings[recipient];
+        uint256 numberOfVestings = vestingsOfRecipient.length;
+        uint256 totalVestedAmount = 0;
+
+        for(uint i = 0; i < numberOfVestings; i++) {
+            VestingRecord memory vesting = vestingsOfRecipient[i];
+            uint256 vestedAmount = calculateVestedAmount(vesting.amount, vesting.startTime);
+            totalVestedAmount.add(vestedAmount);
         }
+
+        return totalVestedAmount;
+    }
+
+    function calculateVestedAmount(uint256 vestingAmount, uint256 vestingStartTime) internal view returns (uint256) {
+        return ((vestingAmount).mul(block.timestamp.sub(vestingStartTime))).div(TOTAL_VESTING_TIME);
     }
 
     /*** Reentrancy Guard ***/
