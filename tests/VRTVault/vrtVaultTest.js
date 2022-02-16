@@ -433,7 +433,7 @@ describe('XVSVault', () => {
       let blockNumber = 0;
       await setBlockNumber(vrtVault, blockNumber);
       await expect(send(vrtVault, "withdrawBep20", [vrtAddress, treasury, new BigNum(preFundedVRTInVault)], { from: user1 }))
-      .rejects.toRevert("revert only admin can");
+      .rejects.toRevert("revert only admin allowed");
     });
 
   });

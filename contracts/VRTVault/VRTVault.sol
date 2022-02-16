@@ -4,9 +4,10 @@ import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
 import "./VRTVaultProxy.sol";
 import "./VRTVaultStorage.sol";
-import "./VRTVaultErrorReporter.sol";
+import "../Utils/WithAdmin.sol";
+import "../Utils/ReentrancyGuard.sol";
 
-contract VRTVault is VRTVaultStorage {
+contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -25,17 +26,12 @@ contract VRTVault is VRTVaultStorage {
     /// @notice Event emitted when accruedInterest is claimed
     event Claim(address indexed user, uint256 interestAmount);
 
-    constructor(address _vrtAddress, uint256 _interestRatePerBlock) public {
+    constructor(address _vrtAddress, uint256 _interestRatePerBlock) public ReentrancyGuard() WithAdmin(msg.sender) {
         require(_interestRatePerBlock > 0 , "invalid interestRatePerBlock");
         admin = msg.sender;
         vrt = IBEP20(_vrtAddress);
         interestRatePerBlock = _interestRatePerBlock;
         _notEntered = true;
-    }
-
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "only admin can");
-        _;
     }
 
     modifier nonZeroAddress(address _address) {
@@ -47,18 +43,6 @@ contract VRTVault is VRTVaultStorage {
         UserInfo storage user = userInfo[userAddress];
         require(user.userAddress != address(0), "User doesnot have any position in the Vault.");
         _;
-    }
-
-    /*** Reentrancy Guard ***/
-
-    /**
-     * @dev Prevents a contract from calling itself, directly or indirectly.
-     */
-    modifier nonReentrant() {
-        require(_notEntered, "re-entered");
-        _notEntered = false;
-        _;
-        _notEntered = true; // get a gas-refund post-Istanbul
     }
 
     /**
@@ -84,7 +68,7 @@ contract VRTVault is VRTVaultStorage {
                 require(vrtBalance >= accruedInterest, "Failed to transfer accruedInterest, Insufficient VRT in Vault.");
                 user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
                 emit Claim(userAddress, accruedInterest);
-                vrt.safeTransferFrom(address(this), user.userAddress, accruedInterest);
+                vrt.safeTransfer(user.userAddress, accruedInterest);
             }
         }
 
@@ -139,7 +123,7 @@ contract VRTVault is VRTVaultStorage {
             require(vrtBalance >= accruedInterest, "Failed to transfer VRT, Insufficient VRT in Vault.");
             emit Claim(userAddress, accruedInterest);
             user.accrualStartBlockNumber = getBlockNumber();
-            vrt.safeTransferFrom(address(this), user.userAddress, accruedInterest);
+            vrt.safeTransfer(user.userAddress, accruedInterest);
         }
     }
 
@@ -208,7 +192,7 @@ contract VRTVault is VRTVaultStorage {
 
     function _become(VRTVaultProxy vrtVaultProxy) public {
         require(msg.sender == vrtVaultProxy.admin(), "only proxy admin can change brains");
-        require(vrtVaultProxy._acceptImplementation() == 0, "change not authorized");
+        vrtVaultProxy._acceptImplementation();
     }
 
     function setVenusInfo(address _vrt) public onlyAdmin {

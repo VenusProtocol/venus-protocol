@@ -1,9 +1,8 @@
 pragma solidity ^0.5.16;
 
 import "./VRTVaultStorage.sol";
-import "./VRTVaultErrorReporter.sol";
 
-contract VRTVaultProxy is VRTVaultAdminStorage, VRTVaultErrorReporter {
+contract VRTVaultProxy is VRTVaultAdminStorage {
 
     /**
       * @notice Emitted when pendingVRTVaultImplementation is changed
@@ -31,19 +30,15 @@ contract VRTVaultProxy is VRTVaultAdminStorage, VRTVaultErrorReporter {
     }
 
     /*** Admin Functions ***/
-    function _setPendingImplementation(address newPendingImplementation) public returns (uint) {
+    function _setPendingImplementation(address newPendingImplementation) public {
 
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PENDING_IMPLEMENTATION_OWNER_CHECK);
-        }
+        require(msg.sender == admin, "Only admin can set Pending Implementation");
 
         address oldPendingImplementation = pendingVRTVaultImplementation;
 
         pendingVRTVaultImplementation = newPendingImplementation;
 
         emit NewPendingImplementation(oldPendingImplementation, pendingVRTVaultImplementation);
-
-        return uint(Error.NO_ERROR);
     }
 
     /**
@@ -51,11 +46,9 @@ contract VRTVaultProxy is VRTVaultAdminStorage, VRTVaultErrorReporter {
     * @dev Admin function for new implementation to accept it's role as implementation
     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
     */
-    function _acceptImplementation() public returns (uint) {
+    function _acceptImplementation() public {
         // Check caller is pendingImplementation
-        if (msg.sender != pendingVRTVaultImplementation) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK);
-        }
+        require(msg.sender == pendingVRTVaultImplementation, "only address marked as pendingImplementation can accept Implementation");
 
         // Save current values for inclusion in log
         address oldImplementation = vrtVaultImplementation;
@@ -67,8 +60,6 @@ contract VRTVaultProxy is VRTVaultAdminStorage, VRTVaultErrorReporter {
 
         emit NewImplementation(oldImplementation, vrtVaultImplementation);
         emit NewPendingImplementation(oldPendingImplementation, pendingVRTVaultImplementation);
-
-        return uint(Error.NO_ERROR);
     }
 
 
@@ -78,11 +69,9 @@ contract VRTVaultProxy is VRTVaultAdminStorage, VRTVaultErrorReporter {
       * @param newPendingAdmin New pending admin.
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
-    function _setPendingAdmin(address newPendingAdmin) public returns (uint) {
+    function _setPendingAdmin(address newPendingAdmin) public {
         // Check caller = admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PENDING_ADMIN_OWNER_CHECK);
-        }
+        require(msg.sender == admin, "only admin can set pending admin");
 
         // Save current value, if any, for inclusion in log
         address oldPendingAdmin = pendingAdmin;
@@ -92,8 +81,6 @@ contract VRTVaultProxy is VRTVaultAdminStorage, VRTVaultErrorReporter {
 
         // Emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin)
         emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin);
-
-        return uint(Error.NO_ERROR);
     }
 
     /**
@@ -101,12 +88,10 @@ contract VRTVaultProxy is VRTVaultAdminStorage, VRTVaultErrorReporter {
       * @dev Admin function for pending admin to accept role and update admin
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
-    function _acceptAdmin() public returns (uint) {
+    function _acceptAdmin() public {
         // Check caller is pendingAdmin
-        if (msg.sender != pendingAdmin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.ACCEPT_ADMIN_PENDING_ADMIN_CHECK);
-        }
-
+        require(msg.sender == pendingAdmin, "only address marked as pendingAdmin can accept as Admin");
+        
         // Save current values for inclusion in log
         address oldAdmin = admin;
         address oldPendingAdmin = pendingAdmin;
@@ -119,8 +104,6 @@ contract VRTVaultProxy is VRTVaultAdminStorage, VRTVaultErrorReporter {
 
         emit NewAdmin(oldAdmin, admin);
         emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
-
-        return uint(Error.NO_ERROR);
     }
 
     /**

@@ -3,7 +3,6 @@ pragma solidity ^0.5.16;
 import "../../contracts/VRTVault/VRTVault.sol";
 
 contract VRTVaultHarness is VRTVault {
-    address public constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000;
 
     uint public blockNumber;
 

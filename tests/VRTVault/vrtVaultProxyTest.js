@@ -25,10 +25,6 @@ describe('VRTVaultProxy', () => {
     vaultProxyAdmin = await call(vaultProxy, 'admin');
   });
 
-  let setPending = (implementation, from) => {
-    return send(vaultProxy, '_setPendingImplementation', [implementation._address], { from });
-  };
-
   describe("constructor", () => {
     it("sets admin to caller and addresses to 0", async () => {
       expect(await call(vaultProxy, 'admin')).toEqual(root);
@@ -40,19 +36,17 @@ describe('VRTVaultProxy', () => {
 
   describe("_setPendingImplementation", () => {
     describe("Check caller is admin", () => {
-      let result;
-      beforeEach(async () => {
-        result = await setPending(vaultImpl, accounts[1]);
-      });
-
       it("does not change pending implementation address", async () => {
+        await expect( send(vaultProxy, '_setPendingImplementation', [vaultImpl._address], {from: accounts[1]} ) )
+        .rejects.toRevert("revert Only admin can set Pending Implementation");
         expect(await call(vaultProxy, 'pendingVRTVaultImplementation')).toBeAddressZero()
       });
     });
 
     describe("succeeding", () => {
       it("stores pendingVRTVaultImplementation with value newPendingImplementation", async () => {
-        const result = await setPending(vaultImpl, root);
+        console.log(`vaultProxyAdmin is: ${vaultProxyAdmin} - root: ${root}`);
+        const result = await send(vaultProxy, '_setPendingImplementation', [vaultImpl._address], {from: root});
         expect(await call(vaultProxy, 'pendingVRTVaultImplementation')).toEqual(vaultImpl._address);
         expect(result).toHaveLog('NewPendingImplementation', {
           oldPendingImplementation: address(0),
@@ -64,24 +58,18 @@ describe('VRTVaultProxy', () => {
   });
 
   describe("_acceptImplementation", () => {
-    describe("Check caller is pendingVRTVaultImplementation  and pendingVRTVaultImplementation ≠ address(0) ", () => {
-      let result;
-      beforeEach(async () => {
-        await setPending(vaultProxy, root);
-        result = await send(vaultProxy, '_acceptImplementation');
-      });
-
-      it("emits a failure log", async () => {
-        expect(result).toHaveTrollFailure('UNAUTHORIZED', 'ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK');
+    it("Check caller is pendingVRTVaultImplementation  and pendingVRTVaultImplementation ≠ address(0) ", async () => {
+        expect(await send(vaultProxy, '_setPendingImplementation', [vaultImpl._address], {from: root}));
+        await expect(send(vaultProxy, '_acceptImplementation', {from: root}))
+        .rejects.toRevert("revert only address marked as pendingImplementation can accept Implementation");
         expect(await call(vaultProxy, 'vrtVaultImplementation')).not.toEqual(vaultProxy._address);
       });
-
     });
 
     describe("the vaultImpl must accept the responsibility of implementation", () => {
       let result;
       beforeEach(async () => {
-        await setPending(vaultImpl, root);
+        await send(vaultProxy, '_setPendingImplementation', [vaultImpl._address], {from: root})
         const pendingVRTVaultImpl = await call(vaultProxy, 'pendingVRTVaultImplementation');
         expect(pendingVRTVaultImpl).toEqual(vaultImpl._address);
       });
@@ -97,4 +85,4 @@ describe('VRTVaultProxy', () => {
     });
 
   });
-});
+
