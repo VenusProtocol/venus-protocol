@@ -101,7 +101,7 @@ describe('Comptroller', () => {
       const vToken = await makeVToken();
       await expect(
         send(vToken.comptroller, '_setCloseFactor', [1], {from: accounts[0]})
-      ).rejects.toRevert('revert only admin can set close factor');
+      ).rejects.toRevert('revert only admin can');
     });
   });
 
