@@ -49,7 +49,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
      * @notice Deposit VRT to VRTVault for a fixed-interest-rate
      * @param depositAmount The amount to deposit to vault
      */
-    function deposit(uint256 depositAmount) public nonReentrant nonZeroAddress(msg.sender) {
+    function deposit(uint256 depositAmount) public nonReentrant {
         require(depositAmount > 0, "Deposit amount must be non-zero");
 
         address userAddress = msg.sender;
@@ -113,7 +113,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
     /**
      * @notice claim the accruedInterest of the user's VRTDeposits in the Vault
      */
-    function claim() external nonReentrant nonZeroAddress(msg.sender) userHasPosition(msg.sender) {
+    function claim() external nonReentrant userHasPosition(msg.sender) {
         address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
         if(accruedInterest > 0){
@@ -130,7 +130,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
     /**
      * @notice withdraw accruedInterest and totalPrincipalAmount of the user's VRTDeposit in the Vault
      */
-    function withdraw() external nonReentrant nonZeroAddress(msg.sender) userHasPosition(msg.sender) {
+    function withdraw() external nonReentrant userHasPosition(msg.sender) {
         address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
 

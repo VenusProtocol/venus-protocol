@@ -66,13 +66,13 @@ const depositVRT = async (vrt, vrtVault, userAddress, vrtDepositAmount) => {
     amount: vrtDepositAmount
   });
 
-  const expected_VrtBalanceOfVault = new BigNum(vrtBalanceOfVaultBeforeDeposit).plus(vrtDepositAmount).minus(accruedInterest);
+  const expectedVrtBalanceOfVault = new BigNum(vrtBalanceOfVaultBeforeDeposit).plus(vrtDepositAmount).minus(accruedInterest);
   const vrtBalanceOfVaultAfterDeposit = await call(vrt, "balanceOf", [vrtVaultAddress]);
-  expect(new BigNum(vrtBalanceOfVaultAfterDeposit)).toEqual(expected_VrtBalanceOfVault);
+  expect(new BigNum(vrtBalanceOfVaultAfterDeposit)).toEqual(expectedVrtBalanceOfVault);
 
-  const expected_VrtBalanceOfUser = new BigNum(vrtBalanceOfUserBeforeDeposit).minus(vrtDepositAmount).plus(accruedInterest);
+  const expectedVrtBalanceOfUser = new BigNum(vrtBalanceOfUserBeforeDeposit).minus(vrtDepositAmount).plus(accruedInterest);
   const vrtBalanceOfUserAfterDeposit = await call(vrt, "balanceOf", [userAddress]);
-  expect(new BigNum(vrtBalanceOfUserAfterDeposit)).toEqual(expected_VrtBalanceOfUser);
+  expect(new BigNum(vrtBalanceOfUserAfterDeposit)).toEqual(expectedVrtBalanceOfUser);
 
   return vrtDepositTransaction;
 }
@@ -218,8 +218,8 @@ describe('XVSVault', () => {
       const expectedAccruedInterest = await calculateAccruedInterest(vrtDepositAmount, accrualStartBlockNumber, currentBlockNumber)
 
       //claim
-      const tokenBalance_Before_Claim = await getBep20balance(vrt, user1);
-      const tokenBalance_Of_Vault_Before_Claim = await getBep20balance(vrt, vrtVaultAddress);
+      const tokenBalanceBeforeClaim = await getBep20balance(vrt, user1);
+      const tokenBalanceOfVaultBeforeClaim = await getBep20balance(vrt, vrtVaultAddress);
 
       const vrtClaimTransaction = await send(vrtVault, "claim", [], { from: user1 });
       expect(vrtClaimTransaction).toSucceed();
@@ -229,13 +229,13 @@ describe('XVSVault', () => {
         interestAmount: expectedAccruedInterest
       });
 
-      const tokenBalance_After_Claim = await getBep20balance(vrt, user1);
-      expect(new BigNum(tokenBalance_After_Claim).isGreaterThan(new BigNum(tokenBalance_Before_Claim))).toEqual(true);
-      expect(new BigNum(tokenBalance_After_Claim)).toEqual(new BigNum(tokenBalance_Before_Claim).plus(expectedAccruedInterest));
+      const tokenBalanceAfterClaim = await getBep20balance(vrt, user1);
+      expect(new BigNum(tokenBalanceAfterClaim).isGreaterThan(new BigNum(tokenBalanceBeforeClaim))).toEqual(true);
+      expect(new BigNum(tokenBalanceAfterClaim)).toEqual(new BigNum(tokenBalanceBeforeClaim).plus(expectedAccruedInterest));
 
-      const tokenBalance_Of_Vault_After_Claim = await getBep20balance(vrt, vrtVaultAddress);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Claim).isLessThan(new BigNum(tokenBalance_Of_Vault_Before_Claim))).toEqual(true);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Claim)).toEqual(new BigNum(tokenBalance_Of_Vault_Before_Claim).minus(expectedAccruedInterest));
+      const tokenBalanceOfVaultAfterClaim = await getBep20balance(vrt, vrtVaultAddress);
+      expect(new BigNum(tokenBalanceOfVaultAfterClaim).isLessThan(new BigNum(tokenBalanceOfVaultBeforeClaim))).toEqual(true);
+      expect(new BigNum(tokenBalanceOfVaultAfterClaim)).toEqual(new BigNum(tokenBalanceOfVaultBeforeClaim).minus(expectedAccruedInterest));
     });
 
     it("Claim Failure for user with no VRT Deposits", async () => {
@@ -264,8 +264,8 @@ describe('XVSVault', () => {
       expect(new BigNum(totalWithdrawnAmount)).toEqual(new BigNum(expectedPrincipalAmount));
       expect(new BigNum(expectedAccruedInterest)).toEqual(new BigNum(0));
 
-      const tokenBalance_Before_Withdrawal = await getBep20balance(vrt, user1);
-      const tokenBalance_Of_Vault_Before_Withdrawal = await getBep20balance(vrt, vrtVaultAddress);
+      const tokenBalanceBeforeWithdrawal = await getBep20balance(vrt, user1);
+      const tokenBalanceOfVaultBeforeWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
 
       const vrtClaimTransaction = await send(vrtVault, "withdraw", [], { from: user1 });
 
@@ -276,13 +276,13 @@ describe('XVSVault', () => {
         accruedInterest: new BigNum(expectedAccruedInterest).toFixed()
       });
 
-      const tokenBalance_After_Withdrawal = await getBep20balance(vrt, user1);
-      expect(new BigNum(tokenBalance_After_Withdrawal).isGreaterThan(new BigNum(tokenBalance_Before_Withdrawal))).toEqual(true);
-      expect(new BigNum(tokenBalance_After_Withdrawal)).toEqual(new BigNum(tokenBalance_Before_Withdrawal).plus(new BigNum(totalWithdrawnAmount)));
+      const tokenBalanceAfterWithdrawal = await getBep20balance(vrt, user1);
+      expect(new BigNum(tokenBalanceAfterWithdrawal).isGreaterThan(new BigNum(tokenBalanceBeforeWithdrawal))).toEqual(true);
+      expect(new BigNum(tokenBalanceAfterWithdrawal)).toEqual(new BigNum(tokenBalanceBeforeWithdrawal).plus(new BigNum(totalWithdrawnAmount)));
 
-      const tokenBalance_Of_Vault_After_Withdrawal = await getBep20balance(vrt, vrtVaultAddress);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Withdrawal).isLessThan(new BigNum(tokenBalance_Of_Vault_Before_Withdrawal))).toEqual(true);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Withdrawal)).toEqual(new BigNum(tokenBalance_Of_Vault_Before_Withdrawal).minus(new BigNum(totalWithdrawnAmount)));
+      const tokenBalanceOfVaultAfterWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
+      expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal).isLessThan(new BigNum(tokenBalanceOfVaultBeforeWithdrawal))).toEqual(true);
+      expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal)).toEqual(new BigNum(tokenBalanceOfVaultBeforeWithdrawal).minus(new BigNum(totalWithdrawnAmount)));
     });
 
     it("Withdraw AccruedInterest and Deposit after 2nd VRT-Deposit", async () => {
@@ -303,8 +303,8 @@ describe('XVSVault', () => {
       const expectedPrincipalAmount = await getTotalPrincipalAmount(vrtVault, user1);
       const totalWithdrawnAmount = new BigNum(expectedAccruedInterest).plus(new BigNum(expectedPrincipalAmount));
 
-      const tokenBalance_Before_Withdrawal = await getBep20balance(vrt, user1);
-      const tokenBalance_Of_Vault_Before_Withdrawal = await getBep20balance(vrt, vrtVaultAddress);
+      const tokenBalanceBeforeWithdrawal = await getBep20balance(vrt, user1);
+      const tokenBalanceOfVaultBeforeWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
 
       const vrtWithdrawTransaction = await send(vrtVault, "withdraw", [], { from: user1 });
 
@@ -315,13 +315,13 @@ describe('XVSVault', () => {
         accruedInterest: new BigNum(expectedAccruedInterest).toFixed()
       });
 
-      const tokenBalance_After_Withdrawal = await getBep20balance(vrt, user1);
-      expect(new BigNum(tokenBalance_After_Withdrawal).isGreaterThan(new BigNum(tokenBalance_Before_Withdrawal))).toEqual(true);
-      expect(new BigNum(tokenBalance_After_Withdrawal)).toEqual(new BigNum(tokenBalance_Before_Withdrawal).plus(new BigNum(totalWithdrawnAmount)));
+      const tokenBalanceAfterWithdrawal = await getBep20balance(vrt, user1);
+      expect(new BigNum(tokenBalanceAfterWithdrawal).isGreaterThan(new BigNum(tokenBalanceBeforeWithdrawal))).toEqual(true);
+      expect(new BigNum(tokenBalanceAfterWithdrawal)).toEqual(new BigNum(tokenBalanceBeforeWithdrawal).plus(new BigNum(totalWithdrawnAmount)));
 
-      const tokenBalance_Of_Vault_After_Withdrawal = await getBep20balance(vrt, vrtVaultAddress);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Withdrawal).isLessThan(new BigNum(tokenBalance_Of_Vault_Before_Withdrawal))).toEqual(true);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Withdrawal)).toEqual(new BigNum(tokenBalance_Of_Vault_Before_Withdrawal).minus(new BigNum(totalWithdrawnAmount)));
+      const tokenBalanceOfVaultAfterWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
+      expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal).isLessThan(new BigNum(tokenBalanceOfVaultBeforeWithdrawal))).toEqual(true);
+      expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal)).toEqual(new BigNum(tokenBalanceOfVaultBeforeWithdrawal).minus(new BigNum(totalWithdrawnAmount)));
     });
 
     it("VRT-Deposit and wait for 1000 blocks folloed by a Claim and Withdrawal", async () => {
@@ -341,8 +341,8 @@ describe('XVSVault', () => {
       const expectedAccruedInterest = await calculateAccruedInterest(vrtDepositAmount, accrualStartBlockNumber, currentBlockNumber)
 
       //claim
-      const tokenBalance_Before_Claim = await getBep20balance(vrt, user1);
-      const tokenBalance_Of_Vault_Before_Claim = await getBep20balance(vrt, vrtVaultAddress);
+      const tokenBalanceBeforeClaim = await getBep20balance(vrt, user1);
+      const tokenBalanceOfVaultBeforeClaim = await getBep20balance(vrt, vrtVaultAddress);
 
       const vrtClaimTransaction = await send(vrtVault, "claim", [], { from: user1 });
 
@@ -351,17 +351,17 @@ describe('XVSVault', () => {
         interestAmount: expectedAccruedInterest
       });
 
-      const tokenBalance_After_Claim = await getBep20balance(vrt, user1);
-      expect(new BigNum(tokenBalance_After_Claim).isGreaterThan(new BigNum(tokenBalance_Before_Claim))).toEqual(true);
-      expect(new BigNum(tokenBalance_After_Claim)).toEqual(new BigNum(tokenBalance_Before_Claim).plus(expectedAccruedInterest));
+      const tokenBalanceAfterClaim = await getBep20balance(vrt, user1);
+      expect(new BigNum(tokenBalanceAfterClaim).isGreaterThan(new BigNum(tokenBalanceBeforeClaim))).toEqual(true);
+      expect(new BigNum(tokenBalanceAfterClaim)).toEqual(new BigNum(tokenBalanceBeforeClaim).plus(expectedAccruedInterest));
 
-      const tokenBalance_Of_Vault_After_Claim = await getBep20balance(vrt, vrtVaultAddress);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Claim).isLessThan(new BigNum(tokenBalance_Of_Vault_Before_Claim))).toEqual(true);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Claim)).toEqual(new BigNum(tokenBalance_Of_Vault_Before_Claim).minus(expectedAccruedInterest));
+      const tokenBalanceOfVaultAfterClaim = await getBep20balance(vrt, vrtVaultAddress);
+      expect(new BigNum(tokenBalanceOfVaultAfterClaim).isLessThan(new BigNum(tokenBalanceOfVaultBeforeClaim))).toEqual(true);
+      expect(new BigNum(tokenBalanceOfVaultAfterClaim)).toEqual(new BigNum(tokenBalanceOfVaultBeforeClaim).minus(expectedAccruedInterest));
 
       //withdraw
-      const tokenBalance_Before_Withdrawal = await getBep20balance(vrt, user1);
-      const tokenBalance_Of_Vault_Before_Withdrawal = await getBep20balance(vrt, vrtVaultAddress);
+      const tokenBalanceBeforeWithdrawal = await getBep20balance(vrt, user1);
+      const tokenBalanceOfVaultBeforeWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
 
       const vrtWithdrawTransaction = await send(vrtVault, "withdraw", [], { from: user1 });
 
@@ -372,13 +372,13 @@ describe('XVSVault', () => {
         accruedInterest: new BigNum(0)
       });
 
-      const tokenBalance_After_Withdrawal = await getBep20balance(vrt, user1);
-      expect(new BigNum(tokenBalance_After_Withdrawal).isGreaterThan(new BigNum(tokenBalance_Before_Withdrawal))).toEqual(true);
-      expect(new BigNum(tokenBalance_After_Withdrawal)).toEqual(new BigNum(tokenBalance_Before_Withdrawal).plus(new BigNum(vrtDepositAmount)));
+      const tokenBalanceAfterWithdrawal = await getBep20balance(vrt, user1);
+      expect(new BigNum(tokenBalanceAfterWithdrawal).isGreaterThan(new BigNum(tokenBalanceBeforeWithdrawal))).toEqual(true);
+      expect(new BigNum(tokenBalanceAfterWithdrawal)).toEqual(new BigNum(tokenBalanceBeforeWithdrawal).plus(new BigNum(vrtDepositAmount)));
 
-      const tokenBalance_Of_Vault_After_Withdrawal = await getBep20balance(vrt, vrtVaultAddress);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Withdrawal).isLessThan(new BigNum(tokenBalance_Of_Vault_Before_Withdrawal))).toEqual(true);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Withdrawal)).toEqual(new BigNum(tokenBalance_Of_Vault_Before_Withdrawal).minus(new BigNum(vrtDepositAmount)));
+      const tokenBalanceOfVaultAfterWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
+      expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal).isLessThan(new BigNum(tokenBalanceOfVaultBeforeWithdrawal))).toEqual(true);
+      expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal)).toEqual(new BigNum(tokenBalanceOfVaultBeforeWithdrawal).minus(new BigNum(vrtDepositAmount)));
     });
 
     it("VRT-Deposit and wait for 1000 blocks followed by a Claim and wait for 1000 blocks followed by Withdrawal", async () => {
@@ -398,8 +398,8 @@ describe('XVSVault', () => {
       let expectedAccruedInterest = await calculateAccruedInterest(vrtDepositAmount, accrualStartBlockNumber, currentBlockNumber)
 
       //claim
-      const tokenBalance_Before_Claim = await getBep20balance(vrt, user1);
-      const tokenBalance_Of_Vault_Before_Claim = await getBep20balance(vrt, vrtVaultAddress);
+      const tokenBalanceBeforeClaim = await getBep20balance(vrt, user1);
+      const tokenBalanceOfVaultBeforeClaim = await getBep20balance(vrt, vrtVaultAddress);
 
       const vrtClaimTransaction = await send(vrtVault, "claim", [], { from: user1 });
 
@@ -408,13 +408,13 @@ describe('XVSVault', () => {
         interestAmount: expectedAccruedInterest
       });
 
-      const tokenBalance_After_Claim = await getBep20balance(vrt, user1);
-      expect(new BigNum(tokenBalance_After_Claim).isGreaterThan(new BigNum(tokenBalance_Before_Claim))).toEqual(true);
-      expect(new BigNum(tokenBalance_After_Claim)).toEqual(new BigNum(tokenBalance_Before_Claim).plus(expectedAccruedInterest));
+      const tokenBalanceAfterClaim = await getBep20balance(vrt, user1);
+      expect(new BigNum(tokenBalanceAfterClaim).isGreaterThan(new BigNum(tokenBalanceBeforeClaim))).toEqual(true);
+      expect(new BigNum(tokenBalanceAfterClaim)).toEqual(new BigNum(tokenBalanceBeforeClaim).plus(expectedAccruedInterest));
 
-      const tokenBalance_Of_Vault_After_Claim = await getBep20balance(vrt, vrtVaultAddress);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Claim).isLessThan(new BigNum(tokenBalance_Of_Vault_Before_Claim))).toEqual(true);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Claim)).toEqual(new BigNum(tokenBalance_Of_Vault_Before_Claim).minus(expectedAccruedInterest));
+      const tokenBalanceOfVaultAfterClaim = await getBep20balance(vrt, vrtVaultAddress);
+      expect(new BigNum(tokenBalanceOfVaultAfterClaim).isLessThan(new BigNum(tokenBalanceOfVaultBeforeClaim))).toEqual(true);
+      expect(new BigNum(tokenBalanceOfVaultAfterClaim)).toEqual(new BigNum(tokenBalanceOfVaultBeforeClaim).minus(expectedAccruedInterest));
 
       await incrementBlocks(vrtVault, 1000);
 
@@ -424,8 +424,8 @@ describe('XVSVault', () => {
       const expectedPrincipalAmount = await getTotalPrincipalAmount(vrtVault, user1);
       const totalWithdrawnAmount = new BigNum(expectedAccruedInterest).plus(new BigNum(expectedPrincipalAmount));
 
-      const tokenBalance_Before_Withdrawal = await getBep20balance(vrt, user1);
-      const tokenBalance_Of_Vault_Before_Withdrawal = await getBep20balance(vrt, vrtVaultAddress);
+      const tokenBalanceBeforeWithdrawal = await getBep20balance(vrt, user1);
+      const tokenBalanceOfVaultBeforeWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
 
       const vrtWithdrawTransaction = await send(vrtVault, "withdraw", [], { from: user1 });
 
@@ -436,13 +436,13 @@ describe('XVSVault', () => {
         accruedInterest: new BigNum(expectedAccruedInterest).toFixed()
       });
 
-      const tokenBalance_After_Withdrawal = await getBep20balance(vrt, user1);
-      expect(new BigNum(tokenBalance_After_Withdrawal).isGreaterThan(new BigNum(tokenBalance_Before_Withdrawal))).toEqual(true);
-      expect(new BigNum(tokenBalance_After_Withdrawal)).toEqual(new BigNum(tokenBalance_Before_Withdrawal).plus(new BigNum(totalWithdrawnAmount)));
+      const tokenBalanceAfterWithdrawal = await getBep20balance(vrt, user1);
+      expect(new BigNum(tokenBalanceAfterWithdrawal).isGreaterThan(new BigNum(tokenBalanceBeforeWithdrawal))).toEqual(true);
+      expect(new BigNum(tokenBalanceAfterWithdrawal)).toEqual(new BigNum(tokenBalanceBeforeWithdrawal).plus(new BigNum(totalWithdrawnAmount)));
 
-      const tokenBalance_Of_Vault_After_Withdrawal = await getBep20balance(vrt, vrtVaultAddress);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Withdrawal).isLessThan(new BigNum(tokenBalance_Of_Vault_Before_Withdrawal))).toEqual(true);
-      expect(new BigNum(tokenBalance_Of_Vault_After_Withdrawal)).toEqual(new BigNum(tokenBalance_Of_Vault_Before_Withdrawal).minus(new BigNum(totalWithdrawnAmount)));
+      const tokenBalanceOfVaultAfterWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
+      expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal).isLessThan(new BigNum(tokenBalanceOfVaultBeforeWithdrawal))).toEqual(true);
+      expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal)).toEqual(new BigNum(tokenBalanceOfVaultBeforeWithdrawal).minus(new BigNum(totalWithdrawnAmount)));
     });
 
     it("Withdraw Failure due to insufficient funds", async () => {
@@ -481,9 +481,9 @@ describe('XVSVault', () => {
       let blockNumber = 0;
       await setBlockNumber(vrtVault, blockNumber);
 
-      const tokenBalance_Before_Withdrawal = await getBep20balance(vrt, treasury);
+      const tokenBalanceBeforeWithdrawal = await getBep20balance(vrt, treasury);
       const withdrawBep20Txn = await send(vrtVault, "withdrawBep20", [vrtAddress, treasury, preFundedVRTInVault], { from: root });
-      const tokenBalance_After_Withdrawal = await getBep20balance(vrt, treasury);
+      const tokenBalanceAfterWithdrawal = await getBep20balance(vrt, treasury);
 
       expect(withdrawBep20Txn).toSucceed();
 
@@ -493,8 +493,8 @@ describe('XVSVault', () => {
         amount: new BigNum(preFundedVRTInVault).toFixed()
       });
 
-      expect(new BigNum(tokenBalance_After_Withdrawal).isGreaterThan(new BigNum(tokenBalance_Before_Withdrawal))).toEqual(true);
-      expect(new BigNum(tokenBalance_After_Withdrawal)).toEqual(new BigNum(tokenBalance_Before_Withdrawal).plus(preFundedVRTInVault));
+      expect(new BigNum(tokenBalanceAfterWithdrawal).isGreaterThan(new BigNum(tokenBalanceBeforeWithdrawal))).toEqual(true);
+      expect(new BigNum(tokenBalanceAfterWithdrawal)).toEqual(new BigNum(tokenBalanceBeforeWithdrawal).plus(preFundedVRTInVault));
     });
 
     it("Admin Fails to withdraw VRT - Insufficient funds", async () => {
