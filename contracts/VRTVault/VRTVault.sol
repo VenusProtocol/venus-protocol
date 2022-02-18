@@ -49,9 +49,10 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
      * @notice Deposit VRT to VRTVault for a fixed-interest-rate
      * @param depositAmount The amount to deposit to vault
      */
-    function deposit(address userAddress, uint256 depositAmount) public nonReentrant nonZeroAddress(userAddress) {
+    function deposit(uint256 depositAmount) public nonReentrant nonZeroAddress(msg.sender) {
         require(depositAmount > 0, "Deposit amount must be non-zero");
 
+        address userAddress = msg.sender;
         UserInfo storage user = userInfo[userAddress];
 
         if(user.userAddress == address(0)){
@@ -74,7 +75,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
 
         user.accrualStartBlockNumber = getBlockNumber();
         emit Deposit(userAddress, depositAmount);
-        vrt.transferFrom(userAddress, address(this), depositAmount);
+        vrt.safeTransferFrom(userAddress, address(this), depositAmount);
     }
 
     /**
@@ -111,11 +112,10 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
 
     /**
      * @notice claim the accruedInterest of the user's VRTDeposits in the Vault
-     * @param userAddress Address of User in the the Vault
      */
-    function claim(address userAddress) external nonReentrant nonZeroAddress(userAddress) userHasPosition(userAddress) {
+    function claim() external nonReentrant nonZeroAddress(msg.sender) userHasPosition(msg.sender) {
+        address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
-
         if(accruedInterest > 0){
             UserInfo storage user = userInfo[userAddress];
             user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
@@ -129,9 +129,9 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
 
     /**
      * @notice withdraw accruedInterest and totalPrincipalAmount of the user's VRTDeposit in the Vault
-     * @param userAddress Address of User in the the Vault
      */
-    function withdraw(address userAddress) external nonReentrant nonZeroAddress(userAddress) userHasPosition(userAddress) {
+    function withdraw() external nonReentrant nonZeroAddress(msg.sender) userHasPosition(msg.sender) {
+        address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
 
         UserInfo storage user = userInfo[userAddress];
@@ -147,7 +147,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
         require(vrtBalance >= vrtForWithdrawal, "Failed to transfer VRT, Insufficient VRT in Vault.");
 
         emit Withdraw(userAddress, vrtForWithdrawal, totalPrincipalAmount, accruedInterest);
-        vrt.safeTransferFrom(address(this), user.userAddress, vrtForWithdrawal);
+        vrt.safeTransfer(user.userAddress, vrtForWithdrawal);
     }
 
     /**
@@ -161,7 +161,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
         IBEP20 token = IBEP20(tokenAddress);
         require(amount <= token.balanceOf(address(this)), "Insufficient amount in Vault");
         emit WithdrawToken(tokenAddress, receiver, amount);
-        token.safeTransferFrom(address(this), receiver, amount);
+        token.safeTransfer(receiver, amount);
     }
 
     /**
