@@ -116,6 +116,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     {
         IBEP20 borrowedToken = IBEP20(vToken.underlying());
         borrowedToken.safeTransferFrom(msg.sender, address(this), repayAmount);
+        borrowedToken.safeApprove(address(vToken), 0);
         borrowedToken.safeApprove(address(vToken), repayAmount);
         requireNoError(
             vToken.liquidateBorrow(borrower, repayAmount, vTokenCollateral),
