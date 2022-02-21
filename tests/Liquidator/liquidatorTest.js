@@ -80,11 +80,12 @@ async function liquidatevBnb(liquidatorContract, vToken, liquidator, borrower, r
   );
 }
 
+// There are fractional divisions in corresponding calculation in Liquidator.sol, which is 
+// equivalate to Math.floor when the results are positive, so we must reproduce this effect
+// @Todo: maybe Liquidator.sol should produce decimal multiplied results
 function calculateSplitSeizedTokens(amount) {
-  const treasuryDelta =
-    amount
-      .mul(bnbMantissa('1')).div(announcedIncentive) // / 1.1
-      .mul(treasuryPercent).div(bnbMantissa('1'));   // * 0.05
+  const seizedForRepayment = bnbUnsigned(Math.floor(amount.mul(bnbMantissa('1')).div(announcedIncentive)));
+  const treasuryDelta = bnbUnsigned(Math.floor(seizedForRepayment.mul(treasuryPercent).div(bnbMantissa('1'))));
   const liquidatorDelta = amount.sub(treasuryDelta);
   return { treasuryDelta, liquidatorDelta };
 }
@@ -122,6 +123,7 @@ describe('Liquidator', function () {
       const afterBalances = await getBalances([vToken, vTokenCollateral], [treasury, liquidator, borrower]);
 
       const { treasuryDelta, liquidatorDelta } = calculateSplitSeizedTokens(seizeTokens);
+
       expect(result).toHaveLog('LiquidateBorrowedTokens', {
         liquidator,
         borrower,

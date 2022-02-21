@@ -12,7 +12,10 @@ function address(n) {
 
 function encodeParameters(types, values) {
   const abi = new ethers.utils.AbiCoder();
-  return abi.encode(types, values);
+  const valuesPatched = values.map(v => {
+    return v instanceof BigNum ? v.toFixed() : v; 
+  });
+  return abi.encode(types, valuesPatched);
 }
 
 async function bnbBalance(addr) {
@@ -27,26 +30,19 @@ async function bnbGasCost(receipt) {
   const tx = await web3.eth.getTransaction(receipt.transactionHash);
   const gasUsed = new BigNum(receipt.gasUsed);
   const gasPrice = new BigNum(tx.gasPrice);
-  return ethers.BigNumber.from(gasUsed.times(gasPrice).toFixed());
+  return gasUsed.times(gasPrice);
 }
 
 function bnbExp(num) { return bnbMantissa(num, 1e18) }
 function bnbDouble(num) { return bnbMantissa(num, 1e36) }
 function bnbMantissa(num, scale = 1e18) {
-  if (num instanceof ethers.BigNumber) {
-    return num;
-  }
-  if (num < 0) {
-    return ethers.BigNumber.from(new BigNum(2).pow(256).plus(num).toFixed());
-  }
-  return ethers.BigNumber.from(new BigNum(num).times(scale).toFixed());
+  if (num < 0)
+    return new BigNum(2).pow(256).plus(num);
+  return new BigNum(num).times(scale);
 }
 
 function bnbUnsigned(num) {
-  if (num instanceof ethers.BigNumber) {
-    return num;
-  }
-  return ethers.BigNumber.from(new BigNum(num).toFixed());
+  return new BigNum(num);
 }
 
 function mergeInterface(into, from) {
