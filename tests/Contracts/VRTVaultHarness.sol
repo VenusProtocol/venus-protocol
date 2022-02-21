@@ -6,7 +6,7 @@ contract VRTVaultHarness is VRTVault {
 
     uint public blockNumber;
 
-    constructor(address _vrtAddress, uint256 _interestRatePerBlock) VRTVault(_vrtAddress, _interestRatePerBlock) public {}
+    constructor() VRTVault() public {}
 
     function overrideInterestRatePerBlock(uint256 _interestRatePerBlock) public {
         interestRatePerBlock = _interestRatePerBlock;

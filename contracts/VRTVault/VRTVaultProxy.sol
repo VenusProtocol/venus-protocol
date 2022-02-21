@@ -24,15 +24,40 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
       */
     event NewAdmin(address oldAdmin, address newAdmin);
 
-    constructor() public {
-        // Set admin to caller
-        admin = msg.sender;
+    constructor(address implementation_, address vrtAddress_, uint256 interestRatePerBlock_) public {
+        // Creator of the contract is admin during initialization
+        proxyAdmin = msg.sender;
+
+        // First delegate gets to initialize the delegator (i.e. storage contract)
+        delegateTo(implementation_, abi.encodeWithSignature("initialize(address,uint256)",
+                                                            vrtAddress_,
+                                                            interestRatePerBlock_));
+
+        // New implementations always get set via the settor (post-initialize)
+        _setPendingImplementation(implementation_);
+    }
+
+    /**
+      * @notice Internal method to delegate execution to another contract
+      * @dev It returns to the external caller whatever the implementation returns or forwards reverts
+      * @param callee The contract to delegatecall
+      * @param data The raw data to delegatecall
+      * @return The returned bytes from the delegatecall
+     */
+    function delegateTo(address callee, bytes memory data) internal returns (bytes memory) {
+        (bool success, bytes memory returnData) = callee.delegatecall(data);
+        assembly {
+            if eq(success, 0) {
+                revert(add(returnData, 0x20), returndatasize)
+            }
+        }
+        return returnData;
     }
 
     /*** Admin Functions ***/
     function _setPendingImplementation(address newPendingImplementation) public {
 
-        require(msg.sender == admin, "Only admin can set Pending Implementation");
+        require(msg.sender == proxyAdmin, "Only admin can set Pending Implementation");
 
         address oldPendingImplementation = pendingVRTVaultImplementation;
 
@@ -66,21 +91,21 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
     /**
       * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
       * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
-      * @param newPendingAdmin New pending admin.
+      * @param newPendingProxyAdmin New pending admin.
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
-    function _setPendingAdmin(address newPendingAdmin) public {
+    function _setPendingAdmin(address newPendingProxyAdmin) public {
         // Check caller = admin
-        require(msg.sender == admin, "only admin can set pending admin");
+        require(msg.sender == proxyAdmin, "only admin can set pending admin");
 
         // Save current value, if any, for inclusion in log
-        address oldPendingAdmin = pendingAdmin;
+        address oldPendingProxyAdmin = pendingProxyAdmin;
 
         // Store pendingAdmin with value newPendingAdmin
-        pendingAdmin = newPendingAdmin;
+        pendingProxyAdmin = newPendingProxyAdmin;
 
         // Emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin)
-        emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin);
+        emit NewPendingAdmin(oldPendingProxyAdmin, newPendingProxyAdmin);
     }
 
     /**
@@ -90,20 +115,20 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
       */
     function _acceptAdmin() public {
         // Check caller is pendingAdmin
-        require(msg.sender == pendingAdmin, "only address marked as pendingAdmin can accept as Admin");
+        require(msg.sender == pendingProxyAdmin, "only address marked as pendingAdmin can accept as Admin");
         
         // Save current values for inclusion in log
-        address oldAdmin = admin;
-        address oldPendingAdmin = pendingAdmin;
+        address oldProxyAdmin = proxyAdmin;
+        address oldPendingProxyAdmin = pendingProxyAdmin;
 
         // Store admin with value pendingAdmin
-        admin = pendingAdmin;
+        proxyAdmin = pendingProxyAdmin;
 
         // Clear the pending value
-        pendingAdmin = address(0);
+        pendingProxyAdmin = address(0);
 
-        emit NewAdmin(oldAdmin, admin);
-        emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
+        emit NewAdmin(oldProxyAdmin, proxyAdmin);
+        emit NewPendingAdmin(oldPendingProxyAdmin, pendingProxyAdmin);
     }
 
     /**

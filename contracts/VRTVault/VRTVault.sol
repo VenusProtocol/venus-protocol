@@ -26,12 +26,27 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
     /// @notice Event emitted when accruedInterest is claimed
     event Claim(address indexed user, uint256 interestAmount);
 
-    constructor(address _vrtAddress, uint256 _interestRatePerBlock) public ReentrancyGuard() WithAdmin(msg.sender) {
-        require(_interestRatePerBlock > 0 , "invalid interestRatePerBlock");
+    constructor() public ReentrancyGuard() WithAdmin(msg.sender) {
         admin = msg.sender;
-        vrt = IBEP20(_vrtAddress);
+    }
+
+    function initialize(address _vrtAddress, uint256 _interestRatePerBlock) public {
+        require(msg.sender == admin, "only admin may initialize the Vault");
+        require(interestRatePerBlock == 0, "Vault may only be initialized once");
+
+        // Set initial exchange rate
         interestRatePerBlock = _interestRatePerBlock;
+        require(interestRatePerBlock > 0, "interestRate Per Block must be greater than zero.");
+
+        // Set the VRT
+        vrt = IBEP20(_vrtAddress);
+
         _notEntered = true;
+    }
+
+    modifier isInitialized() {
+        require(interestRatePerBlock > 0, "Vault is not initialized");
+        _;
     }
 
     modifier nonZeroAddress(address _address) {
@@ -49,7 +64,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
      * @notice Deposit VRT to VRTVault for a fixed-interest-rate
      * @param depositAmount The amount to deposit to vault
      */
-    function deposit(uint256 depositAmount) public nonReentrant {
+    function deposit(uint256 depositAmount) public nonReentrant isInitialized {
         require(depositAmount > 0, "Deposit amount must be non-zero");
 
         address userAddress = msg.sender;
@@ -82,7 +97,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
      * @notice get accruedInterest of the user's VRTDeposits in the Vault
      * @param userAddress Address of User in the the Vault
      */
-    function getAccruedInterest(address userAddress) public view nonZeroAddress(userAddress) returns (uint256) {
+    function getAccruedInterest(address userAddress) public view nonZeroAddress(userAddress) isInitialized returns (uint256) {
         UserInfo memory user = userInfo[userAddress];
         if(user.accrualStartBlockNumber == 0){
             return 0;
@@ -96,7 +111,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
      * @param totalPrincipalAmount of the User
      * @param accrualStartBlockNumber of the User
      */
-    function computeAccruedInterest(uint256 totalPrincipalAmount, uint256 accrualStartBlockNumber) internal view returns (uint256) {
+    function computeAccruedInterest(uint256 totalPrincipalAmount, uint256 accrualStartBlockNumber) isInitialized internal view returns (uint256) {
         
         uint256 blockNumber = getBlockNumber();
 
@@ -113,7 +128,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
     /**
      * @notice claim the accruedInterest of the user's VRTDeposits in the Vault
      */
-    function claim() external nonReentrant userHasPosition(msg.sender) {
+    function claim() external nonReentrant isInitialized userHasPosition(msg.sender) {
         address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
         if(accruedInterest > 0){
@@ -130,7 +145,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
     /**
      * @notice withdraw accruedInterest and totalPrincipalAmount of the user's VRTDeposit in the Vault
      */
-    function withdraw() external nonReentrant userHasPosition(msg.sender) {
+    function withdraw() external nonReentrant isInitialized userHasPosition(msg.sender) {
         address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
 
@@ -156,7 +171,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
      * @param receiver recipient of the BEP20 token
      * @param amount tokenAmount
      */
-    function withdrawBep20(address tokenAddress, address receiver, uint256 amount) onlyAdmin nonZeroAddress(tokenAddress) nonZeroAddress(receiver) public {
+    function withdrawBep20(address tokenAddress, address receiver, uint256 amount) onlyAdmin isInitialized nonZeroAddress(tokenAddress) nonZeroAddress(receiver) public {
         require(amount > 0 , "amount is invalid");
         IBEP20 token = IBEP20(tokenAddress);
         require(amount <= token.balanceOf(address(this)), "Insufficient amount in Vault");
@@ -191,7 +206,7 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
     /*** Admin Functions ***/
 
     function _become(VRTVaultProxy vrtVaultProxy) public {
-        require(msg.sender == vrtVaultProxy.admin(), "only proxy admin can change brains");
+        require(msg.sender == vrtVaultProxy.proxyAdmin(), "only proxy admin can change brains");
         vrtVaultProxy._acceptImplementation();
     }
 

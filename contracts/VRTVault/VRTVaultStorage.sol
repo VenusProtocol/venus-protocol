@@ -6,12 +6,12 @@ contract VRTVaultAdminStorage {
     /**
     * @notice Administrator for this contract
     */
-    address public admin;
+    address public proxyAdmin;
 
     /**
     * @notice Pending administrator for this contract
     */
-    address public pendingAdmin;
+    address public pendingProxyAdmin;
 
     /**
     * @notice Active brains of VRT Vault
