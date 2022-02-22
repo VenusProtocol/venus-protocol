@@ -1,6 +1,6 @@
 
 Macro InKindBorrow borrowAmount borrowRate user=Geoff borrowPrice=1.0 mintAmount=100e18 giveAmount=0e18 borrowTokenType=Standard
-    PricedComptroller
+    PricedComptrollerWithLiquidator
     Comptroller LiquidationIncentive 1.1
     NewVToken BAT vBAT borrowRate 2e9 8 borrowTokenType -- note: cannot use macros with named args right now
     Give vBAT giveAmount BAT -- Faucet some bat
@@ -38,7 +38,7 @@ Test "Insufficient in-kind shortfall"
     Prep Torrey 10e18 BAT vBAT
     AllowFailures
     Liquidate Torrey "->" Geoff 10e18 vBAT "Seizing" vBAT
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION INSUFFICIENT_SHORTFALL
+    Assert Revert "revert failed to liquidate (03)"  -- detailed error is INSUFFICIENT_SHORTFALL, but it's not propagated
 
 Test "Cannot self-in-kind-liquidate"
     InKindBorrow borrowAmount:1e18 borrowRate:0.000005
@@ -96,7 +96,7 @@ Test "Liqidate in-kind beyond max close"
     Prep Torrey 20e18 BAT vBAT
     AllowFailures
     Liquidate Torrey "->" Geoff 20e18 vBAT "Seizing" vBAT
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION TOO_MUCH_REPAY
+    Assert Revert "revert failed to liquidate (03)"  -- detailed error is TOO_MUCH_REPAY, but it's not propagated
 
 Test "Proper In-Kind Liquidation"
     InKindBorrow borrowAmount:1e18 borrowRate:0.000005
@@ -180,7 +180,7 @@ Test "Liquidate exactly zero"
     Prep Torrey 10e18 BAT vBAT
     AllowFailures
     Liquidate Torrey "->" Geoff 0e18 vBAT "Seizing" vBAT
-    Assert Failure INVALID_CLOSE_AMOUNT_REQUESTED LIQUIDATE_CLOSE_AMOUNT_IS_ZERO
+    Assert Revert "revert failed to liquidate (07)"  -- detailed error is LIQUIDATE_CLOSE_AMOUNT_IS_ZERO, but it's not propagated
 
 Test "When price oracle for collateral token is zero"
     InKindBorrow borrowAmount:1e18 borrowRate:0.000005
@@ -210,7 +210,7 @@ Test "When price oracle for collateral token is zero"
     PriceOracle SetPrice vBAT 0
     AllowFailures
     Liquidate Torrey "->" Geoff 2e18 vBAT "Seizing" vBAT
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION PRICE_ERROR
+    Assert Revert "revert failed to liquidate (03)"  -- detailed error is PRICE_ERROR, but it's not propagated
 
 Test "When price oracle for collateral token is whack"
     InKindBorrow borrowAmount:1e18 borrowRate:0.000005
@@ -342,7 +342,7 @@ Test "When seize not allowed due to unlisted collateral"
     Comptroller UnList vBAT -- Mock unlist collateral
     AllowFailures
     Liquidate Torrey "->" Geoff 2e18 vBAT "Seizing" vBAT
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert failed to liquidate (03)"  -- detailed error is MARKET_NOT_LISTED, but it's not propagated
 
 Test "When seize not allowed due to unlisted borrow"
     InKindBorrow borrowAmount:1e18 borrowRate:0.000005
@@ -370,7 +370,7 @@ Test "When seize not allowed due to unlisted borrow"
     Comptroller UnList vBAT -- Mock unlist borrow
     AllowFailures
     Liquidate Torrey "->" Geoff 2e18 vBAT "Seizing" vBAT
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert failed to liquidate (03)"  -- detailed error is MARKET_NOT_LISTED, but it's not propagated
 
 Test "When there's insufficient collateral"
     InKindBorrow borrowAmount:1e18 borrowRate:0.000005
