@@ -211,7 +211,7 @@ export function buildContractEvent<T extends Contract>(contractName: string, imp
         let inputNames = abi.inputs.map((input) => getEventName(input.name));
         let args = [
           new Arg("contract", getContractObjectFn(contractName, implicit), implicit ? { implicit: true } : {})
-        ].concat(abi.inputs.map((input) => buildArg(contractName, abi.name, input)));
+        ].concat(abi.inputs.map((input) => buildArg(contractName, input.name, input)));
 
         return new Command<object>(`
             #### ${eventName}
