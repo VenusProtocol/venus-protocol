@@ -6,31 +6,31 @@ contract VRTVaultAdminStorage {
     /**
     * @notice Administrator for this contract
     */
-    address public proxyAdmin;
+    address public admin;
 
     /**
     * @notice Pending administrator for this contract
     */
-    address public pendingProxyAdmin;
+    address public pendingAdmin;
 
     /**
     * @notice Active brains of VRT Vault
     */
-    address public vrtVaultImplementation;
+    address public implementation;
 
     /**
     * @notice Pending brains of VAI Vault
     */
-    address public pendingVRTVaultImplementation;
+    address public pendingImplementation;
 }
 
 contract VRTVaultStorage is VRTVaultAdminStorage {
 
+    /// @notice Guard variable for re-entrancy checks
+    bool public _notEntered;
+
     /// @notice The VRT TOKEN!
     IBEP20 public vrt;
-
-    /// @notice Guard variable for re-entrancy checks
-    bool internal _notEntered;
 
     /// @notice interestRate for accrual - per Block
     uint256 public interestRatePerBlock;

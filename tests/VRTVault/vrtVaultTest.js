@@ -63,7 +63,7 @@ const depositVRT = async (vrt, vrtVault, userAddress, vrtDepositAmount) => {
   expect(vrtDepositTransaction).toSucceed();
   expect(vrtDepositTransaction).toHaveLog('Deposit', {
     user: userAddress,
-    amount: vrtDepositAmount
+    amount: vrtDepositAmount.toFixed()
   });
 
   const expectedVrtBalanceOfVault = new BigNum(vrtBalanceOfVaultBeforeDeposit).plus(vrtDepositAmount).minus(accruedInterest);
@@ -81,7 +81,7 @@ const getBep20balance = async (token, address) => {
   return await call(token, "balanceOf", [address]);
 }
 
-describe('XVSVault', () => {
+describe('VRTVault', () => {
   let root, user1, user2, user3, treasury;
   let blockTimestamp;
   let vrtVault, vrtVaultAddress;
@@ -94,8 +94,9 @@ describe('XVSVault', () => {
     vrt = await deploy('VRT', [root]);
     vrtAddress = vrt._address;
 
-    vrtVault = await deploy('VRTVaultHarness', [vrtAddress, interestRatePerBlock]);
+    vrtVault = await deploy('VRTVaultHarness', [], { from: root });
     vrtVaultAddress = vrtVault._address;
+    await send(vrtVault, "initialize", [vrtAddress, interestRatePerBlock]);
 
     await send(vrt, 'transfer', [vrtVaultAddress, preFundedVRTInVault], { from: root });
 

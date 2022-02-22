@@ -7,7 +7,7 @@ import "./VRTVaultStorage.sol";
 import "../Utils/WithAdmin.sol";
 import "../Utils/ReentrancyGuard.sol";
 
-contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
+contract VRTVault is VRTVaultStorage {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -26,8 +26,13 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
     /// @notice Event emitted when accruedInterest is claimed
     event Claim(address indexed user, uint256 interestAmount);
 
-    constructor() public ReentrancyGuard() WithAdmin(msg.sender) {
+    constructor() public {
         admin = msg.sender;
+    }
+    
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "only admin allowed");
+        _;
     }
 
     function initialize(address _vrtAddress, uint256 _interestRatePerBlock) public {
@@ -47,6 +52,16 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
     modifier isInitialized() {
         require(interestRatePerBlock > 0, "Vault is not initialized");
         _;
+    }
+
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     */
+    modifier nonReentrant() {
+        require(_notEntered, "re-entered");
+        _notEntered = false;
+        _;
+        _notEntered = true; // get a gas-refund post-Istanbul
     }
 
     modifier nonZeroAddress(address _address) {
@@ -179,44 +194,15 @@ contract VRTVault is WithAdmin, ReentrancyGuard, VRTVaultStorage {
         token.safeTransfer(receiver, amount);
     }
 
-    /**
-     * @dev Returns the address of the current admin
-     */
-    function getAdmin() public view returns (address) {
-        return admin;
-    }
-
-    /**
-     * @dev Burn the current admin
-     */
-    function burnAdmin() public onlyAdmin {
-        emit AdminTransfered(admin, address(0));
-        admin = address(0);
-    }
-
-    /**
-     * @dev Set the current admin to new address
-     */
-    function setNewAdmin(address newAdmin) public onlyAdmin {
-        require(newAdmin != address(0), "new owner is the zero address");
-        emit AdminTransfered(admin, newAdmin);
-        admin = newAdmin;
+    function getBlockNumber() public view returns (uint256) {
+        return block.number;
     }
 
     /*** Admin Functions ***/
 
     function _become(VRTVaultProxy vrtVaultProxy) public {
-        require(msg.sender == vrtVaultProxy.proxyAdmin(), "only proxy admin can change brains");
+        require(msg.sender == vrtVaultProxy.admin(), "only proxy admin can change brains");
         vrtVaultProxy._acceptImplementation();
     }
 
-    function setVenusInfo(address _vrt) public onlyAdmin {
-        vrt = IBEP20(_vrt);
-
-        _notEntered = true;
-    }
-
-    function getBlockNumber() public view returns (uint256) {
-        return block.number;
-    }
 }

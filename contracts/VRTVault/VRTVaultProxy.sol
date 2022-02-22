@@ -5,12 +5,12 @@ import "./VRTVaultStorage.sol";
 contract VRTVaultProxy is VRTVaultAdminStorage {
 
     /**
-      * @notice Emitted when pendingVRTVaultImplementation is changed
+      * @notice Emitted when pendingImplementation is changed
       */
     event NewPendingImplementation(address oldPendingImplementation, address newPendingImplementation);
 
     /**
-      * @notice Emitted when pendingVRTVaultImplementation is accepted, which means VRT Vault implementation is updated
+      * @notice Emitted when pendingImplementation is accepted, which means VRT Vault implementation is updated
       */
     event NewImplementation(address oldImplementation, address newImplementation);
 
@@ -26,15 +26,29 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
 
     constructor(address implementation_, address vrtAddress_, uint256 interestRatePerBlock_) public {
         // Creator of the contract is admin during initialization
-        proxyAdmin = msg.sender;
+        admin = msg.sender;
+
+        // New implementations always get set via the settor (post-initialize)
+        _setImplementation(implementation_);
 
         // First delegate gets to initialize the delegator (i.e. storage contract)
         delegateTo(implementation_, abi.encodeWithSignature("initialize(address,uint256)",
                                                             vrtAddress_,
                                                             interestRatePerBlock_));
+    }
 
-        // New implementations always get set via the settor (post-initialize)
-        _setPendingImplementation(implementation_);
+    	/**
+     * @notice Called by the admin to update the implementation of the delegator
+     * @param implementation_ The address of the new implementation for delegation
+     */
+    function _setImplementation(address implementation_) public {
+        require(msg.sender == admin, "VRTVaultProxy::_setImplementation: admin only");
+        require(implementation_ != address(0), "VRTVaultProxy::_setImplementation: invalid implementation address");
+
+        address oldImplementation = implementation;
+        implementation = implementation_;
+
+        emit NewImplementation(oldImplementation, implementation);
     }
 
     /**
@@ -57,13 +71,13 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
     /*** Admin Functions ***/
     function _setPendingImplementation(address newPendingImplementation) public {
 
-        require(msg.sender == proxyAdmin, "Only admin can set Pending Implementation");
+        require(msg.sender == admin, "Only admin can set Pending Implementation");
 
-        address oldPendingImplementation = pendingVRTVaultImplementation;
+        address oldPendingImplementation = pendingImplementation;
 
-        pendingVRTVaultImplementation = newPendingImplementation;
+        pendingImplementation = newPendingImplementation;
 
-        emit NewPendingImplementation(oldPendingImplementation, pendingVRTVaultImplementation);
+        emit NewPendingImplementation(oldPendingImplementation, pendingImplementation);
     }
 
     /**
@@ -73,39 +87,39 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
     */
     function _acceptImplementation() public {
         // Check caller is pendingImplementation
-        require(msg.sender == pendingVRTVaultImplementation, "only address marked as pendingImplementation can accept Implementation");
+        require(msg.sender == pendingImplementation, "only address marked as pendingImplementation can accept Implementation");
 
         // Save current values for inclusion in log
-        address oldImplementation = vrtVaultImplementation;
-        address oldPendingImplementation = pendingVRTVaultImplementation;
+        address oldImplementation = implementation;
+        address oldPendingImplementation = pendingImplementation;
 
-        vrtVaultImplementation = pendingVRTVaultImplementation;
+        implementation = pendingImplementation;
 
-        pendingVRTVaultImplementation = address(0);
+        pendingImplementation = address(0);
 
-        emit NewImplementation(oldImplementation, vrtVaultImplementation);
-        emit NewPendingImplementation(oldPendingImplementation, pendingVRTVaultImplementation);
+        emit NewImplementation(oldImplementation, implementation);
+        emit NewPendingImplementation(oldPendingImplementation, pendingImplementation);
     }
 
 
     /**
       * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
       * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
-      * @param newPendingProxyAdmin New pending admin.
+      * @param newPendingAdmin New pending admin.
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
-    function _setPendingAdmin(address newPendingProxyAdmin) public {
+    function _setPendingAdmin(address newPendingAdmin) public {
         // Check caller = admin
-        require(msg.sender == proxyAdmin, "only admin can set pending admin");
+        require(msg.sender == admin, "only admin can set pending admin");
 
         // Save current value, if any, for inclusion in log
-        address oldPendingProxyAdmin = pendingProxyAdmin;
+        address oldPendingAdmin = pendingAdmin;
 
         // Store pendingAdmin with value newPendingAdmin
-        pendingProxyAdmin = newPendingProxyAdmin;
+        pendingAdmin = newPendingAdmin;
 
         // Emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin)
-        emit NewPendingAdmin(oldPendingProxyAdmin, newPendingProxyAdmin);
+        emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin);
     }
 
     /**
@@ -115,20 +129,20 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
       */
     function _acceptAdmin() public {
         // Check caller is pendingAdmin
-        require(msg.sender == pendingProxyAdmin, "only address marked as pendingAdmin can accept as Admin");
+        require(msg.sender == pendingAdmin, "only address marked as pendingAdmin can accept as Admin");
         
         // Save current values for inclusion in log
-        address oldProxyAdmin = proxyAdmin;
-        address oldPendingProxyAdmin = pendingProxyAdmin;
+        address oldAdmin = admin;
+        address oldPendingAdmin = pendingAdmin;
 
         // Store admin with value pendingAdmin
-        proxyAdmin = pendingProxyAdmin;
+        admin = pendingAdmin;
 
         // Clear the pending value
-        pendingProxyAdmin = address(0);
+        pendingAdmin = address(0);
 
-        emit NewAdmin(oldProxyAdmin, proxyAdmin);
-        emit NewPendingAdmin(oldPendingProxyAdmin, pendingProxyAdmin);
+        emit NewAdmin(oldAdmin, admin);
+        emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
     }
 
     /**
@@ -138,7 +152,7 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
      */
     function () external payable {
         // delegate all other functions to current implementation
-        (bool success, ) = vrtVaultImplementation.delegatecall(msg.data);
+        (bool success, ) = implementation.delegatecall(msg.data);
 
         assembly {
               let free_mem_ptr := mload(0x40)
