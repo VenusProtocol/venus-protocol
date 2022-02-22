@@ -1,6 +1,6 @@
 
 Macro InKindBorrow borrowAmount borrowRate user=Geoff borrowPrice=1.0 mintAmount=100e18 giveAmount=0e18 borrowTokenType=Standard
-    PricedComptrollerWithLiquidator
+    PricedComptrollerWithLiquidator Bank
     Comptroller LiquidationIncentive 1.1
     NewVToken BAT vBAT borrowRate 2e9 8 borrowTokenType -- note: cannot use macros with named args right now
     Give vBAT giveAmount BAT -- Faucet some bat
@@ -102,6 +102,7 @@ Test "Proper In-Kind Liquidation"
     Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18 -- from minting minus 1e18 lent to geoff
     Assert Equal (Bep20 vBAT TokenBalance Geoff) 50e9 -- from minting
     Assert Equal (Bep20 vBAT TokenBalance Torrey) 0e9 -- never had any
+    Assert Equal (Bep20 vBAT TokenBalance Bank) 0e9  -- treasury never had any
     Invariant Remains (Bep20 BAT TokenBalance Geoff) 1e18 -- original amount borrowed
     Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 101e18 -- all that interest
     Assert Equal (VToken vBAT TotalBorrows) 101e18 -- all those borrowers
@@ -111,8 +112,9 @@ Test "Proper In-Kind Liquidation"
     --
     -- And see what they are now
     Assert Equal (VToken vBAT ExchangeRate) 4e9 --- XXX: Verify this
-    Assert Equal (Bep20 vBAT TokenBalance Geoff) 49.45e9 -- 1:1 -> 1 x 2e18 x 1.1 ÷ 4e9 [exchange rate] = 0.55e9 -> Torrey
-    Assert Equal (Bep20 vBAT TokenBalance Torrey) 0.55e9 -- didn't have any beforehand
+    Assert Equal (Bep20 vBAT TokenBalance Geoff) 49.45e9 -- 1:1 -> 1 x 2e18 x 1.1 ÷ 4e9 [exchange rate] = 0.55e9 -> Torrey + treasury
+    Assert Equal (Bep20 vBAT TokenBalance Torrey) 0.525e9 -- didn't have any beforehand
+    Assert Equal (Bep20 vBAT TokenBalance Bank) 0.025e9  -- half of the incentive in vTokens goes to treasury
     Assert Equal (Bep20 BAT TokenBalance Torrey) 0e18 -- repaid
     Assert Equal (Bep20 BAT TokenBalance vBAT) 101e18 -- had 100e18, lent 1e18 to geoff, repaid 2
     Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 99e18 -- less closed amount
