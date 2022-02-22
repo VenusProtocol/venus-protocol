@@ -58,8 +58,6 @@ contract XVSVesting {
 
     mapping(address => VestingRecord[]) public vestings;
 
-    mapping(address => uint256) public numberOfVestings;
-
     modifier nonZeroAddress(address _address) {
         require(_address != address(0), "Address cannot be Zero");
         _;
@@ -136,7 +134,7 @@ contract XVSVesting {
 
     modifier vestingExistCheck(address recipient) {
         require(
-            numberOfVestings[recipient] > 0,
+            vestings[recipient].length > 0,
             "recipient doesnot have any vestingRecord"
         );
 
@@ -144,7 +142,6 @@ contract XVSVesting {
     }
 
     function deposit(address recipient, uint depositAmount) external onlyVrtConverter
-        nonReentrant
         nonZeroAddress(recipient) {
         require(depositAmount > 0, "Deposit amount must be non-zero");
 
@@ -158,7 +155,6 @@ contract XVSVesting {
         });
 
         vestingsOfRecipient.push(vesting);
-        numberOfVestings[recipient] = numberOfVestings[recipient].add(1);
 
         emit XVSVested(
             recipient,
@@ -169,14 +165,9 @@ contract XVSVesting {
     }
 
     function withdraw() external vestingExistCheck(msg.sender) {
-        require(
-            vrtConversionAddress != address(0),
-            "VRT-Conversion Address is not set"
-        );
-
         address recipient = msg.sender;
         VestingRecord[] storage vestingsOfRecipient = vestings[recipient];
-        uint256 vestingCount = numberOfVestings[recipient];
+        uint256 vestingCount = vestingsOfRecipient.length;
         uint256 totalWithdrawableAmount = 0;
 
         for(uint i = 0; i < vestingCount; i++) {
@@ -200,7 +191,7 @@ contract XVSVesting {
     returns (uint256 totalWithdrawableAmount, uint256 totalVestedAmount, uint256 totalWithdrawnAmount)
     {
         VestingRecord[] memory vestingsOfRecipient = vestings[recipient];
-        uint256 vestingCount = numberOfVestings[recipient];
+        uint256 vestingCount = vestingsOfRecipient.length;
 
         for(uint i = 0; i < vestingCount; i++) {
             VestingRecord memory vesting = vestingsOfRecipient[i];
@@ -220,22 +211,6 @@ contract XVSVesting {
         return (vestedAmount, toWithdraw);
     }
 
-    function getVestedAmount(address recipient) view public nonZeroAddress(recipient) returns (uint256) {
-
-        VestingRecord[] memory vestingsOfRecipient = vestings[recipient];
-        uint256 vestingCount = numberOfVestings[recipient];
-        uint256 totalVestedAmount = 0;
-        uint256 currentTime = getCurrentTime();
-
-        for(uint i = 0; i < vestingCount; i++) {
-            VestingRecord memory vesting = vestingsOfRecipient[i];
-            uint256 vestedAmount = calculateVestedAmount(vesting.amount, vesting.startTime, currentTime);
-            totalVestedAmount = totalVestedAmount.add(vestedAmount);
-        }
-
-        return totalVestedAmount;
-    }
-
     function calculateVestedAmount(uint256 vestingAmount, uint256 vestingStartTime, uint256 currentTime) internal view returns (uint256) {
         if (currentTime < vestingStartTime) {
             return 0;
@@ -249,17 +224,4 @@ contract XVSVesting {
    function getCurrentTime() public view returns (uint256) {
       return block.timestamp;
    }
-
-    /*** Reentrancy Guard ***/
-
-    /**
-     * @dev Prevents a contract from calling itself, directly or indirectly.
-     */
-    modifier nonReentrant() {
-        require(_notEntered, "re-entered");
-        _notEntered = false;
-        _;
-        _notEntered = true; // get a gas-refund post-Istanbul
-    }
-
 }

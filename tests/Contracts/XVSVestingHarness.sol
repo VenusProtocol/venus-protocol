@@ -30,5 +30,24 @@ contract XVSVestingHarness is XVSVesting {
       return super.calculateVestedAmount(vestingAmount, vestingStartTime, currentTime);
    }
 
+   function getVestingCount(address beneficiary) view public returns(uint256) {
+      return vestings[beneficiary].length;
+   }
+
+   function getVestedAmount(address recipient) view public nonZeroAddress(recipient) returns (uint256) {
+
+      VestingRecord[] memory vestingsOfRecipient = vestings[recipient];
+      uint256 vestingCount = vestingsOfRecipient.length;
+      uint256 totalVestedAmount = 0;
+      uint256 currentTime = getCurrentTime();
+
+      for(uint i = 0; i < vestingCount; i++) {
+         VestingRecord memory vesting = vestingsOfRecipient[i];
+         uint256 vestedAmount = calculateVestedAmount(vesting.amount, vesting.startTime, currentTime);
+         totalVestedAmount = totalVestedAmount.add(vestedAmount);
+      }
+
+      return totalVestedAmount;
+   }
 
 }

@@ -135,9 +135,9 @@ describe('VRTConverterProxy', () => {
       expect(convertVRTTxn).toHaveLog('TokenConverted', {
         reedeemer: alice,
         vrtAddress: vrtTokenAddress,
-        vrtAmount: vrtTransferAmount,
+        vrtAmount: vrtTransferAmount.toFixed(),
         xvsAddress: xvsTokenAddress,
-        xvsAmount: xvsVestedAmount
+        xvsAmount: xvsVestedAmount.toFixed()
       });
 
       let totalConvertedAmount = await call(vrtConversion, "totalVrtConverted", []);
@@ -166,9 +166,9 @@ describe('VRTConverterProxy', () => {
       expect(convertVRTTxn).toHaveLog('TokenConverted', {
         reedeemer: alice,
         vrtAddress: vrtTokenAddress,
-        vrtAmount: vrtTransferAmount_Conversion_1,
+        vrtAmount: vrtTransferAmount_Conversion_1.toFixed(),
         xvsAddress: xvsTokenAddress,
-        xvsAmount: xvsVestedAmount_Conversion_1
+        xvsAmount: xvsVestedAmount_Conversion_1.toFixed()
       });
 
       let totalConvertedAmount = await call(vrtConversion, "totalVrtConverted", []);
@@ -196,9 +196,9 @@ describe('VRTConverterProxy', () => {
       expect(convertVRTTxn_2).toHaveLog('TokenConverted', {
         reedeemer: alice,
         vrtAddress: vrtTokenAddress,
-        vrtAmount: vrtTransferAmount_Conversion_2,
+        vrtAmount: vrtTransferAmount_Conversion_2.toFixed(),
         xvsAddress: xvsTokenAddress,
-        xvsAmount: xvsVestedAmount_Conversion_2
+        xvsAmount: xvsVestedAmount_Conversion_2.toFixed()
       });
 
       //assert totalConvertedAmount after 2nd Conversion

@@ -34,7 +34,7 @@ describe('XVSVesting', () => {
     }
 
     const getNumberOfVestingsOfUser = async (xvsVesting, userAddress) => {
-        return await call(xvsVesting, "numberOfVestings", [userAddress]);
+       return await call (xvsVesting, "getVestingCount", [userAddress]);
     }
 
     const getTotalVestedAmount = async (xvsVesting, userAddress) => {
@@ -82,7 +82,7 @@ describe('XVSVesting', () => {
         expect(depositTxn).toHaveLog('XVSVested', {
             recipient: recipient,
             startTime: currentTimeFromContract,
-            amount: depositAmount,
+            amount: depositAmount.toFixed(),
             withdrawnAmount: 0
         });
         return depositTxn;

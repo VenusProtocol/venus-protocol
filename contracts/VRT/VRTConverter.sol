@@ -30,13 +30,13 @@ contract VRTConverter {
     IBEP20 public xvs;
 
     /// @notice decimal precision for VRT
-    uint256 public vrtDecimalsMultiplier = 10**18;
+    uint256 public constant vrtDecimalsMultiplier = 10**18;
 
     /// @notice XVSVesting Contract reference
     IXVSVesting public xvsVesting;
 
     /// @notice decimal precision for XVS
-    uint256 public xvsDecimalsMultiplier = 10**18;
+    uint256 public constant xvsDecimalsMultiplier = 10**18;
 
     /// @notice Conversion ratio from VRT to XVS with decimal 18
     uint256 public conversionRatio;
