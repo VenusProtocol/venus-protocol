@@ -40,35 +40,6 @@ Test "Insufficient in-kind shortfall"
     Liquidate Torrey "->" Geoff 10e18 vBAT "Seizing" vBAT
     Assert Revert "revert failed to liquidate (03)"  -- detailed error is INSUFFICIENT_SHORTFALL, but it's not propagated
 
-Test "Cannot self-in-kind-liquidate"
-    InKindBorrow borrowAmount:1e18 borrowRate:0.000005
-    Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
-    Assert Equal (VToken vBAT TotalBorrows) 1e18
-    Assert Equal (Bep20 BAT TokenBalance Geoff) 1e18
-    Assert Equal (Bep20 BAT TokenBalance vBAT) 99e18
-    Assert Equal (Comptroller Liquidity Geoff) 49e18 -- ( ( 1.0 * 100e18 * 0.5 ) - ( 1.0 * 51e18 ) ) / 1e18
-    -- Prices are 1:1 (in-kind) and collateral factor is 0.5,
-    -- thus supplying 100e18 vBAT gives the user 50e18
-    -- capacity of BAT. User only borrowed 1BAT, but after
-    -- a lot blocks at a 0.0005% interest rate, he'll be
-    -- underwater. Note: with a reserve rate of zero, that
-    -- interest will be paid back to himself as supply
-    -- but that will be discounted by 50% by the collateral factor.
-    -- Thus, we will need to accumulate for twice as many blocks
-    -- to end up where we'd usually be underwater
-    FastForward 20000000 Blocks -- 1e18 * (1 + 20000000 * 0.000005)
-    AccrueInterest vBAT -- Note: we have to accrue interest
-                        -- since it's not automatic for liquidity
-    Assert Equal (VToken vBAT BorrowBalanceStored Geoff) 101e18
-    Assert Equal (VToken vBAT TotalBorrows) 101e18
-    -- Check user liquidity and verify < 0
-    Assert Equal (Comptroller Liquidity Geoff) -1e18
-    -- Okay, so we should be able to liquidate, so let's do that.
-    Prep Geoff 10e18 BAT vBAT
-    AllowFailures
-    Liquidate Geoff "->" Geoff 2e18 vBAT "Seizing" vBAT
-    Assert Failure INVALID_ACCOUNT_PAIR LIQUIDATE_LIQUIDATOR_IS_BORROWER
-
 Test "Liqidate in-kind beyond max close"
     InKindBorrow borrowAmount:1e18 borrowRate:0.000005
     Assert Equal (VToken vBAT BorrowBalance Geoff) 1e18
