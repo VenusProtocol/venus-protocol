@@ -342,8 +342,8 @@ describe('Flywheel', () => {
       expect(tx).toHaveLog('DistributedBorrowerVenus', {
         vToken: mkt._address,
         borrower: a1,
-        venusDelta: bnbUnsigned(25e18).toString(),
-        venusBorrowIndex: bnbDouble(6).toString()
+        venusDelta: bnbUnsigned(25e18).toFixed(),
+        venusBorrowIndex: bnbDouble(6).toFixed()
       });
     });
 
@@ -404,8 +404,8 @@ describe('Flywheel', () => {
       expect(tx).toHaveLog('DistributedSupplierVenus', {
         vToken: mkt._address,
         supplier: a1,
-        venusDelta: bnbUnsigned(25e18).toString(),
-        venusSupplyIndex: bnbDouble(6).toString()
+        venusDelta: bnbUnsigned(25e18).toFixed(),
+        venusSupplyIndex: bnbDouble(6).toFixed()
       });
     });
 
@@ -717,12 +717,12 @@ describe('Flywheel', () => {
       await send(comptroller, "harnessAddVenusMarkets", [[mkt]]);
 
       const supplyState = await call(comptroller, 'venusSupplyState', [mkt]);
-      expect(supplyState.block).toEqual(bn1.toString());
-      expect(supplyState.index).toEqual(idx.toString());
+      expect(supplyState.block).toEqual(bn1.toFixed());
+      expect(supplyState.index).toEqual(idx.toFixed());
 
       const borrowState = await call(comptroller, 'venusBorrowState', [mkt]);
-      expect(borrowState.block).toEqual(bn1.toString());
-      expect(borrowState.index).toEqual(idx.toString());
+      expect(borrowState.block).toEqual(bn1.toFixed());
+      expect(borrowState.index).toEqual(idx.toFixed());
     });
   });
 });

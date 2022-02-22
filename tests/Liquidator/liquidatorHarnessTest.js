@@ -1,3 +1,4 @@
+const BigNumber = require('bignumber.js');
 const {
   bnbUnsigned,
   bnbMantissa,
@@ -13,11 +14,11 @@ const seizeTokens = seizeAmount.mul(4); // forced
 const announcedIncentive = bnbMantissa('1.10');
 const treasuryPercent = bnbMantissa('0.05');
 
+// There are fractional divisions in corresponding calculation in Liquidator.sol, which is 
+// equivalate to `toFixed(0, ROUND_FLOOR)` when the results are positive, so we must reproduce this effect
 function calculateSplitSeizedTokens(amount) {
-  const treasuryDelta =
-    amount
-      .mul(bnbMantissa('1')).div(announcedIncentive) // / 1.1
-      .mul(treasuryPercent).div(bnbMantissa('1'));   // * 0.05
+  const seizedForRepayment = bnbUnsigned(amount.mul(bnbMantissa('1')).div(announcedIncentive).toFixed(0, BigNumber.ROUND_FLOOR));
+  const treasuryDelta = bnbUnsigned(seizedForRepayment.mul(treasuryPercent).div(bnbMantissa('1')).toFixed(0, BigNumber.ROUND_FLOOR));
   const liquidatorDelta = amount.sub(treasuryDelta);
   return { treasuryDelta, liquidatorDelta };
 }
