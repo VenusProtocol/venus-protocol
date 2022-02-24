@@ -56,15 +56,14 @@ describe('VRTConverterProxy', () => {
     xvsToken = await deploy('XVS', [root]);
     xvsTokenAddress = xvsToken._address;
 
-    xvsVesting = await deploy('XVSVestingHarness', [xvsTokenAddress]);
+    xvsVesting = await deploy('XVSVestingHarness',);
     xvsVestingAddress = xvsVesting._address;
 
     //deploy VRTConversion
-    vrtConversion = await deploy('VRTConverterHarness', [vrtTokenAddress, xvsTokenAddress, conversionRatio, conversionStartTime, conversionPeriod]);
+    vrtConversion = await deploy('VRTConverterHarness');
     vrtConversionAddress = vrtConversion._address;
-
-    await send(vrtConversion, '_setXVSVesting', [xvsVestingAddress], { from: root });
-    await send(xvsVesting, '_setVRTConversion', [vrtConversionAddress], { from: root });
+    await send(vrtConversion, "initialize", [vrtTokenAddress, xvsTokenAddress, xvsVestingAddress, conversionRatio, conversionStartTime, conversionPeriod]);
+    await send(xvsVesting, "initialize", [xvsTokenAddress, vrtConversionAddress]);
 
     await send(vrtToken, "approve", [vrtConversionAddress, 0], { from: alice });
     await send(vrtToken, "approve", [vrtConversionAddress, 0], { from: bob });
@@ -242,96 +241,6 @@ describe('VRTConverterProxy', () => {
       vrtTransferAmount = bnbMantissa(100);
       await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
         .rejects.toRevert('revert Insufficient VRT allowance');
-    });
-
-  });
-
-  describe('admin()', () => {
-    it('should return correct admin', async () => {
-      expect(await call(vrtConversion, 'admin')).toEqual(root);
-    });
-  });
-
-  describe('pendingAdmin()', () => {
-    it('should return correct pending admin', async () => {
-      expect(await call(vrtConversion, 'pendingAdmin')).toBeAddressZero()
-    });
-  });
-
-  describe('_setPendingAdmin()', () => {
-    it('should only be callable by admin', async () => {
-      await expect(send(vrtConversion, '_setPendingAdmin', [accounts[0]], { from: accounts[0] }))
-        .rejects.toRevert('revert Only Admin can set the PendingAdmin');
-
-      // Check admin stays the same
-      expect(await call(vrtConversion, 'admin')).toEqual(root);
-      expect(await call(vrtConversion, 'pendingAdmin')).toBeAddressZero();
-    });
-
-    it('should properly set pending admin', async () => {
-      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[0]])).toSucceed();
-
-      // Check admin stays the same
-      expect(await call(vrtConversion, 'admin')).toEqual(root);
-      expect(await call(vrtConversion, 'pendingAdmin')).toEqual(accounts[0]);
-    });
-
-    it('should properly set pending admin twice', async () => {
-      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[0]])).toSucceed();
-      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[1]])).toSucceed();
-
-      // Check admin stays the same
-      expect(await call(vrtConversion, 'admin')).toEqual(root);
-      expect(await call(vrtConversion, 'pendingAdmin')).toEqual(accounts[1]);
-    });
-
-    it('should emit event', async () => {
-      const result = await send(vrtConversion, '_setPendingAdmin', [accounts[0]]);
-      expect(result).toHaveLog('NewPendingAdmin', {
-        oldPendingAdmin: address(0),
-        newPendingAdmin: accounts[0],
-      });
-    });
-  });
-
-  describe('_acceptAdmin()', () => {
-    it('should fail when pending admin is zero', async () => {
-      await expect(send(vrtConversion, '_acceptAdmin')).rejects.toRevert('revert Only PendingAdmin can accept as Admin');
-
-      // Check admin stays the same
-      expect(await call(vrtConversion, 'admin')).toEqual(root);
-      expect(await call(vrtConversion, 'pendingAdmin')).toBeAddressZero();
-    });
-
-    it('should fail when called by another account (e.g. root)', async () => {
-      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[0]])).toSucceed();
-      await expect(send(vrtConversion, '_acceptAdmin')).rejects.toRevert('revert Only PendingAdmin can accept as Admin');
-
-      // Check admin stays the same
-      expect(await call(vrtConversion, 'admin')).toEqual(root);
-      expect(await call(vrtConversion, 'pendingAdmin')).toEqual(accounts[0]);
-    });
-
-    it('should succeed and set admin and clear pending admin', async () => {
-      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[0]])).toSucceed();
-      expect(await send(vrtConversion, '_acceptAdmin', [], { from: accounts[0] })).toSucceed();
-
-      // Check admin stays the same
-      expect(await call(vrtConversion, 'admin')).toEqual(accounts[0]);
-      expect(await call(vrtConversion, 'pendingAdmin')).toBeAddressZero();
-    });
-
-    it('should emit log on success', async () => {
-      expect(await send(vrtConversion, '_setPendingAdmin', [accounts[0]])).toSucceed();
-      const result = await send(vrtConversion, '_acceptAdmin', [], { from: accounts[0] });
-      expect(result).toHaveLog('NewAdmin', {
-        oldAdmin: root,
-        newAdmin: accounts[0],
-      });
-      expect(result).toHaveLog('NewPendingAdmin', {
-        oldPendingAdmin: accounts[0],
-        newPendingAdmin: address(0),
-      });
     });
 
   });

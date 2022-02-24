@@ -6,7 +6,7 @@ contract XVSVestingHarness is XVSVesting {
 
    address public constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000;
 
-   constructor(address _xvsAddress) XVSVesting(_xvsAddress) public {}
+   constructor() XVSVesting() public {}
 
    uint public blockNumber;
 

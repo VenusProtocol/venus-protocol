@@ -12,6 +12,82 @@ const ONE_YEAR = 360 * 24 * 60 * 60;
 const HALF_YEAR = 180 * 24 * 60 * 60;
 const TOTAL_VESTING_TIME = new BigNum(ONE_YEAR);
 
+const getAllVestingsOfUser = async (xvsVesting, userAddress) => {
+    const numberofVestings = await getNumberOfVestingsOfUser(xvsVesting, userAddress);
+    const vestings = [];
+    let i = 0;
+    for (; i < numberofVestings; i++) {
+        const vesting = await call(xvsVesting, "vestings", [userAddress, i]);
+        vestings.push(vesting);
+    }
+    return vestings;
+}
+
+const getNumberOfVestingsOfUser = async (xvsVesting, userAddress) => {
+   return await call (xvsVesting, "getVestingCount", [userAddress]);
+}
+
+const getTotalVestedAmount = async (xvsVesting, userAddress) => {
+    return await call(xvsVesting, "getVestedAmount", [userAddress]);
+}
+
+const computeVestedAmount = (amount, vestingStartTime, currentTime) => {
+    const timeDelta = new BigNum(currentTime).minus(new BigNum(vestingStartTime));
+    const multiplier = new BigNum(amount).multipliedBy(timeDelta);
+    const result = multiplier.dividedToIntegerBy(TOTAL_VESTING_TIME);
+    return result;
+}
+
+const computeWithdrawableAmount = (amount, vestingStartTime, currentTime, withdrawnAmount) => {
+
+    const currentTimeAsBigNumber = getBigNumber(currentTime);
+    const vestingStartTimeAsBigNumber = getBigNumber(vestingStartTime);
+    const amountAsBigNumber = getBigNumber(amount);
+    const withdrawnAmountAsBigNumber = getBigNumber(withdrawnAmount);
+
+    if (currentTimeAsBigNumber.isLessThanOrEqualTo(vestingStartTimeAsBigNumber)) {
+        return 0;
+    } else if (currentTimeAsBigNumber.isGreaterThan(vestingStartTimeAsBigNumber.plus(TOTAL_VESTING_TIME))) {
+        return amount;
+    } else {
+        const timeDelta = currentTimeAsBigNumber.minus(vestingStartTimeAsBigNumber);
+        const multiplier = amountAsBigNumber.multipliedBy(timeDelta);
+        const result = multiplier.dividedToIntegerBy(TOTAL_VESTING_TIME);
+        return result > 0 ? result.sub(withdrawnAmountAsBigNumber) : 0;
+    }
+}
+
+const getWithdrawableAmountFromContract = async (xvsVesting, userAddress) => {
+    return await call(xvsVesting, "getWithdrawableAmount", [userAddress]);
+}
+
+const getCurrentTimeFromContract = async (xvsVesting) => {
+    return await call(xvsVesting, "getCurrentTime", []);
+}
+
+const depositXVS = async (xvsVesting, recipient, depositAmount, xvsVestingAddress, vrtConversionAddress, root) => {
+    let depositTxn = await send(xvsVesting, 'deposit', [recipient, depositAmount], { from: vrtConversionAddress });
+    const currentTimeFromContract = await getCurrentTimeFromContract(xvsVesting);
+    expect(depositTxn).toSucceed();
+    expect(depositTxn).toHaveLog('XVSVested', {
+        recipient: recipient,
+        startTime: currentTimeFromContract,
+        amount: depositAmount.toFixed(),
+        withdrawnAmount: 0
+    });
+    return depositTxn;
+}
+
+const withdrawXVS = async (xvsVesting, recipient) => {
+    const withdrawTxn = await send(xvsVesting, 'withdraw', [], { from: recipient });
+    expect(withdrawTxn).toSucceed();
+    return withdrawTxn;
+}
+
+const getXVSBalance = async (xvs, recipient) => {
+    return await call(xvs, "balanceOf", [recipient]);
+}
+
 describe('XVSVesting', () => {
     let root, alice, bob;
     let vrtConversionAddress,
@@ -19,93 +95,13 @@ describe('XVSVesting', () => {
         xvsToken, xvsTokenAddress;
     let blockTimestamp;
     let vrtFundingAmount;
-    let vrtForMint, xvsTokenMintAmount;
+    let vrtForMint;
     let xvsVesting, xvsVestingAddress;
-
-    const getAllVestingsOfUser = async (xvsVesting, userAddress) => {
-        const numberofVestings = await getNumberOfVestingsOfUser(xvsVesting, userAddress);
-        const vestings = [];
-        let i = 0;
-        for (; i < numberofVestings; i++) {
-            const vesting = await call(xvsVesting, "vestings", [userAddress, i]);
-            vestings.push(vesting);
-        }
-        return vestings;
-    }
-
-    const getNumberOfVestingsOfUser = async (xvsVesting, userAddress) => {
-       return await call (xvsVesting, "getVestingCount", [userAddress]);
-    }
-
-    const getTotalVestedAmount = async (xvsVesting, userAddress) => {
-        return await call(xvsVesting, "getVestedAmount", [userAddress]);
-    }
-
-    const computeVestedAmount = (amount, vestingStartTime, currentTime) => {
-        const timeDelta = new BigNum(currentTime).minus(new BigNum(vestingStartTime));
-        const multiplier = new BigNum(amount).multipliedBy(timeDelta);
-        const result = multiplier.dividedToIntegerBy(TOTAL_VESTING_TIME);
-        return result;
-    }
-
-    const computeWithdrawableAmount = (amount, vestingStartTime, currentTime, withdrawnAmount) => {
-
-        const currentTimeAsBigNumber = getBigNumber(currentTime);
-        const vestingStartTimeAsBigNumber = getBigNumber(vestingStartTime);
-        const amountAsBigNumber = getBigNumber(amount);
-        const withdrawnAmountAsBigNumber = getBigNumber(withdrawnAmount);
-
-        if (currentTimeAsBigNumber.isLessThanOrEqualTo(vestingStartTimeAsBigNumber)) {
-            return 0;
-        } else if (currentTimeAsBigNumber.isGreaterThan(vestingStartTimeAsBigNumber.plus(TOTAL_VESTING_TIME))) {
-            return amount;
-        } else {
-            const timeDelta = currentTimeAsBigNumber.minus(vestingStartTimeAsBigNumber);
-            const multiplier = amountAsBigNumber.multipliedBy(timeDelta);
-            const result = multiplier.dividedToIntegerBy(TOTAL_VESTING_TIME);
-            return result > 0 ? result.sub(withdrawnAmountAsBigNumber) : 0;
-        }
-    }
-
-    const getWithdrawableAmountFromContract = async (xvsVesting, userAddress) => {
-        return await call(xvsVesting, "getWithdrawableAmount", [userAddress]);
-    }
-
-    const getCurrentTimeFromContract = async (xvsVesting) => {
-        return await call(xvsVesting, "getCurrentTime", []);
-    }
-
-    const depositXVS = async (xvsVesting, recipient, depositAmount, xvsVestingAddress, vrtConversionAddress, root) => {
-        let depositTxn = await send(xvsVesting, 'deposit', [recipient, depositAmount], { from: vrtConversionAddress });
-        const currentTimeFromContract = await getCurrentTimeFromContract(xvsVesting);
-        expect(depositTxn).toSucceed();
-        expect(depositTxn).toHaveLog('XVSVested', {
-            recipient: recipient,
-            startTime: currentTimeFromContract,
-            amount: depositAmount.toFixed(),
-            withdrawnAmount: 0
-        });
-        return depositTxn;
-    }
-
-    const withdrawXVS = async (xvsVesting, recipient) => {
-        const withdrawTxn = await send(xvsVesting, 'withdraw', [], { from: recipient });
-        expect(withdrawTxn).toSucceed();
-        return withdrawTxn;
-    }
-
-    const getXVSBalance = async (xvs, recipient) => {
-        return await call(xvs, "balanceOf", [recipient]);
-    }
 
     beforeEach(async () => {
         [root, alice, bob, vrtConversionAddress, ...accounts] = saddle.accounts;
         blockTimestamp = bnbUnsigned(100);
         await freezeTime(blockTimestamp.toNumber());
-        conversionStartTime = blockTimestamp;
-        conversionRatioMultiplier = 0.75;
-        conversionRatio = getBigNumber(0.75e18);
-        vrtTotalSupply = bnbMantissa(2000000000);
 
         //deploy VRT
         vrtToken = await deploy('VRT', [root]);
@@ -126,13 +122,9 @@ describe('XVSVesting', () => {
         xvsToken = await deploy('XVS', [root]);
         xvsTokenAddress = xvsToken._address;
 
-        xvsPerDay = bnbMantissa(10000);
-        xvsVesting = await deploy('XVSVestingHarness', [xvsTokenAddress]);
+        xvsVesting = await deploy('XVSVestingHarness');
         xvsVestingAddress = xvsVesting._address;
-
-        xvsTokenMintAmount = bnbMantissa(100000);
-        await send(xvsToken, 'transfer', [vrtConversionAddress, xvsTokenMintAmount], { from: root });
-        await send(xvsVesting, '_setVRTConversion', [vrtConversionAddress], { from: root });
+        await send(xvsVesting, "initialize", [xvsTokenAddress, vrtConversionAddress]);
     });
 
     describe("constructor", () => {
@@ -406,96 +398,6 @@ describe('XVSVesting', () => {
 
             await expect(withdrawXVS(xvsVesting, alice)).rejects.toRevert("revert Insufficient XVS for withdrawal");
         });
-    });
-
-    describe('admin()', () => {
-        it('should return correct admin', async () => {
-            expect(await call(xvsVesting, 'admin')).toEqual(root);
-        });
-    });
-
-    describe('pendingAdmin()', () => {
-        it('should return correct pending admin', async () => {
-            expect(await call(xvsVesting, 'pendingAdmin')).toBeAddressZero()
-        });
-    });
-
-    describe('_setPendingAdmin()', () => {
-        it('should only be callable by admin', async () => {
-            await expect(send(xvsVesting, '_setPendingAdmin', [accounts[0]], { from: accounts[0] }))
-                .rejects.toRevert('revert Only Admin can set the PendingAdmin');
-
-            // Check admin stays the same
-            expect(await call(xvsVesting, 'admin')).toEqual(root);
-            expect(await call(xvsVesting, 'pendingAdmin')).toBeAddressZero();
-        });
-
-        it('should properly set pending admin', async () => {
-            expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
-
-            // Check admin stays the same
-            expect(await call(xvsVesting, 'admin')).toEqual(root);
-            expect(await call(xvsVesting, 'pendingAdmin')).toEqual(accounts[0]);
-        });
-
-        it('should properly set pending admin twice', async () => {
-            expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
-            expect(await send(xvsVesting, '_setPendingAdmin', [accounts[1]])).toSucceed();
-
-            // Check admin stays the same
-            expect(await call(xvsVesting, 'admin')).toEqual(root);
-            expect(await call(xvsVesting, 'pendingAdmin')).toEqual(accounts[1]);
-        });
-
-        it('should emit event', async () => {
-            const result = await send(xvsVesting, '_setPendingAdmin', [accounts[0]]);
-            expect(result).toHaveLog('NewPendingAdmin', {
-                oldPendingAdmin: address(0),
-                newPendingAdmin: accounts[0],
-            });
-        });
-    });
-
-    describe('_acceptAdmin()', () => {
-        it('should fail when pending admin is zero', async () => {
-            await expect(send(xvsVesting, '_acceptAdmin')).rejects.toRevert('revert Only PendingAdmin can accept as Admin');
-
-            // Check admin stays the same
-            expect(await call(xvsVesting, 'admin')).toEqual(root);
-            expect(await call(xvsVesting, 'pendingAdmin')).toBeAddressZero();
-        });
-
-        it('should fail when called by another account (e.g. root)', async () => {
-            expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
-            await expect(send(xvsVesting, '_acceptAdmin')).rejects.toRevert('revert Only PendingAdmin can accept as Admin');
-
-            // Check admin stays the same
-            expect(await call(xvsVesting, 'admin')).toEqual(root);
-            expect(await call(xvsVesting, 'pendingAdmin')).toEqual(accounts[0]);
-        });
-
-        it('should succeed and set admin and clear pending admin', async () => {
-            expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
-            expect(await send(xvsVesting, '_acceptAdmin', [], { from: accounts[0] })).toSucceed();
-
-            // Check admin stays the same
-            expect(await call(xvsVesting, 'admin')).toEqual(accounts[0]);
-            expect(await call(xvsVesting, 'pendingAdmin')).toBeAddressZero();
-        });
-
-        it('should emit log on success', async () => {
-            expect(await send(xvsVesting, '_setPendingAdmin', [accounts[0]])).toSucceed();
-            const result = await send(xvsVesting, '_acceptAdmin', [], { from: accounts[0] });
-            expect(result).toHaveLog('NewAdmin', {
-                oldAdmin: root,
-                newAdmin: accounts[0],
-            });
-            expect(result).toHaveLog('NewPendingAdmin', {
-                oldPendingAdmin: accounts[0],
-                newPendingAdmin: address(0),
-            });
-        });
-
     });
 
 });

@@ -2,38 +2,25 @@ pragma solidity ^0.5.16;
 
 import "../Utils/IBEP20.sol";
 import "../Utils/SafeBEP20.sol";
+import "./XVSVestingStorage.sol";
+import "./XVSVestingProxy.sol";
 
-contract XVSVesting {
+/**
+ * @title Venus's XVSVesting Contract
+ * @author Venus
+ */
+contract XVSVesting is XVSVestingStorage {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
-    uint256 private constant TOTAL_VESTING_TIME = 360 * 24 * 60 * 60;
-
-    /// @notice Administrator for this contract
-    address public admin;
-
-    /// @notice Pending administrator for this contract
-    address public pendingAdmin;
-
-    /// @notice Guard variable for re-entrancy checks
-    bool internal _notEntered;
-
-    /// @notice The XVS TOKEN!
-    IBEP20 public xvs;
-
-    /// @notice VRTConversion Contract Address
-    address public vrtConversionAddress;
+    /// @notice total vesting period for 1 year in seconds
+    uint256 constant public TOTAL_VESTING_TIME = 360 * 24 * 60 * 60;
 
     /// @notice decimal precision for XVS
     uint256 constant public xvsDecimalsMultiplier = 10**18;
 
+    /// @notice Emitted when XVSVested is claimed by recipient
     event VestedTokensClaimed(address recipient, uint256 amountClaimed);
-
-    /// @notice Emitted when pendingAdmin is accepted, which means admin is updated
-    event NewAdmin(address oldAdmin, address newAdmin);
-
-    /// @notice Emitted when pendingAdmin is changed
-    event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 
     /// @notice Emitted when vrtConversionAddress is set
     event VRTConversionSet(address vrtConversionAddress);
@@ -49,33 +36,36 @@ contract XVSVesting {
     /// @notice Emitted when XVS is withdrawn by recipient
     event XVSWithdrawn(address recipient, uint256 amount);
 
-    struct VestingRecord {
-        address recipient;
-        uint256 startTime;
-        uint256 amount;
-        uint256 withdrawnAmount;
-    }
-
-    mapping(address => VestingRecord[]) public vestings;
-
     modifier nonZeroAddress(address _address) {
         require(_address != address(0), "Address cannot be Zero");
         _;
     }
 
-    constructor(address _xvsAddress) public nonZeroAddress(_xvsAddress) {
+    constructor() public {
         admin = msg.sender;
+    }
+
+    /**
+     * @notice initialize XVSVestingStorage
+     * @param _xvsAddress The XVSToken address
+     * @param _vrtConversionAddress The VRTConversion Contract address
+     */
+    function initialize(address _xvsAddress, address _vrtConversionAddress) public {
+        require(msg.sender == admin, "only admin may initialize the XVSVesting");
+        
+        require(_xvsAddress != address(0), "_xvsAddress cannot be Zero");
         xvs = IBEP20(_xvsAddress);
+
+        require(_vrtConversionAddress != address(0), "vrtConversionAddress cannot be Zero");
+        vrtConversionAddress = _vrtConversionAddress;
+        emit VRTConversionSet(_vrtConversionAddress);
+
         _notEntered = true;
     }
 
-    function _setVRTConversion(address _vrtConversionAddress)
-        external
-        onlyAdmin
-        nonZeroAddress(_vrtConversionAddress)
-    {
-        vrtConversionAddress = _vrtConversionAddress;
-        emit VRTConversionSet(_vrtConversionAddress);
+    modifier isInitialized() {
+        require(vrtConversionAddress != address(0) && address(xvs) != address(0), "XVSVesting is not initialized");
+        _;
     }
 
     modifier onlyAdmin() {
@@ -91,56 +81,19 @@ contract XVSVesting {
         _;
     }
 
-    /**
-     * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
-     * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
-     * @param newPendingAdmin New pending admin.
-     */
-    function _setPendingAdmin(address newPendingAdmin) external {
-        // Check caller = admin
-        require(msg.sender == admin, "Only Admin can set the PendingAdmin");
-
-        // Save current value, if any, for inclusion in log
-        address oldPendingAdmin = pendingAdmin;
-
-        // Store pendingAdmin with value newPendingAdmin
-        pendingAdmin = newPendingAdmin;
-
-        // Emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin)
-        emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin);
-    }
-
-    /**
-     * @notice Accepts transfer of admin rights. msg.sender must be pendingAdmin
-     * @dev Admin function for pending admin to accept role and update admin
-     */
-    function _acceptAdmin() external {
-        // Check caller is pendingAdmin
-        require(msg.sender == pendingAdmin, "Only PendingAdmin can accept as Admin");
-
-        // Save current values for inclusion in log
-        address oldAdmin = admin;
-        address oldPendingAdmin = pendingAdmin;
-
-        // Store admin with value pendingAdmin
-        admin = pendingAdmin;
-
-        // Clear the pending value
-        pendingAdmin = address(0);
-
-        emit NewAdmin(oldAdmin, admin);
-        emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
-    }
-
     modifier vestingExistCheck(address recipient) {
         require(
             vestings[recipient].length > 0,
             "recipient doesnot have any vestingRecord"
         );
-
         _;
     }
 
+    /**
+     * @notice Deposit XVS for Vesting
+     * @param recipient The vesting recipient
+     * @param depositAmount XVS amount for deposit
+     */
     function deposit(address recipient, uint depositAmount) external onlyVrtConverter
         nonZeroAddress(recipient) {
         require(depositAmount > 0, "Deposit amount must be non-zero");
@@ -164,6 +117,9 @@ contract XVSVesting {
         );
     }
 
+    /**
+     * @notice Withdraw Vested XVS of recipient
+     */
     function withdraw() external vestingExistCheck(msg.sender) {
         address recipient = msg.sender;
         VestingRecord[] storage vestingsOfRecipient = vestings[recipient];
@@ -187,6 +143,11 @@ contract XVSVesting {
        }
     }
 
+    /**
+     * @notice get Withdrawable XVS Amount
+     * @param recipient The vesting recipient
+     * @return A tuple with totalWithdrawableAmount , totalVestedAmount and totalWithdrawnAmount
+     */
     function getWithdrawableAmount(address recipient) view public nonZeroAddress(recipient) 
     returns (uint256 totalWithdrawableAmount, uint256 totalVestedAmount, uint256 totalWithdrawnAmount)
     {
@@ -204,6 +165,13 @@ contract XVSVesting {
         return (totalWithdrawableAmount, totalVestedAmount, totalWithdrawnAmount);
     }
 
+    /**
+     * @notice get Withdrawable XVS Amount
+     * @param amount Amount deposited for vesting
+     * @param vestingStartTime time in epochSeconds at the time of vestingDeposit
+     * @param withdrawnAmount XVSAmount withdrawn from VestedAmount
+     * @return A tuple with vestedAmount and withdrawableAmount
+     */
     function calculateWithdrawableAmount(uint256 amount, uint256 vestingStartTime, uint256 withdrawnAmount)
       view internal returns (uint256, uint256) {
         uint256 vestedAmount = calculateVestedAmount(amount, vestingStartTime, getCurrentTime());
@@ -211,6 +179,13 @@ contract XVSVesting {
         return (vestedAmount, toWithdraw);
     }
 
+    /**
+     * @notice calculate total vested amount
+     * @param vestingAmount Amount deposited for vesting
+     * @param vestingStartTime time in epochSeconds at the time of vestingDeposit
+     * @param currentTime currentTime in epochSeconds
+     * @return Total XVS amount vested
+     */
     function calculateVestedAmount(uint256 vestingAmount, uint256 vestingStartTime, uint256 currentTime) internal view returns (uint256) {
         if (currentTime < vestingStartTime) {
             return 0;
@@ -221,7 +196,17 @@ contract XVSVesting {
         }
     }
 
+    /**
+     * @notice current block timestamp
+     * @return blocktimestamp
+     */
    function getCurrentTime() public view returns (uint256) {
       return block.timestamp;
    }
+
+    /*** Admin Functions ***/
+    function _become(XVSVestingProxy xvsVestingProxy) public {
+        require(msg.sender == xvsVestingProxy.admin(), "only proxy admin can change brains");
+        xvsVestingProxy._acceptImplementation();
+    }
 }

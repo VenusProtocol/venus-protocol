@@ -3,22 +3,8 @@ pragma solidity ^0.5.16;
 import "../../contracts/VRT/VRTConverter.sol";
 
 contract VRTConverterHarness is VRTConverter {
-    constructor(
-        address _vrtAddress,
-        address _xvsAddress,
-        uint256 _conversionRatio,
-        uint256 _conversionStartTime,
-        uint256 _conversionPeriod
-    )
-        public
-        VRTConverter(
-            _vrtAddress,
-            _xvsAddress,
-            _conversionRatio,
-            _conversionStartTime,
-            _conversionPeriod
-        )
-    {}
+    
+    constructor() VRTConverter() public {}
 
     function balanceOfUser() public view returns (uint256, address) {
         uint256 vrtBalanceOfUser = vrt.balanceOf(msg.sender);
