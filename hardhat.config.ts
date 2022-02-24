@@ -35,7 +35,7 @@
        url: process.env.BSC_TESTNET_NODE || 'https://data-seed-prebsc-1-s1.binance.org:8545',
        chainId: 97,
        accounts: [`0x${DEPLOYER_PRIVATE_KEY}`],
-       gasPrice: ethers.utils.parseUnits("50", "gwei").toNumber(),
+       gasPrice: ethers.utils.parseUnits("10", "gwei").toNumber(),
        gasMultiplier: 10,
        timeout: 12000000,
      },

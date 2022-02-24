@@ -17,7 +17,7 @@ const main = async () => {
     const _vrtAddress = contractConfigData.Contracts.VRT;
     const _xvsAddress = contractConfigData.Contracts.XVS;
     const _conversionRatio = bnbMantissa(0.000083);
-    const _conversionStartTime = 1645450842;
+    const _conversionStartTime = 1645686949;
     const _conversionPeriod = 360 * 24 * 60 * 60;
 
     const vrtConverterContractInstance = await VRTConverterContract.deploy(
