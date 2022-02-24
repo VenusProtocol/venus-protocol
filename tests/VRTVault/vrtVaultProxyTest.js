@@ -175,6 +175,32 @@ describe('VRTVaultProxy', () => {
 
   });
 
+
+  describe("Upgrade VRTVault", () => {
+
+    it("should update the implementation and assert the existing-storage on upgraded implementation", async () => {
+      
+      const vrtVaultAddressBeforeUpgrade = vrtVaultAddress;
+      console.log(`vrtVaultAddress before upgrade: ${vrtVaultAddressBeforeUpgrade}`)
+
+      vrtVault = await deploy('VRTVaultHarness', [], { from: root });
+      vrtVaultAddress = vrtVault._address;
+      await send(vrtVaultProxy, '_setPendingImplementation', [vrtVaultAddress], { from: root });
+      await send(vrtVault, '_become', [vrtVaultProxy._address], { from: vrtVaultProxyAdmin });
+
+      const vrtVaultImplementationFromProxy = await call(vrtVaultProxy, "implementation", []);
+      expect(vrtVaultImplementationFromProxy).toEqual(vrtVaultAddress);
+
+      const interestRatePerBlockFromVault = await call(vrtVaultProxy, "interestRatePerBlock", []);
+      expect(interestRatePerBlockFromVault).toEqual(interestRatePerBlock.toString());
+
+      const vrtFromVault = await call(vrtVaultProxy, "vrt", []);
+      expect(vrtFromVault).toEqual(vrtAddress);
+    });
+
+  });
+
+
   describe("VRTVault Initialisation via VRTVaultProxy", () => {
 
     it("should assert VRT Balance of Root to TotalSupply", async () => {
@@ -277,8 +303,8 @@ describe('VRTVaultProxy', () => {
       await depositVRT(vrt, vrtVaultProxy, user1, vrtDepositAmount);
       await assertAccruedInterest(vrtVaultProxy, user1, vrtDepositAmount);
 
-      const currentBlockNumber = await getBlockNumber(vrtVaultProxy);
-      const accrualStartBlockNumber = await getAccrualStartBlockNumber(vrtVaultProxy, user1);
+      let currentBlockNumber = await getBlockNumber(vrtVaultProxy);
+      let accrualStartBlockNumber = await getAccrualStartBlockNumber(vrtVaultProxy, user1);
       const expectedAccruedInterest = await calculateAccruedInterest(vrtDepositAmount, accrualStartBlockNumber, currentBlockNumber)
       const expectedPrincipalAmount = await getTotalPrincipalAmount(vrtVaultProxy, user1);
       const totalWithdrawnAmount = new BigNum(expectedAccruedInterest).plus(new BigNum(expectedPrincipalAmount));
