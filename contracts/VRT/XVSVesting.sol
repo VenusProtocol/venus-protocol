@@ -25,7 +25,7 @@ contract XVSVesting {
     address public vrtConversionAddress;
 
     /// @notice decimal precision for XVS
-    uint256 public xvsDecimalsMultiplier = 10**18;
+    uint256 constant public xvsDecimalsMultiplier = 10**18;
 
     event VestedTokensClaimed(address recipient, uint256 amountClaimed);
 
