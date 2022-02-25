@@ -222,29 +222,30 @@ describe('Liquidator', function () {
   describe('setTreasuryPercent', () => {
     it('updates treasury percent in storage', async () => {
       const result =
-        await liquidatorContract.methods.setTreasuryPercent(bnbMantissa('0.8')).send({ from: root });
+        await liquidatorContract.methods.setTreasuryPercent(bnbMantissa('0.08')).send({ from: root });
       expect(result).toHaveLog('NewLiquidationTreasuryPercent', {
         oldPercent: treasuryPercent,
-        newPercent: bnbMantissa('0.8')
+        newPercent: bnbMantissa('0.08')
       });
       const newPercent = await liquidatorContract.methods.treasuryPercentMantissa().call();
-      expect(newPercent).toEqual(bnbMantissa('0.8').toString());
+      expect(newPercent).toEqual(bnbMantissa('0.08').toString());
     });
 
     it('fails when called from non-admin', async () => {
       await expect(
-        liquidatorContract.methods.setTreasuryPercent(bnbMantissa('0.8')).send({ from: borrower })
+        liquidatorContract.methods.setTreasuryPercent(bnbMantissa('0.08')).send({ from: borrower })
       ).rejects.toRevert("revert only admin allowed");
     });
 
     it('uses the new treasury percent during distributions', async () => {
+      await send(vToken.comptroller, '_setLiquidatorContract', [liquidatorContract._address]);
       await preLiquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral);
-      await liquidatorContract.methods.setTreasuryPercent(bnbMantissa('0.8')).send({ from: root });
+      await liquidatorContract.methods.setTreasuryPercent(bnbMantissa('0.08')).send({ from: root });
       const result = await liquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral);
       const treasuryDelta =
         seizeTokens
           .mul(bnbMantissa('1')).div(announcedIncentive)  // / 1.1
-          .mul(bnbMantissa('0.8')).div(bnbMantissa('1')); // * 0.8
+          .mul(bnbMantissa('0.08')).div(bnbMantissa('1')); // * 0.08
       const liquidatorDelta = seizeTokens.sub(treasuryDelta);
       expect(result).toHaveLog('LiquidateBorrowedTokens', {
         liquidator,
