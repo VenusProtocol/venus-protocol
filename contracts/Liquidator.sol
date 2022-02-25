@@ -130,7 +130,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     {
         IBEP20 vai = IBEP20(vaiController.getVAIAddress());
         vai.safeTransferFrom(msg.sender, address(this), repayAmount);
-        vai.safeApprove(address(vai), repayAmount);
+        vai.safeApprove(address(vaiController), repayAmount);
 
         (uint err,) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
         requireNoError(err, "failed to liquidate");
