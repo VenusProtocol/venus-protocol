@@ -33,6 +33,10 @@ async function bnbGasCost(receipt) {
   return gasUsed.times(gasPrice);
 }
 
+function getBigNumber(value) {
+  return new BigNum(value);
+}
+
 function bnbExp(num) { return bnbMantissa(num, 1e18) }
 function bnbDouble(num) { return bnbMantissa(num, 1e36) }
 function bnbMantissa(num, scale = 1e18) {
@@ -158,7 +162,7 @@ module.exports = {
   minerStop,
   rpc,
   setTime,
-
   both,
-  sendFallback
+  sendFallback,
+  getBigNumber
 };

@@ -19,16 +19,16 @@ contract XVSVestingHarness is XVSVesting {
       vrtConversionAddress = ZERO_ADDRESS;
    }
 
-   function harnessFastForward(uint blocks) public returns (uint) {
-      blockNumber += blocks;
-      return blockNumber;
+   function computeWithdrawableAmount(uint256 amount, uint256 vestingStartTime, uint256 withdrawnAmount)
+     public view returns (uint256 vestedAmount, uint256 toWithdraw) {
+      (vestedAmount, toWithdraw) = super.calculateWithdrawableAmount(amount, vestingStartTime, withdrawnAmount);
+      return (vestedAmount, toWithdraw);
    }
 
-   function setBlockNumber(uint number) public {
-      blockNumber = number;
+   function computeVestedAmount(uint256 vestingAmount, uint256 vestingStartTime, uint256 currentTime)
+   public view returns (uint256) {
+      return super.calculateVestedAmount(vestingAmount, vestingStartTime, currentTime);
    }
 
-   function getBlockNumber() public view returns (uint) {
-      return blockNumber;
-   }
+
 }
