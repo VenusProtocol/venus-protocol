@@ -7,8 +7,15 @@ const hre = require("hardhat");
 
 const main = async () => {
     const xvsVestingAddress = contractConfigData.Contracts.XVSVesting;
+    const xvsAddress = contractConfigData.Contracts.XVS;
+
+    const xvsVestingConstructorArgumentArray = [xvsVestingAddress, xvsAddress];
+    console.log(`Verifying XVSVesting with constructorArguments: ${xvsVestingConstructorArgumentArray}`);
+
+    const xvsVestingProxyAddress = contractConfigData.Contracts.XVSVestingProxy;
     await hre.run("verify:verify", {
-        address: xvsVestingAddress
+        address: xvsVestingProxyAddress,
+        constructorArguments: xvsVestingConstructorArgumentArray
     });
 };
 

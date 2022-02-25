@@ -62,8 +62,11 @@ describe('VRTConverterProxy', () => {
     //deploy VRTConversion
     vrtConversion = await deploy('VRTConverterHarness');
     vrtConversionAddress = vrtConversion._address;
-    await send(vrtConversion, "initialize", [vrtTokenAddress, xvsTokenAddress, xvsVestingAddress, conversionRatio, conversionStartTime, conversionPeriod]);
-    await send(xvsVesting, "initialize", [xvsTokenAddress, vrtConversionAddress]);
+    await send(vrtConversion, "initialize", [vrtTokenAddress, xvsTokenAddress,
+      conversionRatio, conversionStartTime, conversionPeriod]);
+    await send(xvsVesting, "initialize", [xvsTokenAddress]);
+    await send(vrtConversion, "setXVSVesting", [xvsVestingAddress]);
+    await send(xvsVesting, "setVRTConverter", [vrtConversionAddress]);
 
     await send(vrtToken, "approve", [vrtConversionAddress, 0], { from: alice });
     await send(vrtToken, "approve", [vrtConversionAddress, 0], { from: bob });
@@ -215,10 +218,10 @@ describe('VRTConverterProxy', () => {
         .rejects.toRevert('revert VRT amount must be non-zero');
     });
 
-    it("conversion has not started yet", async() => {
+    it("conversion has not started yet", async () => {
       //override conversionStartTime and set it to 1 Day later in future
       const newConversionStartTime = blockTimestamp.add(ONE_DAY);
-      await send(vrtConversion, "setConversionTimeline", [newConversionStartTime, conversionPeriod], {from: root});
+      await send(vrtConversion, "setConversionTimeline", [newConversionStartTime, conversionPeriod], { from: root });
 
       vrtTransferAmount = bnbMantissa(100);
       await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });
@@ -226,9 +229,9 @@ describe('VRTConverterProxy', () => {
         .rejects.toRevert('revert Conversion did not start yet');
     });
 
-    it("conversion Ended", async() => {
+    it("conversion Ended", async () => {
       //push time to 1 Year in to the future
-      const newBlockTimestamp = blockTimestamp.add(ONE_YEAR+1);
+      const newBlockTimestamp = blockTimestamp.add(ONE_YEAR + 1);
       await freezeTime(newBlockTimestamp.toNumber());
 
       vrtTransferAmount = bnbMantissa(100);
@@ -237,7 +240,7 @@ describe('VRTConverterProxy', () => {
         .rejects.toRevert('revert Conversion Period Ended');
     });
 
-    it("Insufficient VRT allowance", async() => {
+    it("Insufficient VRT allowance", async () => {
       vrtTransferAmount = bnbMantissa(100);
       await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
         .rejects.toRevert('revert Insufficient VRT allowance');

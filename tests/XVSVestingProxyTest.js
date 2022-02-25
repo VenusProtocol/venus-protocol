@@ -14,6 +14,8 @@ describe('XVSVestingProxy', () => {
         xvsToken, xvsTokenAddress;
     let xvsVestingProxy, xvsVestingProxyAddress, xvsVestingProxyAdmin;
     let blockTimestamp;
+    let vrtConversion, vrtConverterProxy, vrtConverterProxyAddress,
+        conversionStartTime, conversionPeriod, conversionRatio;
     let xvsVesting, xvsVestingAddress;
 
     beforeEach(async () => {
@@ -34,11 +36,29 @@ describe('XVSVestingProxy', () => {
         xvsVestingAddress = xvsVesting._address;
 
         //deploy XVSVestingProxy
-        xvsVestingProxy = await deploy("XVSVestingProxy", [xvsVestingAddress, xvsTokenAddress, vrtConversionAddress]);
+        xvsVestingProxy = await deploy("XVSVestingProxy", [xvsVestingAddress, xvsTokenAddress]);
         xvsVestingProxyAddress = xvsVestingProxy._address;
         xvsVestingProxyAdmin = await call(xvsVestingProxy, "admin");
-
         mergeInterface(xvsVestingProxy, xvsVesting);
+
+
+        //deploy VRTConversion
+        vrtConversion = await deploy('VRTConverterHarness');
+        vrtConversionAddress = vrtConversion._address;
+        conversionStartTime = blockTimestamp;
+        conversionPeriod = 360 * 24 * 60 * 60;
+        // 12,000 VRT =  1 XVS
+        // 1 VRT = 1/12,000 = 0.000083
+        conversionRatio = new BigNum(0.000083e18);
+
+        vrtConverterProxy = await deploy('VRTConverterProxy',
+            [vrtConversionAddress, vrtTokenAddress, xvsTokenAddress,
+                conversionRatio, conversionStartTime, conversionPeriod], { from: root });
+        vrtConverterProxyAddress = vrtConverterProxy._address;
+        mergeInterface(vrtConverterProxy, vrtConversion);
+
+        //set VRTConverterProxy in XVSVesting
+        await send(xvsVestingProxy, "setVRTConverter", [vrtConverterProxyAddress]);
     });
 
     describe("constructor", () => {
@@ -52,7 +72,7 @@ describe('XVSVestingProxy', () => {
             expect(xvsAddressResp).toEqual(xvsTokenAddress);
 
             const vrtConversionAddressResp = await call(xvsVestingProxy, 'vrtConversionAddress');
-            expect(vrtConversionAddressResp).toEqual(vrtConversionAddress);
+            expect(vrtConversionAddressResp).toEqual(vrtConverterProxyAddress);
         });
     });
 
@@ -123,7 +143,7 @@ describe('XVSVestingProxy', () => {
             expect(xvsAddressResp).toEqual(xvsTokenAddress);
 
             const vrtConversionAddressResp = await call(xvsVestingProxy, 'vrtConversionAddress');
-            expect(vrtConversionAddressResp).toEqual(vrtConversionAddress);
+            expect(vrtConversionAddressResp).toEqual(vrtConverterProxyAddress);
         });
 
     });

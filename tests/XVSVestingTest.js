@@ -124,7 +124,8 @@ describe('XVSVesting', () => {
 
         xvsVesting = await deploy('XVSVestingHarness');
         xvsVestingAddress = xvsVesting._address;
-        await send(xvsVesting, "initialize", [xvsTokenAddress, vrtConversionAddress]);
+        await send(xvsVesting, "initialize", [xvsTokenAddress]);
+        await send(xvsVesting, "setVRTConverter", [vrtConversionAddress]);
     });
 
     describe("constructor", () => {
