@@ -25,8 +25,7 @@ contract XVSVestingProxy is  XVSVestingAdminStorage {
     event NewAdmin(address oldAdmin, address newAdmin);
 
     constructor(address implementation_,
-                address _xvsAddress,
-                address _vrtConversionAddress) public {
+                address _xvsAddress) public {
         // Creator of the contract is admin during initialization
         admin = msg.sender;
 
@@ -34,9 +33,8 @@ contract XVSVestingProxy is  XVSVestingAdminStorage {
         _setImplementation(implementation_);
 
         // First delegate gets to initialize the delegator (i.e. storage contract)
-        delegateTo(implementation_, abi.encodeWithSignature("initialize(address,address)",
-                                                            _xvsAddress,
-                                                            _vrtConversionAddress));
+        delegateTo(implementation_, abi.encodeWithSignature("initialize(address)",
+                                                            _xvsAddress));
     }
 
     /**

@@ -48,23 +48,30 @@ contract XVSVesting is XVSVestingStorage {
     /**
      * @notice initialize XVSVestingStorage
      * @param _xvsAddress The XVSToken address
-     * @param _vrtConversionAddress The VRTConversion Contract address
      */
-    function initialize(address _xvsAddress, address _vrtConversionAddress) public {
+    function initialize(address _xvsAddress) public {
         require(msg.sender == admin, "only admin may initialize the XVSVesting");
         
         require(_xvsAddress != address(0), "_xvsAddress cannot be Zero");
         xvs = IBEP20(_xvsAddress);
 
-        require(_vrtConversionAddress != address(0), "vrtConversionAddress cannot be Zero");
-        vrtConversionAddress = _vrtConversionAddress;
-        emit VRTConversionSet(_vrtConversionAddress);
-
         _notEntered = true;
     }
 
+    /**
+     * @notice sets VRTConverter Address
+     * @dev Note: If VRTConverter is not set, then Vesting is not allowed
+     * @param _vrtConversionAddress The VRTConverterProxy Address
+     */
+    function setVRTConverter(address _vrtConversionAddress) public {
+        require(msg.sender == admin, "only admin may initialize the Vault");
+        require(_vrtConversionAddress != address(0), "vrtConversionAddress cannot be Zero");
+        vrtConversionAddress = _vrtConversionAddress;
+        emit VRTConversionSet(_vrtConversionAddress);
+    }
+
     modifier isInitialized() {
-        require(vrtConversionAddress != address(0) && address(xvs) != address(0), "XVSVesting is not initialized");
+        require(vrtConversionAddress != address(0), "XVSVesting is not initialized");
         _;
     }
 

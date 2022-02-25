@@ -27,7 +27,6 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
     constructor(address implementation_,
                 address _vrtAddress,
                 address _xvsAddress,
-                address _xvsVestingAddress,
                 uint256 _conversionRatio,
                 uint256 _conversionStartTime,
                 uint256 _conversionPeriod) public {
@@ -38,10 +37,9 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
         _setImplementation(implementation_);
 
         // First delegate gets to initialize the delegator (i.e. storage contract)
-        delegateTo(implementation_, abi.encodeWithSignature("initialize(address,address,address,uint256,uint256,uint256)",
+        delegateTo(implementation_, abi.encodeWithSignature("initialize(address,address,uint256,uint256,uint256)",
                                                             _vrtAddress,
                                                             _xvsAddress,
-                                                            _xvsVestingAddress,
                                                             _conversionRatio,
                                                             _conversionStartTime,
                                                             _conversionPeriod));

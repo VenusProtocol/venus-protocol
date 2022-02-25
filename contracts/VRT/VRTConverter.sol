@@ -40,7 +40,6 @@ contract VRTConverter is VRTConverterStorage {
 
     function initialize(address _vrtAddress,
                 address _xvsAddress,
-                address _xvsVestingAddress,
                 uint256 _conversionRatio,
                 uint256 _conversionStartTime,
                 uint256 _conversionPeriod) public {
@@ -51,10 +50,6 @@ contract VRTConverter is VRTConverterStorage {
         
         require(_xvsAddress != address(0), "xvsAddress cannot be Zero");
         xvs = IBEP20(_xvsAddress);
-        
-        require(_xvsVestingAddress != address(0), "xvsVestingAddress cannot be Zero");
-        xvsVesting = IXVSVesting(_xvsVestingAddress);
-        emit XVSVestingSet(_xvsVestingAddress);
         
         require(_conversionRatio > 0, "conversionRatio cannot be Zero");
         conversionRatio = _conversionRatio;
@@ -71,8 +66,20 @@ contract VRTConverter is VRTConverterStorage {
         _notEntered = true;
     }
 
+    /**
+     * @notice sets XVSVestingProxy Address
+     * @dev Note: If XVSVestingProxy is not set, then Conversion is not allowed
+     * @param _xvsVestingAddress The XVSVestingProxy Address
+     */
+    function setXVSVesting(address _xvsVestingAddress) public {
+        require(msg.sender == admin, "only admin may initialize the Vault");
+        require(_xvsVestingAddress != address(0), "xvsVestingAddress cannot be Zero");
+        xvsVesting = IXVSVesting(_xvsVestingAddress);
+        emit XVSVestingSet(_xvsVestingAddress);
+    }
+
     modifier isInitialized() {
-        require(conversionRatio > 0, "VRTConverter is not initialized");
+        require(address(xvsVesting) != address(0), "VRTConverter is not initialized");
         _;
     }
 
