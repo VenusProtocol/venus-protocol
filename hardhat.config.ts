@@ -10,7 +10,8 @@
  import "hardhat-typechain";
  
  import { ethers } from 'ethers';
- 
+ require("dotenv").config();
+
  const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY || 'scanapikey';
  const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || '5d5213613985d1d0ba01d9b5376269d0caca14f1da0f643ae2d124e5d5d4254f';
  
