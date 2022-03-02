@@ -7,9 +7,8 @@ const {
 } = require('../Utils/BSC');
 
 const vrtTotalSupply = bnbMantissa(30000000000);
-const interestRatePerBlock = bnbUnsigned(28935185000);
+let interestRatePerBlock = bnbUnsigned(2893519000);
 const BigNum = require('bignumber.js');
-
 
 const getAccrualStartBlockNumber = async (vrtVaultProxy, userAddress) => {
   const vrtVaultPositionRecord = await call(vrtVaultProxy, "userInfo", [userAddress]);
@@ -175,14 +174,38 @@ describe('VRTVaultProxy', () => {
 
   });
 
+  describe("the vaultProxy can update the interestRate", () => {
+
+    let interestRatePerBlockForTest = bnbUnsigned(2893519000);
+
+    it("Successful update of interestRatePerBlock", async () => {
+      result = await send(vrtVaultProxy, 'setInterestRate', [interestRatePerBlockForTest], { from: vrtVaultProxyAdmin });
+      expect(result).toSucceed();
+      const interestRatePerBlockFromStorage = await call(vrtVaultProxy, 'interestRatePerBlock');
+      expect(new BigNum(interestRatePerBlockFromStorage)).toEqual(new BigNum(interestRatePerBlockForTest));
+      expect(result).toHaveLog('InterestRateSet', {
+        interestRatePerBlock: interestRatePerBlockForTest
+      });
+    });
+
+    it("fails to update interestRatePerBlock as 0", async () => {
+      interestRatePerBlockForTest = 0;
+      await expect(send(vrtVaultProxy, 'setInterestRate', [interestRatePerBlockForTest], { from: vrtVaultProxyAdmin }))
+        .rejects.toRevert("revert interestRate Per Block must be greater than zero");
+    });
+
+    it("fails to update interestRatePerBlock by nonAdmin", async () => {
+      await expect(send(vrtVaultProxy, 'setInterestRate', [interestRatePerBlockForTest], { from: accounts[1] }))
+        .rejects.toRevert("revert only admin can set interestRatePerBlock in the Vault");
+    });
+
+  });
+
 
   describe("Upgrade VRTVault", () => {
 
     it("should update the implementation and assert the existing-storage on upgraded implementation", async () => {
       
-      const vrtVaultAddressBeforeUpgrade = vrtVaultAddress;
-      console.log(`vrtVaultAddress before upgrade: ${vrtVaultAddressBeforeUpgrade}`)
-
       vrtVault = await deploy('VRTVaultHarness', [], { from: root });
       vrtVaultAddress = vrtVault._address;
       await send(vrtVaultProxy, '_setPendingImplementation', [vrtVaultAddress], { from: root });
