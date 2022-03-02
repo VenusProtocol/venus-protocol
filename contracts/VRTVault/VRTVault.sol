@@ -26,6 +26,8 @@ contract VRTVault is VRTVaultStorage {
     /// @notice Event emitted when accruedInterest is claimed
     event Claim(address indexed user, uint256 interestAmount);
 
+    event InterestRateSet(uint256 interestRatePerBlock);
+
     constructor() public {
         admin = msg.sender;
     }
@@ -41,12 +43,23 @@ contract VRTVault is VRTVaultStorage {
 
         // Set initial exchange rate
         interestRatePerBlock = _interestRatePerBlock;
-        require(interestRatePerBlock > 0, "interestRate Per Block must be greater than zero.");
+        require(interestRatePerBlock > 0, "interestRate Per Block must be greater than zero");
+        emit InterestRateSet(interestRatePerBlock);
 
         // Set the VRT
         vrt = IBEP20(_vrtAddress);
 
         _notEntered = true;
+    }
+
+    function setInterestRate(uint256 _interestRatePerBlock) public {
+        require(msg.sender == admin, "only admin can set interestRatePerBlock in the Vault");
+        require(_interestRatePerBlock > 0, "interestRate Per Block must be greater than zero");
+
+        // Set initial exchange rate
+        interestRatePerBlock = _interestRatePerBlock;
+
+        emit InterestRateSet(interestRatePerBlock);
     }
 
     modifier isInitialized() {
