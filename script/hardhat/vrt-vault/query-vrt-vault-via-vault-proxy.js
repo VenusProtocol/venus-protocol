@@ -1,6 +1,6 @@
 require("dotenv").config();
 const network = process.env.NETWORK;
-const contractConfigData = require(`../../networks/${network}.json`);
+const contractConfigData = require(`../../../networks/${network}.json`);
 
 const main = async () => {
   const vrtVaultProxyAddress = contractConfigData.Contracts.VRTVaultProxy;

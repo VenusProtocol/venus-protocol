@@ -1,6 +1,6 @@
 require("dotenv").config();
 const network = process.env.NETWORK;
-const contractConfigData = require(`../../networks/${network}.json`);
+const contractConfigData = require(`../../../networks/${network}.json`);
 const hre = require("hardhat");
 require("@nomiclabs/hardhat-etherscan");
 

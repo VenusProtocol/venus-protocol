@@ -1,9 +1,9 @@
 require("dotenv").config();
 const hre = require("hardhat");
 const network = process.env.NETWORK;
-const contractConfigData = require(`../../networks/${network}.json`);
+const contractConfigData = require(`../../../networks/${network}.json`);
 require("@nomiclabs/hardhat-etherscan");
-const { bnbUnsigned } = require('../deploy/utils/web3-utils');
+const { bnbUnsigned } = require('../../deploy/utils/web3-utils');
 
 const main = async () => {
 
