@@ -94,7 +94,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     }
 
     /// @notice Sets the new percent of the seized amount that goes to treasury. Should
-    ///         be less than or equal to comptroller.liquidationIncentiveMantissa().
+    ///         be less than or equal to comptroller.liquidationIncentiveMantissa().sub(1e18).
     /// @param newTreasuryPercentMantissa New treasury percent (scaled by 10^18).
     function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external onlyAdmin {
         require(
