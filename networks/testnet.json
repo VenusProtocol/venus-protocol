@@ -31,7 +31,7 @@
     "VenusPriceOracle": "0x03cf8ff6262363010984b192dc654bd4825caffc",
     "Base200bps_Slope2000bps_Jump2000bps_Kink90": "0x3d845879cdB70bCC9aF73145d7FFD6C5FF8C1c6c",
     "VRT": "0x331F639B4F3CF6E391CD244e0b5027C5968Ec325",
-    "VRTVault": "0xf2f07e7D80564453191A24D8E986D24f6B61c998",
+    "VRTVault": "0xc21D1A40879D7BcE4a43b3117cEc172DD150cfe3",
     "VRTVaultProxy": "0x4ba62B58a5D2DeE9E236B943a5a370a1BA3763Df",
     "VRTConverter": "0xf38DEd5546380724F8cd91179824c756E0dd4B92",
     "VRTConverterProxy": "0x83b84d4153d470F459Aed00cB2715909b3b0A0a2",
@@ -117,6 +117,10 @@
       "contract": "Timelock",
       "description": "Timelock"
     }
+  },
+  "VRTVault": {
+    "address": "0xc21D1A40879D7BcE4a43b3117cEc172DD150cfe3",
+    "interestRatePerBlock": 2893519000
   },
   "Constructors": {
     "VenusLens": "0x",
