@@ -110,7 +110,6 @@ contract VRTVault is VRTVaultStorage, ReentrancyGuard {
             if(accruedInterest > 0){
                 uint256 vrtBalance = vrt.balanceOf(address(this));
                 require(vrtBalance >= accruedInterest, "Failed to transfer accruedInterest, Insufficient VRT in Vault.");
-                user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
                 emit Claim(userAddress, accruedInterest);
                 vrt.safeTransfer(user.userAddress, accruedInterest);
             }
@@ -161,7 +160,6 @@ contract VRTVault is VRTVaultStorage, ReentrancyGuard {
         uint256 accruedInterest = getAccruedInterest(userAddress);
         if(accruedInterest > 0){
             UserInfo storage user = userInfo[userAddress];
-            user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
             uint256 vrtBalance = vrt.balanceOf(address(this));
             require(vrtBalance >= accruedInterest, "Failed to transfer VRT, Insufficient VRT in Vault.");
             emit Claim(userAddress, accruedInterest);
@@ -179,12 +177,10 @@ contract VRTVault is VRTVaultStorage, ReentrancyGuard {
 
         UserInfo storage user = userInfo[userAddress];
 
-        if(accruedInterest > 0){
-            user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
-        }
-
         uint256 totalPrincipalAmount = user.totalPrincipalAmount;
         uint256 vrtForWithdrawal = accruedInterest.add(totalPrincipalAmount);
+        user.totalPrincipalAmount = 0;
+        user.accrualStartBlockNumber = getBlockNumber();
 
         uint256 vrtBalance = vrt.balanceOf(address(this));
         require(vrtBalance >= vrtForWithdrawal, "Failed to transfer VRT, Insufficient VRT in Vault.");

@@ -338,6 +338,9 @@ describe('VRTVault', () => {
       const tokenBalanceOfVaultAfterWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
       expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal).isLessThan(new BigNum(tokenBalanceOfVaultBeforeWithdrawal))).toEqual(true);
       expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal)).toEqual(new BigNum(tokenBalanceOfVaultBeforeWithdrawal).minus(new BigNum(totalWithdrawnAmount)));
+
+      const totalPrincipalAmount_AfterWithdrawal = await getTotalPrincipalAmount(vrtVault, user1);
+      expect(new BigNum(totalPrincipalAmount_AfterWithdrawal)).toEqual(new BigNum(0));
     });
 
     it("Withdraw AccruedInterest and Deposit after 2nd VRT-Deposit", async () => {
@@ -377,9 +380,12 @@ describe('VRTVault', () => {
       const tokenBalanceOfVaultAfterWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
       expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal).isLessThan(new BigNum(tokenBalanceOfVaultBeforeWithdrawal))).toEqual(true);
       expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal)).toEqual(new BigNum(tokenBalanceOfVaultBeforeWithdrawal).minus(new BigNum(totalWithdrawnAmount)));
+
+      const totalPrincipalAmount_AfterWithdrawal = await getTotalPrincipalAmount(vrtVault, user1);
+      expect(new BigNum(totalPrincipalAmount_AfterWithdrawal)).toEqual(new BigNum(0));
     });
 
-    it("VRT-Deposit and wait for 1000 blocks folloed by a Claim and Withdrawal", async () => {
+    it("VRT-Deposit and wait for 1000 blocks followed by a Claim and Withdrawal", async () => {
       let blockNumber = 0;
       await setBlockNumber(vrtVault, blockNumber);
       const vrtDepositAmount = bnbUnsigned(1e22);
@@ -434,6 +440,9 @@ describe('VRTVault', () => {
       const tokenBalanceOfVaultAfterWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
       expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal).isLessThan(new BigNum(tokenBalanceOfVaultBeforeWithdrawal))).toEqual(true);
       expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal)).toEqual(new BigNum(tokenBalanceOfVaultBeforeWithdrawal).minus(new BigNum(vrtDepositAmount)));
+
+      const totalPrincipalAmount_AfterWithdrawal = await getTotalPrincipalAmount(vrtVault, user1);
+      expect(new BigNum(totalPrincipalAmount_AfterWithdrawal)).toEqual(new BigNum(0));
     });
 
     it("VRT-Deposit and wait for 1000 blocks followed by a Claim and wait for 1000 blocks followed by Withdrawal", async () => {
@@ -498,6 +507,9 @@ describe('VRTVault', () => {
       const tokenBalanceOfVaultAfterWithdrawal = await getBep20balance(vrt, vrtVaultAddress);
       expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal).isLessThan(new BigNum(tokenBalanceOfVaultBeforeWithdrawal))).toEqual(true);
       expect(new BigNum(tokenBalanceOfVaultAfterWithdrawal)).toEqual(new BigNum(tokenBalanceOfVaultBeforeWithdrawal).minus(new BigNum(totalWithdrawnAmount)));
+
+      const totalPrincipalAmount_AfterWithdrawal = await getTotalPrincipalAmount(vrtVault, user1);
+      expect(new BigNum(totalPrincipalAmount_AfterWithdrawal)).toEqual(new BigNum(0));
     });
 
     it("Withdraw Failure due to insufficient funds", async () => {
