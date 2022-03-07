@@ -117,6 +117,60 @@ describe('VRTVault', () => {
       expect(interestRatePerBlockFromVault).toEqual(interestRatePerBlock.toString());
     });
 
+    it("isActive check on VRTVault", async () => {
+      const isPaused = await call(vrtVault, "vaultPaused", []);
+      expect(isPaused).toEqual(false);
+    });
+
+  });
+
+  describe("Pause and resume Vault", () => {
+
+    it("should pause the vault", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      const pauseVaultTxn = await send(vrtVault, "pause", { from: root });
+
+      expect(pauseVaultTxn).toHaveLog('VaultPaused', {
+        admin: root
+      });
+      expect(await call(vrtVault, "vaultPaused", [])).toEqual(true);
+    });
+
+    it("should resume vault after pause", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      await send(vrtVault, "pause", { from: root });
+      expect(await call(vrtVault, "vaultPaused", [])).toEqual(true);
+      const resumeVaultTxn = await send(vrtVault, "resume", { from: root });
+      expect(resumeVaultTxn).toHaveLog('VaultResumed', {
+        admin: root
+      });
+      expect(await call(vrtVault, "vaultPaused", [])).toEqual(false);
+    });
+
+    it("should fail to deposit to vault after a pause", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      await send(vrtVault, "pause", { from: root });
+      expect(await call(vrtVault, "vaultPaused", [])).toEqual(true);
+      const vrtDepositAmount = bnbUnsigned(1e22);
+      await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await expect(depositVRT(vrt, vrtVault, user1, vrtDepositAmount)).rejects.toRevert("revert Vault is paused");
+    });
+
+    it("should succeed to deposit to vault on resume after a pause", async () => {
+      let blockNumber = 0;
+      await setBlockNumber(vrtVault, blockNumber);
+      await send(vrtVault, "pause", { from: root });
+      expect(await call(vrtVault, "vaultPaused", [])).toEqual(true);
+      const vrtDepositAmount = bnbUnsigned(1e22);
+      await send(vrt, 'transfer', [user1, vrtDepositAmount], { from: root });
+      await send(vrtVault, "resume", { from: root });
+      await depositVRT(vrt, vrtVault, user1, vrtDepositAmount)
+      await assertAccruedInterest(vrtVault, user1, vrtDepositAmount);
+    });
+
   });
 
   describe("Deposit VRT", () => {

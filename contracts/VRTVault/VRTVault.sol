@@ -14,6 +14,12 @@ contract VRTVault is VRTVaultStorage {
     /// @notice Event emitted when admin changed
     event AdminTransfered(address indexed oldAdmin, address indexed newAdmin);
 
+    /// @notice Event emitted when vault is paused
+    event VaultPaused(address indexed admin);
+
+    /// @notice Event emitted when vault is resumed after pause
+    event VaultResumed(address indexed admin);
+
     /// @notice Event emitted on VRT deposit
     event Deposit(address indexed user, uint256 amount);
 
@@ -54,6 +60,23 @@ contract VRTVault is VRTVaultStorage {
         _;
     }
 
+    function pause() public onlyAdmin {
+        require(vaultPaused == false, "Vault is already paused");
+        vaultPaused = true;
+        emit VaultPaused(msg.sender);
+    }
+
+    function resume() public onlyAdmin {
+        require(vaultPaused == true, "Vault is not paused");
+        vaultPaused = false;
+        emit VaultResumed(msg.sender);
+    }
+
+    modifier isActive() { 
+        require(vaultPaused == false, "Vault is paused");
+        _;
+    }
+
     /**
      * @dev Prevents a contract from calling itself, directly or indirectly.
      */
@@ -79,7 +102,7 @@ contract VRTVault is VRTVaultStorage {
      * @notice Deposit VRT to VRTVault for a fixed-interest-rate
      * @param depositAmount The amount to deposit to vault
      */
-    function deposit(uint256 depositAmount) public nonReentrant isInitialized {
+    function deposit(uint256 depositAmount) public nonReentrant isInitialized isActive {
         require(depositAmount > 0, "Deposit amount must be non-zero");
 
         address userAddress = msg.sender;
@@ -143,7 +166,7 @@ contract VRTVault is VRTVaultStorage {
     /**
      * @notice claim the accruedInterest of the user's VRTDeposits in the Vault
      */
-    function claim() external nonReentrant isInitialized userHasPosition(msg.sender) {
+    function claim() external nonReentrant isInitialized userHasPosition(msg.sender) isActive {
         address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
         if(accruedInterest > 0){
@@ -160,7 +183,7 @@ contract VRTVault is VRTVaultStorage {
     /**
      * @notice withdraw accruedInterest and totalPrincipalAmount of the user's VRTDeposit in the Vault
      */
-    function withdraw() external nonReentrant isInitialized userHasPosition(msg.sender) {
+    function withdraw() external nonReentrant isInitialized userHasPosition(msg.sender) isActive {
         address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
 
