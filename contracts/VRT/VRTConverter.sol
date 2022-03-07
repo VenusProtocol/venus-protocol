@@ -44,6 +44,7 @@ contract VRTConverter is VRTConverterStorage {
                 uint256 _conversionStartTime,
                 uint256 _conversionPeriod) public {
         require(msg.sender == admin, "only admin may initialize the Vault");
+        require(initialized == false, "VRTConverter is already initialized");
 
         require(_vrtAddress != address(0), "vrtAddress cannot be Zero");
         vrt = IBEP20(_vrtAddress);
@@ -64,6 +65,7 @@ contract VRTConverter is VRTConverterStorage {
         
         totalVrtConverted = 0;
         _notEntered = true;
+        initialized = true;
     }
 
     /**
@@ -79,7 +81,7 @@ contract VRTConverter is VRTConverterStorage {
     }
 
     modifier isInitialized() {
-        require(address(xvsVesting) != address(0), "VRTConverter is not initialized");
+        require(initialized == true, "VRTConverter is not initialized");
         _;
     }
 
