@@ -119,6 +119,7 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
     function _setPendingAdmin(address newPendingAdmin) public {
         // Check caller = admin
         require(msg.sender == admin, "only admin can set pending admin");
+        require(newPendingAdmin != pendingAdmin , "New pendingAdmin can not be same as the previous one");
 
         // Save current value, if any, for inclusion in log
         address oldPendingAdmin = pendingAdmin;

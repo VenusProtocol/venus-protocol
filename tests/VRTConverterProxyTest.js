@@ -13,7 +13,7 @@ describe('VRTConverterProxy', () => {
         vrtConverterProxy, vrtConverterProxyAddress, vrtConverterProxyAdmin,
         vrtToken, vrtTokenAddress,
         xvsToken, xvsTokenAddress;
-    let xvsVestingProxy, xvsVestingProxyAddress, xvsVestingProxyAdmin;    
+    let xvsVestingProxy, xvsVestingProxyAddress, xvsVestingProxyAdmin;
     let conversionRatio, conversionStartTime, conversionPeriod;
     let xvsVesting, xvsVestingAddress;
 
@@ -44,7 +44,7 @@ describe('VRTConverterProxy', () => {
         xvsVestingProxy = await deploy("XVSVestingProxy", [xvsVestingAddress, xvsTokenAddress]);
         xvsVestingProxyAddress = xvsVestingProxy._address;
         xvsVestingProxyAdmin = await call(xvsVestingProxy, "admin");
-        
+
         //deploy VRTConversion
         vrtConversion = await deploy('VRTConverterHarness');
         vrtConversionAddress = vrtConversion._address;
@@ -140,7 +140,6 @@ describe('VRTConverterProxy', () => {
 
     });
 
-
     describe("Upgrade VRTConversion", () => {
 
         it("should update the implementation and assert the existing-storage on upgraded implementation", async () => {
@@ -173,6 +172,110 @@ describe('VRTConverterProxy', () => {
             expect(new BigNum(conversionPeriodResp)).toEqual(new BigNum(conversionPeriod));
         });
 
+    });
+
+    describe('admin()', () => {
+        it('should return correct admin', async () => {
+            expect(await call(vrtConverterProxy, 'admin')).toEqual(root);
+        });
+    });
+
+    describe('pendingAdmin()', () => {
+        it('should return correct pending admin', async () => {
+            expect(await call(vrtConverterProxy, 'pendingAdmin')).toBeAddressZero()
+        });
+    });
+
+    describe('_setPendingAdmin()', () => {
+        it('should only be callable by admin', async () => {
+            await expect(
+                 send(vrtConverterProxy, '_setPendingAdmin', [accounts[0]], { from: accounts[0] })
+            ).rejects.toRevert("revert only admin can set pending admin");
+
+            // Check admin stays the same
+            expect(await call(vrtConverterProxy, 'admin')).toEqual(root);
+            expect(await call(vrtConverterProxy, 'pendingAdmin')).toBeAddressZero();
+        });
+
+        it('should properly set pending admin', async () => {
+            expect(await send(vrtConverterProxy, '_setPendingAdmin', [accounts[0]])).toSucceed();
+
+            // Check admin stays the same
+            expect(await call(vrtConverterProxy, 'admin')).toEqual(root);
+            expect(await call(vrtConverterProxy, 'pendingAdmin')).toEqual(accounts[0]);
+        });
+
+        it('should properly set pending admin twice', async () => {
+            expect(await send(vrtConverterProxy, '_setPendingAdmin', [accounts[0]])).toSucceed();
+            expect(await send(vrtConverterProxy, '_setPendingAdmin', [accounts[1]])).toSucceed();
+
+            // Check admin stays the same
+            expect(await call(vrtConverterProxy, 'admin')).toEqual(root);
+            expect(await call(vrtConverterProxy, 'pendingAdmin')).toEqual(accounts[1]);
+        });
+
+        it('should emit event', async () => {
+            const result = await send(vrtConverterProxy, '_setPendingAdmin', [accounts[0]]);
+            expect(result).toHaveLog('NewPendingAdmin', {
+                oldPendingAdmin: address(0),
+                newPendingAdmin: accounts[0],
+            });
+        });
+    });
+
+    describe('_acceptAdmin()', () => {
+        it('should fail when pending admin is zero', async () => {
+            await expect( send(vrtConverterProxy, '_acceptAdmin')).rejects.toRevert("revert only address marked as pendingAdmin can accept as Admin");
+
+            // Check admin stays the same
+            expect(await call(vrtConverterProxy, 'admin')).toEqual(root);
+            expect(await call(vrtConverterProxy, 'pendingAdmin')).toBeAddressZero();
+        });
+
+        it('should fail when called by another account (e.g. root)', async () => {
+            expect(await send(vrtConverterProxy, '_setPendingAdmin', [accounts[0]])).toSucceed();
+            await expect( send(vrtConverterProxy, '_acceptAdmin')).rejects.toRevert("revert only address marked as pendingAdmin can accept as Admin");
+
+            // Check admin stays the same
+            expect(await call(vrtConverterProxy, 'admin')).toEqual(root);
+            expect(await call(vrtConverterProxy, 'pendingAdmin')).toEqual(accounts[0]);
+        });
+
+        it('should fail on multiple attempts of same address is set as PendingAdmin', async () => {
+            expect(await send(vrtConverterProxy, '_setPendingAdmin', [accounts[0]])).toSucceed();
+            await expect( send(vrtConverterProxy, '_setPendingAdmin', [accounts[0]])).rejects.toRevert("revert New pendingAdmin can not be same as the previous one");
+        });
+
+        it('should succeed on multiple attempts of different address is set as PendingAdmin', async () => {
+            expect(await send(vrtConverterProxy, '_setPendingAdmin', [accounts[0]])).toSucceed();
+            expect(await send(vrtConverterProxy, '_setPendingAdmin', [accounts[1]])).toSucceed();
+
+            // Check admin stays the same
+            expect(await call(vrtConverterProxy, 'admin')).toEqual(root);
+            expect(await call(vrtConverterProxy, 'pendingAdmin')).toEqual(accounts[1]);
+        });
+
+        it('should succeed and set admin and clear pending admin', async () => {
+            expect(await send(vrtConverterProxy, '_setPendingAdmin', [accounts[0]])).toSucceed();
+            expect(await send(vrtConverterProxy, '_acceptAdmin', [], { from: accounts[0] })).toSucceed();
+
+            // Check admin stays the same
+            expect(await call(vrtConverterProxy, 'admin')).toEqual(accounts[0]);
+            expect(await call(vrtConverterProxy, 'pendingAdmin')).toBeAddressZero();
+        });
+
+        it('should emit log on success', async () => {
+            expect(await send(vrtConverterProxy, '_setPendingAdmin', [accounts[0]])).toSucceed();
+            const result = await send(vrtConverterProxy, '_acceptAdmin', [], { from: accounts[0] });
+            expect(result).toHaveLog('NewAdmin', {
+                oldAdmin: root,
+                newAdmin: accounts[0],
+            });
+            expect(result).toHaveLog('NewPendingAdmin', {
+                oldPendingAdmin: accounts[0],
+                newPendingAdmin: address(0),
+            });
+        });
     });
 
 });
