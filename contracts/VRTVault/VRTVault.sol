@@ -4,10 +4,8 @@ import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
 import "./VRTVaultProxy.sol";
 import "./VRTVaultStorage.sol";
-import "../Utils/WithAdmin.sol";
-import "../Utils/ReentrancyGuard.sol";
 
-contract VRTVault is VRTVaultStorage, ReentrancyGuard {
+contract VRTVault is VRTVaultStorage {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -32,7 +30,7 @@ contract VRTVault is VRTVaultStorage, ReentrancyGuard {
     /// @notice Event emitted when accruedInterest is claimed
     event Claim(address indexed user, uint256 interestAmount);
 
-    constructor() public ReentrancyGuard() {
+    constructor() public {
         admin = msg.sender;
     }
     
@@ -51,7 +49,6 @@ contract VRTVault is VRTVaultStorage, ReentrancyGuard {
 
         // Set the VRT
         vrt = IBEP20(_vrtAddress);
-
         _notEntered = true;
     }
 
@@ -75,6 +72,16 @@ contract VRTVault is VRTVaultStorage, ReentrancyGuard {
     modifier isActive() { 
         require(vaultPaused == false, "Vault is paused");
         _;
+    }
+
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     */
+    modifier nonReentrant() {
+        require(_notEntered, "re-entered");
+        _notEntered = false;
+        _;
+        _notEntered = true; // get a gas-refund post-Istanbul
     }
 
     modifier nonZeroAddress(address _address) {
