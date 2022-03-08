@@ -133,7 +133,7 @@ contract XVSVesting is XVSVestingStorage {
         uint256 vestingCount = vestingsOfRecipient.length;
         uint256 totalWithdrawableAmount = 0;
 
-        for(uint i = 0; i < vestingCount; i++) {
+        for(uint i = 0; i < vestingCount; ++i) {
             VestingRecord storage vesting = vestingsOfRecipient[i];
             (uint256 vestedAmount, uint256 toWithdraw) = calculateWithdrawableAmount(vesting.amount, vesting.startTime, vesting.withdrawnAmount);
             if(toWithdraw > 0){
