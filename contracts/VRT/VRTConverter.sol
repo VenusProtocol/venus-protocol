@@ -43,7 +43,7 @@ contract VRTConverter is VRTConverterStorage {
                 uint256 _conversionRatio,
                 uint256 _conversionStartTime,
                 uint256 _conversionPeriod) public {
-        require(msg.sender == admin, "only admin may initialize the Vault");
+        require(msg.sender == admin, "only admin may initialize the VRTConverter");
         require(initialized == false, "VRTConverter is already initialized");
 
         require(_vrtAddress != address(0), "vrtAddress cannot be Zero");

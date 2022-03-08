@@ -17,7 +17,7 @@ contract XVSVesting is XVSVestingStorage {
     uint256 constant public TOTAL_VESTING_TIME = 360 * 24 * 60 * 60;
 
     /// @notice decimal precision for XVS
-    uint256 constant public xvsDecimalsMultiplier = 10**18;
+    uint256 constant public xvsDecimalsMultiplier = 1e18;
 
     /// @notice Emitted when XVSVested is claimed by recipient
     event VestedTokensClaimed(address recipient, uint256 amountClaimed);
@@ -51,11 +51,17 @@ contract XVSVesting is XVSVestingStorage {
      */
     function initialize(address _xvsAddress) public {
         require(msg.sender == admin, "only admin may initialize the XVSVesting");
-        
+        require(initialized == false, "XVSVesting is already initialized");
         require(_xvsAddress != address(0), "_xvsAddress cannot be Zero");
         xvs = IBEP20(_xvsAddress);
 
         _notEntered = true;
+        initialized = true;
+    }
+
+    modifier isInitialized() {
+        require(initialized == true, "XVSVesting is not initialized");
+        _;
     }
 
     /**
@@ -68,11 +74,6 @@ contract XVSVesting is XVSVestingStorage {
         require(_vrtConversionAddress != address(0), "vrtConversionAddress cannot be Zero");
         vrtConversionAddress = _vrtConversionAddress;
         emit VRTConversionSet(_vrtConversionAddress);
-    }
-
-    modifier isInitialized() {
-        require(vrtConversionAddress != address(0), "XVSVesting is not initialized");
-        _;
     }
 
     modifier onlyAdmin() {
@@ -101,7 +102,7 @@ contract XVSVesting is XVSVestingStorage {
      * @param recipient The vesting recipient
      * @param depositAmount XVS amount for deposit
      */
-    function deposit(address recipient, uint depositAmount) external onlyVrtConverter
+    function deposit(address recipient, uint depositAmount) external isInitialized onlyVrtConverter
         nonZeroAddress(recipient) {
         require(depositAmount > 0, "Deposit amount must be non-zero");
 
@@ -127,7 +128,7 @@ contract XVSVesting is XVSVestingStorage {
     /**
      * @notice Withdraw Vested XVS of recipient
      */
-    function withdraw() external vestingExistCheck(msg.sender) {
+    function withdraw() external isInitialized vestingExistCheck(msg.sender) {
         address recipient = msg.sender;
         VestingRecord[] storage vestingsOfRecipient = vestings[recipient];
         uint256 vestingCount = vestingsOfRecipient.length;
@@ -155,7 +156,7 @@ contract XVSVesting is XVSVestingStorage {
      * @param recipient The vesting recipient
      * @return A tuple with totalWithdrawableAmount , totalVestedAmount and totalWithdrawnAmount
      */
-    function getWithdrawableAmount(address recipient) view public nonZeroAddress(recipient) vestingExistCheck(recipient)
+    function getWithdrawableAmount(address recipient) view public isInitialized nonZeroAddress(recipient) vestingExistCheck(recipient)
     returns (uint256 totalWithdrawableAmount, uint256 totalVestedAmount, uint256 totalWithdrawnAmount)
     {
         VestingRecord[] memory vestingsOfRecipient = vestings[recipient];

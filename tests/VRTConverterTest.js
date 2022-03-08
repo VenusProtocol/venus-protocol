@@ -89,6 +89,24 @@ describe('VRTConverterProxy', () => {
       expect(parseInt(xvsDecimalsMultiplierQueryResponse)).toEqual(10 ** 18);
     });
 
+    it("sets initialized to true in vrtConversion", async () => {
+      let initializedActual = await call(vrtConversion, "initialized");
+      expect(initializedActual).toEqual(true);
+    });
+
+  });
+
+  describe("initialize", () => {
+
+    it("Fail on initialisation by non-Admin", async () => {
+      await expect(send(vrtConversion, "initialize", [vrtTokenAddress, xvsTokenAddress,
+        conversionRatio, conversionStartTime, conversionPeriod], { from: accounts[1] })).rejects.toRevert("revert only admin may initialize the VRTConverter");
+    });
+
+    it("Fail on duplicate initialisation", async () => {
+      await expect(send(vrtConversion, "initialize", [vrtTokenAddress, xvsTokenAddress,
+        conversionRatio, conversionStartTime, conversionPeriod])).rejects.toRevert("revert VRTConverter is already initialized");
+    });
   });
 
   describe("contract balances", () => {

@@ -29,7 +29,7 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
                 address _xvsAddress,
                 uint256 _conversionRatio,
                 uint256 _conversionStartTime,
-                uint256 _conversionPeriod) public {
+                uint256 _conversionPeriod) nonZeroAddress(implementation_) nonZeroAddress(_vrtAddress) nonZeroAddress(_xvsAddress) public {
         // Creator of the contract is admin during initialization
         admin = msg.sender;
 
@@ -43,6 +43,11 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
                                                             _conversionRatio,
                                                             _conversionStartTime,
                                                             _conversionPeriod));
+    }
+
+    modifier nonZeroAddress(address _address) {
+        require(_address != address(0), "Address cannot be Zero");
+        _;
     }
 
     /**
@@ -66,7 +71,7 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
       * @param data The raw data to delegatecall
       * @return The returned bytes from the delegatecall
      */
-    function delegateTo(address callee, bytes memory data) internal returns (bytes memory) {
+    function delegateTo(address callee, bytes memory data) internal nonZeroAddress(callee) returns (bytes memory) {
         (bool success, bytes memory returnData) = callee.delegatecall(data);
         assembly {
             if eq(success, 0) {
@@ -77,7 +82,7 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
     }
 
     /*** Admin Functions ***/
-    function _setPendingImplementation(address newPendingImplementation) public {
+    function _setPendingImplementation(address newPendingImplementation) nonZeroAddress(newPendingImplementation) public {
 
         require(msg.sender == admin, "Only admin can set Pending Implementation");
 
@@ -116,7 +121,7 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
       * @param newPendingAdmin New pending admin.
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
-    function _setPendingAdmin(address newPendingAdmin) public {
+    function _setPendingAdmin(address newPendingAdmin) nonZeroAddress(newPendingAdmin) public {
         // Check caller = admin
         require(msg.sender == admin, "only admin can set pending admin");
         require(newPendingAdmin != pendingAdmin , "New pendingAdmin can not be same as the previous one");

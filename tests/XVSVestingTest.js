@@ -24,7 +24,7 @@ const getAllVestingsOfUser = async (xvsVesting, userAddress) => {
 }
 
 const getNumberOfVestingsOfUser = async (xvsVesting, userAddress) => {
-   return await call (xvsVesting, "getVestingCount", [userAddress]);
+    return await call(xvsVesting, "getVestingCount", [userAddress]);
 }
 
 const getTotalVestedAmount = async (xvsVesting, userAddress) => {
@@ -139,6 +139,23 @@ describe('XVSVesting', () => {
             let xvsAddressActual = await call(xvsVesting, "xvs");
             expect(xvsAddressActual).toEqual(xvsTokenAddress);
         });
+
+        it("sets initialized to true in XVSVesting", async () => {
+            let initializedActual = await call(xvsVesting, "initialized");
+            expect(initializedActual).toEqual(true);
+        });
+
+    });
+
+    describe("initialize", () => {
+
+        it("Fail on initialisation by non-Admin", async () => {
+            await expect(send(xvsVesting, "initialize", [xvsTokenAddress], {from: accounts[1]})).rejects.toRevert("revert only admin may initialize the XVSVesting");
+        });
+
+        it("Fail on duplicate initialisation", async () => {
+            await expect(send(xvsVesting, "initialize", [xvsTokenAddress])).rejects.toRevert("revert XVSVesting is already initialized");
+        });
     });
 
     describe("Vest XVS", () => {
@@ -235,7 +252,7 @@ describe('XVSVesting', () => {
         });
 
         it("Fail to get withdrawableAmount of a User with no vesting", async () => {
-             await expect(call(xvsVesting, "getWithdrawableAmount", [bob])).rejects.toRevert("revert recipient doesnot have any vestingRecord");
+            await expect(call(xvsVesting, "getWithdrawableAmount", [bob])).rejects.toRevert("revert recipient doesnot have any vestingRecord");
         });
 
         it("deposit Zero XVSAmount should Fail with Revert Reason", async () => {
