@@ -155,7 +155,7 @@ contract XVSVesting is XVSVestingStorage {
      * @param recipient The vesting recipient
      * @return A tuple with totalWithdrawableAmount , totalVestedAmount and totalWithdrawnAmount
      */
-    function getWithdrawableAmount(address recipient) view public nonZeroAddress(recipient) 
+    function getWithdrawableAmount(address recipient) view public nonZeroAddress(recipient) vestingExistCheck(recipient)
     returns (uint256 totalWithdrawableAmount, uint256 totalVestedAmount, uint256 totalWithdrawnAmount)
     {
         VestingRecord[] memory vestingsOfRecipient = vestings[recipient];

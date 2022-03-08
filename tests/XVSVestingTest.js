@@ -234,6 +234,10 @@ describe('XVSVesting', () => {
             expect(getBigNumber(totalWithdrawableAmount)).toEqual(getBigNumber(totalWithdrawableAmount_Expected));
         });
 
+        it("Fail to get withdrawableAmount of a User with no vesting", async () => {
+             await expect(call(xvsVesting, "getWithdrawableAmount", [bob])).rejects.toRevert("revert recipient doesnot have any vestingRecord");
+        });
+
         it("deposit Zero XVSAmount should Fail with Revert Reason", async () => {
             const depositAmount = bnbMantissa(0);
             await expect(send(xvsVesting, 'deposit', [alice, depositAmount], { from: vrtConversionAddress }))
