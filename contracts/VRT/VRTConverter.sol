@@ -17,10 +17,10 @@ contract VRTConverter is VRTConverterStorage {
     address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     /// @notice decimal precision for VRT
-    uint256 public constant vrtDecimalsMultiplier = 10**18;
+    uint256 public constant vrtDecimalsMultiplier = 1e18;
 
     /// @notice decimal precision for XVS
-    uint256 public constant xvsDecimalsMultiplier = 10**18;
+    uint256 public constant xvsDecimalsMultiplier = 1e18;
 
     /// @notice Emitted when an admin set conversion info
     event ConversionInfoSet(uint256 conversionRatio, uint256 conversionStartTime, uint256 conversionPeriod, uint256 conversionEndTime);
