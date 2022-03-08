@@ -92,7 +92,7 @@ contract VRTVault is VRTVaultStorage, ReentrancyGuard {
      * @notice Deposit VRT to VRTVault for a fixed-interest-rate
      * @param depositAmount The amount to deposit to vault
      */
-    function deposit(uint256 depositAmount) public nonReentrant isInitialized isActive {
+    function deposit(uint256 depositAmount) external nonReentrant isInitialized isActive {
         require(depositAmount > 0, "Deposit amount must be non-zero");
 
         address userAddress = msg.sender;
@@ -195,7 +195,7 @@ contract VRTVault is VRTVaultStorage, ReentrancyGuard {
      * @param receiver recipient of the BEP20 token
      * @param amount tokenAmount
      */
-    function withdrawBep20(address tokenAddress, address receiver, uint256 amount) onlyAdmin isInitialized nonZeroAddress(tokenAddress) nonZeroAddress(receiver) public {
+    function withdrawBep20(address tokenAddress, address receiver, uint256 amount) onlyAdmin isInitialized nonZeroAddress(tokenAddress) nonZeroAddress(receiver) external {
         require(amount > 0 , "amount is invalid");
         IBEP20 token = IBEP20(tokenAddress);
         require(amount <= token.balanceOf(address(this)), "Insufficient amount in Vault");
@@ -209,7 +209,7 @@ contract VRTVault is VRTVaultStorage, ReentrancyGuard {
 
     /*** Admin Functions ***/
 
-    function _become(VRTVaultProxy vrtVaultProxy) public {
+    function _become(VRTVaultProxy vrtVaultProxy) external {
         require(msg.sender == vrtVaultProxy.admin(), "only proxy admin can change brains");
         vrtVaultProxy._acceptImplementation();
     }
