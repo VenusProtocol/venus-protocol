@@ -119,7 +119,6 @@ contract VRTConverter is VRTConverterStorage {
     {
         require(address(xvsVesting) != address(0) && address(xvsVesting) != DEAD_ADDRESS, "XVS-Vesting Address is not set");
         require(vrtAmount > 0, "VRT amount must be non-zero");
-        require(vrt.allowance(msg.sender, address(this)) >= vrtAmount , "Insufficient VRT allowance");
         totalVrtConverted = totalVrtConverted.add(vrtAmount);
 
         uint256 redeemAmount = vrtAmount

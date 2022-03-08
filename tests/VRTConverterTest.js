@@ -243,7 +243,7 @@ describe('VRTConverterProxy', () => {
     it("Insufficient VRT allowance", async () => {
       vrtTransferAmount = bnbMantissa(100);
       await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
-        .rejects.toRevert('revert Insufficient VRT allowance');
+        .rejects.toRevert('revert SafeBEP20: low-level call failed');
     });
 
   });
