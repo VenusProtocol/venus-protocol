@@ -129,7 +129,7 @@ contract VRTConverter is VRTConverterStorage {
             .div(vrtDecimalsMultiplier);
 
         emit TokenConverted(msg.sender, address(vrt), vrtAmount, address(xvs), redeemAmount);
-        vrt.transferFrom(msg.sender, DEAD_ADDRESS, vrtAmount);
+        vrt.safeTransferFrom(msg.sender, DEAD_ADDRESS, vrtAmount);
         xvsVesting.deposit(msg.sender, redeemAmount);
     }
 
