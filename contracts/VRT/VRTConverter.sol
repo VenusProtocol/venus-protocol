@@ -34,9 +34,7 @@ contract VRTConverter is VRTConverterStorage {
     /// @notice Emitted when XVSVestingAddress is set
     event XVSVestingSet(address xvsVestingAddress);
 
-    constructor() public {
-        admin = msg.sender;
-    }
+    constructor() public {}
 
     function initialize(address _vrtAddress,
                 address _xvsAddress,

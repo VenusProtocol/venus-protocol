@@ -41,9 +41,7 @@ contract XVSVesting is XVSVestingStorage {
         _;
     }
 
-    constructor() public {
-        admin = msg.sender;
-    }
+    constructor() public {}
 
     /**
      * @notice initialize XVSVestingStorage

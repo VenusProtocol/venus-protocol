@@ -4,7 +4,9 @@ import "../../contracts/VRT/VRTConverter.sol";
 
 contract VRTConverterHarness is VRTConverter {
     
-    constructor() VRTConverter() public {}
+    constructor() VRTConverter() public {
+        admin = msg.sender;
+    }
 
     function balanceOfUser() public view returns (uint256, address) {
         uint256 vrtBalanceOfUser = vrt.balanceOf(msg.sender);
