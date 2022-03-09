@@ -69,6 +69,16 @@ contract VRTConverter is VRTConverterStorage {
     }
 
     /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     */
+    modifier nonReentrant() {
+        require(_notEntered, "re-entered");
+        _notEntered = false;
+        _;
+        _notEntered = true; // get a gas-refund post-Istanbul
+    }
+
+    /**
      * @notice sets XVSVestingProxy Address
      * @dev Note: If XVSVestingProxy is not set, then Conversion is not allowed
      * @param _xvsVestingAddress The XVSVestingProxy Address
@@ -115,7 +125,7 @@ contract VRTConverter is VRTConverterStorage {
      * @dev Note: If there is not enough XVS, we do not perform the conversion.
      * @param vrtAmount The amount of VRT
      */
-    function convert(uint256 vrtAmount) external isInitialized checkForActiveConversionPeriod
+    function convert(uint256 vrtAmount) external isInitialized checkForActiveConversionPeriod nonReentrant
     {
         require(address(xvsVesting) != address(0) && address(xvsVesting) != DEAD_ADDRESS, "XVS-Vesting Address is not set");
         require(vrtAmount > 0, "VRT amount must be non-zero");
