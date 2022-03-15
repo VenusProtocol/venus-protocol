@@ -9,8 +9,8 @@ const {
 const BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ONE_DAY = 24 * 60 * 60;
-const ONE_YEAR = 360 * 24 * 60 * 60;
-const TOTAL_PERIODS = 360;
+const ONE_YEAR = 365 * 24 * 60 * 60;
+const TOTAL_PERIODS = 365;
 
 describe('VRTConverterProxy', () => {
   let root, alice, bob;
@@ -29,7 +29,7 @@ describe('VRTConverterProxy', () => {
     blockTimestamp = bnbUnsigned(100);
     await freezeTime(blockTimestamp.toNumber());
     conversionStartTime = blockTimestamp;
-    conversionPeriod = 360 * 24 * 60 * 60;
+    conversionPeriod = 365 * 24 * 60 * 60;
 
     // 12,000 VRT =  1 XVS
     // 1 VRT = 1/12,000 = 0.000083
