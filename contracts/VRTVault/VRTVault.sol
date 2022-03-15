@@ -41,6 +41,7 @@ contract VRTVault is VRTVaultStorage {
 
     function initialize(address _vrtAddress, uint256 _interestRatePerBlock) public {
         require(msg.sender == admin, "only admin may initialize the Vault");
+        require(_vrtAddress != address(0), "vrtAddress cannot be Zero");
         require(interestRatePerBlock == 0, "Vault may only be initialized once");
 
         // Set initial exchange rate
