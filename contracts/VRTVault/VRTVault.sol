@@ -132,7 +132,7 @@ contract VRTVault is VRTVaultStorage {
      * @param userAddress Address of User in the the Vault
      */
     function getAccruedInterest(address userAddress) public view nonZeroAddress(userAddress) isInitialized returns (uint256) {
-        UserInfo memory user = userInfo[userAddress];
+        UserInfo storage user = userInfo[userAddress];
         if(user.accrualStartBlockNumber == 0){
             return 0;
         }
