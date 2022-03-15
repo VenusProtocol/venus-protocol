@@ -157,11 +157,11 @@ contract XVSVesting is XVSVestingStorage {
     function getWithdrawableAmount(address recipient) view public isInitialized nonZeroAddress(recipient) vestingExistCheck(recipient)
     returns (uint256 totalWithdrawableAmount, uint256 totalVestedAmount, uint256 totalWithdrawnAmount)
     {
-        VestingRecord[] memory vestingsOfRecipient = vestings[recipient];
+        VestingRecord[] storage vestingsOfRecipient = vestings[recipient];
         uint256 vestingCount = vestingsOfRecipient.length;
 
         for(uint i = 0; i < vestingCount; i++) {
-            VestingRecord memory vesting = vestingsOfRecipient[i];
+            VestingRecord storage vesting = vestingsOfRecipient[i];
             (uint256 vestedAmount, uint256 toWithdraw) = calculateWithdrawableAmount(vesting.amount, vesting.startTime, vesting.withdrawnAmount);
             totalVestedAmount = totalVestedAmount.add(vestedAmount);
             totalWithdrawableAmount = totalWithdrawableAmount.add(toWithdraw);
