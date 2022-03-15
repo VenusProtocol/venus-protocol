@@ -150,7 +150,7 @@ contract VRTVault is VRTVaultStorage {
         
         uint256 blockNumber = getBlockNumber();
 
-        if(accrualStartBlockNumber == 0 || accrualStartBlockNumber == blockNumber){
+        if(accrualStartBlockNumber == 0 || accrualStartBlockNumber >= blockNumber){
             return 0;
         }
 
