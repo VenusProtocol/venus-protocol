@@ -46,7 +46,7 @@ contract VRTConverterStorage is VRTConverterAdminStorage {
     /// @notice Conversion ratio from VRT to XVS with decimal 18
     uint256 public conversionRatio;
 
-    /// @notice Conversion ratio from VRT to XVS with decimal 18
+    /// @notice total VRT converted to XVS
     uint256 public totalVrtConverted;
 
     /// @notice Conversion Start time in EpochSeconds
