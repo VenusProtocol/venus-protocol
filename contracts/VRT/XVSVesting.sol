@@ -14,7 +14,7 @@ contract XVSVesting is XVSVestingStorage {
     using SafeBEP20 for IBEP20;
 
     /// @notice total vesting period for 1 year in seconds
-    uint256 constant public TOTAL_VESTING_TIME = 360 * 24 * 60 * 60;
+    uint256 constant public TOTAL_VESTING_TIME = 365 * 24 * 60 * 60;
 
     /// @notice decimal precision for XVS
     uint256 constant public xvsDecimalsMultiplier = 1e18;

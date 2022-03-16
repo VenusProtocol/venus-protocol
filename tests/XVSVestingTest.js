@@ -9,7 +9,7 @@ const {
 
 const ONE_DAY = 24 * 60 * 60;
 const ONE_YEAR = 365 * 24 * 60 * 60;
-const HALF_YEAR = 182 * 24 * 60 * 60;
+const HALF_YEAR = 182.5 * 24 * 60 * 60;
 const TOTAL_VESTING_TIME = new BigNum(ONE_YEAR);
 
 const getAllVestingsOfUser = async (xvsVesting, userAddress) => {
