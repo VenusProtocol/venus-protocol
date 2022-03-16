@@ -13,9 +13,9 @@ const main = async () => {
     const vrtConverterAddress = contractConfigData.Contracts.VRTConverter;
     const vrtAddress = contractConfigData.Contracts.VRT;
     const xvsAddress = contractConfigData.Contracts.XVS;
-    const conversionRatio = bnbMantissa(0.000083);
+    const conversionRatio = bnbMantissa(0.000083333333333);
     const conversionStartTime = getEpochTimeInSeconds() + 1000;
-    const conversionPeriod = 360 * 24 * 60 * 60;
+    const conversionPeriod = 365 * 24 * 60 * 60;
 
     console.log(`VRTConverterProxy with 
                 vrtConverterAddress: ${vrtConverterAddress} 
