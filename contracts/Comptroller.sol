@@ -1095,9 +1095,9 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAICONTROLLER_OWNER_CHECK);
         }
 
-        VAIControllerInterface oldRate = vaiController;
+        VAIControllerInterface oldVaiController = vaiController;
         vaiController = vaiController_;
-        emit NewVAIController(oldRate, vaiController_);
+        emit NewVAIController(oldVaiController, vaiController_);
     }
 
     function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
