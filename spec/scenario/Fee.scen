@@ -43,7 +43,7 @@ Test "Repay borrow should work and not change exchange rate"
     Assert Equal (BEP20 USDT TokenBalance Torrey) 0
 
 Test "Should be able to liquidate fee token borrow"
-    PricedComptroller
+    PricedComptrollerWithLiquidator Bank
     Comptroller LiquidationIncentive 1.1
     Bep20 Deploy Fee USDT USDT 18 100 Admin
     NewVTokenBringBEP20 USDT vUSDT
@@ -65,11 +65,14 @@ Test "Should be able to liquidate fee token borrow"
     Assert Equal (VToken vUSDT TotalBorrowsCurrent) 1.98e18
     -- OK! should be ready to liquidate, so lets do that
     Prep Coburn 2e18 USDT vUSDT
+    ApproveLiquidation Coburn vUSDT 20e18
     Liquidate Coburn "->" Torrey 0.1e18 vUSDT "Seizing" vZRX
-    -- 5.445e7 = 0.1 (amount liquidated) * 1.1 (liq discount) * .99 (fee) / 2e9 (exchange rate)
-    Assert Equal (Bep20 vZRX TokenBalance Coburn) 5.445e7
-    Assert Equal (VToken vUSDT BorrowBalance Torrey) 1.881e18 -- 1.98 - (0.1 * .99) was liquidated
+    -- 5.145525e7 = 0.1 (amount liquidated) * 1.05 (liquidator's bonus) * .99 (fee) * .99 (fee) / 2e9 (exchange rate)
+    Assert Equal (Bep20 vZRX TokenBalance Coburn) 5.145525e7
+    Assert Equal (VToken vUSDT BorrowBalance Torrey) 1.88199e18 -- 1.98 - (0.1 * .99 * .99) was liquidated
     Assert Equal (Bep20 USDT TokenBalance Coburn) 1.9e18
+    Assert Equal (Bep20 USDT TokenBalance Liquidator) 0
+    Assert Equal (Bep20 vZRX TokenBalance Liquidator) 0
 
 Test "Should be able to redeem a fee VToken, exchange Rate should not change"
     NewComptroller price:1.0

@@ -115,11 +115,11 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         internal
     {
         IBEP20 borrowedToken = IBEP20(vToken.underlying());
-        borrowedToken.safeTransferFrom(msg.sender, address(this), repayAmount);
+        uint256 actualRepayAmount = _transferBep20(borrowedToken, msg.sender, address(this), repayAmount);
         borrowedToken.safeApprove(address(vToken), 0);
-        borrowedToken.safeApprove(address(vToken), repayAmount);
+        borrowedToken.safeApprove(address(vToken), actualRepayAmount);
         requireNoError(
-            vToken.liquidateBorrow(borrower, repayAmount, vTokenCollateral),
+            vToken.liquidateBorrow(borrower, actualRepayAmount, vTokenCollateral),
             "failed to liquidate"
         );
     }
@@ -150,6 +150,16 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
             "failed to transfer to treasury"
         );
         return (ours, theirs);
+    }
+
+    /// @dev Transfers tokens and returns the actual transfer amount
+    function _transferBep20(IBEP20 token, address from, address to, uint256 amount)
+        internal
+        returns (uint256 actualAmount)
+    {
+        uint256 prevBalance = token.balanceOf(to);
+        token.safeTransferFrom(from, to, amount);
+        return token.balanceOf(to).sub(prevBalance);
     }
 
     /// @dev Computes the amounts that would go to treasury and to the liquidator.
