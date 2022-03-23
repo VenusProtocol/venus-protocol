@@ -4,8 +4,6 @@ import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
 import "./VRTVaultProxy.sol";
 import "./VRTVaultStorage.sol";
-import "../Utils/WithAdmin.sol";
-import "../Utils/ReentrancyGuard.sol";
 
 contract VRTVault is VRTVaultStorage {
     using SafeMath for uint256;
@@ -13,6 +11,12 @@ contract VRTVault is VRTVaultStorage {
 
     /// @notice Event emitted when admin changed
     event AdminTransfered(address indexed oldAdmin, address indexed newAdmin);
+
+    /// @notice Event emitted when vault is paused
+    event VaultPaused(address indexed admin);
+
+    /// @notice Event emitted when vault is resumed after pause
+    event VaultResumed(address indexed admin);
 
     /// @notice Event emitted on VRT deposit
     event Deposit(address indexed user, uint256 amount);
@@ -37,6 +41,7 @@ contract VRTVault is VRTVaultStorage {
 
     function initialize(address _vrtAddress, uint256 _interestRatePerBlock) public {
         require(msg.sender == admin, "only admin may initialize the Vault");
+        require(_vrtAddress != address(0), "vrtAddress cannot be Zero");
         require(interestRatePerBlock == 0, "Vault may only be initialized once");
 
         // Set initial exchange rate
@@ -45,12 +50,28 @@ contract VRTVault is VRTVaultStorage {
 
         // Set the VRT
         vrt = IBEP20(_vrtAddress);
-
         _notEntered = true;
     }
 
     modifier isInitialized() {
         require(interestRatePerBlock > 0, "Vault is not initialized");
+        _;
+    }
+
+    function pause() public onlyAdmin {
+        require(vaultPaused == false, "Vault is already paused");
+        vaultPaused = true;
+        emit VaultPaused(msg.sender);
+    }
+
+    function resume() public onlyAdmin {
+        require(vaultPaused == true, "Vault is not paused");
+        vaultPaused = false;
+        emit VaultResumed(msg.sender);
+    }
+
+    modifier isActive() { 
+        require(vaultPaused == false, "Vault is paused");
         _;
     }
 
@@ -79,7 +100,7 @@ contract VRTVault is VRTVaultStorage {
      * @notice Deposit VRT to VRTVault for a fixed-interest-rate
      * @param depositAmount The amount to deposit to vault
      */
-    function deposit(uint256 depositAmount) public nonReentrant isInitialized {
+    function deposit(uint256 depositAmount) external nonReentrant isInitialized isActive {
         require(depositAmount > 0, "Deposit amount must be non-zero");
 
         address userAddress = msg.sender;
@@ -97,7 +118,6 @@ contract VRTVault is VRTVaultStorage {
             if(accruedInterest > 0){
                 uint256 vrtBalance = vrt.balanceOf(address(this));
                 require(vrtBalance >= accruedInterest, "Failed to transfer accruedInterest, Insufficient VRT in Vault.");
-                user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
                 emit Claim(userAddress, accruedInterest);
                 vrt.safeTransfer(user.userAddress, accruedInterest);
             }
@@ -113,7 +133,7 @@ contract VRTVault is VRTVaultStorage {
      * @param userAddress Address of User in the the Vault
      */
     function getAccruedInterest(address userAddress) public view nonZeroAddress(userAddress) isInitialized returns (uint256) {
-        UserInfo memory user = userInfo[userAddress];
+        UserInfo storage user = userInfo[userAddress];
         if(user.accrualStartBlockNumber == 0){
             return 0;
         }
@@ -130,7 +150,7 @@ contract VRTVault is VRTVaultStorage {
         
         uint256 blockNumber = getBlockNumber();
 
-        if(accrualStartBlockNumber == 0 || accrualStartBlockNumber == blockNumber){
+        if(accrualStartBlockNumber == 0 || accrualStartBlockNumber >= blockNumber){
             return 0;
         }
 
@@ -143,12 +163,11 @@ contract VRTVault is VRTVaultStorage {
     /**
      * @notice claim the accruedInterest of the user's VRTDeposits in the Vault
      */
-    function claim() external nonReentrant isInitialized userHasPosition(msg.sender) {
+    function claim() external nonReentrant isInitialized userHasPosition(msg.sender) isActive {
         address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
         if(accruedInterest > 0){
             UserInfo storage user = userInfo[userAddress];
-            user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
             uint256 vrtBalance = vrt.balanceOf(address(this));
             require(vrtBalance >= accruedInterest, "Failed to transfer VRT, Insufficient VRT in Vault.");
             emit Claim(userAddress, accruedInterest);
@@ -160,18 +179,16 @@ contract VRTVault is VRTVaultStorage {
     /**
      * @notice withdraw accruedInterest and totalPrincipalAmount of the user's VRTDeposit in the Vault
      */
-    function withdraw() external nonReentrant isInitialized userHasPosition(msg.sender) {
+    function withdraw() external nonReentrant isInitialized userHasPosition(msg.sender) isActive {
         address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
 
         UserInfo storage user = userInfo[userAddress];
 
-        if(accruedInterest > 0){
-            user.totalInterestAmount = user.totalInterestAmount.add(accruedInterest);
-        }
-
         uint256 totalPrincipalAmount = user.totalPrincipalAmount;
         uint256 vrtForWithdrawal = accruedInterest.add(totalPrincipalAmount);
+        user.totalPrincipalAmount = 0;
+        user.accrualStartBlockNumber = getBlockNumber();
 
         uint256 vrtBalance = vrt.balanceOf(address(this));
         require(vrtBalance >= vrtForWithdrawal, "Failed to transfer VRT, Insufficient VRT in Vault.");
@@ -186,7 +203,7 @@ contract VRTVault is VRTVaultStorage {
      * @param receiver recipient of the BEP20 token
      * @param amount tokenAmount
      */
-    function withdrawBep20(address tokenAddress, address receiver, uint256 amount) onlyAdmin isInitialized nonZeroAddress(tokenAddress) nonZeroAddress(receiver) public {
+    function withdrawBep20(address tokenAddress, address receiver, uint256 amount) onlyAdmin isInitialized nonZeroAddress(tokenAddress) nonZeroAddress(receiver) external {
         require(amount > 0 , "amount is invalid");
         IBEP20 token = IBEP20(tokenAddress);
         require(amount <= token.balanceOf(address(this)), "Insufficient amount in Vault");
@@ -200,7 +217,7 @@ contract VRTVault is VRTVaultStorage {
 
     /*** Admin Functions ***/
 
-    function _become(VRTVaultProxy vrtVaultProxy) public {
+    function _become(VRTVaultProxy vrtVaultProxy) external {
         require(msg.sender == vrtVaultProxy.admin(), "only proxy admin can change brains");
         vrtVaultProxy._acceptImplementation();
     }

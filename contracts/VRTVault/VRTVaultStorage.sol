@@ -29,6 +29,9 @@ contract VRTVaultStorage is VRTVaultAdminStorage {
     /// @notice Guard variable for re-entrancy checks
     bool public _notEntered;
 
+    /// @notice pause indicator for Vault
+    bool public vaultPaused;
+
     /// @notice The VRT TOKEN!
     IBEP20 public vrt;
 
@@ -39,9 +42,7 @@ contract VRTVaultStorage is VRTVaultAdminStorage {
     struct UserInfo {
         address userAddress;
         uint256 accrualStartBlockNumber;
-        uint256 totalInterestAmount;
         uint256 totalPrincipalAmount;
-        uint256 totalWithdrawnAmount;
         uint256 lastWithdrawnBlockNumber;
     }
 

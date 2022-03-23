@@ -14,7 +14,7 @@ const main = async () => {
 
   const vrtVaultAddress = contractConfigData.Contracts.VRTVault;
   const vrtAddress = contractConfigData.Contracts.VRT;
-  const interestRatePerBlockAsNumber = bnbUnsigned(28935185000);
+  const interestRatePerBlockAsNumber = bnbUnsigned(2853881000);
 
   const vrtVaultProxyContractInstance = await vrtVaultProxyContract.deploy(vrtVaultAddress, vrtAddress, interestRatePerBlockAsNumber);
   await vrtVaultProxyContractInstance.deployed();
