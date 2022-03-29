@@ -10,9 +10,9 @@ name: Venus-Protocol
 
 on:
   push:
-    branches: [master, develop]
+    branches: [master]
   pull_request:
-    branches: [master, develop]
+    branches: [master]
 
 jobs:
   test:
@@ -33,6 +33,7 @@ jobs:
       run: |
         sudo wget https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux -O /usr/local/bin/solc
         sudo chmod +x /usr/local/bin/solc
+        sudo apt install make
     - run: npm install -g yarn
     - run: yarn --frozen-lockfile
     - name: yarn lint and test
