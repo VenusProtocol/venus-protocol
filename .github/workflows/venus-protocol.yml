@@ -16,6 +16,8 @@ on:
 
 jobs:
   test:
+    container: 
+      image: node:14.16
     name: Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
     runs-on: self-hosted
     strategy:
