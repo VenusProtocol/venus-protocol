@@ -31,6 +31,9 @@ contract VRTConverterStorage is VRTConverterAdminStorage {
     /// @notice Guard variable for re-entrancy checks
     bool public _notEntered;
 
+    /// @notice indicator to check if the contract is initialized
+    bool public initialized;
+
     /// @notice The VRT TOKEN!
     IBEP20 public vrt;
 
@@ -43,7 +46,7 @@ contract VRTConverterStorage is VRTConverterAdminStorage {
     /// @notice Conversion ratio from VRT to XVS with decimal 18
     uint256 public conversionRatio;
 
-    /// @notice Conversion ratio from VRT to XVS with decimal 18
+    /// @notice total VRT converted to XVS
     uint256 public totalVrtConverted;
 
     /// @notice Conversion Start time in EpochSeconds

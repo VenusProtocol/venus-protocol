@@ -37,6 +37,9 @@ contract XVSVestingStorage is XVSVestingAdminStorage {
     /// @notice Guard variable for re-entrancy checks
     bool public _notEntered;
 
+    /// @notice indicator to check if the contract is initialized
+    bool public initialized;
+
     /// @notice The XVS TOKEN!
     IBEP20 public xvs;
 

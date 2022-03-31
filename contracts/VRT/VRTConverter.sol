@@ -17,10 +17,10 @@ contract VRTConverter is VRTConverterStorage {
     address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     /// @notice decimal precision for VRT
-    uint256 public constant vrtDecimalsMultiplier = 10**18;
+    uint256 public constant vrtDecimalsMultiplier = 1e18;
 
     /// @notice decimal precision for XVS
-    uint256 public constant xvsDecimalsMultiplier = 10**18;
+    uint256 public constant xvsDecimalsMultiplier = 1e18;
 
     /// @notice Emitted when an admin set conversion info
     event ConversionInfoSet(uint256 conversionRatio, uint256 conversionStartTime, uint256 conversionPeriod, uint256 conversionEndTime);
@@ -34,16 +34,15 @@ contract VRTConverter is VRTConverterStorage {
     /// @notice Emitted when XVSVestingAddress is set
     event XVSVestingSet(address xvsVestingAddress);
 
-    constructor() public {
-        admin = msg.sender;
-    }
+    constructor() public {}
 
     function initialize(address _vrtAddress,
                 address _xvsAddress,
                 uint256 _conversionRatio,
                 uint256 _conversionStartTime,
                 uint256 _conversionPeriod) public {
-        require(msg.sender == admin, "only admin may initialize the Vault");
+        require(msg.sender == admin, "only admin may initialize the VRTConverter");
+        require(initialized == false, "VRTConverter is already initialized");
 
         require(_vrtAddress != address(0), "vrtAddress cannot be Zero");
         vrt = IBEP20(_vrtAddress);
@@ -64,6 +63,17 @@ contract VRTConverter is VRTConverterStorage {
         
         totalVrtConverted = 0;
         _notEntered = true;
+        initialized = true;
+    }
+
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     */
+    modifier nonReentrant() {
+        require(_notEntered, "re-entered");
+        _notEntered = false;
+        _;
+        _notEntered = true; // get a gas-refund post-Istanbul
     }
 
     /**
@@ -79,7 +89,7 @@ contract VRTConverter is VRTConverterStorage {
     }
 
     modifier isInitialized() {
-        require(address(xvsVesting) != address(0), "VRTConverter is not initialized");
+        require(initialized == true, "VRTConverter is not initialized");
         _;
     }
 
@@ -113,11 +123,10 @@ contract VRTConverter is VRTConverterStorage {
      * @dev Note: If there is not enough XVS, we do not perform the conversion.
      * @param vrtAmount The amount of VRT
      */
-    function convert(uint256 vrtAmount) external isInitialized checkForActiveConversionPeriod
+    function convert(uint256 vrtAmount) external isInitialized checkForActiveConversionPeriod nonReentrant
     {
         require(address(xvsVesting) != address(0) && address(xvsVesting) != DEAD_ADDRESS, "XVS-Vesting Address is not set");
         require(vrtAmount > 0, "VRT amount must be non-zero");
-        require(vrt.allowance(msg.sender, address(this)) >= vrtAmount , "Insufficient VRT allowance");
         totalVrtConverted = totalVrtConverted.add(vrtAmount);
 
         uint256 redeemAmount = vrtAmount
@@ -127,7 +136,7 @@ contract VRTConverter is VRTConverterStorage {
             .div(vrtDecimalsMultiplier);
 
         emit TokenConverted(msg.sender, address(vrt), vrtAmount, address(xvs), redeemAmount);
-        vrt.transferFrom(msg.sender, DEAD_ADDRESS, vrtAmount);
+        vrt.safeTransferFrom(msg.sender, DEAD_ADDRESS, vrtAmount);
         xvsVesting.deposit(msg.sender, redeemAmount);
     }
 

@@ -25,7 +25,7 @@ contract XVSVestingProxy is  XVSVestingAdminStorage {
     event NewAdmin(address oldAdmin, address newAdmin);
 
     constructor(address implementation_,
-                address _xvsAddress) public {
+                address _xvsAddress) nonZeroAddress(implementation_) nonZeroAddress(_xvsAddress) public {
         // Creator of the contract is admin during initialization
         admin = msg.sender;
 
@@ -35,6 +35,11 @@ contract XVSVestingProxy is  XVSVestingAdminStorage {
         // First delegate gets to initialize the delegator (i.e. storage contract)
         delegateTo(implementation_, abi.encodeWithSignature("initialize(address)",
                                                             _xvsAddress));
+    }
+
+    modifier nonZeroAddress(address _address) {
+        require(_address != address(0), "Address cannot be Zero");
+        _;
     }
 
     /**
@@ -58,7 +63,7 @@ contract XVSVestingProxy is  XVSVestingAdminStorage {
       * @param data The raw data to delegatecall
       * @return The returned bytes from the delegatecall
      */
-    function delegateTo(address callee, bytes memory data) internal returns (bytes memory) {
+    function delegateTo(address callee, bytes memory data) internal nonZeroAddress(callee) returns (bytes memory) {
         (bool success, bytes memory returnData) = callee.delegatecall(data);
         assembly {
             if eq(success, 0) {
@@ -69,7 +74,7 @@ contract XVSVestingProxy is  XVSVestingAdminStorage {
     }
 
     /*** Admin Functions ***/
-    function _setPendingImplementation(address newPendingImplementation) public {
+    function _setPendingImplementation(address newPendingImplementation) nonZeroAddress(newPendingImplementation) public {
 
         require(msg.sender == admin, "Only admin can set Pending Implementation");
 
@@ -108,9 +113,10 @@ contract XVSVestingProxy is  XVSVestingAdminStorage {
       * @param newPendingAdmin New pending admin.
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
-    function _setPendingAdmin(address newPendingAdmin) public {
+    function _setPendingAdmin(address newPendingAdmin) nonZeroAddress(newPendingAdmin) public {
         // Check caller = admin
         require(msg.sender == admin, "only admin can set pending admin");
+        require(newPendingAdmin != pendingAdmin , "New pendingAdmin can not be same as the previous one");
 
         // Save current value, if any, for inclusion in log
         address oldPendingAdmin = pendingAdmin;

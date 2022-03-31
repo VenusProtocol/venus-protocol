@@ -9,8 +9,8 @@ const {
 const BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ONE_DAY = 24 * 60 * 60;
-const ONE_YEAR = 360 * 24 * 60 * 60;
-const TOTAL_PERIODS = 360;
+const ONE_YEAR = 365 * 24 * 60 * 60;
+const TOTAL_PERIODS = 365;
 
 describe('VRTConverterProxy', () => {
   let root, alice, bob;
@@ -29,7 +29,7 @@ describe('VRTConverterProxy', () => {
     blockTimestamp = bnbUnsigned(100);
     await freezeTime(blockTimestamp.toNumber());
     conversionStartTime = blockTimestamp;
-    conversionPeriod = 360 * 24 * 60 * 60;
+    conversionPeriod = 365 * 24 * 60 * 60;
 
     // 12,000 VRT =  1 XVS
     // 1 VRT = 1/12,000 = 0.000083
@@ -89,6 +89,24 @@ describe('VRTConverterProxy', () => {
       expect(parseInt(xvsDecimalsMultiplierQueryResponse)).toEqual(10 ** 18);
     });
 
+    it("sets initialized to true in vrtConversion", async () => {
+      let initializedActual = await call(vrtConversion, "initialized");
+      expect(initializedActual).toEqual(true);
+    });
+
+  });
+
+  describe("initialize", () => {
+
+    it("Fail on initialisation by non-Admin", async () => {
+      await expect(send(vrtConversion, "initialize", [vrtTokenAddress, xvsTokenAddress,
+        conversionRatio, conversionStartTime, conversionPeriod], { from: accounts[1] })).rejects.toRevert("revert only admin may initialize the VRTConverter");
+    });
+
+    it("Fail on duplicate initialisation", async () => {
+      await expect(send(vrtConversion, "initialize", [vrtTokenAddress, xvsTokenAddress,
+        conversionRatio, conversionStartTime, conversionPeriod])).rejects.toRevert("revert VRTConverter is already initialized");
+    });
   });
 
   describe("contract balances", () => {
@@ -243,7 +261,7 @@ describe('VRTConverterProxy', () => {
     it("Insufficient VRT allowance", async () => {
       vrtTransferAmount = bnbMantissa(100);
       await expect(send(vrtConversion, "convert", [vrtTransferAmount], { from: alice }))
-        .rejects.toRevert('revert Insufficient VRT allowance');
+        .rejects.toRevert('revert SafeBEP20: low-level call failed');
     });
 
   });

@@ -6,7 +6,9 @@ contract XVSVestingHarness is XVSVesting {
 
    address public constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000;
 
-   constructor() XVSVesting() public {}
+   constructor() XVSVesting() public {
+      admin = msg.sender;
+   }
 
    uint public blockNumber;
 
