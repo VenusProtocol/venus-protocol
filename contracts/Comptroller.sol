@@ -1361,7 +1361,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
      * @param amount The amount of XVS to (possibly) transfer
      */
     function _grantXVS(address recipient, uint amount) public {
-        require(adminOrInitializing(), "only admin can grant xvs");
+        require(adminOrInitializing(), "only admin or impl can grant xvs");
         uint amountLeft = grantXVSInternal(recipient, amount);
         require(amountLeft == 0, "insufficient xvs for grant");
         emit VenusGranted(recipient, amount);
@@ -1396,7 +1396,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
      * @param venusSpeed New XVS speed for market
      */
     function _setVenusSpeed(VToken vToken, uint venusSpeed) public {
-        require(adminOrInitializing(), "only admin can set venus speed");
+        require(adminOrInitializing(), "only admin or impl can set venus speed");
         setVenusSpeedInternal(vToken, venusSpeed);
     }
 
