@@ -541,6 +541,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param actualRepayAmount The amount of underlying being repaid
+     * @param seizeTokens The amount of collateral token that will be seized
      */
     function liquidateBorrowVerify(
         address vTokenBorrowed,
