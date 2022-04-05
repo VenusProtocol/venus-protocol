@@ -193,6 +193,6 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         fullMessage[i+3] = byte(uint8(48 + ( errCode % 10 )));
         fullMessage[i+4] = byte(uint8(41));
 
-        require(errCode == uint(0), string(fullMessage));
+        revert(string(fullMessage));
     }
 }
