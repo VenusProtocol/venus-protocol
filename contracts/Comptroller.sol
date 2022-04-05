@@ -131,7 +131,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
 
     modifier validPauseState(bool state) {
         require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
-        require(msg.sender == admin || state == true, "only admin can unpause");
+        require(msg.sender == admin || state, "only admin can unpause");
         _;
     }
 
@@ -1163,7 +1163,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
         } else if (venusSpeed != 0) {
             // Add the XVS market
             Market memory market = markets[address(vToken)];
-            require(market.isListed == true, "venus market is not listed");
+            require(market.isListed, "venus market is not listed");
 
             if (venusSupplyState[address(vToken)].index == 0 && venusSupplyState[address(vToken)].block == 0) {
                 venusSupplyState[address(vToken)] = VenusMarketState({
