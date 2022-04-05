@@ -435,7 +435,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
      * @notice Checks if the account should be allowed to repay a borrow in the given market
      * @param vToken The market to verify the repay against
      * @param payer The account which would repay the asset
-     * @param borrower The account which would repay the asset
+     * @param borrower The account which borrowed the asset
      * @param repayAmount The amount of the underlying asset the account would repay
      * @return 0 if the repay is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
