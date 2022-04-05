@@ -124,7 +124,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         );
     }
 
-    /// @dev Transfers BEP20 tokens to self, then approves vToken to take these tokens.
+    /// @dev Transfers BEP20 tokens to self, then approves vai to take these tokens.
     function _liquidateVAI(address borrower, uint256 repayAmount, VToken vTokenCollateral)
         internal
     {
