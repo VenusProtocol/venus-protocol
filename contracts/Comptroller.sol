@@ -1162,7 +1162,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
             updateVenusBorrowIndex(address(vToken), borrowIndex);
         } else if (venusSpeed != 0) {
             // Add the XVS market
-            Market storage market = markets[address(vToken)];
+            Market memory market = markets[address(vToken)];
             require(market.isListed == true, "venus market is not listed");
 
             if (venusSupplyState[address(vToken)].index == 0 && venusSupplyState[address(vToken)].block == 0) {
@@ -1243,7 +1243,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
             releaseToVault();
         }
 
-        VenusMarketState storage supplyState = venusSupplyState[vToken];
+        VenusMarketState memory supplyState = venusSupplyState[vToken];
         Double memory supplyIndex = Double({mantissa: supplyState.index});
         Double memory supplierIndex = Double({mantissa: venusSupplierIndex[vToken][supplier]});
         venusSupplierIndex[vToken][supplier] = supplyIndex.mantissa;
@@ -1271,7 +1271,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
             releaseToVault();
         }
 
-        VenusMarketState storage borrowState = venusBorrowState[vToken];
+        VenusMarketState memory borrowState = venusBorrowState[vToken];
         Double memory borrowIndex = Double({mantissa: borrowState.index});
         Double memory borrowerIndex = Double({mantissa: venusBorrowerIndex[vToken][borrower]});
         venusBorrowerIndex[vToken][borrower] = borrowIndex.mantissa;
