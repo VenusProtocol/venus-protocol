@@ -900,7 +900,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
       * @notice Sets the closeFactor used when liquidating borrows
       * @dev Admin function to set closeFactor
       * @param newCloseFactorMantissa New close factor, scaled by 1e18
-      * @return uint 0=success, otherwise a failure
+      * @return uint 0=success, otherwise will revert
       */
     function _setCloseFactor(uint newCloseFactorMantissa) external returns (uint) {
         // Check caller is admin
