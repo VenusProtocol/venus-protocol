@@ -13,7 +13,7 @@ import "./VAI/VAI.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -91,6 +91,9 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
 
     /// @notice Emitted when treasury percent is changed
     event NewTreasuryPercent(uint oldTreasuryPercent, uint newTreasuryPercent);
+
+    // @notice Emitted when liquidator adress is changed
+    event NewLiquidatorContract(address oldLiquidatorContract, address newLiquidatorContract);
 
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address recipient, uint amount);
@@ -498,8 +501,9 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         address liquidator,
         address borrower,
         uint repayAmount) external onlyProtocolAllowed returns (uint) {
-        // Shh - currently unused
-        liquidator;
+        if (liquidator != liquidatorContract) {
+            return uint(Error.UNAUTHORIZED);
+        }
 
         if (!(markets[vTokenBorrowed].isListed || address(vTokenBorrowed) == address(vaiController)) || !markets[vTokenCollateral].isListed) {
             return uint(Error.MARKET_NOT_LISTED);
@@ -972,6 +976,12 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
 
         return uint(Error.NO_ERROR);
+    }
+
+    function _setLiquidatorContract(address newLiquidatorContract_) external onlyAdmin {
+        address oldLiquidatorContract = liquidatorContract;
+        liquidatorContract = newLiquidatorContract_;
+        emit NewLiquidatorContract(oldLiquidatorContract, newLiquidatorContract_);
     }
 
     /**

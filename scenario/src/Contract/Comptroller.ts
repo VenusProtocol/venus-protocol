@@ -18,6 +18,7 @@ interface ComptrollerMethods {
   markets(string): Callable<{0: boolean, 1: number, 2?: boolean}>
   _setMaxAssets(encodedNumber): Sendable<number>
   _setLiquidationIncentive(encodedNumber): Sendable<number>
+  _setLiquidatorContract(string): Sendable<void>
   _supportMarket(string): Sendable<number>
   _setPriceOracle(string): Sendable<number>
   _setCollateralFactor(string, encodedNumber): Sendable<number>

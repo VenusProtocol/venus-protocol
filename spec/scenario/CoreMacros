@@ -16,6 +16,11 @@ Macro PricedComptroller closeFactor=0.1 maxAssets=20
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetCloseFactor closeFactor
 
+Macro PricedComptrollerWithLiquidator treasury closeFactor=0.1 maxAssets=20
+    PricedComptroller closeFactor maxAssets
+    Liquidator Deploy Admin (Address Zero) (Comptroller Address) (Address Zero) treasury 5e16  -- treasury percent = 5%
+    Comptroller SetLiquidatorContract (Address Liquidator)
+
 Macro PricedComptrollerWithVAIController closeFactor=0.1 maxAssets=20
     PricedComptroller closeFactor maxAssets
     NewVAIController
@@ -204,17 +209,20 @@ Macro RepayBorrowBehalf user behalf amount token
 Macro RepayBorrowBnbBehalf user behalf amount token
     From user (Trx GasPrice 0 (Trx Value amount (VToken token RepayBorrowBehalf behalf)))
 
+Macro ApproveLiquidation liquidator token amount
+    From liquidator (Bep20 (VToken token Underlying) Approve (Address Liquidator) amount)
+
 Macro Liquidate liquidator _ borrower amount token _ collateral
-    From liquidator (VToken token Liquidate borrower collateral amount)
+    From liquidator (Liquidator LiquidateBorrow (Address token) borrower amount (Address collateral))
 
 Macro LiquidateVAI liquidator _ borrower amount _ collateral
-    From liquidator (VAIController LiquidateVAI borrower collateral amount)
+    From liquidator (Liquidator LiquidateBorrow (Address VAIController) borrower amount (Address collateral))
 
 Macro LiquidateBnbColl liquidator _ borrower amount token _ collateral
-    From liquidator (Trx GasPrice 0 (VToken token Liquidate borrower collateral amount))
+    From liquidator (Trx GasPrice 0 (Liquidator LiquidateBorrow (Address token) Liquidate borrower amount (Address collateral)))
 
 Macro LiquidateBnbBorrow liquidator _ borrower amount token _ collateral
-    From liquidator (Trx GasPrice 0 (Trx Value amount (VToken token Liquidate borrower collateral)))
+    From liquidator (Trx GasPrice 0 (Trx Value amount (Liquidator LiquidateBorrow (Address token) Liquidate borrower amount (Address collateral))))
 
 Macro Seize amount token caller liquidator borrower
     From caller (VToken token Seize liquidator borrower amount)
