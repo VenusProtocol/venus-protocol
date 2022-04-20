@@ -1098,6 +1098,8 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
         VAIControllerInterface oldVaiController = vaiController;
         vaiController = vaiController_;
         emit NewVAIController(oldVaiController, vaiController_);
+
+        return uint(Error.NO_ERROR);
     }
 
     function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
