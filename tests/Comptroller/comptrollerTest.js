@@ -1,6 +1,7 @@
 const {
   bnbMantissa,
-  both
+  both,
+  address,
 } = require('../Utils/BSC');
 
 const {
@@ -59,6 +60,28 @@ describe('Comptroller', () => {
     });
   });
 
+  describe('Non zero address check', () => {
+    beforeEach(async () => {
+      comptroller = await makeComptroller();
+    });
+
+    async function testZeroAddress(funcName, args) {
+      it(funcName, async () => {
+        await expect(
+          send(comptroller, funcName, args, {from: root})
+        ).rejects.toRevert('revert can\'t be zero address');
+      });
+    }
+    testZeroAddress('_setPriceOracle', [address(0)]);
+    testZeroAddress('_setCollateralFactor', [address(0), 0]);
+    testZeroAddress('_setPauseGuardian', [address(0)]);
+    testZeroAddress('_setBorrowCapGuardian', [address(0)]);
+    testZeroAddress('_setVAIController', [address(0)]);
+    testZeroAddress('_setTreasuryData', [address(0), address(0), 0]);
+    testZeroAddress('_setVAIVaultInfo', [address(0), 0, 0]);
+    testZeroAddress('_setVenusSpeed', [address(0), 0]);
+  })
+
   describe('_setPriceOracle', () => {
     let comptroller, oldOracle, newOracle;
     beforeEach(async () => {
@@ -71,6 +94,7 @@ describe('Comptroller', () => {
       expect(
         await send(comptroller, '_setPriceOracle', [newOracle._address], {from: accounts[0]})
       ).toHaveTrollFailure('UNAUTHORIZED', 'SET_PRICE_ORACLE_OWNER_CHECK');
+
       expect(await comptroller.methods.oracle().call()).toEqual(oldOracle._address);
     });
 

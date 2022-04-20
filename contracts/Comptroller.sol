@@ -123,6 +123,10 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
         require(msg.sender == admin, "only admin can");
     }
 
+    function ensureNonzeroAddress(address someone) private {
+        require(someone != address(0), "can't be zero address");
+    }
+
     modifier onlyListedMarket(VToken vToken) {
         require(markets[address(vToken)].isListed, "venus market is not listed");
         _;
@@ -883,6 +887,8 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_PRICE_ORACLE_OWNER_CHECK);
         }
 
+        ensureNonzeroAddress(address(newOracle));
+
         // Track the old oracle for the comptroller
         PriceOracle oldOracle = oracle;
 
@@ -924,6 +930,8 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_COLLATERAL_FACTOR_OWNER_CHECK);
         }
+
+        ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
         Market storage market = markets[address(vToken)];
@@ -1029,6 +1037,8 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_PAUSE_GUARDIAN_OWNER_CHECK);
         }
 
+        ensureNonzeroAddress(newPauseGuardian);
+
         // Save current value for inclusion in log
         address oldPauseGuardian = pauseGuardian;
 
@@ -1067,6 +1077,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function _setBorrowCapGuardian(address newBorrowCapGuardian) external {
         ensureAdmin();
+        ensureNonzeroAddress(newBorrowCapGuardian);
 
         // Save current value for inclusion in log
         address oldBorrowCapGuardian = borrowCapGuardian;
@@ -1098,6 +1109,8 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAICONTROLLER_OWNER_CHECK);
         }
 
+        ensureNonzeroAddress(address(vaiController_));
+
         VAIControllerInterface oldVaiController = vaiController;
         vaiController = vaiController_;
         emit NewVAIController(oldVaiController, vaiController_);
@@ -1125,6 +1138,8 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
         }
 
         require(newTreasuryPercent < 1e18, "treasury percent cap overflow");
+        ensureNonzeroAddress(newTreasuryGuardian);
+        ensureNonzeroAddress(newTreasuryAddress);
 
         address oldTreasuryGuardian = treasuryGuardian;
         address oldTreasuryAddress = treasuryAddress;
@@ -1389,6 +1404,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) public {
         ensureAdmin();
+        ensureNonzeroAddress(vault_);
 
         vaiVaultAddress = vault_;
         releaseStartBlock = releaseStartBlock_;
@@ -1403,6 +1419,7 @@ contract Comptroller is ComptrollerV6Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function _setVenusSpeed(VToken vToken, uint venusSpeed) public {
         require(adminOrInitializing(), "only admin or impl can set venus speed");
+        ensureNonzeroAddress(address(vToken));
         setVenusSpeedInternal(vToken, venusSpeed);
     }
 
