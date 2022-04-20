@@ -246,7 +246,8 @@ describe('Liquidator', function () {
       const treasuryDelta =
         seizeTokens
           .mul(bnbMantissa('1')).div(announcedIncentive)  // / 1.1
-          .mul(bnbMantissa('0.08')).div(bnbMantissa('1')); // * 0.08
+          .mul(bnbMantissa('0.08')).div(bnbMantissa('1')) // * 0.08
+          .toFixed(0, BigNumber.ROUND_FLOOR);
       const liquidatorDelta = seizeTokens.sub(treasuryDelta);
       expect(result).toHaveLog('LiquidateBorrowedTokens', {
         liquidator,
