@@ -94,7 +94,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     }
 
     /// @notice Sets the new percent of the seized amount that goes to treasury. Should
-    ///         be less than or equal to comptroller.liquidationIncentiveMantissa().
+    ///         be less than or equal to comptroller.liquidationIncentiveMantissa().sub(1e18).
     /// @param newTreasuryPercentMantissa New treasury percent (scaled by 10^18).
     function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external onlyAdmin {
         require(
@@ -124,7 +124,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         );
     }
 
-    /// @dev Transfers BEP20 tokens to self, then approves vToken to take these tokens.
+    /// @dev Transfers BEP20 tokens to self, then approves vai to take these tokens.
     function _liquidateVAI(address borrower, uint256 repayAmount, VToken vTokenCollateral)
         internal
     {
@@ -193,6 +193,6 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         fullMessage[i+3] = byte(uint8(48 + ( errCode % 10 )));
         fullMessage[i+4] = byte(uint8(41));
 
-        require(errCode == uint(0), string(fullMessage));
+        revert(string(fullMessage));
     }
 }
