@@ -16,9 +16,6 @@ debug_args="-n --inspect" #add "debugger" statements to javascript and interact 
 # Build scenario stubs
 [[ -z $NO_BUILD_STUB ]] && "$proj_root/script/compile"
 
-# Build scenario stubs
-[[ -z $NO_BUILD_SCEN ]] && "$proj_root/script/build_scenarios"
-
 [[ -n $NO_RUN ]] && exit 0
 
 args=()
