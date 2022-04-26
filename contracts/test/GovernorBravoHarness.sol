@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../../contracts/Governance/GovernorBravoDelegate.sol";
+import "../Governance/GovernorBravoDelegate.sol";
 import "./XVSVaultHarness.sol";
 
 contract GovernorBravoDelegateHarness is GovernorBravoDelegate {

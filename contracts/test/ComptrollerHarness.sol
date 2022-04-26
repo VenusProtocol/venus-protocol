@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/Comptroller.sol";
-import "../../contracts/PriceOracle.sol";
+import "../Comptroller.sol";
+import "../PriceOracle.sol";
 
 contract ComptrollerKovan is Comptroller {
   function getXVSAddress() public view returns (address) {
@@ -17,6 +17,7 @@ contract ComptrollerRopsten is Comptroller {
 
 contract ComptrollerHarness is Comptroller {
     address xvsAddress;
+    address vXVSAddress;
     uint public blockNumber;
 
     constructor() Comptroller() public {}
@@ -41,6 +42,14 @@ contract ComptrollerHarness is Comptroller {
 
     function getXVSAddress() public view returns (address) {
         return xvsAddress;
+    }
+
+    function setXVSVTokenAddress(address vXVSAddress_) public {
+        vXVSAddress = vXVSAddress_;
+    }
+
+    function getXVSVTokenAddress() public view returns (address) {
+        return vXVSAddress;
     }
 
     /**
@@ -93,12 +102,12 @@ contract ComptrollerHarness is Comptroller {
 
     function harnessDistributeAllBorrowerVenus(address vToken, address borrower, uint marketBorrowIndexMantissa) public {
         distributeBorrowerVenus(vToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}));
-        venusAccrued[borrower] = grantXVSInternal(borrower, venusAccrued[borrower]);
+        venusAccrued[borrower] = grantXVSInternal(borrower, venusAccrued[borrower], 0, false);
     }
 
     function harnessDistributeAllSupplierVenus(address vToken, address supplier) public {
         distributeSupplierVenus(vToken, supplier);
-        venusAccrued[supplier] = grantXVSInternal(supplier, venusAccrued[supplier]);
+        venusAccrued[supplier] = grantXVSInternal(supplier, venusAccrued[supplier], 0, false);
     }
 
     function harnessUpdateVenusBorrowIndex(address vToken, uint marketBorrowIndexMantissa) public {
@@ -119,7 +128,7 @@ contract ComptrollerHarness is Comptroller {
 
     function harnessTransferVenus(address user, uint userAccrued, uint threshold) public returns (uint) {
         if (userAccrued > 0 && userAccrued >= threshold) {
-            return grantXVSInternal(user, userAccrued);
+            return grantXVSInternal(user, userAccrued, 0, false);
         }
         return userAccrued;
     }
@@ -166,6 +175,10 @@ contract ComptrollerHarness is Comptroller {
         }
         return venusMarkets;
     }
+
+    function harnessSetReleaseStartBlock(uint startBlock) external {
+        releaseStartBlock = startBlock;
+    }
 }
 
 contract ComptrollerBorked {
@@ -207,11 +220,6 @@ contract BoolComptroller is ComptrollerInterface {
     address public treasuryGuardian;
     address public treasuryAddress;
     uint public treasuryPercent;
-
-    // add this flag to avoid touching previous liquidation test cases in `liquidatorTest.js`
-    bool public useLiquidatorContract;
-
-    address public liquidatorContract;
 
     /*** Assets You Are In ***/
 
@@ -298,28 +306,17 @@ contract BoolComptroller is ComptrollerInterface {
         require(verifyRepayBorrow, "repayBorrowVerify rejected repayBorrow");
     }
 
-    function setUseLiquidatorContract(bool useLiquidatorContract_) external {
-        useLiquidatorContract = useLiquidatorContract_;
-    }
-
-    function _setLiquidatorContract(address liquidatorContract_) external {
-        liquidatorContract = liquidatorContract_;
-    }
-
     function liquidateBorrowAllowed(
         address _vTokenBorrowed,
         address _vTokenCollateral,
         address _liquidator,
         address _borrower,
         uint _repayAmount) external returns (uint) {
+        _vTokenBorrowed;
         _vTokenCollateral;
         _liquidator;
         _borrower;
         _repayAmount;
-        // set this flag to enable liquidator check which is the same as main Comptroller
-        if (useLiquidatorContract) {
-            return liquidatorContract == _liquidator ? noError : opaqueError;
-        }
         return allowLiquidateBorrow ? noError : opaqueError;
     }
 

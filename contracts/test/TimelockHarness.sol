@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/Timelock.sol";
+import "../Timelock.sol";
 
 interface Administered {
     function _acceptAdmin() external returns (uint);

@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/VAIController.sol";
+import "../VAIController.sol";
 import "./ComptrollerScenario.sol";
 
 contract VAIControllerScenario is VAIController {

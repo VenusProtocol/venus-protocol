@@ -10,6 +10,8 @@ contract SimplePriceOracle is PriceOracle {
     function getUnderlyingPrice(VToken vToken) public view returns (uint) {
         if (compareStrings(vToken.symbol(), "vBNB")) {
             return 1e18;
+        } else if (compareStrings(vToken.symbol(), "VAI")) {
+            return prices[address(vToken)];
         } else {
             return prices[address(VBep20(address(vToken)).underlying())];
         }

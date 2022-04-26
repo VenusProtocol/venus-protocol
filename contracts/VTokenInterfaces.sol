@@ -262,6 +262,7 @@ contract VBep20Interface is VBep20Storage {
     /*** User Interface ***/
 
     function mint(uint mintAmount) external returns (uint);
+    function mintBehalf(address receiver, uint mintAmount) external returns (uint);
     function redeem(uint redeemTokens) external returns (uint);
     function redeemUnderlying(uint redeemAmount) external returns (uint);
     function borrow(uint borrowAmount) external returns (uint);

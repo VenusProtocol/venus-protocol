@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/VBNB.sol";
+import "../VBNB.sol";
 import "./ComptrollerScenario.sol";
 
 contract VBNBHarness is VBNB {
