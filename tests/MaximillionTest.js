@@ -12,14 +12,21 @@ const {
   borrowSnapshot
 } = require('./Utils/Venus');
 
+const {
+  beforeEachFixture
+} = require('./Utils/Fixture');
+
 describe('Maximillion', () => {
   let root, borrower;
   let maximillion, vBnb;
-  beforeEach(async () => {
+
+  const fixture = async () => {
     [root, borrower] = saddle.accounts;
     vBnb = await makeVToken({kind: "vbnb", supportMarket: true});
     maximillion = await deploy('Maximillion', [vBnb._address]);
-  });
+  }
+
+  beforeEachFixture(fixture);
 
   describe("constructor", () => {
     it("sets address of vBnb", async () => {

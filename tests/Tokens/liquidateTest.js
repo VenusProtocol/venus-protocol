@@ -13,6 +13,10 @@ const {
   preApprove
 } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture
+} = require('../Utils/Fixture');
+
 const repayAmount = bnbUnsigned(10e2);
 const seizeAmount = repayAmount;
 const seizeTokens = seizeAmount.mul(4); // forced
@@ -56,11 +60,13 @@ describe('VToken', function () {
   let root, liquidator, borrower, accounts;
   let vToken, vTokenCollateral;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, liquidator, borrower, ...accounts] = saddle.accounts;
     vToken = await makeVToken({comptrollerOpts: {kind: 'bool'}});
     vTokenCollateral = await makeVToken({comptroller: vToken.comptroller});
-  });
+  }
+
+  beforeEachFixture(fixture);
 
   beforeEach(async () => {
     await preLiquidate(vToken, liquidator, borrower, repayAmount, vTokenCollateral);

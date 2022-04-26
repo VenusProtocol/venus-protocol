@@ -18,6 +18,10 @@ const {
   adjustBalances
 } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
+
 const BigNumber = require('bignumber.js');
 
 const borrowAmount = bnbUnsigned(10e3);
@@ -66,11 +70,14 @@ async function repayBorrowBehalf(vToken, payer, borrower, repayAmount) {
 
 describe('VBNB', function () {
   let vToken, root, borrower, benefactor, accounts;
-  beforeEach(async () => {
+
+  const fixture = async () => {
     [root, borrower, benefactor, ...accounts] = saddle.accounts;
     vToken = await makeVToken({kind: 'vbnb', comptrollerOpts: {kind: 'bool'}});
-  });
+  }
 
+  beforeEachFixture(fixture);
+  
   describe('borrowFresh', () => {
     beforeEach(async () => await preBorrow(vToken, borrower, borrowAmount));
 

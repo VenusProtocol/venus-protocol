@@ -6,6 +6,9 @@ const {
   makeVToken,
   setBorrowRate
 } = require('../Utils/Venus');
+const {
+  beforeEachFixture
+} = require('../Utils/Fixture');
 
 const blockNumber = 2e7;
 const borrowIndex = 1e18;
@@ -26,10 +29,13 @@ async function preAccrue(vToken) {
 describe('VToken', () => {
   let root, accounts;
   let vToken;
-  beforeEach(async () => {
+
+  const fixture = async () => {
     [root, ...accounts] = saddle.accounts;
     vToken = await makeVToken({comptrollerOpts: {kind: 'bool'}});
-  });
+  }
+  
+  beforeEachFixture(fixture);
 
   beforeEach(async () => {
     await preAccrue(vToken);

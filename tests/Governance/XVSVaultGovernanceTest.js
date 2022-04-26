@@ -9,13 +9,19 @@ const {
 
 const EIP712 = require('../Utils/EIP712');
 
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
+
 describe('XVSVault governance', () => {
   const name = 'XVSVault';
 
   let root, a1, a2, accounts, chainId;
   let xvs, xvsVault, xvsStore;
 
-  async function deployVault(root) {
+  const fixture = async () => {
+    [root, a1, a2, ...accounts] = saddle.accounts;
+    chainId = 1; // await web3.eth.net.getId(); See: https://github.com/trufflesuite/ganache-core/issues/515
     xvsVault = await deploy('XVSVault', []);
     xvsStore = await deploy('XVSStore', []);
     xvs = await deploy('XVSScenario', [root]);
@@ -25,11 +31,8 @@ describe('XVSVault governance', () => {
     await send(xvsVault, 'add', [xvs._address, 100, xvs._address, bnbUnsigned(1e16), 300], { from: root }); // lock period 300s
   }
 
-  beforeEach(async () => {
-    [root, a1, a2, ...accounts] = saddle.accounts;
-    chainId = 1; // await web3.eth.net.getId(); See: https://github.com/trufflesuite/ganache-core/issues/515
-    await deployVault(root);
-  });
+  beforeEachFixture(fixture);
+
 
   describe('delegateBySig', () => {
     const Domain = (xvsVault) => ({ name, chainId, verifyingContract: xvsVault._address });

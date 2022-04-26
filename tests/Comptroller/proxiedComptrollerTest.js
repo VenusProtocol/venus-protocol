@@ -2,18 +2,25 @@ const { address, bnbMantissa } = require('../Utils/BSC');
 
 const { makeComptroller, makeVToken, makePriceOracle } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
+
 describe('Comptroller', function() {
   let root, accounts;
   let unitroller;
   let brains;
   let oracle;
+  let fixtureLoader;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, ...accounts] = saddle.accounts;
     oracle = await makePriceOracle();
     brains = await deploy('Comptroller');
     unitroller = await deploy('Unitroller');
-  });
+  }
+
+  beforeEachFixture(fixture);
 
   let initializeBrains = async (priceOracle, closeFactor) => {
     await send(unitroller, '_setPendingImplementation', [brains._address]);
@@ -28,8 +35,8 @@ describe('Comptroller', function() {
   describe('delegating to comptroller', () => {
     const closeFactor = bnbMantissa(0.051);
     let unitrollerAsComptroller, vToken;
-
-    beforeEach(async () => {
+    
+   beforeEach(async () => {
       unitrollerAsComptroller = await initializeBrains(oracle, bnbMantissa(0.06));
       vToken = await makeVToken({ comptroller: unitrollerAsComptroller });
     });
@@ -57,6 +64,7 @@ describe('Comptroller', function() {
         one = bnbMantissa(1);
 
       it('fails if not called by admin', async () => {
+        console.log(`=== admin: ${await call(unitrollerAsComptroller, 'admin')}, account: ${accounts[1]}`)
         expect(
           await send(unitrollerAsComptroller, '_setCollateralFactor', [vToken._address, half], {
             from: accounts[1]

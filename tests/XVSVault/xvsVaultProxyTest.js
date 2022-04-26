@@ -1,6 +1,9 @@
 const {
   address,
 } = require('../Utils/BSC');
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
 
 
 describe('XVSVaultProxy', () => {
@@ -8,11 +11,12 @@ describe('XVSVaultProxy', () => {
   let vaultProxy;
   let vaultImpl;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, ...accounts] = saddle.accounts;
     vaultImpl = await deploy('XVSVault');
-    vaultProxy = await deploy('XVSVaultProxy');
-  });
+    vaultProxy = await deploy('XVSVaultProxy');  }
+
+  beforeEachFixture(fixture);
 
   let setPending = (implementation, from) => {
     return send(vaultProxy, '_setPendingImplementation', [implementation._address], {from});

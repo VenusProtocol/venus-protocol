@@ -7,6 +7,10 @@ const {
     getBigNumber
 } = require('./Utils/BSC');
 
+const {
+    beforeEachFixture
+  } = require('./Utils/Fixture');
+
 const ONE_DAY = 24 * 60 * 60;
 const ONE_YEAR = 365 * 24 * 60 * 60;
 const HALF_YEAR = 182.5 * 24 * 60 * 60;
@@ -98,7 +102,7 @@ describe('XVSVesting', () => {
     let vrtForMint;
     let xvsVesting, xvsVestingAddress;
 
-    beforeEach(async () => {
+    const fixture = async () => {
         [root, alice, bob, vrtConversionAddress, ...accounts] = saddle.accounts;
         blockTimestamp = bnbUnsigned(100);
         await freezeTime(blockTimestamp.toNumber());
@@ -126,7 +130,9 @@ describe('XVSVesting', () => {
         xvsVestingAddress = xvsVesting._address;
         await send(xvsVesting, "initialize", [xvsTokenAddress]);
         await send(xvsVesting, "setVRTConverter", [vrtConversionAddress]);
-    });
+    };
+
+    beforeEachFixture(fixture);
 
     describe("constructor", () => {
 

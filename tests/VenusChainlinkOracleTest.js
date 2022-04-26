@@ -3,12 +3,16 @@ const {
   makeVToken,
 } = require("./Utils/Venus");
 
+const {
+  beforeEachFixture,
+} = require('./Utils/Fixture');
+
 describe("VenusChainlinkOracle", () => {
   let root, accounts;
   let bnbFeed, daiFeed, usdcFeed, usdtFeed;
   let oracle, vBnb, vDai, vExampleSet, vExampleUnset, vToken, vUsdc, vUsdt, vai, xvs;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, ...accounts] = saddle.accounts;
     vToken = await makeVToken();
     vBnb = await makeVToken({kind: "vbnb",
@@ -62,7 +66,9 @@ describe("VenusChainlinkOracle", () => {
     usdtFeed = await makeChainlinkOracle({decimals: 8, initialAnswer: 100000000});
     daiFeed = await makeChainlinkOracle({decimals: 8, initialAnswer: 100000000});
     oracle = await deploy("VenusChainlinkOracle");
-  });
+  };
+  
+  beforeEachFixture(fixture);
 
   describe("constructor", () => {
     it("sets address of admin", async () => {

@@ -1,12 +1,18 @@
 const {address} = require('../Utils/BSC');
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
 
 describe('admin / _setPendingAdmin / _acceptAdmin', () => {
   let root, accounts;
   let comptroller;
-  beforeEach(async () => {
+
+  const fixture = async () => {
     [root, ...accounts] = saddle.accounts;
     comptroller = await deploy('Unitroller');
-  });
+  };
+
+  beforeEachFixture(fixture);
 
   describe('admin()', () => {
     it('should return correct admin', async () => {

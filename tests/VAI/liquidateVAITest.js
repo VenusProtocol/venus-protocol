@@ -16,6 +16,10 @@ const {
   preApproveVAI
 } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture
+} = require('../Utils/Fixture');
+
 const repayAmount = bnbUnsigned(10e2);
 const seizeAmount = repayAmount;
 const seizeTokens = seizeAmount.mul(4); // forced
@@ -60,15 +64,18 @@ describe('VAIController', function () {
   let root, liquidator, borrower, accounts;
   let vTokenCollateral;
   let comptroller, vaicontroller, vai;
+  let fixtureLoader;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, liquidator, borrower, ...accounts] = saddle.accounts;
     vTokenCollateral = await makeVToken({comptrollerOpts: {kind: 'bool'}});
     comptroller = vTokenCollateral.comptroller;
     vaicontroller = comptroller.vaicontroller;
     await send(comptroller, 'setLiquidateBorrowAllowed', [false]);
     vai = comptroller.vai;
-  });
+  }
+
+  beforeEachFixture(fixture);
 
   beforeEach(async () => {
     await preLiquidateVAI(comptroller, vaicontroller, vai, liquidator, borrower, repayAmount, vTokenCollateral);

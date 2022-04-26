@@ -14,6 +14,10 @@ const {
   pretendBorrow
 } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture
+} = require('../Utils/Fixture');
+
 const borrowAmount = bnbUnsigned(10e3);
 const repayAmount = bnbUnsigned(10e2);
 
@@ -67,10 +71,14 @@ async function repayBorrowBehalf(vToken, payer, borrower, repayAmount) {
 
 describe('VToken', function () {
   let vToken, root, borrower, benefactor, accounts;
-  beforeEach(async () => {
-    [root, borrower, benefactor, ...accounts] = saddle.accounts;
+  
+  const fixture = async () => {
     vToken = await makeVToken({comptrollerOpts: {kind: 'bool'}});
-  });
+    [root, borrower, benefactor, ...accounts] = saddle.accounts;
+    return { vToken };
+  }
+
+  beforeEachFixture(fixture);
 
   describe('borrowFresh', () => {
     beforeEach(async () => await preBorrow(vToken, borrower, borrowAmount));

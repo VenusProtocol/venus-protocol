@@ -12,6 +12,9 @@ const {
   bnbDouble,
   bnbUnsigned
 } = require('../Utils/BSC');
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
 
 const venusVAIRate = bnbUnsigned(5e17);
 
@@ -27,16 +30,18 @@ async function totalVenusAccrued(comptroller, user) {
   return (await venusAccrued(comptroller, user)).add(await xvsBalance(comptroller, user));
 }
 
-
 describe('Flywheel', () => {
   let root, a1, a2, a3, accounts;
   let comptroller, vaicontroller, vai;
-  beforeEach(async () => {
-    [root, a1, a2, a3, ...accounts] = saddle.accounts;
+
+  const fixture = async () => {
     comptroller = await makeComptroller();
     vai = comptroller.vai;
     vaicontroller = comptroller.vaiunitroller;
-  });
+    [root, a1, a2, a3, ...accounts] = saddle.accounts;
+  }
+  
+  beforeEachFixture(fixture);
 
   describe('claimVenus', () => {
     it('should accrue xvs and then transfer xvs accrued', async () => {

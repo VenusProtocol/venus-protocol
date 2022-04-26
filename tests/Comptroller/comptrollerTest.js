@@ -11,6 +11,10 @@ const {
   makeToken
 } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture
+} = require('../Utils/Fixture');
+
 describe('Comptroller', () => {
   let root, accounts;
 
@@ -38,10 +42,13 @@ describe('Comptroller', () => {
     const tooLargeIncentive = bnbMantissa(1.50000001);
 
     let comptroller;
-    beforeEach(async () => {
-      comptroller = await makeComptroller();
-    });
 
+    const fixture = async () => {
+      comptroller = await makeComptroller();
+    }
+
+    beforeEachFixture(fixture);
+    
     it("fails if called by non-admin", async () => {
       const {reply, receipt} = await both(comptroller, '_setLiquidationIncentive', [initialIncentive], {from: accounts[0]});
       expect(reply).toHaveTrollError('UNAUTHORIZED');
@@ -84,11 +91,14 @@ describe('Comptroller', () => {
 
   describe('_setPriceOracle', () => {
     let comptroller, oldOracle, newOracle;
-    beforeEach(async () => {
+
+    const fixture = async () => {
       comptroller = await makeComptroller();
       oldOracle = comptroller.priceOracle;
       newOracle = await makePriceOracle();
-    });
+    }
+
+    beforeEachFixture(fixture);
 
     it("fails if called by non-admin", async () => {
       expect(

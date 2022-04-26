@@ -6,6 +6,9 @@ const {
   makeComptroller,
   makeVToken,
 } = require('../Utils/Venus');
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
 
 function cullTuple(tuple) {
   return Object.keys(tuple).reduce((acc, key) => {
@@ -24,10 +27,12 @@ describe('VenusLens', () => {
   let VenusLens;
   let acct;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     VenusLens = await deploy('VenusLens');
     acct = accounts[0];
-  });
+  }
+
+  beforeEachFixture(fixture);
 
   describe('vTokenMetadata', () => {
     it('is correct for a vBep20', async () => {
@@ -259,6 +264,7 @@ describe('VenusLens', () => {
       callDatas = [encodeParameters(['address'], [acct])];
       await send(xvs, 'delegate', [acct]);
       await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"]);
+      // can't fixture this because it needs the block number to advance
       proposalBlock = +(await web3.eth.getBlockNumber());
       proposalId = await call(gov, 'latestProposalIds', [acct]);
       votingDelay = Number(await call(gov, 'votingDelay'));
@@ -308,6 +314,7 @@ describe('VenusLens', () => {
     let xvs, currentBlock;
 
     beforeEach(async () => {
+      // can't fixture this because it needs the block number to advance
       currentBlock = +(await web3.eth.getBlockNumber());
       xvs = await deploy('XVS', [acct]);
     });

@@ -7,18 +7,24 @@ const {
   makePriceOracle
 } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
+
 describe('Unitroller', () => {
   let root, accounts;
   let unitroller;
   let brains;
   let oracle;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, ...accounts] = saddle.accounts;
     oracle = await makePriceOracle();
     brains = await deploy('Comptroller');
     unitroller = await deploy('Unitroller');
-  });
+  };
+
+  beforeEachFixture(fixture);
 
   let setPending = (implementation, from) => {
     return send(unitroller, '_setPendingImplementation', [implementation._address], {from});

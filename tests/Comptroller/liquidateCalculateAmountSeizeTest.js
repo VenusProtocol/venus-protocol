@@ -4,6 +4,9 @@ const {
   makeVToken,
   setOraclePrice
 } = require('../Utils/Venus');
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
 
 const borrowedPrice = 2e10;
 const collateralPrice = 1e18;
@@ -20,19 +23,20 @@ function rando(min, max) {
 describe('Comptroller', () => {
   let root, accounts;
   let comptroller, vTokenBorrowed, vTokenCollateral;
+  let fixtureLoader;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, ...accounts] = saddle.accounts;
+
     comptroller = await makeComptroller();
     vTokenBorrowed = await makeVToken({comptroller: comptroller, underlyingPrice: 0});
     vTokenCollateral = await makeVToken({comptroller: comptroller, underlyingPrice: 0});
-  });
-
-  beforeEach(async () => {
     await setOraclePrice(vTokenBorrowed, borrowedPrice);
     await setOraclePrice(vTokenCollateral, collateralPrice);
     await send(vTokenCollateral, 'harnessExchangeRateDetails', [8e10, 4e10, 0]);
-  });
+  }
+
+  beforeEachFixture(fixture);
 
   describe('liquidateCalculateAmountSeize', () => {
     it("fails if either asset price is 0", async () => {

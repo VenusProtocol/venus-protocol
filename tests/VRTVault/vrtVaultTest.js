@@ -3,6 +3,9 @@ const {
   bnbMantissa,
   freezeTime
 } = require('../Utils/BSC');
+const {
+  beforeEachFixture
+} = require('../Utils/Fixture');
 const BigNum = require('bignumber.js');
 
 const interestRatePerBlock = bnbUnsigned(28935185000);
@@ -88,21 +91,19 @@ describe('VRTVault', () => {
   let vrt, vrtAddress;
   let preFundedVRTInVault = bnbUnsigned(10e18);
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, user1, user2, user3, treasury] = accounts;
-
     vrt = await deploy('VRT', [root]);
     vrtAddress = vrt._address;
-
     vrtVault = await deploy('VRTVaultHarness', [], { from: root });
     vrtVaultAddress = vrtVault._address;
     await send(vrtVault, "initialize", [vrtAddress, interestRatePerBlock]);
-
     await send(vrt, 'transfer', [vrtVaultAddress, preFundedVRTInVault], { from: root });
-
     blockTimestamp = bnbUnsigned(100);
     await freezeTime(blockTimestamp.toNumber())
-  });
+  }
+
+  beforeEachFixture(fixture);
 
   describe("VRTVault Initialisation Verification", () => {
 

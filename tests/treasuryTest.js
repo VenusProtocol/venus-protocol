@@ -9,6 +9,10 @@ const {
   makeToken
 } = require('./Utils/Venus');
 
+const {
+  beforeEachFixture
+} = require('./Utils/Fixture');
+
 const transferAmount = bnbMantissa(1000);
 const bnbAmount = new BigNumber(1e17);
 const withdrawBNBAmount = new BigNumber(3e15);
@@ -46,7 +50,7 @@ describe('VTreasury', function () {
   let vTreasury
   let bep20Token;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, minter, redeemer, ...accounts] = saddle.accounts;
     // Create New Bep20 Token
     bep20Token = await makeToken();
@@ -56,7 +60,9 @@ describe('VTreasury', function () {
     await send(bep20Token, 'transfer', [vTreasury._address, transferAmount]);
     // Transfer BNB to vTreasury Contract for test
     await web3.eth.sendTransaction({ from: root, to: vTreasury._address, value: bnbAmount.toFixed()});
-  });
+  };
+
+  beforeEachFixture(fixture);
 
   it ('Check BNB Balnce', async() => {
     expect(await web3.eth.getBalance(vTreasury._address)).toEqual(bnbAmount.toFixed());

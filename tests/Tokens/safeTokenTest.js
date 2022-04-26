@@ -4,15 +4,23 @@ const {
   adjustBalances
 } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
+
 const exchangeRate = 5;
 
 describe('VBNB', function () {
   let root, nonRoot, accounts;
   let vToken;
-  beforeEach(async () => {
+
+  const fixture = async () => {
     [root, nonRoot, ...accounts] = saddle.accounts;
     vToken = await makeVToken({kind: 'vbnb', comptrollerOpts: {kind: 'bool'}});
-  });
+    return { vToken };
+  }
+
+  beforeEachFixture(fixture);
 
   describe("getCashPrior", () => {
     it("returns the amount of bnb held by the vBnb contract before the current message", async () => {

@@ -3,20 +3,27 @@ const {
   makeComptroller,
   makeVToken
 } = require('../Utils/Venus');
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
 
 describe('assetListTest', () => {
   let root, customer, accounts;
   let comptroller;
   let allTokens, OMG, ZRX, BAT, REP, DAI, SKT;
+  let fixtureLoader;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, customer, ...accounts] = saddle.accounts;
+
     comptroller = await makeComptroller({maxAssets: 10});
     allTokens = [OMG, ZRX, BAT, REP, DAI, SKT] = await Promise.all(
       ['OMG', 'ZRX', 'BAT', 'REP', 'DAI', 'sketch']
         .map(async (name) => makeVToken({comptroller, name, symbol: name, supportMarket: name != 'sketch', underlyingPrice: 0.5}))
     );
-  });
+  }
+  
+  beforeEachFixture(fixture);
 
   async function checkMarkets(expectedTokens) {
     for (let token of allTokens) {

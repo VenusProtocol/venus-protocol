@@ -8,6 +8,10 @@ const {
 
 const EIP712 = require('../Utils/EIP712');
 
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
+
 describe('SXP', () => {
   const name = 'Swipe';
   const symbol = 'SXP';
@@ -15,11 +19,13 @@ describe('SXP', () => {
   let root, a1, a2, accounts, chainId;
   let sxp;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, a1, a2, ...accounts] = saddle.accounts;
     chainId = 1; // await web3.eth.net.getId(); See: https://github.com/trufflesuite/ganache-core/issues/515
     sxp = await deploy('SXP', [root]);
-  });
+  }
+
+  beforeEachFixture(fixture);
 
   describe('metadata', () => {
     it('has given name', async () => {

@@ -15,6 +15,10 @@ const {
   adjustBalances,
 } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
+
 const exchangeRate = 5;
 const mintAmount = bnbUnsigned(1e5);
 const mintTokens = mintAmount.div(exchangeRate);
@@ -58,11 +62,17 @@ describe('VBNB', () => {
   let root, minter, redeemer, accounts;
   let vToken;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, minter, redeemer, ...accounts] = saddle.accounts;
     vToken = await makeVToken({kind: 'vbnb', comptrollerOpts: {kind: 'bool'}});
+  }
+  
+  beforeEachFixture(fixture);
+
+  beforeEach(async () => {
     await fastForward(vToken, 1);
   });
+
 
   [mintExplicit, mintFallback].forEach((mint) => {
     describe(mint.name, () => {

@@ -17,6 +17,10 @@ const {
   quickRedeemUnderlying
 } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
+
 const exchangeRate = 50e3;
 const mintAmount = bnbUnsigned(10e4);
 const mintTokens = mintAmount.div(exchangeRate);
@@ -61,10 +65,13 @@ async function redeemFreshAmount(vToken, redeemer, redeemTokens, redeemAmount) {
 describe('VToken', function () {
   let root, minter, redeemer, user1, devFee, accounts;
   let vToken;
-  beforeEach(async () => {
+
+  const fixture = async () => {
     [root, minter, redeemer, user1, devFee, ...accounts] = saddle.accounts;
     vToken = await makeVToken({comptrollerOpts: {kind: 'boolFee'}, exchangeRate});
-  });
+  }
+
+  beforeEachFixture(fixture);
 
   describe('mintFresh', () => {
     beforeEach(async () => {

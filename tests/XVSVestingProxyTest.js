@@ -5,6 +5,10 @@ const {
     freezeTime
 } = require('./Utils/BSC');
 
+const {
+    beforeEachFixture
+  } = require('./Utils/Fixture');
+
 const BigNum = require('bignumber.js');
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -19,7 +23,7 @@ describe('XVSVestingProxy', () => {
         conversionStartTime, conversionPeriod, conversionRatio;
     let xvsVesting, xvsVestingAddress;
 
-    beforeEach(async () => {
+    const fixture = async () => {
         [root, vrtConversionAddress, ...accounts] = saddle.accounts;
         blockTimestamp = bnbUnsigned(100);
         await freezeTime(blockTimestamp.toNumber());
@@ -60,7 +64,9 @@ describe('XVSVestingProxy', () => {
 
         //set VRTConverterProxy in XVSVesting
         await send(xvsVestingProxy, "setVRTConverter", [vrtConverterProxyAddress]);
-    });
+    };
+
+    beforeEachFixture(fixture);
 
     describe("constructor", () => {
         it("sets admin to caller and addresses to 0", async () => {

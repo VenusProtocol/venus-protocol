@@ -6,6 +6,10 @@ const {
 
 const {fastForward, makeVToken} = require('../Utils/Venus');
 
+const {
+  beforeEachFixture
+} = require('../Utils/Fixture');
+
 const factor = bnbMantissa(.02);
 
 const reserves = bnbUnsigned(3e12);
@@ -20,9 +24,12 @@ describe('VToken', function () {
 
   describe('_setReserveFactorFresh', () => {
     let vToken;
-    beforeEach(async () => {
+
+    const fixture = async () => {
       vToken = await makeVToken();
-    });
+    }
+
+    beforeEachFixture(fixture);
 
     it("rejects change by non-admin", async () => {
       expect(
@@ -67,9 +74,12 @@ describe('VToken', function () {
 
   describe('_setReserveFactor', () => {
     let vToken;
-    beforeEach(async () => {
+
+    const fixture = async () => {
       vToken = await makeVToken();
-    });
+    }
+
+    beforeEachFixture(fixture);
 
     beforeEach(async () => {
       await send(vToken.interestRateModel, 'setFailBorrowRate', [false]);

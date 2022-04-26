@@ -4,6 +4,9 @@ const {
   freezeTime,
   keccak256
 } = require('./Utils/BSC');
+const {
+  beforeEachFixture
+} = require('./Utils/Fixture')
 
 const oneWeekInSeconds = bnbUnsigned(7 * 24 * 60 * 60);
 const zero = bnbUnsigned(0);

@@ -1,5 +1,8 @@
 const { address, both, bnbMantissa } = require('../Utils/BSC');
 const { makeComptroller, makeVToken } = require('../Utils/Venus');
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
 
 describe('Comptroller', () => {
   let comptroller, vToken;
@@ -10,15 +13,17 @@ describe('Comptroller', () => {
   });
 
   describe('setting protocol state', () => {
-    beforeEach(async () => {
+    let fixtureLoader;
+
+    const fixture = async () => {
       vToken = await makeVToken({supportMarket: true});
       comptroller = vToken.comptroller;
-    });
+    }
+    
+    beforeEachFixture(fixture);
 
     let globalMethods = ["Mint", "Redeem", "Transfer", "Seize"];
     describe('succeeding', () => {
-      beforeEach(async () => {
-      });
 
       it(`only admin can set protocol state`, async () => {
         await expect(send(comptroller, `_setProtocolPaused`, [true], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can");

@@ -9,6 +9,10 @@ const {
   pretendBorrow
 } = require('../Utils/Venus');
 
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
+
 describe('VToken', function () {
   let root, admin, accounts;
   beforeEach(async () => {
@@ -39,9 +43,12 @@ describe('VToken', function () {
   describe('name, symbol, decimals', () => {
     let vToken;
 
-    beforeEach(async () => {
+    const fixture = async () => {
+      [root, ...accounts] = saddle.accounts;
       vToken = await makeVToken({ name: "VToken Foo", symbol: "cFOO", decimals: 10 });
-    });
+    }
+
+    beforeEachFixture(fixture);
 
     it('should return correct name', async () => {
       expect(await call(vToken, 'name')).toEqual("VToken Foo");
@@ -103,10 +110,12 @@ describe('VToken', function () {
     let borrower;
     let vToken;
 
-    beforeEach(async () => {
+    const fixture = async () => {
       borrower = accounts[0];
       vToken = await makeVToken();
-    });
+    }
+
+    beforeEachFixture(fixture);
 
     beforeEach(async () => {
       await setBorrowRate(vToken, .001)
@@ -138,10 +147,12 @@ describe('VToken', function () {
     let borrower;
     let vToken;
 
-    beforeEach(async () => {
+    const fixture = async () => {
       borrower = accounts[0];
       vToken = await makeVToken({ comptrollerOpts: { kind: 'bool' } });
-    });
+    }
+
+    beforeEachFixture(fixture);
 
     it("returns 0 for account with no borrows", async () => {
       expect(await call(vToken, 'borrowBalanceStored', [borrower])).toEqualNumber(0)
@@ -175,9 +186,11 @@ describe('VToken', function () {
   describe('exchangeRateStored', () => {
     let vToken, exchangeRate = 2;
 
-    beforeEach(async () => {
+    const fixture = async () => {
       vToken = await makeVToken({ exchangeRate });
-    });
+    }
+
+    beforeEachFixture(fixture);
 
     it("returns initial exchange rate with zero vTokenSupply", async () => {
       const result = await call(vToken, 'exchangeRateStored');

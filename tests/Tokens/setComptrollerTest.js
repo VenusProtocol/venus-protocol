@@ -2,15 +2,25 @@ const {
   makeComptroller,
   makeVToken
 } = require('../Utils/Venus');
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
 
 describe('VToken', function () {
   let root, accounts;
   let vToken, oldComptroller, newComptroller;
-  beforeEach(async () => {
+  let fixtureLoader;
+
+  const fixture = async () => {
     [root, ...accounts] = saddle.accounts;
     vToken = await makeVToken();
     oldComptroller = vToken.comptroller;
     newComptroller = await makeComptroller();
+  }
+
+  beforeEachFixture(fixture);
+
+  beforeEach(async () => {
     expect(newComptroller._address).not.toEqual(oldComptroller._address);
   });
 

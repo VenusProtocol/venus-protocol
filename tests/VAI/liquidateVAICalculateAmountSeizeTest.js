@@ -5,6 +5,9 @@ const {
   setOraclePrice,
   setOraclePriceFromMantissa
 } = require('../Utils/Venus');
+const {
+  beforeEachFixture
+} = require('../Utils/Fixture');
 
 const borrowedPrice = 1e18;
 const collateralPrice = 1e18;
@@ -21,14 +24,17 @@ function rando(min, max) {
 describe('Comptroller', () => {
   let root, accounts;
   let comptroller, vaicontroller, vai, vTokenCollateral;
+  let fixtureLoader;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, ...accounts] = saddle.accounts;
     comptroller = await makeComptroller();
     vaicontroller = comptroller.vaicontroller;
     vai = comptroller.vai;
     vTokenCollateral = await makeVToken({comptroller: comptroller, underlyingPrice: 0});
-  });
+  }
+
+  beforeEachFixture(fixture);
 
   beforeEach(async () => {
     await setOraclePrice(vTokenCollateral, collateralPrice);

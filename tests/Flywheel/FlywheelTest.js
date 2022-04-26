@@ -11,6 +11,9 @@ const {
   bnbDouble,
   bnbUnsigned
 } = require('../Utils/BSC');
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
 
 const venusRate = bnbUnsigned(1e18);
 
@@ -26,10 +29,13 @@ async function totalVenusAccrued(comptroller, user) {
   return (await venusAccrued(comptroller, user)).add(await xvsBalance(comptroller, user));
 }
 
+
+
 describe('Flywheel', () => {
   let root, a1, a2, a3, accounts;
   let comptroller, vLOW, vREP, vZRX, vEVIL;
-  beforeEach(async () => {
+
+  const fixture = async () => {
     let interestRateModelOpts = {borrowRate: 0.000001};
     [root, a1, a2, a3, ...accounts] = saddle.accounts;
     comptroller = await makeComptroller();
@@ -37,7 +43,10 @@ describe('Flywheel', () => {
     vREP = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 2, interestRateModelOpts});
     vZRX = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 3, interestRateModelOpts});
     vEVIL = await makeVToken({comptroller, supportMarket: false, underlyingPrice: 3, interestRateModelOpts});
-  });
+    return { comptroller, vLOW, vREP, vZRX, vEVIL, }
+  }
+
+  beforeEachFixture(fixture);
 
   describe('_grantXVS()', () => {
     beforeEach(async () => {

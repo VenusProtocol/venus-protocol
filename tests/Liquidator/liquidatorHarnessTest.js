@@ -7,6 +7,9 @@ const {
   makeVToken,
   setBalance,
 } = require('../Utils/Venus');
+const {
+  beforeEachFixture,
+} = require('../Utils/Fixture');
 
 const repayAmount = bnbUnsigned(10e2);
 const seizeAmount = repayAmount;
@@ -27,7 +30,7 @@ describe('Liquidator', function () {
   let root, liquidator, borrower, treasury, accounts;
   let vToken, vTokenCollateral, liquidatorContract, vBnb;
 
-  beforeEach(async () => {
+  const fixture = async () => {
     [root, liquidator, borrower, treasury, ...accounts] = saddle.accounts;
     vToken = await makeVToken({ comptrollerOpts: { kind: 'bool' } });
     vTokenCollateral = await makeVToken({ comptroller: vToken.comptroller });
@@ -40,9 +43,10 @@ describe('Liquidator', function () {
       vToken.comptroller.vaicontroller._address,
       treasury,
       treasuryPercent
-    ]
-    );
-  });
+    ]);
+  }
+
+  beforeEachFixture(fixture);
 
   describe('splitLiquidationIncentive', () => {
 

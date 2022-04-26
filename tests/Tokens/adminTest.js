@@ -1,13 +1,16 @@
 const {address} = require('../Utils/BSC');
 const {makeVToken} = require('../Utils/Venus');
+const {beforeEachFixture} = require('../Utils/Fixture');
 
 describe('admin / _setPendingAdmin / _acceptAdmin', () => {
   let vToken, root, accounts;
 
-  beforeEach(async () => {
-    [root, ...accounts] = saddle.accounts;
+  const fixture = async () => {
     vToken = await makeVToken();
-  });
+    [root, ...accounts] = saddle.accounts;
+  }
+
+  beforeEachFixture(fixture);
 
   describe('admin()', () => {
     it('should return correct admin', async () => {
