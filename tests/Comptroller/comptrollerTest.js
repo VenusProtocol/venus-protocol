@@ -78,6 +78,8 @@ describe('Comptroller', () => {
     testZeroAddress('_setBorrowCapGuardian', [address(0)]);
     testZeroAddress('_setVAIController', [address(0)]);
     testZeroAddress('_setTreasuryData', [address(0), address(0), 0]);
+    testZeroAddress('_setReceiver', [address(0)]);
+    testZeroAddress('_setComptrollerLens', [address(0)]);
     testZeroAddress('_setVAIVaultInfo', [address(0), 0, 0]);
     testZeroAddress('_setVenusSpeed', [address(0), 0]);
   })
@@ -117,6 +119,31 @@ describe('Comptroller', () => {
         newPriceOracle: newOracle._address
       });
       expect(await call(comptroller, 'oracle')).toEqual(newOracle._address);
+    });
+  });
+
+  describe('_setComptrollerLens', () => {
+    let comptroller;
+  
+    beforeEach(async () => {
+      comptroller = await makeComptroller();
+    });
+
+    it("fails if not called by admin", async () => {
+      const comptrollerLens = await deploy('ComptrollerLens');
+      await expect(
+        send(comptroller, '_setComptrollerLens', [comptrollerLens._address], {from: accounts[0]})
+      ).rejects.toRevert('revert only admin can');
+    });
+
+    it("should fire an event", async () => {
+      const newComptrollerLens = await deploy('ComptrollerLens');
+      const oldComptrollerLensAddress = await call(comptroller, 'comptrollerLens', []);
+      const result = await send(comptroller, '_setComptrollerLens', [newComptrollerLens._address], {from: root})
+      expect(result).toHaveLog('NewComptrollerLens', {
+        oldComptrollerLens: oldComptrollerLensAddress,
+        newComptrollerLens: newComptrollerLens._address,
+      });
     });
   });
 

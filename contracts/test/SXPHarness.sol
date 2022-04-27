@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/Governance/SXP.sol";
+import "../Governance/SXP.sol";
 
 contract SXPScenario is SXP {
     constructor(address account) SXP(account) public {}

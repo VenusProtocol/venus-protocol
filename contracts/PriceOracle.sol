@@ -13,4 +13,12 @@ contract PriceOracle {
       *  Zero means the price is unavailable.
       */
     function getUnderlyingPrice(VToken vToken) external view returns (uint);
+
+    /**
+      * @notice Get the asstes price of a vToken asset
+      * @param asset The asset token address
+      * @return The asset price mantissa (scaled by 1e18).
+      *  Zero means the price is unavailable.
+      */
+    function assetPrices(address asset) external view returns (uint);
 }

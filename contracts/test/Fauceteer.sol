@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/EIP20NonStandardInterface.sol";
+import "../EIP20NonStandardInterface.sol";
 
 /**
   * @title Fauceteer

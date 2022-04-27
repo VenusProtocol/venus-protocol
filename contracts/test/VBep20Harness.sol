@@ -1,9 +1,9 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/VBep20Immutable.sol";
-import "../../contracts/VBep20Delegator.sol";
-import "../../contracts/VBep20Delegate.sol";
-import "../../contracts/VDaiDelegate.sol";
+import "../VBep20Immutable.sol";
+import "../VBep20Delegator.sol";
+import "../VBep20Delegate.sol";
+import "../VDaiDelegate.sol";
 import "./ComptrollerScenario.sol";
 
 contract VBep20Harness is VBep20Immutable {

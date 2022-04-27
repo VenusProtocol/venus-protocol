@@ -1,4 +1,4 @@
-// npx hardhat run script/hardhat/simulations/vaultUpgrade.js
+// FORKING=true npx hardhat run script/hardhat/simulations/vaultUpgrade.js
 
 const { expect, web3 } = require('hardhat');
 const fs = require('fs');

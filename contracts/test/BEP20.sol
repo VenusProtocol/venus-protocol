@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/SafeMath.sol";
+import "../SafeMath.sol";
 
 interface BEP20Base {
     event Approval(address indexed owner, address indexed spender, uint256 value);

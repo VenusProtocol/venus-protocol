@@ -1,7 +1,7 @@
 "use strict";
 
 const { dfn } = require('./JS');
-const {
+const { 
   encodeParameters,
   bnbBalance,
   bnbMantissa,
@@ -50,12 +50,14 @@ async function makeComptroller(opts = {}) {
   }
 
   if (kind == 'v1-no-proxy') {
+    const comptrollerLens = await deploy('ComptrollerLens');
     const comptroller = await deploy('ComptrollerHarness');
     const priceOracle = opts.priceOracle || await makePriceOracle(opts.priceOracleOpts);
     const closeFactor = bnbMantissa(dfn(opts.closeFactor, .051));
 
     await send(comptroller, '_setCloseFactor', [closeFactor]);
     await send(comptroller, '_setPriceOracle', [priceOracle._address]);
+    await send(comptroller, '_setComptrollerLens', [comptrollerLens._address]);
 
     return Object.assign(comptroller, { priceOracle });
   }
@@ -82,6 +84,7 @@ async function makeComptroller(opts = {}) {
   }
 
   if (kind == 'unitroller') {
+    const comptrollerLens = await deploy('ComptrollerLens');
     const unitroller = opts.unitroller || await deploy('Unitroller');
     const comptroller = await deploy('ComptrollerHarness');
     const priceOracle = opts.priceOracle || await makePriceOracle(opts.priceOracleOpts);
@@ -107,6 +110,7 @@ async function makeComptroller(opts = {}) {
     await send(unitroller, '_setLiquidationIncentive', [liquidationIncentive]);
     await send(unitroller, '_setCloseFactor', [closeFactor]);
     await send(unitroller, '_setPriceOracle', [priceOracle._address]);
+    await send(unitroller, '_setComptrollerLens', [comptrollerLens._address]);
     await send(unitroller, 'setXVSAddress', [xvs._address]); // harness only
     await send(vaiunitroller, 'setVAIAddress', [vai._address]); // harness only
     await send(unitroller, 'harnessSetVenusRate', [venusRate]);
