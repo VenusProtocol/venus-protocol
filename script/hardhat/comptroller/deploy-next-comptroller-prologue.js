@@ -27,7 +27,7 @@ const main = async() => {
 
     //
     const ComptrollerContract = await ethers.getContractFactory("Comptroller");
-    const comptrollerContractInstance = await ComptrollerLensContract.deploy();
+    const comptrollerContractInstance = await ComptrollerContract.deploy();
     await comptrollerContractInstance.deployed();
     console.log(`deployer: ${deployer} deployed Comptroller at address: ${comptrollerContractInstance.address}`);
 
