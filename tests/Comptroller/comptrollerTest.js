@@ -78,7 +78,6 @@ describe('Comptroller', () => {
     testZeroAddress('_setBorrowCapGuardian', [address(0)]);
     testZeroAddress('_setVAIController', [address(0)]);
     testZeroAddress('_setTreasuryData', [address(0), address(0), 0]);
-    testZeroAddress('_setReceiver', [address(0)]);
     testZeroAddress('_setComptrollerLens', [address(0)]);
     testZeroAddress('_setVAIVaultInfo', [address(0), 0, 0]);
     testZeroAddress('_setVenusSpeed', [address(0), 0]);
