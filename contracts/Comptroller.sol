@@ -508,7 +508,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address liquidator,
         address borrower,
         uint repayAmount) external onlyProtocolAllowed returns (uint) {
-        if (liquidator != liquidatorContract) {
+        if (liquidatorContract != address(0) && liquidator != liquidatorContract) {
             return uint(Error.UNAUTHORIZED);
         }
 
