@@ -12,6 +12,8 @@ Macro PricedComptroller closeFactor=0.1 maxAssets=20
     ComptrollerImpl Deploy Scenario ScenComptroller
     Unitroller SetPendingImpl ScenComptroller
     ComptrollerImpl ScenComptroller Become
+    ComptrollerLens Deploy
+    Comptroller SetComptrollerLens (Address ComptrollerLens)
     PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero) -- if listing vBnb use ListedBNBToken to replace proxy
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetCloseFactor closeFactor
@@ -56,6 +58,8 @@ Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
     ComptrollerImpl Deploy Scenario ScenComptroller
     Unitroller SetPendingImpl ScenComptroller
     ComptrollerImpl ScenComptroller Become
+    ComptrollerLens Deploy
+    Comptroller SetComptrollerLens (Address ComptrollerLens)
     PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero) -- if listing vBnb use ListedBNBToken to replace proxy
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetCloseFactor closeFactor
@@ -66,6 +70,8 @@ Macro NewFeeComptroller price=1.0 closeFactor=0.1 maxAssets=20
     ComptrollerImpl Deploy Scenario ScenComptroller
     Unitroller SetPendingImpl ScenComptroller
     ComptrollerImpl ScenComptroller Become
+    ComptrollerLens Deploy
+    Comptroller SetComptrollerLens (Address ComptrollerLens)
     PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero) -- if listing vBnb use ListedBNBToken to replace proxy
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetCloseFactor closeFactor
