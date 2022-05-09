@@ -871,6 +871,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_LIQUIDATION_INCENTIVE_OWNER_CHECK);
         }
 
+        require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
+
         // Save current value for use in log
         uint oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
 

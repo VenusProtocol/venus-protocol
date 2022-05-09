@@ -49,6 +49,12 @@ describe('Comptroller', () => {
       expect(await call(comptroller, 'liquidationIncentiveMantissa')).toEqualNumber(initialIncentive);
     });
 
+    it("fails if incentive is less than 1e18", async () => {
+      await expect(
+        send(comptroller, '_setLiquidationIncentive', [tooSmallIncentive], {from: root})
+      ).rejects.toRevert('revert incentive must be over 1e18');
+    });
+
     it("accepts a valid incentive and emits a NewLiquidationIncentive event", async () => {
       const {reply, receipt} = await both(comptroller, '_setLiquidationIncentive', [validIncentive]);
       expect(reply).toHaveTrollError('NO_ERROR');
