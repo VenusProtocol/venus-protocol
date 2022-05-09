@@ -49,6 +49,11 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         WithAdmin(admin_)
         ReentrancyGuard()
     {
+        ensureNonzeroAddress(admin_);
+        ensureNonzeroAddress(vBnb_);
+        ensureNonzeroAddress(comptroller_);
+        ensureNonzeroAddress(vaiController_);
+        ensureNonzeroAddress(treasury_);
         vBnb = VBNB(vBnb_);
         comptroller = IComptroller(comptroller_);
         vaiController = VAIControllerInterface(vaiController_);
@@ -75,6 +80,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         payable
         nonReentrant
     {
+        ensureNonzeroAddress(borrower);
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
         if (vToken == address(vBnb)) {
             require(repayAmount == msg.value, "wrong amount");
@@ -194,5 +200,9 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         fullMessage[i+4] = byte(uint8(41));
 
         revert(string(fullMessage));
+    }
+
+    function ensureNonzeroAddress(address addr) internal pure {
+        require(addr != address(0), "address should be nonzero");
     }
 }

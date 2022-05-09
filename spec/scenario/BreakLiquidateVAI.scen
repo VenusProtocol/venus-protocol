@@ -1,7 +1,7 @@
 
 Macro NewMintVAI mintVAIAmount mintAmount user=Geoff collateralPrice=1.0 borrowPrice=1.0 liquidationIncentive=1.1
     PricedComptrollerWithVAIController closeFactor:0.9 -- Set the close factor high to reduce number of steps to demonstrate
-    Liquidator Deploy Admin (Address Zero) (Comptroller Address) (Address VAIController) Bank 5e16  -- treasury percent = 5%
+    Liquidator Deploy Admin Admin (Comptroller Address) (Address VAIController) Bank 5e16  -- treasury percent = 5%
     Comptroller SetLiquidatorContract (Address Liquidator)
     Comptroller LiquidationIncentive liquidationIncentive
     NewVToken ZRX vZRX

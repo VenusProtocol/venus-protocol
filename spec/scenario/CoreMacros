@@ -18,7 +18,7 @@ Macro PricedComptroller closeFactor=0.1 maxAssets=20
 
 Macro PricedComptrollerWithLiquidator treasury closeFactor=0.1 maxAssets=20
     PricedComptroller closeFactor maxAssets
-    Liquidator Deploy Admin (Address Zero) (Comptroller Address) (Address Zero) treasury 5e16  -- treasury percent = 5%
+    Liquidator Deploy Admin Admin (Comptroller Address) Admin treasury 5e16  -- treasury percent = 5%
     Comptroller SetLiquidatorContract (Address Liquidator)
 
 Macro PricedComptrollerWithVAIController closeFactor=0.1 maxAssets=20
