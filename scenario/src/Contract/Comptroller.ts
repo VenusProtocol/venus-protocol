@@ -28,6 +28,7 @@ interface ComptrollerMethods {
   enterMarkets(markets: string[]): Sendable<number>
   exitMarket(market: string): Sendable<number>
   fastForward(encodedNumber): Sendable<number>
+  _setComptrollerLens(string): Sendable<number>
   _setPendingImplementation(string): Sendable<number>
   comptrollerImplementation(): Callable<string>
   unlist(string): Sendable<void>

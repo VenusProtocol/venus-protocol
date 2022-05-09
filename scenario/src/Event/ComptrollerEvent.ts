@@ -380,6 +380,18 @@ async function setBorrowCapGuardian(world: World, from: string, comptroller: Com
   return world;
 }
 
+async function setComptrollerLens(world: World, from: string, comptroller: Comptroller, newComptrollerLens: string): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setComptrollerLens(newComptrollerLens), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Comptroller: ${describeUser(world, from)} sets comptroller lens to ${newComptrollerLens}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function setTreasuryData(
   world: World,
   from: string,
@@ -514,6 +526,20 @@ export function comptrollerCommands() {
         new Arg("newLiquidatorContract", getAddressV)
       ],
       (world, from, {comptroller, newLiquidatorContract}) => setLiquidatorContract(world, from, comptroller, newLiquidatorContract.val)
+    ),
+
+    new Command<{comptroller: Comptroller, newComptrollerLens: AddressV}>(`
+        #### SetComptrollerLens
+
+        * "Comptroller SetComptrollerLens <Address>" - Sets the comptroller lens contract address
+          * E.g. "Comptroller SetComptrollerLens (Address ComptrollerLens)"
+      `,
+      "SetComptrollerLens",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("newComptrollerLens", getAddressV)
+      ],
+      (world, from, {comptroller, newComptrollerLens}) => setComptrollerLens(world, from, comptroller, newComptrollerLens.val)
     ),
 
     new Command<{comptroller: Comptroller, priceOracle: AddressV}>(`

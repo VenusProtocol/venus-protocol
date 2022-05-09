@@ -220,6 +220,7 @@ contract BoolComptroller is ComptrollerInterface {
     address public treasuryGuardian;
     address public treasuryAddress;
     uint public treasuryPercent;
+    address public liquidatorContract;
 
     /*** Assets You Are In ***/
 
@@ -306,6 +307,10 @@ contract BoolComptroller is ComptrollerInterface {
         require(verifyRepayBorrow, "repayBorrowVerify rejected repayBorrow");
     }
 
+    function _setLiquidatorContract(address liquidatorContract_) external {
+        liquidatorContract = liquidatorContract_;
+    }
+
     function liquidateBorrowAllowed(
         address _vTokenBorrowed,
         address _vTokenCollateral,
@@ -314,9 +319,11 @@ contract BoolComptroller is ComptrollerInterface {
         uint _repayAmount) external returns (uint) {
         _vTokenBorrowed;
         _vTokenCollateral;
-        _liquidator;
         _borrower;
         _repayAmount;
+        if (liquidatorContract != address(0) && liquidatorContract != _liquidator) {
+            return opaqueError;
+        }
         return allowLiquidateBorrow ? noError : opaqueError;
     }
 

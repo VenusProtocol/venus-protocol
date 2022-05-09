@@ -1458,9 +1458,9 @@
     node-fetch "^2.6.0"
     semver "^6.3.0"
 
-"@nomiclabs/hardhat-truffle5@^2.0.3":
+"@nomiclabs/hardhat-truffle5@^2.0.4":
   version "2.0.5"
-  resolved "https://registry.npmjs.org/@nomiclabs/hardhat-truffle5/-/hardhat-truffle5-2.0.5.tgz#28a4c33a0ebbca3e48f50e12824a3a94ed557916"
+  resolved "https://registry.yarnpkg.com/@nomiclabs/hardhat-truffle5/-/hardhat-truffle5-2.0.5.tgz#28a4c33a0ebbca3e48f50e12824a3a94ed557916"
   integrity sha512-taTWfieMP3Rvj+y90DgdNpviUJ4zxgjpW0V8D++uPkg5R7HXVWBTf43a1PYw+cBhcqN29P9gB1zSS1HC+uz1Mw==
   dependencies:
     "@nomiclabs/truffle-contract" "^4.2.23"

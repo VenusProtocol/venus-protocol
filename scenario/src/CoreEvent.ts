@@ -53,6 +53,7 @@ import { VenusLens } from './Contract/VenusLens';
 import { Reservoir } from './Contract/Reservoir';
 import { XVSStore } from './Contract/XVSVault';
 import { Liquidator } from './Contract/Liquidator';
+import { ComptrollerLens } from './Contract/ComptrollerLens';
 
 export class EventProcessingError extends Error {
   error: Error;
@@ -967,6 +968,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
   buildContractEvent<VenusLens>("VenusLens", false),
   buildContractEvent<Reservoir>("Reservoir", true),
   buildContractEvent<XVSStore>("XVSStore", true),
+  buildContractEvent<ComptrollerLens>("ComptrollerLens", true),
 
   new View<{ event: EventV }>(
     `

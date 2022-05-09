@@ -32,7 +32,6 @@ async function preApprove(vToken, from, spender, amount, opts = {}) {
 
 async function preLiquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral) {
   // setup for success in liquidating
-  await send(vToken.comptroller, 'setUseLiquidatorContract', [true]);
   await send(vToken.comptroller, 'setLiquidateBorrowAllowed', [true]);
   await send(vToken.comptroller, 'setLiquidateBorrowVerify', [true]);
   await send(vToken.comptroller, 'setRepayBorrowAllowed', [true]);
@@ -115,12 +114,6 @@ describe('Liquidator', function () {
 
     beforeEach(async () => {
       await preLiquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral);
-    });
-
-    it('should revert when no eligible liquidator contract is set', async () => {
-      await expect(
-        liquidate(liquidatorContract, vToken, liquidator, borrower, repayAmount, vTokenCollateral)
-      ).rejects.toRevert("revert failed to liquidate (03)");
     });
 
     it('returns success from liquidateBorrow and transfers the correct amounts', async () => {
