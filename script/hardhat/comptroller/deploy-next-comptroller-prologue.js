@@ -19,6 +19,12 @@ const main = async() => {
     const signers = await ethers.getSigners();
     const deployer = await signers[0].getAddress();
 
+    // vai controller
+    const VAIControllerContract = await ethers.getContractFactory("VAIController");
+    const vaiControllerContractInstance = await VAIControllerContract.deploy();
+    await vaiControllerContractInstance.deployed();
+    console.log(`deployer: ${deployer} deployed VAIController at address: ${vaiControllerContractInstance.address}`);
+
     //
     const ComptrollerLensContract = await ethers.getContractFactory("ComptrollerLens");
     const comptrollerLensContractInstance = await ComptrollerLensContract.deploy();

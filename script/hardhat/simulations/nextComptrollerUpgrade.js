@@ -19,6 +19,8 @@ async function VIP1({
     comptrollerProxyContract,
     comptrollerImpl,
     comptrollerLensContract,
+    vaiControllerProxyContract,
+    vaiControllerImpl,
     timelockAddress,
 }) {
     console.log(`>>>>>>>>>> Executing the first VIP: Updating comptroller with all the updates, but liquidation interface is kept <<<<<<<<<<`)
@@ -33,6 +35,15 @@ async function VIP1({
     });
     console.log('Setting the ComptrollerLens contract address')
     await comptrollerProxyContract.methods._setComptrollerLens(comptrollerLensContract._address).send({
+        from: timelockAddress,
+    });
+
+    console.log('Setting Pending impl of VAIController')
+    await vaiControllerProxyContract.methods._setPendingImplementation(vaiControllerImpl._address).send({
+        from: timelockAddress,
+    });
+    console.log('Pending VAIController becomes the impl')
+    await vaiControllerImpl.methods._become(vaiControllerProxyContract._address).send({
         from: timelockAddress,
     });
 
@@ -64,6 +75,10 @@ async function upgradeNextComptroller() {
     const comptrollerImpl = await deploy('Comptroller').send({ from: deployerAddress });
     console.log(`Deployed new Comptroller Impl to ${comptrollerImpl._address}`);
 
+    console.log('Deploying new VAIController Impl...');
+    const vaiControllerImpl = await deploy('VAIController').send({ from: deployerAddress });
+    console.log(`Deployed new VAIController Impl to ${vaiControllerImpl._address}`);
+
     const treasuryAddress = await comptrollerProxyContract.methods.treasuryAddress().call();
     const adminAddress = await comptrollerProxyContract.methods.admin().call();
     console.log(`>>>>>>>>>> Deploying Liquidator, treasury address: ${treasuryAddress}, adminAddress: ${adminAddress} <<<<<<<<<<<`);
@@ -83,6 +98,8 @@ async function upgradeNextComptroller() {
         comptrollerProxyContract,
         comptrollerImpl,
         comptrollerLensContract,
+        vaiControllerProxyContract,
+        vaiControllerImpl,
         timelockAddress
     });
 }

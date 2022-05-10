@@ -16,22 +16,29 @@ const {
     ComptrollerLens,
     Comptroller,
     Liquidator,
+    VaiController
 } = contractConfigData.Contracts;
 
 const main = async() => {
+    //
+    await hre.run("verify:verify", {
+        address: VaiController,
+    });
+    console.log(`VaiController verified!`);
+
     //
     await hre.run("verify:verify", {
         address: Comptroller,
     });
     console.log(`Comptroller verified!`);
 
-
+    // 
     await hre.run("verify:verify", {
         address: ComptrollerLens,
     });
     console.log(`ComptrollerLensContract verified!`);
 
-    
+    //
     const liquidatorArgs = [
         Timelock,
         vBNB,
