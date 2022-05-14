@@ -22,11 +22,20 @@ function cullTuple(tuple) {
 
 describe('VenusLens', () => {
   let VenusLens;
-  let acct;
+  let acct, vXvsToken, vXvsTokenAddress;
 
   beforeEach(async () => {
-    VenusLens = await deploy('VenusLens');
+    //deploy XVS
+    vXvsToken = await makeVToken();
+    vXvsTokenAddress = vXvsToken._address;
+    VenusLens = await deploy('VenusLens', [vXvsTokenAddress]);
     acct = accounts[0];
+  });
+
+  describe('VenusLens', () => {
+    it('is Initialised with vXvsTokenAddress', async () => {
+      expect(await call(VenusLens, 'vXvsTokenAddress')).toEqual(vXvsTokenAddress);
+    });
   });
 
   describe('vTokenMetadata', () => {
@@ -49,7 +58,11 @@ describe('VenusLens', () => {
           collateralFactorMantissa: "0",
           underlyingAssetAddress: await call(vBep20, 'underlying', []),
           vTokenDecimals: "8",
-          underlyingDecimals: "18"
+          underlyingDecimals: "18",
+          venusSupplySpeed: "0",
+          venusBorrowSpeed: "0",
+          dailySupplyVenus: "0",
+          dailyBorrowVenus: "0"
         }
       );
     });
@@ -73,6 +86,10 @@ describe('VenusLens', () => {
         totalSupply: "0",
         underlyingAssetAddress: "0x0000000000000000000000000000000000000000",
         underlyingDecimals: "18",
+        venusSupplySpeed: "0",
+        venusBorrowSpeed: "0",
+        dailySupplyVenus: "0",
+        dailyBorrowVenus: "0"
       });
     });
   });
@@ -98,7 +115,11 @@ describe('VenusLens', () => {
           collateralFactorMantissa: "0",
           underlyingAssetAddress: await call(vBep20, 'underlying', []),
           vTokenDecimals: "8",
-          underlyingDecimals: "18"
+          underlyingDecimals: "18",
+          venusSupplySpeed: "0",
+          venusBorrowSpeed: "0",
+          dailySupplyVenus: "0",
+          dailyBorrowVenus: "0",
         },
         {
           borrowRatePerBlock: "0",
@@ -115,6 +136,10 @@ describe('VenusLens', () => {
           totalSupply: "0",
           underlyingAssetAddress: "0x0000000000000000000000000000000000000000",
           underlyingDecimals: "18",
+          venusSupplySpeed: "0",
+          venusBorrowSpeed: "0",
+          dailySupplyVenus: "0",
+          dailyBorrowVenus: "0",
         }
       ]);
     });
