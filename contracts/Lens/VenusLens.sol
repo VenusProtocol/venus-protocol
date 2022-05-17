@@ -7,8 +7,9 @@ import "../PriceOracle.sol";
 import "../EIP20Interface.sol";
 import "../Governance/GovernorAlpha.sol";
 import "../Governance/XVS.sol";
+import "../Comptroller.sol";
 
-interface ComptrollerLensInterface {
+interface LensInterface {
     function markets(address) external view returns (bool, uint);
     function oracle() external view returns (PriceOracle);
     function getAccountLiquidity(address) external view returns (uint, uint, uint);
@@ -18,6 +19,17 @@ interface ComptrollerLensInterface {
 }
 
 contract VenusLens {
+
+    /// @notice Blocks Per Day
+    uint public constant BLOCKS_PER_DAY = 28800;
+
+    /// @notice vXvsToken Address
+    address public vXvsTokenAddress;
+
+    constructor(address _vXvsTokenAddress) public {
+        vXvsTokenAddress = _vXvsTokenAddress;
+    }
+
     struct VTokenMetadata {
         address vToken;
         uint exchangeRateCurrent;
@@ -33,11 +45,16 @@ contract VenusLens {
         address underlyingAssetAddress;
         uint vTokenDecimals;
         uint underlyingDecimals;
+        uint venusSupplySpeed;
+        uint venusBorrowSpeed;
+        uint dailySupplyVenus;
+        uint dailyBorrowVenus;
     }
 
     function vTokenMetadata(VToken vToken) public returns (VTokenMetadata memory) {
         uint exchangeRateCurrent = vToken.exchangeRateCurrent();
-        ComptrollerLensInterface comptroller = ComptrollerLensInterface(address(vToken.comptroller()));
+        address comptrollerAddress = address(vToken.comptroller());
+        LensInterface comptroller = LensInterface(comptrollerAddress);
         (bool isListed, uint collateralFactorMantissa) = comptroller.markets(address(vToken));
         address underlyingAssetAddress;
         uint underlyingDecimals;
@@ -50,6 +67,9 @@ contract VenusLens {
             underlyingAssetAddress = vBep20.underlying();
             underlyingDecimals = EIP20Interface(vBep20.underlying()).decimals();
         }
+
+        Comptroller comptrollerInstance = Comptroller(comptrollerAddress);
+        uint venusSpeed_Per_Block = comptrollerInstance.venusSpeeds(vXvsTokenAddress);
 
         return VTokenMetadata({
             vToken: address(vToken),
@@ -65,7 +85,11 @@ contract VenusLens {
             collateralFactorMantissa: collateralFactorMantissa,
             underlyingAssetAddress: underlyingAssetAddress,
             vTokenDecimals: vToken.decimals(),
-            underlyingDecimals: underlyingDecimals
+            underlyingDecimals: underlyingDecimals,
+            venusSupplySpeed: venusSpeed_Per_Block,
+            venusBorrowSpeed: venusSpeed_Per_Block,
+            dailySupplyVenus: venusSpeed_Per_Block * BLOCKS_PER_DAY,
+            dailyBorrowVenus: venusSpeed_Per_Block * BLOCKS_PER_DAY
         });
     }
 
@@ -129,7 +153,7 @@ contract VenusLens {
     }
 
     function vTokenUnderlyingPrice(VToken vToken) public view returns (VTokenUnderlyingPrice memory) {
-        ComptrollerLensInterface comptroller = ComptrollerLensInterface(address(vToken.comptroller()));
+        LensInterface comptroller = LensInterface(address(vToken.comptroller()));
         PriceOracle priceOracle = comptroller.oracle();
 
         return VTokenUnderlyingPrice({
@@ -153,7 +177,7 @@ contract VenusLens {
         uint shortfall;
     }
 
-    function getAccountLimits(ComptrollerLensInterface comptroller, address account) public view returns (AccountLimits memory) {
+    function getAccountLimits(LensInterface comptroller, address account) public view returns (AccountLimits memory) {
         (uint errorCode, uint liquidity, uint shortfall) = comptroller.getAccountLiquidity(account);
         require(errorCode == 0, "account liquidity error");
 
@@ -275,7 +299,7 @@ contract VenusLens {
         uint allocated;
     }
 
-    function getXVSBalanceMetadataExt(XVS xvs, ComptrollerLensInterface comptroller, address account) external returns (XVSBalanceMetadataExt memory) {
+    function getXVSBalanceMetadataExt(XVS xvs, LensInterface comptroller, address account) external returns (XVSBalanceMetadataExt memory) {
         uint balance = xvs.balanceOf(account);
         comptroller.claimVenus(account);
         uint newBalance = xvs.balanceOf(account);
