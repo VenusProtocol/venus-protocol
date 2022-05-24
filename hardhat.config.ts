@@ -7,7 +7,6 @@
  import "@nomiclabs/hardhat-truffle5";
  import "@nomiclabs/hardhat-waffle";
  import "@nomiclabs/hardhat-etherscan";
- import "hardhat-typechain";
  
  import { ethers } from 'ethers';
  require("dotenv").config();

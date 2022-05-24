@@ -18,7 +18,7 @@ interface LensInterface {
     function venusAccrued(address) external view returns (uint);
 }
 
-contract VenusLens {
+contract VenusLens is ExponentialNoError {
 
     /// @notice Blocks Per Day
     uint public constant BLOCKS_PER_DAY = 28800;
@@ -28,6 +28,11 @@ contract VenusLens {
 
     constructor(address _vXvsTokenAddress) public {
         vXvsTokenAddress = _vXvsTokenAddress;
+    }
+    
+    struct VenusMarketState {
+        uint224 index;
+        uint32 block;
     }
 
     struct VTokenMetadata {
@@ -304,8 +309,8 @@ contract VenusLens {
         comptroller.claimVenus(account);
         uint newBalance = xvs.balanceOf(account);
         uint accrued = comptroller.venusAccrued(account);
-        uint total = add(accrued, newBalance, "sum xvs total");
-        uint allocated = sub(total, balance, "sub allocated");
+        uint total = add_(accrued, newBalance, "sum xvs total");
+        uint allocated = sub_(total, balance, "sub allocated");
 
         return XVSBalanceMetadataExt({
             balance: balance,
@@ -331,19 +336,113 @@ contract VenusLens {
         return res;
     }
 
+    // calculate the accurate pending Venus rewards without touching any storage
+    function updateVenusSupplyIndex(VenusMarketState memory supplyState, address vToken, Comptroller comptroller) internal view {
+        uint supplySpeed = comptroller.venusSpeeds(vToken);
+        uint blockNumber = block.number;
+        uint deltaBlocks = sub_(blockNumber, uint(supplyState.block));
+        if (deltaBlocks > 0 && supplySpeed > 0) {
+            uint supplyTokens = VToken(vToken).totalSupply();
+            uint venusAccrued = mul_(deltaBlocks, supplySpeed);
+            Double memory ratio = supplyTokens > 0 ? fraction(venusAccrued, supplyTokens) : Double({mantissa: 0});
+            Double memory index = add_(Double({mantissa: supplyState.index}), ratio);
+            supplyState.index = safe224(index.mantissa, "new index overflows");
+            supplyState.block = safe32(blockNumber, "block number overflows");
+        } else if (deltaBlocks > 0) {
+            supplyState.block = safe32(blockNumber, "block number overflows");
+        }
+    }
+
+    function updateVenusBorrowIndex(VenusMarketState memory borrowState, address vToken, Exp memory marketBorrowIndex, Comptroller comptroller) internal view {
+        uint borrowSpeed = comptroller.venusSpeeds(vToken);
+        uint blockNumber = block.number;
+        uint deltaBlocks = sub_(blockNumber, uint(borrowState.block));
+        if (deltaBlocks > 0 && borrowSpeed > 0) {
+            uint borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
+            uint venusAccrued = mul_(deltaBlocks, borrowSpeed);
+            Double memory ratio = borrowAmount > 0 ? fraction(venusAccrued, borrowAmount) : Double({mantissa: 0});
+            Double memory index = add_(Double({mantissa: borrowState.index}), ratio);
+            borrowState.index = safe224(index.mantissa, "new index overflows");
+            borrowState.block = safe32(blockNumber, "block number overflows");
+        } else if (deltaBlocks > 0) {
+            borrowState.block = safe32(blockNumber, "block number overflows");
+        }
+    }
+
+    function distributeSupplierVenus(
+        VenusMarketState memory supplyState, 
+        address vToken, 
+        address supplier, 
+        Comptroller comptroller
+    ) internal view returns (uint) {
+        Double memory supplyIndex = Double({mantissa: supplyState.index});
+        Double memory supplierIndex = Double({mantissa: comptroller.venusSupplierIndex(vToken, supplier)});
+        if (supplierIndex.mantissa == 0 && supplyIndex.mantissa > 0) {
+            supplierIndex.mantissa = comptroller.venusInitialIndex();
+        }
+        
+        Double memory deltaIndex = sub_(supplyIndex, supplierIndex);
+        uint supplierTokens = VToken(vToken).balanceOf(supplier);
+        uint supplierDelta = mul_(supplierTokens, deltaIndex);
+        return supplierDelta;
+    }
+
+    function distributeBorrowerVenus(
+        VenusMarketState memory borrowState, 
+        address vToken, 
+        address borrower, 
+        Exp memory marketBorrowIndex, 
+        Comptroller comptroller
+    ) internal view returns (uint) {
+        Double memory borrowIndex = Double({mantissa: borrowState.index});
+        Double memory borrowerIndex = Double({mantissa: comptroller.venusBorrowerIndex(vToken, borrower)});
+        if (borrowerIndex.mantissa > 0) {
+            Double memory deltaIndex = sub_(borrowIndex, borrowerIndex);
+            uint borrowerAmount = div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex);
+            uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
+            return borrowerDelta;
+        }
+        return 0;
+    }
+
+    struct ClaimVenusLocalVariables {
+        uint totalRewards;
+        uint224 borrowIndex;
+        uint32 borrowBlock;
+        uint224 supplyIndex;
+        uint32 supplyBlock;
+    }
+
+    function pendingVenus(address holder, Comptroller comptroller) external view returns (uint) {
+        VToken[] memory vTokens = comptroller.getAllMarkets();
+        ClaimVenusLocalVariables memory vars;
+        for (uint i = 0; i < vTokens.length; i++) {
+            (vars.borrowIndex, vars.borrowBlock) = comptroller.venusBorrowState(address(vTokens[i]));
+            VenusMarketState memory borrowState = VenusMarketState({
+                index: vars.borrowIndex,
+                block: vars.borrowBlock
+            });
+
+            (vars.supplyIndex, vars.supplyBlock) = comptroller.venusSupplyState(address(vTokens[i]));
+            VenusMarketState memory supplyState = VenusMarketState({
+                index: vars.supplyIndex,
+                block: vars.supplyBlock
+            });
+
+            Exp memory borrowIndex = Exp({mantissa: vTokens[i].borrowIndex()});
+            updateVenusBorrowIndex(borrowState, address(vTokens[i]), borrowIndex, comptroller);
+            uint reward = distributeBorrowerVenus(borrowState, address(vTokens[i]), holder, borrowIndex, comptroller);
+            vars.totalRewards = add_(vars.totalRewards, reward);
+
+            updateVenusSupplyIndex(supplyState, address(vTokens[i]), comptroller);
+            reward = distributeSupplierVenus(supplyState, address(vTokens[i]), holder, comptroller);
+            vars.totalRewards = add_(vars.totalRewards, reward);
+        }
+        return add_(comptroller.venusAccrued(holder), vars.totalRewards);
+    }
+
+    // utilities
     function compareStrings(string memory a, string memory b) internal pure returns (bool) {
         return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
-    }
-
-    function add(uint a, uint b, string memory errorMessage) internal pure returns (uint) {
-        uint c = a + b;
-        require(c >= a, errorMessage);
-        return c;
-    }
-
-    function sub(uint a, uint b, string memory errorMessage) internal pure returns (uint) {
-        require(b <= a, errorMessage);
-        uint c = a - b;
-        return c;
     }
 }
