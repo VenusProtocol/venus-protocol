@@ -3,10 +3,16 @@ const {
   makeVToken,
 } = require("./Utils/Venus");
 
+const {
+  increaseTime, bnbMantissa
+} = require('./Utils/BSC');
+
 describe("VenusChainlinkOracle", () => {
   let root, accounts;
   let bnbFeed, daiFeed, usdcFeed, usdtFeed;
   let oracle, vBnb, vDai, vExampleSet, vExampleUnset, vToken, vUsdc, vUsdt, vai, xvs;
+
+  const MAX_STALE_PERIOD = 100 * 60; // 100min, just for test
 
   beforeEach(async () => {
     [root, ...accounts] = saddle.accounts;
@@ -61,7 +67,7 @@ describe("VenusChainlinkOracle", () => {
     usdcFeed = await makeChainlinkOracle({decimals: 8, initialAnswer: 100000000});
     usdtFeed = await makeChainlinkOracle({decimals: 8, initialAnswer: 100000000});
     daiFeed = await makeChainlinkOracle({decimals: 8, initialAnswer: 100000000});
-    oracle = await deploy("VenusChainlinkOracle");
+    oracle = await deploy("VenusChainlinkOracle", [MAX_STALE_PERIOD]);
   });
 
   describe("constructor", () => {
@@ -197,4 +203,52 @@ describe("VenusChainlinkOracle", () => {
       expect(price).toEqual("7");
     });
   });
+
+  describe('stale price validation', () => {
+    beforeEach(async () => {
+      await send(oracle, "setFeed", ["vBNB", bnbFeed._address], {from: root})
+    });
+
+    it('only admin can set stale price period', async () => {
+      await expect(
+        send(oracle, 'setMaxStalePeriod', [999], {from: accounts[0]})
+      ).rejects.toRevert('revert only admin may call');
+    });
+
+    it('stale price period cannot be 0', async () => {
+      await expect(
+        send(oracle, 'setMaxStalePeriod', [0], {from: root})
+      ).rejects.toRevert('revert stale period can\'t be zero');
+    });
+
+    it('modify stale price period will emit an event', async () => {
+      const result = await send(oracle, 'setMaxStalePeriod', [100], {from: root})
+      expect(result).toHaveLog('MaxStalePeriodUpdated', {
+        oldMaxStalePeriod: 6000,
+        newMaxStalePeriod: 100
+      });
+    });
+
+    it('get underlying will return 0 if price stale', async () => {
+      const ADVANCE_SECONDS = 90000;
+      let price = await call(oracle, "getUnderlyingPrice", [vBnb._address], {from: root});
+      expect(price).toEqual('300000000000000000000');
+      await increaseTime(ADVANCE_SECONDS);
+      price = await call(oracle, "getUnderlyingPrice", [vBnb._address], {from: root});
+      expect(price).toEqual('0');
+      // update round data
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      await send(bnbFeed, 'updateRoundData', [1111, 12345, nowSeconds + ADVANCE_SECONDS, nowSeconds]); // decimal delta: 18 - 8
+      price = await call(oracle, "getUnderlyingPrice", [vBnb._address], {from: root});
+      expect(price).toEqual(bnbMantissa(12345, 1e10).toFixed(0));
+    });
+
+    it('if updatedAt is some time in the future, revert it', async () => {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      await send(bnbFeed, 'updateRoundData', [1111, 12345, nowSeconds + 900000, nowSeconds]); // decimal delta: 18 - 8
+      await expect(
+        call(oracle, "getUnderlyingPrice", [vBnb._address], {from: root})
+      ).rejects.toRevert('revert SafeMath: subtraction overflow');
+    });
+  })
 });
