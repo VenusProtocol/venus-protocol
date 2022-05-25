@@ -19,16 +19,6 @@ interface LensInterface {
 }
 
 contract VenusLens is ExponentialNoError {
-
-    /// @notice Blocks Per Day
-    uint public constant BLOCKS_PER_DAY = 28800;
-
-    /// @notice vXvsToken Address
-    address public vXvsTokenAddress;
-
-    constructor(address _vXvsTokenAddress) public {
-        vXvsTokenAddress = _vXvsTokenAddress;
-    }
     
     struct VenusMarketState {
         uint224 index;
@@ -50,16 +40,11 @@ contract VenusLens is ExponentialNoError {
         address underlyingAssetAddress;
         uint vTokenDecimals;
         uint underlyingDecimals;
-        uint venusSupplySpeed;
-        uint venusBorrowSpeed;
-        uint dailySupplyVenus;
-        uint dailyBorrowVenus;
     }
 
     function vTokenMetadata(VToken vToken) public returns (VTokenMetadata memory) {
         uint exchangeRateCurrent = vToken.exchangeRateCurrent();
-        address comptrollerAddress = address(vToken.comptroller());
-        LensInterface comptroller = LensInterface(comptrollerAddress);
+        LensInterface comptroller = LensInterface(address(vToken.comptroller()));
         (bool isListed, uint collateralFactorMantissa) = comptroller.markets(address(vToken));
         address underlyingAssetAddress;
         uint underlyingDecimals;
@@ -72,9 +57,6 @@ contract VenusLens is ExponentialNoError {
             underlyingAssetAddress = vBep20.underlying();
             underlyingDecimals = EIP20Interface(vBep20.underlying()).decimals();
         }
-
-        Comptroller comptrollerInstance = Comptroller(comptrollerAddress);
-        uint venusSpeed_Per_Block = comptrollerInstance.venusSpeeds(vXvsTokenAddress);
 
         return VTokenMetadata({
             vToken: address(vToken),
@@ -90,11 +72,7 @@ contract VenusLens is ExponentialNoError {
             collateralFactorMantissa: collateralFactorMantissa,
             underlyingAssetAddress: underlyingAssetAddress,
             vTokenDecimals: vToken.decimals(),
-            underlyingDecimals: underlyingDecimals,
-            venusSupplySpeed: venusSpeed_Per_Block,
-            venusBorrowSpeed: venusSpeed_Per_Block,
-            dailySupplyVenus: venusSpeed_Per_Block * BLOCKS_PER_DAY,
-            dailyBorrowVenus: venusSpeed_Per_Block * BLOCKS_PER_DAY
+            underlyingDecimals: underlyingDecimals
         });
     }
 
