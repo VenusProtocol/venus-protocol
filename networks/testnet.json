@@ -1,6 +1,7 @@
 {
   "Contracts": {
-    "VenusLens": "0x50198Ee860bB48c5b771EdA676587ca4e15C6e11",
+    "VenusChainlinkOracle": "0x276425afF4214570b622A3502a62fFC52848dF19",
+    "VenusLens": "0x40e42Ad74AA4c61B577387821e845a8892E65002",
     "WhitepaperInterestRateModel": "0xdE9beC5102ee897a2c934321309517dD6c0106F4",
     "Comptroller": "0xfd301ad2503b25a7670a45b11a043c20b04ee896",
     "Unitroller": "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D",
