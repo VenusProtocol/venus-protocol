@@ -12,7 +12,7 @@ on:
   push:
     branches: [master, develop]
   pull_request:
-    branches: [master, develop]
+    branches: [master, develop, oracle-stale-price-validation]
 
 jobs:
   test:
@@ -26,7 +26,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Use Node.js ${{ matrix.node_version }}
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node_version }}
     - name: Install Dependencies
@@ -34,7 +34,7 @@ jobs:
         sudo wget https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux -O /usr/local/bin/solc
         sudo chmod +x /usr/local/bin/solc
         sudo apt install make g++ -y
-    - run: npm install -g yarn
+    - run: npm install yarn
     - run: yarn --frozen-lockfile
     - name: yarn lint and test
       run: |
