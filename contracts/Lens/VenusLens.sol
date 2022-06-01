@@ -8,6 +8,7 @@ import "../EIP20Interface.sol";
 import "../Governance/GovernorAlpha.sol";
 import "../Governance/XVS.sol";
 import "../Comptroller.sol";
+import "../SafeMath.sol";
 
 interface LensInterface {
     function markets(address) external view returns (bool, uint);
@@ -19,7 +20,12 @@ interface LensInterface {
 }
 
 contract VenusLens is ExponentialNoError {
-    
+
+    using SafeMath for uint;
+
+    /// @notice Blocks Per Day
+    uint public constant BLOCKS_PER_DAY = 28800;
+
     struct VenusMarketState {
         uint224 index;
         uint32 block;
@@ -40,11 +46,16 @@ contract VenusLens is ExponentialNoError {
         address underlyingAssetAddress;
         uint vTokenDecimals;
         uint underlyingDecimals;
+        uint venusSupplySpeed;
+        uint venusBorrowSpeed;
+        uint dailySupplyXvs;
+        uint dailyBorrowXvs;
     }
 
     function vTokenMetadata(VToken vToken) public returns (VTokenMetadata memory) {
         uint exchangeRateCurrent = vToken.exchangeRateCurrent();
-        LensInterface comptroller = LensInterface(address(vToken.comptroller()));
+        address comptrollerAddress = address(vToken.comptroller());
+        LensInterface comptroller = LensInterface(comptrollerAddress);
         (bool isListed, uint collateralFactorMantissa) = comptroller.markets(address(vToken));
         address underlyingAssetAddress;
         uint underlyingDecimals;
@@ -57,6 +68,9 @@ contract VenusLens is ExponentialNoError {
             underlyingAssetAddress = vBep20.underlying();
             underlyingDecimals = EIP20Interface(vBep20.underlying()).decimals();
         }
+
+        Comptroller comptrollerInstance = Comptroller(comptrollerAddress);
+        uint venusSpeedPerBlock = comptrollerInstance.venusSpeeds(address(vToken));
 
         return VTokenMetadata({
             vToken: address(vToken),
@@ -72,7 +86,11 @@ contract VenusLens is ExponentialNoError {
             collateralFactorMantissa: collateralFactorMantissa,
             underlyingAssetAddress: underlyingAssetAddress,
             vTokenDecimals: vToken.decimals(),
-            underlyingDecimals: underlyingDecimals
+            underlyingDecimals: underlyingDecimals,
+            venusSupplySpeed: venusSpeedPerBlock,
+            venusBorrowSpeed: venusSpeedPerBlock,
+            dailySupplyXvs: venusSpeedPerBlock * BLOCKS_PER_DAY,
+            dailyBorrowXvs: venusSpeedPerBlock * BLOCKS_PER_DAY
         });
     }
 
@@ -83,6 +101,47 @@ contract VenusLens is ExponentialNoError {
             res[i] = vTokenMetadata(vTokens[i]);
         }
         return res;
+    }
+
+    function getDailyXVS(address payable account, address comptrollerAddress) external returns (uint) {
+        Comptroller comptrollerInstance = Comptroller(comptrollerAddress);
+        VToken[] memory vTokens = comptrollerInstance.getAllMarkets();
+        uint dailyXvsPerAccount = 0;
+        
+        for (uint i = 0; i < vTokens.length; i++) {
+            VToken vToken = vTokens[i];            
+            VTokenMetadata memory metaDataItem = vTokenMetadata(vToken);
+
+            //get balanceOfUnderlying and borrowBalanceCurrent from vTokenBalance
+            VTokenBalances memory vTokenBalanceInfo = vTokenBalances(vToken, account);
+
+            VTokenUnderlyingPrice memory underlyingPriceResponse = vTokenUnderlyingPrice(vToken);
+            uint underlyingPrice = underlyingPriceResponse.underlyingPrice;
+            Exp memory underlyingPriceMantissa = Exp({mantissa: underlyingPrice});
+
+            //get dailyXvsSupplyMarket
+            uint dailyXvsSupplyMarket = 0;
+            uint supplyInUsd = mul_ScalarTruncate(underlyingPriceMantissa, vTokenBalanceInfo.balanceOfUnderlying);
+            uint marketTotalSupply = (metaDataItem.totalSupply.mul(metaDataItem.exchangeRateCurrent)).div(1e18);
+            uint marketTotalSupplyInUsd = mul_ScalarTruncate(underlyingPriceMantissa, marketTotalSupply);
+
+            if(marketTotalSupplyInUsd > 0) {
+                dailyXvsSupplyMarket = (metaDataItem.dailySupplyXvs.mul(supplyInUsd)).div(marketTotalSupplyInUsd);
+            }
+
+            //get dailyXvsBorrowMarket
+            uint dailyXvsBorrowMarket = 0;
+            uint borrowsInUsd = mul_ScalarTruncate(underlyingPriceMantissa, vTokenBalanceInfo.borrowBalanceCurrent);
+            uint marketTotalBorrowsInUsd = mul_ScalarTruncate(underlyingPriceMantissa, metaDataItem.totalBorrows);
+
+            if(marketTotalBorrowsInUsd > 0){
+                dailyXvsBorrowMarket = (metaDataItem.dailyBorrowXvs.mul(borrowsInUsd)).div(marketTotalBorrowsInUsd);
+            }
+
+            dailyXvsPerAccount += dailyXvsSupplyMarket + dailyXvsBorrowMarket;
+        }
+
+        return dailyXvsPerAccount;
     }
 
     struct VTokenBalances {
