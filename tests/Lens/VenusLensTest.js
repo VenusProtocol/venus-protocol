@@ -49,7 +49,11 @@ describe('VenusLens', () => {
           collateralFactorMantissa: "0",
           underlyingAssetAddress: await call(vBep20, 'underlying', []),
           vTokenDecimals: "8",
-          underlyingDecimals: "18"
+          underlyingDecimals: "18",
+          venusSupplySpeed: "0",
+          venusBorrowSpeed: "0",
+          dailySupplyXvs: "0",
+          dailyBorrowXvs: "0"
         }
       );
     });
@@ -73,6 +77,10 @@ describe('VenusLens', () => {
         totalSupply: "0",
         underlyingAssetAddress: "0x0000000000000000000000000000000000000000",
         underlyingDecimals: "18",
+        venusSupplySpeed: "0",
+        venusBorrowSpeed: "0",
+        dailySupplyXvs: "0",
+        dailyBorrowXvs: "0"
       });
     });
   });
@@ -98,7 +106,11 @@ describe('VenusLens', () => {
           collateralFactorMantissa: "0",
           underlyingAssetAddress: await call(vBep20, 'underlying', []),
           vTokenDecimals: "8",
-          underlyingDecimals: "18"
+          underlyingDecimals: "18",
+          venusSupplySpeed: "0",
+          venusBorrowSpeed: "0",
+          dailySupplyXvs: "0",
+          dailyBorrowXvs: "0",
         },
         {
           borrowRatePerBlock: "0",
@@ -115,6 +127,10 @@ describe('VenusLens', () => {
           totalSupply: "0",
           underlyingAssetAddress: "0x0000000000000000000000000000000000000000",
           underlyingDecimals: "18",
+          venusSupplySpeed: "0",
+          venusBorrowSpeed: "0",
+          dailySupplyXvs: "0",
+          dailyBorrowXvs: "0",
         }
       ]);
     });
@@ -363,4 +379,15 @@ describe('VenusLens', () => {
       });
     });
   });
+
+  describe('dailyXVS', () => {
+    it('can get dailyXVS for an account', async () => {
+      let vBep20 = await makeVToken();
+      let comptrollerAddress = await vBep20.comptroller._address;
+      expect(
+        await call(VenusLens, 'getDailyXVS', [acct, comptrollerAddress])
+      ).toEqual("0");
+    });
+  });
+
 });
