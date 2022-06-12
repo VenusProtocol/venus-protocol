@@ -174,9 +174,9 @@ describe('Comptroller', () => {
 
     it("fails if asset is not listed", async () => {
       const vToken = await makeVToken();
-      expect(
-        await send(vToken.comptroller, '_setCollateralFactor', [vToken._address, half])
-      ).toHaveTrollFailure('MARKET_NOT_LISTED', 'SET_COLLATERAL_FACTOR_NO_EXISTS');
+      await expect(
+        send(vToken.comptroller, '_setCollateralFactor', [vToken._address, half])
+      ).rejects.toRevert('revert market not listed');
     });
 
     it("fails if factor is set without an underlying price", async () => {

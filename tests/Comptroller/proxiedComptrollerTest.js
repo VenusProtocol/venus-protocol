@@ -65,9 +65,9 @@ describe('Comptroller', function() {
       });
 
       it('fails if asset is not listed', async () => {
-        expect(
-          await send(unitrollerAsComptroller, '_setCollateralFactor', [vToken._address, half])
-        ).toHaveTrollFailure('MARKET_NOT_LISTED', 'SET_COLLATERAL_FACTOR_NO_EXISTS');
+        await expect(
+          send(unitrollerAsComptroller, '_setCollateralFactor', [vToken._address, half])
+        ).rejects.toRevert('revert market not listed');
       });
 
       it('fails if factor is too high', async () => {

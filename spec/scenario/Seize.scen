@@ -9,7 +9,7 @@ Test "Fail to seize calling directly"
     AllowFailures
     Seize 1e9 vZRX caller:Geoff liquidator:Geoff borrower:Torrey
     -- The caller must be from another vToken market, thus this fails
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_SEIZE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"
 
 Test "Seize tokens with a paused WBTC vToken-- like normal"
     NewComptroller
@@ -22,7 +22,7 @@ Test "Seize tokens with a paused WBTC vToken-- like normal"
     AllowFailures
     Seize 1e9 vWBTC caller:Geoff liquidator:Geoff borrower:Torrey
     -- The caller must be from another vToken market, thus this fails
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_SEIZE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"
 
 Test "Not able to seize tokens with a malicious unlisted vToken"
     NewComptroller
@@ -36,7 +36,7 @@ Test "Not able to seize tokens with a malicious unlisted vToken"
     AllowFailures
     EvilSeize vEVL 1e9 vZRX seizer:Geoff seizee:Torrey
     -- The caller must be from another vToken market, thus this fails
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_SEIZE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"
 
 Test "Able to seize tokens with a malicious listed vToken"
     NewComptroller

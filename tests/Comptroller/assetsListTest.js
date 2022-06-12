@@ -42,6 +42,12 @@ describe('assetListTest', () => {
     return receipt;
   };
 
+  async function enterAndExpectRejection(enterTokens, expectedReason) {
+    await expect(
+      send(comptroller, 'enterMarkets', [enterTokens.map(t => t._address)], {from: customer})
+    ).rejects.toRevert(expectedReason);
+  }
+
   async function exitAndCheckMarkets(exitToken, expectedTokens, expectedError = 'NO_ERROR') {
     const {reply, receipt} = await both(comptroller, 'exitMarket', [exitToken._address], {from: customer});
     const assetsIn = await call(comptroller, 'getAssetsIn', [customer]);
@@ -75,14 +81,14 @@ describe('assetListTest', () => {
     });
 
     it("the market must be listed for add to succeed", async () => {
-      await enterAndCheckMarkets([SKT], [], ['MARKET_NOT_LISTED']);
+      await enterAndExpectRejection([SKT], "revert market not listed");
       await send(comptroller, '_supportMarket', [SKT._address]);
       await enterAndCheckMarkets([SKT], [SKT]);
     });
 
     it("returns a list of codes mapping to user's ultimate membership in given addresses", async () => {
       await enterAndCheckMarkets([OMG, ZRX, BAT], [OMG, ZRX, BAT], ['NO_ERROR', 'NO_ERROR', 'NO_ERROR'], "success if can enter markets");
-      await enterAndCheckMarkets([OMG, SKT], [OMG, ZRX, BAT], ['NO_ERROR', 'MARKET_NOT_LISTED'], "error for unlisted markets");
+      await enterAndExpectRejection([OMG, SKT], "revert market not listed");
     });
   });
 

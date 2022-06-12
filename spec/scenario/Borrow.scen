@@ -60,7 +60,7 @@ Test "Borrow fails if market not listed"
     EnterMarkets Geoff vZRX
     AllowFailures
     Borrow Geoff 1e18 vBAT
-    Assert Failure COMPTROLLER_REJECTION BORROW_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"
 
 Test "Borrow some BAT from Excess Cash"
     Invariant Success

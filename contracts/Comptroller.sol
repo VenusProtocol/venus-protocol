@@ -131,9 +131,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         require(someone != address(0), "can't be zero address");
     }
 
-    modifier onlyListedMarket(VToken vToken) {
-        require(markets[address(vToken)].isListed, "venus market is not listed");
-        _;
+    /// @notice Reverts if the market is not listed
+    function ensureListed(Market storage market) private view {
+        require(market.isListed, "market not listed");
     }
 
     modifier validPauseState(bool state) {
@@ -187,11 +187,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
         Market storage marketToJoin = markets[address(vToken)];
-
-        if (!marketToJoin.isListed) {
-            // market is not listed, cannot join
-            return Error.MARKET_NOT_LISTED;
-        }
+        ensureListed(marketToJoin);
 
         if (marketToJoin.accountMembership[borrower]) {
             // already joined
@@ -282,9 +278,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         // Shh - currently unused
         mintAmount;
 
-        if (!markets[vToken].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
-        }
+        ensureListed(markets[vToken]);
 
         // Keep the flywheel moving
         updateVenusSupplyIndex(vToken);
@@ -329,9 +323,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     function redeemAllowedInternal(address vToken, address redeemer, uint redeemTokens) internal view returns (uint) {
-        if (!markets[vToken].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
-        }
+        ensureListed(markets[vToken]);
 
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
         if (!markets[vToken].accountMembership[redeemer]) {
@@ -377,9 +369,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!borrowGuardianPaused[vToken], "borrow is paused");
 
-        if (!markets[vToken].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
-        }
+        // Pausing is a very serious situation - we revert to sound the alarms
+        ensureListed(markets[vToken]);
 
         if (!markets[vToken].accountMembership[borrower]) {
             // only vTokens may call borrowAllowed if borrower not in market
@@ -456,9 +447,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         borrower;
         repayAmount;
 
-        if (!markets[vToken].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
-        }
+        ensureListed(markets[vToken]);
 
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: VToken(vToken).borrowIndex()});
@@ -512,8 +501,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
             return uint(Error.UNAUTHORIZED);
         }
 
-        if (!(markets[vTokenBorrowed].isListed || address(vTokenBorrowed) == address(vaiController)) || !markets[vTokenCollateral].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
+        ensureListed(markets[vTokenCollateral]);
+        if (address(vTokenBorrowed) != address(vaiController)) {
+            ensureListed(markets[vTokenBorrowed]);
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
@@ -591,8 +581,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         seizeTokens;
 
         // We've added VAIController as a borrowed token list check for seize
-        if (!markets[vTokenCollateral].isListed || !(markets[vTokenBorrowed].isListed || address(vTokenBorrowed) == address(vaiController))) {
-            return uint(Error.MARKET_NOT_LISTED);
+        ensureListed(markets[vTokenCollateral]);
+        if (address(vTokenBorrowed) != address(vaiController)) {
+            ensureListed(markets[vTokenBorrowed]);
         }
 
         if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
@@ -832,9 +823,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
 
         // Verify market is listed
         Market storage market = markets[address(vToken)];
-        if (!market.isListed) {
-            return fail(Error.MARKET_NOT_LISTED, FailureInfo.SET_COLLATERAL_FACTOR_NO_EXISTS);
-        }
+        ensureListed(market);
 
         Exp memory newCollateralFactorExp = Exp({mantissa: newCollateralFactorMantissa});
 
@@ -1078,8 +1067,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
             updateVenusBorrowIndex(address(vToken), borrowIndex);
         } else if (venusSpeed != 0) {
             // Add the XVS market
-            Market memory market = markets[address(vToken)];
-            require(market.isListed, "venus market is not listed");
+            ensureListed(markets[address(vToken)]);
 
             if (venusSupplyState[address(vToken)].index == 0 && venusSupplyState[address(vToken)].block == 0) {
                 venusSupplyState[address(vToken)] = VenusMarketState({
@@ -1266,7 +1254,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         }
         for (uint i = 0; i < vTokens.length; i++) {
             VToken vToken = vTokens[i];
-            require(markets[address(vToken)].isListed, "not listed market");
+            ensureListed(markets[address(vToken)]);
             if (borrowers) {
                 Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
                 updateVenusBorrowIndex(address(vToken), borrowIndex);

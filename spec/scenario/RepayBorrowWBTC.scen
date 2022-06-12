@@ -131,7 +131,7 @@ Test "Prohibit repay by comptroller rejection due to mock unlist"
     Expect Changes (Bep20 WBTC TokenBalance vWBTC) Zero
     Comptroller UnList vZRX -- Mock unlist ZRX
     RepayBorrow Geoff 2.5e8 vZRX
-    Assert Failure COMPTROLLER_REJECTION REPAY_BORROW_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"
     -- Let's check the overall numbers
     Assert Equal (VToken vWBTC BorrowBalance Geoff) 2.5e8
     Assert Equal (VToken vWBTC TotalBorrowsCurrent) 2.5e8

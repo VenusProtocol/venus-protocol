@@ -131,7 +131,7 @@ Test "Prohibit repay by comptroller rejection due to mock unlist"
     Expect Changes (Bep20 BAT TokenBalance vBAT) Zero
     Comptroller UnList vZRX -- Mock unlist ZRX
     RepayBorrow Geoff 2.5e18 vZRX
-    Assert Failure COMPTROLLER_REJECTION REPAY_BORROW_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"
     -- Let's check the overall numbers
     Assert Equal (VToken vBAT BorrowBalance Geoff) 2.5e18
     Assert Equal (VToken vBAT TotalBorrowsCurrent) 2.5e18

@@ -23,7 +23,9 @@ Test "Entered Market Must Be Supported"
 	EnterMarkets Geoff vZRX
 	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 1)
 	NewVToken OMG vOMG
+	AllowFailures
 	EnterMarkets Geoff vZRX vOMG
+    Assert Revert "revert market not listed"
 	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 1)
 	Assert True (Comptroller CheckMembership Geoff vZRX)
 	Assert False (Comptroller CheckMembership Geoff vOMG)
