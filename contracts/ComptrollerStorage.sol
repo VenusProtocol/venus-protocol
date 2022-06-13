@@ -145,8 +145,8 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
      */
     bool public protocolPaused;
 
-    /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block
-    uint public venusVAIRate;
+    /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block (deprecated)
+    uint private venusVAIRate;
 }
 
 contract ComptrollerV2Storage is ComptrollerV1Storage {

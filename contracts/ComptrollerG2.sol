@@ -54,9 +54,6 @@ contract ComptrollerG2 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
     /// @notice Emitted when Venus rate is changed
     event NewVenusRate(uint oldVenusRate, uint newVenusRate);
 
-    /// @notice Emitted when Venus VAI rate is changed
-    event NewVenusVAIRate(uint oldVenusVAIRate, uint newVenusVAIRate);
-
     /// @notice Emitted when a new Venus speed is calculated for a market
     event VenusSpeedUpdated(VToken indexed vToken, uint newSpeed);
 
@@ -1378,18 +1375,6 @@ contract ComptrollerG2 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
         emit NewVenusRate(oldRate, venusRate_);
 
         refreshVenusSpeedsInternal();
-    }
-
-    /**
-     * @notice Set the amount of XVS distributed per block to VAI Mint
-     * @param venusVAIRate_ The amount of XVS wei per block to distribute to VAI Mint
-     */
-    function _setVenusVAIRate(uint venusVAIRate_) public {
-        require(msg.sender == admin, "only admin can");
-
-        uint oldVAIRate = venusVAIRate;
-        venusVAIRate = venusVAIRate_;
-        emit NewVenusVAIRate(oldVAIRate, venusVAIRate_);
     }
 
     /**

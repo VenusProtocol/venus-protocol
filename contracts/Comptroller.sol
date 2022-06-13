@@ -48,9 +48,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when an action is paused on a market
     event ActionPausedMarket(VToken vToken, string action, bool pauseState);
 
-    /// @notice Emitted when Venus VAI rate is changed
-    event NewVenusVAIRate(uint oldVenusVAIRate, uint newVenusVAIRate);
-
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
 
@@ -62,9 +59,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
 
     /// @notice Emitted when XVS is distributed to a borrower
     event DistributedBorrowerVenus(VToken indexed vToken, address indexed borrower, uint venusDelta, uint venusBorrowIndex);
-
-    /// @notice Emitted when XVS is distributed to a VAI minter
-    event DistributedVAIMinterVenus(address indexed vaiMinter, uint venusDelta, uint venusVAIMintIndex);
 
     /// @notice Emitted when XVS is distributed to VAI Vault
     event DistributedVAIVaultVenus(uint amount);
