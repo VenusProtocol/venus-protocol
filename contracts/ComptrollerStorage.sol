@@ -204,7 +204,22 @@ contract ComptrollerV8Storage is ComptrollerV7Storage {
     mapping(address => uint256) public supplyCaps;
 }
     
-    contract ComptrollerV9Storage is ComptrollerV8Storage {
+contract ComptrollerV9Storage is ComptrollerV8Storage {
     /// @notice AccessControlManager address
     address accessControl;
+
+    enum Action {
+        MINT,
+        REDEEM,
+        BORROW,
+        REPAY,
+        SEIZE,
+        LIQUIDATE,
+        TRANSFER,
+        ENTER_MARKET,
+        EXIT_MARKET
+    }
+
+    /// @notice True if a certain action is paused on a certain market
+    mapping (address => mapping(uint => bool)) internal _actionPaused;
 }
