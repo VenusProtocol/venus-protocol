@@ -84,8 +84,10 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
      *  Liquidation / seizing / transfer can only be paused globally, not by market.
      */
     address public pauseGuardian;
-    bool public _mintGuardianPaused;
-    bool public _borrowGuardianPaused;
+    /// @notice Whether minting is paused (deprecated, superseded by per-market pause)
+    bool private _mintGuardianPaused;
+    /// @notice Whether borrowing is paused (deprecated, superseded by per-market pause)
+    bool private _borrowGuardianPaused;
     bool public transferGuardianPaused;
     bool public seizeGuardianPaused;
     mapping(address => bool) public mintGuardianPaused;
@@ -179,12 +181,13 @@ contract ComptrollerV4Storage is ComptrollerV3Storage {
     /// @notice Fee percent of accrued interest with decimal 18
     uint256 public treasuryPercent;
 }
-contract ComptrollerV5Storage is ComptrollerV4Storage {
-    /// @notice The portion of XVS that each contributor receives per block
-    mapping(address => uint) public venusContributorSpeeds;
 
-    /// @notice Last block at which a contributor's XVS rewards have been allocated
-    mapping(address => uint) public lastContributorBlock;
+contract ComptrollerV5Storage is ComptrollerV4Storage {
+    /// @notice The portion of XVS that each contributor receives per block (deprecated)
+    mapping(address => uint) private venusContributorSpeeds;
+
+    /// @notice Last block at which a contributor's XVS rewards have been allocated (deprecated)
+    mapping(address => uint) private lastContributorBlock;
 }
 
 contract ComptrollerV6Storage is ComptrollerV5Storage {
