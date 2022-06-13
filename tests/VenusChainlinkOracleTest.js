@@ -67,7 +67,7 @@ describe("VenusChainlinkOracle", () => {
     usdcFeed = await makeChainlinkOracle({decimals: 8, initialAnswer: 100000000});
     usdtFeed = await makeChainlinkOracle({decimals: 8, initialAnswer: 100000000});
     daiFeed = await makeChainlinkOracle({decimals: 8, initialAnswer: 100000000});
-    oracle = await deploy("VenusChainlinkOracle", [MAX_STALE_PERIOD]);
+    oracle = await deploy("VenusChainlinkOracle", []);
   });
 
   describe("constructor", () => {
@@ -80,13 +80,13 @@ describe("VenusChainlinkOracle", () => {
   describe("setFeed", () => {
     it("only admin may set a feed", async () => {
       await expect(
-        send(oracle, "setFeed", ["vBNB", bnbFeed._address], {from: accounts[0]})
+        send(oracle, "setFeed", ["vBNB", bnbFeed._address, MAX_STALE_PERIOD], {from: accounts[0]})
       ).rejects.toRevert("revert only admin may call");
     });
 
     it("cannot set feed to self address", async () => {
       await expect(
-        send(oracle, "setFeed", ["vBNB", oracle._address], {from: root})
+        send(oracle, "setFeed", ["vBNB", oracle._address, MAX_STALE_PERIOD], {from: root})
       ).rejects.toRevert("revert invalid feed address");
     });
 
@@ -95,25 +95,87 @@ describe("VenusChainlinkOracle", () => {
         send(
           oracle,
           "setFeed",
-          ["vBNB", "0x0000000000000000000000000000000000000000"],
+          ["vBNB", "0x0000000000000000000000000000000000000000", MAX_STALE_PERIOD],
           {from: root}
         )
       ).rejects.toRevert("revert invalid feed address");
     });
 
     it("sets a feed", async () => {
-      await send(oracle, "setFeed", ["vBNB", bnbFeed._address], {from: root});
+      await send(oracle, "setFeed", ["vBNB", bnbFeed._address, MAX_STALE_PERIOD], {from: root});
       let feed = await call(oracle, "getFeed", ["vBNB"]);
       expect(feed).toEqual(bnbFeed._address);
     });
   });
 
+  describe('batch set feeds', () => {
+    it("only admin may set a feed", async () => {
+      await expect(
+        send(oracle, "batchSetFeeds", [["vBNB"], [bnbFeed._address], [MAX_STALE_PERIOD]], {from: accounts[0]})
+      ).rejects.toRevert("revert only admin may call");
+    });
+
+    it("cannot set feed to self address", async () => {
+      await expect(
+        send(oracle, "batchSetFeeds", [["vBNB"], [oracle._address], [MAX_STALE_PERIOD]], {from: root})
+      ).rejects.toRevert("revert invalid feed address");
+    });
+
+    it('cannot set feed to zero address', async () => {
+      await expect(
+        send(
+          oracle,
+          "batchSetFeeds",
+          [["vBNB"], ["0x0000000000000000000000000000000000000000"], [MAX_STALE_PERIOD]],
+          {from: root}
+        )
+      ).rejects.toRevert("revert invalid feed address");
+    });
+
+    it('parameter length check', async () => {
+      await expect(
+        send(oracle, "batchSetFeeds",
+          [["vBNB", "vUSDT"], ["0x0000000000000000000000000000000000000000"], [MAX_STALE_PERIOD]],
+          {from: root}
+        )
+      ).rejects.toRevert("revert invalid length");
+      await expect(
+        send(oracle, "batchSetFeeds",
+          [["vBNB", "vUSDT"], ["0x0000000000000000000000000000000000000000"], [MAX_STALE_PERIOD, MAX_STALE_PERIOD]],
+          {from: root}
+        )
+      ).rejects.toRevert("revert invalid length");
+      await expect(
+        send(oracle, "batchSetFeeds",
+          [[], [], []],
+          {from: root}
+        )
+      ).rejects.toRevert("revert empty feeds");
+    });
+
+    it("set multiple feeds", async () => {
+      await send(oracle, "batchSetFeeds", [
+        ["vBNB", "vUSDT"], 
+        [bnbFeed._address, usdtFeed._address], 
+        [2 * MAX_STALE_PERIOD, 3 * MAX_STALE_PERIOD]
+      ], {from: root});
+      let newBnbFeed = await call(oracle, "getFeed", ["vBNB"]);
+      let newUsdtFeed = await call(oracle, "getFeed", ["vUSDT"]);
+      let newBnbStalePeriod = await call(oracle, "getMaxStalePeriod", [bnbFeed._address]);
+      let newUsdtStalePeriod = await call(oracle, "getMaxStalePeriod", [usdtFeed._address]);
+      expect(newBnbFeed).toEqual(bnbFeed._address);
+      expect(newUsdtFeed).toEqual(usdtFeed._address);
+      expect(newBnbStalePeriod).toEqualNumber(2 * MAX_STALE_PERIOD);
+      expect(newUsdtStalePeriod).toEqualNumber(3 * MAX_STALE_PERIOD);
+    });
+  });
+
   describe("getUnderlyingPrice", () => {
     beforeEach(async () => {
-      await send(oracle, "setFeed", ["vBNB", bnbFeed._address], {from: root});
-      await send(oracle, "setFeed", ["USDC", usdcFeed._address], {from: root});
-      await send(oracle, "setFeed", ["USDT", usdtFeed._address], {from: root});
-      await send(oracle, "setFeed", ["DAI", daiFeed._address], {from: root});
+      await send(oracle, "setFeed", ["vBNB", bnbFeed._address, MAX_STALE_PERIOD], {from: root});
+      await send(oracle, "setFeed", ["USDC", usdcFeed._address, MAX_STALE_PERIOD], {from: root});
+      await send(oracle, "setFeed", ["USDT", usdtFeed._address, MAX_STALE_PERIOD], {from: root});
+      await send(oracle, "setFeed", ["DAI", daiFeed._address, MAX_STALE_PERIOD], {from: root});
       await send(oracle, "setDirectPrice", [xvs._address, 7], {from: root});
       await send(oracle, "setUnderlyingPrice", [vExampleSet._address, 1], {from: root});
     });
@@ -206,26 +268,21 @@ describe("VenusChainlinkOracle", () => {
 
   describe('stale price validation', () => {
     beforeEach(async () => {
-      await send(oracle, "setFeed", ["vBNB", bnbFeed._address], {from: root})
-    });
-
-    it('only admin can set stale price period', async () => {
-      await expect(
-        send(oracle, 'setMaxStalePeriod', [999], {from: accounts[0]})
-      ).rejects.toRevert('revert only admin may call');
+      await send(oracle, "setFeed", ["vBNB", bnbFeed._address, MAX_STALE_PERIOD], {from: root})
     });
 
     it('stale price period cannot be 0', async () => {
       await expect(
-        send(oracle, 'setMaxStalePeriod', [0], {from: root})
+        send(oracle, 'setFeed', ["vBNB", bnbFeed._address, 0], {from: root})
       ).rejects.toRevert('revert stale period can\'t be zero');
     });
 
     it('modify stale price period will emit an event', async () => {
-      const result = await send(oracle, 'setMaxStalePeriod', [100], {from: root})
-      expect(result).toHaveLog('MaxStalePeriodUpdated', {
-        oldMaxStalePeriod: 6000,
-        newMaxStalePeriod: 100
+      const result = await send(oracle, 'setFeed', ["vBNB", bnbFeed._address, MAX_STALE_PERIOD], {from: root})
+      expect(result).toHaveLog('FeedSet', {
+        feed: bnbFeed._address,
+        symbol: 'vBNB',
+        maxStalePeriod: MAX_STALE_PERIOD
       });
     });
 

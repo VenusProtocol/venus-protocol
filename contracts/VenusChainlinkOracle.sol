@@ -1,4 +1,5 @@
 pragma solidity ^0.5.16;
+pragma experimental ABIEncoderV2;
 
 import "./PriceOracle.sol";
 import "./VBep20.sol";
@@ -11,26 +12,16 @@ contract VenusChainlinkOracle is PriceOracle {
     uint public constant VAI_VALUE = 1e18;
     address public admin;
 
-    uint public maxStalePeriod;
-
     mapping(address => uint) internal prices;
+    mapping(address => uint) internal maxStalePeriods;
     mapping(bytes32 => AggregatorV2V3Interface) internal feeds;
 
     event PricePosted(address asset, uint previousPriceMantissa, uint requestedPriceMantissa, uint newPriceMantissa);
     event NewAdmin(address oldAdmin, address newAdmin);
-    event FeedSet(address feed, string symbol);
-    event MaxStalePeriodUpdated(uint oldMaxStalePeriod, uint newMaxStalePeriod);
+    event FeedSet(address feed, string symbol, uint maxStalePeriod);
 
-    constructor(uint maxStalePeriod_) public {
+    constructor() public {
         admin = msg.sender;
-        maxStalePeriod = maxStalePeriod_;
-    }
-
-    function setMaxStalePeriod(uint newMaxStalePeriod) external onlyAdmin() {
-        require(newMaxStalePeriod > 0, "stale period can't be zero");
-        uint oldMaxStalePeriod = maxStalePeriod;
-        maxStalePeriod = newMaxStalePeriod;
-        emit MaxStalePeriodUpdated(oldMaxStalePeriod, newMaxStalePeriod);
     }
 
     function getUnderlyingPrice(VToken vToken) public view returns (uint) {
@@ -69,6 +60,13 @@ contract VenusChainlinkOracle is PriceOracle {
         uint decimalDelta = uint(18).sub(feed.decimals());
 
         (, int256 answer,, uint256 updatedAt,) = feed.latestRoundData();
+
+        // a feed with 0 max stale period or doesn't exist, return 0
+        uint maxStalePeriod = maxStalePeriods[address(feed)];
+        if (maxStalePeriod == 0) {
+            return 0;
+        }
+
         // Ensure that we don't multiply the result by 0
         if (block.timestamp.sub(updatedAt) > maxStalePeriod) {
             return 0;
@@ -92,14 +90,30 @@ contract VenusChainlinkOracle is PriceOracle {
         prices[asset] = price;
     }
 
-    function setFeed(string calldata symbol, address feed) external onlyAdmin() {
+    function batchSetFeeds(string[] calldata symbols_, address[] calldata feeds_, uint[] calldata maxStalePeriods_) external onlyAdmin() {
+        require(symbols_.length == feeds_.length, "invalid length");
+        require(symbols_.length == maxStalePeriods_.length, "invalid length");
+        require(symbols_.length > 0, "empty feeds");
+        for (uint i = 0; i < symbols_.length; i++) {
+            setFeed(symbols_[i], feeds_[i], maxStalePeriods_[i]);
+        }
+    }
+
+    function setFeed(string memory symbol, address feed, uint maxStalePeriod) public onlyAdmin() {
         require(feed != address(0) && feed != address(this), "invalid feed address");
-        emit FeedSet(feed, symbol);
-        feeds[keccak256(abi.encodePacked(symbol))] = AggregatorV2V3Interface(feed);
+        require(maxStalePeriod > 0, "stale period can't be zero");
+        bytes32 symbolHash = keccak256(abi.encodePacked(symbol));
+        feeds[symbolHash] = AggregatorV2V3Interface(feed);
+        maxStalePeriods[feed] = maxStalePeriod;
+        emit FeedSet(feed, symbol, maxStalePeriod);
     }
 
     function getFeed(string memory symbol) public view returns (AggregatorV2V3Interface) {
         return feeds[keccak256(abi.encodePacked(symbol))];
+    }
+
+    function getMaxStalePeriod(address asset) external view returns (uint) {
+        return maxStalePeriods[asset];
     }
 
     function assetPrices(address asset) external view returns (uint) {
