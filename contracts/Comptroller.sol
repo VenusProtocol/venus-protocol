@@ -122,7 +122,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         require(msg.sender == admin, "only admin can");
     }
 
-    function ensureNonzeroAddress(address someone) private {
+    /// @notice Checks the passed address is nonzero
+    function ensureNonzeroAddress(address someone) private pure {
         require(someone != address(0), "can't be zero address");
     }
 
@@ -258,6 +259,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
 
         return uint(Error.NO_ERROR);
     }
+
 
     /*** Policy Hooks ***/
 
@@ -438,7 +440,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address vToken,
         address payer,
         address borrower,
-        uint repayAmount) external onlyProtocolAllowed returns (uint) {
+        uint repayAmount
+    )
+        external
+        onlyProtocolAllowed
+        returns (uint)
+    {
         // Shh - currently unused
         payer;
         borrower;
@@ -466,7 +473,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address payer,
         address borrower,
         uint actualRepayAmount,
-        uint borrowerIndex) external {
+        uint borrowerIndex
+    )
+        external
+    {
         // Shh - currently unused
         vToken;
         payer;
@@ -493,7 +503,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address vTokenCollateral,
         address liquidator,
         address borrower,
-        uint repayAmount) external onlyProtocolAllowed returns (uint) {
+        uint repayAmount
+    )
+        external
+        onlyProtocolAllowed
+        returns (uint)
+    {
         if (liquidatorContract != address(0) && liquidator != liquidatorContract) {
             return uint(Error.UNAUTHORIZED);
         }
@@ -542,7 +557,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address liquidator,
         address borrower,
         uint actualRepayAmount,
-        uint seizeTokens) external {
+        uint seizeTokens
+    )
+        external
+    {
         // Shh - currently unused
         vTokenBorrowed;
         vTokenCollateral;
@@ -570,7 +588,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address vTokenBorrowed,
         address liquidator,
         address borrower,
-        uint seizeTokens) external onlyProtocolAllowed returns (uint) {
+        uint seizeTokens
+    )
+        external
+        onlyProtocolAllowed
+        returns (uint)
+    {
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!seizeGuardianPaused, "seize is paused");
 
@@ -608,7 +631,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address vTokenBorrowed,
         address liquidator,
         address borrower,
-        uint seizeTokens) external {
+        uint seizeTokens
+    )
+        external
+    {
         // Shh - currently unused
         vTokenCollateral;
         vTokenBorrowed;
@@ -695,8 +721,18 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address account,
         address vTokenModify,
         uint redeemTokens,
-        uint borrowAmount) public view returns (uint, uint, uint) {
-        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(account, VToken(vTokenModify), redeemTokens, borrowAmount);
+        uint borrowAmount
+    )
+        public
+        view
+        returns (uint, uint, uint)
+    {
+        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(
+            account,
+            VToken(vTokenModify),
+            redeemTokens,
+            borrowAmount
+        );
         return (uint(err), liquidity, shortfall);
     }
 
@@ -716,7 +752,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address account,
         VToken vTokenModify,
         uint redeemTokens,
-        uint borrowAmount) internal view returns (Error, uint, uint) {
+        uint borrowAmount
+    )
+        internal
+        view
+        returns (Error, uint, uint)
+    {
         (uint err, uint liquidity, uint shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
             account,
@@ -735,12 +776,21 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
-    function liquidateCalculateSeizeTokens(address vTokenBorrowed, address vTokenCollateral, uint actualRepayAmount) external view returns (uint, uint) {
+    function liquidateCalculateSeizeTokens(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint actualRepayAmount
+    )
+        external
+        view
+        returns (uint, uint)
+    {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
             address(this), 
             vTokenBorrowed, 
             vTokenCollateral, 
-            actualRepayAmount);
+            actualRepayAmount
+        );
         return (err, seizeTokens);
     }
 
@@ -751,13 +801,22 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
-    function liquidateVAICalculateSeizeTokens(address vTokenCollateral, uint actualRepayAmount) external view returns (uint, uint) {
+    function liquidateVAICalculateSeizeTokens(
+        address vTokenCollateral,
+        uint actualRepayAmount
+    )
+        external
+        view
+        returns (uint, uint)
+    {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
             address(this), 
             vTokenCollateral, 
-            actualRepayAmount);
+            actualRepayAmount
+        );
         return (err, seizeTokens);
     }
+
 
     /*** Admin Functions ***/
 
@@ -898,7 +957,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     function _addMarketInternal(VToken vToken) internal {
-        for (uint i = 0; i < allMarkets.length; i ++) {
+        for (uint i = 0; i < allMarkets.length; i++) {
             require(allMarkets[i] != vToken, "market already added");
         }
         allMarkets.push(vToken);
@@ -1050,7 +1109,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
             }
 
 
-        if (venusBorrowState[address(vToken)].index == 0 && venusBorrowState[address(vToken)].block == 0) {
+            if (venusBorrowState[address(vToken)].index == 0 && venusBorrowState[address(vToken)].block == 0) {
                 venusBorrowState[address(vToken)] = VenusMarketState({
                     index: venusInitialIndex,
                     block: safe32(getBlockNumber(), "block number exceeds 32 bits")
