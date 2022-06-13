@@ -233,9 +233,9 @@ Test "Redeem Fee Treasury Guardian"
     From Guardian (Comptroller SetTreasuryData Guardian Jared 1e14)
     AllowFailures
     From Jared (Comptroller SetTreasuryData Guardian Jared 1e14)
-    Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
+    Assert Revert "revert access denied"
     From Jared (Comptroller SetTreasuryData Jared Jared 1e14)
-    Assert Failure UNAUTHORIZED SET_TREASURY_OWNER_CHECK "0"
+    Assert Revert "revert access denied"
 
 Test "Redeem Treasury Percent Cap"
     NewFeeComptroller

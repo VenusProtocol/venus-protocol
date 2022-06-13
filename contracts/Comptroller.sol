@@ -117,7 +117,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         _;
     }
 
-    function ensureAdmin() private {
+    /// @notice Reverts if the caller is not admin
+    function ensureAdmin() private view {
         require(msg.sender == admin, "only admin can");
     }
 
@@ -130,10 +131,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         require(market.isListed, "market not listed");
     }
 
-    modifier validPauseState(bool state) {
-        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
-        require(msg.sender == admin || state, "only admin can unpause");
-        _;
+    /// @notice Reverts if the caller is neither admin nor the passed address
+    function ensureAdminOr(address privilegedAddress) private view {
+        require(
+            msg.sender == admin || msg.sender == privilegedAddress,
+            "access denied"
+        );
     }
 
     /*** Assets You Are In ***/
@@ -765,10 +768,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
       */
     function _setPriceOracle(PriceOracle newOracle) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PRICE_ORACLE_OWNER_CHECK);
-        }
-
+        ensureAdmin();
         ensureNonzeroAddress(address(newOracle));
 
         // Track the old oracle for the comptroller
@@ -809,10 +809,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
       */
     function _setCollateralFactor(VToken vToken, uint newCollateralFactorMantissa) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COLLATERAL_FACTOR_OWNER_CHECK);
-        }
-
+        ensureAdmin();
         ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
@@ -850,9 +847,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
       */
     function _setLiquidationIncentive(uint newLiquidationIncentiveMantissa) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_LIQUIDATION_INCENTIVE_OWNER_CHECK);
-        }
+        ensureAdmin();
 
         require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
 
@@ -869,6 +864,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     function _setLiquidatorContract(address newLiquidatorContract_) external {
+        // Check caller is admin
         ensureAdmin();
         address oldLiquidatorContract = liquidatorContract;
         liquidatorContract = newLiquidatorContract_;
@@ -882,9 +878,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
       * @return uint 0=success, otherwise a failure. (See enum Error for details)
       */
     function _supportMarket(VToken vToken) external returns (uint) {
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SUPPORT_MARKET_OWNER_CHECK);
-        }
+        // Check caller is admin
+        ensureAdmin();
 
         if (markets[address(vToken)].isListed) {
             return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
@@ -915,10 +910,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @return uint 0=success, otherwise a failure. (See enum Error for details)
      */
     function _setPauseGuardian(address newPauseGuardian) external returns (uint) {
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PAUSE_GUARDIAN_OWNER_CHECK);
-        }
-
+        ensureAdmin();
         ensureNonzeroAddress(newPauseGuardian);
 
         // Save current value for inclusion in log
@@ -940,7 +932,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
       * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing.
       */
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint[] calldata newBorrowCaps) external {
-        require(msg.sender == admin || msg.sender == borrowCapGuardian, "only admin or borrow cap guardian can set borrow caps");
+        ensureAdminOr(borrowCapGuardian);
 
         uint numMarkets = vTokens.length;
         uint numBorrowCaps = newBorrowCaps.length;
@@ -974,7 +966,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     /**
      * @notice Set whole protocol pause/unpause state
      */
-    function _setProtocolPaused(bool state) external validPauseState(state) returns(bool) {
+    function _setProtocolPaused(bool state) external returns(bool) {
+        ensureAdminOr(pauseGuardian);
+        require(msg.sender == admin || state, "only admin can unpause");
         protocolPaused = state;
         emit ActionProtocolPaused(state);
         return state;
@@ -987,10 +981,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
       */
     function _setVAIController(VAIControllerInterface vaiController_) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAICONTROLLER_OWNER_CHECK);
-        }
-
+        ensureAdmin();
         ensureNonzeroAddress(address(vaiController_));
 
         VAIControllerInterface oldVaiController = vaiController;
@@ -1002,10 +993,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
 
     function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAI_MINT_RATE_CHECK);
-        }
-
+        ensureAdmin();
         uint oldVAIMintRate = vaiMintRate;
         vaiMintRate = newVAIMintRate;
         emit NewVAIMintRate(oldVAIMintRate, newVAIMintRate);
@@ -1015,9 +1003,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
 
     function _setTreasuryData(address newTreasuryGuardian, address newTreasuryAddress, uint newTreasuryPercent) external returns (uint) {
         // Check caller is admin
-        if (!(msg.sender == admin || msg.sender == treasuryGuardian)) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_TREASURY_OWNER_CHECK);
-        }
+        ensureAdminOr(treasuryGuardian);
 
         require(newTreasuryPercent < 1e18, "treasury percent cap overflow");
         ensureNonzeroAddress(newTreasuryGuardian);
@@ -1041,13 +1027,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     function _become(Unitroller unitroller) external {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
         require(unitroller._acceptImplementation() == 0, "not authorized");
-    }
-
-    /**
-     * @notice Checks caller is admin, or this contract is becoming the new implementation
-     */
-    function adminOrInitializing() internal view returns (bool) {
-        return msg.sender == admin || msg.sender == comptrollerImplementation;
     }
 
     /*** Venus Distribution ***/
@@ -1327,7 +1306,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param amount The amount of XVS to (possibly) transfer
      */
     function _grantXVS(address recipient, uint amount) external {
-        require(adminOrInitializing(), "only admin or impl can grant xvs");
+        ensureAdminOr(comptrollerImplementation);
         uint amountLeft = grantXVSInternal(recipient, amount, 0, false);
         require(amountLeft == 0, "insufficient xvs for grant");
         emit VenusGranted(recipient, amount);
@@ -1367,7 +1346,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param venusSpeed New XVS speed for market
      */
     function _setVenusSpeed(VToken vToken, uint venusSpeed) external {
-        require(adminOrInitializing(), "only admin or impl can set venus speed");
+        ensureAdminOr(comptrollerImplementation);
         ensureNonzeroAddress(address(vToken));
         setVenusSpeedInternal(vToken, venusSpeed);
     }

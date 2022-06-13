@@ -57,7 +57,7 @@ describe('Flywheel', () => {
     it('should revert if not called by admin', async () => {
       await expect(
         send(comptroller, '_grantXVS', [a1, 100], {from: a1})
-      ).rejects.toRevert('revert only admin or impl can grant xvs');
+      ).rejects.toRevert('revert access denied');
     });
 
     it('should revert if insufficient xvs', async () => {
@@ -123,7 +123,7 @@ describe('Flywheel', () => {
       }
       await expect(
         send(comptroller, '_setVenusSpeed', [vLOW._address, 0], {from: a1})
-      ).rejects.toRevert('revert only admin or impl can set venus speed');
+      ).rejects.toRevert('revert access denied');
     });
 
     it('should not add non-listed markets', async () => {

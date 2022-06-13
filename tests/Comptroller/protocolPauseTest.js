@@ -21,8 +21,8 @@ describe('Comptroller', () => {
       });
 
       it(`only admin can set protocol state`, async () => {
-        await expect(send(comptroller, `_setProtocolPaused`, [true], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can");
-        await expect(send(comptroller, `_setProtocolPaused`, [false], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can");
+        await expect(send(comptroller, `_setProtocolPaused`, [true], {from: accounts[2]})).rejects.toRevert("revert access denied");
+        await expect(send(comptroller, `_setProtocolPaused`, [false], {from: accounts[2]})).rejects.toRevert("revert access denied");
       });
 
       it(`admin can pause`, async () => {
@@ -32,7 +32,7 @@ describe('Comptroller', () => {
         state = await call(comptroller, `protocolPaused`);
         expect(state).toEqual(true);
 
-        await expect(send(comptroller, `_setProtocolPaused`, [false], {from: accounts[2]})).rejects.toRevert("revert only pause guardian and admin can");
+        await expect(send(comptroller, `_setProtocolPaused`, [false], {from: accounts[2]})).rejects.toRevert("revert access denied");
         result = await send(comptroller, `_setProtocolPaused`, [false], {from: root});
 
         expect(result).toHaveLog(`ActionProtocolPaused`, {state: false});

@@ -43,9 +43,9 @@ describe('Comptroller', () => {
     });
 
     it("fails if called by non-admin", async () => {
-      const {reply, receipt} = await both(comptroller, '_setLiquidationIncentive', [initialIncentive], {from: accounts[0]});
-      expect(reply).toHaveTrollError('UNAUTHORIZED');
-      expect(receipt).toHaveTrollFailure('UNAUTHORIZED', 'SET_LIQUIDATION_INCENTIVE_OWNER_CHECK');
+      await expect(
+        send(comptroller, '_setLiquidationIncentive', [initialIncentive], {from: accounts[0]})
+      ).rejects.toRevert('revert only admin can');
       expect(await call(comptroller, 'liquidationIncentiveMantissa')).toEqualNumber(initialIncentive);
     });
 
@@ -98,9 +98,9 @@ describe('Comptroller', () => {
     });
 
     it("fails if called by non-admin", async () => {
-      expect(
-        await send(comptroller, '_setPriceOracle', [newOracle._address], {from: accounts[0]})
-      ).toHaveTrollFailure('UNAUTHORIZED', 'SET_PRICE_ORACLE_OWNER_CHECK');
+      await expect(
+        send(comptroller, '_setPriceOracle', [newOracle._address], {from: accounts[0]})
+      ).rejects.toRevert('revert only admin can');
 
       expect(await comptroller.methods.oracle().call()).toEqual(oldOracle._address);
     });
@@ -167,9 +167,9 @@ describe('Comptroller', () => {
 
     it("fails if not called by admin", async () => {
       const vToken = await makeVToken();
-      expect(
-        await send(vToken.comptroller, '_setCollateralFactor', [vToken._address, half], {from: accounts[0]})
-      ).toHaveTrollFailure('UNAUTHORIZED', 'SET_COLLATERAL_FACTOR_OWNER_CHECK');
+      await expect(
+        send(vToken.comptroller, '_setCollateralFactor', [vToken._address, half], {from: accounts[0]})
+      ).rejects.toRevert('revert only admin can');
     });
 
     it("fails if asset is not listed", async () => {
@@ -200,9 +200,9 @@ describe('Comptroller', () => {
   describe('_supportMarket', () => {
     it("fails if not called by admin", async () => {
       const vToken = await makeVToken(root);
-      expect(
-        await send(vToken.comptroller, '_supportMarket', [vToken._address], {from: accounts[0]})
-      ).toHaveTrollFailure('UNAUTHORIZED', 'SUPPORT_MARKET_OWNER_CHECK');
+      await expect(
+        send(vToken.comptroller, '_supportMarket', [vToken._address], {from: accounts[0]})
+      ).rejects.toRevert('revert only admin can');
     });
 
     it("fails if asset is not a VToken", async () => {

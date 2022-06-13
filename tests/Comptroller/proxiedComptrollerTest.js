@@ -57,11 +57,11 @@ describe('Comptroller', function() {
         one = bnbMantissa(1);
 
       it('fails if not called by admin', async () => {
-        expect(
-          await send(unitrollerAsComptroller, '_setCollateralFactor', [vToken._address, half], {
+        await expect(
+          send(unitrollerAsComptroller, '_setCollateralFactor', [vToken._address, half], {
             from: accounts[1]
           })
-        ).toHaveTrollFailure('UNAUTHORIZED', 'SET_COLLATERAL_FACTOR_OWNER_CHECK');
+        ).rejects.toRevert('revert only admin can');
       });
 
       it('fails if asset is not listed', async () => {
@@ -99,9 +99,9 @@ describe('Comptroller', function() {
 
     describe('_supportMarket', () => {
       it('fails if not called by admin', async () => {
-        expect(
-          await send(unitrollerAsComptroller, '_supportMarket', [vToken._address], { from: accounts[1] })
-        ).toHaveTrollFailure('UNAUTHORIZED', 'SUPPORT_MARKET_OWNER_CHECK');
+        await expect(
+          send(unitrollerAsComptroller, '_supportMarket', [vToken._address], { from: accounts[1] })
+        ).rejects.toRevert('revert only admin can');
       });
 
       it('fails if asset is not a VToken', async () => {
