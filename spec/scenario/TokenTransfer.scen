@@ -2,6 +2,7 @@
 Test "Simple vToken Transfer"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Just to be sure, check initial balances
@@ -15,6 +16,7 @@ Test "Simple vToken Transfer"
 Test "Simple vToken Transfer When Underlying Paused"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff Some WBTC vWBTC
     Mint Geoff 50e8 vWBTC
     -- Just to be sure, check initial balances
@@ -29,6 +31,7 @@ Test "Simple vToken Transfer When Underlying Paused"
 Test "Simple vToken Transfer 1:1 Rate"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e0
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Just to be sure, check initial balances
@@ -42,6 +45,7 @@ Test "Simple vToken Transfer 1:1 Rate"
 Test "Simple vToken Transfer Not Allowed by Comptroller"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e0
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Comptroller SetCollateralFactor vZRX 0.1
     EnterMarkets Geoff vZRX
     Prep Geoff Some ZRX vZRX
@@ -57,6 +61,7 @@ Test "Simple vToken Transfer Not Allowed by Comptroller"
 Test "Simple vToken Transfer From"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Just to be sure, check initial balances
@@ -75,6 +80,7 @@ Test "Simple vToken Transfer From"
 Test "vToken Transfer From Not Allowed"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 50e18 vZRX
     --
@@ -87,6 +93,7 @@ Test "vToken Transfer From Not Allowed"
 Test "vToken Transfer paused"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Just to be sure, check initial balances

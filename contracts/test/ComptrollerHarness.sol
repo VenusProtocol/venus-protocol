@@ -526,6 +526,10 @@ contract BoolComptroller is ComptrollerInterface {
         treasuryPercent = treasuryPercent_;
     }
 
+    function _setMarketSupplyCaps(VToken[] calldata vTokens, uint[] calldata newSupplyCaps) external {
+
+    }
+
     /*** Functions from ComptrollerInterface not implemented by BoolComptroller ***/
 
     function markets(address) external view returns (bool, uint) { revert(); }

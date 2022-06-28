@@ -12,7 +12,7 @@ const {
   setBalance,
   setBNBBalance,
   getBalances,
-  adjustBalances,
+  adjustBalances
 } = require('../Utils/Venus');
 
 const exchangeRate = 5;

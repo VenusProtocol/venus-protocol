@@ -3,6 +3,7 @@
 Test "Change the delegate"
     NewComptroller
     NewVToken DEL vDEL
+    Comptroller SetMarketSupplyCaps (vDEL) (1000e18)
     Support vDEL collateralFactor:0.5
     Prep Jared Some DEL vDEL
     Mint Jared 100e18 vDEL

@@ -2,7 +2,8 @@ const {both} = require('../Utils/BSC');
 const {
   fastForward,
   makeVToken,
-  makeInterestRateModel
+  makeInterestRateModel,
+  setMarketSupplyCap
 } = require('../Utils/Venus');
 
 describe('VToken', function () {
@@ -19,6 +20,7 @@ describe('VToken', function () {
       vToken = await makeVToken();
       oldModel = vToken.interestRateModel;
       expect(oldModel._address).not.toEqual(newModel._address);
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
     });
 
     it("fails if called by non-admin", async () => {

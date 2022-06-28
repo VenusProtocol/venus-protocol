@@ -3,6 +3,7 @@ Macro NewMintVAI mintVAIAmount mintAmount user=Geoff collateralPrice=1.0 closeFa
     PricedComptrollerWithVAIController closeFactor:0.9
     VAIController SetTreasuryData Guardian Jared 1e14
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     PriceOracle SetPrice vZRX collateralPrice
     Support vZRX collateralFactor:0.7
     Comptroller SetVAIMintRate 7e3
@@ -13,6 +14,7 @@ Macro SimpleMintVAI user mintVAIAmount mintAmount
     Mint user mintAmount vZRX
     EnterMarkets user vZRX
     MintVAI user mintVAIAmount
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
 
 Test "VAI Mint Fee"
     NewMintVAI mintVAIAmount:1e18 mintAmount:1.43e18

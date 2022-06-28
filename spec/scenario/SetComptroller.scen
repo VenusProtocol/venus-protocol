@@ -3,6 +3,7 @@
 Test "Set Comptroller"
     NewComptroller
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Assert Equal (VToken vZRX Comptroller) (Unitroller Address)
     ComptrollerImpl Deploy Scenario NewComptroller
     From Root (VToken vZRX SetComptroller (ComptrollerImpl NewComptroller Address))
@@ -13,6 +14,7 @@ Test "Set Comptroller"
 Test "Fail when is not a comptroller"
     NewComptroller
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Invariant Remains (VToken vZRX Comptroller) (Unitroller Address)
     AllowFailures
     From Root (VToken vZRX SetComptroller (PriceOracle Address))
@@ -21,6 +23,7 @@ Test "Fail when is not a comptroller"
 Test "Fail to set comptroller as not admin"
     NewComptroller
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     AllowFailures
     From Geoff (VToken vZRX SetComptroller (PriceOracle Address))
     Assert Failure UNAUTHORIZED SET_COMPTROLLER_OWNER_CHECK

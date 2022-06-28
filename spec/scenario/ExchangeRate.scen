@@ -7,6 +7,7 @@ Test "Initial Exchange Rate"
 Test "Initial Exchange Rate with Mint"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:5e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     -- Check initial exchange holds
     Invariant Remains (VToken vZRX ExchangeRateStored) (Exp 5e9)
     -- Mint some tokens and verify invariant still holds
@@ -26,6 +27,7 @@ Test "ZRX: Exch. Rate:2e9, Cash(51e18) + Borrows(2.0e18) - Reserves(0.5e18) / To
     NewComptroller
     -- Decimals You=18, Decimals Us=8 -> 2e9 Exchange Rate
     ListedVToken ZRX vZRX initialExchangeRate:2e9 decimals:8
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Assert Equal (VToken vZRX ExchangeRateStored) (Exp 2e9)
     -- Mint 50.0 ZRX at given exchange rate
     Prep Geoff Some ZRX vZRX
@@ -51,6 +53,7 @@ Test "USDC: Exch. Rate:2e-3, Cash(51e18) + Borrows(2.0e18) - Reserves(0.5e18) / 
     NewComptroller
     -- Decimals You=6, Decimals Us=8 -> 2e-3 Exchange Rate
     ListedVToken USDC vUSDC initialExchangeRate:2e-3 decimals:8
+    Comptroller SetMarketSupplyCaps (vUSDC) (2000e18)
     Assert Equal (VToken vUSDC ExchangeRateStored) (Exp 2e-3)
     -- Mint 50.0 USDC at given exchange rate
     Prep Geoff Little USDC vUSDC

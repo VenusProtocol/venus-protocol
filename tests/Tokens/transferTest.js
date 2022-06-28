@@ -1,4 +1,4 @@
-const {makeVToken} = require('../Utils/Venus');
+const {makeVToken, setMarketSupplyCap} = require('../Utils/Venus');
 
 describe('VToken', function () {
   let root, accounts;
@@ -9,12 +9,14 @@ describe('VToken', function () {
   describe('transfer', () => {
     it("cannot transfer from a zero balance", async () => {
       const vToken = await makeVToken({supportMarket: true});
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
       expect(await call(vToken, 'balanceOf', [root])).toEqualNumber(0);
       expect(await send(vToken, 'transfer', [accounts[0], 100])).toHaveTokenFailure('MATH_ERROR', 'TRANSFER_NOT_ENOUGH');
     });
 
     it("transfers 50 tokens", async () => {
       const vToken = await makeVToken({supportMarket: true});
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
       await send(vToken, 'harnessSetBalance', [root, 100]);
       expect(await call(vToken, 'balanceOf', [root])).toEqualNumber(100);
       await send(vToken, 'transfer', [accounts[0], 50]);
@@ -24,6 +26,7 @@ describe('VToken', function () {
 
     it("doesn't transfer when src == dst", async () => {
       const vToken = await makeVToken({supportMarket: true});
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
       await send(vToken, 'harnessSetBalance', [root, 100]);
       expect(await call(vToken, 'balanceOf', [root])).toEqualNumber(100);
       expect(await send(vToken, 'transfer', [root, 50])).toHaveTokenFailure('BAD_INPUT', 'TRANSFER_NOT_ALLOWED');

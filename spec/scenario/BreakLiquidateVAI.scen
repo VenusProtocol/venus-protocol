@@ -5,6 +5,7 @@ Macro NewMintVAI mintVAIAmount mintAmount user=Geoff collateralPrice=1.0 borrowP
     Comptroller SetLiquidatorContract (Address Liquidator)
     Comptroller LiquidationIncentive liquidationIncentive
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     PriceOracle SetPrice vZRX collateralPrice
     Support vZRX collateralFactor:0.7
     Comptroller SetVAIMintRate 7e3

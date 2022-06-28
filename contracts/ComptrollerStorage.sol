@@ -199,10 +199,7 @@ contract ComptrollerV7Storage is ComptrollerV6Storage {
 }
 
 contract ComptrollerV8Storage is ComptrollerV7Storage {
-
-    /// @notice The supplyCapGuardian can set supplyCaps to any number for any market. Lowering the supply cap could disable Supply on the given market.
-    address public supplyCapGuardian;
     
     /// @notice Supply caps enforced by mintAllowed for each vToken address. Defaults to zero which corresponds to minting notAllowed
-    mapping(address => uint) public supplyCaps;
+    mapping(address => uint256) public supplyCaps;
 }

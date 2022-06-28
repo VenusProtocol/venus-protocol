@@ -82,7 +82,6 @@ describe('Comptroller', () => {
     testZeroAddress('_setCollateralFactor', [address(0), 0]);
     testZeroAddress('_setPauseGuardian', [address(0)]);
     testZeroAddress('_setBorrowCapGuardian', [address(0)]);
-    testZeroAddress('_setSupplyCapGuardian', [address(0)]);
     testZeroAddress('_setVAIController', [address(0)]);
     testZeroAddress('_setTreasuryData', [address(0), address(0), 0]);
     testZeroAddress('_setComptrollerLens', [address(0)]);

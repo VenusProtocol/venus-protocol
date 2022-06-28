@@ -1,5 +1,5 @@
 const {
-  makeVToken,
+  makeVToken,setMarketSupplyCap
 } = require('../Utils/Venus');
   
 describe('VXvsLikeDelegate', function () {
@@ -7,6 +7,7 @@ describe('VXvsLikeDelegate', function () {
     it("does not delegate if not the admin", async () => {
       const [root, a1] = saddle.accounts;
       const vToken = await makeVToken({kind: 'vxvs'});
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
       await expect(send(vToken, '_delegateXvsLikeTo', [a1], {from: a1})).rejects.toRevert('revert only the admin may set the xvs-like delegate');
     });
 

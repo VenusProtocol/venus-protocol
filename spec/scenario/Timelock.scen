@@ -58,6 +58,7 @@ Test "Accept vToken admin from Timelock"
     Assert Equal (Timelock Admin) (User Geoff Address)
     NewComptroller
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Assert Equal (VToken vZRX Admin) (Address Root)
     Assert Equal (VToken vZRX PendingAdmin) (Address Zero)
     From Root (VToken vZRX SetPendingAdmin (Timelock Address))
@@ -98,6 +99,7 @@ Test "Accept unitroller admin from Timelock"
 Test "Reduce reserves for VBep20 from Timelock and send reserves to external address"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff 50e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 500e8)
@@ -143,6 +145,7 @@ Test "Reduce reserves for VBep20 from Timelock and send reserves to external add
 Test "Reduce reserves for VBNB from Timelock and send reserves to external address"
     NewComptroller
     ListedBNBToken vBNB initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2e30)
     CallMintBnb Geoff 50e18 vBNB
     Assert Equal (Bep20 vBNB TokenBalance Geoff) (Exactly 500e8)
     Assert Equal (VToken vBNB UnderlyingBalance Geoff) (Exactly 50e18)

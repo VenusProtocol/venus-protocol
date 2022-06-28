@@ -3,6 +3,8 @@ Test "Borrow some BAT and enters BAT if BAT not entered"
     NewComptroller price:1.0
     NewVToken ZRX vZRX
     NewVToken BAT vBAT
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
     Support vBAT collateralFactor:0.5
@@ -23,6 +25,8 @@ Test "Borrow some BAT fails, but user still entered"
     NewVToken BAT vBAT
     Support vZRX collateralFactor:0.5
     Support vBAT collateralFactor:0.5
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 100e18 vZRX
     EnterMarkets Geoff vZRX
@@ -41,6 +45,8 @@ Test "Borrow some BAT fails when no BAT available"
     NewVToken BAT vBAT
     Support vZRX collateralFactor:0.5
     Support vBAT collateralFactor:0.5
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 100e18 vZRX
     EnterMarkets Geoff vZRX vBAT
@@ -53,6 +59,8 @@ Test "Borrow fails if market not listed"
     NewComptroller price:1.0
     NewVToken ZRX vZRX
     NewVToken BAT vBAT
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
     Prep Geoff Some ZRX vZRX
@@ -67,6 +75,8 @@ Test "Borrow some BAT from Excess Cash"
     NewComptroller price:1.0
     NewVToken ZRX vZRX
     NewVToken BAT vBAT
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
     Support vBAT collateralFactor:0.5
@@ -82,6 +92,8 @@ Test "Borrow some BAT reverts if borrow is paused"
     NewComptroller price:1.0
     NewVToken ZRX vZRX
     NewVToken BAT vBAT
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
     Support vBAT collateralFactor:0.5

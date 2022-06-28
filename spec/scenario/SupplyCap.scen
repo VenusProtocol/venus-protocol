@@ -53,40 +53,21 @@ Test "Setting supply cap restricted to admin"
     ListedBNBToken vBNB initialExchangeRate:0.005e9
     AllowFailures
     From Robert (Comptroller SetMarketSupplyCaps (vBNB) (0.01e18))
-    Assert Revert "revert only admin or supply cap guardian can set supply caps"
-
-Test "Supply cap guardian can set borrow caps"
-    NewComptroller price:1.0
-    ListedVToken ZRX vZRX
-    Comptroller SetSupplyCapGuardian Geoff
-    From Geoff (Comptroller SetMarketSupplyCaps (vZRX) (0.5e18))
-    AllowFailures
-    From Robert (Comptroller SetMarketSupplyCaps (vZRX) (0.01e18)) -- Robert still can't...
-    Assert Revert "revert only admin or supply cap guardian can set supply caps"
-    Assert Equal (Comptroller SupplyCaps vZRX) (Exactly 0.5e18)
-    Assert Equal (Comptroller SupplyCapGuardian) (User Geoff Address)
-
-Test "Only admin can set Supply Cap Guardian"
-    NewComptroller price:1.0
-    AllowFailures
-    From Robert (Comptroller SetSupplyCapGuardian Robert) -- Robert has really gone rogue
-    Assert Revert
+    Assert Revert "revert only admin can set supply caps"
 
 Test "Invalid markets while setting Market SupplyCaps"
     NewComptroller price:1.0
     ListedVToken ZRX vZRX
     ListedVToken BAT vBAT
-    Comptroller SetSupplyCapGuardian Geoff
     AllowFailures
-    From Geoff (Comptroller SetMarketSupplyCaps (vZRX) (0.5e18 0.7e18))
+    Comptroller SetMarketSupplyCaps (vZRX) (0.5e18 0.7e18)
     Assert Revert "revert invalid input"
 
 Test "Invalid SupplyCap while setting Market SupplyCaps"
     NewComptroller price:1.0
     ListedVToken ZRX vZRX
     ListedVToken BAT vBAT
-    Comptroller SetSupplyCapGuardian Geoff
     AllowFailures
-    From Geoff (Comptroller SetMarketSupplyCaps (vZRX vBAT) (0.5e18))
+    Comptroller SetMarketSupplyCaps (vZRX vBAT) (0.5e18)
     Assert Revert "revert invalid input"
 
