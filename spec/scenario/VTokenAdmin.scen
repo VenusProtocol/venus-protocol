@@ -2,6 +2,7 @@
 Test "Set admin"
     NewComptroller
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Assert Equal (VToken vZRX Admin) (Address Root)
     Assert Equal (VToken vZRX PendingAdmin) (Address Zero)
     From Root (VToken vZRX SetPendingAdmin Geoff)
@@ -14,6 +15,7 @@ Test "Set admin"
 Test "Set admin to contructor argument"
     NewComptroller
     NewVToken ZRX vZRX admin:Torrey
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Assert Equal (VToken vZRX Admin) (Address Torrey)
     Assert Equal (VToken vZRX PendingAdmin) (Address Zero)
     From Torrey (VToken vZRX SetPendingAdmin Geoff)
@@ -27,6 +29,7 @@ Test "Set admin to contructor argument"
 Test "Fail to set pending admin"
     NewComptroller
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Invariant Remains (VToken vZRX Admin) (Address Root)
     Invariant Remains (VToken vZRX PendingAdmin) (Address Zero)
     AllowFailures
@@ -36,6 +39,7 @@ Test "Fail to set pending admin"
 Test "Fail to accept admin"
     NewComptroller
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Invariant Remains (VToken vZRX Admin) (Address Root)
     Invariant Remains (VToken vZRX PendingAdmin) (Address Zero)
     AllowFailures

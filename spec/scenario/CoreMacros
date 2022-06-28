@@ -87,6 +87,7 @@ Macro NewVTokenBringBEP20 bep20 vToken borrowRate=0.000005 initialExchangeRate=2
     InterestRateModel Deploy Fixed StdInterest borrowRate -- Note: interest rate model probably shouldn't be global
     VTokenDelegate Deploy vTokenType vBep20Delegate
     VToken Deploy delegatorType vToken vToken (Bep20 bep20 Address) (Comptroller Address) (InterestRateModel StdInterest Address) initialExchangeRate decimals admin (VTokenDelegate vBep20Delegate Address) becomeImplementationData
+    Comptroller SetMarketSupplyCaps (vToken) (2000e18)
 
 Macro NewVTokenImmutable bep20 vToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 tokenType=Standard vTokenType=Scenario admin=Admin
     Bep20 Deploy tokenType bep20 bep20
@@ -108,12 +109,14 @@ Macro ListedVTokenImmutable bep20 vToken borrowRate=0.000005 initialExchangeRate
 Macro ListedBNBToken vToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 admin=Admin
     NewBNBToken vToken borrowRate initialExchangeRate decimals admin
     Comptroller SupportMarket vToken
+    Comptroller SetMarketSupplyCaps (vToken) (2000e18)
     PriceOracleProxy Deploy Admin (PriceOracle Address) (Address vBNB) (Address Zero) (Address Zero) (Address Zero) (Address Zero)
     Comptroller SetPriceOracle (PriceOracleProxy Address)
 
 Macro ListedBNBTokenMinted vToken borrowRate=0.000005 initialExchangeRate=2e9 decimals=8 admin=Admin
     NewBNBToken vToken borrowRate initialExchangeRate decimals admin
     Comptroller SupportMarket vToken
+    Comptroller SetMarketSupplyCaps (vToken) (2000e18)
     CallMintBnb Root 1e18 vToken
 
 Macro SetPriceCF vToken price collateralFactor
@@ -263,6 +266,7 @@ Macro BorrowAndRepayWithInterest bep20 vToken amount interestAmount interestRate
     VToken vToken SetReserveFactor reserveRate
     ListedVToken COLLAT cCOLLAT
     Comptroller SetCollateralFactor cCOLLAT 0.9
+    Comptroller SetMarketSupplyCaps (cCOLLAT) (2e30)
     Prep Torrey 1e30 COLLAT cCOLLAT
     Mint Torrey 1e30 cCOLLAT
     EnterMarkets Torrey cCOLLAT vToken
@@ -289,6 +293,7 @@ Macro BorrowAndRepayBnbWithInterest vBnb amount interestAmount interestRate bloc
     VToken vBnb SetReserveFactor reserveRate
     ListedVToken COLLAT cCOLLAT
     Comptroller SetCollateralFactor cCOLLAT 0.9
+    Comptroller SetMarketSupplyCaps (cCOLLAT) (2e30)
     Prep Torrey 1e30 COLLAT cCOLLAT
     Mint Torrey 1e30 cCOLLAT
     EnterMarkets Torrey cCOLLAT vBnb

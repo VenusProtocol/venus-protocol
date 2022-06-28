@@ -3,7 +3,9 @@
 Macro SetupBorrow borrowRate
     NewComptroller price:1.0 -- TODO: This should really be a price for a specific asset
     ListedVToken ZRX vZRX borrowRate
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     ListedBNBToken vBNB borrowRate 0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2e30)
     SetCollateralFactor vZRX collateralFactor:0.5
     SetCollateralFactor vBNB collateralFactor:0.5
     Donate vBNB 0.003e18

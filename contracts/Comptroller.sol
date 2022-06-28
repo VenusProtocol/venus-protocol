@@ -99,9 +99,6 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when supply cap for a vToken is changed
     event NewSupplyCap(VToken indexed vToken, uint newSupplyCap);
 
-    /// @notice Emitted when supply cap guardian is changed
-    event NewSupplyCapGuardian(address oldSupplyCapGuardian, address newSupplyCapGuardian);
-
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
 
@@ -285,13 +282,13 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
 
         ensureListed(markets[vToken]);
 
-        uint supplyCap = supplyCaps[vToken];
+        uint256 supplyCap = supplyCaps[vToken];
 
         // Supply cap of 0 corresponds to Minting notAllowed 
         require(supplyCap > 0, "market supply cap is 0");
 
         uint totalSupply = VToken(vToken).totalSupply();
-        uint nextTotalSupply = add_(totalSupply, mintAmount);
+        uint256 nextTotalSupply = add_(totalSupply, mintAmount);
         require(nextTotalSupply <= supplyCap, "market supply cap reached");
 
         // Keep the flywheel moving
@@ -1039,12 +1036,12 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
 
     /**
       * @notice Set the given supply caps for the given vToken markets. Supply that brings total Supply to or above supply cap will revert.
-      * @dev Admin or supplyCapGuardian function to set the supply caps. A supply cap of 0 corresponds to Minting NotAllowed.
+      * @dev Admin function to set the supply caps. A supply cap of 0 corresponds to Minting NotAllowed.
       * @param vTokens The addresses of the markets (tokens) to change the supply caps for
       * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed.
       */
-    function _setMarketSupplyCaps(VToken[] calldata vTokens, uint[] calldata newSupplyCaps) external {
-        require(msg.sender == admin || msg.sender == supplyCapGuardian, "only admin or supply cap guardian can set supply caps");
+    function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
+        require(msg.sender == admin , "only admin can set supply caps");
 
         uint numMarkets = vTokens.length;
         uint numSupplyCaps = newSupplyCaps.length;
@@ -1055,24 +1052,6 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
             supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
             emit NewSupplyCap(vTokens[i], newSupplyCaps[i]);
         }
-    }
-
-    /**
-     * @notice Admin function to change the Supply Cap Guardian
-     * @param newSupplyCapGuardian The address of the new Supply Cap Guardian
-     */
-    function _setSupplyCapGuardian(address newSupplyCapGuardian) external {
-        ensureAdmin();
-        ensureNonzeroAddress(newSupplyCapGuardian);
-
-        // Save current value for inclusion in log
-        address oldSupplyCapGuardian = supplyCapGuardian;
-
-        // Store supplyCapGuardian with value newSupplyCapGuardian
-        supplyCapGuardian = newSupplyCapGuardian;
-
-        // Emit NewSupplyCapGuardian(OldSupplyCapGuardian, NewSupplyCapGuardian)
-        emit NewSupplyCapGuardian(oldSupplyCapGuardian, newSupplyCapGuardian);
     }
 
     /**

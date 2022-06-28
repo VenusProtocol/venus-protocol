@@ -1,6 +1,7 @@
 Test "Add all reserves and verify effects"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff 50e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 500e8) -- 50e18 / 1e9
@@ -36,6 +37,7 @@ Test "Add all reserves and verify effects"
 Test "Remove and re add reserves and remove again"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff 50e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 500e8)
@@ -78,6 +80,7 @@ Test "Remove and re add reserves and remove again"
 Test "add reserves to empty contract"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Assert Equal (VToken vZRX ExchangeRate) (Exactly 1e9)
     Bep20 ZRX Faucet Root 3e18
     From Root (Bep20 ZRX Approve vZRX 6e18)
@@ -91,6 +94,7 @@ Test "add reserves to empty contract"
 Test "add reserves failures"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (1000000e18)
     Assert Equal (VToken vZRX ExchangeRate) (Exactly 1e9)
     Assert Equal (VToken vZRX Reserves) (Exactly 0e18)
     Bep20 ZRX Faucet Root 2e18
@@ -106,6 +110,7 @@ Test "add reserves failures"
 Test "Add reserves WBTC when paused"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:1e9 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff 50e18 WBTC vWBTC
     Mint Geoff 50e18 vWBTC
     Assert Equal (Bep20 vWBTC TokenBalance Geoff) (Exactly 500e8)

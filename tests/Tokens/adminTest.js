@@ -1,5 +1,5 @@
 const {address} = require('../Utils/BSC');
-const {makeVToken} = require('../Utils/Venus');
+const {makeVToken, setMarketSupplyCap} = require('../Utils/Venus');
 
 describe('admin / _setPendingAdmin / _acceptAdmin', () => {
   let vToken, root, accounts;
@@ -7,6 +7,7 @@ describe('admin / _setPendingAdmin / _acceptAdmin', () => {
   beforeEach(async () => {
     [root, ...accounts] = saddle.accounts;
     vToken = await makeVToken();
+    await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
   });
 
   describe('admin()', () => {

@@ -21,7 +21,9 @@ Test "Repay borrow should work and not change exchange rate"
     PricedComptroller
     Bep20 Deploy Fee USDT USDT 18 100 Admin
     NewVTokenBringBEP20 USDT vUSDT
+    Comptroller SetMarketSupplyCaps (vUSDT) (2000e18)
     NewVToken ZRX vZRX 0.000005 2e9 8 Standard
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     PriceOracle SetPrice vZRX 1.0
     PriceOracle SetPrice vUSDT 1.0
     Support vZRX 0.5
@@ -47,7 +49,9 @@ Test "Should be able to liquidate fee token borrow"
     Comptroller LiquidationIncentive 1.1
     Bep20 Deploy Fee USDT USDT 18 100 Admin
     NewVTokenBringBEP20 USDT vUSDT
+    Comptroller SetMarketSupplyCaps (vUSDT) (2000e18)
     NewVToken ZRX vZRX 0.000005 2e9 8 Standard
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     PriceOracle SetPrice vZRX 1.0
     PriceOracle SetPrice vUSDT 1.0
     Support vZRX 0.5
@@ -78,6 +82,7 @@ Test "Should be able to redeem a fee VToken, exchange Rate should not change"
     NewComptroller price:1.0
     Bep20 Deploy Fee USDT USDT 18 100 Admin
     NewVTokenBringBEP20 USDT vUSDT
+    Comptroller SetMarketSupplyCaps (vUSDT) (2000e18)
     Support vUSDT collateralFactor:0.5
     Invariant Static (VToken vUSDT ExchangeRate)
     Prep Torrey 1e18 USDT vUSDT
@@ -88,6 +93,7 @@ Test "Order of redeems should not matter if no interest accrued"
     NewComptroller price:1.0
     Bep20 Deploy Fee USDT USDT 18 100 Admin
     NewVTokenBringBEP20 USDT vUSDT
+    Comptroller SetMarketSupplyCaps (vUSDT) (2000e18)
     Support vUSDT collateralFactor:0.5
     Invariant Static (VToken vUSDT ExchangeRate)
     Prep Torrey 1e18 USDT vUSDT

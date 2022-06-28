@@ -3,7 +3,9 @@
 Macro NewBorrow borrowAmount borrowRate
     NewComptroller price:1.0 -- TODO: This should really be a price for a specific asset
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     NewVToken WBTC vWBTC borrowRate 0.1 8 WBTC -- note: cannot use macros with named args right now
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Give vWBTC 10e8 WBTC -- Faucet some WBTC to borrow
     Support vZRX collateralFactor:0.5
     Support vWBTC collateralFactor:0.5

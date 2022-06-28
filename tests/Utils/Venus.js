@@ -19,6 +19,7 @@ async function makeComptroller(opts = {}) {
 
   if (kind == 'bool') {
     const comptroller = await deploy('BoolComptroller');
+
     const xvs = opts.xvs || await deploy('XVS', [opts.venusOwner || root]);
     const vai = opts.vai || await makeVAI();
 
@@ -128,7 +129,6 @@ async function makeVToken(opts = {}) {
     root = saddle.account,
     kind = 'vbep20'
   } = opts || {};
-
   const comptroller = opts.comptroller || await makeComptroller(opts.comptrollerOpts);
   const interestRateModel = opts.interestRateModel || await makeInterestRateModel(opts.interestRateModelOpts);
   const exchangeRate = bnbMantissa(dfn(opts.exchangeRate, 1));
@@ -552,6 +552,10 @@ async function pretendVAIMint(comptroller, vaicontroller, vai, vaiMinter, princi
   await send(vaicontroller, 'harnessSetBlockNumber', [bnbUnsigned(blockNumber)]);
 }
 
+async function setMarketSupplyCap(comptroller, vTokens, supplyCaps) {
+  await send(comptroller, '_setMarketSupplyCaps', [vTokens, supplyCaps]);
+}
+
 module.exports = {
   makeComptroller,
   makeVToken,
@@ -592,5 +596,6 @@ module.exports = {
   getBorrowRate,
   getSupplyRate,
   pretendBorrow,
-  pretendVAIMint
+  pretendVAIMint,
+  setMarketSupplyCap
 };

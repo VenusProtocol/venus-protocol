@@ -3,6 +3,7 @@
 Test "Mint WBTC then Redeem All"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff 70e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC
     -- Check current affairs
@@ -19,6 +20,7 @@ Test "Mint WBTC then Redeem All"
 Test "Mint WBTC, Enter and then Redeem All"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff 70e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC
     -- Check current affairs
@@ -36,6 +38,7 @@ Test "Mint WBTC, Enter and then Redeem All"
 Test "Mint WBTC then Redeem Part"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff 70e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC
     -- Check current affairs
@@ -52,6 +55,7 @@ Test "Mint WBTC then Redeem Part"
 Test "Mint WBTC then Redeem Too Much"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff 70e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC
     -- Check and hold static
@@ -67,6 +71,7 @@ Test "Mint WBTC then Redeem Too Much"
 Test "Mint WBTC then Redeem Zero"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff 70e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC
     -- Check current affairs
@@ -83,6 +88,7 @@ Test "Mint WBTC then Redeem Zero"
 Test "Mint WBTC then redeem with interest - no reserves"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Invariant Remains (VToken vWBTC Reserves) Zero
     Prep Geoff 50e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC
@@ -109,6 +115,7 @@ Test "Mint WBTC then redeem with interest - no reserves"
 Test "Mint WBTC then redeem part with interest - no reserves"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Invariant Remains (VToken vWBTC Reserves) Zero
     Prep Geoff 50e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC
@@ -133,6 +140,7 @@ Test "Mint WBTC then redeem part with interest - no reserves"
 Test "Mint WBTC then redeem with reserves and interest"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff 50e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC
     Assert Equal (Bep20 vWBTC TokenBalance Geoff) 500e8
@@ -162,6 +170,7 @@ Test "Mint WBTC then redeem with reserves and interest"
 Test "Two users Mint WBTC, one redeems"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff Some WBTC vWBTC
     Prep Torrey Some WBTC vWBTC
     Mint Geoff 2e8 vWBTC
@@ -179,6 +188,7 @@ Test "Two users Mint WBTC, one redeems"
 Test "Redeem WBTC transfer out fails"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff 70e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC
     -- Check current affairs
@@ -195,6 +205,7 @@ Test "Redeem WBTC transfer out fails"
 Test "Mint WBTC, Enter, then Redeem Too Much (collateral factor: 0)"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff 70e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC
     -- Check and hold static
@@ -211,6 +222,7 @@ Test "Mint WBTC, Enter, then Redeem Too Much (collateral factor: 0)"
 Test "Mint WBTC, Enter, then Redeem Too Much (collateral factor: 0.1)"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Comptroller SetCollateralFactor vWBTC 0.1
     Prep Geoff 70e8 WBTC vWBTC
     Mint Geoff 50e8 vWBTC

@@ -38,6 +38,8 @@ Macro GrantsComptroller
     ComptrollerImpl ComptrollerScen Become
     ComptrollerLens Deploy
     Comptroller SetComptrollerLens (Address ComptrollerLens)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
 
 Macro InitSpeeds
     Prep Geoff 100e18 ZRX vZRX

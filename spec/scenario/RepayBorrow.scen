@@ -3,7 +3,9 @@
 Macro NewBorrow borrowAmount borrowRate
     NewComptroller price:1.0 -- TODO: This should really be a price for a specific asset
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     NewVToken BAT vBAT borrowRate -- note: cannot use macros with named args right now
+    Comptroller SetMarketSupplyCaps (vBAT) (2e30)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
     Support vBAT collateralFactor:0.5

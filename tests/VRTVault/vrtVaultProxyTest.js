@@ -181,7 +181,6 @@ describe('VRTVaultProxy', () => {
     it("should update the implementation and assert the existing-storage on upgraded implementation", async () => {
       
       const vrtVaultAddressBeforeUpgrade = vrtVaultAddress;
-      console.log(`vrtVaultAddress before upgrade: ${vrtVaultAddressBeforeUpgrade}`)
 
       vrtVault = await deploy('VRTVaultHarness', [], { from: root });
       vrtVaultAddress = vrtVault._address;

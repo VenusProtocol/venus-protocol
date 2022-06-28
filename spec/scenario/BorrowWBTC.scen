@@ -4,6 +4,8 @@ Test "Borrow some WBTC enters WBTC and succeeds when not entered"
     NewComptroller price:1.0
     NewVToken ZRX vZRX
     NewVToken WBTC vWBTC tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Give vWBTC 10e8 WBTC -- Faucet some WBTC to borrow
     Support vZRX collateralFactor:0.5
     Support vWBTC collateralFactor:0.5
@@ -19,6 +21,8 @@ Test "Borrow some WBTC fails when no WBTC available"
     NewComptroller price:1.0
     NewVToken ZRX vZRX
     NewVToken WBTC vWBTC tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Support vZRX collateralFactor:0.5
     Support vWBTC collateralFactor:0.5
     Prep Geoff Some ZRX vZRX
@@ -33,6 +37,8 @@ Test "Borrow some WBTC fails when WBTC paused"
     NewComptroller price:1.0
     NewVToken ZRX vZRX
     NewVToken WBTC vWBTC tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Give vWBTC 10e8 WBTC -- Faucet some WBTC to borrow
     Support vZRX collateralFactor:0.5
     Support vWBTC collateralFactor:0.5
@@ -50,6 +56,8 @@ Test "Borrow some WBTC from Excess Cash"
     NewComptroller price:1.0
     NewVToken ZRX vZRX
     NewVToken WBTC vWBTC tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Give vWBTC 10e8 WBTC -- Faucet some WBTC to borrow
     Support vZRX collateralFactor:0.5
     Support vWBTC collateralFactor:0.5

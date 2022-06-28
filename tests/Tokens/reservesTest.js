@@ -4,7 +4,7 @@ const {
   both
 } = require('../Utils/BSC');
 
-const {fastForward, makeVToken} = require('../Utils/Venus');
+const {fastForward, makeVToken, setMarketSupplyCap} = require('../Utils/Venus');
 
 const factor = bnbMantissa(.02);
 
@@ -22,6 +22,7 @@ describe('VToken', function () {
     let vToken;
     beforeEach(async () => {
       vToken = await makeVToken();
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
     });
 
     it("rejects change by non-admin", async () => {

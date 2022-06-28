@@ -1,6 +1,7 @@
 const {
   makeComptroller,
-  makeVToken
+  makeVToken,
+  setMarketSupplyCap
 } = require('../Utils/Venus');
 
 describe('VToken', function () {
@@ -12,6 +13,7 @@ describe('VToken', function () {
     oldComptroller = vToken.comptroller;
     newComptroller = await makeComptroller();
     expect(newComptroller._address).not.toEqual(oldComptroller._address);
+    await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
   });
 
   describe('_setComptroller', () => {

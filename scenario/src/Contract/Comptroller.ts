@@ -57,9 +57,7 @@ interface ComptrollerMethods {
   _setMarketBorrowCaps(vTokens:string[], borrowCaps:encodedNumber[]): Sendable<void>
   _setMarketSupplyCaps(vTokens:string[], supplyCaps:encodedNumber[]): Sendable<void>
   _setBorrowCapGuardian(string): Sendable<void>
-  _setSupplyCapGuardian(string): Sendable<void>
   borrowCapGuardian(): Callable<string>
-  supplyCapGuardian(): Callable<string>
   borrowCaps(string): Callable<string>
   supplyCaps(string): Callable<string>
   _setTreasuryData(guardian, address, percent: encodedNumber): Sendable<number>

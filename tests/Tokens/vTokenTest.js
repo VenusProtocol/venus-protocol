@@ -6,7 +6,8 @@ const {
 const {
   makeVToken,
   setBorrowRate,
-  pretendBorrow
+  pretendBorrow,
+  setMarketSupplyCap
 } = require('../Utils/Venus');
 
 describe('VToken', function () {
@@ -26,6 +27,7 @@ describe('VToken', function () {
 
     it("succeeds with bep-20 underlying and non-zero exchange rate", async () => {
       const vToken = await makeVToken();
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
       expect(await call(vToken, 'underlying')).toEqual(vToken.underlying._address);
       expect(await call(vToken, 'admin')).toEqual(root);
     });
@@ -41,6 +43,7 @@ describe('VToken', function () {
 
     beforeEach(async () => {
       vToken = await makeVToken({ name: "VToken Foo", symbol: "cFOO", decimals: 10 });
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
     });
 
     it('should return correct name', async () => {
@@ -59,6 +62,7 @@ describe('VToken', function () {
   describe('balanceOfUnderlying', () => {
     it("has an underlying balance", async () => {
       const vToken = await makeVToken({ supportMarket: true, exchangeRate: 2 });
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
       await send(vToken, 'harnessSetBalance', [root, 100]);
       expect(await call(vToken, 'balanceOfUnderlying', [root])).toEqualNumber(200);
     });
@@ -106,6 +110,7 @@ describe('VToken', function () {
     beforeEach(async () => {
       borrower = accounts[0];
       vToken = await makeVToken();
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
     });
 
     beforeEach(async () => {
@@ -177,6 +182,7 @@ describe('VToken', function () {
 
     beforeEach(async () => {
       vToken = await makeVToken({ exchangeRate });
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
     });
 
     it("returns initial exchange rate with zero vTokenSupply", async () => {
@@ -222,6 +228,7 @@ describe('VToken', function () {
   describe('getCash', () => {
     it("gets the cash", async () => {
       const vToken = await makeVToken();
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
       const result = await call(vToken, 'getCash');
       expect(result).toEqualNumber(0);
     });

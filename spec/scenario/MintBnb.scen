@@ -3,6 +3,7 @@
 GasTest "Send Mint 1 vBNB"
     NewComptroller
     ListedBNBTokenMinted vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     Expect Changes (BNBBalance Geoff) -0.005e18
     Expect Changes (VToken vBNB UnderlyingBalance Geoff) +0.005e18
     SendMintBnb Geoff 0.005e18 vBNB
@@ -12,6 +13,7 @@ GasTest "Send Mint 1 vBNB"
 GasTest "Call Mint 1 vBNB"
     NewComptroller
     ListedBNBTokenMinted vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     Expect Changes (BNBBalance Geoff) -0.005e18
     Expect Changes (VToken vBNB UnderlyingBalance Geoff) +0.005e18
     CallMintBnb Geoff 0.005e18 vBNB
@@ -21,6 +23,7 @@ GasTest "Call Mint 1 vBNB"
 Test "Mint with insufficient bnb balance"
     NewComptroller
     ListedBNBTokenMinted vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     AllowFailures
     Invariant Remains (VToken vBNB UnderlyingBalance Geoff) 0e18
     Invariant Remains (Bep20 vBNB TokenBalance Geoff) 0e8
@@ -31,6 +34,7 @@ Test "Mint with insufficient bnb balance"
 Test "Mint two Bnb after minting two Bnb, and then I mint two more"
     NewComptroller
     ListedBNBToken vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     Expect Changes (BNBBalance Geoff) -0.002e18
     CallMintBnb Geoff 0.002e18 vBNB
     Assert Equal (Bep20 vBNB TokenBalance Geoff) 4e8
@@ -47,6 +51,7 @@ Test "Mint two Bnb after minting two Bnb, and then I mint two more"
 Test "Two users Mint"
     NewComptroller
     ListedBNBToken vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     CallMintBnb Geoff 0.002e18 vBNB
     Assert Equal (Bep20 vBNB TokenBalance Geoff) 4e8
     Assert Equal (Bep20 vBNB TotalSupply) 4e8
@@ -58,6 +63,7 @@ Test "Two users Mint"
 Test "Mint accrues no interest without borrows"
     NewComptroller
     ListedBNBToken vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     CallMintBnb Geoff 0.002e18 vBNB
     Assert Equal (Bep20 vBNB TokenBalance Geoff) 4e8
     Assert Equal (Bep20 vBNB TotalSupply) 4e8

@@ -504,17 +504,6 @@ export function comptrollerFetchers() {
       ],
       async (world, { comptroller }) => new AddressV(await comptroller.methods.borrowCapGuardian().call())
     ),
-    new Fetcher<{ comptroller: Comptroller }, AddressV>(`
-    #### SupplyCapGuardian
-    * "SupplyCapGuardian" - Returns the Comptrollers's SupplyCapGuardian
-    * E.g. "Comptroller SupplyCapGuardian"
-    `,
-      "SupplyCapGuardian",
-      [
-        new Arg("comptroller", getComptroller, { implicit: true })
-      ],
-      async (world, { comptroller }) => new AddressV(await comptroller.methods.supplyCapGuardian().call())
-    ),
     new Fetcher<{ comptroller: Comptroller, VToken: VToken }, NumberV>(`
         #### BorrowCaps
         * "Comptroller BorrowCaps vZRX

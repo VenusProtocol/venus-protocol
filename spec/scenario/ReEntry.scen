@@ -5,6 +5,7 @@ Test "ReEntry Mint @no-cov"
     InterestRateModel Deploy Fixed Std 0.000001
     VToken Deploy Scenario cPHREAK cPHREAK (Bep20 PHREAK Address) (Comptroller Address) (InterestRateModel Std Address) 1e9 8 Admin
     Comptroller SupportMarket cPHREAK
+    Comptroller SetMarketSupplyCaps (cPHREAK) (2e30)
     Prep Geoff Some PHREAK cPHREAK
     AllowFailures
     Mint Geoff 50e18 cPHREAK

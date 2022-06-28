@@ -381,23 +381,11 @@ async function setBorrowCapGuardian(world: World, from: string, comptroller: Com
 }
 
 async function setMarketSupplyCaps(world: World, from: string, comptroller: Comptroller, vTokens: VToken[], supplyCaps: NumberV[]): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setMarketSupplyCaps(vTokens.map(c => c._address), supplyCaps.map(c => c.encode())), from, ComptrollerErrorReporter);
+    let invokation = await invoke(world, comptroller.methods._setMarketSupplyCaps(vTokens.map(c => c._address), supplyCaps.map(c => c.encode())), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
     `Supply caps on ${vTokens} set to ${supplyCaps}`,
-    invokation
-  );
-
-  return world;
-}
-
-async function setSupplyCapGuardian(world: World, from: string, comptroller: Comptroller, newSupplyCapGuardian: string): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setSupplyCapGuardian(newSupplyCapGuardian), from, ComptrollerErrorReporter);
-
-  world = addAction(
-    world,
-    `Comptroller: ${describeUser(world, from)} sets supply cap guardian to ${newSupplyCapGuardian}`,
     invokation
   );
 
@@ -838,19 +826,6 @@ export function comptrollerCommands() {
         new Arg("supplyCaps", getNumberV, { mapped: true })
       ],
       (world, from, { comptroller, vTokens, supplyCaps }) => setMarketSupplyCaps(world, from, comptroller, vTokens, supplyCaps)
-    ),
-
-    new Command<{ comptroller: Comptroller, newSupplyCapGuardian: AddressV }>(`
-        #### SetSupplyCapGuardian
-        * "Comptroller SetSupplyCapGuardian newSupplyCapGuardian:<Address>" - Sets the Supply Cap Guardian for the Comptroller
-          * E.g. "Comptroller SetSupplyCapGuardian Geoff"
-      `,
-      "SetSupplyCapGuardian",
-      [
-        new Arg("comptroller", getComptroller, { implicit: true }),
-        new Arg("newSupplyCapGuardian", getAddressV)
-      ],
-      (world, from, { comptroller, newSupplyCapGuardian }) => setSupplyCapGuardian(world, from, comptroller, newSupplyCapGuardian.val)
     ),
 
     new Command<{ comptroller: Comptroller, guardian: AddressV, address: AddressV, percent: NumberV }>(`
