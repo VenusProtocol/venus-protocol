@@ -19,7 +19,6 @@ async function makeComptroller(opts = {}) {
 
   if (kind == 'bool') {
     const comptroller = await deploy('BoolComptroller');
-
     const xvs = opts.xvs || await deploy('XVS', [opts.venusOwner || root]);
     const vai = opts.vai || await makeVAI();
 
@@ -596,6 +595,11 @@ module.exports = {
   getBorrowRate,
   getSupplyRate,
   pretendBorrow,
+<<<<<<< HEAD
   pretendVAIMint,
   setMarketSupplyCap
 };
+=======
+  pretendVAIMint
+};
+>>>>>>> 27eee93 (fixup! fixup! fixup! fixup! Get AccountSnapshot of all accounts in Venus)
