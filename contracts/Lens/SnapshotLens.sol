@@ -4,6 +4,8 @@ pragma experimental ABIEncoderV2;
 import "../VToken.sol";
 import "../SafeMath.sol";
 import "../Comptroller.sol";
+import "../EIP20Interface.sol";
+import "../VBep20.sol";
 
 contract SnapshotLens is ExponentialNoError {
     using SafeMath for uint256;
@@ -11,6 +13,8 @@ contract SnapshotLens is ExponentialNoError {
     struct AccountSnapshot {
         address account;
         string assetName;
+        address vTokenAddress;
+        address underlyingAssetAddress;
         uint256 supply;
         uint256 supplyInUsd;
         uint256 collateral;
@@ -18,6 +22,9 @@ contract SnapshotLens is ExponentialNoError {
         uint256 borrowsInUsd;
         uint256 assetPrice;
         uint256 accruedInterest;
+        uint vTokenDecimals;
+        uint underlyingDecimals;
+        uint exchangeRate;
     }
 
     /** Snapshot calculation **/
@@ -91,17 +98,39 @@ contract SnapshotLens is ExponentialNoError {
         vars.supplyInUsd = mul_ScalarTruncate(vars.oraclePrice, vars.balanceOfUnderlying);
 
         vars.borrowsInUsd = mul_ScalarTruncate(vars.oraclePrice, vars.borrowBalance);
+
+        address underlyingAssetAddress;
+        uint underlyingDecimals;
+
+        if (compareStrings(vToken.symbol(), "vBNB")) {
+            underlyingAssetAddress = address(0);
+            underlyingDecimals = 18;
+        } else {
+            VBep20 vBep20 = VBep20(address(vToken));
+            underlyingAssetAddress = vBep20.underlying();
+            underlyingDecimals = EIP20Interface(vBep20.underlying()).decimals();
+        }
         
         return AccountSnapshot({
             account: account,
             assetName: vToken.name(),
+            vTokenAddress: address(vToken),
+            underlyingAssetAddress: underlyingAssetAddress,
             supply: vars.balanceOfUnderlying,
             supplyInUsd: vars.supplyInUsd,
             collateral: vars.collateral,
             borrows: vars.borrowBalance,
             borrowsInUsd: vars.borrowsInUsd,
             assetPrice: vars.oraclePriceMantissa,
-            accruedInterest: vToken.borrowIndex()
+            accruedInterest: vToken.borrowIndex(),
+            vTokenDecimals: vToken.decimals(),
+            underlyingDecimals: underlyingDecimals,
+            exchangeRate: vToken.exchangeRateCurrent()
         });
+    }
+
+    // utilities
+    function compareStrings(string memory a, string memory b) internal pure returns (bool) {
+        return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
     }
 }

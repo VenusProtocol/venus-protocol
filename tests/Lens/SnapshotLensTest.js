@@ -1,6 +1,6 @@
 const {
   makeVToken,
-  makeChainlinkOracle,
+  makePriceOracle,
   enterMarkets
 } = require('../Utils/Venus');
 
@@ -23,12 +23,15 @@ describe('SnapshotLens', () => {
     let snapshotLens, comptroller;
     let borrower, accounts;
     let usdcFeed;
-    let oracle, vBnb, vUsdc, vUsdt;
+    let oracle, vBnb, 
+        vUsdc, vUsdcAddress, usdcAddress, 
+        vUsdt, vUsdtAddress, usdtAddress;
 
     beforeEach(async () => {
       [borrower, ...accounts] = saddle.accounts;
       snapshotLens = await deploy('SnapshotLens');
-      oracle = await deploy("VenusChainlinkOracle", [MAX_STALE_PERIOD]);
+      //oracle = await deploy("VenusChainlinkOracle", [MAX_STALE_PERIOD]);
+      oracle = await makePriceOracle();
 
       vBnb = await makeVToken({
         kind: "vbnb",
@@ -50,10 +53,16 @@ describe('SnapshotLens', () => {
         name: "USD Coin"
       });
 
-      usdcFeed = await makeChainlinkOracle({ decimals: 8, initialAnswer: 100000000 });
-      await send(oracle, "setFeed", ["USDC", usdcFeed._address]);
+      vUsdcAddress = vUsdc._address;
+      usdcAddress = vUsdc.underlying._address;
+
+      //usdcFeed = await makeChainlinkOracle({ decimals: 8, initialAnswer: 100000000 });
+      //await send(oracle, "setFeed", ["USDC", usdcFeed._address]);
+
+      await send(oracle, 'setUnderlyingPrice', [vUsdc._address, 1]);
+
       let price = await call(oracle, "getUnderlyingPrice", [vUsdc._address]);
-      expect(price).toEqual("1000000000000000000000000000000");
+      expect(price).toEqual("1");
 
       vUsdt = await makeVToken({
         comptroller: vBnb.comptroller,
@@ -65,10 +74,15 @@ describe('SnapshotLens', () => {
         name: "USD Tether"
       });
 
-      usdtFeed = await makeChainlinkOracle({ decimals: 8, initialAnswer: 100000000 });
-      await send(oracle, "setFeed", ["USDT", usdtFeed._address]);
+      vUsdtAddress = vUsdt._address;
+      usdtAddress = vUsdt.underlying._address;
+
+      //usdtFeed = await makeChainlinkOracle({ decimals: 8, initialAnswer: 100000000 });
+      //await send(oracle, "setFeed", ["USDT", usdtFeed._address]);
+
+      await send(oracle, 'setUnderlyingPrice', [vUsdt._address, 1]);
       let price2 = await call(oracle, "getUnderlyingPrice", [vUsdt._address]);
-      expect(price2).toEqual("1000000000000000000000000000000");
+      expect(price2).toEqual("1");
     });
 
     describe('snapshot', () => {
@@ -79,13 +93,18 @@ describe('SnapshotLens', () => {
           {
             account: borrower,
             assetName: "USD Coin",
+            vTokenAddress: vUsdcAddress,
+            underlyingAssetAddress: usdcAddress,
             supply: "0",
             supplyInUsd: "0",
             collateral: "0",
             borrows: "0",
             borrowsInUsd: "0",
-            assetPrice: "1000000000000000000000000000000",
-            accruedInterest: "1000000000000000000"
+            assetPrice: "1",
+            accruedInterest: "1000000000000000000",
+            vTokenDecimals: "8",
+            underlyingDecimals: "6",
+            exchangeRate: "1000000000000000000",
           }
         );
       });
@@ -97,13 +116,18 @@ describe('SnapshotLens', () => {
           {
             account: borrower,
             assetName: "USD Tether",
+            vTokenAddress: vUsdtAddress,
+            underlyingAssetAddress: usdtAddress,
             supply: "0",
             supplyInUsd: "0",
             collateral: "0",
             borrows: "0",
             borrowsInUsd: "0",
-            assetPrice: "1000000000000000000000000000000",
-            accruedInterest: "1000000000000000000"
+            assetPrice: "1",
+            accruedInterest: "1000000000000000000",
+            vTokenDecimals: "8",
+            underlyingDecimals: "6",
+            exchangeRate: "1000000000000000000",
           }
         );
       });
@@ -117,24 +141,34 @@ describe('SnapshotLens', () => {
             {
               account: borrower,
               assetName: "USD Coin",
+              vTokenAddress: vUsdcAddress,
+              underlyingAssetAddress: usdcAddress,
               supply: "0",
               supplyInUsd: "0",
               collateral: "0",
               borrows: "0",
               borrowsInUsd: "0",
-              assetPrice: "1000000000000000000000000000000",
-              accruedInterest: "1000000000000000000"
+              assetPrice: "1",
+              accruedInterest: "1000000000000000000",
+              vTokenDecimals: "8",
+              underlyingDecimals: "6",
+              exchangeRate: "1000000000000000000",
             },
             {
               account: borrower,
               assetName: "USD Tether",
+              vTokenAddress: vUsdtAddress,
+              underlyingAssetAddress: usdtAddress,
               supply: "0",
               supplyInUsd: "0",
               collateral: "0",
               borrows: "0",
               borrowsInUsd: "0",
-              assetPrice: "1000000000000000000000000000000",
-              accruedInterest: "1000000000000000000"
+              assetPrice: "1",
+              accruedInterest: "1000000000000000000",
+              vTokenDecimals: "8",
+              underlyingDecimals: "6",
+              exchangeRate: "1000000000000000000",
             }
           ]
         );
