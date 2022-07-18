@@ -525,6 +525,22 @@ contract BoolComptroller is ComptrollerInterface {
         treasuryAddress = treasuryAddress_;
         treasuryPercent = treasuryPercent_;
     }
+
+    /*** Functions from ComptrollerInterface not implemented by BoolComptroller ***/
+
+    function markets(address) external view returns (bool, uint) { revert(); }
+    function oracle() external view returns (PriceOracle) { revert(); }
+    function getAccountLiquidity(address) external view returns (uint, uint, uint) { revert(); }
+    function getAssetsIn(address) external view returns (VToken[] memory) { revert(); }
+    function claimVenus(address) external { revert(); }
+    function venusAccrued(address) external view returns (uint) { revert(); }
+    function venusSpeeds(address) external view returns (uint) { revert(); }
+    function getAllMarkets() external view returns (VToken[] memory) { revert(); }
+    function venusSupplierIndex(address, address) external view returns (uint) { revert(); }
+    function venusInitialIndex() external view returns (uint224) { revert(); }
+    function venusBorrowerIndex(address, address) external view returns (uint) { revert(); }
+    function venusBorrowState(address) external view returns (uint224, uint32) { revert(); }
+    function venusSupplyState(address) external view returns (uint224, uint32) { revert(); }
 }
 
 contract EchoTypesComptroller is UnitrollerAdminStorage {

@@ -81,7 +81,6 @@ contract ComptrollerInterfaceG2 is ComptrollerInterfaceG1 {
 }
 
 contract ComptrollerInterface is ComptrollerInterfaceG2 {
-
     function markets(address) external view returns (bool, uint);
     function oracle() external view returns (PriceOracle);
     function getAccountLiquidity(address) external view returns (uint, uint, uint);
