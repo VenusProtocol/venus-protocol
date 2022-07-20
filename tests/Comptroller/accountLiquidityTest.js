@@ -48,7 +48,7 @@ describe('Comptroller', () => {
       ({1: liquidity, 2: shortfall} = await call(vToken.comptroller, 'getHypotheticalAccountLiquidity', [user, vToken._address, amount, 0]));
       expect(liquidity).toEqualNumber(0);
       expect(shortfall).toEqualNumber(0);
-    }, 20000);
+    });
 
     it("allows entering 3 markets, supplying to 2 and borrowing up to collateralFactor in the 3rd", async () => {
       const amount1 = 1e6, amount2 = 1e3, user = accounts[1];
