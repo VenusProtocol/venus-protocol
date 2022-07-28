@@ -15,7 +15,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
     uint public constant MAX_PROPOSAL_THRESHOLD = 300000e18; //300,000 Xvs
 
     /// @notice The minimum setable voting period
-    uint public constant MIN_VOTING_PERIOD = 20 * 60 * 24; // About 24 hours, 3 secs per block
+    uint public constant MIN_VOTING_PERIOD = 20 * 60 * 3; // About 3 hours, 3 secs per block
 
     /// @notice The max setable voting period
     uint public constant MAX_VOTING_PERIOD = 20 * 60 * 24 * 14; // About 2 weeks, 3 secs per block
