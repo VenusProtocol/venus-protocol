@@ -153,8 +153,7 @@ Formal Verification Specs
 -------------------------
 
 The Venus Protocol has a number of formal verification specifications, powered by [Certik](https://certik.foundation/projects/swipe). The Certik Verification evaluates smart contracts for vulnerabilities and certifies their behavior with respect to a custom function specification.
-=======
-See the [Scenario Docs](https://github.com/VenusProtocol/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
+
 
 Testing
 -------
