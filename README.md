@@ -9,6 +9,8 @@ Before getting started with this repo, please read:
 
 - [Venus Whitepaper](https://github.com/VenusProtocol/venus-protocol/tree/master/docs/VenusWhitepaper.pdf)
 
+Interested in contributing? Please checkout our [contributing guidelines](./docs/CONTRIBUTING.md)
+
 Contracts
 =========
 
