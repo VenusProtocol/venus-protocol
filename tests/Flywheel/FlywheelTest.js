@@ -57,7 +57,7 @@ describe('Flywheel', () => {
     it('should revert if not called by admin', async () => {
       await expect(
         send(comptroller, '_grantXVS', [a1, 100], {from: a1})
-      ).rejects.toRevert('revert only admin or impl can grant xvs');
+      ).rejects.toRevert('revert access denied');
     });
 
     it('should revert if insufficient xvs', async () => {
@@ -123,14 +123,14 @@ describe('Flywheel', () => {
       }
       await expect(
         send(comptroller, '_setVenusSpeed', [vLOW._address, 0], {from: a1})
-      ).rejects.toRevert('revert only admin or impl can set venus speed');
+      ).rejects.toRevert('revert access denied');
     });
 
     it('should not add non-listed markets', async () => {
       const vBAT = await makeVToken({ comptroller, supportMarket: false });
       await expect(
         send(comptroller, 'harnessAddVenusMarkets', [[vBAT._address]])
-      ).rejects.toRevert('revert venus market is not listed');
+      ).rejects.toRevert('revert market not listed');
 
       const markets = await call(comptroller, 'getVenusMarkets');
       expect(markets).toEqual([]);
@@ -561,7 +561,7 @@ describe('Flywheel', () => {
       const cNOT = await makeVToken({comptroller});
       await expect(
         send(comptroller, 'claimVenus', [a1, [cNOT._address]])
-      ).rejects.toRevert('revert not listed market');
+      ).rejects.toRevert('revert market not listed');
     });
   });
 
@@ -582,7 +582,7 @@ describe('Flywheel', () => {
 
       await fastForward(comptroller, deltaBlocks);
 
-      await expect(send(comptroller, 'claimVenus', [claimAccts, [vLOW._address, vEVIL._address], true, true])).rejects.toRevert('revert not listed market');
+      await expect(send(comptroller, 'claimVenus', [claimAccts, [vLOW._address, vEVIL._address], true, true])).rejects.toRevert('revert market not listed');
     });
 
     it('should claim the expected amount when holders and vtokens arg is duplicated', async () => {
@@ -656,7 +656,7 @@ describe('Flywheel', () => {
       const cNOT = await makeVToken({comptroller});
       await expect(
         send(comptroller, 'claimVenus', [[a1, a2], [cNOT._address], true, true])
-      ).rejects.toRevert('revert not listed market');
+      ).rejects.toRevert('revert market not listed');
     });
   });
 

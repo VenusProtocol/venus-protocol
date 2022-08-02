@@ -294,7 +294,7 @@ Test "When seize not allowed due to unlisted collateral"
     Comptroller UnList vBAT -- Mock unlist collateral
     AllowFailures
     Liquidate Torrey "->" Geoff 2e18 vBAT "Seizing" vBAT
-    Assert Revert "revert failed to liquidate (03)"  -- detailed error is MARKET_NOT_LISTED, but it's not propagated
+    Assert Revert "revert market not listed"
 
 Test "When seize not allowed due to unlisted borrow"
     InKindBorrow borrowAmount:1e18 borrowRate:0.000005
@@ -323,7 +323,7 @@ Test "When seize not allowed due to unlisted borrow"
     Comptroller UnList vBAT -- Mock unlist borrow
     AllowFailures
     Liquidate Torrey "->" Geoff 2e18 vBAT "Seizing" vBAT
-    Assert Revert "revert failed to liquidate (03)"  -- detailed error is MARKET_NOT_LISTED, but it's not propagated
+    Assert Revert "revert market not listed"
 
 Test "When there's insufficient collateral"
     InKindBorrow borrowAmount:1e18 borrowRate:0.000005
