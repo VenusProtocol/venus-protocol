@@ -33,7 +33,7 @@
      bsctestnet: {
        url: process.env.BSC_TESTNET_NODE || 'https://data-seed-prebsc-1-s1.binance.org:8545',
        chainId: 97,
-       accounts: [`0x${DEPLOYER_PRIVATE_KEY}`],
+       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
        gasPrice: ethers.utils.parseUnits("10", "gwei").toNumber(),
        gasMultiplier: 10,
        timeout: 12000000,
@@ -47,7 +47,7 @@
      // currently not used, we are still using saddle to deploy contracts
      bscmainnet: {
        url: `https://bsc-dataseed.binance.org/`,
-       accounts: [`0x${DEPLOYER_PRIVATE_KEY}`]
+       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : []
      },
    },
    etherscan: {
