@@ -9,7 +9,7 @@ interface IAccessControlManager {
      * @return false if the user account cannot call the particular contract function
      *
      */
-    function isAllowedToCall(address account, string memory functionSig) external view returns (bool);
+    function isAllowedToCall(address account, string calldata functionSig) external view returns (bool);
 
     /**
      * @notice Gives a function call permission to one single account
@@ -18,7 +18,7 @@ interface IAccessControlManager {
      * @param contractAddress address of contract for which call permissions will be granted
      * @param functionSig signature e.g. "functionName(uint,bool)"
      */
-    function giveCallPermission(address contractAddress, string memory functionSig, address accountToPermit) external
+    function giveCallPermission(address contractAddress, string calldata functionSig, address accountToPermit) external;
 
     /**
      * @notice Revokes an account's permission to a particular function call
@@ -27,5 +27,5 @@ interface IAccessControlManager {
      * @param contractAddress address of contract for which call permissions will be revoked
      * @param functionSig signature e.g. "functionName(uint,bool)"
      */
-    function revokeCallPermission(address contractAddress, string memory functionSig, address accountToRevoke) external
+    function revokeCallPermission(address contractAddress, string calldata functionSig, address accountToRevoke) external;
 }
