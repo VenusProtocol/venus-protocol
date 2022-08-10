@@ -203,3 +203,8 @@ contract ComptrollerV8Storage is ComptrollerV7Storage {
     /// @notice Supply caps enforced by mintAllowed for each vToken address. Defaults to zero which corresponds to minting notAllowed
     mapping(address => uint256) public supplyCaps;
 }
+    
+    contract ComptrollerV9Storage is ComptrollerV8Storage {
+    /// @notice AccessControlManager address
+    address accessControl;
+}
