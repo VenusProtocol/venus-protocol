@@ -20,7 +20,8 @@ contract VBep20Harness is VBep20Immutable {
                 string memory name_,
                 string memory symbol_,
                 uint8 decimals_,
-                address payable admin_)
+                address payable admin_,
+                address accessControlManager_)
     VBep20Immutable(
     underlying_,
     comptroller_,
@@ -29,7 +30,8 @@ contract VBep20Harness is VBep20Immutable {
     name_,
     symbol_,
     decimals_,
-    admin_) public {}
+    admin_,
+    accessControlManager_) public {}
 
     function doTransferOut(address payable to, uint amount) internal {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
@@ -164,7 +166,8 @@ contract VBep20Scenario is VBep20Immutable {
                 string memory name_,
                 string memory symbol_,
                 uint8 decimals_,
-                address payable admin_)
+                address payable admin_,
+                address accessControlManager_)
     VBep20Immutable(
     underlying_,
     comptroller_,
@@ -173,7 +176,8 @@ contract VBep20Scenario is VBep20Immutable {
     name_,
     symbol_,
     decimals_,
-    admin_) public {}
+    admin_,
+    accessControlManager_) public {}
 
     function setTotalBorrows(uint totalBorrows_) public {
         totalBorrows = totalBorrows_;
@@ -197,7 +201,8 @@ contract VEvil is VBep20Scenario {
                 string memory name_,
                 string memory symbol_,
                 uint8 decimals_,
-                address payable admin_)
+                address payable admin_,
+                address accessControlManager_)
     VBep20Scenario(
     underlying_,
     comptroller_,
@@ -206,7 +211,8 @@ contract VEvil is VBep20Scenario {
     name_,
     symbol_,
     decimals_,
-    admin_) public {}
+    admin_,
+    accessControlManager_) public {}
 
     function evilSeize(VToken treasure, address liquidator, address borrower, uint seizeTokens) public returns (uint) {
         return treasure.seize(liquidator, borrower, seizeTokens);

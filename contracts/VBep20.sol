@@ -24,9 +24,10 @@ contract VBep20 is VToken, VBep20Interface {
                         uint initialExchangeRateMantissa_,
                         string memory name_,
                         string memory symbol_,
-                        uint8 decimals_) public {
+                        uint8 decimals_,
+                        address accessControlManager_) public {
         // VToken initialize does the bulk of the work
-        super.initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
+        super.initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_, accessControlManager_);
 
         // Set underlying and sanity check it
         underlying = underlying_;

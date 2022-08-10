@@ -114,6 +114,11 @@ contract VTokenStorage {
      * @notice Mapping of account addresses to outstanding borrow balances
      */
     mapping(address => BorrowSnapshot) internal accountBorrows;
+
+    /**
+     * @notice Storage of AccessControlManager
+     */
+    address public accessControlManager;
 }
 
 contract VTokenInterface is VTokenStorage {
@@ -182,6 +187,14 @@ contract VTokenInterface is VTokenStorage {
      * @notice Event emitted when comptroller is changed
      */
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
+
+    /**
+     * @notice Event emitted when accessmanager is changed
+     */
+    event NewAccessControlManager(
+        address oldAccessControlManager,
+        address newAccessControlManager
+    );
 
     /**
      * @notice Event emitted when interestRateModel is changed
