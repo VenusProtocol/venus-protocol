@@ -181,7 +181,28 @@ async function makeVToken(opts = {}) {
       vToken = await saddle.getContractAt("VXvsLikeDelegate", vDelegator._address);
       break;
 
-    case "vbep20":
+      case 'evilX':
+        underlying = opts.underlying || await makeToken(opts.underlyingOpts);
+        vDelegatee = await deploy('EvilXToken');
+        vDelegator = await deploy('EvilXDelegator',
+          [
+            underlying._address,
+            comptroller._address,
+            interestRateModel._address,
+            exchangeRate,
+            name,
+            symbol,
+            decimals,
+            admin,
+            vDelegatee._address,
+            "0x0"
+          ]
+        );
+
+        vToken = await saddle.getContractAt('EvilXToken', vDelegator._address);
+        break;
+
+    case 'vbep20':
     default:
       underlying = opts.underlying || (await makeToken(opts.underlyingOpts));
       vDelegatee = await deploy("VBep20DelegateHarness");
