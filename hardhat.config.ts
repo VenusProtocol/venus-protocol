@@ -1,14 +1,8 @@
-/**
- * @type import('hardhat/config').HardhatUserConfig
- */
-import { HardhatUserConfig } from "hardhat/types";
-import '@openzeppelin/hardhat-upgrades';
-
-import "@nomiclabs/hardhat-truffle5";
-import "@nomiclabs/hardhat-waffle";
+import { HardhatUserConfig } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
+import "@nomicfoundation/hardhat-chai-matchers";
+import { ethers } from "ethers";
 
-import { ethers } from 'ethers';
 require("dotenv").config();
 
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
@@ -24,6 +18,11 @@ const config: HardhatUserConfig = {
           optimizer: {
             enabled: true,
             runs: 200
+          },
+          outputSelection: {
+            "*": {
+              "*": ["storageLayout"]
+            }
           }
         }
       }
@@ -38,12 +37,17 @@ const config: HardhatUserConfig = {
       gasMultiplier: 10,
       timeout: 12000000,
     },
-    hardhat: {
-      chainId: 56,
-      forking: {
-        url: process.env.BSC_ARCHIVE_NODE || '',
+    hardhat: (() => {
+      if (process.env.BSC_ARCHIVE_NODE) {
+        return {
+          chainId: 56,
+          forking: {
+            url: process.env.BSC_ARCHIVE_NODE || '',
+          }
+        };
       }
-    },
+      return {};
+    })(),
     // currently not used, we are still using saddle to deploy contracts
     bscmainnet: {
       url: `https://bsc-dataseed.binance.org/`,
