@@ -175,7 +175,7 @@ contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
 }
 
 contract GovernorBravoDelegateStorageV2 is GovernorBravoDelegateStorageV1 {
-
+ 
     enum ProposalType  {
         NORMAL,
         FASTTRACK,
@@ -197,7 +197,7 @@ contract GovernorBravoDelegateStorageV2 is GovernorBravoDelegateStorageV1 {
     mapping (uint => ProposalConfig) public proposalConfigs;
 
     /// @notice mapping containing Timelock addresses for each proposal type
-    mapping (uint => address) public proposalTimelocks;
+    mapping (uint => TimelockInterface) public proposalTimelocks;
 }
 
 interface TimelockInterface {
