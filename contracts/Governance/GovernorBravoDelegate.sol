@@ -89,10 +89,10 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
       * @param description String description of the proposal
       * @return Proposal id of new proposal
       */
-    function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description) public returns (uint) {
+    function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description, ProposalType proposalType) public returns (uint) {
         // Reject proposals before initiating as Governor
         require(initialProposalId != 0, "GovernorBravo::propose: Governor Bravo not active");
-        require(xvsVault.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold, "GovernorBravo::propose: proposer votes below proposal threshold");
+        require(xvsVault.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalConfigs[uint8(proposalType)].proposalThreshold, "GovernorBravo::propose: proposer votes below proposal threshold");
         require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "GovernorBravo::propose: proposal function information arity mismatch");
         require(targets.length != 0, "GovernorBravo::propose: must provide actions");
         require(targets.length <= proposalMaxOperations, "GovernorBravo::propose: too many actions");
@@ -104,8 +104,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
           require(proposersLatestProposalState != ProposalState.Pending, "GovernorBravo::propose: one live proposal per proposer, found an already pending proposal");
         }
 
-        uint startBlock = add256(block.number, votingDelay);
-        uint endBlock = add256(startBlock, votingPeriod);
+        uint startBlock = add256(block.number, proposalConfigs[uint8(proposalType)].votingDelay);
+        uint endBlock = add256(startBlock, proposalConfigs[uint8(proposalType)].votingPeriod);
 
         proposalCount++;
         Proposal memory newProposal = Proposal({
@@ -122,13 +122,14 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
             againstVotes: 0,
             abstainVotes: 0,
             canceled: false,
-            executed: false
+            executed: false,
+            proposalType: uint8(proposalType)
         });
 
         proposals[newProposal.id] = newProposal;
         latestProposalIds[newProposal.proposer] = newProposal.id;
 
-        emit ProposalCreated(newProposal.id, msg.sender, targets, values, signatures, calldatas, startBlock, endBlock, description);
+        emit ProposalCreated(newProposal.id, msg.sender, targets, values, signatures, calldatas, startBlock, endBlock, description, uint8(proposalType));
         return newProposal.id;
     }
 
@@ -139,17 +140,17 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     function queue(uint proposalId) external {
         require(state(proposalId) == ProposalState.Succeeded, "GovernorBravo::queue: proposal can only be queued if it is succeeded");
         Proposal storage proposal = proposals[proposalId];
-        uint eta = add256(block.timestamp, timelock.delay());
+        uint eta = add256(block.timestamp, proposalTimelocks[uint8(proposal.proposalType)].delay());
         for (uint i = 0; i < proposal.targets.length; i++) {
-            queueOrRevertInternal(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
+            queueOrRevertInternal(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta, uint8(proposal.proposalType));
         }
         proposal.eta = eta;
         emit ProposalQueued(proposalId, eta);
     }
 
-    function queueOrRevertInternal(address target, uint value, string memory signature, bytes memory data, uint eta) internal {
-        require(!timelock.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta))), "GovernorBravo::queueOrRevertInternal: identical proposal action already queued at eta");
-        timelock.queueTransaction(target, value, signature, data, eta);
+    function queueOrRevertInternal(address target, uint value, string memory signature, bytes memory data, uint eta, uint8 proposalType) internal {
+        require(!proposalTimelocks[proposalType].queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta))), "GovernorBravo::queueOrRevertInternal: identical proposal action already queued at eta");
+        proposalTimelocks[proposalType].queueTransaction(target, value, signature, data, eta);
     }
 
     /**
@@ -161,7 +162,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
-            timelock.executeTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+            proposalTimelocks[uint8(proposal.proposalType)].executeTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
         emit ProposalExecuted(proposalId);
     }
@@ -177,13 +178,13 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         require(
             msg.sender == guardian
             || msg.sender == proposal.proposer
-            || xvsVault.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold,
+            || xvsVault.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalConfigs[proposal.proposalType].proposalThreshold,
             "GovernorBravo::cancel: proposer above threshold"
         );
 
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
-            timelock.cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+            proposalTimelocks[proposal.proposalType].cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
 
         emit ProposalCanceled(proposalId);
@@ -229,7 +230,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
             return ProposalState.Succeeded;
         } else if (proposal.executed) {
             return ProposalState.Executed;
-        } else if (block.timestamp >= add256(proposal.eta, timelock.GRACE_PERIOD())) {
+        } else if (block.timestamp >= add256(proposal.eta, proposalTimelocks[uint8(proposal.proposalType)].GRACE_PERIOD())) {
             return ProposalState.Expired;
         } else {
             return ProposalState.Queued;
@@ -313,6 +314,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
 
     /**
       * @notice Admin function for setting the voting delay
+      * @dev NOTE: This function should not be used anymore
+      *             since voting delay is set in initializer per governance route
       * @param newVotingDelay new voting delay, in blocks
       */
     function _setVotingDelay(uint newVotingDelay) external {
@@ -326,6 +329,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
 
     /**
       * @notice Admin function for setting the voting period
+      * @dev NOTE: This function should not be used anymore
+      *             since voting period is set in initializer per governance route
       * @param newVotingPeriod new voting period, in blocks
       */
     function _setVotingPeriod(uint newVotingPeriod) external {
@@ -340,6 +345,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     /**
       * @notice Admin function for setting the proposal threshold
       * @dev newProposalThreshold must be greater than the hardcoded min
+      * NOTE: This function should not be used anymore
+      *       since voting delay is set in initializer per governance route
       * @param newProposalThreshold new proposal threshold
       */
     function _setProposalThreshold(uint newProposalThreshold) external {
