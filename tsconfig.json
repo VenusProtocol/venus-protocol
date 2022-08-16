@@ -7,7 +7,7 @@
       "resolveJsonModule": true,
       "outDir": "dist"
     },
-    "include": ["./scripts", "./tests"],
+    "include": ["./scripts", "./tests", "./typechain"],
     "files": [
       "./hardhat.config.ts"
     ]
