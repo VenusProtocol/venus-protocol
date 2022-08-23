@@ -14,9 +14,7 @@ RUN yarn install --lock-file
 # Then rest of code and build
 ADD . /venus-protocol
 
-ENV SADDLE_SHELL=/bin/sh
-ENV SADDLE_CONTRACTS="contracts/*.sol contracts/**/*.sol"
-RUN npx saddle compile
+RUN npx hardhat compile
 
 RUN yarn cache clean
 

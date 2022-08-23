@@ -23,10 +23,10 @@ jobs:
       - name: Build docker
         run: docker build -t venus:${GITHUB_SHA::7} .
       - name: Lint
-        run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} lint --if-present
+        run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} lint
       - name: Clear
         run: docker rm ${GITHUB_SHA::7}
       - name: Run compound tests
-        run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} test --if-present
+        run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} test
       - name: Clear
         run: docker rm ${GITHUB_SHA::7}

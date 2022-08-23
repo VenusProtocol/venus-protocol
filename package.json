@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "lint": "echo \"Not configured yet\""
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
