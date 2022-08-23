@@ -1,4 +1,6 @@
 import { HardhatUserConfig } from "hardhat/config";
+import "@typechain/hardhat";
+import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomicfoundation/hardhat-chai-matchers";
 import { ethers } from "ethers";
@@ -65,7 +67,11 @@ const config: HardhatUserConfig = {
   },
   mocha: {
     timeout: 20000
-  }
+  },
+  typechain: {
+    outDir: 'typechain',
+    target: 'ethers-v5',
+  },
 };
 
 export default config;
