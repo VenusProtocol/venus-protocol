@@ -52,8 +52,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         require(msg.sender == admin, "GovernorBravo::initialize: admin only");
         require(xvsVault_ != address(0), "GovernorBravo::initialize: invalid xvs address");
         require(guardian_ != address(0), "GovernorBravo::initialize: invalid guardian");
-        require(timelocks.length == uint8(ProposalType.CRITICAL) + 1, "number of timelocks should match number of governance routes");
-        require(proposalConfigs_.length == uint8(ProposalType.CRITICAL) + 1, "number of timelocks should match number of governance routes");
+        require(timelocks.length == uint8(ProposalType.CRITICAL) + 1, "GovernorBravo::initialize:number of timelocks should match number of governance routes");
+        require(proposalConfigs_.length == uint8(ProposalType.CRITICAL) + 1, "GovernorBravo::initialize:number of proposal configs should match number of governance routes");
 
         xvsVault = XvsVaultInterface(xvsVault_);
         proposalMaxOperations = 10;
@@ -67,7 +67,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
             require(proposalConfigs[i].votingDelay <= MAX_VOTING_DELAY, "GovernorBravo::initialize: invalid max voting delay");
             require(proposalConfigs[i].proposalThreshold >= MIN_PROPOSAL_THRESHOLD, "GovernorBravo::initialize: invalid min proposal threshold");
             require(proposalConfigs[i].proposalThreshold <= MAX_PROPOSAL_THRESHOLD, "GovernorBravo::initialize: invalid max proposal threshold");
-            require(address(timelocks[i]) != address(0), "GovernorBravo: invalid timelock address");
+            require(address(timelocks[i]) != address(0), "GovernorBravo::initialize:invalid timelock address");
 
             proposalConfigs[i] = proposalConfigs_[i];
             proposalTimelocks[i] = timelocks[i];
