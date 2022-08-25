@@ -908,7 +908,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
             );
 
 
-        if (isAllowedtoCall) {
+        if (!isAllowedtoCall) {
             return
                 fail(
                     Error.UNAUTHORIZED,
@@ -1129,7 +1129,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         bool canCallFunction = IAccessControlManager(accessControl)
             .isAllowedToCall(msg.sender, "_setTransferPaused(VToken,bool)");
 
-        require(!canCallFunction, "only authorised addresses can pause");       
+        require(canCallFunction, "only authorised addresses can pause");       
         require(msg.sender == admin || state, "only admin can unpause");
 
         protocolPaused = state;
