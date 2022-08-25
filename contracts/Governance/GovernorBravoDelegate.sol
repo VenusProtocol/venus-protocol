@@ -37,13 +37,11 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
 
     /**
       * @notice Used to initialize the contract during delegator contructor
-      * @param timelock_ The address of the Timelock
       * @param xvsVault_ The address of the XvsVault
       * @param proposalConfigs_ Governance confifgs for each GovernanceType
       * @param timelocks Timelock addresses for each GovernanceType
       */
     function initialize(
-        address timelock_,
         address xvsVault_,
         ProposalConfig[] memory proposalConfigs_,
         TimelockInterface[] memory timelocks,
@@ -51,16 +49,12 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     )
         public
     {
-        require(address(timelock) == address(0), "GovernorBravo::initialize: can only initialize once");
         require(msg.sender == admin, "GovernorBravo::initialize: admin only");
-        require(timelock_ != address(0), "GovernorBravo::initialize: invalid timelock address");
         require(xvsVault_ != address(0), "GovernorBravo::initialize: invalid xvs address");
         require(guardian_ != address(0), "GovernorBravo::initialize: invalid guardian");
         require(timelocks.length == uint8(ProposalType.CRITICAL) + 1, "number of timelocks should match number of governance routes");
         require(proposalConfigs_.length == uint8(ProposalType.CRITICAL) + 1, "number of timelocks should match number of governance routes");
 
-
-        timelock = TimelockInterface(timelock_);
         xvsVault = XvsVaultInterface(xvsVault_);
         proposalMaxOperations = 10;
         guardian = guardian_;
