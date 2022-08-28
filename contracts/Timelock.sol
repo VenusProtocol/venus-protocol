@@ -39,7 +39,7 @@ contract Timelock {
         require(delay_ <= MAXIMUM_DELAY, "Timelock::setDelay: Delay must not exceed maximum delay.");
         delay = delay_;
 
-        emit NewDelay(delay);
+        emit NewDelay(delay_);
     }
 
     function acceptAdmin() public {
@@ -54,7 +54,7 @@ contract Timelock {
         require(msg.sender == address(this), "Timelock::setPendingAdmin: Call must come from Timelock.");
         pendingAdmin = pendingAdmin_;
 
-        emit NewPendingAdmin(pendingAdmin);
+        emit NewPendingAdmin(pendingAdmin_);
     }
 
     function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public returns (bytes32) {

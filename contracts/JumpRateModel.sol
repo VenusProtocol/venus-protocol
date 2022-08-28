@@ -50,7 +50,7 @@ contract JumpRateModel is InterestRateModel {
         jumpMultiplierPerBlock = jumpMultiplierPerYear.div(blocksPerYear);
         kink = kink_;
 
-        emit NewInterestParams(baseRatePerBlock, multiplierPerBlock, jumpMultiplierPerBlock, kink);
+        emit NewInterestParams(baseRatePerBlock, multiplierPerBlock, jumpMultiplierPerBlock, kink_);
     }
 
     /**
