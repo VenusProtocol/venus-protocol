@@ -6,7 +6,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "lint": "echo \"Not configured yet\""
+    "lint": "echo \"Not configured yet\"",
+    "postinstall" : "npx hardhat compile"
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
