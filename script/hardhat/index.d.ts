@@ -3,8 +3,8 @@ export function deployGovernorBravoDelegate(): string { }
 export function deployGovernorBravoDelegator(config: { timelockAddress: string, xvsVaultAddress: string, guardianAddress: string, governorBravoDelegateAddress: string }) { }
 export function verifyGovernorBravoDelegate() { }
 export function verifyGovernorBravoDelegator() { }
-export function deployGovernorAlpha(): string { }
-export function deployGovernorAlpha2(): string { }
+export function deployGovernorAlpha(config: { timelockAddress: string, xvsVaultAddress: string, guardianAddress: string }): string { }
+export function deployGovernorAlpha2(config: { timelockAddress: string, xvsVaultAddress: string, guardianAddress: string, lastProposalId: number }): string { }
 
 // Vault
 export function deployVrtVaultProxy(): string { }

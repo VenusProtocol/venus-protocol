@@ -3,8 +3,8 @@ exports.deployGovernorBravoDelegate = require('./governance/deploy-governor-brav
 exports.deployGovernorBravoDelegator = require('./governance/deploy-governor-bravo-delegator')
 exports.verifyGovernorBravoDelegate = require('./governance/verify-governor-bravo-delegate')
 exports.verifyGovernorBravoDelegator = require('./governance/verify-governor-bravo-delegator')
-exports.deployGovernorAlpha = require('governance/deploy-governor-alpha')
-exports.deployGovernorAlpha2 = require('governance/deploy-governor-alpha2')
+exports.deployGovernorAlpha = require('./governance/deploy-governor-alpha')
+exports.deployGovernorAlpha2 = require('./governance/deploy-governor-alpha2')
 
 
 // Vault
