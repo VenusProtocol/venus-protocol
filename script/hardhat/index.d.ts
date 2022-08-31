@@ -31,3 +31,11 @@ export function getDailyXvs() { }
 export function getVtokenBalance() { }
 export function verifySnapshotLens() { }
 export function verifyVenusLens() { }
+
+// VRT Conversion
+export function deployVrtConverterPro(): string { }
+export function deployVrtConverter(): string { }
+export function queryVrtConverter() { }
+export function setXvsVesting() { }
+export function verifyVrtConverterPro() { }
+export function verifyVrtConverter() { }

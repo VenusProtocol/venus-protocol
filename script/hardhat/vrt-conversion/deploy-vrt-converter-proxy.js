@@ -38,10 +38,7 @@ const main = async () => {
 
     const deployer = await getDeployer(ethers);
     console.log(`${deployer} deployed vrtConverterProxyContract at address: ${vrtConverterProxyContractInstance.address}`);
+    return vrtConverterProxyContractInstance.address;
 };
 
-main().then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+module.exports = main;

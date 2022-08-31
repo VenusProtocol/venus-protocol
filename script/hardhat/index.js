@@ -32,3 +32,18 @@ exports.getDailyXvs = require('./lens/get-daily-xvs')
 exports.getVtokenBalance = require('./lens/get-vtoken-balance')
 exports.verifySnapshotLens = require('./lens/verify-snapshot-lens')
 exports.verifyVenusLens = require('./lens/verify-venus-lens')
+
+// VRT Conversion
+exports.verifyVrtConverter = require('./vrt-conversion/verify-vrt-converter')
+exports.deployVrtConverterPro = require('./vrt-conversion/deploy-vrt-converter-proxy')
+exports.deployVrtConverter = require('./vrt-conversion/deploy-vrt-converter')
+exports.queryVrtConverter = require('./vrt-conversion/query-vrt-converter')
+exports.setXvsVesting = require('./vrt-conversion/set-xvs-vesting')
+exports.verifyVrtConverterPro = require('./vrt-conversion/verify-vrt-converter-proxy')
+
+// XVS Vesting
+exports.deployXvsVestingProxy = require('./xvs-vesting/deploy-xvs-vesting-proxy')
+exports.deployXvsVesting = require('./xvs-vesting/deploy-xvs-vesting')
+exports.setVrtConverter = require('./xvs-vesting/set-vrt-converter')
+exports.verifyXvsVestingProxy = require('./xvs-vesting/verify-xvs-vesting-proxy')
+exports.verifyXvsVesting = require('./xvs-vesting/verify-xvs-vesting')
