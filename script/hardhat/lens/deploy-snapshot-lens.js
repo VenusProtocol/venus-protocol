@@ -12,10 +12,7 @@ const main = async () => {
     await snapshotLensContractInstance.deployed();
     const deployer = await getDeployer(ethers);
     console.log(`deployer: ${deployer} has deployed snapshotLens at address: ${snapshotLensContractInstance.address}`);
+    return snapshotLensContractInstance.address;
 };
 
-main().then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+module.exports = main;

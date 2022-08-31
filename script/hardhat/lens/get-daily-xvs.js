@@ -12,8 +12,4 @@ const main = async () => {
     const dailyXVS = await venusLensInstance.getDailyXVS("0x0D29D962Ce3ECc34B41E2885fb0296a1C2fD80fd", comptrollerAddress);
 };
 
-main().then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+module.exports = main;

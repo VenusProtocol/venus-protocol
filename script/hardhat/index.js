@@ -24,3 +24,11 @@ exports.vrtVaultSetImplForVaultProxy = require('./vault/vrt-vault-set-impl-for-v
 
 // Comptroller
 exports.deployNextComptrollerPrologue = require('./comptroller/deploy-next-comptroller-prologue')
+
+// Lens
+exports.deploySnapshotLens = require('./lens/deploy-snapshot-lens')
+exports.deployVenusLens = require('./lens/deploy-venus-lens')
+exports.getDailyXvs = require('./lens/get-daily-xvs')
+exports.getVtokenBalance = require('./lens/get-vtoken-balance')
+exports.verifySnapshotLens = require('./lens/verify-snapshot-lens')
+exports.verifyVenusLens = require('./lens/verify-venus-lens')

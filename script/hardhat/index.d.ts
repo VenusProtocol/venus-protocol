@@ -23,3 +23,11 @@ export function vrtVaultSetImplForVaultProxy() { }
 
 // Comptroller
 export function deployNextComptrollerPrologue(): { vaiControllerContractAddress: string, comptrollerLensContractAddress: string, comptrollerContractAddress: string, liquidatorContractAddress } { }
+
+// Lens
+export function deploySnapshotLens(): string { }
+export function deployVenusLens(): string { }
+export function getDailyXvs() { }
+export function getVtokenBalance() { }
+export function verifySnapshotLens() { }
+export function verifyVenusLens() { }
