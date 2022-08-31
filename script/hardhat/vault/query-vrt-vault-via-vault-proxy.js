@@ -1,6 +1,6 @@
 require("dotenv").config();
 const network = process.env.NETWORK;
-const contractConfigData = require(`../../networks/${network}.json`);
+const contractConfigData = require(`../../../networks/${network}.json`);
 
 const main = async () => {
   const vrtVaultProxyAddress = contractConfigData.Contracts.VRTVaultProxy;
@@ -10,8 +10,4 @@ const main = async () => {
   console.log(`vrt is: ${vrt} - interestRatePerBlock: ${interestRatePerBlock}`);
 };
 
-main().then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+module.exports = main;
