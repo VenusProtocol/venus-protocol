@@ -8,6 +8,7 @@ const main = async () => {
   await hre.run("verify:verify", {
     address: governorBravoDelegateAddress
   });
+  return governorBravoDelegateAddress;
 };
 
 module.exports = main;

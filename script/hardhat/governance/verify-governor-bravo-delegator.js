@@ -22,6 +22,7 @@ const main = async () => {
     address: governorBravoDelegatorAddress,
     constructorArguments: constructorArgumentArray
   });
+  return governorBravoDelegatorAddress;
 };
 
 module.exports = main;
