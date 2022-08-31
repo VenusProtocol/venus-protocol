@@ -39,3 +39,10 @@ export function queryVrtConverter() { }
 export function setXvsVesting() { }
 export function verifyVrtConverterPro() { }
 export function verifyVrtConverter() { }
+
+// XVS Vesting
+export function deployXvsVestingProxy(): string { }
+export function deployXvsVesting(): string { }
+export function setVrtConverter() { }
+export function verifyXvsVestingProxy() { }
+export function verifyXvsVesting() { }
