@@ -20,3 +20,6 @@ export function verifyXvsVaultProxy() { }
 export function verifyXvsVault() { }
 export function vrtVaultAcceptAsImplForProxy() { }
 export function vrtVaultSetImplForVaultProxy() { }
+
+// Comptroller
+export function deployNextComptrollerPrologue(): { vaiControllerContractAddress: string, comptrollerLensContractAddress: string, comptrollerContractAddress: string, liquidatorContractAddress } { }

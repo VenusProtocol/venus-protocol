@@ -52,10 +52,12 @@ const main = async() => {
     );
     await liquidatorContractInstance.deployed();
     console.log(`deployer: ${deployer} deployed Liquidator at address: ${liquidatorContractInstance.address}`);
+    return {
+        vaiControllerContractAddress: vaiControllerContractInstance.address,
+        comptrollerLensContractAddress: comptrollerLensContractInstance.address,
+        comptrollerContractAddress: comptrollerContractInstance.address,
+        liquidatorContractAddress: liquidatorContractInstance.address,
+    }
 };
 
-main().then(() => process.exit(0))
-.catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+module.exports = main;

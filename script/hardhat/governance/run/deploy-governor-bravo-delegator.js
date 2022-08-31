@@ -1,5 +1,5 @@
 const main = require('../deploy-governor-bravo-delegator');
-const contractConfigData = require(`../../../networks/testnet.json`);
+const contractConfigData = require(`../../../../networks/testnet.json`);
 
 const timelockAddress = contractConfigData.Contracts.Timelock;
 const xvsVaultAddress = contractConfigData.Contracts.XVSVaultProxy;
