@@ -10,9 +10,9 @@ const main = async ({ timelockAddress, xvsVaultAddress, guardianAddress, governo
 
   const GovernorBravoDelegatorContract = await ethers.getContractFactory("GovernorBravoDelegator");
 
-  const votingPeriod = 200;
+  const votingPeriod = 3600;
   const votingDelay = 1;
-  const proposalThreshold = bnbMantissa(1e4);
+  const proposalThreshold = bnbMantissa(15e4);
 
   const constructorArgumentArray = [timelockAddress, xvsVaultAddress, guardianAddress, governorBravoDelegateAddress, votingPeriod, votingDelay, proposalThreshold, guardianAddress];
   console.log(`Deploying GovernorBravoDelegator with timelockAddress, xvsVaultAddress, admin, governorBravoDelegateAddress, votingPeriod, votingDelay, proposalThreshold, guardian in constructorArguments: ${constructorArgumentArray}`);
