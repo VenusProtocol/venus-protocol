@@ -53,10 +53,10 @@ const main = async() => {
     await liquidatorContractInstance.deployed();
     console.log(`deployer: ${deployer} deployed Liquidator at address: ${liquidatorContractInstance.address}`);
     return {
-        vaiControllerContractAddress: vaiControllerContractInstance.address,
-        comptrollerLensContractAddress: comptrollerLensContractInstance.address,
-        comptrollerContractAddress: comptrollerContractInstance.address,
-        liquidatorContractAddress: liquidatorContractInstance.address,
+        vaiControllerContract: vaiControllerContractInstance,
+        comptrollerLensContract: comptrollerLensContractInstance,
+        comptrollerContract: comptrollerContractInstance,
+        liquidatorContract: liquidatorContractInstance,
     }
 };
 

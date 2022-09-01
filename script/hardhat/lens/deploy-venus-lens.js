@@ -12,7 +12,7 @@ const main = async () => {
     await venuLensContractInstance.deployed();
     const deployer = await getDeployer(ethers);
     console.log(`deployer: ${deployer} has deployed VenusLens at address: ${venuLensContractInstance.address}`);
-    return venuLensContractInstance.address;
+    return venuLensContractInstance;
 };
 
 module.exports = main;

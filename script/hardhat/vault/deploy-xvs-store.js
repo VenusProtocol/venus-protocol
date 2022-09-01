@@ -8,7 +8,7 @@ const main = async () => {
   const xvsStoreContractInstance = await xvsStoreContract.deploy();
   await xvsStoreContractInstance.deployed();
   console.log(`deployer: ${deployer} deployed xvsStore at address: ${xvsStoreContractInstance.address}`);
-  return xvsStoreContractInstance.address;
+  return xvsStoreContractInstance;
 };
 
 module.exports = main;

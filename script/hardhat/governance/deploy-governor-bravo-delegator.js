@@ -30,7 +30,7 @@ const main = async ({ timelockAddress, xvsVaultAddress, guardianAddress, governo
 
   await governorBravoDelegatorContractInstance.deployed();
   console.log(`deployer: ${deployer} deployed GovernorBravoDelegator at address: ${governorBravoDelegatorContractInstance.address}`);
-  return governorBravoDelegatorContractInstance.address;
+  return governorBravoDelegatorContractInstance;
 };
 
 module.exports = main;

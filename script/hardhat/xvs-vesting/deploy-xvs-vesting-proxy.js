@@ -25,7 +25,7 @@ const main = async () => {
 
     const deployer = await getDeployer(ethers);
     console.log(`deployer: ${deployer} has deployed XVSVestingProxy at address: ${xvsVestingProxyInstance.address}`);
-    return xvsVestingProxyInstance.address;
+    return xvsVestingProxyInstance;
 };
 
 module.exports = main;

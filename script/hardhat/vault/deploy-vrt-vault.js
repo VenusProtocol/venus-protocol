@@ -11,7 +11,7 @@ const main = async () => {
   const vrtVaultContractInstance = await vrtVaultContract.deploy();
   await vrtVaultContractInstance.deployed();
   console.log(`deployer: ${deployer} deployed VRTVault at address: ${vrtVaultContractInstance.address}`);
-  return vrtVaultContractInstance.address;
+  return vrtVaultContractInstance;
 };
 
 module.exports = main;

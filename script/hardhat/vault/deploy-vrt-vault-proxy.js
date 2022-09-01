@@ -19,7 +19,7 @@ const main = async () => {
   const vrtVaultProxyContractInstance = await vrtVaultProxyContract.deploy(vrtVaultAddress, vrtAddress, interestRatePerBlockAsNumber);
   await vrtVaultProxyContractInstance.deployed();
   console.log(`deployer: ${deployer} deployed VRTVaultProxy at address: ${vrtVaultProxyContractInstance.address}`);
-  return vrtVaultProxyContractInstance.address;
+  return vrtVaultProxyContractInstance;
 };
 
 module.exports = main;

@@ -12,7 +12,7 @@ const main = async () => {
 
     const deployer = await getDeployer(ethers);
     console.log(`deployer: ${deployer} has deployed xvsVesting at address: ${xvsVestingContractInstance.address}`);
-    return xvsVestingContractInstance.address;
+    return xvsVestingContractInstance;
 };
 
 module.exports = main;

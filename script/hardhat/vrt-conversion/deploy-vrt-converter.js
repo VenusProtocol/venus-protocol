@@ -11,7 +11,7 @@ const main = async () => {
 
     const deployer = await getDeployer(ethers);
     console.log(`deployer: ${deployer} has deployed vrtConverterContract at address: ${vrtConverterContractInstance.address}`);
-    return vrtConverterContractInstance.address;
+    return vrtConverterContractInstance;
 };
 
 module.exports = main;

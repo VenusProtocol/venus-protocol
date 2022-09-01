@@ -9,7 +9,7 @@ const main = async() => {
     const governorBravoDelegateContractInstance = await GovernorBravoDelegateContract.deploy();
     await governorBravoDelegateContractInstance.deployed();
     console.log(`deployer: ${deployer} deployed GovernorBravoDelegate at address: ${governorBravoDelegateContractInstance.address}`);
-    return governorBravoDelegateContractInstance.address;
+    return governorBravoDelegateContractInstance;
 };
 
 module.exports = main;
