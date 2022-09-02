@@ -21,6 +21,7 @@ exports.verifyXvsVaultProxy = require('./vault/verify-xvs-vault-proxy')
 exports.verifyXvsVault = require('./vault/verify-xvs-vault')
 exports.vrtVaultAcceptAsImplForProxy = require('./vault/vrt-vault-accept-as-impl-for-proxy')
 exports.vrtVaultSetImplForVaultProxy = require('./vault/vrt-vault-set-impl-for-vault-proxy')
+exports.deployAndConfigureXvsVault = require('./vault/deploy-and-configure-xvs-vault')
 
 // Comptroller
 exports.deployNextComptrollerPrologue = require('./comptroller/deploy-next-comptroller-prologue')
