@@ -21,6 +21,14 @@ export function verifyXvsVaultProxy() { }
 export function verifyXvsVault() { }
 export function vrtVaultAcceptAsImplForProxy() { }
 export function vrtVaultSetImplForVaultProxy() { }
+export function deployAndConfigureXvsVault(): {
+  xvsVault: Contract,
+  xvsVaultProxy: Contract,
+  xvs: Contract,
+  xvsStore: Contract,
+  timelock: Contract,
+} { }
+
 
 // Comptroller
 export function deployNextComptrollerPrologue(): { vaiControllerContract: Contract, comptrollerLensContract: Contract, comptrollerContract: Contract, liquidatorContract: Contract } { }
