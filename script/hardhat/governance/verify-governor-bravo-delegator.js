@@ -1,6 +1,6 @@
 require("dotenv").config();
-const contractConfigData = require("../../networks/testnet.json");
-const { bnbMantissa } = require('../deploy/utils/web3-utils');
+const contractConfigData = require("../../../networks/testnet.json");
+const { bnbMantissa } = require('../../deploy/utils/web3-utils');
 const hre = require("hardhat");
 
 const main = async () => {
@@ -22,10 +22,7 @@ const main = async () => {
     address: governorBravoDelegatorAddress,
     constructorArguments: constructorArgumentArray
   });
+  return governorBravoDelegatorAddress;
 };
 
-main().then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+module.exports = main;

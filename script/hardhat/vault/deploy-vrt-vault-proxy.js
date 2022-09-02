@@ -2,8 +2,8 @@ require("dotenv").config();
 const hre = require("hardhat");
 const ethers = hre.ethers;
 const network = process.env.NETWORK;
-const contractConfigData = require(`../../networks/${network}.json`);
-const { bnbUnsigned } = require('../deploy/utils/web3-utils');
+const contractConfigData = require(`../../../networks/${network}.json`);
+const { bnbUnsigned } = require('../../deploy/utils/web3-utils');
 
 const main = async () => {
   const signers = await ethers.getSigners();
@@ -19,10 +19,7 @@ const main = async () => {
   const vrtVaultProxyContractInstance = await vrtVaultProxyContract.deploy(vrtVaultAddress, vrtAddress, interestRatePerBlockAsNumber);
   await vrtVaultProxyContractInstance.deployed();
   console.log(`deployer: ${deployer} deployed VRTVaultProxy at address: ${vrtVaultProxyContractInstance.address}`);
+  return vrtVaultProxyContractInstance;
 };
 
-main().then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+module.exports = main;

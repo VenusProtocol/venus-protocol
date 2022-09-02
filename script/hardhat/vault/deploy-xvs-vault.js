@@ -9,10 +9,7 @@ const main = async () => {
   const xvsVaultContractInstance = await xvsVaultContract.deploy();
   await xvsVaultContractInstance.deployed();
   console.log(`deployer: ${deployer} deployed XVSVault at address: ${xvsVaultContractInstance.address}`);
+  return xvsVaultContractInstance;
 };
 
-main().then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+module.exports = main;

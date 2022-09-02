@@ -350,7 +350,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
     function _initiate(address governorAlpha) external {
         require(msg.sender == admin, "GovernorBravo::_initiate: admin only");
         require(initialProposalId == 0, "GovernorBravo::_initiate: can only initiate once");
-        proposalCount = GovernorAlpha(governorAlpha).proposalCount();
+        proposalCount = GovernorAlphaInterface(governorAlpha).proposalCount();
         initialProposalId = proposalCount;
         timelock.acceptAdmin();
     }

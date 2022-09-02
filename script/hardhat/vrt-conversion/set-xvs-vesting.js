@@ -17,8 +17,4 @@ const main = async () => {
     console.log(`completed setXVSVesting: ${xvsVestingProxyAddress} with txn: ${JSON.stringify(setXVSVestingTxn)}`);
 };
 
-main().then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+module.exports = main;

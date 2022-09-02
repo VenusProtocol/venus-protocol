@@ -1,6 +1,6 @@
 require("dotenv").config();
 const network = process.env.NETWORK;
-const contractConfigData = require(`../../networks/${network}.json`);
+const contractConfigData = require(`../../../networks/${network}.json`);
 
 const main = async () => {
   const vrtVaultAddress = contractConfigData.Contracts.VRTVault;
@@ -12,8 +12,4 @@ const main = async () => {
   console.log(`acceptImplementationTxn is: ${JSON.stringify(acceptImplementationTxn)}`);
 };
 
-main().then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+module.exports = main;

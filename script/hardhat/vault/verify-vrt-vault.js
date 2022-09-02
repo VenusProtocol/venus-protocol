@@ -1,6 +1,6 @@
 require("dotenv").config();
 const network = process.env.NETWORK;
-const contractConfigData = require(`../../networks/${network}.json`);
+const contractConfigData = require(`../../../networks/${network}.json`);
 const hre = require("hardhat");
 require("@nomiclabs/hardhat-etherscan");
 
@@ -12,8 +12,4 @@ const main = async () => {
   });
 };
 
-main().then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+module.exports = main;

@@ -3,7 +3,6 @@
 require('dotenv').config();
 const hre = require('hardhat');
 const BigNumber = require('bignumber.js');
-const ethers = hre.ethers;
 
 const contractConfigData = require(`../../../networks/testnet.json`);
 
@@ -54,8 +53,4 @@ const main = async() => {
     console.log(`LiquidatorContract verified!`);
 };
 
-main().then(() => process.exit(0))
-.catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+module.exports = main;
