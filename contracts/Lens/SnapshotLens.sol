@@ -15,6 +15,7 @@ contract SnapshotLens is ExponentialNoError {
         string assetName;
         address vTokenAddress;
         address underlyingAssetAddress;
+        bool isACollateral;
         uint256 supply;
         uint256 supplyInUsd;
         uint256 collateral;
@@ -46,6 +47,7 @@ contract SnapshotLens is ExponentialNoError {
         Exp exchangeRate;
         Exp oraclePrice;
         Exp tokensToDenom;
+        bool isACollateral;
     }
 
     function getAccountSnapshot(
@@ -54,15 +56,26 @@ contract SnapshotLens is ExponentialNoError {
     )  public returns (AccountSnapshot[] memory) {
 
         // For each asset the account is in
-        VToken[] memory assets = Comptroller(comptrollerAddress).getAssetsIn(account);
-        uint assetsCount = assets.length;
+        VToken[] memory assets = Comptroller(comptrollerAddress).getAllMarkets();
+        uint256 assetsCount = assets.length;
         AccountSnapshot[] memory accountSnapshots = new AccountSnapshot[](assetsCount);
 
-        for (uint i = 0; i < assetsCount; ++i) {
+        for (uint256 i = 0; i < assetsCount; ++i){
             accountSnapshots[i] = getAccountSnapshot(account, comptrollerAddress, assets[i]);
         }
 
         return accountSnapshots;
+    }
+
+    function isACollateral(address account, address asset, address comptrollerAddress) public view returns (bool){
+        VToken[] memory assetsAsCollateral = Comptroller(comptrollerAddress).getAssetsIn(account);
+        for(uint256 j = 0; j < assetsAsCollateral.length ; ++j){
+            if(address(assetsAsCollateral[j]) == asset){
+                return true;
+            }
+        }
+
+        return false;
     }
 
     function getAccountSnapshot(
@@ -110,7 +123,9 @@ contract SnapshotLens is ExponentialNoError {
             underlyingAssetAddress = vBep20.underlying();
             underlyingDecimals = EIP20Interface(vBep20.underlying()).decimals();
         }
-        
+
+        vars.isACollateral = isACollateral(account, address(vToken), comptrollerAddress);
+
         return AccountSnapshot({
             account: account,
             assetName: vToken.name(),
@@ -125,7 +140,8 @@ contract SnapshotLens is ExponentialNoError {
             accruedInterest: vToken.borrowIndex(),
             vTokenDecimals: vToken.decimals(),
             underlyingDecimals: underlyingDecimals,
-            exchangeRate: vToken.exchangeRateCurrent()
+            exchangeRate: vToken.exchangeRateCurrent(),
+            isACollateral: vars.isACollateral
         });
     }
 
