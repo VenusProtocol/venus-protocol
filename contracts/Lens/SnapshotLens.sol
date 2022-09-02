@@ -15,7 +15,6 @@ contract SnapshotLens is ExponentialNoError {
         string assetName;
         address vTokenAddress;
         address underlyingAssetAddress;
-        bool isACollateral;
         uint256 supply;
         uint256 supplyInUsd;
         uint256 collateral;
@@ -26,6 +25,7 @@ contract SnapshotLens is ExponentialNoError {
         uint vTokenDecimals;
         uint underlyingDecimals;
         uint exchangeRate;
+        bool isACollateral;
     }
 
     /** Snapshot calculation **/
@@ -57,13 +57,10 @@ contract SnapshotLens is ExponentialNoError {
 
         // For each asset the account is in
         VToken[] memory assets = Comptroller(comptrollerAddress).getAllMarkets();
-        uint256 assetsCount = assets.length;
-        AccountSnapshot[] memory accountSnapshots = new AccountSnapshot[](assetsCount);
-
-        for (uint256 i = 0; i < assetsCount; ++i){
+        AccountSnapshot[] memory accountSnapshots = new AccountSnapshot[](assets.length);
+        for (uint256 i = 0; i < assets.length; ++i){
             accountSnapshots[i] = getAccountSnapshot(account, comptrollerAddress, assets[i]);
         }
-
         return accountSnapshots;
     }
 
