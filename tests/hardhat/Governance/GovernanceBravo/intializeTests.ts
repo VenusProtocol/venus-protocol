@@ -28,7 +28,7 @@ async function governorBravoFixture(): Promise<GovernorBravoDelegateFixture> {
 	return {governorBravoDelegate, xvsVault}
 }
 
-describe("Governor Bravo Test", () => {
+describe("Governor Bravo Initializing Test", () => {
 	beforeEach(async () =>{
 	  [root, customer, ...accounts] = await ethers.getSigners();
 	  const contracts = await loadFixture(governorBravoFixture);

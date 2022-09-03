@@ -1,4 +1,4 @@
-import { BigNumber, ContractTransaction, Signer } from "ethers";
+import { BigNumber, Signer } from "ethers";
 import { ethers, network } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
@@ -16,9 +16,7 @@ import {
   XVS,
 } from "../../../../typechain";
 import { ProposalType } from "../../util/Proposals";
-import { convertToUnit } from "../../../../helpers/utils";
-import { Web3Provider } from "@ethersproject/providers";
-import { type } from "os";
+import { convertToUnit } from "../../../../helpers/utils";;
 
 let root: Signer;
 let customer: Signer;
@@ -70,7 +68,7 @@ let targets: any[],
   values: string | any[],
   signatures: string | any[],
   callDatas: string | any[];
-describe("hhh", () => {
+describe("Governor Bravo Propose Tests", () => {
   let rootAddress: String;
   let proposalId: BigNumber;
   let trivialProposal: any;
@@ -274,8 +272,6 @@ describe("hhh", () => {
     });
 
     it("emits log with id and description", async () => {
-      // await enfranchise(accounts[3], 400001);
-
       await mineBlock();
       await governorBravoDelegate
 	    .connect(accounts[3])
