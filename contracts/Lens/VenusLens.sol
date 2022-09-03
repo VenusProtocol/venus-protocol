@@ -99,36 +99,39 @@ contract VenusLens is ExponentialNoError {
         uint dailyXvsPerAccount = 0;
         
         for (uint i = 0; i < vTokens.length; i++) {
-            VToken vToken = vTokens[i];            
-            VTokenMetadata memory metaDataItem = vTokenMetadata(vToken);
+            VToken vToken = vTokens[i];
+            if (!compareStrings(vToken.symbol(), "vUST") && !compareStrings(vToken.symbol(), "vLUNA")) {
 
-            //get balanceOfUnderlying and borrowBalanceCurrent from vTokenBalance
-            VTokenBalances memory vTokenBalanceInfo = vTokenBalances(vToken, account);
+                VTokenMetadata memory metaDataItem = vTokenMetadata(vToken);
 
-            VTokenUnderlyingPrice memory underlyingPriceResponse = vTokenUnderlyingPrice(vToken);
-            uint underlyingPrice = underlyingPriceResponse.underlyingPrice;
-            Exp memory underlyingPriceMantissa = Exp({mantissa: underlyingPrice});
+                //get balanceOfUnderlying and borrowBalanceCurrent from vTokenBalance
+                VTokenBalances memory vTokenBalanceInfo = vTokenBalances(vToken, account);
 
-            //get dailyXvsSupplyMarket
-            uint dailyXvsSupplyMarket = 0;
-            uint supplyInUsd = mul_ScalarTruncate(underlyingPriceMantissa, vTokenBalanceInfo.balanceOfUnderlying);
-            uint marketTotalSupply = (metaDataItem.totalSupply.mul(metaDataItem.exchangeRateCurrent)).div(1e18);
-            uint marketTotalSupplyInUsd = mul_ScalarTruncate(underlyingPriceMantissa, marketTotalSupply);
+                VTokenUnderlyingPrice memory underlyingPriceResponse = vTokenUnderlyingPrice(vToken);
+                uint underlyingPrice = underlyingPriceResponse.underlyingPrice;
+                Exp memory underlyingPriceMantissa = Exp({mantissa: underlyingPrice});
 
-            if(marketTotalSupplyInUsd > 0) {
-                dailyXvsSupplyMarket = (metaDataItem.dailySupplyXvs.mul(supplyInUsd)).div(marketTotalSupplyInUsd);
+                //get dailyXvsSupplyMarket
+                uint dailyXvsSupplyMarket = 0;
+                uint supplyInUsd = mul_ScalarTruncate(underlyingPriceMantissa, vTokenBalanceInfo.balanceOfUnderlying);
+                uint marketTotalSupply = (metaDataItem.totalSupply.mul(metaDataItem.exchangeRateCurrent)).div(1e18);
+                uint marketTotalSupplyInUsd = mul_ScalarTruncate(underlyingPriceMantissa, marketTotalSupply);
+
+                if(marketTotalSupplyInUsd > 0) {
+                    dailyXvsSupplyMarket = (metaDataItem.dailySupplyXvs.mul(supplyInUsd)).div(marketTotalSupplyInUsd);
+                }
+
+                //get dailyXvsBorrowMarket
+                uint dailyXvsBorrowMarket = 0;
+                uint borrowsInUsd = mul_ScalarTruncate(underlyingPriceMantissa, vTokenBalanceInfo.borrowBalanceCurrent);
+                uint marketTotalBorrowsInUsd = mul_ScalarTruncate(underlyingPriceMantissa, metaDataItem.totalBorrows);
+
+                if(marketTotalBorrowsInUsd > 0){
+                    dailyXvsBorrowMarket = (metaDataItem.dailyBorrowXvs.mul(borrowsInUsd)).div(marketTotalBorrowsInUsd);
+                }
+
+                dailyXvsPerAccount += dailyXvsSupplyMarket + dailyXvsBorrowMarket;
             }
-
-            //get dailyXvsBorrowMarket
-            uint dailyXvsBorrowMarket = 0;
-            uint borrowsInUsd = mul_ScalarTruncate(underlyingPriceMantissa, vTokenBalanceInfo.borrowBalanceCurrent);
-            uint marketTotalBorrowsInUsd = mul_ScalarTruncate(underlyingPriceMantissa, metaDataItem.totalBorrows);
-
-            if(marketTotalBorrowsInUsd > 0){
-                dailyXvsBorrowMarket = (metaDataItem.dailyBorrowXvs.mul(borrowsInUsd)).div(marketTotalBorrowsInUsd);
-            }
-
-            dailyXvsPerAccount += dailyXvsSupplyMarket + dailyXvsBorrowMarket;
         }
 
         return dailyXvsPerAccount;
