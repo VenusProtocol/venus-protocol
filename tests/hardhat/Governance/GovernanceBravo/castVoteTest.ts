@@ -117,7 +117,6 @@ describe("Governor Bravo Cast Vote Test", () => {
       });
 
       it("There does not exist a proposal with matching proposal id where the current block number is between the proposal's start block (exclusive) and end block (inclusive)", async () => {
-        console.log("Proposal: " + proposalId);
         await expect(
           governorBravoDelegate.castVote(proposalId, 1)
         ).to.be.revertedWith(
@@ -129,15 +128,12 @@ describe("Governor Bravo Cast Vote Test", () => {
         await mineBlock();
         await mineBlock();
 
-        console.log("0 Votes");
         await governorBravoDelegate
           .connect(accounts[4])
           .castVote(proposalId, 1);
-        console.log("1 Vote");
         await governorBravoDelegate
           .connect(accounts[3])
           .castVoteWithReason(proposalId, 1, "");
-        console.log("2 Votes For");
         await expect(
           governorBravoDelegate.connect(accounts[4]).castVote(proposalId, 1)
         ).to.be.revertedWith(
