@@ -1,10 +1,9 @@
 import { BigNumber, ContractTransaction, Signer } from "ethers";
 import { ethers, network } from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
 const { expect } = chai;
-const helpers = require("@nomicfoundation/hardhat-network-helpers");
 chai.use(smock.matchers);
 
 const { encodeParameters } = require("../../../Utils/BSC");
@@ -257,22 +256,22 @@ describe("Governor Bravo State Tests", () => {
 });
 
 async function mineBlock() {
-  await helpers.mine();
+  await mine();
 }
 
 // NOTE: very dirty solution
 //for bigger block to advance it will throw timeout
 async function advanceBlocks(blocks: number) {
-  await helpers.mine(blocks);
+  await mine(blocks);
 }
 
  /**
-   * Sets the timestamp for the new block and mines it
-   * @param timestamp Number of seconds to increase time by
-   */
+ * Sets the timestamp for the new block and mines it
+ * @param timestamp Number of seconds to increase time by
+ */
 async function minewWithTimestamp(timestamp: number) {
-// First we increase the time
+ // First we increase the time
  // Time travelling to the future!
  await network.provider.send("evm_setNextBlockTimestamp", [timestamp])
- await network.provider.send("evm_mine") 
+ await mine(); 
 }

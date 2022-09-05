@@ -1,10 +1,9 @@
 import { BigNumber, ContractTransaction, Signer } from "ethers";
 import { ethers, network } from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
 const { expect } = chai;
-const helpers = require("@nomicfoundation/hardhat-network-helpers");
 chai.use(smock.matchers);
 
 const { encodeParameters } = require("../../../Utils/BSC");
@@ -93,7 +92,7 @@ describe("Governor Bravo Queue Tests", () => {
   });
   describe("overlapping actions", () => {
     it("reverts on queueing overlapping actions in same proposal", async () => {
-      await mineBlock();
+      await mine();
       const targets = [xvsToken.address, xvsToken.address];
       const values = ["0", "0"];
       const signatures = ["getBalanceOf(address)", "getBalanceOf(address)"];
@@ -114,7 +113,7 @@ describe("Governor Bravo Queue Tests", () => {
       proposalId = await governorBravoDelegate.latestProposalIds(
         await customer.getAddress()
       );
-      await mineBlock();
+      await mine();
 
       await governorBravoDelegate.connect(customer).castVote(proposalId, 1);
       await advanceBlocks(17);
@@ -125,7 +124,7 @@ describe("Governor Bravo Queue Tests", () => {
     });
 
     it("reverts on queueing overlapping actions in different proposals", async () => {
-      await mineBlock();
+      await mine();
 
       const targets = [xvsToken.address];
       const values = ["0"];
@@ -161,7 +160,7 @@ describe("Governor Bravo Queue Tests", () => {
       const proposalId2 = await governorBravoDelegate.latestProposalIds(
         await accounts[3].getAddress()
       );
-      await mineBlock();
+      await mine();
 
 	  await governorBravoDelegate.connect(customer).castVote(proposalId1,1);
 	  await governorBravoDelegate.connect(accounts[3]).castVote(proposalId2,1);
@@ -174,12 +173,7 @@ describe("Governor Bravo Queue Tests", () => {
   });
 });
 
-async function mineBlock() {
-  await helpers.mine();
-}
 
-// NOTE: very dirty solution
-//for bigger block to advance it will throw timeout
 async function advanceBlocks(blocks: number) {
-  await helpers.mine(blocks);
+  await mine(blocks);
 }

@@ -1,6 +1,6 @@
 import { BigNumber, Signer } from "ethers";
 import { ethers, network } from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
 const { expect } = chai;
@@ -232,8 +232,8 @@ describe("Governor Bravo Propose Tests", () => {
           );
         });
         it("reverts with active", async () => {
-          await mineBlock();
-          await mineBlock();
+          await mine();
+          await mine();
 
           await expect(
             governorBravoDelegate.propose(
@@ -252,7 +252,7 @@ describe("Governor Bravo Propose Tests", () => {
     });
 
     it("This function returns the id of the newly created proposal. # proposalId(n) = succ(proposalId(n-1))", async () => {
-      await mineBlock();
+      await mine();
 
       await governorBravoDelegate
         .connect(customer)
@@ -272,7 +272,7 @@ describe("Governor Bravo Propose Tests", () => {
     });
 
     it("emits log with id and description", async () => {
-      await mineBlock();
+      await mine();
       await governorBravoDelegate
 	    .connect(accounts[3])
         .propose(
@@ -321,7 +321,3 @@ describe("Governor Bravo Propose Tests", () => {
     });
   });
 });
-
-async function mineBlock() {
-  await network.provider.send("evm_mine");
-}

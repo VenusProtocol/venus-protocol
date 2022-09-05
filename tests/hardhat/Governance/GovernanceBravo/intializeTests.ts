@@ -1,4 +1,4 @@
-import { Signer } from "ethers";
+import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
@@ -80,6 +80,26 @@ describe("Governor Bravo Initializing Test", () => {
 			await expect(governorBravoDelegate
 				.initialize(xvsVault.address,proposalConfigs,timelocks,guardianAddress)
 			).to.be.revertedWith("GovernorBravo::initialize:number of proposal configs should match number of governance routes");
+		});
+
+		it("should revert if initialized twice", async () => {
+			let guardianAddress = await accounts[0].getAddress();
+			const minVotingDelay = await governorBravoDelegate.MIN_VOTING_DELAY();
+			const minVotingPeriod = await governorBravoDelegate.MIN_VOTING_PERIOD();
+			const minProposalThreshold = await governorBravoDelegate.MIN_PROPOSAL_THRESHOLD();
+			let proposalConfigs = [
+				{ "votingDelay": minVotingDelay.add(10), "votingPeriod": minVotingPeriod.add(100), "proposalThreshold": minProposalThreshold.add(100) },
+				{ "votingDelay": minVotingDelay.add(10), "votingPeriod": minVotingPeriod.add(100), "proposalThreshold": minProposalThreshold.add(100) },
+				{ "votingDelay": minVotingDelay.add(10), "votingPeriod": minVotingPeriod.add(100), "proposalThreshold": minProposalThreshold.add(100) }
+			];
+	
+			let timelocks = [
+				accounts[0].getAddress(),
+				accounts[1].getAddress(),
+				accounts[2].getAddress(),
+			]
+			await governorBravoDelegate.initialize(xvsVault.address,proposalConfigs,timelocks,guardianAddress);
+			await expect(governorBravoDelegate.initialize(xvsVault.address,proposalConfigs,timelocks,guardianAddress)).to.be.revertedWith("GovernorBravo::initialize: cannot initialize twice");
 		});
 		
 		//TODO: implement tests for min, max value validation of voting period, voting delay, proposal threshold

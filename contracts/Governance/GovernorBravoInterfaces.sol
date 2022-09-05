@@ -68,6 +68,15 @@ contract GovernorBravoDelegatorStorage {
  */
 contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
 
+    /// @notice DEPRECATED The delay before voting on a proposal may take place, once proposed, in blocks
+    uint public votingDelay;
+
+    /// @notice DEPRECATED The duration of voting on a proposal, in blocks
+    uint public votingPeriod;
+
+    /// @notice DEPRECATED The number of votes required in order for a voter to become a proposer
+    uint public proposalThreshold;
+
     /// @notice Initial proposal id set at become
     uint public initialProposalId;
 
@@ -130,10 +139,11 @@ contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
         /// @notice Flag marking whether the proposal has been executed
         bool executed;
 
-        uint8 proposalType;
-
         /// @notice Receipts of ballots for the entire set of voters
         mapping (address => Receipt) receipts;
+
+        /// @notice The type of the proposal
+        uint8 proposalType;
     }
 
     /// @notice Ballot receipt record for a voter

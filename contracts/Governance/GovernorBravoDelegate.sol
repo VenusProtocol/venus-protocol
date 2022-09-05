@@ -49,6 +49,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     )
         public
     {
+        require(address(proposalTimelocks[0]) == address(0), "GovernorBravo::initialize: cannot initialize twice");
         require(msg.sender == admin, "GovernorBravo::initialize: admin only");
         require(xvsVault_ != address(0), "GovernorBravo::initialize: invalid xvs address");
         require(guardian_ != address(0), "GovernorBravo::initialize: invalid guardian");
@@ -61,12 +62,13 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
 
         //Set parameters for each Governance Route
         for(uint256 i; i<proposalConfigs_.length; ++i){
-            require(proposalConfigs[i].votingPeriod >= MIN_VOTING_PERIOD, "GovernorBravo::initialize: invalid min voting period");
-            require(proposalConfigs[i].votingPeriod <= MAX_VOTING_PERIOD, "GovernorBravo::initialize: invalid max voting period");
-            require(proposalConfigs[i].votingDelay >= MIN_VOTING_DELAY, "GovernorBravo::initialize: invalid min voting delay");
-            require(proposalConfigs[i].votingDelay <= MAX_VOTING_DELAY, "GovernorBravo::initialize: invalid max voting delay");
-            require(proposalConfigs[i].proposalThreshold >= MIN_PROPOSAL_THRESHOLD, "GovernorBravo::initialize: invalid min proposal threshold");
-            require(proposalConfigs[i].proposalThreshold <= MAX_PROPOSAL_THRESHOLD, "GovernorBravo::initialize: invalid max proposal threshold");
+            uint _votingPeriod = proposalConfigs_[i].votingPeriod;
+            require(proposalConfigs_[i].votingPeriod >= MIN_VOTING_PERIOD, "GovernorBravo::initialize: invalid min voting period");
+            require(proposalConfigs_[i].votingPeriod <= MAX_VOTING_PERIOD, "GovernorBravo::initialize: invalid max voting period");
+            require(proposalConfigs_[i].votingDelay >= MIN_VOTING_DELAY, "GovernorBravo::initialize: invalid min voting delay");
+            require(proposalConfigs_[i].votingDelay <= MAX_VOTING_DELAY, "GovernorBravo::initialize: invalid max voting delay");
+            require(proposalConfigs_[i].proposalThreshold >= MIN_PROPOSAL_THRESHOLD, "GovernorBravo::initialize: invalid min proposal threshold");
+            require(proposalConfigs_[i].proposalThreshold <= MAX_PROPOSAL_THRESHOLD, "GovernorBravo::initialize: invalid max proposal threshold");
             require(address(timelocks[i]) != address(0), "GovernorBravo::initialize:invalid timelock address");
 
             proposalConfigs[i] = proposalConfigs_[i];

@@ -1,6 +1,6 @@
 import { BigNumber, ContractTransaction, Signer } from "ethers";
 import { ethers, network } from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
 const { expect } = chai;
@@ -125,8 +125,8 @@ describe("Governor Bravo Cast Vote Test", () => {
       });
 
       it("Such proposal already has an entry in its voters set matching the sender", async () => {
-        await mineBlock();
-        await mineBlock();
+        await mine();
+        await mine();
 
         await governorBravoDelegate
           .connect(accounts[4])
@@ -148,7 +148,7 @@ describe("Governor Bravo Cast Vote Test", () => {
           );
           expect(receipt.hasVoted).to.be.false;
           //Mine a block to make the proposal in Active State
-          await mineBlock();
+          await mine();
           await governorBravoDelegate
             .connect(accounts[2])
             .castVote(proposalId, 1);
@@ -184,7 +184,7 @@ describe("Governor Bravo Cast Vote Test", () => {
 
           let proposal = await governorBravoDelegate.proposals(proposalId);
           const beforeFors = proposal.forVotes;
-          await mineBlock();
+          await mine();
           await governorBravoDelegate.connect(actor).castVote(proposalId, 1);
           proposal = await governorBravoDelegate.proposals(proposalId);
           const afterFors = proposal.forVotes;
@@ -215,7 +215,7 @@ describe("Governor Bravo Cast Vote Test", () => {
 
           let proposal = await governorBravoDelegate.proposals(proposalId);
           const beforeAgainsts = proposal.againstVotes;
-          await mineBlock();
+          await mine();
           await governorBravoDelegate.connect(actor).castVote(proposalId, 0);
           proposal = await governorBravoDelegate.proposals(proposalId);
           const afterAgainsts = proposal.againstVotes;
@@ -256,7 +256,7 @@ describe("Governor Bravo Cast Vote Test", () => {
 
           let proposal = await governorBravoDelegate.proposals(proposalId);
           const beforeFors = proposal.forVotes;
-          await mineBlock();
+          await mine();
 
           const proposalIdNum: number = proposalId.toNumber();
 
@@ -286,7 +286,7 @@ describe("Governor Bravo Cast Vote Test", () => {
 
           const signature = await ethers.utils.splitSignature(signatureLike);
 
-          await governorBravoDelegate.castVoteBySig(
+         const tx = await governorBravoDelegate.castVoteBySig(
             proposalId,
             1,
             signature.v,
@@ -294,8 +294,8 @@ describe("Governor Bravo Cast Vote Test", () => {
             signature.s
           );
 
-          // NOTE: Not sure how to get gasUsed with smock
-          //expect(tx.gasUsed < 80000);
+          const receipt = await tx.wait();
+          expect(receipt.gasUsed.toNumber() < 80000);
 
           proposal = await governorBravoDelegate.proposals(proposalId);
           const afterFors = proposal.forVotes;
@@ -307,7 +307,3 @@ describe("Governor Bravo Cast Vote Test", () => {
     });
   });
 });
-
-async function mineBlock() {
-  await network.provider.send("evm_mine");
-}
