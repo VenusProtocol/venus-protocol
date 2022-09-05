@@ -68,15 +68,6 @@ contract GovernorBravoDelegatorStorage {
  */
 contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
 
-    /// @notice The delay before voting on a proposal may take place, once proposed, in blocks
-    uint public votingDelay;
-
-    /// @notice The duration of voting on a proposal, in blocks
-    uint public votingPeriod;
-
-    /// @notice The number of votes required in order for a voter to become a proposer
-    uint public proposalThreshold;
-
     /// @notice Initial proposal id set at become
     uint public initialProposalId;
 

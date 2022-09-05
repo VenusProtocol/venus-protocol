@@ -60,7 +60,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         guardian = guardian_;
 
         //Set parameters for each Governance Route
-        for(uint8 i = 0; i<proposalConfigs_.length; ++i){
+        for(uint256 i; i<proposalConfigs_.length; ++i){
             require(proposalConfigs[i].votingPeriod >= MIN_VOTING_PERIOD, "GovernorBravo::initialize: invalid min voting period");
             require(proposalConfigs[i].votingPeriod <= MAX_VOTING_PERIOD, "GovernorBravo::initialize: invalid max voting period");
             require(proposalConfigs[i].votingDelay >= MIN_VOTING_DELAY, "GovernorBravo::initialize: invalid min voting delay");
@@ -307,52 +307,6 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Admin function for setting the voting delay
-      * @dev NOTE: This function should not be used anymore
-      *             since voting delay is set in initializer per governance route
-      * @param newVotingDelay new voting delay, in blocks
-      */
-    function _setVotingDelay(uint newVotingDelay) external {
-        require(msg.sender == admin, "GovernorBravo::_setVotingDelay: admin only");
-        require(newVotingDelay >= MIN_VOTING_DELAY && newVotingDelay <= MAX_VOTING_DELAY, "GovernorBravo::_setVotingDelay: invalid voting delay");
-        uint oldVotingDelay = votingDelay;
-        votingDelay = newVotingDelay;
-
-        emit VotingDelaySet(oldVotingDelay, votingDelay);
-    }
-
-    /**
-      * @notice Admin function for setting the voting period
-      * @dev NOTE: This function should not be used anymore
-      *             since voting period is set in initializer per governance route
-      * @param newVotingPeriod new voting period, in blocks
-      */
-    function _setVotingPeriod(uint newVotingPeriod) external {
-        require(msg.sender == admin, "GovernorBravo::_setVotingPeriod: admin only");
-        require(newVotingPeriod >= MIN_VOTING_PERIOD && newVotingPeriod <= MAX_VOTING_PERIOD, "GovernorBravo::_setVotingPeriod: invalid voting period");
-        uint oldVotingPeriod = votingPeriod;
-        votingPeriod = newVotingPeriod;
-
-        emit VotingPeriodSet(oldVotingPeriod, votingPeriod);
-    }
-
-    /**
-      * @notice Admin function for setting the proposal threshold
-      * @dev newProposalThreshold must be greater than the hardcoded min
-      * NOTE: This function should not be used anymore
-      *       since voting delay is set in initializer per governance route
-      * @param newProposalThreshold new proposal threshold
-      */
-    function _setProposalThreshold(uint newProposalThreshold) external {
-        require(msg.sender == admin, "GovernorBravo::_setProposalThreshold: admin only");
-        require(newProposalThreshold >= MIN_PROPOSAL_THRESHOLD && newProposalThreshold <= MAX_PROPOSAL_THRESHOLD, "GovernorBravo::_setProposalThreshold: invalid proposal threshold");
-        uint oldProposalThreshold = proposalThreshold;
-        proposalThreshold = newProposalThreshold;
-
-        emit ProposalThresholdSet(oldProposalThreshold, proposalThreshold);
-    }
-
-    /**
       * @notice Initiate the GovernorBravo contract
       * @dev Admin only. Sets initial proposal id which initiates the contract, ensuring a continuous proposal id count
       * @param governorAlpha The address for the Governor to continue the proposal id count from
@@ -362,7 +316,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         require(initialProposalId == 0, "GovernorBravo::_initiate: can only initiate once");
         proposalCount = GovernorAlphaInterface(governorAlpha).proposalCount();
         initialProposalId = proposalCount;
-        for(uint8 i=0; i < uint8(ProposalType.CRITICAL) + 1; ++i){
+        for(uint256 i; i < uint8(ProposalType.CRITICAL) + 1; ++i){
             proposalTimelocks[i].acceptAdmin();
         }
     }
