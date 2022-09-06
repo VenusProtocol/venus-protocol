@@ -5,6 +5,7 @@ exports.verifyGovernorBravoDelegate = require('./governance/verify-governor-brav
 exports.verifyGovernorBravoDelegator = require('./governance/verify-governor-bravo-delegator')
 exports.deployGovernorAlpha = require('./governance/deploy-governor-alpha')
 exports.deployGovernorAlpha2 = require('./governance/deploy-governor-alpha2')
+exports.initiateGovernorBravoDelegate = require('./governance/initiate-governor-bravo-delegate')
 
 
 // Vault

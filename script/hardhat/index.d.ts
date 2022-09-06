@@ -6,6 +6,7 @@ export function verifyGovernorBravoDelegate() { }
 export function verifyGovernorBravoDelegator() { }
 export function deployGovernorAlpha(config: { timelockAddress: string, xvsVaultAddress: string, guardianAddress: string }): Contract { }
 export function deployGovernorAlpha2(config: { timelockAddress: string, xvsVaultAddress: string, guardianAddress: string, lastProposalId: number }): Contract { }
+export function initiateGovernorBravoDelegate(config: { governorBravoDelegateAddress?: string, governorAlpha2Address?: string, network?: 'testnet'  | 'mainnet'}) { }
 
 // Vault
 export function deployVrtVaultProxy(): Contract { }
