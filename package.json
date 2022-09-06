@@ -7,7 +7,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "lint": "echo \"Not configured yet\"",
-    "postinstall": "npx hardhat compile"
+    "postinstall": "yarn compile"
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
@@ -15,7 +15,9 @@
   "dependencies": {
     "dotenv": "^16.0.1"
   },
-  "peerDependencies": {},
+  "peerDependencies": {
+    "hardhat": "^2.10.1"
+  },
   "devDependencies": {
     "@defi-wonderland/smock": "^2.2.0",
     "@ethersproject/abi": "^5.6.4",
