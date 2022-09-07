@@ -49,3 +49,6 @@ exports.deployXvsVesting = require('./xvs-vesting/deploy-xvs-vesting')
 exports.setVrtConverter = require('./xvs-vesting/set-vrt-converter')
 exports.verifyXvsVestingProxy = require('./xvs-vesting/verify-xvs-vesting-proxy')
 exports.verifyXvsVesting = require('./xvs-vesting/verify-xvs-vesting')
+
+// Timelock
+exports.deployTimelock = require('./timelock/deploy-timelock')

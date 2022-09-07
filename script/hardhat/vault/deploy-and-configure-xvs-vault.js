@@ -3,7 +3,7 @@ const deployXvsVault = require('./deploy-xvs-vault')
 const deployXvsVaultProxy = require('./deploy-xvs-vault-proxy')
 const deployXvsStore = require('./deploy-xvs-store')
 
-const deployAndConfigureXvsVault = async () => {
+const deployAndConfigureXvsVault = async ({ timelockAddress }) => {
   const [root] = await ethers.getSigners();
   const XvsContract = await ethers.getContractFactory('XVS');
   const xvs = await XvsContract.deploy(root.address);
@@ -63,11 +63,6 @@ const deployAndConfigureXvsVault = async () => {
 
   console.log(`XVS -> created TokenPool for: ${_rewardToken} on xvsVaultProxyAddress`);
 
-  // Set timelock as admin to xvs store
-  const TimelockContract = await ethers.getContractFactory('Timelock');
-  const timelock = await TimelockContract.deploy(root.address, 86400 * 2);
-  const timelockAddress = timelock.address;
-
   // Set timelock as admin to xvs vault proxy
   await xvsVaultProxy._setPendingAdmin(timelockAddress);
   console.log(`Timelock -> ${timelockAddress} as PendingAdmin to XVSVaultProxy`);
@@ -89,7 +84,6 @@ const deployAndConfigureXvsVault = async () => {
     xvsVaultProxy,
     xvs,
     xvsStore,
-    timelock
   };
 }
 

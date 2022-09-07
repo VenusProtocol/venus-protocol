@@ -6,7 +6,7 @@ export function verifyGovernorBravoDelegate() { }
 export function verifyGovernorBravoDelegator() { }
 export function deployGovernorAlpha(config: { timelockAddress: string, xvsVaultAddress: string, guardianAddress: string }): Contract { }
 export function deployGovernorAlpha2(config: { timelockAddress: string, xvsVaultAddress: string, guardianAddress: string, lastProposalId: number }): Contract { }
-export function initiateGovernorBravoDelegate(config: { governorBravoDelegateAddress?: string, governorAlpha2Address?: string, network?: 'testnet'  | 'mainnet'}) { }
+export function initiateGovernorBravoDelegate(config: { governorBravoDelegateAddress?: string, governorAlpha2Address?: string, network?: 'testnet' | 'mainnet' }) { }
 
 // Vault
 export function deployVrtVaultProxy(): Contract { }
@@ -22,12 +22,11 @@ export function verifyXvsVaultProxy() { }
 export function verifyXvsVault() { }
 export function vrtVaultAcceptAsImplForProxy() { }
 export function vrtVaultSetImplForVaultProxy() { }
-export function deployAndConfigureXvsVault(): {
+export function deployAndConfigureXvsVault(config: { timelockAddress: string }): {
   xvsVault: Contract,
   xvsVaultProxy: Contract,
   xvs: Contract,
   xvsStore: Contract,
-  timelock: Contract,
 } { }
 
 
@@ -56,3 +55,6 @@ export function deployXvsVesting(): Contract { }
 export function setVrtConverter() { }
 export function verifyXvsVestingProxy() { }
 export function verifyXvsVesting() { }
+
+// Timelock
+export function deployTimelock(config: { governorBravoDelegateAddress: string }): Contract { }
