@@ -503,10 +503,10 @@
     deep-eql "^4.0.1"
     ordinal "^1.0.3"
 
-"@nomicfoundation/hardhat-network-helpers@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@nomicfoundation/hardhat-network-helpers/-/hardhat-network-helpers-1.0.3.tgz#3303cf7c8f52e1ef33ff4fc98d85af020d64f083"
-  integrity sha512-sBeUCzgrcdS8x7Nnr4t6wNpC7GIMMR3gQs8lVaxff5VWVKf7SjdkJ2rvSJsS2ckD8/8KGxeDTLb7XCOqVAjFjA==
+"@nomicfoundation/hardhat-network-helpers@^1.0.4":
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/@nomicfoundation/hardhat-network-helpers/-/hardhat-network-helpers-1.0.5.tgz#99eb035c26b3f92711e58f3603a359b2e2bd9ba3"
+  integrity sha512-3QzbfPqGMp86ItoK1Ss4YKCDrWsTiUWd2OtKejxK58cVqZqfIq8EIlBfwW5qEtKK51iBV3j4RE6XmgCYK77Flw==
   dependencies:
     ethereumjs-util "^7.1.4"
 
