@@ -4,6 +4,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox";
+import "hardhat-deploy";
 import { ethers } from "ethers";
 import fs from 'fs';
 
@@ -102,6 +103,19 @@ const config: HardhatUserConfig = {
     outDir: 'typechain',
     target: 'ethers-v5',
   },
+  // Hardhat deploy
+  namedAccounts: {
+    deployer: {
+      default: 0, // here this will by default take the first account as deployer
+    },
+  },
+  external: {
+    contracts: [
+      {
+        artifacts: "node_modules/isolated-pools/artifacts",
+      }
+    ],
+  }
 };
 
 export default config;
