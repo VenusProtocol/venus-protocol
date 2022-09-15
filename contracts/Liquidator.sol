@@ -1,12 +1,14 @@
 pragma solidity ^0.5.16;
 
 import "./ComptrollerInterface.sol";
-import "./EIP20Interface.sol";
-import "./SafeMath.sol";
+import "./VAIControllerInterface.sol";
 import "./VBNB.sol";
 import "./VBep20.sol";
 import "./Utils/ReentrancyGuard.sol";
 import "./Utils/WithAdmin.sol";
+import "./Utils/SafeMath.sol";
+import "./Utils/IBEP20.sol";
+import "./Utils/SafeBEP20.sol";
 
 contract Liquidator is WithAdmin, ReentrancyGuard {
 
@@ -15,6 +17,9 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
 
     /// @notice Address of Venus Unitroller contract.
     IComptroller comptroller;
+
+    /// @notice Address of VAIUnitroller contract.
+    VAIControllerInterface vaiController;
 
     /// @notice Address of Venus Treasury.
     address public treasury;
@@ -30,11 +35,13 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     event LiquidateBorrowedTokens(address liquidator, address borrower, uint256 repayAmount, address vTokenCollateral, uint256 seizeTokensForTreasury, uint256 seizeTokensForLiquidator);
 
     using SafeMath for uint256;
+    using SafeBEP20 for IBEP20;
 
     constructor(
         address admin_,
         address payable vBnb_,
         address comptroller_,
+        address vaiController_,
         address treasury_,
         uint256 treasuryPercentMantissa_
     )
@@ -42,8 +49,14 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         WithAdmin(admin_)
         ReentrancyGuard()
     {
+        ensureNonzeroAddress(admin_);
+        ensureNonzeroAddress(vBnb_);
+        ensureNonzeroAddress(comptroller_);
+        ensureNonzeroAddress(vaiController_);
+        ensureNonzeroAddress(treasury_);
         vBnb = VBNB(vBnb_);
         comptroller = IComptroller(comptroller_);
+        vaiController = VAIControllerInterface(vaiController_);
         treasury = treasury_;
         treasuryPercentMantissa = treasuryPercentMantissa_;
     }
@@ -67,13 +80,18 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         payable
         nonReentrant
     {
+        ensureNonzeroAddress(borrower);
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
         if (vToken == address(vBnb)) {
             require(repayAmount == msg.value, "wrong amount");
             vBnb.liquidateBorrow.value(msg.value)(borrower, vTokenCollateral);
         } else {
             require(msg.value == 0, "you shouldn't pay for this");
-            _liquidateBep20(VBep20(vToken), borrower, repayAmount, vTokenCollateral);
+            if (vToken == address(vaiController)) {
+                _liquidateVAI(borrower, repayAmount, vTokenCollateral);
+            } else {
+                _liquidateBep20(VBep20(vToken), borrower, repayAmount, vTokenCollateral);
+            }
         }
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
         uint256 seizedAmount = ourBalanceAfter.sub(ourBalanceBefore);
@@ -82,11 +100,11 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     }
 
     /// @notice Sets the new percent of the seized amount that goes to treasury. Should
-    ///         be less than or equal to comptroller.liquidationIncentiveMantissa().
+    ///         be less than or equal to comptroller.liquidationIncentiveMantissa().sub(1e18).
     /// @param newTreasuryPercentMantissa New treasury percent (scaled by 10^18).
     function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external onlyAdmin {
         require(
-            newTreasuryPercentMantissa <= comptroller.liquidationIncentiveMantissa(),
+            newTreasuryPercentMantissa <= comptroller.liquidationIncentiveMantissa().sub(1e18),
             "appetite too big"
         );
         emit NewLiquidationTreasuryPercent(treasuryPercentMantissa, newTreasuryPercentMantissa);
@@ -102,13 +120,26 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     )
         internal
     {
-        EIP20Interface borrowedToken = EIP20Interface(vToken.underlying());
-        borrowedToken.transferFrom(msg.sender, address(this), repayAmount);
-        borrowedToken.approve(address(vToken), repayAmount);
+        IBEP20 borrowedToken = IBEP20(vToken.underlying());
+        uint256 actualRepayAmount = _transferBep20(borrowedToken, msg.sender, address(this), repayAmount);
+        borrowedToken.safeApprove(address(vToken), 0);
+        borrowedToken.safeApprove(address(vToken), actualRepayAmount);
         requireNoError(
-            vToken.liquidateBorrow(borrower, repayAmount, vTokenCollateral),
+            vToken.liquidateBorrow(borrower, actualRepayAmount, vTokenCollateral),
             "failed to liquidate"
         );
+    }
+
+    /// @dev Transfers BEP20 tokens to self, then approves vai to take these tokens.
+    function _liquidateVAI(address borrower, uint256 repayAmount, VToken vTokenCollateral)
+        internal
+    {
+        IBEP20 vai = IBEP20(vaiController.getVAIAddress());
+        vai.safeTransferFrom(msg.sender, address(this), repayAmount);
+        vai.safeApprove(address(vaiController), repayAmount);
+
+        (uint err,) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
+        requireNoError(err, "failed to liquidate");
     }
 
     /// @dev Splits the received vTokens between the liquidator and treasury.
@@ -125,6 +156,16 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
             "failed to transfer to treasury"
         );
         return (ours, theirs);
+    }
+
+    /// @dev Transfers tokens and returns the actual transfer amount
+    function _transferBep20(IBEP20 token, address from, address to, uint256 amount)
+        internal
+        returns (uint256 actualAmount)
+    {
+        uint256 prevBalance = token.balanceOf(to);
+        token.safeTransferFrom(from, to, amount);
+        return token.balanceOf(to).sub(prevBalance);
     }
 
     /// @dev Computes the amounts that would go to treasury and to the liquidator.
@@ -158,6 +199,10 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         fullMessage[i+3] = byte(uint8(48 + ( errCode % 10 )));
         fullMessage[i+4] = byte(uint8(41));
 
-        require(errCode == uint(0), string(fullMessage));
+        revert(string(fullMessage));
+    }
+
+    function ensureNonzeroAddress(address addr) internal pure {
+        require(addr != address(0), "address should be nonzero");
     }
 }

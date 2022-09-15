@@ -80,6 +80,18 @@ async function setLiquidationIncentive(world: World, from: string, comptroller: 
   return world;
 }
 
+async function setLiquidatorContract(world: World, from: string, comptroller: Comptroller, newLiquidatorContract_: string): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setLiquidatorContract(newLiquidatorContract_), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Set liquidator contract to ${newLiquidatorContract_}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function supportMarket(world: World, from: string, comptroller: Comptroller, vToken: VToken): Promise<World> {
   if (world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
@@ -368,6 +380,18 @@ async function setBorrowCapGuardian(world: World, from: string, comptroller: Com
   return world;
 }
 
+async function setComptrollerLens(world: World, from: string, comptroller: Comptroller, newComptrollerLens: string): Promise<World> {
+  let invokation = await invoke(world, comptroller.methods._setComptrollerLens(newComptrollerLens), from, ComptrollerErrorReporter);
+
+  world = addAction(
+    world,
+    `Comptroller: ${describeUser(world, from)} sets comptroller lens to ${newComptrollerLens}`,
+    invokation
+  );
+
+  return world;
+}
+
 async function setTreasuryData(
   world: World,
   from: string,
@@ -490,6 +514,34 @@ export function comptrollerCommands() {
       ],
       (world, from, {comptroller, liquidationIncentive}) => setLiquidationIncentive(world, from, comptroller, liquidationIncentive)
     ),
+    new Command<{comptroller: Comptroller, newLiquidatorContract: AddressV}>(`
+        #### SetLiquidatorContract
+
+        * "Comptroller SetLiquidatorContract <Address>" - Sets the liquidator contract address
+          * E.g. "Comptroller SetLiquidatorContract (Address Liquidator)"
+      `,
+      "SetLiquidatorContract",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("newLiquidatorContract", getAddressV)
+      ],
+      (world, from, {comptroller, newLiquidatorContract}) => setLiquidatorContract(world, from, comptroller, newLiquidatorContract.val)
+    ),
+
+    new Command<{comptroller: Comptroller, newComptrollerLens: AddressV}>(`
+        #### SetComptrollerLens
+
+        * "Comptroller SetComptrollerLens <Address>" - Sets the comptroller lens contract address
+          * E.g. "Comptroller SetComptrollerLens (Address ComptrollerLens)"
+      `,
+      "SetComptrollerLens",
+      [
+        new Arg("comptroller", getComptroller, {implicit: true}),
+        new Arg("newComptrollerLens", getAddressV)
+      ],
+      (world, from, {comptroller, newComptrollerLens}) => setComptrollerLens(world, from, comptroller, newComptrollerLens.val)
+    ),
+
     new Command<{comptroller: Comptroller, priceOracle: AddressV}>(`
         #### SetPriceOracle
 

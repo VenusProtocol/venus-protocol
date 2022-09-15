@@ -1,6 +1,6 @@
 
 Macro NewBorrow borrowAmount mintAmount borrowRate=0.000005 user=Geoff collateralPrice=1.0 borrowPrice=1.0 liquidationIncentive=1.1
-    PricedComptroller closeFactor:0.9 -- Set the close factor high to reduce number of steps to demonstrate
+    PricedComptrollerWithLiquidator Bank closeFactor:0.9 -- Set the close factor high to reduce number of steps to demonstrate
     Comptroller LiquidationIncentive liquidationIncentive
     NewVToken ZRX vZRX
     NewVToken BAT vBAT borrowRate
@@ -33,6 +33,7 @@ Test "When account goes further underwater than the liquidation incentive and ca
     --
     -- Pay back a bunch of debt by liquidating
     Prep Jared 10e18 BAT vBAT
+    ApproveLiquidation Jared vBAT 10e18
     Liquidate Jared "->" Geoff 0.9e18 vBAT "Seizing" vZRX
     Assert Equal (VToken vBAT BorrowBalance Geoff) 0.1e18
     Assert Equal (VToken vZRX UnderlyingBalance Geoff) 0.127368422e18
@@ -60,6 +61,7 @@ Test "When liquidation incentive is too high to be effective"
     --
     -- First, prepare to liquidate
     Prep Jared 10e18 BAT vBAT
+    ApproveLiquidation Jared vBAT 10e18
     Expect Changes (Comptroller Liquidity Geoff) -0.024999999076e18
     -- Note that the account collateral ratio will become worse than before
     --  although shortfall decreases in absolute terms

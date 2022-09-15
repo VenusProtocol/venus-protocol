@@ -1,8 +1,7 @@
-
 module.exports = {
   // solc: "solc",                                          // Solc command to run
   solc_args: [                                              // Extra solc args
-    '--allow-paths','contracts,tests/Contracts',
+    '--allow-paths','contracts',
     '--evm-version', 'istanbul'
   ],
   solc_shell_args: {                                        // Args passed to `exec`, see:
@@ -13,7 +12,7 @@ module.exports = {
   extra_build_files: ['remote/*.json'],                     // Additional build files to deep merge
   // coverage_dir: "coverage",                              // Directory to place coverage files
   // coverage_ignore: [],                                   // List of files to ignore for coverage
-  contracts: process.env['SADDLE_CONTRACTS'] || "{contracts,contracts/**,tests/Contracts}/*.sol",
+  contracts: process.env['SADDLE_CONTRACTS'] || "{contracts,contracts/**}/*.sol",
                                                             // Glob to match contract files
   trace: false,                                             // Compile with debug artifacts
   // TODO: Separate contracts for test?
@@ -164,11 +163,11 @@ module.exports = {
       web3: {
         gas: [
           {env: "GAS"},
-          {default: "10000000"}
+          {default: "5900000"}
         ],
         gas_price: [
           {env: "GAS_PRICE"},
-          {default: "20000000000"} //20 GWei
+          {default: "1000000000"} //20 GWei
         ],
         options: {
           transactionConfirmationBlocks: 1,

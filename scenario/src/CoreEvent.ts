@@ -25,6 +25,7 @@ import { interestRateModelCommands, processInterestRateModelEvent } from './Even
 import { priceOracleCommands, processPriceOracleEvent } from './Event/PriceOracleEvent';
 import { priceOracleProxyCommands, processPriceOracleProxyEvent } from './Event/PriceOracleProxyEvent';
 import { maximillionCommands, processMaximillionEvent } from './Event/MaximillionEvent';
+import { liquidatorCommands, processLiquidatorEvent } from './Event/LiquidatorEvent';
 import { invariantCommands, processInvariantEvent } from './Event/InvariantEvent';
 import { expectationCommands, processExpectationEvent } from './Event/ExpectationEvent';
 import { timelockCommands, processTimelockEvent } from './Event/TimelockEvent';
@@ -51,6 +52,8 @@ import { Counter } from './Contract/Counter';
 import { VenusLens } from './Contract/VenusLens';
 import { Reservoir } from './Contract/Reservoir';
 import { XVSStore } from './Contract/XVSVault';
+import { Liquidator } from './Contract/Liquidator';
+import { ComptrollerLens } from './Contract/ComptrollerLens';
 
 export class EventProcessingError extends Error {
   error: Error;
@@ -814,6 +817,21 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
 
   new Command<{ event: EventV }>(
     `
+      #### Liquidator
+
+      * "Liquidator ...event" - Venus v3 liquidation interface
+      * E.g. "Liquidator Deploy Admin (Address Zero) (Comptroller Address) (Address Zero) Admin 5e16"
+    `,
+    'Liquidator',
+    [new Arg('event', getEventV, { variadic: true })],
+    (world, from, { event }) => {
+      return processLiquidatorEvent(world, event.val, from);
+    },
+    { subExpressions: liquidatorCommands() }
+  ),
+
+  new Command<{ event: EventV }>(
+    `
       #### Timelock
 
       * "Timelock ...event" - Runs given Timelock event
@@ -950,6 +968,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
   buildContractEvent<VenusLens>("VenusLens", false),
   buildContractEvent<Reservoir>("Reservoir", true),
   buildContractEvent<XVSStore>("XVSStore", true),
+  buildContractEvent<ComptrollerLens>("ComptrollerLens", true),
 
   new View<{ event: EventV }>(
     `

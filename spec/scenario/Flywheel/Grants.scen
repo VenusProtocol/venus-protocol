@@ -45,6 +45,8 @@ Macro GrantsComptroller
     ComptrollerImpl Deploy Scenario ComptrollerScen
     Unitroller SetPendingImpl ComptrollerScen
     ComptrollerImpl ComptrollerScen Become
+    ComptrollerLens Deploy
+    Comptroller SetComptrollerLens (Address ComptrollerLens)
 
 Macro InitSpeeds
     Prep Geoff 100e18 ZRX vZRX

@@ -103,6 +103,15 @@ async function sendFallback(contract, opts = {}) {
   return Object.assign(receipt, { events: receipt.logs });
 }
 
+function getEpochTimeInSeconds() {
+  return Math.round(new Date().getTime() / 1000);
+}
+
+async function getDeployer(ethers) {
+  const signers = await ethers.getSigners();
+  return await signers[0].getAddress();
+}
+
 module.exports = {
   address,
   encodeParameters,
@@ -121,5 +130,7 @@ module.exports = {
   rpc,
   both,
   sendFallback,
-  sleep
+  sleep,
+  getEpochTimeInSeconds,
+  getDeployer
 };

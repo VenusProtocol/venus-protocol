@@ -1,5 +1,8 @@
 pragma solidity ^0.5.16;
 
+import "./VToken.sol";
+import "./PriceOracle.sol";
+
 contract ComptrollerInterfaceG1 {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     bool public constant isComptroller = true;
@@ -78,6 +81,19 @@ contract ComptrollerInterfaceG2 is ComptrollerInterfaceG1 {
 }
 
 contract ComptrollerInterface is ComptrollerInterfaceG2 {
+    function markets(address) external view returns (bool, uint);
+    function oracle() external view returns (PriceOracle);
+    function getAccountLiquidity(address) external view returns (uint, uint, uint);
+    function getAssetsIn(address) external view returns (VToken[] memory);
+    function claimVenus(address) external;
+    function venusAccrued(address) external view returns (uint);
+    function venusSpeeds(address) external view returns (uint);
+    function getAllMarkets() external view returns (VToken[] memory);
+    function venusSupplierIndex(address, address) external view returns (uint);
+    function venusInitialIndex() external view returns (uint224);
+    function venusBorrowerIndex(address, address) external view returns (uint);
+    function venusBorrowState(address) external view returns (uint224, uint32);
+    function venusSupplyState(address) external view returns (uint224, uint32);
 }
 
 interface IVAIVault {

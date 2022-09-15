@@ -42,3 +42,8 @@ junit.xml
 .idea
 .last_confs
 .saddle_history
+
+# hardhat
+typechain
+artifacts
+cache

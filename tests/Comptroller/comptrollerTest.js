@@ -1,6 +1,7 @@
 const {
   bnbMantissa,
-  both
+  both,
+  address,
 } = require('../Utils/BSC');
 
 const {
@@ -48,6 +49,12 @@ describe('Comptroller', () => {
       expect(await call(comptroller, 'liquidationIncentiveMantissa')).toEqualNumber(initialIncentive);
     });
 
+    it("fails if incentive is less than 1e18", async () => {
+      await expect(
+        send(comptroller, '_setLiquidationIncentive', [tooSmallIncentive], {from: root})
+      ).rejects.toRevert('revert incentive must be over 1e18');
+    });
+
     it("accepts a valid incentive and emits a NewLiquidationIncentive event", async () => {
       const {reply, receipt} = await both(comptroller, '_setLiquidationIncentive', [validIncentive]);
       expect(reply).toHaveTrollError('NO_ERROR');
@@ -58,6 +65,29 @@ describe('Comptroller', () => {
       expect(await call(comptroller, 'liquidationIncentiveMantissa')).toEqualNumber(validIncentive);
     });
   });
+
+  describe('Non zero address check', () => {
+    beforeEach(async () => {
+      comptroller = await makeComptroller();
+    });
+
+    async function testZeroAddress(funcName, args) {
+      it(funcName, async () => {
+        await expect(
+          send(comptroller, funcName, args, {from: root})
+        ).rejects.toRevert('revert can\'t be zero address');
+      });
+    }
+    testZeroAddress('_setPriceOracle', [address(0)]);
+    testZeroAddress('_setCollateralFactor', [address(0), 0]);
+    testZeroAddress('_setPauseGuardian', [address(0)]);
+    testZeroAddress('_setBorrowCapGuardian', [address(0)]);
+    testZeroAddress('_setVAIController', [address(0)]);
+    testZeroAddress('_setTreasuryData', [address(0), address(0), 0]);
+    testZeroAddress('_setComptrollerLens', [address(0)]);
+    testZeroAddress('_setVAIVaultInfo', [address(0), 0, 0]);
+    testZeroAddress('_setVenusSpeed', [address(0), 0]);
+  })
 
   describe('_setPriceOracle', () => {
     let comptroller, oldOracle, newOracle;
@@ -71,6 +101,7 @@ describe('Comptroller', () => {
       expect(
         await send(comptroller, '_setPriceOracle', [newOracle._address], {from: accounts[0]})
       ).toHaveTrollFailure('UNAUTHORIZED', 'SET_PRICE_ORACLE_OWNER_CHECK');
+
       expect(await comptroller.methods.oracle().call()).toEqual(oldOracle._address);
     });
 
@@ -96,12 +127,37 @@ describe('Comptroller', () => {
     });
   });
 
+  describe('_setComptrollerLens', () => {
+    let comptroller;
+  
+    beforeEach(async () => {
+      comptroller = await makeComptroller();
+    });
+
+    it("fails if not called by admin", async () => {
+      const comptrollerLens = await deploy('ComptrollerLens');
+      await expect(
+        send(comptroller, '_setComptrollerLens', [comptrollerLens._address], {from: accounts[0]})
+      ).rejects.toRevert('revert only admin can');
+    });
+
+    it("should fire an event", async () => {
+      const newComptrollerLens = await deploy('ComptrollerLens');
+      const oldComptrollerLensAddress = await call(comptroller, 'comptrollerLens', []);
+      const result = await send(comptroller, '_setComptrollerLens', [newComptrollerLens._address], {from: root})
+      expect(result).toHaveLog('NewComptrollerLens', {
+        oldComptrollerLens: oldComptrollerLensAddress,
+        newComptrollerLens: newComptrollerLens._address,
+      });
+    });
+  });
+
   describe('_setCloseFactor', () => {
     it("fails if not called by admin", async () => {
       const vToken = await makeVToken();
       await expect(
         send(vToken.comptroller, '_setCloseFactor', [1], {from: accounts[0]})
-      ).rejects.toRevert('revert only admin can set close factor');
+      ).rejects.toRevert('revert only admin can');
     });
   });
 

@@ -1,6 +1,8 @@
 
 Macro NewMintVAI mintVAIAmount mintAmount user=Geoff collateralPrice=1.0 borrowPrice=1.0 liquidationIncentive=1.1
     PricedComptrollerWithVAIController closeFactor:0.9 -- Set the close factor high to reduce number of steps to demonstrate
+    Liquidator Deploy Admin Admin (Comptroller Address) (Address VAIController) Bank 5e16  -- treasury percent = 5%
+    Comptroller SetLiquidatorContract (Address Liquidator)
     Comptroller LiquidationIncentive liquidationIncentive
     NewVToken ZRX vZRX
     PriceOracle SetPrice vZRX collateralPrice
@@ -33,15 +35,17 @@ Test "When account goes further underwater than the liquidation incentive and ca
     Assert Equal (Comptroller MintedVAI Jared) 0
     Assert Equal (VToken vZRX UnderlyingBalance Jared) 0
     Assert Equal (VAI TokenBalance Jared) 10e18
+    From Jared (Bep20 (Address VAI) Approve (Address Liquidator) 10e18)
     LiquidateVAI Jared "->" Geoff 0.9e18 "Seizing" vZRX
     Assert Equal (Comptroller MintedVAI Jared) 0
-    Assert Equal (VToken vZRX UnderlyingBalance Jared) 1.302631578e18
+    Assert Equal (VToken vZRX UnderlyingBalance Jared) 1243421052000000000
+    Assert Equal (VToken vZRX UnderlyingBalance Bank) 59210526000000000
     Assert Equal (VAI TokenBalance Jared) 9.1e18
     Assert Equal (Comptroller MintedVAI Geoff) 1e17
     Assert Equal (VToken vZRX UnderlyingBalance Geoff) 0.127368422e18
     LiquidateVAI Jared "->" Geoff 0.0880000008e18 "Seizing" vZRX
     Assert Equal (Comptroller MintedVAI Jared) 0
-    Assert Equal (VToken vZRX UnderlyingBalance Jared) 1.43e18
+    Assert Equal (VToken vZRX UnderlyingBalance Jared) 1365000002000000000
     Assert Equal (VAI TokenBalance Jared) 9.0119999992e18
     Assert Equal (Comptroller MintedVAI Geoff) 0.0119999992e18
     Assert Equal (VToken vZRX UnderlyingBalance Geoff) 0
@@ -64,6 +68,7 @@ Test "When liquidation incentive is too high to be effective"
     --
     -- First, prepare to liquidate
     PrepVAI Jared 10e18 VAIController
+    From Jared (Bep20 (Address VAI) Approve (Address Liquidator) 10e18)
     Expect Changes (Comptroller Liquidity Geoff) -0.024999999076e18
     -- Note that the account collateral ratio will become worse than before
     --  although shortfall decreases in absolute terms

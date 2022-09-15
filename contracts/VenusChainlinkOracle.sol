@@ -11,14 +11,26 @@ contract VenusChainlinkOracle is PriceOracle {
     uint public constant VAI_VALUE = 1e18;
     address public admin;
 
+    uint public maxStalePeriod;
+
     mapping(address => uint) internal prices;
     mapping(bytes32 => AggregatorV2V3Interface) internal feeds;
+
     event PricePosted(address asset, uint previousPriceMantissa, uint requestedPriceMantissa, uint newPriceMantissa);
     event NewAdmin(address oldAdmin, address newAdmin);
     event FeedSet(address feed, string symbol);
+    event MaxStalePeriodUpdated(uint oldMaxStalePeriod, uint newMaxStalePeriod);
 
-    constructor() public {
+    constructor(uint maxStalePeriod_) public {
         admin = msg.sender;
+        maxStalePeriod = maxStalePeriod_;
+    }
+
+    function setMaxStalePeriod(uint newMaxStalePeriod) external onlyAdmin() {
+        require(newMaxStalePeriod > 0, "stale period can't be zero");
+        uint oldMaxStalePeriod = maxStalePeriod;
+        maxStalePeriod = newMaxStalePeriod;
+        emit MaxStalePeriodUpdated(oldMaxStalePeriod, newMaxStalePeriod);
     }
 
     function getUnderlyingPrice(VToken vToken) public view returns (uint) {
@@ -55,11 +67,17 @@ contract VenusChainlinkOracle is PriceOracle {
     function getChainlinkPrice(AggregatorV2V3Interface feed) internal view returns (uint) {
         // Chainlink USD-denominated feeds store answers at 8 decimals
         uint decimalDelta = uint(18).sub(feed.decimals());
+
+        (, int256 answer,, uint256 updatedAt,) = feed.latestRoundData();
         // Ensure that we don't multiply the result by 0
+        if (block.timestamp.sub(updatedAt) > maxStalePeriod) {
+            return 0;
+        }
+
         if (decimalDelta > 0) {
-            return uint(feed.latestAnswer()).mul(10**decimalDelta);
+            return uint(answer).mul(10**decimalDelta);
         } else {
-            return uint(feed.latestAnswer());
+            return uint(answer);
         }
     }
 

@@ -77,7 +77,7 @@ describe('Comptroller', () => {
     ].forEach((testCase) => {
       it(`returns the correct value for ${testCase}`, async () => {
         const [exchangeRate, borrowedPrice, collateralPrice, liquidationIncentive, repayAmount] = testCase.map(bnbUnsigned);
-
+        
         await setOraclePrice(vTokenCollateral, collateralPrice);
         await setOraclePrice(vTokenBorrowed, borrowedPrice);
         await send(comptroller, '_setLiquidationIncentive', [liquidationIncentive]);

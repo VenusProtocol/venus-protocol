@@ -12,9 +12,16 @@ Macro PricedComptroller closeFactor=0.1 maxAssets=20
     ComptrollerImpl Deploy Scenario ScenComptroller
     Unitroller SetPendingImpl ScenComptroller
     ComptrollerImpl ScenComptroller Become
+    ComptrollerLens Deploy
+    Comptroller SetComptrollerLens (Address ComptrollerLens)
     PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero) -- if listing vBnb use ListedBNBToken to replace proxy
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetCloseFactor closeFactor
+
+Macro PricedComptrollerWithLiquidator treasury closeFactor=0.1 maxAssets=20
+    PricedComptroller closeFactor maxAssets
+    Liquidator Deploy Admin Admin (Comptroller Address) Admin treasury 5e16  -- treasury percent = 5%
+    Comptroller SetLiquidatorContract (Address Liquidator)
 
 Macro PricedComptrollerWithVAIController closeFactor=0.1 maxAssets=20
     PricedComptroller closeFactor maxAssets
@@ -27,30 +34,11 @@ Macro PricedComptrollerWithVAIController closeFactor=0.1 maxAssets=20
 Macro NewComptroller price=1.0 closeFactor=0.1 maxAssets=20
     Unitroller Deploy
     PriceOracle Deploy Fixed price
-    --g1
-    ComptrollerImpl Deploy ScenarioG1 ComptrollerG1
-    Unitroller SetPendingImpl ComptrollerG1
-    ComptrollerImpl ComptrollerG1 BecomeG1
-    --g2
-    ComptrollerImpl Deploy ScenarioG2 ComptrollerG2
-    Unitroller SetPendingImpl ComptrollerG2
-    ComptrollerImpl ComptrollerG2 BecomeG2
-    --g3
-    ComptrollerImpl Deploy ScenarioG3 ComptrollerG3
-    Unitroller SetPendingImpl ComptrollerG3
-    ComptrollerImpl ComptrollerG3 BecomeG3
-    --g4
-    ComptrollerImpl Deploy ScenarioG4 ComptrollerG4
-    Unitroller SetPendingImpl ComptrollerG4
-    ComptrollerImpl ComptrollerG4 BecomeG4
-    --g5
-    ComptrollerImpl Deploy ScenarioG5 ComptrollerG5
-    Unitroller SetPendingImpl ComptrollerG5
-    ComptrollerImpl ComptrollerG5 BecomeG5
-    --current
     ComptrollerImpl Deploy Scenario ScenComptroller
     Unitroller SetPendingImpl ScenComptroller
     ComptrollerImpl ScenComptroller Become
+    ComptrollerLens Deploy
+    Comptroller SetComptrollerLens (Address ComptrollerLens)
     PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero) -- if listing vBnb use ListedBNBToken to replace proxy
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetCloseFactor closeFactor
@@ -61,6 +49,8 @@ Macro NewFeeComptroller price=1.0 closeFactor=0.1 maxAssets=20
     ComptrollerImpl Deploy Scenario ScenComptroller
     Unitroller SetPendingImpl ScenComptroller
     ComptrollerImpl ScenComptroller Become
+    ComptrollerLens Deploy
+    Comptroller SetComptrollerLens (Address ComptrollerLens)
     PriceOracleProxy Deploy Admin (PriceOracle Address) (Address Zero) (Address Zero) (Address Zero) (Address Zero) (Address Zero) -- if listing vBnb use ListedBNBToken to replace proxy
     Comptroller SetPriceOracle (PriceOracleProxy Address)
     Comptroller SetCloseFactor closeFactor
@@ -204,17 +194,20 @@ Macro RepayBorrowBehalf user behalf amount token
 Macro RepayBorrowBnbBehalf user behalf amount token
     From user (Trx GasPrice 0 (Trx Value amount (VToken token RepayBorrowBehalf behalf)))
 
+Macro ApproveLiquidation liquidator token amount
+    From liquidator (Bep20 (VToken token Underlying) Approve (Address Liquidator) amount)
+
 Macro Liquidate liquidator _ borrower amount token _ collateral
-    From liquidator (VToken token Liquidate borrower collateral amount)
+    From liquidator (Liquidator LiquidateBorrow (Address token) borrower amount (Address collateral))
 
 Macro LiquidateVAI liquidator _ borrower amount _ collateral
-    From liquidator (VAIController LiquidateVAI borrower collateral amount)
+    From liquidator (Liquidator LiquidateBorrow (Address VAIController) borrower amount (Address collateral))
 
 Macro LiquidateBnbColl liquidator _ borrower amount token _ collateral
-    From liquidator (Trx GasPrice 0 (VToken token Liquidate borrower collateral amount))
+    From liquidator (Trx GasPrice 0 (Liquidator LiquidateBorrow (Address token) Liquidate borrower amount (Address collateral)))
 
 Macro LiquidateBnbBorrow liquidator _ borrower amount token _ collateral
-    From liquidator (Trx GasPrice 0 (Trx Value amount (VToken token Liquidate borrower collateral)))
+    From liquidator (Trx GasPrice 0 (Trx Value amount (Liquidator LiquidateBorrow (Address token) Liquidate borrower amount (Address collateral))))
 
 Macro Seize amount token caller liquidator borrower
     From caller (VToken token Seize liquidator borrower amount)
