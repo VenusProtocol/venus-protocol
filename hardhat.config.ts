@@ -112,7 +112,7 @@ const config: HardhatUserConfig = {
   external: {
     contracts: [
       {
-        artifacts: "node_modules/isolated-pools/artifacts",
+        artifacts: "node_modules/@venusprotocol/isolated-pools/artifacts",
       }
     ],
   }

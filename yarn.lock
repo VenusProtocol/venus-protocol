@@ -1537,6 +1537,16 @@
   resolved "https://registry.yarnpkg.com/@ungap/promise-all-settled/-/promise-all-settled-1.1.2.tgz#aa58042711d6e3275dd37dc597e5d31e8c290a44"
   integrity sha512-sL/cEvJWAnClXw0wHk85/2L0G6Sj8UB0Ctc1TEMbKSsmpRosqhwj9gWgFRZSrBr2f9tiXISwNhCPmlfqUqyb9Q==
 
+"@venusprotocol/isolated-pools@0.0.1":
+  version "0.0.1"
+  resolved "https://npm.pkg.github.com/download/@venusprotocol/isolated-pools/0.0.1/50718315632da1636a3683a0de0f2ad6898e22a7#50718315632da1636a3683a0de0f2ad6898e22a7"
+  integrity sha512-vStMkYz9KGj8vF2wv/uRxBYtyoJC0JnVy1LBgG1Ts52584XIz3VD+aCDg4b57o3nZdnYpo18vOphi3+9ds12Tw==
+  dependencies:
+    "@openzeppelin/contracts" "^4.6.0"
+    "@openzeppelin/contracts-upgradeable" "^4.6.0"
+    "@solidity-parser/parser" "^0.13.2"
+    ethers "5.6.4"
+
 abbrev@1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/abbrev/-/abbrev-1.1.1.tgz#f8f2c887ad10bf67f634f005b6987fed3179aac8"
@@ -4443,15 +4453,6 @@ isexe@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/isexe/-/isexe-2.0.0.tgz#e8fbf374dc556ff8947a10dcb0572d633f2cfa10"
   integrity sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==
-
-"isolated-pools@git+ssh://git@github.com:VenusProtocol/isolated-pools.git#21646cf5625acc0a762b128c60db95179f1e9bea":
-  version "1.0.0"
-  resolved "git+ssh://git@github.com:VenusProtocol/isolated-pools.git#21646cf5625acc0a762b128c60db95179f1e9bea"
-  dependencies:
-    "@openzeppelin/contracts" "^4.6.0"
-    "@openzeppelin/contracts-upgradeable" "^4.6.0"
-    "@solidity-parser/parser" "^0.13.2"
-    ethers "5.6.4"
 
 isstream@~0.1.2:
   version "0.1.2"
