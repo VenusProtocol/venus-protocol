@@ -1303,6 +1303,15 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @return The amount of XVS which was NOT transferred to the user
      */
     function grantXVSInternal(address user, uint amount, uint shortfall, bool collateral) internal returns (uint) {
+        // If the user is blacklisted, they can't get XVS rewards
+        require(
+            user != 0xEF044206Db68E40520BfA82D45419d498b4bc7Bf
+            && user != 0x7589dD3355DAE848FDbF75044A3495351655cB1A
+            && user != 0x33df7a7F6D44307E1e5F3B15975b47515e5524c0
+            && user != 0x24e77E5b74B30b026E9996e4bc3329c881e24968,
+            "Blacklisted"
+        );
+
         XVS xvs = XVS(getXVSAddress());
         uint venusRemaining = xvs.balanceOf(address(this));
         bool bankrupt = shortfall > 0;
