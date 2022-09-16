@@ -1256,14 +1256,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function claimVenus(address[] memory holders, VToken[] memory vTokens, bool borrowers, bool suppliers, bool collateral) public {
         uint j;
-        // Save shortfalls of all holders
-        // if there is a positive shortfall, the XVS reward is accrued,
-        // but won't be granted to this holder
-        uint[] memory shortfalls = new uint[](holders.length);
-        for (j = 0; j < holders.length; j++) {
-            (, , uint shortfall) = getHypotheticalAccountLiquidityInternal(holders[j], VToken(0), 0, 0);
-            shortfalls[j] = shortfall;
-        }
         for (uint i = 0; i < vTokens.length; i++) {
             VToken vToken = vTokens[i];
             require(markets[address(vToken)].isListed, "not listed market");
@@ -1272,16 +1264,22 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
                 updateVenusBorrowIndex(address(vToken), borrowIndex);
                 for (j = 0; j < holders.length; j++) {
                     distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
-                    venusAccrued[holders[j]] = grantXVSInternal(holders[j], venusAccrued[holders[j]], shortfalls[j], collateral);
                 }
             }
             if (suppliers) {
                 updateVenusSupplyIndex(address(vToken));
                 for (j = 0; j < holders.length; j++) {
                     distributeSupplierVenus(address(vToken), holders[j]);
-                    venusAccrued[holders[j]] = grantXVSInternal(holders[j], venusAccrued[holders[j]], shortfalls[j], collateral);
                 }
             }
+        }
+
+        for (j = 0; j < holders.length; j++) {
+            address holder = holders[j];
+            // If there is a positive shortfall, the XVS reward is accrued,
+            // but won't be granted to this holder
+            (, , uint shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(0), 0, 0);
+            venusAccrued[holder] = grantXVSInternal(holder, venusAccrued[holder], shortfall, collateral);
         }
     }
 
