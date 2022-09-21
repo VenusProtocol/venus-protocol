@@ -1,9 +1,14 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "The Venus Money Market",
   "main": "dist",
   "files": ["dist"],
+  "exports": {
+    "./deploy/*": "./dist/deploy/*.js",
+    "./networks/*": "./dist/networks/*",
+    "./artifacts/*": "./dist/artifacts/*"
+  },
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
