@@ -1,6 +1,6 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "The Venus Money Market",
   "main": "dist",
   "files": ["dist"],
@@ -8,7 +8,8 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "lint": "echo \"Not configured yet\"",
-    "build": "rm -rf dist && hardhat compile && tsc --declaration && cp -r ./typechain ./dist && cp -r ./artifacts ./dist"
+    "build": "rm -rf dist && hardhat compile && tsc --declaration && cp -r ./typechain ./dist && cp -r ./artifacts ./dist && cp -r ./networks ./dist",
+    "prepack": "yarn build"
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
