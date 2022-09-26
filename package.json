@@ -13,8 +13,8 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "lint": "echo \"Not configured yet\"",
-    "build": "rm -rf dist && hardhat compile && tsc --declaration && cp -r ./typechain ./dist && cp -r ./artifacts ./dist && cp -r ./networks ./dist",
-    "prepack": "yarn build"
+    "build": "rm -rf dist && tsc --declaration && hardhat compile && cp -r ./artifacts ./dist && cp -r networks dist/ && cp ./{package.json,yarn.lock} dist/",
+    "publish:dist": "yarn build && yarn publish dist"
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
