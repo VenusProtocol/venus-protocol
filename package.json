@@ -1,20 +1,19 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "The Venus Money Market",
-  "main": "dist",
-  "files": ["dist"],
-  "exports": {
-    "./deploy/*": "./dist/deploy/*.js",
-    "./networks/*": "./dist/networks/*",
-    "./artifacts/*": "./dist/artifacts/*"
-  },
+  "files": [
+    "artifacts",
+    "networks",
+    "deploy",
+    "contracts"
+  ],
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
     "lint": "echo \"Not configured yet\"",
     "build": "rm -rf dist && tsc --declaration && hardhat compile && cp -r ./{package.json,yarn.lock,artifacts,contracts,networks} dist/",
-    "publish:dist": "yarn build && yarn publish dist"
+    "publish:dist": "yarn build && cd dist && yarn publish --access public"
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
