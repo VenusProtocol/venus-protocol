@@ -125,7 +125,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     /// @notice Reverts if a certain action is paused on a market
-    function checkActionPauseState(Action action, address market) private view {
+    function checkActionPauseState(address market, Action action) private view {
         require(!actionPaused(market, action), "action is paused");
     }
 
@@ -196,7 +196,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @return Success indicator for whether the market was entered
      */
     function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
-        checkActionPauseState(Action.ENTER_MARKET, address(vToken));
+        checkActionPauseState(address(vToken), Action.ENTER_MARKET);
 
         Market storage marketToJoin = markets[address(vToken)];
         ensureListed(marketToJoin);
@@ -227,7 +227,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @return Whether or not the account successfully exited the market
      */
     function exitMarket(address vTokenAddress) external returns (uint) {
-        checkActionPauseState(Action.EXIT_MARKET, vTokenAddress);
+        checkActionPauseState(vTokenAddress, Action.EXIT_MARKET);
 
         VToken vToken = VToken(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
@@ -289,7 +289,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
-        checkActionPauseState(Action.MINT, vToken);
+        checkActionPauseState(vToken, Action.MINT);
 
         // Shh - currently unused
         mintAmount;
@@ -336,7 +336,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint) {
         checkProtocolPauseState();
-        checkActionPauseState(Action.REDEEM, vToken);
+        checkActionPauseState(vToken, Action.REDEEM);
 
         uint allowed = redeemAllowedInternal(vToken, redeemer, redeemTokens);
         if (allowed != uint(Error.NO_ERROR)) {
@@ -396,7 +396,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
-        checkActionPauseState(Action.BORROW, vToken);
+        checkActionPauseState(vToken, Action.BORROW);
 
         ensureListed(markets[vToken]);
 
@@ -475,7 +475,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         returns (uint)
     {
         checkProtocolPauseState();
-        checkActionPauseState(Action.REPAY, vToken);
+        checkActionPauseState(vToken, Action.REPAY);
         // Shh - currently unused
         payer;
         borrower;
@@ -541,7 +541,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         checkProtocolPauseState();
 
         // if we want to pause liquidating to vTokenCollateral, we should pause seizing
-        checkActionPauseState(Action.LIQUIDATE, vTokenBorrowed);
+        checkActionPauseState(vTokenBorrowed, Action.LIQUIDATE);
 
         if (liquidatorContract != address(0) && liquidator != liquidatorContract) {
             return uint(Error.UNAUTHORIZED);
@@ -629,7 +629,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
-        checkActionPauseState(Action.SEIZE, vTokenCollateral);
+        checkActionPauseState(vTokenCollateral, Action.SEIZE);
 
         // Shh - currently unused
         seizeTokens;
@@ -693,7 +693,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
-        checkActionPauseState(Action.TRANSFER, vToken);
+        checkActionPauseState(vToken, Action.TRANSFER);
 
         // Currently the only consideration is whether or not
         //  the src is allowed to redeem this many tokens
