@@ -24,12 +24,11 @@ contract VBNB is VToken {
                 string memory name_,
                 string memory symbol_,
                 uint8 decimals_,
-                address payable admin_,
-                address accessControlManager_) public {
+                address payable admin_) public {
         // Creator of the contract is admin during initialization
         admin = msg.sender;
 
-        initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_, accessControlManager_);
+        initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
 
         // Set the proper admin now that initialization is done
         admin = admin_;

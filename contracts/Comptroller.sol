@@ -904,7 +904,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         bool isAllowedtoCall = IAccessControlManager(accessControl)
             .isAllowedToCall(
                 msg.sender,
-                "_setCollateralFactor(VToken,uint256)"
+                "_setCollateralFactor(address,uint256)"
             );
 
 
@@ -995,7 +995,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     function _supportMarket(VToken vToken) external returns (uint) {
 
         bool canCallFunction = IAccessControlManager(accessControl)
-            .isAllowedToCall(msg.sender, "_supportMarket(VToken)");
+            .isAllowedToCall(msg.sender, "_supportMarket(address)");
 
         if (!canCallFunction) {
             return
@@ -1063,7 +1063,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         require(
             IAccessControlManager(accessControl).isAllowedToCall(
                 msg.sender,
-                "_setMarketBorrowCaps(VToken[],uint256[])"
+                "_setMarketBorrowCaps(address[],uint256[])"
             ), "only whitelisted accounts can set borrow caps"
         );
 
@@ -1107,7 +1107,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         require(
             IAccessControlManager(accessControl).isAllowedToCall(
                 msg.sender,
-                "_setMarketSupplyCaps(VToken[],uint256[])"
+                "_setMarketSupplyCaps(address[],uint256[])"
             ), "only whitelisted accounts can set supply caps"
         );
 
@@ -1127,7 +1127,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function _setProtocolPaused(bool state) external returns(bool) {
         bool canCallFunction = IAccessControlManager(accessControl)
-            .isAllowedToCall(msg.sender, "_setTransferPaused(VToken,bool)");
+            .isAllowedToCall(msg.sender, "_setTransferPaused(address,bool)");
 
         require(canCallFunction, "only authorised addresses can pause");       
         require(msg.sender == admin || state, "only admin can unpause");

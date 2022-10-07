@@ -15,8 +15,7 @@ contract VBNBHarness is VBNB {
                 string memory name_,
                 string memory symbol_,
                 uint8 decimals_,
-                address payable admin_,
-                address accessControlManager_)
+                address payable admin_)
     VBNB(
     comptroller_,
     interestRateModel_,
@@ -24,8 +23,7 @@ contract VBNBHarness is VBNB {
     name_,
     symbol_,
     decimals_,
-    admin_,
-    accessControlManager_) public {}
+    admin_) public {}
 
     function doTransferOut(address payable to, uint amount) internal {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
@@ -167,16 +165,14 @@ contract VBNBScenario is VBNB {
                 address payable admin_,
                 ComptrollerInterface comptroller_,
                 InterestRateModel interestRateModel_,
-                uint initialExchangeRateMantissa,
-                address accessControlManager_)
+                uint initialExchangeRateMantissa)
         VBNB(comptroller_,
                interestRateModel_,
                initialExchangeRateMantissa,
                name_,
                symbol_,
                decimals_,
-               admin_,
-               accessControlManager_) public {
+               admin_) public {
     }
 
     function setTotalBorrows(uint totalBorrows_) public {
