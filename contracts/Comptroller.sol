@@ -1184,6 +1184,10 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @param paused The new paused state (true=paused, false=unpaused)
      */
     function setActionPausedInternal(address market, Action action, bool paused) internal {
+        require(
+            markets[market].isListed,
+            "cannot pause a market that is not listed"
+        );
         _actionPaused[market][uint(action)] = paused;
         emit ActionPausedMarket(VToken(market), action, paused);
     }
