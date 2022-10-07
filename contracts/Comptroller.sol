@@ -9,12 +9,13 @@ import "./Unitroller.sol";
 import "./Governance/XVS.sol";
 import "./VAI/VAI.sol";
 import "./ComptrollerLensInterface.sol";
+import "./IAccessControlManager.sol";
 
 /**
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -99,6 +100,9 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when supply cap for a vToken is changed
     event NewSupplyCap(VToken indexed vToken, uint newSupplyCap);
 
+    /// @notice Emitted when access control address is changed by admin
+    event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
+
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
 
@@ -110,7 +114,7 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
 
     // No collateralFactorMantissa may exceed this value
     uint internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
-
+    
     constructor() public {
         admin = msg.sender;
     }
@@ -871,16 +875,47 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
         return uint(Error.NO_ERROR);
     }
 
+     /**
+      * @notice Sets the address of the access control of this contract
+      * @dev Admin function to set the access control address
+      * @param newAccessControlAddress New address for the access control
+      * @return uint 0=success, otherwise will revert
+      */
+    function _setAccessControl(address newAccessControlAddress) external returns (uint) {
+        // Check caller is admin
+        ensureAdmin();
+
+        address oldAccessControlAddress = accessControl;
+        accessControl = newAccessControlAddress;
+        emit NewAccessControl(oldAccessControlAddress, accessControl);
+
+        return uint(Error.NO_ERROR);
+    }
+
     /**
       * @notice Sets the collateralFactor for a market
-      * @dev Admin function to set per-market collateralFactor
+      * @dev Restricted function to set per-market collateralFactor
       * @param vToken The market to set the factor on
       * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
       * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
       */
     function _setCollateralFactor(VToken vToken, uint newCollateralFactorMantissa) external returns (uint) {
         // Check caller is admin
-        ensureAdmin();
+        bool isAllowedtoCall = IAccessControlManager(accessControl)
+            .isAllowedToCall(
+                msg.sender,
+                "_setCollateralFactor(address,uint256)"
+            );
+
+
+        if (!isAllowedtoCall) {
+            return
+                fail(
+                    Error.UNAUTHORIZED,
+                    FailureInfo.SET_COLLATERAL_FACTOR_OWNER_CHECK
+                );
+        }        
+        
         ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
@@ -917,8 +952,17 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
       * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
       */
     function _setLiquidationIncentive(uint newLiquidationIncentiveMantissa) external returns (uint) {
-        // Check caller is admin
-        ensureAdmin();
+        bool canCallFunction = IAccessControlManager(accessControl)
+            .isAllowedToCall(msg.sender, "_setLiquidationIncentive(uint)");
+
+        // Check if caller is allowed to call this function
+        if (!canCallFunction) {
+            return
+                fail(
+                    Error.UNAUTHORIZED,
+                    FailureInfo.SET_LIQUIDATION_INCENTIVE_OWNER_CHECK
+                );
+        }
 
         require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
 
@@ -949,8 +993,17 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
       * @return uint 0=success, otherwise a failure. (See enum Error for details)
       */
     function _supportMarket(VToken vToken) external returns (uint) {
-        // Check caller is admin
-        ensureAdmin();
+
+        bool canCallFunction = IAccessControlManager(accessControl)
+            .isAllowedToCall(msg.sender, "_supportMarket(address)");
+
+        if (!canCallFunction) {
+            return
+                fail(
+                    Error.UNAUTHORIZED,
+                    FailureInfo.SUPPORT_MARKET_OWNER_CHECK
+                );
+        }
 
         if (markets[address(vToken)].isListed) {
             return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
@@ -1003,7 +1056,16 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
       * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing.
       */
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint[] calldata newBorrowCaps) external {
-        ensureAdminOr(borrowCapGuardian);
+       
+        // NOTE: previous code restricted this function with
+        // msg.sender == admin || msg.sender == borrowCapGuardian
+        // Please consider adjusting deployment script before Testnet
+        require(
+            IAccessControlManager(accessControl).isAllowedToCall(
+                msg.sender,
+                "_setMarketBorrowCaps(address[],uint256[])"
+            ), "only whitelisted accounts can set borrow caps"
+        );
 
         uint numMarkets = vTokens.length;
         uint numBorrowCaps = newBorrowCaps.length;
@@ -1041,7 +1103,13 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
       * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed.
       */
     function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
-        require(msg.sender == admin , "only admin can set supply caps");
+        
+        require(
+            IAccessControlManager(accessControl).isAllowedToCall(
+                msg.sender,
+                "_setMarketSupplyCaps(address[],uint256[])"
+            ), "only whitelisted accounts can set supply caps"
+        );
 
         uint numMarkets = vTokens.length;
         uint numSupplyCaps = newSupplyCaps.length;
@@ -1058,8 +1126,12 @@ contract Comptroller is ComptrollerV8Storage, ComptrollerInterfaceG2, Comptrolle
      * @notice Set whole protocol pause/unpause state
      */
     function _setProtocolPaused(bool state) external returns(bool) {
-        ensureAdminOr(pauseGuardian);
+        bool canCallFunction = IAccessControlManager(accessControl)
+            .isAllowedToCall(msg.sender, "_setTransferPaused(address,bool)");
+
+        require(canCallFunction, "only authorised addresses can pause");       
         require(msg.sender == admin || state, "only admin can unpause");
+
         protocolPaused = state;
         emit ActionProtocolPaused(state);
         return state;
