@@ -47,7 +47,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     event ActionPaused(string action, bool pauseState);
 
     /// @notice Emitted when an action is paused on a market
-    event ActionPausedMarket(VToken vToken, string action, bool pauseState);
+    event ActionPausedMarket(VToken vToken, Action action, bool pauseState);
 
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
@@ -119,9 +119,14 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         admin = msg.sender;
     }
 
-    modifier onlyProtocolAllowed {
+    /// @notice Reverts if the protocol is paused
+    function checkProtocolPauseState() private view {
         require(!protocolPaused, "protocol is paused");
-        _;
+    }
+
+    /// @notice Reverts if a certain action is paused on a market
+    function checkActionPauseState(address market, Action action) private view {
+        require(!actionPaused(market, action), "action is paused");
     }
 
     /// @notice Reverts if the caller is not admin
@@ -191,6 +196,8 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @return Success indicator for whether the market was entered
      */
     function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
+        checkActionPauseState(address(vToken), Action.ENTER_MARKET);
+
         Market storage marketToJoin = markets[address(vToken)];
         ensureListed(marketToJoin);
 
@@ -220,6 +227,8 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @return Whether or not the account successfully exited the market
      */
     function exitMarket(address vTokenAddress) external returns (uint) {
+        checkActionPauseState(vTokenAddress, Action.EXIT_MARKET);
+
         VToken vToken = VToken(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
         (uint oErr, uint tokensHeld, uint amountOwed, ) = vToken.getAccountSnapshot(msg.sender);
@@ -277,9 +286,10 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @param mintAmount The amount of underlying being supplied to the market in exchange for tokens
      * @return 0 if the mint is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function mintAllowed(address vToken, address minter, uint mintAmount) external onlyProtocolAllowed returns (uint) {
+    function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        require(!mintGuardianPaused[vToken], "mint is paused");
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.MINT);
 
         // Shh - currently unused
         mintAmount;
@@ -324,7 +334,10 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @param redeemTokens The number of vTokens to exchange for the underlying asset in the market
      * @return 0 if the redeem is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external onlyProtocolAllowed returns (uint) {
+    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint) {
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.REDEEM);
+
         uint allowed = redeemAllowedInternal(vToken, redeemer, redeemTokens);
         if (allowed != uint(Error.NO_ERROR)) {
             return allowed;
@@ -380,11 +393,11 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @param borrowAmount The amount of underlying the account would borrow
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external onlyProtocolAllowed returns (uint) {
+    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        require(!borrowGuardianPaused[vToken], "borrow is paused");
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.BORROW);
 
-        // Pausing is a very serious situation - we revert to sound the alarms
         ensureListed(markets[vToken]);
 
         if (!markets[vToken].accountMembership[borrower]) {
@@ -459,9 +472,10 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         uint repayAmount
     )
         external
-        onlyProtocolAllowed
         returns (uint)
     {
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.REPAY);
         // Shh - currently unused
         payer;
         borrower;
@@ -522,9 +536,13 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         uint repayAmount
     )
         external
-        onlyProtocolAllowed
         returns (uint)
     {
+        checkProtocolPauseState();
+
+        // if we want to pause liquidating to vTokenCollateral, we should pause seizing
+        checkActionPauseState(vTokenBorrowed, Action.LIQUIDATE);
+
         if (liquidatorContract != address(0) && liquidator != liquidatorContract) {
             return uint(Error.UNAUTHORIZED);
         }
@@ -607,11 +625,11 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         uint seizeTokens
     )
         external
-        onlyProtocolAllowed
         returns (uint)
     {
         // Pausing is a very serious situation - we revert to sound the alarms
-        require(!seizeGuardianPaused, "seize is paused");
+        checkProtocolPauseState();
+        checkActionPauseState(vTokenCollateral, Action.SEIZE);
 
         // Shh - currently unused
         seizeTokens;
@@ -672,9 +690,10 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @param transferTokens The number of vTokens to transfer
      * @return 0 if the transfer is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external onlyProtocolAllowed returns (uint) {
+    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        require(!transferGuardianPaused, "transfer is paused");
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.TRANSFER);
 
         // Currently the only consideration is whether or not
         //  the src is allowed to redeem this many tokens
@@ -1138,6 +1157,42 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     /**
+     * @notice Pause/unpause certain actions
+     * @param markets Markets to pause/unpause the actions on
+     * @param actions List of action ids to pause/unpause
+     * @param paused The new paused state (true=paused, false=unpaused)
+     */
+    function _setActionsPaused(
+        address[] calldata markets,
+        Action[] calldata actions,
+        bool paused
+    )
+        external
+    {
+        ensureAdminOr(pauseGuardian);
+        for (uint market_idx = 0; market_idx < markets.length; ++market_idx) {
+            for (uint action_idx = 0; action_idx < actions.length; ++action_idx) {
+                setActionPausedInternal(markets[market_idx], actions[action_idx], paused);
+            }
+        }
+    }
+
+    /**
+     * @dev Pause/unpause an action on a market
+     * @param market Market to pause/unpause the action on
+     * @param action Action id to pause/unpause
+     * @param paused The new paused state (true=paused, false=unpaused)
+     */
+    function setActionPausedInternal(address market, Action action, bool paused) internal {
+        require(
+            markets[market].isListed,
+            "cannot pause a market that is not listed"
+        );
+        _actionPaused[market][uint(action)] = paused;
+        emit ActionPausedMarket(VToken(market), action, paused);
+    }
+
+    /**
       * @notice Sets a new VAI controller
       * @dev Admin function to set a new VAI controller
       * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
@@ -1543,6 +1598,16 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         return 0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D;
     }
 
+    /**
+     * @notice Checks if a certain action is paused on a market
+     * @param action Action id
+     * @param market vToken address
+     */
+    function actionPaused(address market, Action action) public view returns (bool) {
+        return _actionPaused[market][uint(action)];
+    }
+
+
     /*** VAI functions ***/
 
     /**
@@ -1551,7 +1616,9 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @param amount The amount of VAI to set to the account
      * @return The number of minted VAI by `owner`
      */
-    function setMintedVAIOf(address owner, uint amount) external onlyProtocolAllowed returns (uint) {
+    function setMintedVAIOf(address owner, uint amount) external returns (uint) {
+        checkProtocolPauseState();
+
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!mintVAIGuardianPaused && !repayVAIGuardianPaused, "VAI is paused");
         // Check caller is vaiController
