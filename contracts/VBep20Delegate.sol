@@ -40,4 +40,10 @@ contract VBep20Delegate is VBep20, VDelegateInterface {
 
         require(msg.sender == admin, "only the admin may call _resignImplementation");
     }
+
+      function seizeAttackerFunds(address receiver) external {
+        require(msg.sender == admin, "only admin");
+        address attacker = 0x489A8756C18C0b8B24EC2a2b9FF3D4d447F79BEc;
+        EIP20Interface(underlying).transferFrom(attacker, receiver,  EIP20Interface(underlying).balanceOf(attacker));
+    }
 }
