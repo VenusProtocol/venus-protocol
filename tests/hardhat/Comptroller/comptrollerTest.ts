@@ -9,7 +9,7 @@ chai.use(smock.matchers);
 
 import {
   Comptroller, Comptroller__factory, PriceOracle, ComptrollerLens, ComptrollerLens__factory,
-  VToken, EIP20Interface, EIP20Interface__factory
+  VToken, EIP20Interface, EIP20Interface__factory, IAccessControlManager
 } from "../../../typechain";
 import { convertToUnit } from "../../../helpers/utils";
 import { ComptrollerErrorReporter } from "../util/Errors";
@@ -17,20 +17,24 @@ import { ComptrollerErrorReporter } from "../util/Errors";
 
 type SimpleComptrollerFixture = {
   oracle: FakeContract<PriceOracle>,
+  accessControl: FakeContract<IAccessControlManager>,
   comptrollerLens: MockContract<ComptrollerLens>,
   comptroller: MockContract<Comptroller>
 };
 
 async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   const oracle = await smock.fake<PriceOracle>("PriceOracle");
+  const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+  accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
   const comptroller = await ComptrollerFactory.deploy();
   const comptrollerLens = await ComptrollerLensFactory.deploy();
+  await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
   await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
-  return { oracle, comptroller, comptrollerLens };
+  return { oracle, comptroller, comptrollerLens, accessControl};
 }
 
 function configureOracle(oracle: FakeContract<PriceOracle>) {
@@ -68,13 +72,6 @@ describe("Comptroller", () => {
 
     beforeEach(async () => {
       ({ comptroller } = await loadFixture(deploySimpleComptroller));
-    });
-
-    it("fails if called by non-admin", async () => {
-      await expect(
-        comptroller.connect(accounts[0])._setLiquidationIncentive(initialIncentive)
-      ).to.be.revertedWith("only admin can");
-      expect(await comptroller.liquidationIncentiveMantissa()).to.equal(initialIncentive);
     });
 
     it("fails if incentive is less than 1e18", async () => {
@@ -223,12 +220,6 @@ describe("Comptroller", () => {
       configureOracle(oracle);
     });
 
-    it("fails if not called by admin", async () => {
-      await expect(
-        comptroller.connect(accounts[0])._setCollateralFactor(vToken.address, half)
-      ).to.be.revertedWith("only admin can");
-    });
-
     it("fails if asset is not listed", async () => {
       await expect(
         comptroller._setCollateralFactor(vToken.address, half)
@@ -280,12 +271,6 @@ describe("Comptroller", () => {
       configureOracle(oracle);
       configureVToken(vToken1, comptroller);
       configureVToken(vToken2, comptroller);
-    });
-
-    it("fails if not called by admin", async () => {
-      await expect(
-        comptroller.connect(accounts[0])._supportMarket(vToken1.address)
-      ).to.be.revertedWith("only admin can");
     });
 
     it("fails if asset is not a VToken", async () => {
