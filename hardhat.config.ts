@@ -70,16 +70,18 @@ const config: HardhatUserConfig = {
       gasMultiplier: 10,
       timeout: 12000000,
     },
-    hardhat: (() => {
+    hardhat:
+     (() => {
       if (process.env.BSC_ARCHIVE_NODE) {
         return {
           chainId: 56,
           forking: {
             url: process.env.BSC_ARCHIVE_NODE || '',
-          }
+          },
+          allowUnlimitedContractSize: true
         };
       }
-      return {};
+      return {allowUnlimitedContractSize: true};
     })(),
     // currently not used, we are still using saddle to deploy contracts
     bscmainnet: {
