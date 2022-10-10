@@ -80,18 +80,21 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
 
     /**
      * @notice The Pause Guardian can pause certain actions as a safety mechanism.
-     *  Actions which allow users to remove their own assets cannot be paused.
-     *  Liquidation / seizing / transfer can only be paused globally, not by market.
      */
     address public pauseGuardian;
-    /// @notice Whether minting is paused (deprecated, superseded by per-market pause)
+
+    /// @notice Whether minting is paused (deprecated, superseded by actionPaused)
     bool private _mintGuardianPaused;
-    /// @notice Whether borrowing is paused (deprecated, superseded by per-market pause)
+    /// @notice Whether borrowing is paused (deprecated, superseded by actionPaused)
     bool private _borrowGuardianPaused;
-    bool public transferGuardianPaused;
-    bool public seizeGuardianPaused;
-    mapping(address => bool) public mintGuardianPaused;
-    mapping(address => bool) public borrowGuardianPaused;
+    /// @notice Whether borrowing is paused (deprecated, superseded by actionPaused)
+    bool internal transferGuardianPaused;
+    /// @notice Whether borrowing is paused (deprecated, superseded by actionPaused)
+    bool internal seizeGuardianPaused;
+    /// @notice Whether borrowing is paused (deprecated, superseded by actionPaused)
+    mapping(address => bool) internal mintGuardianPaused;
+    /// @notice Whether borrowing is paused (deprecated, superseded by actionPaused)
+    mapping(address => bool) internal borrowGuardianPaused;
 
     struct VenusMarketState {
         /// @notice The market's last updated venusBorrowIndex or venusSupplyIndex

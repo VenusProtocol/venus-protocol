@@ -76,9 +76,6 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when borrow cap for a vToken is changed
     event NewBorrowCap(VToken indexed vToken, uint newBorrowCap);
 
-    /// @notice Emitted when borrow cap guardian is changed
-    event NewBorrowCapGuardian(address oldBorrowCapGuardian, address newBorrowCapGuardian);
-
     /// @notice Emitted when treasury guardian is changed
     event NewTreasuryGuardian(address oldTreasuryGuardian, address newTreasuryGuardian);
 
@@ -148,6 +145,13 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     function ensureAdminOr(address privilegedAddress) private view {
         require(
             msg.sender == admin || msg.sender == privilegedAddress,
+            "access denied"
+        );
+    }
+
+    function ensureAllowed(string memory functionSig) private view {
+        require(
+            IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig),
             "access denied"
         );
     }
@@ -919,22 +923,8 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
       * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
       */
     function _setCollateralFactor(VToken vToken, uint newCollateralFactorMantissa) external returns (uint) {
-        // Check caller is admin
-        bool isAllowedtoCall = IAccessControlManager(accessControl)
-            .isAllowedToCall(
-                msg.sender,
-                "_setCollateralFactor(address,uint256)"
-            );
-
-
-        if (!isAllowedtoCall) {
-            return
-                fail(
-                    Error.UNAUTHORIZED,
-                    FailureInfo.SET_COLLATERAL_FACTOR_OWNER_CHECK
-                );
-        }        
-        
+        // Check caller is allowed by access control manager
+        ensureAllowed("_setCollateralFactor(address,uint256)");
         ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
@@ -971,17 +961,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
       * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
       */
     function _setLiquidationIncentive(uint newLiquidationIncentiveMantissa) external returns (uint) {
-        bool canCallFunction = IAccessControlManager(accessControl)
-            .isAllowedToCall(msg.sender, "_setLiquidationIncentive(uint)");
-
-        // Check if caller is allowed to call this function
-        if (!canCallFunction) {
-            return
-                fail(
-                    Error.UNAUTHORIZED,
-                    FailureInfo.SET_LIQUIDATION_INCENTIVE_OWNER_CHECK
-                );
-        }
+        ensureAllowed("_setLiquidationIncentive(uint256)");
 
         require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
 
@@ -1012,17 +992,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
       * @return uint 0=success, otherwise a failure. (See enum Error for details)
       */
     function _supportMarket(VToken vToken) external returns (uint) {
-
-        bool canCallFunction = IAccessControlManager(accessControl)
-            .isAllowedToCall(msg.sender, "_supportMarket(address)");
-
-        if (!canCallFunction) {
-            return
-                fail(
-                    Error.UNAUTHORIZED,
-                    FailureInfo.SUPPORT_MARKET_OWNER_CHECK
-                );
-        }
+        ensureAllowed("_supportMarket(address)");
 
         if (markets[address(vToken)].isListed) {
             return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
@@ -1070,21 +1040,12 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
 
     /**
       * @notice Set the given borrow caps for the given vToken markets. Borrowing that brings total borrows to or above borrow cap will revert.
-      * @dev Admin or borrowCapGuardian function to set the borrow caps. A borrow cap of 0 corresponds to unlimited borrowing.
+      * @dev Access is controled by ACM. A borrow cap of 0 corresponds to unlimited borrowing.
       * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
       * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing.
       */
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint[] calldata newBorrowCaps) external {
-       
-        // NOTE: previous code restricted this function with
-        // msg.sender == admin || msg.sender == borrowCapGuardian
-        // Please consider adjusting deployment script before Testnet
-        require(
-            IAccessControlManager(accessControl).isAllowedToCall(
-                msg.sender,
-                "_setMarketBorrowCaps(address[],uint256[])"
-            ), "only whitelisted accounts can set borrow caps"
-        );
+        ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");
 
         uint numMarkets = vTokens.length;
         uint numBorrowCaps = newBorrowCaps.length;
@@ -1098,37 +1059,13 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     /**
-     * @notice Admin function to change the Borrow Cap Guardian
-     * @param newBorrowCapGuardian The address of the new Borrow Cap Guardian
-     */
-    function _setBorrowCapGuardian(address newBorrowCapGuardian) external {
-        ensureAdmin();
-        ensureNonzeroAddress(newBorrowCapGuardian);
-
-        // Save current value for inclusion in log
-        address oldBorrowCapGuardian = borrowCapGuardian;
-
-        // Store borrowCapGuardian with value newBorrowCapGuardian
-        borrowCapGuardian = newBorrowCapGuardian;
-
-        // Emit NewBorrowCapGuardian(OldBorrowCapGuardian, NewBorrowCapGuardian)
-        emit NewBorrowCapGuardian(oldBorrowCapGuardian, newBorrowCapGuardian);
-    }
-
-    /**
       * @notice Set the given supply caps for the given vToken markets. Supply that brings total Supply to or above supply cap will revert.
       * @dev Admin function to set the supply caps. A supply cap of 0 corresponds to Minting NotAllowed.
       * @param vTokens The addresses of the markets (tokens) to change the supply caps for
       * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed.
       */
     function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
-        
-        require(
-            IAccessControlManager(accessControl).isAllowedToCall(
-                msg.sender,
-                "_setMarketSupplyCaps(address[],uint256[])"
-            ), "only whitelisted accounts can set supply caps"
-        );
+        ensureAllowed("_setMarketSupplyCaps(address[],uint256[])");
 
         uint numMarkets = vTokens.length;
         uint numSupplyCaps = newSupplyCaps.length;
@@ -1145,11 +1082,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @notice Set whole protocol pause/unpause state
      */
     function _setProtocolPaused(bool state) external returns(bool) {
-        bool canCallFunction = IAccessControlManager(accessControl)
-            .isAllowedToCall(msg.sender, "_setTransferPaused(address,bool)");
-
-        require(canCallFunction, "only authorised addresses can pause");       
-        require(msg.sender == admin || state, "only admin can unpause");
+        ensureAllowed("_setProtocolPaused(bool)");
 
         protocolPaused = state;
         emit ActionProtocolPaused(state);
@@ -1169,7 +1102,8 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     )
         external
     {
-        ensureAdminOr(pauseGuardian);
+        ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
+
         for (uint market_idx = 0; market_idx < markets.length; ++market_idx) {
             for (uint action_idx = 0; action_idx < actions.length; ++action_idx) {
                 setActionPausedInternal(markets[market_idx], actions[action_idx], paused);
