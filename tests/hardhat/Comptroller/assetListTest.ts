@@ -7,7 +7,7 @@ const { expect } = chai;
 chai.use(smock.matchers);
 
 import {
-  Comptroller, PriceOracle, ComptrollerLens, Comptroller__factory, VBep20Immutable, ComptrollerLens__factory
+  Comptroller, PriceOracle, ComptrollerLens, Comptroller__factory, VBep20Immutable, ComptrollerLens__factory, IAccessControlManager
 } from "../../../typechain";
 import { convertToUnit } from "../../../helpers/utils";
 import { ComptrollerErrorReporter } from "../util/Errors";
@@ -41,11 +41,14 @@ describe("assetListTest", () => {
   };
 
   async function assetListFixture(): Promise<AssetListFixture> {
+    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const comptroller = await ComptrollerFactory.deploy();
     const comptrollerLens = await ComptrollerLensFactory.deploy();
     const oracle = await smock.fake<PriceOracle>("PriceOracle");
+    accessControl.isAllowedToCall.returns(true);
+    await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
     const names = ["OMG", "ZRX", "BAT", "sketch"];
