@@ -43,10 +43,11 @@ describe("Comptroller", () => {
 
     describe("setCollateralFactor", () => {
       it("Should have AccessControl", async () => {
-        await expect(comptroller
-          .connect(user)
-          ._setCollateralFactor(ethers.constants.AddressZero, 0))
-		  .to.be.revertedWith("access denied");;
+        await expect(
+          comptroller
+            .connect(user)
+            ._setCollateralFactor(ethers.constants.AddressZero, 0)
+        ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
           "_setCollateralFactor(address,uint256)"
@@ -56,14 +57,14 @@ describe("Comptroller", () => {
     describe("setLiquidationIncentive", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._setLiquidationIncentive(0))
-		.to.be.revertedWith("access denied");
+          .to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
           "_setLiquidationIncentive(uint256)"
         );
       });
     });
-    describe("_setMarketBorrowCaps", () => {
+    describe("setMarketBorrowCaps", () => {
       it("Should have AccessControl", async () => {
         await expect(
           comptroller.connect(user)._setMarketBorrowCaps([], [])
@@ -95,23 +96,22 @@ describe("Comptroller", () => {
         );
       });
     });
-	describe("setActionsPaused", () => {
-		it("Should have AccessControl", async () => {
-		  await expect(
-			comptroller.connect(user)._setActionsPaused([],[],true)
-		  ).to.be.revertedWith("access denied");
-		  expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
-			userAddress,
-			"_setActionsPaused(address[],uint256[],bool)"
-		  );
-		});
-	});
+    describe("setActionsPaused", () => {
+      it("Should have AccessControl", async () => {
+        await expect(
+          comptroller.connect(user)._setActionsPaused([],[],true)
+        ).to.be.revertedWith("access denied");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
+          userAddress,
+          "_setActionsPaused(address[],uint256[],bool)"
+        );
+      });
+    });
     describe("supportMarket", () => {
       it("Should have AccessControl", async () => {
-        await expect(comptroller
-          .connect(user)
-          ._supportMarket(ethers.constants.AddressZero))
-		  .to.be.revertedWith("access denied");
+        await expect(
+          comptroller.connect(user)._supportMarket(ethers.constants.AddressZero)
+        ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
           "_supportMarket(address)"
