@@ -43,9 +43,10 @@ describe("Comptroller", () => {
 
     describe("setCollateralFactor", () => {
       it("Should have AccessControl", async () => {
-        await comptroller
+        await expect(comptroller
           .connect(user)
-          ._setCollateralFactor(ethers.constants.AddressZero, 0);
+          ._setCollateralFactor(ethers.constants.AddressZero, 0))
+		  .to.be.revertedWith("access denied");;
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
           "_setCollateralFactor(address,uint256)"
@@ -54,10 +55,11 @@ describe("Comptroller", () => {
     });
     describe("setLiquidationIncentive", () => {
       it("Should have AccessControl", async () => {
-        await comptroller.connect(user)._setLiquidationIncentive(0);
+        await expect(comptroller.connect(user)._setLiquidationIncentive(0))
+		.to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "_setLiquidationIncentive(uint)"
+          "_setLiquidationIncentive(uint256)"
         );
       });
     });
@@ -65,7 +67,7 @@ describe("Comptroller", () => {
       it("Should have AccessControl", async () => {
         await expect(
           comptroller.connect(user)._setMarketBorrowCaps([], [])
-        ).to.be.revertedWith("only whitelisted accounts can set borrow caps");
+        ).to.be.revertedWith("access denied");
 
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
@@ -75,7 +77,7 @@ describe("Comptroller", () => {
     });
     describe("setMarketSupplyCaps", () => {
       it("Should have AccessControl", async () => {
-        await expect(comptroller.connect(user)._setMarketSupplyCaps([], [])).to.be.revertedWith("only whitelisted accounts can set supply caps");
+        await expect(comptroller.connect(user)._setMarketSupplyCaps([], [])).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
           "_setMarketSupplyCaps(address[],uint256[])"
@@ -86,18 +88,30 @@ describe("Comptroller", () => {
       it("Should have AccessControl", async () => {
         await expect(
           comptroller.connect(user)._setProtocolPaused(true)
-        ).to.be.revertedWith("only authorised addresses can pause");
+        ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "_setTransferPaused(address,bool)"
+          "_setProtocolPaused(bool)"
         );
       });
     });
+	describe("setActionsPaused", () => {
+		it("Should have AccessControl", async () => {
+		  await expect(
+			comptroller.connect(user)._setActionsPaused([],[],true)
+		  ).to.be.revertedWith("access denied");
+		  expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
+			userAddress,
+			"_setActionsPaused(address[],uint256[],bool)"
+		  );
+		});
+	});
     describe("supportMarket", () => {
       it("Should have AccessControl", async () => {
-        await comptroller
+        await expect(comptroller
           .connect(user)
-          ._supportMarket(ethers.constants.AddressZero);
+          ._supportMarket(ethers.constants.AddressZero))
+		  .to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
           "_supportMarket(address)"

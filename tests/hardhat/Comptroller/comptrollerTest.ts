@@ -109,7 +109,6 @@ describe("Comptroller", () => {
     testZeroAddress('_setPriceOracle', [constants.AddressZero]);
     testZeroAddress('_setCollateralFactor', [constants.AddressZero, 0]);
     testZeroAddress('_setPauseGuardian', [constants.AddressZero]);
-    testZeroAddress('_setBorrowCapGuardian', [constants.AddressZero]);
     testZeroAddress('_setVAIController', [constants.AddressZero]);
     testZeroAddress('_setTreasuryData', [constants.AddressZero, constants.AddressZero, 0]);
     testZeroAddress('_setComptrollerLens', [constants.AddressZero]);

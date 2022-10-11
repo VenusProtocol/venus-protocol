@@ -79,11 +79,6 @@ describe("Comptroller", () => {
   });
 
   describe("_setActionsPaused", () => {
-    it("reverts if caller is not admin", async () => {
-      await expect(comptroller.connect(customer)._setActionsPaused([OMG.address], [1], true))
-        .to.be.revertedWith("access denied");
-    });
-
     it("reverts if the market is not listed", async () => {
       await expect(comptroller._setActionsPaused([SKT.address], [1], true))
         .to.be.revertedWith("cannot pause a market that is not listed");
