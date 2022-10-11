@@ -1,7 +1,7 @@
 import { Signer, BaseContract, BigNumberish, constants } from "ethers";
 import { ethers } from "hardhat";
 import {
-  Comptroller, Comptroller__factory, PriceOracle, ComptrollerLens, ComptrollerLens__factory, VToken, EIP20Interface, EIP20Interface__factory, VBep20Delegate, VBep20Immutable
+  Comptroller, Comptroller__factory, PriceOracle, ComptrollerLens, ComptrollerLens__factory, VToken, EIP20Interface, EIP20Interface__factory, VBep20Delegate, VBep20Immutable, IAccessControlManager
 } from "../../../typechain";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
@@ -51,11 +51,14 @@ describe('Comptroller', () => {
   }
 
   async function liquidateFixture(): Promise<LiquidateFixture> {
+    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const comptroller = await ComptrollerFactory.deploy();
     const comptrollerLens = await ComptrollerLensFactory.deploy();
     const oracle = await smock.fake<PriceOracle>("PriceOracle");
+    accessControl.isAllowedToCall.returns(true);
+    await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
     await comptroller._setLiquidationIncentive(convertToUnit("1.1", 18));

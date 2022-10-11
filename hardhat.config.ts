@@ -70,7 +70,8 @@ const config: HardhatUserConfig = {
       gasMultiplier: 10,
       timeout: 12000000,
     },
-    hardhat: (() => {
+    hardhat:
+     (() => {
       if (process.env.BSC_ARCHIVE_NODE) {
         return {
           chainId: 56,

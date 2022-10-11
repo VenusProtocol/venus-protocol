@@ -79,14 +79,6 @@ describe("Comptroller", () => {
   });
 
   describe("_setActionsPaused", () => {
-    it("reverts if AccessControlManager does not allow it", async () => {
-      accessControl.isAllowedToCall
-        .whenCalledWith(rootAddress, "_setActionsPaused(address[],uint256[],bool)")
-        .returns(false);
-      await expect(comptroller._setActionsPaused([OMG.address], [1], true))
-        .to.be.revertedWith("access denied");
-    });
-
     it("reverts if the market is not listed", async () => {
       await expect(comptroller._setActionsPaused([SKT.address], [1], true))
         .to.be.revertedWith("cannot pause a market that is not listed");
