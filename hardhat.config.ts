@@ -77,11 +77,10 @@ const config: HardhatUserConfig = {
           chainId: 56,
           forking: {
             url: process.env.BSC_ARCHIVE_NODE || '',
-          },
-          allowUnlimitedContractSize: true
+          }
         };
       }
-      return {allowUnlimitedContractSize: true};
+      return {};
     })(),
     // currently not used, we are still using saddle to deploy contracts
     bscmainnet: {
