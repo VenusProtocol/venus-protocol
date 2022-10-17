@@ -2,9 +2,6 @@ import {Event} from '../Event';
 import {World} from '../World';
 import {VAIControllerImpl} from '../Contract/VAIControllerImpl';
 import {
-  getAddressV
-} from '../CoreValue';
-import {
   AddressV,
   Value
 } from '../Value';

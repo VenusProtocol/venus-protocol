@@ -13,7 +13,7 @@ import { verify } from '../Verify';
 import { mergeContractABI } from '../Networks';
 
 async function genVAIControllerImpl(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, vaicontrollerImpl, vaicontrollerImplData } = await buildVAIControllerImpl(
+  const { world: nextWorld, vaicontrollerImpl, vaicontrollerImplData } = await buildVAIControllerImpl(
     world,
     from,
     params
@@ -49,7 +49,7 @@ async function becomeG1(
   vaicontrollerImpl: VAIControllerImpl,
   vaiunitroller: VAIUnitroller
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     vaicontrollerImpl.methods._become(vaiunitroller._address),
     from,
@@ -72,7 +72,7 @@ async function becomeG2(
   vaicontrollerImpl: VAIControllerImpl,
   vaiunitroller: VAIUnitroller
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     vaicontrollerImpl.methods._become(vaiunitroller._address),
     from,
@@ -95,7 +95,7 @@ async function become(
   vaicontrollerImpl: VAIControllerImpl,
   vaiunitroller: VAIUnitroller
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     vaicontrollerImpl.methods._become(vaiunitroller._address),
     from,
@@ -151,7 +151,7 @@ export function vaicontrollerImplCommands() {
       'Verify',
       [new Arg('vaicontrollerImplArg', getStringV), new Arg('apiKey', getStringV)],
       async (world, { vaicontrollerImplArg, apiKey }) => {
-        let [vaicontrollerImpl, name, data] = await getVAIControllerImplData(world, vaicontrollerImplArg.val);
+        const [vaicontrollerImpl, name, data] = await getVAIControllerImplData(world, vaicontrollerImplArg.val);
 
         return await verifyVAIControllerImpl(world, vaicontrollerImpl, name, data.get('contract')!, apiKey.val);
       },

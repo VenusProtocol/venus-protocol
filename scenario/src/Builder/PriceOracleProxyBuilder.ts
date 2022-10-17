@@ -1,5 +1,5 @@
 import {Event} from '../Event';
-import {addAction, World} from '../World';
+import {World} from '../World';
 import {PriceOracleProxy} from '../Contract/PriceOracleProxy';
 import {Invokation} from '../Invokation';
 import {Arg, Fetcher, getFetcherValue} from '../Command';
@@ -53,8 +53,8 @@ export async function buildPriceOracleProxy(world: World, from: string, event: E
     )
   ];
 
-  let priceOracleProxyData = await getFetcherValue<any, PriceOracleProxyData>("DeployPriceOracleProxy", fetchers, world, event);
-  let invokation = priceOracleProxyData.invokation!;
+  const priceOracleProxyData = await getFetcherValue<any, PriceOracleProxyData>("DeployPriceOracleProxy", fetchers, world, event);
+  const invokation = priceOracleProxyData.invokation!;
   delete priceOracleProxyData.invokation;
 
   if (invokation.error) {

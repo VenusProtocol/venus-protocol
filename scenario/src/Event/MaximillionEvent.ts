@@ -23,7 +23,7 @@ function showTrxValue(world: World): string {
 }
 
 async function genMaximillion(world: World, from: string, params: Event): Promise<World> {
-  let {world: nextWorld, maximillion, maximillionData} = await buildMaximillion(world, from, params);
+  const {world: nextWorld, maximillion, maximillionData} = await buildMaximillion(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -46,8 +46,8 @@ async function verifyMaximillion(world: World, maximillion: Maximillion, apiKey:
 }
 
 async function repayBehalf(world: World, from: string, maximillion: Maximillion, behalf: string): Promise<World> {
-  let showAmount = showTrxValue(world);
-  let invokation = await invoke(world, maximillion.methods.repayBehalf(behalf), from);
+  const showAmount = showTrxValue(world);
+  const invokation = await invoke(world, maximillion.methods.repayBehalf(behalf), from);
 
   world = addAction(
     world,

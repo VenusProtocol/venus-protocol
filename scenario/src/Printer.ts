@@ -40,7 +40,7 @@ export class CallbackPrinter implements Printer {
     this.callback(`Error: ${err.toString()}`, {error: true});
   }
 
-  printAction(action: Action<any>): void {
+  printAction(): void {
     // Do nothing
   }
 }

@@ -4,13 +4,11 @@ import {PriceOracleProxy} from '../Contract/PriceOracleProxy';
 import {buildPriceOracleProxy} from '../Builder/PriceOracleProxyBuilder';
 import {invoke} from '../Invokation';
 import {
-  getAddressV,
   getEventV,
   getExpNumberV,
   getStringV
 } from '../CoreValue';
 import {
-  AddressV,
   EventV,
   NumberV,
   StringV
@@ -18,7 +16,6 @@ import {
 import {Arg, Command, processCommandEvent, View} from '../Command';
 import {getPriceOracleProxy} from '../ContractLookup';
 import {verify} from '../Verify';
-import {encodedNumber} from '../Encoding';
 
 async function genPriceOracleProxy(world: World, from: string, params: Event): Promise<World> {
   let priceOracleProxy;

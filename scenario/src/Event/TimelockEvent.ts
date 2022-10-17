@@ -1,7 +1,7 @@
 import { Event } from '../Event';
 import { addAction, World } from '../World';
 import { Timelock } from '../Contract/Timelock';
-import { buildTimelock, TimelockData } from '../Builder/TimelockBuilder';
+import { buildTimelock } from '../Builder/TimelockBuilder';
 import { invoke } from '../Invokation';
 import { getAddressV, getEventV, getNumberV, getStringV, getCoreValue } from '../CoreValue';
 import { AddressV, EventV, NumberV, StringV } from '../Value';
@@ -11,7 +11,7 @@ import { verify } from '../Verify';
 import { decodeParameters, encodeParameters } from '../Utils';
 
 async function genTimelock(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, timelock, timelockData } = await buildTimelock(world, from, params);
+  const { world: nextWorld, timelock, timelockData } = await buildTimelock(world, from, params);
   world = nextWorld;
 
   world = addAction(world, `Deployed Timelock to address ${timelock._address}`, timelockData.invokation);

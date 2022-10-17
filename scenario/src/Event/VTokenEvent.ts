@@ -25,11 +25,9 @@ import { getContract } from '../Contract';
 import { Arg, Command, View, processCommandEvent } from '../Command';
 import { VTokenErrorReporter } from '../ErrorReporter';
 import { getComptroller, getVTokenData } from '../ContractLookup';
-import { getExpMantissa } from '../Encoding';
 import { buildVToken } from '../Builder/VTokenBuilder';
 import { verify } from '../Verify';
 import { getLiquidity } from '../Value/ComptrollerValue';
-import { encodedNumber } from '../Encoding';
 import { getVTokenV, getVBep20DelegatorV } from '../Value/VTokenValue';
 
 function showTrxValue(world: World): string {
@@ -37,7 +35,7 @@ function showTrxValue(world: World): string {
 }
 
 async function genVToken(world: World, from: string, event: Event): Promise<World> {
-  let { world: nextWorld, vToken, tokenData } = await buildVToken(world, from, event);
+  const { world: nextWorld, vToken, tokenData } = await buildVToken(world, from, event);
   world = nextWorld;
 
   world = addAction(
@@ -50,7 +48,7 @@ async function genVToken(world: World, from: string, event: Event): Promise<Worl
 }
 
 async function accrueInterest(world: World, from: string, vToken: VToken): Promise<World> {
-  let invokation = await invoke(world, vToken.methods.accrueInterest(), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods.accrueInterest(), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -104,7 +102,7 @@ async function mintBehalf(world: World, from: string, vToken: VToken, receiver: 
 }
 
 async function redeem(world: World, from: string, vToken: VToken, tokens: NumberV): Promise<World> {
-  let invokation = await invoke(world, vToken.methods.redeem(tokens.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods.redeem(tokens.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -116,7 +114,7 @@ async function redeem(world: World, from: string, vToken: VToken, tokens: Number
 }
 
 async function redeemUnderlying(world: World, from: string, vToken: VToken, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vToken.methods.redeemUnderlying(amount.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods.redeemUnderlying(amount.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -128,7 +126,7 @@ async function redeemUnderlying(world: World, from: string, vToken: VToken, amou
 }
 
 async function borrow(world: World, from: string, vToken: VToken, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vToken.methods.borrow(amount.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods.borrow(amount.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -203,7 +201,7 @@ async function liquidateBorrow(world: World, from: string, vToken: VToken, borro
 }
 
 async function seize(world: World, from: string, vToken: VToken, liquidator: string, borrower: string, seizeTokens: NumberV): Promise<World> {
-  let invokation = await invoke(world, vToken.methods.seize(liquidator, borrower, seizeTokens.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods.seize(liquidator, borrower, seizeTokens.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -215,7 +213,7 @@ async function seize(world: World, from: string, vToken: VToken, liquidator: str
 }
 
 async function evilSeize(world: World, from: string, vToken: VToken, treasure: VToken, liquidator: string, borrower: string, seizeTokens: NumberV): Promise<World> {
-  let invokation = await invoke(world, vToken.methods.evilSeize(treasure._address, liquidator, borrower, seizeTokens.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods.evilSeize(treasure._address, liquidator, borrower, seizeTokens.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -227,7 +225,7 @@ async function evilSeize(world: World, from: string, vToken: VToken, treasure: V
 }
 
 async function setPendingAdmin(world: World, from: string, vToken: VToken, newPendingAdmin: string): Promise<World> {
-  let invokation = await invoke(world, vToken.methods._setPendingAdmin(newPendingAdmin), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods._setPendingAdmin(newPendingAdmin), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -239,7 +237,7 @@ async function setPendingAdmin(world: World, from: string, vToken: VToken, newPe
 }
 
 async function acceptAdmin(world: World, from: string, vToken: VToken): Promise<World> {
-  let invokation = await invoke(world, vToken.methods._acceptAdmin(), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods._acceptAdmin(), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -251,7 +249,7 @@ async function acceptAdmin(world: World, from: string, vToken: VToken): Promise<
 }
 
 async function addReserves(world: World, from: string, vToken: VToken, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vToken.methods._addReserves(amount.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods._addReserves(amount.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -263,7 +261,7 @@ async function addReserves(world: World, from: string, vToken: VToken, amount: N
 }
 
 async function reduceReserves(world: World, from: string, vToken: VToken, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vToken.methods._reduceReserves(amount.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods._reduceReserves(amount.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -275,7 +273,7 @@ async function reduceReserves(world: World, from: string, vToken: VToken, amount
 }
 
 async function setReserveFactor(world: World, from: string, vToken: VToken, reserveFactor: NumberV): Promise<World> {
-  let invokation = await invoke(world, vToken.methods._setReserveFactor(reserveFactor.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods._setReserveFactor(reserveFactor.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -287,7 +285,7 @@ async function setReserveFactor(world: World, from: string, vToken: VToken, rese
 }
 
 async function setInterestRateModel(world: World, from: string, vToken: VToken, interestRateModel: string): Promise<World> {
-  let invokation = await invoke(world, vToken.methods._setInterestRateModel(interestRateModel), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods._setInterestRateModel(interestRateModel), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -299,7 +297,7 @@ async function setInterestRateModel(world: World, from: string, vToken: VToken, 
 }
 
 async function setComptroller(world: World, from: string, vToken: VToken, comptroller: string): Promise<World> {
-  let invokation = await invoke(world, vToken.methods._setComptroller(comptroller), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods._setComptroller(comptroller), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -320,7 +318,7 @@ async function becomeImplementation(
   const vBep20Delegate = getContract('VBep20Delegate');
   const vBep20DelegateContract = await vBep20Delegate.at<VBep20Delegate>(world, vToken._address);
 
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     vBep20DelegateContract.methods._becomeImplementation(becomeImplementationData),
     from,
@@ -348,7 +346,7 @@ async function resignImplementation(
   const vBep20Delegate = getContract('VBep20Delegate');
   const vBep20DelegateContract = await vBep20Delegate.at<VBep20Delegate>(world, vToken._address);
 
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     vBep20DelegateContract.methods._resignImplementation(),
     from,
@@ -375,7 +373,7 @@ async function setImplementation(
   allowResign: boolean,
   becomeImplementationData: string
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     vToken.methods._setImplementation(
       implementation,
@@ -399,7 +397,7 @@ async function setImplementation(
 }
 
 async function donate(world: World, from: string, vToken: VToken): Promise<World> {
-  let invokation = await invoke(world, vToken.methods.donate(), from, VTokenErrorReporter);
+  const invokation = await invoke(world, vToken.methods.donate(), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -424,7 +422,7 @@ async function setVTokenMock(world: World, from: string, vToken: VTokenScenario,
       throw new Error(`Mock "${mock}" not defined for vToken`);
   }
 
-  let invokation = await invoke(world, mockMethod(value.encode()), from);
+  const invokation = await invoke(world, mockMethod(value.encode()), from);
 
   world = addAction(
     world,
@@ -446,9 +444,9 @@ async function verifyVToken(world: World, vToken: VToken, name: string, contract
 }
 
 async function printMinters(world: World, vToken: VToken): Promise<World> {
-  let events = await getPastEvents(world, vToken, vToken.name, 'Mint');
-  let addresses = events.map((event) => event.returnValues['minter']);
-  let uniq = [...new Set(addresses)];
+  const events = await getPastEvents(world, vToken, vToken.name, 'Mint');
+  const addresses = events.map((event) => event.returnValues['minter']);
+  const uniq = [...new Set(addresses)];
 
   world.printer.printLine("Minters:")
 
@@ -460,9 +458,9 @@ async function printMinters(world: World, vToken: VToken): Promise<World> {
 }
 
 async function printBorrowers(world: World, vToken: VToken): Promise<World> {
-  let events = await getPastEvents(world, vToken, vToken.name, 'Borrow');
-  let addresses = events.map((event) => event.returnValues['borrower']);
-  let uniq = [...new Set(addresses)];
+  const events = await getPastEvents(world, vToken, vToken.name, 'Borrow');
+  const addresses = events.map((event) => event.returnValues['borrower']);
+  const uniq = [...new Set(addresses)];
 
   world.printer.printLine("Borrowers:")
 
@@ -474,17 +472,17 @@ async function printBorrowers(world: World, vToken: VToken): Promise<World> {
 }
 
 async function printLiquidity(world: World, vToken: VToken): Promise<World> {
-  let mintEvents = await getPastEvents(world, vToken, vToken.name, 'Mint');
-  let mintAddresses = mintEvents.map((event) => event.returnValues['minter']);
-  let borrowEvents = await getPastEvents(world, vToken, vToken.name, 'Borrow');
-  let borrowAddresses = borrowEvents.map((event) => event.returnValues['borrower']);
-  let uniq = [...new Set(mintAddresses.concat(borrowAddresses))];
-  let comptroller = await getComptroller(world);
+  const mintEvents = await getPastEvents(world, vToken, vToken.name, 'Mint');
+  const mintAddresses = mintEvents.map((event) => event.returnValues['minter']);
+  const borrowEvents = await getPastEvents(world, vToken, vToken.name, 'Borrow');
+  const borrowAddresses = borrowEvents.map((event) => event.returnValues['borrower']);
+  const uniq = [...new Set(mintAddresses.concat(borrowAddresses))];
+  const comptroller = await getComptroller(world);
 
   world.printer.printLine("Liquidity:")
 
   const liquidityMap = await Promise.all(uniq.map(async (address) => {
-    let userLiquidity = await getLiquidity(world, comptroller, address);
+    const userLiquidity = await getLiquidity(world, comptroller, address);
 
     return [address, userLiquidity.val];
   }));
@@ -520,7 +518,7 @@ export function vTokenCommands() {
         new Arg("apiKey", getStringV)
       ],
       async (world, { vTokenArg, apiKey }) => {
-        let [vToken, name, data] = await getVTokenData(world, vTokenArg.val);
+        const [vToken, name, data] = await getVTokenData(world, vTokenArg.val);
 
         return await verifyVToken(world, vToken, name, data.get('contract')!, apiKey.val);
       },

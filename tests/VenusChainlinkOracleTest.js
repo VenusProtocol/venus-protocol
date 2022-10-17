@@ -10,13 +10,13 @@ const {
 describe("VenusChainlinkOracle", () => {
   let root, accounts;
   let bnbFeed, daiFeed, usdcFeed, usdtFeed;
-  let oracle, vBnb, vDai, vExampleSet, vExampleUnset, vToken, vUsdc, vUsdt, vai, xvs;
+  let oracle, vBnb, vDai, vExampleSet, vExampleUnset, vUsdc, vUsdt, vai, xvs;
 
   const MAX_STALE_PERIOD = 100 * 60; // 100min, just for test
 
   beforeEach(async () => {
     [root, ...accounts] = saddle.accounts;
-    vToken = await makeVToken();
+    await makeVToken();
     vBnb = await makeVToken({kind: "vbnb",
       comptrollerOpts: {kind: "v1-no-proxy"},
       supportMarket: true

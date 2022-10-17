@@ -22,10 +22,6 @@ async function bnbBalance(addr) {
   return new BigNum(await web3.eth.getBalance(addr));
 }
 
-async function vaiBalance(vai, addr) {
-  return new BigNum(await web3.eth.getBalance(addr));
-}
-
 async function bnbGasCost(receipt) {
   const tx = await web3.eth.getTransaction(receipt.transactionHash);
   const gasUsed = new BigNum(receipt.gasUsed);
@@ -50,16 +46,6 @@ function bnbUnsigned(num) {
 }
 
 function mergeInterface(into, from) {
-  const key = (item) => item.inputs ? `${item.name}/${item.inputs.length}` : item.name;
-  const existing = into.options.jsonInterface.reduce((acc, item) => {
-    acc[key(item)] = true;
-    return acc;
-  }, {});
-  const extended = from.options.jsonInterface.reduce((acc, item) => {
-    if (!(key(item) in existing))
-      acc.push(item)
-    return acc;
-  }, into.options.jsonInterface.slice());
   into.options.jsonInterface = into.options.jsonInterface.concat(from.options.jsonInterface);
   return into;
 }

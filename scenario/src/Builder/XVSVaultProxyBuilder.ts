@@ -21,7 +21,7 @@ export async function buildXVSVaultProxy(
   params: Event
 ): Promise<{ world: World; xvsVaultProxy: XVSVaultProxy; xvsVaultData: XVSVaultProxyData }> {
   const fetchers = [
-    new Fetcher<{}, XVSVaultProxyData>(
+    new Fetcher<Record<string, any>, XVSVaultProxyData>(
       `
       #### XVSVaultProxy
       * "XVSVaultProxy Deploy" - Deploys XVS Vault proxy contract
@@ -29,7 +29,7 @@ export async function buildXVSVaultProxy(
       `,
       "XVSVaultProxy",
       [],
-      async (world, {}) => {
+      async (world) => {
         return {
           invokation: await XVSVaultProxyContract.deploy<XVSVaultProxy>(world, from, []),
           name: "XVSVaultProxy",
@@ -40,13 +40,13 @@ export async function buildXVSVaultProxy(
     )
   ];
 
-  let xvsVaultData = await getFetcherValue<any, XVSVaultProxyData>(
+  const xvsVaultData = await getFetcherValue<any, XVSVaultProxyData>(
     "DeployXVSVaultProxy",
     fetchers,
     world,
     params
   );
-  let invokation = xvsVaultData.invokation!;
+  const invokation = xvsVaultData.invokation!;
   delete xvsVaultData.invokation;
 
   if (invokation.error) {

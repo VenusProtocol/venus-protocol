@@ -2,9 +2,6 @@ import {Event} from '../Event';
 import {World} from '../World';
 import {Maximillion} from '../Contract/Maximillion';
 import {
-  getAddressV
-} from '../CoreValue';
-import {
   AddressV,
   Value
 } from '../Value';

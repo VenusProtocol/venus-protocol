@@ -1,5 +1,5 @@
 import { BigNumber, Signer } from "ethers";
-import { ethers, network } from "hardhat";
+import { ethers } from "hardhat";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
@@ -23,7 +23,6 @@ let customer: Signer;
 let accounts: Signer[];
 let governorBravoDelegate: MockContract<GovernorBravoDelegate>;
 let xvsVault: FakeContract<XVSVault>;
-let xvsStore: FakeContract<XVSStore>;
 let xvsToken: FakeContract<XVS>;
 
 type GovernorBravoDelegateFixture = {
@@ -69,7 +68,7 @@ let targets: any[],
   signatures: string | any[],
   callDatas: string | any[];
 describe("Governor Bravo Propose Tests", () => {
-  let rootAddress: String;
+  let rootAddress: string;
   let proposalId: BigNumber;
   let trivialProposal: any;
   let proposalBlock: number;
@@ -81,7 +80,7 @@ describe("Governor Bravo Propose Tests", () => {
     signatures = ["getBalanceOf(address)"];
     callDatas = [encodeParameters(["address"], [rootAddress])];
     const contracts = await loadFixture(governorBravoFixture);
-    ({ governorBravoDelegate, xvsVault, xvsStore, xvsToken } = contracts);
+    ({ governorBravoDelegate, xvsVault, xvsToken } = contracts);
     await governorBravoDelegate.setVariable("admin", await root.getAddress());
     await governorBravoDelegate.setVariable("initialProposalId", 1);
     await governorBravoDelegate.setVariable("proposalCount", 1);
@@ -138,7 +137,7 @@ describe("Governor Bravo Propose Tests", () => {
     });
 
     it("Targets, Values, Signatures, Calldatas are set according to parameters", async () => {
-      let dynamicFields = await governorBravoDelegate.getActions(
+      const dynamicFields = await governorBravoDelegate.getActions(
         trivialProposal.id
       );
       expect(dynamicFields.targets).to.deep.equal([rootAddress]);
@@ -265,7 +264,7 @@ describe("Governor Bravo Propose Tests", () => {
           ProposalType.CRITICAL
         );
 
-      let nextProposalId = await governorBravoDelegate.latestProposalIds(
+      const nextProposalId = await governorBravoDelegate.latestProposalIds(
         await customer.getAddress()
       );
       expect(+nextProposalId).to.be.equal(+trivialProposal.id + 1);
@@ -284,7 +283,7 @@ describe("Governor Bravo Propose Tests", () => {
           ProposalType.CRITICAL
         );
 
-      let nextProposalId = await governorBravoDelegate.latestProposalIds(
+      const nextProposalId = await governorBravoDelegate.latestProposalIds(
         await customer.getAddress()
       );
 

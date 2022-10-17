@@ -1,9 +1,9 @@
 import { Event } from '../Event';
-import { addAction, World } from '../World';
+import { World } from '../World';
 import { VAIControllerImpl } from '../Contract/VAIControllerImpl';
-import { Invokation, invoke } from '../Invokation';
-import { getAddressV, getExpNumberV, getNumberV, getStringV } from '../CoreValue';
-import { AddressV, NumberV, StringV } from '../Value';
+import { Invokation } from '../Invokation';
+import { getStringV } from '../CoreValue';
+import { StringV } from '../Value';
 import { Arg, Fetcher, getFetcherValue } from '../Command';
 import { storeAndSaveContract } from '../Networks';
 import { getContract, getTestContract } from '../Contract';
@@ -110,13 +110,13 @@ export async function buildVAIControllerImpl(
     )
   ];
 
-  let vaicontrollerImplData = await getFetcherValue<any, VAIControllerImplData>(
+  const vaicontrollerImplData = await getFetcherValue<any, VAIControllerImplData>(
     'DeployVAIControllerImpl',
     fetchers,
     world,
     event
   );
-  let invokation = vaicontrollerImplData.invokation;
+  const invokation = vaicontrollerImplData.invokation;
   delete vaicontrollerImplData.invokation;
 
   if (invokation.error) {

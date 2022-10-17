@@ -5,10 +5,10 @@ function getContractAt(contract, addr) {
     return new web3.eth.Contract(obj.abi, addr);
 }
 
-function deploy(contract, ...arguments) {
+function deploy(contract, ...args) {
     const obj = artifacts.require(contract);
     const Contract = new web3.eth.Contract(obj.abi);
-    return Contract.deploy({ data: obj.bytecode, arguments })
+    return Contract.deploy({ data: obj.bytecode, args })
 }
 
 const IMPERSONATION_STARTING_BALANCE = '0x10000000000000000000000';
@@ -26,16 +26,6 @@ async function impersonate(addr) {
 }
 
 function mergeInterface(into, from) {
-    const key = (item) => item.inputs ? `${item.name}/${item.inputs.length}` : item.name;
-    const existing = into.options.jsonInterface.reduce((acc, item) => {
-      acc[key(item)] = true;
-      return acc;
-    }, {});
-    const extended = from.options.jsonInterface.reduce((acc, item) => {
-      if (!(key(item) in existing))
-        acc.push(item)
-      return acc;
-    }, into.options.jsonInterface.slice());
     into.options.jsonInterface = into.options.jsonInterface.concat(from.options.jsonInterface);
     return into;
   }

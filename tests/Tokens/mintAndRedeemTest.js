@@ -37,16 +37,6 @@ async function mintFresh(vToken, minter, mintAmount) {
   return send(vToken, 'harnessMintFresh', [minter, mintAmount]);
 }
 
-async function preMintBehalf(vToken, payer, mintAmount, mintTokens, exchangeRate) {
-  await preApprove(vToken, payer, mintAmount);
-  await send(vToken.comptroller, 'setMintAllowed', [true]);
-  await send(vToken.comptroller, 'setMintVerify', [true]);
-  await send(vToken.interestRateModel, 'setFailBorrowRate', [false]);
-  await send(vToken.underlying, 'harnessSetFailTransferFromAddress', [payer, false]);
-  await send(vToken, 'harnessSetBalance', [payer, 0]);
-  await send(vToken, 'harnessSetExchangeRate', [bnbMantissa(exchangeRate)]);
-}
-
 async function mintBehalfFresh(vToken, payer, receiver, mintAmount) {
   return send(vToken, 'harnessMintBehalfFresh', [payer, receiver, mintAmount]);
 }
@@ -62,7 +52,7 @@ async function preRedeem(vToken, redeemer, redeemTokens, redeemAmount, exchangeR
   await send(vToken, 'harnessSetExchangeRate', [bnbMantissa(exchangeRate)]);
 }
 
-async function redeemFreshTokens(vToken, redeemer, redeemTokens, redeemAmount) {
+async function redeemFreshTokens(vToken, redeemer, redeemTokens) {
   return send(vToken, 'harnessRedeemFresh', [redeemer, redeemTokens, 0]);
 }
 
@@ -71,10 +61,10 @@ async function redeemFreshAmount(vToken, redeemer, redeemTokens, redeemAmount) {
 }
 
 describe('VToken', function () {
-  let root, minter, redeemer, accounts, payer, receiver;
+  let root, minter, redeemer, payer, receiver; // eslint-disable-line @typescript-eslint/no-unused-vars
   let vToken;
   beforeEach(async () => {
-    [root, minter, redeemer, receiver, ...accounts] = saddle.accounts;
+    [root, minter, redeemer, receiver] = saddle.accounts;
     payer = minter;
     vToken = await makeVToken({comptrollerOpts: {kind: 'bool'}, exchangeRate});
   });

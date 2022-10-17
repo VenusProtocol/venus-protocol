@@ -1,6 +1,5 @@
 const {
   bnbUnsigned,
-  bnbMantissa,
   bnbExp,
 } = require('./Utils/BSC');
 
@@ -29,7 +28,6 @@ async function fastForwardPatch(patch, comptroller, blocks) {
 }
 
 const fs = require('fs');
-const util = require('util');
 const diffStringsUnified = require('jest-diff').default;
 
 
@@ -37,8 +35,7 @@ async function preRedeem(
   vToken,
   redeemer,
   redeemTokens,
-  redeemAmount,
-  exchangeRate
+  redeemAmount
 ) {
   await preSupply(vToken, redeemer, redeemTokens);
   await send(vToken.underlying, 'harnessSetBalance', [
@@ -46,12 +43,6 @@ async function preRedeem(
     redeemAmount
   ]);
 }
-
-const sortOpcodes = (opcodesMap) => {
-  return Object.values(opcodesMap)
-    .map(elem => [elem.fee, elem.name])
-    .sort((a, b) => b[0] - a[0]);
-};
 
 const getGasCostFile = name => {
   try {
@@ -71,7 +62,7 @@ const recordGasCost = (totalFee, key, filename, opcodes = {}) => {
   fs.writeFileSync(filename, JSON.stringify(fileObj, null, ' '), 'utf-8');
 };
 
-async function mint(vToken, minter, mintAmount, exchangeRate) {
+async function mint(vToken, minter, mintAmount) {
   expect(await preApprove(vToken, minter, mintAmount, {})).toSucceed();
   return send(vToken, 'mint', [mintAmount], { from: minter });
 }
@@ -84,11 +75,10 @@ async function claimVenus(comptroller, holder) {
 /// transiently fails, not sure why
 
 describe('Gas report', () => {
-  let root, minter, redeemer, accounts, vToken;
+  let root, minter, redeemer, accounts, vToken; // eslint-disable-line @typescript-eslint/no-unused-vars
   const exchangeRate = 50e3;
-  const preMintAmount = bnbUnsigned(30e4);
+  // const preMintAmount = bnbUnsigned(30e4);
   const mintAmount = bnbUnsigned(10e4);
-  const mintTokens = mintAmount.div(exchangeRate);
   const redeemTokens = bnbUnsigned(10e3);
   const redeemAmount = redeemTokens.multipliedBy(exchangeRate);
   const filename = './gasCosts.json';
@@ -161,16 +151,16 @@ describe('Gas report', () => {
       recordGasCost(trxReceipt.gasUsed, 'redeem', filename);
     });
 
+    // @FIXME
     it.skip('print mint opcode list', async () => {
-      await preMint(vToken, minter, mintAmount, mintTokens, exchangeRate);
-      const trxReceipt = await quickMint(vToken, minter, mintAmount);
-      const opcodeCount = {};
-      await saddle.trace(trxReceipt, {
-        execLog: log => {
-          opcodeCount[log.op] = (opcodeCount[log.op] || 0) + 1;
-        }
-      });
-      console.log(getOpcodeDigest(opcodeCount));
+      // await preMint(vToken, minter, mintAmount, mintTokens, exchangeRate);
+      // const trxReceipt = await quickMint(vToken, minter, mintAmount);
+      // const opcodeCount = {};
+      // await saddle.trace(trxReceipt, {
+      //   execLog: log => {
+      //     opcodeCount[log.op] = (opcodeCount[log.op] || 0) + 1;
+      //   }
+      // });
     });
   });
 
@@ -178,6 +168,7 @@ describe('Gas report', () => {
     ['unitroller-g2'],
     ['unitroller']
   ])('XVS claims %s', (patch) => {
+    let comptroller;
     beforeEach(async () => {
       [root, minter, redeemer, ...accounts] = saddle.accounts;
       comptroller = await makeComptroller({ kind: patch });

@@ -4,13 +4,11 @@ const {
   adjustBalances
 } = require('../Utils/Venus');
 
-const exchangeRate = 5;
-
 describe('VBNB', function () {
-  let root, nonRoot, accounts;
+  let root, nonRoot;
   let vToken;
   beforeEach(async () => {
-    [root, nonRoot, ...accounts] = saddle.accounts;
+    [root, nonRoot] = saddle.accounts;
     vToken = await makeVToken({kind: 'vbnb', comptrollerOpts: {kind: 'bool'}});
   });
 

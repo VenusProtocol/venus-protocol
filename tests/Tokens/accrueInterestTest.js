@@ -11,7 +11,7 @@ const blockNumber = 2e7;
 const borrowIndex = 1e18;
 const borrowRate = .000001;
 
-async function pretendBlock(vToken, accrualBlock = blockNumber, deltaBlocks = 1) {
+async function pretendBlock(vToken, accrualBlock, deltaBlocks = 1) {
   await send(vToken, 'harnessSetAccrualBlockNumber', [bnbUnsigned(blockNumber)]);
   await send(vToken, 'harnessSetBlockNumber', [bnbUnsigned(blockNumber + deltaBlocks)]);
   await send(vToken, 'harnessSetBorrowIndex', [bnbUnsigned(borrowIndex)]);
@@ -24,10 +24,8 @@ async function preAccrue(vToken) {
 }
 
 describe('VToken', () => {
-  let root, accounts;
   let vToken;
   beforeEach(async () => {
-    [root, ...accounts] = saddle.accounts;
     vToken = await makeVToken({comptrollerOpts: {kind: 'bool'}});
   });
 

@@ -30,7 +30,7 @@ function getContractData(world: World, indices: string[][]): ContractDataEl {
       return value;
     } else {
       return index.reduce((data: ContractDataEl, el) => {
-        let lowerEl = el.toLowerCase();
+        const lowerEl = el.toLowerCase();
 
         if (!data) {
           return;
@@ -130,7 +130,7 @@ export function getGovernorAddress(world: World, governorArg: string): string {
   return getContractDataString(world, [['Contracts', governorArg]]);
 }
 
-export function getGovernorBravo(world: World, governoBravoArg: string): Promise<GovernorBravo> {
+export function getGovernorBravo(world: World): Promise<GovernorBravo> {
   return getWorldContract(world, [['Contracts', 'GovernorBravo']])
 }
 
@@ -156,7 +156,7 @@ export async function getPriceOracle(world: World): Promise<PriceOracle> {
 
 export async function getXVS(
   world: World,
-  venusArg: Event
+  _venusArg: Event
 ): Promise<XVS> {
   return getWorldContract(world, [['XVS', 'address']]);
 }
@@ -165,15 +165,15 @@ export async function getXVSData(
   world: World,
   venusArg: string
 ): Promise<[XVS, string, Map<string, string>]> {
-  let contract = await getXVS(world, <Event>(<any>venusArg));
-  let data = getContractData(world, [['XVS', venusArg]]);
+  const contract = await getXVS(world, <Event>(<any>venusArg));
+  const data = getContractData(world, [['XVS', venusArg]]);
 
   return [contract, venusArg, <Map<string, string>>(<any>data)];
 }
 
 export async function getSXP(
   world: World,
-  venusArg: Event
+  _venusArg: Event
 ): Promise<SXP> {
   return getWorldContract(world, [['SXP', 'address']]);
 }
@@ -182,15 +182,14 @@ export async function getSXPData(
   world: World,
   venusArg: string
 ): Promise<[SXP, string, Map<string, string>]> {
-  let contract = await getSXP(world, <Event>(<any>venusArg));
-  let data = getContractData(world, [['SXP', venusArg]]);
+  const contract = await getSXP(world, <Event>(<any>venusArg));
+  const data = getContractData(world, [['SXP', venusArg]]);
 
   return [contract, venusArg, <Map<string, string>>(<any>data)];
 }
 
 export async function getVAI(
   world: World,
-  venusArg: Event
 ): Promise<VAI> {
   return getWorldContract(world, [['VAI', 'address']]);
 }
@@ -199,8 +198,8 @@ export async function getVAIData(
   world: World,
   venusArg: string
 ): Promise<[VAI, string, Map<string, string>]> {
-  let contract = await getVAI(world, <Event>(<any>venusArg));
-  let data = getContractData(world, [['VAI', venusArg]]);
+  const contract = await getVAI(world, <Event>(<any>venusArg));
+  const data = getContractData(world, [['VAI', venusArg]]);
 
   return [contract, venusArg, <Map<string, string>>(<any>data)];
 }
@@ -209,8 +208,8 @@ export async function getGovernorData(
   world: World,
   governorArg: string
 ): Promise<[Governor, string, Map<string, string>]> {
-  let contract = getWorldContract<Governor>(world, [['Governor', governorArg, 'address']]);
-  let data = getContractData(world, [['Governor', governorArg]]);
+  const contract = getWorldContract<Governor>(world, [['Governor', governorArg, 'address']]);
+  const data = getContractData(world, [['Governor', governorArg]]);
 
   return [contract, governorArg, <Map<string, string>>(<any>data)];
 }
@@ -226,8 +225,8 @@ export async function getInterestRateModelData(
   world: World,
   interestRateModelArg: string
 ): Promise<[InterestRateModel, string, Map<string, string>]> {
-  let contract = await getInterestRateModel(world, <Event>(<any>interestRateModelArg));
-  let data = getContractData(world, [['InterestRateModel', interestRateModelArg]]);
+  const contract = await getInterestRateModel(world, <Event>(<any>interestRateModelArg));
+  const data = getContractData(world, [['InterestRateModel', interestRateModelArg]]);
 
   return [contract, interestRateModelArg, <Map<string, string>>(<any>data)];
 }
@@ -236,8 +235,8 @@ export async function getBep20Data(
   world: World,
   bep20Arg: string
 ): Promise<[Bep20, string, Map<string, string>]> {
-  let contract = getWorldContract<Bep20>(world, [['Tokens', bep20Arg, 'address']]);
-  let data = getContractData(world, [['Tokens', bep20Arg]]);
+  const contract = getWorldContract<Bep20>(world, [['Tokens', bep20Arg, 'address']]);
+  const data = getContractData(world, [['Tokens', bep20Arg]]);
 
   return [contract, bep20Arg, <Map<string, string>>(<any>data)];
 }
@@ -246,8 +245,8 @@ export async function getVTokenData(
   world: World,
   vTokenArg: string
 ): Promise<[VToken, string, Map<string, string>]> {
-  let contract = getWorldContract<VToken>(world, [['vTokens', vTokenArg, 'address']]);
-  let data = getContractData(world, [['VTokens', vTokenArg]]);
+  const contract = getWorldContract<VToken>(world, [['vTokens', vTokenArg, 'address']]);
+  const data = getContractData(world, [['VTokens', vTokenArg]]);
 
   return [contract, vTokenArg, <Map<string, string>>(<any>data)];
 }
@@ -256,8 +255,8 @@ export async function getVTokenDelegateData(
   world: World,
   vTokenDelegateArg: string
 ): Promise<[VBep20Delegate, string, Map<string, string>]> {
-  let contract = getWorldContract<VBep20Delegate>(world, [['VTokenDelegate', vTokenDelegateArg, 'address']]);
-  let data = getContractData(world, [['VTokenDelegate', vTokenDelegateArg]]);
+  const contract = getWorldContract<VBep20Delegate>(world, [['VTokenDelegate', vTokenDelegateArg, 'address']]);
+  const data = getContractData(world, [['VTokenDelegate', vTokenDelegateArg]]);
 
   return [contract, vTokenDelegateArg, <Map<string, string>>(<any>data)];
 }
@@ -266,8 +265,8 @@ export async function getComptrollerImplData(
   world: World,
   comptrollerImplArg: string
 ): Promise<[ComptrollerImpl, string, Map<string, string>]> {
-  let contract = await getComptrollerImpl(world, <Event>(<any>comptrollerImplArg));
-  let data = getContractData(world, [['Comptroller', comptrollerImplArg]]);
+  const contract = await getComptrollerImpl(world, <Event>(<any>comptrollerImplArg));
+  const data = getContractData(world, [['Comptroller', comptrollerImplArg]]);
 
   return [contract, comptrollerImplArg, <Map<string, string>>(<any>data)];
 }
@@ -276,8 +275,8 @@ export async function getVAIControllerImplData(
   world: World,
   vaicontrollerImplArg: string
 ): Promise<[VAIControllerImpl, string, Map<string, string>]> {
-  let contract = await getComptrollerImpl(world, <Event>(<any>vaicontrollerImplArg));
-  let data = getContractData(world, [['VAIController', vaicontrollerImplArg]]);
+  const contract = await getComptrollerImpl(world, <Event>(<any>vaicontrollerImplArg));
+  const data = getContractData(world, [['VAIController', vaicontrollerImplArg]]);
 
   return [contract, vaicontrollerImplArg, <Map<string, string>>(<any>data)];
 }
@@ -291,14 +290,14 @@ export function getAddress(world: World, addressArg: string): string {
     return addressArg;
   }
 
-  let alias = Object.entries(world.settings.aliases).find(
-    ([alias, addr]) => alias.toLowerCase() === addressArg.toLowerCase()
+  const alias = Object.entries(world.settings.aliases).find(
+    ([alias]) => alias.toLowerCase() === addressArg.toLowerCase()
   );
   if (alias) {
     return alias[1];
   }
 
-  let account = world.accounts.find(account => account.name.toLowerCase() === addressArg.toLowerCase());
+  const account = world.accounts.find(account => account.name.toLowerCase() === addressArg.toLowerCase());
   if (account) {
     return account.address;
   }

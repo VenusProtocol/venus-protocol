@@ -1,9 +1,9 @@
 import { Event } from '../Event';
-import { addAction, World } from '../World';
+import { World } from '../World';
 import { ComptrollerImpl } from '../Contract/ComptrollerImpl';
-import { Invokation, invoke } from '../Invokation';
-import { getAddressV, getExpNumberV, getNumberV, getStringV } from '../CoreValue';
-import { AddressV, NumberV, StringV } from '../Value';
+import { Invokation } from '../Invokation';
+import { getStringV } from '../CoreValue';
+import { StringV } from '../Value';
 import { Arg, Fetcher, getFetcherValue } from '../Command';
 import { storeAndSaveContract } from '../Networks';
 import { getContract, getTestContract } from '../Contract';
@@ -295,13 +295,13 @@ export async function buildComptrollerImpl(
     )
   ];
 
-  let comptrollerImplData = await getFetcherValue<any, ComptrollerImplData>(
+  const comptrollerImplData = await getFetcherValue<any, ComptrollerImplData>(
     'DeployComptrollerImpl',
     fetchers,
     world,
     event
   );
-  let invokation = comptrollerImplData.invokation;
+  const invokation = comptrollerImplData.invokation;
   delete comptrollerImplData.invokation;
 
   if (invokation.error) {

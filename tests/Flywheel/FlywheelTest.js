@@ -31,11 +31,11 @@ async function totalVenusAccrued(comptroller, user) {
 }
 
 describe('Flywheel', () => {
-  let root, a1, a2, a3, accounts;
+  let root, a1, a2, a3;
   let comptroller, vLOW, vREP, vZRX, vEVIL;
   beforeEach(async () => {
     let interestRateModelOpts = {borrowRate: 0.000001};
-    [root, a1, a2, a3, ...accounts] = saddle.accounts;
+    [root, a1, a2, a3] = saddle.accounts;
     comptroller = await makeComptroller();
     vLOW = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 1, interestRateModelOpts});
     await setMarketSupplyCap(vLOW.comptroller, [vLOW._address], [1e15]);
@@ -474,10 +474,10 @@ describe('Flywheel', () => {
     it('should transfer xvs accrued when amount is above threshold', async () => {
       const venusRemaining = 1000, a1AccruedPre = 100, threshold = 1;
       const xvsBalancePre = await xvsBalance(comptroller, a1);
-      const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
-      const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
-      const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
-      const a1AccruedPost = await venusAccrued(comptroller, a1);
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
+      await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
+      await venusAccrued(comptroller, a1);
       const xvsBalancePost = await xvsBalance(comptroller, a1);
       expect(xvsBalancePre).toEqualNumber(0);
       expect(xvsBalancePost).toEqualNumber(a1AccruedPre);
@@ -486,10 +486,10 @@ describe('Flywheel', () => {
     it('should not transfer when xvs accrued is below threshold', async () => {
       const venusRemaining = 1000, a1AccruedPre = 100, threshold = 101;
       const xvsBalancePre = await call(comptroller.xvs, 'balanceOf', [a1]);
-      const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
-      const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
-      const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
-      const a1AccruedPost = await venusAccrued(comptroller, a1);
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
+      await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
+      await venusAccrued(comptroller, a1);
       const xvsBalancePost = await xvsBalance(comptroller, a1);
       expect(xvsBalancePre).toEqualNumber(0);
       expect(xvsBalancePost).toEqualNumber(0);
@@ -498,10 +498,10 @@ describe('Flywheel', () => {
     it('should not transfer xvs if xvs accrued is greater than xvs remaining', async () => {
       const venusRemaining = 99, a1AccruedPre = 100, threshold = 1;
       const xvsBalancePre = await xvsBalance(comptroller, a1);
-      const tx0 = await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
-      const tx1 = await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
-      const tx2 = await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
-      const a1AccruedPost = await venusAccrued(comptroller, a1);
+      await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
+      await send(comptroller, 'setVenusAccrued', [a1, a1AccruedPre]);
+      await send(comptroller, 'harnessTransferVenus', [a1, a1AccruedPre, threshold]);
+      await venusAccrued(comptroller, a1);
       const xvsBalancePost = await xvsBalance(comptroller, a1);
       expect(xvsBalancePre).toEqualNumber(0);
       expect(xvsBalancePost).toEqualNumber(0);
@@ -605,7 +605,7 @@ describe('Flywheel', () => {
 
       await fastForward(comptroller, deltaBlocks);
 
-      const tx = await send(comptroller, 'claimVenus', [[...claimAccts, ...claimAccts], [vLOW._address, vLOW._address], false, true]);
+      await send(comptroller, 'claimVenus', [[...claimAccts, ...claimAccts], [vLOW._address, vLOW._address], false, true]);
       // xvs distributed => 10e18
       for(let acct of claimAccts) {
         const venusSupplierIndex_Actual = await call(comptroller, 'venusSupplierIndex', [vLOW._address, acct])
@@ -630,7 +630,7 @@ describe('Flywheel', () => {
 
       await fastForward(comptroller, deltaBlocks);
 
-      const tx = await send(comptroller, 'claimVenus', [claimAccts, [vLOW._address], false, true]);
+      await send(comptroller, 'claimVenus', [claimAccts, [vLOW._address], false, true]);
       // xvs distributed => 1e18
       for(let acct of claimAccts) {
         const venusSupplierIndex_Actual = await call(comptroller, 'venusSupplierIndex', [vLOW._address, acct]);
@@ -641,7 +641,7 @@ describe('Flywheel', () => {
     });
 
     it('claims xvs for multiple borrowers only, primes uninitiated', async () => {
-      const venusRemaining = venusRate.mul(100), deltaBlocks = 10, mintAmount = bnbExp(10), borrowAmt = bnbMantissa(1, 12), borrowIdx = bnbMantissa(1, 12)
+      const venusRemaining = venusRate.mul(100), borrowAmt = bnbMantissa(1, 12), borrowIdx = bnbMantissa(1, 12)
       await send(comptroller.xvs, 'transfer', [comptroller._address, venusRemaining], {from: root});
       let [_,__, ...claimAccts] = saddle.accounts;
 
@@ -654,7 +654,7 @@ describe('Flywheel', () => {
 
       await send(comptroller, 'harnessFastForward', [10]);
 
-      const tx = await send(comptroller, 'claimVenus', [claimAccts, [vLOW._address], true, false]);
+      await send(comptroller, 'claimVenus', [claimAccts, [vLOW._address], true, false]);
       for(let acct of claimAccts) {
         const venusBorrowerIndex_Actual = await call(comptroller, 'venusBorrowerIndex', [vLOW._address, acct]);
         expect(venusBorrowerIndex_Actual.toString()).toEqualNumber("104166666666666667666666666666666666666666666666666666");
@@ -708,7 +708,7 @@ describe('Flywheel', () => {
     it('should correctly add a venus market if called by admin', async () => {
       const vBAT = await makeVToken({comptroller, supportMarket: true});
       await setMarketSupplyCap(vBAT.comptroller, [vBAT._address], [1e15]);
-      const tx1 = await send(comptroller, 'harnessAddVenusMarkets', [[vLOW._address, vREP._address, vZRX._address]]);
+      await send(comptroller, 'harnessAddVenusMarkets', [[vLOW._address, vREP._address, vZRX._address]]);
       const tx2 = await send(comptroller, 'harnessAddVenusMarkets', [[vBAT._address]]);
       const markets = await call(comptroller, 'getVenusMarkets');
       expect(markets).toEqual([vLOW, vREP, vZRX, vBAT].map((c) => c._address));
@@ -744,7 +744,7 @@ describe('Flywheel', () => {
     let vToken, liquidity, shortfall, comptroller;
     const borrowed = 6666666;
     const minted = 1e6;
-    const collateralFactor = 0.5, underlyingPrice = 1, amount = 1e6;
+    const collateralFactor = 0.5, underlyingPrice = 1;
     beforeEach(async () => {
       // prepare a vToken
       comptroller = await makeComptroller();

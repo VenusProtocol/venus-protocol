@@ -1,7 +1,7 @@
 import {Event} from '../Event';
-import {addAction, World} from '../World';
+import {World} from '../World';
 import {PriceOracle} from '../Contract/PriceOracle';
-import {Invokation, invoke} from '../Invokation';
+import {Invokation} from '../Invokation';
 import {
   getAddressV,
   getExpNumberV,
@@ -9,8 +9,6 @@ import {
 } from '../CoreValue';
 import {
   AddressV,
-  EventV,
-  NothingV,
   NumberV,
   StringV
 } from '../Value';
@@ -50,7 +48,7 @@ export async function buildPriceOracle(world: World, from: string, event: Event)
         };
       }
     ),
-    new Fetcher<{}, PriceOracleData>(`
+    new Fetcher<Record<string, any>, PriceOracleData>(`
         #### Simple
 
         * "Simple" - The a simple price oracle that has a harness price setter
@@ -58,7 +56,7 @@ export async function buildPriceOracle(world: World, from: string, event: Event)
       `,
       "Simple",
       [],
-      async (world, {}) => {
+      async (world) => {
         return {
           invokation: await SimplePriceOracle.deploy<PriceOracle>(world, from, []),
           description: "Simple Price Oracle"
@@ -83,7 +81,7 @@ export async function buildPriceOracle(world: World, from: string, event: Event)
         };
       }
     ),
-    new Fetcher<{}, PriceOracleData>(`
+    new Fetcher<Record<string, any>, PriceOracleData>(`
         #### NotPriceOracle
 
         * "NotPriceOracle" - Not actually a price oracle
@@ -91,7 +89,7 @@ export async function buildPriceOracle(world: World, from: string, event: Event)
       `,
       "NotPriceOracle",
       [],
-      async (world, {}) => {
+      async (world) => {
         return {
           invokation: await NotPriceOracle.deploy<PriceOracle>(world, from, []),
           description: "Not a Price Oracle"
@@ -100,8 +98,8 @@ export async function buildPriceOracle(world: World, from: string, event: Event)
     )
   ];
 
-  let priceOracleData = await getFetcherValue<any, PriceOracleData>("DeployPriceOracle", fetchers, world, event);
-  let invokation = priceOracleData.invokation!;
+  const priceOracleData = await getFetcherValue<any, PriceOracleData>("DeployPriceOracle", fetchers, world, event);
+  const invokation = priceOracleData.invokation!;
   delete priceOracleData.invokation;
 
   if (invokation.error) {
@@ -145,8 +143,8 @@ export async function setPriceOracle(world: World, event: Event): Promise<{world
     )
   ];
 
-  let priceOracleData = await getFetcherValue<any, PriceOracleData>("SetPriceOracle", fetchers, world, event);
-  let priceOracle = priceOracleData.contract!;
+  const priceOracleData = await getFetcherValue<any, PriceOracleData>("SetPriceOracle", fetchers, world, event);
+  const priceOracle = priceOracleData.contract!;
   delete priceOracleData.contract;
 
   priceOracleData.address = priceOracle._address;

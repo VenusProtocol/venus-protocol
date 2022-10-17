@@ -1,7 +1,7 @@
-import { Signer, BaseContract, BigNumberish, constants } from "ethers";
+import { BigNumberish, constants } from "ethers";
 import { ethers } from "hardhat";
 import {
-  Comptroller, Comptroller__factory, PriceOracle, ComptrollerLens, ComptrollerLens__factory, VToken, EIP20Interface, EIP20Interface__factory, VBep20Delegate, VBep20Immutable, IAccessControlManager
+  Comptroller, Comptroller__factory, PriceOracle, ComptrollerLens, ComptrollerLens__factory, VBep20Immutable, IAccessControlManager
 } from "../../../typechain";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
@@ -30,10 +30,7 @@ function rando(min: number, max: number): number {
 }
 
 describe('Comptroller', () => {
-  let root: Signer;
-  let accounts: Signer[];
   let comptroller: MockContract<Comptroller>;
-  let comptrollerLens: MockContract<ComptrollerLens>;
   let oracle: FakeContract<PriceOracle>;
   let vTokenBorrowed: FakeContract<VBep20Immutable>;
   let vTokenCollateral: FakeContract<VBep20Immutable>;
@@ -82,10 +79,9 @@ describe('Comptroller', () => {
   }
 
   beforeEach(async () => {
-    [root, ...accounts] = await ethers.getSigners();
     const contracts = await loadFixture(liquidateFixture);
     await configure(contracts);
-    ({ comptroller, comptrollerLens, vTokenBorrowed, oracle, vTokenCollateral} = contracts);
+    ({ comptroller, vTokenBorrowed, oracle, vTokenCollateral} = contracts);
   });
 
   describe('liquidateCalculateAmountSeize', () => {

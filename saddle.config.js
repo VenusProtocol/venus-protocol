@@ -258,7 +258,7 @@ module.exports = {
       ]
     },
   },
-  get_network_file: (network) => {
+  get_network_file: () => {
     return null;
   },
   read_network_file: (network) => {

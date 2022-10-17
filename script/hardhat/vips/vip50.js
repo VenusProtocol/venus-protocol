@@ -1,4 +1,3 @@
-const { artifacts } = require('hardhat');
 const { proposeAndVote } = require('../utils/voting');
 const { deploy, getContractAt, impersonate } = require('../utils/misc');
 

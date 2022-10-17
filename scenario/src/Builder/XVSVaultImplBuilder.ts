@@ -42,13 +42,13 @@ export async function buildXVSVaultImpl(
     )
   ];
 
-  let xvsVaultData = await getFetcherValue<any, XVSVaultImplData>(
+  const xvsVaultData = await getFetcherValue<any, XVSVaultImplData>(
     "DeployXVSVaultImpl",
     fetchers,
     world,
     params
   );
-  let invokation = xvsVaultData.invokation!;
+  const invokation = xvsVaultData.invokation!;
   delete xvsVaultData.invokation;
 
   if (invokation.error) {

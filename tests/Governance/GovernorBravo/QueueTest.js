@@ -9,7 +9,7 @@ const {
 } = require('../../Utils/BSC');
 
 describe('GovernorBravo#queue/1', () => {
-  let root, a1, a2, guardian, accounts;
+  let root, a1, a2, guardian;
 
   async function enfranchise(xvs, xvsVault, actor, amount) {
     await send(xvsVault, 'delegate', [actor], { from: actor });
@@ -29,7 +29,7 @@ describe('GovernorBravo#queue/1', () => {
   }
 
   beforeAll(async () => {
-    [root, a1, a2, guardian, ...accounts] = saddle.accounts;
+    [root, a1, a2, guardian] = saddle.accounts;
   });
 
   describe("overlapping actions", () => {
@@ -42,7 +42,7 @@ describe('GovernorBravo#queue/1', () => {
         [timelock._address, xvsVault._address, root, 86400, 1, "100000000000000000000000", guardian]
       );
       await send(gov, '_initiate');
-      const txAdmin = await send(timelock, 'harnessSetAdmin', [gov._address]);
+      await send(timelock, 'harnessSetAdmin', [gov._address]);
 
       await enfranchise(xvs, xvsVault, a1, 3e6);
       await mineBlock();
@@ -54,7 +54,7 @@ describe('GovernorBravo#queue/1', () => {
       const {reply: proposalId1} = await both(gov, 'propose', [targets, values, signatures, calldatas, "do nothing"], {from: a1});
       await mineBlock();
 
-      const txVote1 = await send(gov, 'castVote', [proposalId1, 1], {from: a1});
+      await send(gov, 'castVote', [proposalId1, 1], {from: a1});
       await advanceBlocks(90000);
 
       await expect(
@@ -71,7 +71,7 @@ describe('GovernorBravo#queue/1', () => {
         [timelock._address, xvsVault._address, root, 86400, 1, "100000000000000000000000", guardian]
       );
       await send(gov, '_initiate');
-      const txAdmin = await send(timelock, 'harnessSetAdmin', [gov._address]);
+      await send(timelock, 'harnessSetAdmin', [gov._address]);
 
       await enfranchise(xvs, xvsVault, a1, 3e6);
       await enfranchise(xvs, xvsVault, a2, 3e6);
@@ -85,18 +85,18 @@ describe('GovernorBravo#queue/1', () => {
       const {reply: proposalId2} = await both(gov, 'propose', [targets, values, signatures, calldatas, "do nothing"], {from: a2});
       await mineBlock();
 
-      const txVote1 = await send(gov, 'castVote', [proposalId1, 1], {from: a1});
-      const txVote2 = await send(gov, 'castVote', [proposalId2, 1], {from: a2});
+      await send(gov, 'castVote', [proposalId1, 1], {from: a1});
+      await send(gov, 'castVote', [proposalId2, 1], {from: a2});
       await advanceBlocks(90000);
       await freezeTime(100);
 
-      const txQueue1 = await send(gov, 'queue', [proposalId1]);
+      await send(gov, 'queue', [proposalId1]);
       await expect(
         send(gov, 'queue', [proposalId2])
       ).rejects.toRevert("revert GovernorBravo::queueOrRevertInternal: identical proposal action already queued at eta");
 
       await freezeTime(101);
-      const txQueue2 = await send(gov, 'queue', [proposalId2]);
+      await send(gov, 'queue', [proposalId2]);
     });
   });
 });

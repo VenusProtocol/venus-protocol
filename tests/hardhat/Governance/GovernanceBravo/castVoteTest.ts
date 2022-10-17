@@ -1,4 +1,4 @@
-import { BigNumber, ContractTransaction, Signer } from "ethers";
+import { BigNumber, Signer } from "ethers";
 import { ethers, network } from "hardhat";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
@@ -23,7 +23,6 @@ let customer: Signer;
 let accounts: Signer[];
 let governorBravoDelegate: MockContract<GovernorBravoDelegate>;
 let xvsVault: FakeContract<XVSVault>;
-let xvsStore: FakeContract<XVSStore>;
 let xvsToken: FakeContract<XVS>;
 
 type GovernorBravoDelegateFixture = {
@@ -68,7 +67,7 @@ describe("Governor Bravo Cast Vote Test", () => {
   beforeEach(async () => {
     [root, customer, ...accounts] = await ethers.getSigners();
     const contracts = await loadFixture(governorBravoFixture);
-    ({ governorBravoDelegate, xvsVault, xvsStore, xvsToken } = contracts);
+    ({ governorBravoDelegate, xvsVault, xvsToken } = contracts);
     await governorBravoDelegate.setVariable("admin", await root.getAddress());
     await governorBravoDelegate.setVariable("initialProposalId", 1);
     await governorBravoDelegate.setVariable("proposalCount", 1);
@@ -96,7 +95,7 @@ describe("Governor Bravo Cast Vote Test", () => {
       let proposalId: BigNumber;
       beforeEach(async () => {
         customerAddress = await customer.getAddress();
-        let rootAddress = await root.getAddress();
+        const rootAddress = await root.getAddress();
         xvsToken.balanceOf.whenCalledWith(rootAddress).returns(400001);
         xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
         await governorBravoDelegate.setVariable(
@@ -165,7 +164,7 @@ describe("Governor Bravo Cast Vote Test", () => {
 
         it("and we add that ForVotes", async () => {
           actor = accounts[1];
-          let actorAddress = await actor.getAddress();
+          const actorAddress = await actor.getAddress();
 
           await governorBravoDelegate
             .connect(actor)
@@ -196,7 +195,7 @@ describe("Governor Bravo Cast Vote Test", () => {
 
         it("or AgainstVotes corresponding to the caller's support flag.", async () => {
           actor = accounts[3];
-          let actorAddress = await actor.getAddress();
+          const actorAddress = await actor.getAddress();
 
           await governorBravoDelegate
             .connect(actor)
@@ -241,8 +240,8 @@ describe("Governor Bravo Cast Vote Test", () => {
         });
 
         it("casts vote on behalf of the signatory", async () => {
-          let actor = accounts[1];
-          let actorAddress = await actor.getAddress();
+          const actor = accounts[1];
+          const actorAddress = await actor.getAddress();
           await governorBravoDelegate
             .connect(actor)
             .propose(

@@ -1,7 +1,5 @@
 require("@nomiclabs/hardhat-ethers");
 require("dotenv").config();
-const network = process.env.NETWORK;
-const contractConfigData = require(`../../../networks/${network}.json`);
 const hre = require("hardhat");
 const ethers = hre.ethers;
 const { getDeployer } = require('../../deploy/utils/web3-utils');

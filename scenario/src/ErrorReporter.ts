@@ -7,11 +7,11 @@ export interface ErrorReporter {
 }
 
 class NoErrorReporterType implements ErrorReporter {
-  getError(error: any): string | null {
+  getError(): string | null {
     return null;
   }
 
-  getInfo(info: any): string | null {
+  getInfo(): string | null {
     return null;
   }
 
@@ -40,7 +40,7 @@ class VTokenErrorReporterType implements ErrorReporter {
   getDetail(error: any, detail: number): string {
     // Little hack to let us use proper names for cross-contract errors
     if (this.getError(error) === "COMPTROLLER_REJECTION") {
-      let comptrollerError = ComptrollerErrorReporter.getError(detail);
+      const comptrollerError = ComptrollerErrorReporter.getError(detail);
 
       if (comptrollerError) {
         return comptrollerError;
@@ -72,7 +72,7 @@ class ComptrollerErrorReporterType implements ErrorReporter {
 
   getDetail(error: any, detail: number): string {
     if (this.getError(error) === "REJECTION") {
-      let comptrollerError = ComptrollerErrorReporter.getError(detail);
+      const comptrollerError = ComptrollerErrorReporter.getError(detail);
 
       if (comptrollerError) {
         return comptrollerError;
@@ -103,7 +103,7 @@ class VAIControllerErrorReporterType implements ErrorReporter {
 
   getDetail(error: any, detail: number): string {
     if (this.getError(error) === "REJECTION") {
-      let vaicontrollerError = VAIControllerErrorReporter.getError(detail);
+      const vaicontrollerError = VAIControllerErrorReporter.getError(detail);
 
       if (vaicontrollerError) {
         return vaicontrollerError;

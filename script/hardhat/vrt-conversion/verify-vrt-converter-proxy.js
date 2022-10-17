@@ -3,7 +3,6 @@ require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 const network = process.env.NETWORK;
 const contractConfigData = require(`../../../networks/${network}.json`);
-const { bnbMantissa } = require('../../deploy/utils/web3-utils');
 const hre = require("hardhat");
 
 const main = async () => {

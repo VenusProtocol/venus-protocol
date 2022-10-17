@@ -18,10 +18,9 @@ import {
 import {Arg, Command, processCommandEvent, View} from '../Command';
 import {getPriceOracle} from '../ContractLookup';
 import {verify} from '../Verify';
-import {encodedNumber} from '../Encoding';
 
 async function genPriceOracle(world: World, from: string, params: Event): Promise<World> {
-  let {world: nextWorld, priceOracle, priceOracleData} = await buildPriceOracle(world, from, params);
+  const {world: nextWorld, priceOracle, priceOracleData} = await buildPriceOracle(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -34,7 +33,7 @@ async function genPriceOracle(world: World, from: string, params: Event): Promis
 }
 
 async function setPriceOracleFn(world: World, params: Event): Promise<World> {
-  let {world: nextWorld, priceOracle, priceOracleData} = await setPriceOracle(world, params);
+  const {world: nextWorld} = await setPriceOracle(world, params);
 
   return nextWorld;
 }

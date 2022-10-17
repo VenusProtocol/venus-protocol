@@ -81,8 +81,10 @@ const getBep20balance = async (token, address) => {
   return await call(token, "balanceOf", [address]);
 }
 
+let accounts = [];
+
 describe('VRTVault', () => {
-  let root, user1, user2, user3, treasury;
+  let root, user1, user2, user3, treasury; // eslint-disable-line @typescript-eslint/no-unused-vars
   let blockTimestamp;
   let vrtVault, vrtVaultAddress;
   let vrt, vrtAddress;

@@ -10,10 +10,8 @@ import {
   getEventV,
   getNumberV
 } from '../CoreValue';
-import {Invariant} from '../Invariant';
 import {ChangesExpectation} from '../Expectation/ChangesExpectation';
 import {RemainsExpectation} from '../Expectation/RemainsExpectation';
-import {formatEvent} from '../Formatter';
 import {Arg, View, processCommandEvent} from '../Command';
 
 async function changesExpectation(world: World, condition: Event, delta: NumberV, tolerance: NumberV): Promise<World> {

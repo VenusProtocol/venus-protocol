@@ -7,7 +7,7 @@ const {
 } = require('../Utils/Venus');
 
 describe('Comptroller', () => {
-  let root, accounts;
+  let root, accounts; // eslint-disable-line @typescript-eslint/no-unused-vars
 
   beforeEach(async () => {
     [root, ...accounts] = saddle.accounts;
@@ -26,7 +26,7 @@ describe('Comptroller', () => {
       const vToken = await makeVToken({supportMarket: true, collateralFactor, underlyingPrice});
       await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
 
-      let error, liquidity, shortfall;
+      let liquidity, shortfall;
 
       // not in market yet, hypothetical borrow should have no effect
       ({1: liquidity, 2: shortfall} = await call(vToken.comptroller, 'getHypotheticalAccountLiquidity', [user, vToken._address, 0, amount]));

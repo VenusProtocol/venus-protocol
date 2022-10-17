@@ -1,4 +1,4 @@
-import { BigNumber, ContractTransaction, Signer } from "ethers";
+import { Signer } from "ethers";
 import { ethers, network } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
@@ -6,24 +6,16 @@ import chai from "chai";
 const { expect } = chai;
 chai.use(smock.matchers);
 
-const { encodeParameters } = require("../../Utils/BSC");
-
 import { XVSVault, XVSVault__factory, XVSStore, XVS } from "../../../typechain";
-import { ProposalType } from "../util/Proposals";
-import { convertToUnit } from "../../../helpers/utils";
 
 let root: Signer;
-let customer: Signer;
-let accounts: Signer[];
 let xvsVault: MockContract<XVSVault>;
-let xvsStore: FakeContract<XVSStore>;
-let xvsToken: FakeContract<XVS>;
 
 const typedData = (
-  delegatee: String,
+  delegatee: string,
   nonce: number,
   expiry: number,
-  vaultAddress: String
+  vaultAddress: string
 ) => ({
   types: {
     Delegation: [
@@ -56,15 +48,13 @@ async function xvsVaultFixture(): Promise<XVSVaultFixture> {
 }
 
 describe("XVS Vault Tests", () => {
-  let rootAddress: String;
-  let delegatee: String;
-  let nonce: number;
-  let expiry: number;
+  let rootAddress: string;
+
   beforeEach(async () => {
-    [root, customer, ...accounts] = await ethers.getSigners();
+    [root] = await ethers.getSigners();
     rootAddress = await root.getAddress();
     const contracts = await loadFixture(xvsVaultFixture);
-    ({ xvsVault, xvsStore, xvsToken } = contracts);
+    ({ xvsVault } = contracts);
   });
 
   describe("delegateBySig", () => {

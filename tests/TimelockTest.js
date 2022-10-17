@@ -22,6 +22,7 @@ describe('Timelock', () => {
   let revertData = encodeParameters(['uint256'], [bnbUnsigned(60 * 60)]);
   let eta;
   let queuedTxHash;
+  let accounts;
 
   beforeEach(async () => {
     [root, notAdmin, newAdmin] = accounts;

@@ -11,12 +11,12 @@ import {
   AddressV,
   EventV
 } from '../Value';
-import { Arg, Command, processCommandEvent, View } from '../Command';
+import { Arg, Command, processCommandEvent } from '../Command';
 import { getXVSVaultProxy } from '../ContractLookup';
 import { NoErrorReporter } from '../ErrorReporter';
 
 async function genXVSVaultProxy(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, xvsVaultProxy, xvsVaultData } = await buildXVSVaultProxy(world, from, params);
+  const { world: nextWorld, xvsVaultProxy, xvsVaultData } = await buildXVSVaultProxy(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -29,7 +29,7 @@ async function genXVSVaultProxy(world: World, from: string, params: Event): Prom
 }
 
 async function setPendingImplementation(world: World, from: string, xvsVault: XVSVaultProxy, impl: string): Promise<World> {
-  let invokation = await invoke(world, xvsVault.methods._setPendingImplementation(impl), from, NoErrorReporter);
+  const invokation = await invoke(world, xvsVault.methods._setPendingImplementation(impl), from, NoErrorReporter);
 
   world = addAction(
     world,

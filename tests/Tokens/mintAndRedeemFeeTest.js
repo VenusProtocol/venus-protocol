@@ -50,7 +50,7 @@ async function preRedeem(vToken, redeemer, redeemTokens, redeemAmount, exchangeR
   await send(vToken, 'harnessSetExchangeRate', [bnbMantissa(exchangeRate)]);
 }
 
-async function redeemFreshTokens(vToken, redeemer, redeemTokens, redeemAmount) {
+async function redeemFreshTokens(vToken, redeemer, redeemTokens) {
   return send(vToken, 'harnessRedeemFresh', [redeemer, redeemTokens, 0]);
 }
 
@@ -59,10 +59,10 @@ async function redeemFreshAmount(vToken, redeemer, redeemTokens, redeemAmount) {
 }
 
 describe('VToken', function () {
-  let root, minter, redeemer, user1, devFee, accounts;
+  let root, minter, redeemer, user1, devFee; // eslint-disable-line @typescript-eslint/no-unused-vars
   let vToken;
   beforeEach(async () => {
-    [root, minter, redeemer, user1, devFee, ...accounts] = saddle.accounts;
+    [root, minter, redeemer, user1, devFee] = saddle.accounts;
     vToken = await makeVToken({comptrollerOpts: {kind: 'boolFee'}, exchangeRate});
   });
 

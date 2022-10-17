@@ -1,5 +1,5 @@
-import { BigNumber, ContractTransaction, Signer } from "ethers";
-import { ethers, network } from "hardhat";
+import { BigNumber, Signer } from "ethers";
+import { ethers } from "hardhat";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
@@ -16,7 +16,7 @@ import {
   XVS,
   Timelock,
 } from "../../../../typechain";
-import { ProposalState, ProposalType } from "../../util/Proposals";
+import { ProposalType } from "../../util/Proposals";
 import { convertToUnit } from "../../../../helpers/utils";
 
 let root: Signer;
@@ -24,7 +24,6 @@ let customer: Signer;
 let accounts: Signer[];
 let governorBravoDelegate: MockContract<GovernorBravoDelegate>;
 let xvsVault: FakeContract<XVSVault>;
-let xvsStore: FakeContract<XVSStore>;
 let xvsToken: FakeContract<XVS>;
 let timelock: FakeContract<Timelock>;
 
@@ -69,13 +68,13 @@ const proposalConfigs = {
 };
 
 describe("Governor Bravo Queue Tests", () => {
-  let rootAddress: String;
+  let rootAddress: string;
   let proposalId: BigNumber;
   beforeEach(async () => {
     [root, customer, ...accounts] = await ethers.getSigners();
     rootAddress = await root.getAddress();
     const contracts = await loadFixture(governorBravoFixture);
-    ({ governorBravoDelegate, xvsVault, xvsStore, xvsToken, timelock } =
+    ({ governorBravoDelegate, xvsVault, xvsToken, timelock } =
       contracts);
 
     await governorBravoDelegate.setVariable("admin", await root.getAddress());

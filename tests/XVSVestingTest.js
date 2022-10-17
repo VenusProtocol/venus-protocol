@@ -3,7 +3,6 @@ const {
     bnbUnsigned,
     bnbMantissa,
     freezeTime,
-    address,
     getBigNumber
 } = require('./Utils/BSC');
 
@@ -65,8 +64,8 @@ const getCurrentTimeFromContract = async (xvsVesting) => {
     return await call(xvsVesting, "getCurrentTime", []);
 }
 
-const depositXVS = async (xvsVesting, recipient, depositAmount, xvsVestingAddress, vrtConversionAddress, root) => {
-    let depositTxn = await send(xvsVesting, 'deposit', [recipient, depositAmount], { from: vrtConversionAddress });
+const depositXVS = async (xvsVesting, recipient, depositAmount, xvsVestingAddress, vrtConversionAddress) => {
+    const depositTxn = await send(xvsVesting, 'deposit', [recipient, depositAmount], { from: vrtConversionAddress });
     const currentTimeFromContract = await getCurrentTimeFromContract(xvsVesting);
     expect(depositTxn).toSucceed();
     expect(depositTxn).toHaveLog('XVSVested', {
@@ -88,6 +87,8 @@ const getXVSBalance = async (xvs, recipient) => {
     return await call(xvs, "balanceOf", [recipient]);
 }
 
+let accounts = [];
+
 describe('XVSVesting', () => {
     let root, alice, bob;
     let vrtConversionAddress,
@@ -106,7 +107,6 @@ describe('XVSVesting', () => {
         //deploy VRT
         vrtToken = await deploy('VRT', [root]);
 
-        vrtTokenAddress = vrtToken._address;
         vrtForMint = bnbMantissa(200000);
         await send(vrtToken, 'transfer', [root, vrtForMint], { from: root });
 
@@ -169,7 +169,7 @@ describe('XVSVesting', () => {
 
         it("deposit XVS", async () => {
             const depositAmount = bnbMantissa(1000);
-            const depositTxn = await depositXVS(xvsVesting, alice, depositAmount, xvsVestingAddress, vrtConversionAddress, root);
+            await depositXVS(xvsVesting, alice, depositAmount, xvsVestingAddress, vrtConversionAddress, root);
 
             const vestings = await getAllVestingsOfUser(xvsVesting, alice);
 
@@ -185,7 +185,7 @@ describe('XVSVesting', () => {
 
         it("can make multiple Deposits followed by few days of timetravel and assert for withdrawable and vestedAmounts", async () => {
             const depositAmount_1 = bnbMantissa(1000);
-            let depositTxn = await depositXVS(xvsVesting, alice, depositAmount_1, xvsVestingAddress, vrtConversionAddress, root);
+            await depositXVS(xvsVesting, alice, depositAmount_1, xvsVestingAddress, vrtConversionAddress, root);
 
             let vestings = await getAllVestingsOfUser(xvsVesting, alice);
             let totalNumberOfVestings = await getNumberOfVestingsOfUser(xvsVesting, alice);
@@ -200,7 +200,7 @@ describe('XVSVesting', () => {
             await freezeTime(newBlockTimestamp.toNumber());
 
             const depositAmount_2 = bnbMantissa(2000);
-            depositTxn = await depositXVS(xvsVesting, alice, depositAmount_2, xvsVestingAddress, vrtConversionAddress, root);
+            await depositXVS(xvsVesting, alice, depositAmount_2, xvsVestingAddress, vrtConversionAddress, root);
 
             vestings = await getAllVestingsOfUser(xvsVesting, alice);
             totalNumberOfVestings = await getNumberOfVestingsOfUser(xvsVesting, alice);
@@ -211,13 +211,13 @@ describe('XVSVesting', () => {
             expect(getBigNumber(vestings[1].amount)).toEqual(getBigNumber(depositAmount_2));
             expect(getBigNumber(vestings[1].withdrawnAmount)).toEqual(getBigNumber(0));
 
-            let currentTime = await getCurrentTimeFromContract(xvsVesting);
+            await getCurrentTimeFromContract(xvsVesting);
 
             newBlockTimestamp = newBlockTimestamp.add(ONE_DAY);
             await freezeTime(newBlockTimestamp.toNumber());
 
             //Assert totalVestedAmount after 2 Vestings and advancement of 1-day after each vesting
-            currentTime = await getCurrentTimeFromContract(xvsVesting);
+            await getCurrentTimeFromContract(xvsVesting);
 
             const totalVestedAmount_1_Computed = computeVestedAmount(depositAmount_1, vestings[0].startTime, newBlockTimestamp);
             const vestedAmount_1_contract = await call(xvsVesting, "computeVestedAmount", [vestings[0].amount, vestings[0].startTime, newBlockTimestamp]);
@@ -345,7 +345,7 @@ describe('XVSVesting', () => {
             await send(xvsToken, 'transfer', [xvsVestingAddress, depositAmount_1], { from: root });
 
             const depositAmount_2 = bnbMantissa(2000);
-            depositTxn = await depositXVS(xvsVesting, alice, depositAmount_2, xvsVestingAddress, vrtConversionAddress, root);
+            await depositXVS(xvsVesting, alice, depositAmount_2, xvsVestingAddress, vrtConversionAddress, root);
 
             newBlockTimestamp = newBlockTimestamp.add(HALF_YEAR);
             await freezeTime(newBlockTimestamp.toNumber());

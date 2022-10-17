@@ -22,6 +22,9 @@ npx saddle -n rinkeby script token:match 0x19B674715cD20626415C738400FDd0d32D680
 }
 
 (async function() {
+  // @FIX ME This script had undefined vars have been stubbed out for linting
+  const args = [];
+  const addresses = [];
   if (args.length !== 2) {
     return printUsage();
   }

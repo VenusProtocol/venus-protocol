@@ -1,23 +1,10 @@
 import {World} from './World';
-import {readFile} from './File';
 import request from 'request';
-import * as path from 'path';
 import truffleFlattener from 'truffle-flattener';
 import {getNetworkContracts} from './Contract';
 
-interface DevDoc {
-  author: string
-  methods: object
-  title: string
-}
-
-interface UserDoc {
-  methods: object
-  notice: string
-}
-
 function getUrl(network: string): string {
-  let host = {
+  const host = {
     kovan: 'api-kovan.bscscan.io',
     rinkeby: 'api-rinkeby.bscscan.io',
     ropsten: 'api-ropsten.bscscan.io',
@@ -33,7 +20,7 @@ function getUrl(network: string): string {
 }
 
 function getConstructorABI(world: World, contractName: string): string {
-  let constructorAbi = world.getIn(['contractData', 'Constructors', contractName]);
+  const constructorAbi = world.getIn(['contractData', 'Constructors', contractName]);
 
   if (!constructorAbi) {
     throw new Error(`Unknown Constructor ABI for ${contractName} on ${world.network}. Try deploying again?`);
@@ -86,7 +73,7 @@ async function checkStatus(world: World, url: string, token: string): Promise<vo
   // { status: '0', message: 'NOTOK', result: 'Pending in queue' }
   // { status: '1', message: 'OK', result: 'Pass - Verified' }
 
-  let result: Result = <Result>await get(url, {
+  const result: Result = <Result>await get(url, {
     guid: token,
     module: "contract",
     action: "checkverifystatus"
@@ -113,16 +100,16 @@ async function checkStatus(world: World, url: string, token: string): Promise<vo
 }
 
 export async function verify(world: World, apiKey: string, contractName: string, buildInfoName: string, address: string): Promise<void> {
-  let contractAddress: string = address;
-  let {networkContracts, version} = await getNetworkContracts(world);
-  let networkContract = networkContracts[buildInfoName];
+  const contractAddress: string = address;
+  const {networkContracts, version} = await getNetworkContracts(world);
+  const networkContract = networkContracts[buildInfoName];
   if (!networkContract) {
     throw new Error(`Cannot find contract ${buildInfoName}, found: ${Object.keys(networkContracts)}`)
   }
-  let sourceCode: string = await truffleFlattener([networkContract.path]);
-  let compilerVersion: string = version.replace(/(\.Emscripten)|(\.clang)|(\.Darwin)|(\.appleclang)/gi, '');
-  let constructorAbi = getConstructorABI(world, contractName);
-  let url = getUrl(world.network);
+  const sourceCode: string = await truffleFlattener([networkContract.path]);
+  const compilerVersion: string = version.replace(/(\.Emscripten)|(\.clang)|(\.Darwin)|(\.appleclang)/gi, '');
+  const constructorAbi = getConstructorABI(world, contractName);
+  const url = getUrl(world.network);
 
   const verifyData: object = {
     apikey: apiKey,
@@ -143,7 +130,7 @@ export async function verify(world: World, apiKey: string, contractName: string,
   // {"status":"0","message":"NOTOK","result":"Invalid constructor arguments provided. Please verify that they are in ABI-encoded format"}
   // {"status":"1","message":"OK","result":"usjpiyvmxtgwyee59wnycyiet7m3dba4ccdi6acdp8eddlzdde"}
 
-  let result: Result = <Result>await post(url, verifyData);
+  const result: Result = <Result>await post(url, verifyData);
 
   if (Number(result.status) === 0 || result.message !== "OK") {
     if (result.result.includes('Contract source code already verified')) {

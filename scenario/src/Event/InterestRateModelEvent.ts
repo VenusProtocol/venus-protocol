@@ -2,17 +2,12 @@ import {Event} from '../Event';
 import {addAction, World} from '../World';
 import {InterestRateModel} from '../Contract/InterestRateModel';
 import {buildInterestRateModel} from '../Builder/InterestRateModelBuilder';
-import {invoke} from '../Invokation';
 import {
-  getAddressV,
   getEventV,
-  getNumberV,
   getStringV,
 } from '../CoreValue';
 import {
-  AddressV,
   EventV,
-  NumberV,
   StringV
 } from '../Value';
 import {Arg, Command, processCommandEvent, View} from '../Command';
@@ -20,7 +15,7 @@ import {getInterestRateModelData} from '../ContractLookup';
 import {verify} from '../Verify';
 
 async function genInterestRateModel(world: World, from: string, params: Event): Promise<World> {
-  let {world: nextWorld, interestRateModel, interestRateModelData} = await buildInterestRateModel(world, from, params);
+  const {world: nextWorld, interestRateModel, interestRateModelData} = await buildInterestRateModel(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -70,7 +65,7 @@ export function interestRateModelCommands() {
         new Arg("apiKey", getStringV)
       ],
       async (world, {interestRateModelArg, apiKey}) => {
-        let [interestRateModel, name, data] = await getInterestRateModelData(world, interestRateModelArg.val);
+        const [interestRateModel, name, data] = await getInterestRateModelData(world, interestRateModelArg.val);
 
         return await verifyInterestRateModel(world, interestRateModel, apiKey.val, name, data.get('contract')!)
       },

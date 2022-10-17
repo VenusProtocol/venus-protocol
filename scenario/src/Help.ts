@@ -23,7 +23,7 @@ sub-commands run \`Help VToken\` or \`Help VToken Mint\`.
       }
     }
 
-    if (!!banner) {
+    if (banner) {
       printer.printMarkdown(banner);
     }
 
@@ -37,7 +37,7 @@ sub-commands run \`Help VToken\` or \`Help VToken Mint\`.
     const [first, ...rest] = event;
     const expressionName = mustString(<Event>first);
   
-    let expression = expressions.find((expression) => expression.name.toLowerCase() === expressionName.toLowerCase());
+    const expression = expressions.find((expression) => expression.name.toLowerCase() === expressionName.toLowerCase());
 
     if (expression) {
       if (rest.length === 0) {
@@ -46,7 +46,7 @@ sub-commands run \`Help VToken\` or \`Help VToken Mint\`.
 
       printHelp(printer, rest, expression.subExpressions, path.concat(expression.name));
     } else {
-      let matchingExpressions = expressions.filter((expression) => expression.name.toLowerCase().startsWith(expressionName.toLowerCase()));
+      const matchingExpressions = expressions.filter((expression) => expression.name.toLowerCase().startsWith(expressionName.toLowerCase()));
 
       if (matchingExpressions.length === 0) {
         printer.printLine(`\nError: cannot find help docs for ${path.concat(<string>first).join(" ")}`);

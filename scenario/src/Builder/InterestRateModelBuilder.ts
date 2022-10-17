@@ -1,17 +1,15 @@
 import {Event} from '../Event';
-import {addAction, World} from '../World';
+import {World} from '../World';
 import {InterestRateModel} from '../Contract/InterestRateModel';
-import {Invokation, invoke} from '../Invokation';
+import {Invokation} from '../Invokation';
 import {
   getAddressV,
   getExpNumberV,
-  getNumberV,
   getPercentV,
   getStringV,
 } from '../CoreValue';
 import {
   AddressV,
-  EventV,
   NumberV,
   StringV,
 } from '../Value';
@@ -132,8 +130,8 @@ export async function buildInterestRateModel(world: World, from: string, event: 
      )
   ];
 
-  let interestRateModelData = await getFetcherValue<any, InterestRateModelData>("DeployInterestRateModel", fetchers, world, event);
-  let invokation = interestRateModelData.invokation;
+  const interestRateModelData = await getFetcherValue<any, InterestRateModelData>("DeployInterestRateModel", fetchers, world, event);
+  const invokation = interestRateModelData.invokation;
   delete interestRateModelData.invokation;
 
   if (invokation.error) {

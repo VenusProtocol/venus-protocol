@@ -20,14 +20,14 @@ import { Arg, Fetcher, getFetcherValue } from '../Command';
 import { getComptroller } from '../ContractLookup';
 import { encodedNumber } from '../Encoding';
 import { getVTokenV } from '../Value/VTokenValue';
-import { encodeParameters, encodeABI } from '../Utils';
+import { encodeABI } from '../Utils';
 
 export async function getComptrollerAddress(world: World, comptroller: Comptroller): Promise<AddressV> {
   return new AddressV(comptroller._address);
 }
 
 export async function getLiquidity(world: World, comptroller: Comptroller, user: string): Promise<NumberV> {
-  let { 0: error, 1: liquidity, 2: shortfall } = await comptroller.methods.getAccountLiquidity(user).call();
+  const { 0: error, 1: liquidity, 2: shortfall } = await comptroller.methods.getAccountLiquidity(user).call();
   if (Number(error) != 0) {
     throw new Error(`Failed to compute account liquidity: error code = ${error}`);
   }
@@ -35,7 +35,7 @@ export async function getLiquidity(world: World, comptroller: Comptroller, user:
 }
 
 export async function getHypotheticalLiquidity(world: World, comptroller: Comptroller, account: string, asset: string, redeemTokens: encodedNumber, borrowAmount: encodedNumber): Promise<NumberV> {
-  let { 0: error, 1: liquidity, 2: shortfall } = await comptroller.methods.getHypotheticalAccountLiquidity(account, asset, redeemTokens, borrowAmount).call();
+  const { 0: error, 1: liquidity, 2: shortfall } = await comptroller.methods.getHypotheticalAccountLiquidity(account, asset, redeemTokens, borrowAmount).call();
   if (Number(error) != 0) {
     throw new Error(`Failed to compute account hypothetical liquidity: error code = ${error}`);
   }
@@ -75,7 +75,7 @@ async function getPendingAdmin(world: World, comptroller: Comptroller): Promise<
 }
 
 async function getCollateralFactor(world: World, comptroller: Comptroller, vToken: VToken): Promise<NumberV> {
-  let { 0: _isListed, 1: collateralFactorMantissa } = await comptroller.methods.markets(vToken._address).call();
+  const { 0: _isListed, 1: collateralFactorMantissa } = await comptroller.methods.markets(vToken._address).call();
   return new NumberV(collateralFactorMantissa, 1e18);
 }
 
@@ -88,25 +88,25 @@ async function checkMembership(world: World, comptroller: Comptroller, user: str
 }
 
 async function getAssetsIn(world: World, comptroller: Comptroller, user: string): Promise<ListV> {
-  let assetsList = await comptroller.methods.getAssetsIn(user).call();
+  const assetsList = await comptroller.methods.getAssetsIn(user).call();
 
   return new ListV(assetsList.map((a) => new AddressV(a)));
 }
 
 async function getVenusMarkets(world: World, comptroller: Comptroller): Promise<ListV> {
-  let mkts = await comptroller.methods.getVenusMarkets().call();
+  const mkts = await comptroller.methods.getVenusMarkets().call();
 
   return new ListV(mkts.map((a) => new AddressV(a)));
 }
 
 async function checkListed(world: World, comptroller: Comptroller, vToken: VToken): Promise<BoolV> {
-  let { 0: isListed, 1: _collateralFactorMantissa } = await comptroller.methods.markets(vToken._address).call();
+  const { 0: isListed, 1: _collateralFactorMantissa } = await comptroller.methods.markets(vToken._address).call();
 
   return new BoolV(isListed);
 }
 
 async function checkIsVenus(world: World, comptroller: Comptroller, vToken: VToken): Promise<BoolV> {
-  let { 0: isListed, 1: _collateralFactorMantissa, 2: isVenus } = await comptroller.methods.markets(vToken._address).call();
+  const { 1: _collateralFactorMantissa, 2: isVenus } = await comptroller.methods.markets(vToken._address).call();
   return new BoolV(isVenus);
 }
 

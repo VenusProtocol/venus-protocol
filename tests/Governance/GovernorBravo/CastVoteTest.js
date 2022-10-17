@@ -9,10 +9,9 @@ const {
 } = require('../../Utils/BSC');
 const EIP712 = require('../../Utils/EIP712');
 const BigNumber = require('bignumber.js');
-const chalk = require('chalk');
 
 describe("governorBravo#castVote/2", () => {
-  let gov, root, a1, guardian, accounts, govDelegate, xvsVault, xvs;
+  let gov, root, a1, guardian, accounts, govDelegate, xvsVault, xvs, xvsStore;
   let targets, values, signatures, callDatas, proposalId;
   
   async function enfranchise(actor, amount) {
@@ -73,9 +72,9 @@ describe("governorBravo#castVote/2", () => {
         await mineBlock();
         await mineBlock();
   
-        let vote = await send(gov, 'castVote', [proposalId, 1], { from: accounts[4] });
+        await send(gov, 'castVote', [proposalId, 1], { from: accounts[4] });
   
-        let vote2 = await send(gov, 'castVoteWithReason', [proposalId, 1, ""], { from: accounts[3] });
+        await send(gov, 'castVoteWithReason', [proposalId, 1, ""], { from: accounts[3] });
   
         await expect(
           gov.methods['castVote'](proposalId, 1).call({ from: accounts[4] })
@@ -87,7 +86,7 @@ describe("governorBravo#castVote/2", () => {
   describe("Otherwise", () => {
     it("we add the sender to the proposal's voters set", async () => {
       await expect(call(gov, 'getReceipt', [proposalId, accounts[2]])).resolves.toPartEqual({hasVoted: false});
-      let vote = await send(gov, 'castVote', [proposalId, 1], { from: accounts[2] });
+      await send(gov, 'castVote', [proposalId, 1], { from: accounts[2] });
       await expect(call(gov, 'getReceipt', [proposalId, accounts[2]])).resolves.toPartEqual({hasVoted: true});
     });
 

@@ -1,5 +1,3 @@
-import { Signer } from "ethers";
-import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
@@ -46,7 +44,7 @@ async function pauseFixture(): Promise<PauseFixture> {
   return { accessControl, comptroller, oracle, OMG, ZRX, BAT, SKT, allTokens, names };
 }
 
-function configure({ accessControl, oracle, allTokens, names }: PauseFixture) {
+function configure({ accessControl, allTokens, names }: PauseFixture) {
   accessControl.isAllowedToCall.reset();
   accessControl.isAllowedToCall.returns(true);
   allTokens.map((vToken, i) => {
@@ -59,11 +57,6 @@ function configure({ accessControl, oracle, allTokens, names }: PauseFixture) {
 
 
 describe("Comptroller", () => {
-  let root: Signer;
-  let rootAddress: string;
-  let customer: Signer;
-  let accounts: Signer[];
-  let accessControl: FakeContract<IAccessControlManager>;
   let comptroller: MockContract<Comptroller>;
   let OMG: FakeContract<VBep20Immutable>;
   let ZRX: FakeContract<VBep20Immutable>;
@@ -71,11 +64,9 @@ describe("Comptroller", () => {
   let SKT: FakeContract<VBep20Immutable>;
 
   beforeEach(async () => {
-    [root, customer, ...accounts] = await ethers.getSigners();
     const contracts = await loadFixture(pauseFixture);
     configure(contracts);
-    ({ accessControl, comptroller, OMG, ZRX, BAT, SKT } = contracts);
-    rootAddress = await root.getAddress();
+    ({comptroller, OMG, ZRX, BAT, SKT } = contracts);
   });
 
   describe("_setActionsPaused", () => {

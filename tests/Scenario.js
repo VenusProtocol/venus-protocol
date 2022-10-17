@@ -22,7 +22,8 @@ function loadScenario(file) {
 
   // Check if directory, and if so, recurse
   if (stat && stat.isDirectory()) {
-    loadScenarios(fullPath);
+    console.error('LoadScenarios is not defined')
+    // loadScenarios(fullPath);
   } else {
     // Ignore files if they don't match `.scen`
     if (file.match(/\.scen$/)) {
@@ -101,6 +102,7 @@ function run(file) {
           fn("scenario: " + name);
         } else {
           let finalWorld;
+          let accounts;
           let runner = async () => {
             let world = await initWorld(expect, new ConsolePrinter(verbose), web3, saddle, network, accounts, basePath, TOTAL_GAS);
             world = loadVerbose(world);
@@ -122,7 +124,7 @@ function run(file) {
           })
         }
       } else {
-        it.skip("scenario: " + name, async () => {});
+        it.skip("scenario: " + name, async () => undefined);
       }
     });
   });

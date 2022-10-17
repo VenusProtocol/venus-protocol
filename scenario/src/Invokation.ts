@@ -1,4 +1,4 @@
-import { ErrorReporter, NoErrorReporter, ComptrollerErrorReporter } from './ErrorReporter';
+import { ErrorReporter, NoErrorReporter } from './ErrorReporter';
 import { mustArray } from './Utils';
 import { World } from './World';
 import { encodedNumber } from './Encoding';
@@ -7,7 +7,7 @@ import { TransactionReceipt } from 'web3-eth';
 const errorRegex = /^(.*) \((\d+)\)$/
 
 function getErrorCode(revertMessage: string): [string, number] | null {
-  let res = errorRegex.exec(revertMessage);
+  const res = errorRegex.exec(revertMessage);
 
   if (res) {
     return [res[1], Number(res[2])];
@@ -148,7 +148,7 @@ export class Invokation<T> {
 
   invokation(): string {
     if (this.method) {
-      let argStr = this.args.map(({ arg, val }) => `${arg}=${val.toString()}`).join(',');
+      const argStr = this.args.map(({ arg, val }) => `${arg}=${val.toString()}`).join(',');
       return `"${this.method}(${argStr})"`;
     } else {
       return `unknown method`;
@@ -161,14 +161,14 @@ export class Invokation<T> {
 }
 
 export async function fallback(world: World, from: string, to: string, value: encodedNumber): Promise<Invokation<string>> {
-  let trxObj = {
+  const trxObj = {
     from: from,
     to: to,
     value: value.toString()
   };
 
-  let estimateGas = async (opts: InvokationOpts) => {
-    let trxObjMerged = {
+  const estimateGas = async (opts: InvokationOpts) => {
+    const trxObjMerged = {
       ...trxObj,
       ...opts
     };
@@ -176,8 +176,8 @@ export async function fallback(world: World, from: string, to: string, value: en
     return <number>await world.web3.eth.estimateGas(trxObjMerged);
   };
 
-  let call = async (opts: InvokationOpts) => {
-    let trxObjMerged = {
+  const call = async (opts: InvokationOpts) => {
+    const trxObjMerged = {
       ...trxObj,
       ...opts
     };
@@ -185,19 +185,19 @@ export async function fallback(world: World, from: string, to: string, value: en
     return <string>await world.web3.eth.call(trxObjMerged);
   };
 
-  let send = async (opts: InvokationOpts) => {
-    let trxObjMerged = {
+  const send = async (opts: InvokationOpts) => {
+    const trxObjMerged = {
       ...trxObj,
       ...opts
     };
 
-    let receipt = await world.web3.eth.sendTransaction(trxObjMerged);
+    const receipt = await world.web3.eth.sendTransaction(trxObjMerged);
     receipt.events = {};
 
     return receipt;
   }
 
-  let fn: Sendable<string> = {
+  const fn: Sendable<string> = {
     estimateGas: estimateGas,
     call: call,
     send: send,
@@ -214,8 +214,8 @@ export async function fallback(world: World, from: string, to: string, value: en
 export async function invoke<T>(world: World, fn: Sendable<T>, from: string, errorReporter: ErrorReporter = NoErrorReporter): Promise<Invokation<T>> {
   let value: T | null = null;
   let result: TransactionReceipt | null = null;
-  let worldInvokationOpts = world.getInvokationOpts({from: from});
-  let trxInvokationOpts = world.trxInvokationOpts.toJS();
+  const worldInvokationOpts = world.getInvokationOpts({from: from});
+  const trxInvokationOpts = world.trxInvokationOpts.toJS();
 
   let invokationOpts = {
     ...worldInvokationOpts,
@@ -243,12 +243,10 @@ export async function invoke<T>(world: World, fn: Sendable<T>, from: string, err
   }
 
   try {
-    let error: null | Error = null;
-
     try {
       value = await fn.call({ ...invokationOpts });
     } catch (err) {
-      error = new InvokationError(err);
+      new InvokationError(err as Error);
     }
 
     if (world.dryRun) {
@@ -283,10 +281,10 @@ export async function invoke<T>(world: World, fn: Sendable<T>, from: string, err
     return new Invokation<T>(value, result, null, fn, errorReporter);
   } catch (err) {
     if (errorReporter) {
-      let decoded = getErrorCode(err.message);
+      const decoded = getErrorCode(err.message);
 
       if (decoded) {
-        let [errMessage, errCode] = decoded;
+        const [errMessage, errCode] = decoded;
 
         return new Invokation<T>(value, result, new InvokationRevertFailure(err, errMessage, errCode, errorReporter.getError(errCode)), fn, errorReporter);
       }

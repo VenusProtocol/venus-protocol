@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["./typechain", "./deploy", "./tests", "./script", "./scenario", "jest.config.js", "saddle.config.js"]
+}

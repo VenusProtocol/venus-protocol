@@ -1,4 +1,4 @@
-import { BigNumber, ContractTransaction, Signer } from "ethers";
+import { BigNumber, Signer } from "ethers";
 import { ethers, network } from "hardhat";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
@@ -21,10 +21,8 @@ import { convertToUnit } from "../../../../helpers/utils";
 
 let root: Signer;
 let customer: Signer;
-let accounts: Signer[];
 let governorBravoDelegate: MockContract<GovernorBravoDelegate>;
 let xvsVault: FakeContract<XVSVault>;
-let xvsStore: FakeContract<XVSStore>;
 let xvsToken: FakeContract<XVS>;
 let timelock: FakeContract<Timelock>;
 
@@ -69,18 +67,19 @@ const proposalConfigs = {
 };
 
 describe("Governor Bravo State Tests", () => {
-  let rootAddress: String;
+  let rootAddress: string;
   let proposalId: BigNumber;
   let trivialProposal: any;
-  let targets: String[] ;
-  let values: String[];
-  let signatures: String[];
-  let calldatas: String[];
+  let targets: string[];
+  let values: string[];
+  let signatures: string[];
+  let calldatas: string[] = [];
+  
   beforeEach(async () => {
-    [root, customer, ...accounts] = await ethers.getSigners();
+    [root, customer] = await ethers.getSigners();
     rootAddress = await root.getAddress();
     const contracts = await loadFixture(governorBravoFixture);
-    ({ governorBravoDelegate, xvsVault, xvsStore, xvsToken, timelock } =
+    ({ governorBravoDelegate, xvsVault, xvsToken, timelock } =
       contracts);
     await governorBravoDelegate.setVariable("admin", await root.getAddress());
     await governorBravoDelegate.setVariable("initialProposalId", 1);
@@ -108,7 +107,7 @@ describe("Governor Bravo State Tests", () => {
     );
     proposalId = await governorBravoDelegate.latestProposalIds(rootAddress);
     trivialProposal = await governorBravoDelegate.proposals(proposalId);
-	await mineBlock();
+    await mineBlock();
   });
 
   it("Invalid for proposal not found", async () => {
@@ -116,140 +115,141 @@ describe("Governor Bravo State Tests", () => {
   });
 
   it("Pending", async () => {
-	expect(await governorBravoDelegate.state(trivialProposal.id)).to.equal(ProposalState.Pending);
+    expect(await governorBravoDelegate.state(trivialProposal.id)).to.equal(ProposalState.Pending);
   });
   it("Active", async () => {
     await mineBlock()
-	expect(await governorBravoDelegate.state(trivialProposal.id)).to.equal(ProposalState.Active);
+    expect(await governorBravoDelegate.state(trivialProposal.id)).to.equal(ProposalState.Active);
   });
   it("Canceled", async () => {
-	await governorBravoDelegate
-	.connect(customer)
-	.propose(
-		targets,
-		values,
-		signatures,
-		calldatas,
-		"do nothing",
-		ProposalType.CRITICAL
-	);
-	xvsVault.getPriorVotes.returns(convertToUnit("200000", 18));
+    await governorBravoDelegate
+      .connect(customer)
+      .propose(
+        targets,
+        values,
+        signatures,
+        calldatas,
+        "do nothing",
+        ProposalType.CRITICAL
+      );
+    xvsVault.getPriorVotes.returns(convertToUnit("200000", 18));
 
-	let newProposalId = await governorBravoDelegate.proposalCount();
+    const newProposalId = await governorBravoDelegate.proposalCount();
     await governorBravoDelegate.cancel(newProposalId);
 
-	expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Canceled);
+    expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Canceled);
   });
   it("Canceled by Guardian", async () => {
-	governorBravoDelegate.setVariable('guardian',rootAddress);
-	await governorBravoDelegate
-	.connect(customer)
-	.propose(
-		targets,
-		values,
-		signatures,
-		calldatas,
-		"do nothing",
-		ProposalType.CRITICAL
-	);
-	let newProposalId = await governorBravoDelegate.proposalCount();
+    governorBravoDelegate.setVariable('guardian', rootAddress);
+    await governorBravoDelegate
+      .connect(customer)
+      .propose(
+        targets,
+        values,
+        signatures,
+        calldatas,
+        "do nothing",
+        ProposalType.CRITICAL
+      );
+    const newProposalId = await governorBravoDelegate.proposalCount();
     await governorBravoDelegate.cancel(newProposalId);
 
-	expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Canceled);
+    expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Canceled);
   });
   it("Defeated", async () => {
     // travel to end block
     await advanceBlocks(18)
-	expect(await governorBravoDelegate.state(trivialProposal.id)).to.equal(ProposalState.Defeated);
+    expect(await governorBravoDelegate.state(trivialProposal.id)).to.equal(ProposalState.Defeated);
   });
   it("Succeeded", async () => {
-	xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
-	await governorBravoDelegate
-	.connect(customer)
-	.propose(
-		targets,
-		values,
-		signatures,
-		calldatas,
-		"do nothing",
-		ProposalType.CRITICAL
-	);
-	let newProposalId = await governorBravoDelegate.proposalCount();
+    xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
+    await governorBravoDelegate
+      .connect(customer)
+      .propose(
+        targets,
+        values,
+        signatures,
+        calldatas,
+        "do nothing",
+        ProposalType.CRITICAL
+      );
+    const newProposalId = await governorBravoDelegate.proposalCount();
     await mineBlock();
-	await governorBravoDelegate.castVote(newProposalId,1);
-	await governorBravoDelegate.connect(customer).castVote(newProposalId,1);
+    await governorBravoDelegate.castVote(newProposalId, 1);
+    await governorBravoDelegate.connect(customer).castVote(newProposalId, 1);
     await advanceBlocks(18);
-	expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Succeeded);
+    expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Succeeded);
   })
   it("Expired", async () => {
-	xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
-	await governorBravoDelegate
-	.connect(customer)
-	.propose(
-		targets,
-		values,
-		signatures,
-		calldatas,
-		"do nothing",
-		ProposalType.CRITICAL
-	);
-	let newProposalId = await governorBravoDelegate.proposalCount();
+    xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
+    await governorBravoDelegate
+      .connect(customer)
+      .propose(
+        targets,
+        values,
+        signatures,
+        calldatas,
+        "do nothing",
+        ProposalType.CRITICAL
+      );
+    const newProposalId = await governorBravoDelegate.proposalCount();
     await mineBlock();
-	await governorBravoDelegate.castVote(newProposalId,1);
-	await governorBravoDelegate.connect(customer).castVote(newProposalId,1);
+    await governorBravoDelegate.castVote(newProposalId, 1);
+    await governorBravoDelegate.connect(customer).castVote(newProposalId, 1);
     await advanceBlocks(16);
-	await governorBravoDelegate.queue(newProposalId);
-	expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Expired);
+    await governorBravoDelegate.queue(newProposalId);
+    expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Expired);
   })
   it("Queued", async () => {
-	timelock.delay.returns(100);
+    timelock.delay.returns(100);
     await mineBlock();
-	xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
-	await governorBravoDelegate
-	.connect(customer)
-	.propose(
-		targets,
-		values,
-		signatures,
-		calldatas,
-		"do nothing",
-		ProposalType.CRITICAL
-	);
-	let newProposalId = await governorBravoDelegate.proposalCount();
+    xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
+    await governorBravoDelegate
+      .connect(customer)
+      .propose(
+        targets,
+        values,
+        signatures,
+        calldatas,
+        "do nothing",
+        ProposalType.CRITICAL
+      );
+    const newProposalId = await governorBravoDelegate.proposalCount();
     await mineBlock();
-	await governorBravoDelegate.castVote(newProposalId,1);
-	await governorBravoDelegate.connect(customer).castVote(newProposalId,1);
+    await governorBravoDelegate.castVote(newProposalId, 1);
+    await governorBravoDelegate.connect(customer).castVote(newProposalId, 1);
     await advanceBlocks(16);
-	await governorBravoDelegate.queue(newProposalId);
-	expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Queued);
+    await governorBravoDelegate.queue(newProposalId);
+    expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Queued);
   })
-  it("Executed", async () => {
-	xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
-	timelock.delay.returns(100);
-	await governorBravoDelegate
-	.connect(customer)
-	.propose(
-		targets,
-		values,
-		signatures,
-		calldatas,
-		"do nothing",
-		ProposalType.CRITICAL
-	);
-	let newProposalId = await governorBravoDelegate.proposalCount();
-    await mineBlock();
-	await governorBravoDelegate.castVote(newProposalId,1);
-	await governorBravoDelegate.connect(customer).castVote(newProposalId,1);
-    await advanceBlocks(16);
-	await governorBravoDelegate.queue(newProposalId);
 
-	let proposal = await governorBravoDelegate.proposals(newProposalId);
+  it("Executed", async () => {
+    xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
+    timelock.delay.returns(100);
+    await governorBravoDelegate
+      .connect(customer)
+      .propose(
+        targets,
+        values,
+        signatures,
+        calldatas,
+        "do nothing",
+        ProposalType.CRITICAL
+      );
+    const newProposalId = await governorBravoDelegate.proposalCount();
+    await mineBlock();
+    await governorBravoDelegate.castVote(newProposalId, 1);
+    await governorBravoDelegate.connect(customer).castVote(newProposalId, 1);
+    await advanceBlocks(16);
+    await governorBravoDelegate.queue(newProposalId);
+
+    const proposal = await governorBravoDelegate.proposals(newProposalId);
 
     expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Queued);
-	await governorBravoDelegate.connect(customer).execute(newProposalId);
+    await governorBravoDelegate.connect(customer).execute(newProposalId);
     expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Executed);
     // still executed even though would be expired
-	await minewWithTimestamp(proposal.eta.toNumber() + 10);
+    await minewWithTimestamp(proposal.eta.toNumber() + 10);
 
     expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Executed);
   })
@@ -265,13 +265,13 @@ async function advanceBlocks(blocks: number) {
   await mine(blocks);
 }
 
- /**
- * Sets the timestamp for the new block and mines it
- * @param timestamp Number of seconds to increase time by
- */
+/**
+* Sets the timestamp for the new block and mines it
+* @param timestamp Number of seconds to increase time by
+*/
 async function minewWithTimestamp(timestamp: number) {
- // First we increase the time
- // Time travelling to the future!
- await network.provider.send("evm_setNextBlockTimestamp", [timestamp])
- await mine(); 
+  // First we increase the time
+  // Time travelling to the future!
+  await network.provider.send("evm_setNextBlockTimestamp", [timestamp])
+  await mine();
 }

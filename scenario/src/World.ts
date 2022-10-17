@@ -8,7 +8,6 @@ import { SuccessInvariant } from './Invariant/SuccessInvariant';
 import { RemainsInvariant } from './Invariant/RemainsInvariant';
 import { StaticInvariant } from './Invariant/StaticInvariant';
 import { Expectation } from './Expectation';
-import { formatResult } from './ErrorReporter';
 import { Invokation, InvokationOpts } from './Invokation';
 import { Event } from './Event';
 import { formatEvent } from './Formatter';
@@ -141,12 +140,12 @@ export class World extends Record(defaultWorldProps) {
   }
 
   defaultFrom(): string | null {
-    let settingsFrom = this.settings.findAlias('Me');
+    const settingsFrom = this.settings.findAlias('Me');
     if (settingsFrom) {
       return settingsFrom;
     }
 
-    let accountsDefault = this.accounts.get('default');
+    const accountsDefault = this.accounts.get('default');
     if (accountsDefault) {
       return accountsDefault.address;
     }
@@ -245,14 +244,14 @@ export function addExpectation(world: World, expectation: Expectation): World {
 }
 
 function getInvariantFilter(type: string) {
-  let filters: { [filter: string]: (invariant: Invariant) => boolean } = {
+  const filters: { [filter: string]: (invariant: Invariant) => boolean } = {
     all: _invariant => true,
     success: invariant => !(invariant instanceof SuccessInvariant),
     remains: invariant => !(invariant instanceof RemainsInvariant),
     static: invariant => !(invariant instanceof StaticInvariant)
   };
 
-  let filter = filters[type.toLowerCase()];
+  const filter = filters[type.toLowerCase()];
 
   if (!filter) {
     throw new Error(`Unknown invariant type \`${type}\` when wiping invariants.`);
@@ -262,15 +261,15 @@ function getInvariantFilter(type: string) {
 }
 
 export function clearInvariants(world: World, type: string): World {
-  let filter = getInvariantFilter(type);
+  const filter = getInvariantFilter(type);
 
-  return world.update('invariants', invariants => world.invariants.filter(filter));
+  return world.update('invariants', () => world.invariants.filter(filter));
 }
 
 export function holdInvariants(world: World, type: string): World {
-  let filter = getInvariantFilter(type);
+  const filter = getInvariantFilter(type);
 
-  return world.update('invariants', invariants => {
+  return world.update('invariants', () => {
     return world.invariants.map(invariant => {
       if (filter(invariant)) {
         invariant.held = true;
@@ -324,7 +323,7 @@ export async function checkInvariants(world: World): Promise<World> {
 
 export function describeUser(world: World, address: string): string {
   // Look up by alias
-  let alias = Object.entries(world.settings.aliases).find(([name, aliasAddr]) => aliasAddr === address);
+  const alias = Object.entries(world.settings.aliases).find(([_name, aliasAddr]) => aliasAddr === address);
   if (alias) {
     return `${alias[0]} (${address.slice(0,6)}...)`;
   }
@@ -335,7 +334,7 @@ export function describeUser(world: World, address: string): string {
   }
 
   // Look up by unlocked accounts
-  let account = world.accounts.find(account => account.address === address);
+  const account = world.accounts.find(account => account.address === address);
   if (account) {
     return `${account.name} (${address.slice(0,6)}...)`;
   }

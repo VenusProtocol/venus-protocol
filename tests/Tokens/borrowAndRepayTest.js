@@ -31,7 +31,7 @@ async function borrowFresh(vToken, borrower, borrowAmount) {
   return send(vToken, 'harnessBorrowFresh', [borrower, borrowAmount]);
 }
 
-async function borrow(vToken, borrower, borrowAmount, opts = {}) {
+async function borrow(vToken, borrower, borrowAmount) {
   // make sure to have a block delta so we accrue interest
   await send(vToken, 'harnessFastForward', [1]);
   return send(vToken, 'borrow', [borrowAmount], {from: borrower});
@@ -66,9 +66,9 @@ async function repayBorrowBehalf(vToken, payer, borrower, repayAmount) {
 }
 
 describe('VToken', function () {
-  let vToken, root, borrower, benefactor, accounts;
+  let vToken, root, borrower, benefactor; // eslint-disable-line @typescript-eslint/no-unused-vars
   beforeEach(async () => {
-    [root, borrower, benefactor, ...accounts] = saddle.accounts;
+    [root, borrower, benefactor] = saddle.accounts;
     vToken = await makeVToken({comptrollerOpts: {kind: 'bool'}});
   });
 

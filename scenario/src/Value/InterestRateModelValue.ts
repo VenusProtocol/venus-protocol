@@ -2,7 +2,6 @@ import {Event} from '../Event';
 import {World} from '../World';
 import {InterestRateModel} from '../Contract/InterestRateModel';
 import {
-  getAddressV,
   getNumberV
 } from '../CoreValue';
 import {

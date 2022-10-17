@@ -10,7 +10,7 @@ const votingDelay = 1;
 const votingPeriod = 86400;
 
 describe('GovernorBravo#propose/5', () => {
-  let gov, root, guardian, acct, xvs, xvsVault;
+  let gov, root, guardian, acct, xvs, xvsVault, accounts, xvsStore;
 
   async function enfranchise(actor, amount) {
     await send(xvsVault, 'delegate', [actor], { from: actor });
@@ -38,7 +38,7 @@ describe('GovernorBravo#propose/5', () => {
   });
 
   let trivialProposal, targets, values, signatures, callDatas;
-  let proposalBlock;
+  let proposalBlock, proposalId;
   beforeAll(async () => {
     targets = [root];
     values = ["0"];

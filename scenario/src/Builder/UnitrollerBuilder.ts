@@ -1,8 +1,8 @@
 import {Event} from '../Event';
-import {addAction, World} from '../World';
+import {World} from '../World';
 import {Unitroller} from '../Contract/Unitroller';
 import {Invokation} from '../Invokation';
-import {Arg, Fetcher, getFetcherValue} from '../Command';
+import {Fetcher, getFetcherValue} from '../Command';
 import {storeAndSaveContract} from '../Networks';
 import {getContract} from '../Contract';
 
@@ -16,7 +16,7 @@ export interface UnitrollerData {
 
 export async function buildUnitroller(world: World, from: string, event: Event): Promise<{world: World, unitroller: Unitroller, unitrollerData: UnitrollerData}> {
   const fetchers = [
-    new Fetcher<{}, UnitrollerData>(`
+    new Fetcher<Record<string, any>, UnitrollerData>(`
         #### Unitroller
 
         * "" - The Upgradable Comptroller
@@ -24,7 +24,7 @@ export async function buildUnitroller(world: World, from: string, event: Event):
       `,
       "Unitroller",
       [],
-      async (world, {}) => {
+      async (world) => {
         return {
           invokation: await UnitrollerContract.deploy<Unitroller>(world, from, []),
           description: "Unitroller"
@@ -34,8 +34,8 @@ export async function buildUnitroller(world: World, from: string, event: Event):
     )
   ];
 
-  let unitrollerData = await getFetcherValue<any, UnitrollerData>("DeployUnitroller", fetchers, world, event);
-  let invokation = unitrollerData.invokation;
+  const unitrollerData = await getFetcherValue<any, UnitrollerData>("DeployUnitroller", fetchers, world, event);
+  const invokation = unitrollerData.invokation;
   delete unitrollerData.invokation;
 
   if (invokation.error) {

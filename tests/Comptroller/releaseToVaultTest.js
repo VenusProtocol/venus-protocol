@@ -1,7 +1,4 @@
 const {
-  address,
-  advanceBlocks,
-  bnbUnsigned,
   bnbMantissa,
 } = require('../Utils/BSC');
 const {
@@ -13,19 +10,15 @@ const MIN_RELEASE_AMOUNT = bnbMantissa(100).toFixed(0);
 const START_BLOCK = 1;
 
 describe('releaseToVault', () => {
-  let root, accounts;
+  let root;
   let comptroller, vaiVault;
 
   async function checkBalance(account, balance) {
     expect(await call(comptroller.xvs, 'balanceOf', [account])).toEqualNumber(balance);
   }
 
-  async function checkBalanceOverZero(account) {
-    expect(await call(comptroller.xvs, 'balanceOf', [account])).toBeGreaterThan(0);
-  }
-
   beforeEach(async () => {
-    [root, ...accounts] = saddle.accounts;
+    [root] = saddle.accounts;
     comptroller = await makeComptroller();
     vaiVault = await deploy('VAIVault');
     await send(vaiVault, 'setVenusInfo', [comptroller.xvs._address, comptroller.vai._address]);

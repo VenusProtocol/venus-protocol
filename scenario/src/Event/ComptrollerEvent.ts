@@ -2,7 +2,6 @@ import { Event } from '../Event';
 import { addAction, describeUser, World } from '../World';
 import { decodeCall, getPastEvents } from '../Contract';
 import { Comptroller } from '../Contract/Comptroller';
-import { ComptrollerImpl } from '../Contract/ComptrollerImpl';
 import { VToken } from '../Contract/VToken';
 import { invoke } from '../Invokation';
 import {
@@ -25,14 +24,13 @@ import {
 import { Arg, Command, View, processCommandEvent } from '../Command';
 import { buildComptrollerImpl } from '../Builder/ComptrollerImplBuilder';
 import { ComptrollerErrorReporter } from '../ErrorReporter';
-import { getComptroller, getComptrollerImpl } from '../ContractLookup';
+import { getComptroller } from '../ContractLookup';
 import { getLiquidity } from '../Value/ComptrollerValue';
 import { getVTokenV } from '../Value/VTokenValue';
-import { encodedNumber } from '../Encoding';
 import { encodeABI, rawValues } from "../Utils";
 
 async function genComptroller(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, comptrollerImpl: comptroller, comptrollerImplData: comptrollerData } = await buildComptrollerImpl(world, from, params);
+  const { world: nextWorld, comptrollerImpl: comptroller, comptrollerImplData: comptrollerData } = await buildComptrollerImpl(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -45,7 +43,7 @@ async function genComptroller(world: World, from: string, params: Event): Promis
 };
 
 async function setProtocolPaused(world: World, from: string, comptroller: Comptroller, isPaused: boolean): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setProtocolPaused(isPaused), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setProtocolPaused(isPaused), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -57,7 +55,7 @@ async function setProtocolPaused(world: World, from: string, comptroller: Comptr
 }
 
 async function setMaxAssets(world: World, from: string, comptroller: Comptroller, numberOfAssets: NumberV): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setMaxAssets(numberOfAssets.encode()), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setMaxAssets(numberOfAssets.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -69,7 +67,7 @@ async function setMaxAssets(world: World, from: string, comptroller: Comptroller
 }
 
 async function setLiquidationIncentive(world: World, from: string, comptroller: Comptroller, liquidationIncentive: NumberV): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setLiquidationIncentive(liquidationIncentive.encode()), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setLiquidationIncentive(liquidationIncentive.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -81,7 +79,7 @@ async function setLiquidationIncentive(world: World, from: string, comptroller: 
 }
 
 async function setLiquidatorContract(world: World, from: string, comptroller: Comptroller, newLiquidatorContract_: string): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setLiquidatorContract(newLiquidatorContract_), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setLiquidatorContract(newLiquidatorContract_), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -99,7 +97,7 @@ async function supportMarket(world: World, from: string, comptroller: Comptrolle
     return world;
   }
 
-  let invokation = await invoke(world, comptroller.methods._supportMarket(vToken._address), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._supportMarket(vToken._address), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -111,7 +109,7 @@ async function supportMarket(world: World, from: string, comptroller: Comptrolle
 }
 
 async function unlistMarket(world: World, from: string, comptroller: Comptroller, vToken: VToken): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods.unlist(vToken._address), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods.unlist(vToken._address), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -123,7 +121,7 @@ async function unlistMarket(world: World, from: string, comptroller: Comptroller
 }
 
 async function enterMarkets(world: World, from: string, comptroller: Comptroller, assets: string[]): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods.enterMarkets(assets), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods.enterMarkets(assets), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -135,7 +133,7 @@ async function enterMarkets(world: World, from: string, comptroller: Comptroller
 }
 
 async function exitMarket(world: World, from: string, comptroller: Comptroller, asset: string): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods.exitMarket(asset), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods.exitMarket(asset), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -147,7 +145,7 @@ async function exitMarket(world: World, from: string, comptroller: Comptroller, 
 }
 
 async function setPriceOracle(world: World, from: string, comptroller: Comptroller, priceOracleAddr: string): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setPriceOracle(priceOracleAddr), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setPriceOracle(priceOracleAddr), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -159,7 +157,7 @@ async function setPriceOracle(world: World, from: string, comptroller: Comptroll
 }
 
 async function setCollateralFactor(world: World, from: string, comptroller: Comptroller, vToken: VToken, collateralFactor: NumberV): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setCollateralFactor(vToken._address, collateralFactor.encode()), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setCollateralFactor(vToken._address, collateralFactor.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -171,7 +169,7 @@ async function setCollateralFactor(world: World, from: string, comptroller: Comp
 }
 
 async function setCloseFactor(world: World, from: string, comptroller: Comptroller, closeFactor: NumberV): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setCloseFactor(closeFactor.encode()), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setCloseFactor(closeFactor.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -183,7 +181,7 @@ async function setCloseFactor(world: World, from: string, comptroller: Comptroll
 }
 
 async function setVAIMintRate(world: World, from: string, comptroller: Comptroller, vaiMintRate: NumberV): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setVAIMintRate(vaiMintRate.encode()), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setVAIMintRate(vaiMintRate.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -195,7 +193,7 @@ async function setVAIMintRate(world: World, from: string, comptroller: Comptroll
 }
 
 async function setVAIController(world: World, from: string, comptroller: Comptroller, vaicontroller: string): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setVAIController(vaicontroller), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setVAIController(vaicontroller), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -207,7 +205,7 @@ async function setVAIController(world: World, from: string, comptroller: Comptro
 }
 
 async function fastForward(world: World, from: string, comptroller: Comptroller, blocks: NumberV): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods.fastForward(blocks.encode()), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods.fastForward(blocks.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -229,7 +227,7 @@ async function sendAny(world: World, from: string, comptroller: Comptroller, sig
 }
 
 async function addVenusMarkets(world: World, from: string, comptroller: Comptroller, vTokens: VToken[]): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._addVenusMarkets(vTokens.map(c => c._address)), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._addVenusMarkets(vTokens.map(c => c._address)), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -241,7 +239,7 @@ async function addVenusMarkets(world: World, from: string, comptroller: Comptrol
 }
 
 async function dropVenusMarket(world: World, from: string, comptroller: Comptroller, vToken: VToken): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._dropVenusMarket(vToken._address), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._dropVenusMarket(vToken._address), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -253,7 +251,7 @@ async function dropVenusMarket(world: World, from: string, comptroller: Comptrol
 }
 
 async function refreshVenusSpeeds(world: World, from: string, comptroller: Comptroller): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods.refreshVenusSpeeds(), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods.refreshVenusSpeeds(), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -265,7 +263,7 @@ async function refreshVenusSpeeds(world: World, from: string, comptroller: Compt
 }
 
 async function claimVenus(world: World, from: string, comptroller: Comptroller, holder: string): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods.claimVenus(holder), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods.claimVenus(holder), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -277,7 +275,7 @@ async function claimVenus(world: World, from: string, comptroller: Comptroller, 
 }
 
 async function grantXVS(world: World, from: string, comptroller: Comptroller, recipient: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._grantXVS(recipient, amount.encode()), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._grantXVS(recipient, amount.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -289,7 +287,7 @@ async function grantXVS(world: World, from: string, comptroller: Comptroller, re
 }
 
 async function setVenusRate(world: World, from: string, comptroller: Comptroller, rate: NumberV): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setVenusRate(rate.encode()), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setVenusRate(rate.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -301,7 +299,7 @@ async function setVenusRate(world: World, from: string, comptroller: Comptroller
 }
 
 async function setVenusSpeed(world: World, from: string, comptroller: Comptroller, vToken: VToken, speed: NumberV): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setVenusSpeed(vToken._address, speed.encode()), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setVenusSpeed(vToken._address, speed.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -313,14 +311,14 @@ async function setVenusSpeed(world: World, from: string, comptroller: Comptrolle
 }
 
 async function printLiquidity(world: World, comptroller: Comptroller): Promise<World> {
-  let enterEvents = await getPastEvents(world, comptroller, 'StdComptroller', 'MarketEntered');
-  let addresses = enterEvents.map((event) => event.returnValues['account']);
-  let uniq = [...new Set(addresses)];
+  const enterEvents = await getPastEvents(world, comptroller, 'StdComptroller', 'MarketEntered');
+  const addresses = enterEvents.map((event) => event.returnValues['account']);
+  const uniq = [...new Set(addresses)];
 
   world.printer.printLine("Liquidity:")
 
   const liquidityMap = await Promise.all(uniq.map(async (address) => {
-    let userLiquidity = await getLiquidity(world, comptroller, address);
+    const userLiquidity = await getLiquidity(world, comptroller, address);
 
     return [address, userLiquidity.val];
   }));
@@ -333,7 +331,7 @@ async function printLiquidity(world: World, comptroller: Comptroller): Promise<W
 }
 
 async function setPendingAdmin(world: World, from: string, comptroller: Comptroller, newPendingAdmin: string): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setPendingAdmin(newPendingAdmin), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setPendingAdmin(newPendingAdmin), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -345,7 +343,7 @@ async function setPendingAdmin(world: World, from: string, comptroller: Comptrol
 }
 
 async function acceptAdmin(world: World, from: string, comptroller: Comptroller): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._acceptAdmin(), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._acceptAdmin(), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -357,7 +355,7 @@ async function acceptAdmin(world: World, from: string, comptroller: Comptroller)
 }
 
 async function setMarketBorrowCaps(world: World, from: string, comptroller: Comptroller, vTokens: VToken[], borrowCaps: NumberV[]): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setMarketBorrowCaps(vTokens.map(c => c._address), borrowCaps.map(c => c.encode())), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setMarketBorrowCaps(vTokens.map(c => c._address), borrowCaps.map(c => c.encode())), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -369,7 +367,7 @@ async function setMarketBorrowCaps(world: World, from: string, comptroller: Comp
 }
 
 async function setBorrowCapGuardian(world: World, from: string, comptroller: Comptroller, newBorrowCapGuardian: string): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setBorrowCapGuardian(newBorrowCapGuardian), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setBorrowCapGuardian(newBorrowCapGuardian), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -381,7 +379,7 @@ async function setBorrowCapGuardian(world: World, from: string, comptroller: Com
 }
 
 async function setMarketSupplyCaps(world: World, from: string, comptroller: Comptroller, vTokens: VToken[], supplyCaps: NumberV[]): Promise<World> {
-    let invokation = await invoke(world, comptroller.methods._setMarketSupplyCaps(vTokens.map(c => c._address), supplyCaps.map(c => c.encode())), from, ComptrollerErrorReporter);
+    const invokation = await invoke(world, comptroller.methods._setMarketSupplyCaps(vTokens.map(c => c._address), supplyCaps.map(c => c.encode())), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -393,7 +391,7 @@ async function setMarketSupplyCaps(world: World, from: string, comptroller: Comp
 }
 
 async function setComptrollerLens(world: World, from: string, comptroller: Comptroller, newComptrollerLens: string): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setComptrollerLens(newComptrollerLens), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setComptrollerLens(newComptrollerLens), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,
@@ -412,7 +410,7 @@ async function setTreasuryData(
   address: string,
   percent: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(world, comptroller.methods._setTreasuryData(guardian, address, percent.encode()), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, comptroller.methods._setTreasuryData(guardian, address, percent.encode()), from, ComptrollerErrorReporter);
 
   world = addAction(
     world,

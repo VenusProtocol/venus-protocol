@@ -6,7 +6,6 @@ const {
   setOraclePriceFromMantissa
 } = require('../Utils/Venus');
 
-const borrowedPrice = 1e18;
 const collateralPrice = 1e18;
 const repayAmount = bnbUnsigned(1e18);
 
@@ -19,14 +18,10 @@ function rando(min, max) {
 }
 
 describe('Comptroller', () => {
-  let root, accounts;
-  let comptroller, vaicontroller, vai, vTokenCollateral;
+  let comptroller, vTokenCollateral;
 
   beforeEach(async () => {
-    [root, ...accounts] = saddle.accounts;
     comptroller = await makeComptroller();
-    vaicontroller = comptroller.vaicontroller;
-    vai = comptroller.vai;
     vTokenCollateral = await makeVToken({comptroller: comptroller, underlyingPrice: 0});
   });
 

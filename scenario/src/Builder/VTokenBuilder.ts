@@ -2,7 +2,7 @@ import { Event } from '../Event';
 import { World } from '../World';
 import { VBep20Delegator, VBep20DelegatorScenario } from '../Contract/VBep20Delegator';
 import { VToken } from '../Contract/VToken';
-import { Invokation, invoke } from '../Invokation';
+import { Invokation } from '../Invokation';
 import { getAddressV, getExpNumberV, getNumberV, getStringV } from '../CoreValue';
 import { AddressV, NumberV, StringV } from '../Value';
 import { Arg, Fetcher, getFetcherValue } from '../Command';
@@ -382,8 +382,8 @@ export async function buildVToken(
     )
   ];
 
-  let tokenData = await getFetcherValue<any, TokenData>("DeployVToken", fetchers, world, params);
-  let invokation = tokenData.invokation;
+  const tokenData = await getFetcherValue<any, TokenData>("DeployVToken", fetchers, world, params);
+  const invokation = tokenData.invokation;
   delete tokenData.invokation;
 
   if (invokation.error) {

@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { utils, ethers } from 'ethers';
+import { utils } from 'ethers';
 
 const smallEnoughNumber = new BigNumber('100000000');
 

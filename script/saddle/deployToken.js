@@ -22,7 +22,7 @@ npx saddle -n rinkeby script token:deploy '{
 }
 
 function sleep(timeout) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     setTimeout(() => {
       resolve();
     }, timeout);
@@ -30,6 +30,10 @@ function sleep(timeout) {
 }
 
 (async function() {
+  // @FIX ME This script had undefined vars have been stubbed out for linting
+  const network = process.env.NETWORK;
+  const addresses = [];
+  const args = [];
   if (args.length !== 1) {
     return printUsage();
   }

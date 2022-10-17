@@ -9,7 +9,7 @@ fs.readFile('.build/contracts.json', (err, data) => {
 
   const limit = 24576;
 
-  Object.keys(contracts).forEach((contractName, i) => {
+  Object.keys(contracts).forEach((contractName) => {
     const contract = contracts[contractName];
     const bin = contract['bin'];
     const digits = bin.length;

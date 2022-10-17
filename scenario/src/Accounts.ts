@@ -1,4 +1,3 @@
-import {World} from './World';
 import {Map} from 'immutable';
 
 export const accountMap = {
@@ -35,7 +34,7 @@ export interface Account {
 export type Accounts = Map<string, Account>
 
 export function accountAliases(index: number): string[] {
-  return Object.entries(accountMap).filter(([k,v]) => v === index).map(([k,v]) => k);
+  return Object.entries(accountMap).filter(([_k,v]) => v === index).map(([k,_v]) => k);
 }
 
 export function loadAccounts(accounts: string[]): Accounts {

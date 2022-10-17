@@ -3,7 +3,6 @@ const {
   bnbUnsigned,
   bnbMantissa,
   freezeTime,
-  address
 } = require('./Utils/BSC');
 
 const BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
@@ -17,11 +16,12 @@ describe('VRTConverterProxy', () => {
   let vrtConversion, vrtConversionAddress,
     vrtToken, vrtTokenAddress,
     xvsToken, xvsTokenAddress;
-  let blockTimestamp, delay = 10;
+  let blockTimestamp;
   let conversionRatio, conversionRatioMultiplier, conversionStartTime, conversionPeriod;
   let vrtTransferAmount, vrtFundingAmount;
-  let vrtForMint, xvsTokenMintAmount;
+  let vrtForMint;
   let xvsVesting, xvsVestingAddress;
+  let accounts = [];
 
   beforeEach(async () => {
     [root, alice, bob, ...accounts] = saddle.accounts;
@@ -132,7 +132,7 @@ describe('VRTConverterProxy', () => {
   });
 
   describe("convert VRT to XVS", () => {
-
+    let vrtTransferAmount_Conversion_1;
     it("alice can convert her VRT", async () => {
       vrtTransferAmount = bnbMantissa(10000);
       await send(vrtToken, "approve", [vrtConversionAddress, vrtTransferAmount], { from: alice });

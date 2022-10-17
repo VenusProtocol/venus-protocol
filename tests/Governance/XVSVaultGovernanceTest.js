@@ -1,10 +1,7 @@
 const {
   address,
   bnbUnsigned,
-  minerStart,
-  minerStop,
   unlockedAccount,
-  mineBlock
 } = require('../Utils/BSC');
 
 const EIP712 = require('../Utils/EIP712');
@@ -12,7 +9,7 @@ const EIP712 = require('../Utils/EIP712');
 describe('XVSVault governance', () => {
   const name = 'XVSVault';
 
-  let root, a1, a2, accounts, chainId;
+  let root, a1, a2, accounts, chainId; // eslint-disable-line @typescript-eslint/no-unused-vars
   let xvs, xvsVault, xvsStore;
 
   async function deployVault(root) {

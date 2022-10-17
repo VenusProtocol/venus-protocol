@@ -8,11 +8,9 @@ import {
   getCoreValue,
   getEventV,
 } from '../CoreValue';
-import {Invariant} from '../Invariant';
 import {StaticInvariant} from '../Invariant/StaticInvariant';
 import {RemainsInvariant} from '../Invariant/RemainsInvariant';
 import {SuccessInvariant} from '../Invariant/SuccessInvariant';
-import {formatEvent} from '../Formatter';
 import {Arg, View, processCommandEvent} from '../Command';
 
 
@@ -65,7 +63,7 @@ export function invariantCommands() {
       ],
       (world, {condition, value}) => remainsInvariant(world, condition.val, value)
     ),
-    new View<{}>(`
+    new View(`
         #### Success
 
         * "Invariant Success" - Ensures that each transaction completes successfully
@@ -73,7 +71,7 @@ export function invariantCommands() {
       `,
       "Success",
       [],
-      (world, {}) => successInvariant(world)
+      (world) => successInvariant(world)
     )
   ];
 }

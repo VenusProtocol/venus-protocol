@@ -9,10 +9,6 @@ import {
   Value
 } from '../Value';
 
-async function getUserAddress(world: World, user: string): Promise<AddressV> {
-  return new AddressV(user);
-}
-
 export function userFetchers() {
   return [
     new Fetcher<{account: AddressV}, AddressV>(`

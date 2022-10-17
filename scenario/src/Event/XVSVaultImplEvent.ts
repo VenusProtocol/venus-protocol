@@ -5,13 +5,13 @@ import { buildXVSVaultImpl } from '../Builder/XVSVaultImplBuilder';
 import { invoke } from '../Invokation';
 import { getEventV } from '../CoreValue';
 import { EventV } from '../Value';
-import { Arg, Command, processCommandEvent, View } from '../Command';
+import { Arg, Command, processCommandEvent } from '../Command';
 import { getXVSVaultImpl, getXVSVaultProxy } from '../ContractLookup';
 import { NoErrorReporter } from '../ErrorReporter';
 import { mergeContractABI } from '../Networks';
 
 async function genXVSVault(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, xvsVaultImpl, xvsVaultData } = await buildXVSVaultImpl(world, from, params);
+  const { world: nextWorld, xvsVaultImpl, xvsVaultData } = await buildXVSVaultImpl(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -29,7 +29,7 @@ async function become(
     impl: XVSVaultImpl,
     proxy: XVSVaultProxy
   ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     impl.methods._become(proxy._address),
     from,

@@ -29,9 +29,8 @@ describe('XVSVaultProxy', () => {
 
   describe("_setPendingImplementation", () => {
     describe("Check caller is admin", () => {
-      let result;
       beforeEach(async () => {
-        result = await setPending(vaultImpl, accounts[1]);
+        await setPending(vaultImpl, accounts[1]);
       });
 
       it("does not change pending implementation address", async () => {

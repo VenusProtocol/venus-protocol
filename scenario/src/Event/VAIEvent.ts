@@ -1,5 +1,5 @@
 import { Event } from '../Event';
-import { addAction, World, describeUser } from '../World';
+import { addAction, World } from '../World';
 import { VAI, VAIScenario } from '../Contract/VAI';
 import { buildVAI } from '../Builder/VAIBuilder';
 import { invoke } from '../Invokation';
@@ -19,10 +19,9 @@ import { Arg, Command, processCommandEvent, View } from '../Command';
 import { getVAI } from '../ContractLookup';
 import { NoErrorReporter } from '../ErrorReporter';
 import { verify } from '../Verify';
-import { encodedNumber } from '../Encoding';
 
 async function genVAI(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, vai, tokenData } = await buildVAI(world, from, params);
+  const { world: nextWorld, vai, tokenData } = await buildVAI(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -45,7 +44,7 @@ async function verifyVAI(world: World, vai: VAI, apiKey: string, modelName: stri
 }
 
 async function approve(world: World, from: string, vai: VAI, address: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vai.methods.approve(address, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, vai.methods.approve(address, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -57,7 +56,7 @@ async function approve(world: World, from: string, vai: VAI, address: string, am
 }
 
 async function faucet(world: World, from: string, vai: VAI, address: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vai.methods.allocateTo(address, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, vai.methods.allocateTo(address, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -69,7 +68,7 @@ async function faucet(world: World, from: string, vai: VAI, address: string, amo
 }
 
 async function transfer(world: World, from: string, vai: VAI, address: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vai.methods.transfer(address, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, vai.methods.transfer(address, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -81,7 +80,7 @@ async function transfer(world: World, from: string, vai: VAI, address: string, a
 }
 
 async function transferFrom(world: World, from: string, vai: VAI, owner: string, spender: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vai.methods.transferFrom(owner, spender, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, vai.methods.transferFrom(owner, spender, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -93,7 +92,7 @@ async function transferFrom(world: World, from: string, vai: VAI, owner: string,
 }
 
 async function transferScenario(world: World, from: string, vai: VAIScenario, addresses: string[], amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vai.methods.transferScenario(addresses, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, vai.methods.transferScenario(addresses, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -105,7 +104,7 @@ async function transferScenario(world: World, from: string, vai: VAIScenario, ad
 }
 
 async function transferFromScenario(world: World, from: string, vai: VAIScenario, addresses: string[], amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vai.methods.transferFromScenario(addresses, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, vai.methods.transferFromScenario(addresses, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -117,7 +116,7 @@ async function transferFromScenario(world: World, from: string, vai: VAIScenario
 }
 
 async function rely(world: World, from: string, vai: VAI, address: string): Promise<World> {
-  let invokation = await invoke(world, vai.methods.rely(address), from, NoErrorReporter);
+  const invokation = await invoke(world, vai.methods.rely(address), from, NoErrorReporter);
 
   world = addAction(
     world,

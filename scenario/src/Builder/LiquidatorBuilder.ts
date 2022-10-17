@@ -1,5 +1,5 @@
 import {Event} from '../Event';
-import {addAction, World} from '../World';
+import {World} from '../World';
 import {Liquidator} from '../Contract/Liquidator';
 import {Invokation} from '../Invokation';
 import {Arg, Fetcher, getFetcherValue} from '../Command';
@@ -54,8 +54,8 @@ export async function buildLiquidator(world: World, from: string, event: Event):
     )
   ];
 
-  let liquidatorData = await getFetcherValue<any, LiquidatorData>("DeployLiquidator", fetchers, world, event);
-  let invokation = liquidatorData.invokation;
+  const liquidatorData = await getFetcherValue<any, LiquidatorData>("DeployLiquidator", fetchers, world, event);
+  const invokation = liquidatorData.invokation;
   delete liquidatorData.invokation;
 
   if (invokation.error) {

@@ -15,7 +15,6 @@ const withdrawBNBAmount = new BigNumber(3e15);
 
 async function makeTreasury(opts = {}) {
   const {
-    root = saddle.account,
     kind = 'vTreasury'
   } = opts || {};
 
@@ -42,7 +41,7 @@ async function withdrawTreasuryBNB(vTreasury, withdrawAmount, withdrawAddress, c
 }
 
 describe('VTreasury', function () {
-  let root, minter, redeemer, accounts;
+  let root, minter, redeemer, accounts; // eslint-disable-line @typescript-eslint/no-unused-vars
   let vTreasury
   let bep20Token;
 

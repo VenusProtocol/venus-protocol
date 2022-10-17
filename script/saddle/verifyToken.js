@@ -20,12 +20,14 @@ npx saddle -n rinkeby script token:verify 0x19B674715cD20626415C738400FDd0d32D68
 }'
   `);
 }
-
 (async function() {
+  // @FIX ME This script had undefined vars have been stubbed out for linting
+  const args = [];
+  const addresses = [];
+  const network = process.env.NETWORK;
   if (args.length !== 2) {
     return printUsage();
   }
-
   let address = loadAddress(args[0], addresses);
   let conf = loadConf(args[1], addresses);
   if (!conf) {

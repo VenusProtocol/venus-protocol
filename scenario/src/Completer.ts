@@ -16,8 +16,8 @@ const actions: string[] = [
 ];
 
 function caseInsensitiveSort(a: string, b: string): number {
-  let A = a.toUpperCase();
-  let B = b.toUpperCase();
+  const A = a.toUpperCase();
+  const B = b.toUpperCase();
 
   if (A < B) {
     return -1;
@@ -29,7 +29,7 @@ function caseInsensitiveSort(a: string, b: string): number {
 }
 
 export function complete(world: World, macros: Macros, line: string) {
-  let allActions = actions.concat(Object.keys(macros)).sort(caseInsensitiveSort);
+  const allActions = actions.concat(Object.keys(macros)).sort(caseInsensitiveSort);
   const hits = allActions.filter((c) => c.toLowerCase().startsWith(line.toLowerCase()));
 
   return [hits, line];

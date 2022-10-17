@@ -1,4 +1,4 @@
-import { BigNumber, Signer } from "ethers";
+import { Signer } from "ethers";
 import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
@@ -53,9 +53,9 @@ describe("Governor Bravo Initializing Test", () => {
 			).to.be.revertedWith("GovernorBravo::initialize: invalid guardian");
 		});
 		it("should revert if timelock adress count differs from governance routes count", async () => {
-			let guardianAddress = await accounts[0].getAddress();
+			const guardianAddress = await accounts[0].getAddress();
 	
-			let timelocks = [
+			const timelocks = [
 				accounts[0].getAddress(),
 				accounts[1].getAddress(),
 			]
@@ -64,15 +64,15 @@ describe("Governor Bravo Initializing Test", () => {
 			).to.be.revertedWith("GovernorBravo::initialize:number of timelocks should match number of governance routes");
 		});
 		it("should revert if proposal config count differs from governance routes count", async () => {
-			let guardianAddress = await accounts[0].getAddress();
-			let proposalConfigs = [
+			const guardianAddress = await accounts[0].getAddress();
+			const proposalConfigs = [
 				{ "votingDelay": 0, "votingPeriod": 1, "proposalThreshold": 2 },
 				{ "votingDelay": 0, "votingPeriod": 2, "proposalThreshold": 3 },
 				{ "votingDelay": 0, "votingPeriod": 3, "proposalThreshold": 4 },
 				{ "votingDelay": 0, "votingPeriod": 4, "proposalThreshold": 5 }
 			];
 	
-			let timelocks = [
+			const timelocks = [
 				accounts[0].getAddress(),
 				accounts[1].getAddress(),
 				accounts[2].getAddress(),
@@ -83,17 +83,17 @@ describe("Governor Bravo Initializing Test", () => {
 		});
 
 		it("should revert if initialized twice", async () => {
-			let guardianAddress = await accounts[0].getAddress();
+			const guardianAddress = await accounts[0].getAddress();
 			const minVotingDelay = await governorBravoDelegate.MIN_VOTING_DELAY();
 			const minVotingPeriod = await governorBravoDelegate.MIN_VOTING_PERIOD();
 			const minProposalThreshold = await governorBravoDelegate.MIN_PROPOSAL_THRESHOLD();
-			let proposalConfigs = [
+			const proposalConfigs = [
 				{ "votingDelay": minVotingDelay.add(10), "votingPeriod": minVotingPeriod.add(100), "proposalThreshold": minProposalThreshold.add(100) },
 				{ "votingDelay": minVotingDelay.add(10), "votingPeriod": minVotingPeriod.add(100), "proposalThreshold": minProposalThreshold.add(100) },
 				{ "votingDelay": minVotingDelay.add(10), "votingPeriod": minVotingPeriod.add(100), "proposalThreshold": minProposalThreshold.add(100) }
 			];
 	
-			let timelocks = [
+			const timelocks = [
 				accounts[0].getAddress(),
 				accounts[1].getAddress(),
 				accounts[2].getAddress(),

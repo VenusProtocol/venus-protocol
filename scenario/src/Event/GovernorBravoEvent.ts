@@ -12,8 +12,7 @@ import {
   getCoreValue,
 } from "../CoreValue";
 import { AddressV, ArrayV, EventV, NumberV, StringV } from "../Value";
-import { Arg, Command, processCommandEvent, View } from "../Command";
-import { verify } from "../Verify";
+import { Arg, Command, processCommandEvent } from "../Command";
 import { encodedNumber } from "../Encoding";
 import { processProposalEvent } from "./BravoProposalEvent";
 import { encodeParameters, rawValues } from "../Utils";
@@ -25,7 +24,7 @@ async function genGovernor(
   from: string,
   params: Event
 ): Promise<World> {
-  let { world: nextWorld, governor, govData } = await buildGovernor(
+  const { world: nextWorld, governor, govData } = await buildGovernor(
     world,
     from,
     params
@@ -37,24 +36,6 @@ async function genGovernor(
     `Deployed GovernorBravo ${govData.contract} to address ${governor._address}`,
     govData.invokation
   );
-}
-
-async function verifyGovernor(
-  world: World,
-  governor: GovernorBravo,
-  apiKey: string,
-  modelName: string,
-  contractName: string
-): Promise<World> {
-  if (world.isLocalNetwork()) {
-    world.printer.printLine(
-      `Politely declining to verify on local network: ${world.network}.`
-    );
-  } else {
-    await verify(world, apiKey, modelName, contractName, governor._address);
-  }
-
-  return world;
 }
 
 async function mergeABI(
@@ -111,7 +92,7 @@ async function setVotingDelay(
   governor: GovernorBravo,
   newVotingDelay: NumberV
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     governor.methods._setVotingDelay(newVotingDelay.encode()),
     from
@@ -132,7 +113,7 @@ async function setVotingPeriod(
   governor: GovernorBravo,
   newVotingPeriod: NumberV
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     governor.methods._setVotingPeriod(newVotingPeriod.encode()),
     from
@@ -153,7 +134,7 @@ async function setProposalThreshold(
   governor: GovernorBravo,
   newProposalThreshold: NumberV
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     governor.methods._setProposalThreshold(newProposalThreshold.encode()),
     from
@@ -174,7 +155,7 @@ async function setProposalMaxOperations(
   governor: GovernorBravo,
   newProposalMaxOperations: NumberV
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     governor.methods._setProposalMaxOperations(newProposalMaxOperations.encode()),
     from
@@ -195,7 +176,7 @@ async function setImplementation(
   governor: GovernorBravo,
   newImplementation: GovernorBravo
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     governor.methods._setImplementation(newImplementation._address),
     from
@@ -218,7 +199,7 @@ async function initiate(
   governor: GovernorBravo,
   governorAlpha: string
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     governor.methods._initiate(governorAlpha),
     from
@@ -238,7 +219,7 @@ async function harnessInitiate(
   from: string,
   governor: GovernorBravo
 ): Promise<World> {
-  let invokation = await invoke(world, governor.methods._initiate(), from);
+  const invokation = await invoke(world, governor.methods._initiate(), from);
 
   world = addAction(
     world,
@@ -255,7 +236,7 @@ async function setPendingAdmin(
   governor: GovernorBravo,
   newPendingAdmin: string
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     governor.methods._setPendingAdmin(newPendingAdmin),
     from
@@ -275,7 +256,7 @@ async function acceptAdmin(
   from: string,
   governor: GovernorBravo
 ): Promise<World> {
-  let invokation = await invoke(world, governor.methods._acceptAdmin(), from);
+  const invokation = await invoke(world, governor.methods._acceptAdmin(), from);
 
   world = addAction(world, `Governor admin accepted`, invokation);
 
@@ -288,7 +269,7 @@ async function setGuardian(
   governor: GovernorBravo,
   newGuardian: string
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     governor.methods._setGuardian(newGuardian),
     from

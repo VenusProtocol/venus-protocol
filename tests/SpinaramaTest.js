@@ -13,10 +13,10 @@ const {
 } = require('./Utils/Venus');
 
 describe('Spinarama', () => {
-  let root, from, accounts;
+  let root, from; // eslint-disable-line @typescript-eslint/no-unused-vars
 
   beforeEach(async () => {
-    [root, from, ...accounts] = saddle.accounts;
+    [root, from] = saddle.accounts;
   });
 
   describe('#mintMint', () => {
@@ -117,221 +117,221 @@ describe('Spinarama', () => {
 
     // XXX not yet converted below this point...moving on to certora
 
-    it.skip('can have partial failure succeed', async () => {
-      const {moneyMarketHarness,
-        priceOracle,
-        interestRateModel} = await setupMoneyMarket(root);
-      const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
-      const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
-      const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+    // it.skip('can have partial failure succeed', async () => {
+    //   const {moneyMarketHarness,
+    //     priceOracle,
+    //     interestRateModel} = await setupMoneyMarket(root);
+    //   const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
+    //   const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+    //   const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
 
-      // Add cash to the protocol
-      await addCash(moneyMarketHarness, BAT, root);
+    //   // Add cash to the protocol
+    //   await addCash(moneyMarketHarness, BAT, root);
 
-      // Supply some collateral
-      expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
+    //   // Supply some collateral
+    //   expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
 
-      // Now borrow 5 bat
-      expect(await spinarama.methods.borrow(BAT._address, 5).send({from: accounts[0]})).toSucceed();
+    //   // Now borrow 5 bat
+    //   expect(await spinarama.methods.borrow(BAT._address, 5).send({from: accounts[0]})).toSucceed();
 
-      // And repay it, repay it
-      const {'0': err0, '1': err1} = await spinarama.methods.repayRepay(BAT._address, 100, 1).call({from: accounts[0]});
+    //   // And repay it, repay it
+    //   const {'0': err0, '1': err1} = await spinarama.methods.repayRepay(BAT._address, 100, 1).call({from: accounts[0]});
 
-      expect(err0).hasErrorCode(ErrorEnum.INTEGER_UNDERFLOW);
-      expect(err1).hasErrorCode(ErrorEnum.NO_ERROR);
-    });
+    //   expect(err0).hasErrorCode(ErrorEnum.INTEGER_UNDERFLOW);
+    //   expect(err1).hasErrorCode(ErrorEnum.NO_ERROR);
+    // });
   });
 
-  describe('#borrowRepayBorrow', () => {
-    it.skip('should fail', async () => {
-      const {moneyMarketHarness,
-        priceOracle,
-        interestRateModel} = await setupMoneyMarket(root);
-      const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
-      const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
-      const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  // describe('#borrowRepayBorrow', () => {
+  //   it.skip('should fail', async () => {
+  //     const {moneyMarketHarness,
+  //       priceOracle,
+  //       interestRateModel} = await setupMoneyMarket(root);
+  //     const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
+  //     const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //     const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
 
-      // Add cash to the protocol
-      await addCash(moneyMarketHarness, BAT, root);
+  //     // Add cash to the protocol
+  //     await addCash(moneyMarketHarness, BAT, root);
 
-      // Supply some collateral
-      expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
+  //     // Supply some collateral
+  //     expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
 
-      // Borrow then repayBorrow should revert
-      await expect(
-        spinarama.methods.borrowRepayBorrow(BAT._address, 5, 1).call({from: accounts[0]})
-      ).rejects.toRevert();
-    });
+  //     // Borrow then repayBorrow should revert
+  //     await expect(
+  //       spinarama.methods.borrowRepayBorrow(BAT._address, 5, 1).call({from: accounts[0]})
+  //     ).rejects.toRevert();
+  //   });
 
-    it.skip('can succeed with partial failure', async () => {
-      const {moneyMarketHarness,
-        priceOracle,
-        interestRateModel} = await setupMoneyMarket(root);
-      const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
-      const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
-      const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //   it.skip('can succeed with partial failure', async () => {
+  //     const {moneyMarketHarness,
+  //       priceOracle,
+  //       interestRateModel} = await setupMoneyMarket(root);
+  //     const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
+  //     const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //     const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
 
-      // Add cash to the protocol
-      await addCash(moneyMarketHarness, BAT, root);
+  //     // Add cash to the protocol
+  //     await addCash(moneyMarketHarness, BAT, root);
 
-      // Supply some collateral
-      expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
+  //     // Supply some collateral
+  //     expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
 
-      // Borrow a little, repay a lot
-      const {'0': err0, '1': err1} = await spinarama.methods.borrowRepayBorrow(BAT._address, 1, 1000).call({from: accounts[0]});
+  //     // Borrow a little, repay a lot
+  //     const {'0': err0, '1': err1} = await spinarama.methods.borrowRepayBorrow(BAT._address, 1, 1000).call({from: accounts[0]});
 
-      expect(err0).hasErrorCode(ErrorEnum.NO_ERROR);
-      expect(err1).hasErrorCode(ErrorEnum.INTEGER_UNDERFLOW);
-    });
-  });
+  //     expect(err0).hasErrorCode(ErrorEnum.NO_ERROR);
+  //     expect(err1).hasErrorCode(ErrorEnum.INTEGER_UNDERFLOW);
+  //   });
+  // });
 
-  describe('#borrowSupply', () => {
-    it.skip('should fail in same asset', async () => {
-      const {moneyMarketHarness,
-        priceOracle,
-        interestRateModel} = await setupMoneyMarket(root);
-      const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
-      const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
-      const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  // describe('#borrowSupply', () => {
+  //   it.skip('should fail in same asset', async () => {
+  //     const {moneyMarketHarness,
+  //       priceOracle,
+  //       interestRateModel} = await setupMoneyMarket(root);
+  //     const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
+  //     const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //     const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
 
-      // Add cash to the protocol
-      await addCash(moneyMarketHarness, BAT, root);
+  //     // Add cash to the protocol
+  //     await addCash(moneyMarketHarness, BAT, root);
 
-      // Supply some collateral
-      expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
+  //     // Supply some collateral
+  //     expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
 
-      // Borrow then supply should revert
-      await expect(
-        spinarama.methods.borrowSupply(BAT._address, BAT._address, 5, 1).call({from: accounts[0]})
-      ).rejects.toRevert();
-    });
+  //     // Borrow then supply should revert
+  //     await expect(
+  //       spinarama.methods.borrowSupply(BAT._address, BAT._address, 5, 1).call({from: accounts[0]})
+  //     ).rejects.toRevert();
+  //   });
 
-    it.skip('should fail, even in different assets', async () => {
-      const {moneyMarketHarness,
-        priceOracle,
-        interestRateModel} = await setupMoneyMarket(root);
-      const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
-      const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
-      const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //   it.skip('should fail, even in different assets', async () => {
+  //     const {moneyMarketHarness,
+  //       priceOracle,
+  //       interestRateModel} = await setupMoneyMarket(root);
+  //     const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
+  //     const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //     const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
 
-      // Add cash to the protocol
-      await addCash(moneyMarketHarness, BAT, root);
+  //     // Add cash to the protocol
+  //     await addCash(moneyMarketHarness, BAT, root);
 
-      // Supply some collateral
-      expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
+  //     // Supply some collateral
+  //     expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
 
-      // Borrow then supply in different assets
-      await expect(
-        spinarama.methods.borrowSupply(BAT._address, OMG._address, 5, 1).call({from: accounts[0]})
-      ).rejects.toRevert();
-    });
-  });
+  //     // Borrow then supply in different assets
+  //     await expect(
+  //       spinarama.methods.borrowSupply(BAT._address, OMG._address, 5, 1).call({from: accounts[0]})
+  //     ).rejects.toRevert();
+  //   });
+  // });
 
-  describe('#supplyLiquidate', () => {
-    it.skip('should fail', async () => {
-      const {moneyMarketHarness,
-        priceOracle,
-        interestRateModel} = await setupMoneyMarket(root);
-      const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
-      const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
-      const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  // describe('#supplyLiquidate', () => {
+  //   it.skip('should fail', async () => {
+  //     const {moneyMarketHarness,
+  //       priceOracle,
+  //       interestRateModel} = await setupMoneyMarket(root);
+  //     const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
+  //     const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //     const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
 
-      // Add cash to the protocol
-      await addCash(moneyMarketHarness, BAT, root);
+  //     // Add cash to the protocol
+  //     await addCash(moneyMarketHarness, BAT, root);
 
-      // Supply some collateral
-      expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
+  //     // Supply some collateral
+  //     expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
 
-      await expect(
-        spinarama.methods.supplyLiquidate(OMG._address, 5, accounts[0], OMG._address, BAT._address, 0).call({from: accounts[0]})
-      ).rejects.toRevert();
-    });
-  });
+  //     await expect(
+  //       spinarama.methods.supplyLiquidate(OMG._address, 5, accounts[0], OMG._address, BAT._address, 0).call({from: accounts[0]})
+  //     ).rejects.toRevert();
+  //   });
+  // });
 
-  describe('#withdrawLiquidate', () => {
-    it.skip('should fail', async () => {
-      const {moneyMarketHarness,
-        priceOracle,
-        interestRateModel} = await setupMoneyMarket(root);
-      const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
-      const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
-      const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  // describe('#withdrawLiquidate', () => {
+  //   it.skip('should fail', async () => {
+  //     const {moneyMarketHarness,
+  //       priceOracle,
+  //       interestRateModel} = await setupMoneyMarket(root);
+  //     const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
+  //     const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //     const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
 
-      // Add cash to the protocol
-      await addCash(moneyMarketHarness, BAT, root);
+  //     // Add cash to the protocol
+  //     await addCash(moneyMarketHarness, BAT, root);
 
-      // Supply some collateral
-      expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
+  //     // Supply some collateral
+  //     expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
 
-      await expect(
-        spinarama.methods.withdrawLiquidate(OMG._address, 5, accounts[0], OMG._address, BAT._address, 0).call({from: accounts[0]})
-      ).rejects.toRevert();
-    });
-  });
+  //     await expect(
+  //       spinarama.methods.withdrawLiquidate(OMG._address, 5, accounts[0], OMG._address, BAT._address, 0).call({from: accounts[0]})
+  //     ).rejects.toRevert();
+  //   });
+  // });
 
-  describe('#borrowLiquidate', () => {
-    it.skip('should fail', async () => {
-      const {moneyMarketHarness,
-        priceOracle,
-        interestRateModel} = await setupMoneyMarket(root);
-      const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
-      const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
-      const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  // describe('#borrowLiquidate', () => {
+  //   it.skip('should fail', async () => {
+  //     const {moneyMarketHarness,
+  //       priceOracle,
+  //       interestRateModel} = await setupMoneyMarket(root);
+  //     const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
+  //     const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //     const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
 
-      // Add cash to the protocol
-      await addCash(moneyMarketHarness, BAT, root);
+  //     // Add cash to the protocol
+  //     await addCash(moneyMarketHarness, BAT, root);
 
-      // Supply some collateral
-      expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
+  //     // Supply some collateral
+  //     expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
 
-      await expect(
-        spinarama.methods.borrowLiquidate(OMG._address, 5, accounts[0], OMG._address, BAT._address, 0).call({from: accounts[0]})
-      ).rejects.toRevert();
-    });
-  });
+  //     await expect(
+  //       spinarama.methods.borrowLiquidate(OMG._address, 5, accounts[0], OMG._address, BAT._address, 0).call({from: accounts[0]})
+  //     ).rejects.toRevert();
+  //   });
+  // });
 
-  describe('#repayBorrowLiquidate', () => {
-    it.skip('should fail', async () => {
-      const {moneyMarketHarness,
-        priceOracle,
-        interestRateModel} = await setupMoneyMarket(root)
-      const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
-      const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
-      const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  // describe('#repayBorrowLiquidate', () => {
+  //   it.skip('should fail', async () => {
+  //     const {moneyMarketHarness,
+  //       priceOracle,
+  //       interestRateModel} = await setupMoneyMarket(root)
+  //     const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
+  //     const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //     const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
 
-      // Add cash to the protocol
-      await addCash(moneyMarketHarness, BAT, root);
+  //     // Add cash to the protocol
+  //     await addCash(moneyMarketHarness, BAT, root);
 
-      // Supply some collateral
-      expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
+  //     // Supply some collateral
+  //     expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
 
-      // Borrow some OMG
-      expect(await spinarama.methods.borrow(OMG._address, 5).send({from: accounts[0]})).toSucceed();
+  //     // Borrow some OMG
+  //     expect(await spinarama.methods.borrow(OMG._address, 5).send({from: accounts[0]})).toSucceed();
 
-      await expect(
-        spinarama.methods.repayBorrowLiquidate(OMG._address, 1, accounts[0], OMG._address, BAT._address, 0).call({from: accounts[0]})
-      ).rejects.toRevert();
-    });
-  });
+  //     await expect(
+  //       spinarama.methods.repayBorrowLiquidate(OMG._address, 1, accounts[0], OMG._address, BAT._address, 0).call({from: accounts[0]})
+  //     ).rejects.toRevert();
+  //   });
+  // });
 
-  describe('#liquidateLiquidate', () => {
-    it.skip('should fail', async () => {
-      const {moneyMarketHarness,
-        priceOracle,
-        interestRateModel} = await setupMoneyMarket(root)
-      const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
-      const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
-      const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  // describe('#liquidateLiquidate', () => {
+  //   it.skip('should fail', async () => {
+  //     const {moneyMarketHarness,
+  //       priceOracle,
+  //       interestRateModel} = await setupMoneyMarket(root)
+  //     const spinarama = await Spinarama.new(moneyMarketHarness._address).send({from: root});
+  //     const OMG = await setupSupply(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
+  //     const BAT = await setupBorrow(root, accounts[0], spinarama, moneyMarketHarness, priceOracle, interestRateModel);
 
-      // Add cash to the protocol
-      await addCash(moneyMarketHarness, BAT, root);
+  //     // Add cash to the protocol
+  //     await addCash(moneyMarketHarness, BAT, root);
 
-      // Supply some collateral
-      expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
+  //     // Supply some collateral
+  //     expect(await spinarama.methods.supply(OMG._address, 15).send({from: accounts[0]})).toSucceed();
 
-      await expect(
-        spinarama.methods.liquidateLiquidate(OMG._address, 1, accounts[0], OMG._address, BAT._address, 0).call({from: accounts[0]})
-      ).rejects.toRevert();
-    });
-  });
+  //     await expect(
+  //       spinarama.methods.liquidateLiquidate(OMG._address, 1, accounts[0], OMG._address, BAT._address, 0).call({from: accounts[0]})
+  //     ).rejects.toRevert();
+  //   });
+  // });
 });

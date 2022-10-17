@@ -1,8 +1,6 @@
 // FORKING=true npx hardhat run script/hardhat/simulations/nextComptrollerUpgrade.js
 
-const { expect, web3 } = require('hardhat');
 const BigNumber = require('bignumber.js');
-const fs = require('fs');
 const { deploy, getContractAt, impersonate, mergeInterface } = require('../utils/misc');
 const { Contracts: 
     {

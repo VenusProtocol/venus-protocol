@@ -9,7 +9,6 @@ import {
   getStringV
 } from '../CoreValue';
 import {
-  AddressV,
   BoolV,
   EventV,
   ListV,
@@ -162,7 +161,7 @@ async function assertSuccess(world: World): Promise<World> {
 
 async function assertReadError(world: World, event: Event, message: string, isRevert: boolean): Promise<World> {
   try {
-    let value = await getCoreValue(world, event);
+    const value = await getCoreValue(world, event);
 
     throw new Error(`Expected read revert, instead got value \`${value}\``);
   } catch (err) {
@@ -214,7 +213,7 @@ async function assertLog(world: World, event: string, keyValues: MapV): Promise<
             if (_log.returnValues[key] === undefined) {
               return false;
             } else {
-              let logValue = getLogValue(_log.returnValues[key]);
+              const logValue = getLogValue(_log.returnValues[key]);
 
               if (!logValue.compareTo(world, value)) {
                 return false;
@@ -240,7 +239,7 @@ async function assertLog(world: World, event: string, keyValues: MapV): Promise<
         if (log.returnValues[key] === undefined) {
           fail(world, `Expected log to have param for \`${key}\``);
         } else {
-          let logValue = getLogValue(log.returnValues[key]);
+          const logValue = getLogValue(log.returnValues[key]);
 
           if (!logValue.compareTo(world, value)) {
             fail(world, `Expected log to have param \`${key}\` to match ${value.toString()}, but got ${logValue.toString()}`);
@@ -432,7 +431,7 @@ export function assertionCommands() {
       `,
       "Success",
       [],
-      (world, { given }) => assertSuccess(world)
+      (world) => assertSuccess(world)
     ),
 
     new View<{ name: StringV, params: MapV }>(`

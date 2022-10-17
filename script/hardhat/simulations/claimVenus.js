@@ -1,9 +1,8 @@
 // FORKING=true npx hardhat run script/hardhat/simulations/claimVenus.js
 
-const { expect, web3 } = require('hardhat');
+const { web3 } = require('hardhat');
 const BigNumber = require('bignumber.js');
-const fs = require('fs');
-const { deploy, getContractAt, impersonate, mergeInterface } = require('../utils/misc');
+const { getContractAt, impersonate, mergeInterface } = require('../utils/misc');
 const { Contracts: 
     {
         Unitroller: comptrollerProxyAddress,
@@ -39,7 +38,6 @@ async function claimVenus() {
     console.log(`expected venus reward:`, expectedVenusReward)
 
     // simulating how many venus they are gonna get in real world
-    let actualReward = 0;
     const beforeVenusBalance = await xvsToken.methods.balanceOf(target).call();
     console.log(`claiming reward for: ${target}, before balance:`, beforeVenusBalance);
     await comptrollerProxyContract.methods.claimVenus(target).send({ from: target });

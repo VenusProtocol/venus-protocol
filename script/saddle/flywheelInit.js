@@ -1,6 +1,5 @@
 let https = require('https');
 let fs = require('fs').promises;
-let { promisify } = require('util');
 let assert = require('assert');
 let { getArray, getNumber, getBoolean } = require('./support/tokenConfig.js');
 
@@ -80,7 +79,7 @@ let isKnownNetwork = (src) => {
 
 let fetch = async (url) => {
 	console.log(`Requesting ${url}\n`);
-	return new Promise((resolve, reject) => {
+	return new Promise((resolve) => {
 		https.get(url, (res) => {
 			let data = '';
 			res.on('data', (d) => {
@@ -105,7 +104,9 @@ let readFile = async (filename) => {
 	return fs.readFile(filename, { encoding: 'utf-8' });
 };
 
-let readFixture = async (filename) => {
+let readFixture = async () => {
+	// @FIX ME This script had undefined vars have been stubbed out for linting
+	const network = process.env.NETWORK;
 	let url = `./script/saddle/fixture/${network}_borrowers.json`;
 	console.log(`Reading ${url}`);
 	let file = await readFile(url);
@@ -113,6 +114,8 @@ let readFixture = async (filename) => {
 };
 
 let writeFixture = async (data) => {
+	// @FIX ME This script had undefined vars have been stubbed out for linting
+	const network = process.env.NETWORK;
 	await writeFile(`./script/saddle/fixture/${network}_borrowers.json`, JSON.stringify(data));
 }
 
@@ -127,6 +130,9 @@ let getChunks = (src, chunkSize) => {
 };
 
 let getTestData = () => {
+	// @FIX ME This script had undefined vars have been stubbed out for linting
+	const accounts = [];
+	const $vZRX = undefined;
 	let res = {};
 	res[$vZRX] = accounts.slice(3, 7);
 	return res;
@@ -141,6 +147,8 @@ let accountRequest = async (network, opts) => {
 };
 
 let filterInitialized = async (borrowersByVToken) => {
+	// @FIX ME This script had undefined vars have been stubbed out for linting
+	const Comptroller = undefined;
 	let res = {}
 	let batchSize = 75;
 	console.log(`Calling venusBorrowerIndex for borrowers in batches of ${batchSize}...\n`);
@@ -184,6 +192,8 @@ let filterBorrowers = (apiAccounts, vTokenList) => {
 };
 
 let claimVenusBatch = async (borrowersByVToken, opts) => {
+	// @FIX ME This script had undefined vars have been stubbed out for linting
+	const Comptroller = undefined;
 	for (let vTokenAddr of Object.keys(borrowersByVToken)) {
 		let borrowers = borrowersByVToken[vTokenAddr];
 		for (let chunk of getChunks(borrowers, opts.batch)) {
@@ -214,8 +224,10 @@ let claimVenusBatch = async (borrowersByVToken, opts) => {
 };
 
 (async () => {
+	// @FIX ME This script had undefined vars have been stubbed out for linting
+	let args;
+	const network = process.env.NETWORK;
 	let borrowersByVToken;
-	let vTokenMap; // symbol => addrs
 	let opts = getConfig(args[0]);
 	if (network == 'development') {
 		borrowersByVToken = getTestData();

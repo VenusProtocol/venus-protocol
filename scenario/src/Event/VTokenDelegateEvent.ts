@@ -1,23 +1,12 @@
 import { Event } from '../Event';
-import { addAction, describeUser, World } from '../World';
-import { decodeCall, getPastEvents } from '../Contract';
-import { VToken, VTokenScenario } from '../Contract/VToken';
+import { addAction, World } from '../World';
 import { VBep20Delegate } from '../Contract/VBep20Delegate'
-import { invoke, Sendable } from '../Invokation';
 import {
-  getAddressV,
   getEventV,
-  getExpNumberV,
-  getNumberV,
   getStringV,
-  getBoolV
 } from '../CoreValue';
 import {
-  AddressV,
-  BoolV,
   EventV,
-  NothingV,
-  NumberV,
   StringV
 } from '../Value';
 import { Arg, Command, View, processCommandEvent } from '../Command';
@@ -26,7 +15,7 @@ import { buildVTokenDelegate } from '../Builder/VTokenDelegateBuilder';
 import { verify } from '../Verify';
 
 async function genVTokenDelegate(world: World, from: string, event: Event): Promise<World> {
-  let { world: nextWorld, vTokenDelegate, delegateData } = await buildVTokenDelegate(world, from, event);
+  const { world: nextWorld, vTokenDelegate, delegateData } = await buildVTokenDelegate(world, from, event);
   world = nextWorld;
 
   world = addAction(
@@ -72,7 +61,7 @@ export function vTokenDelegateCommands() {
         new Arg("apiKey", getStringV)
       ],
       async (world, { vTokenDelegateArg, apiKey }) => {
-        let [vToken, name, data] = await getVTokenDelegateData(world, vTokenDelegateArg.val);
+        const [vToken, name, data] = await getVTokenDelegateData(world, vTokenDelegateArg.val);
 
         return await verifyVTokenDelegate(world, vToken, name, data.get('contract')!, apiKey.val);
       },

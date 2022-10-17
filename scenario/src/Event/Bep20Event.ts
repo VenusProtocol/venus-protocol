@@ -20,11 +20,10 @@ import {getBep20V} from '../Value/Bep20Value';
 import {verify} from '../Verify';
 import {Arg, Command, View, processCommandEvent} from '../Command';
 import {VTokenErrorReporter} from '../ErrorReporter';
-import {encodedNumber} from '../Encoding';
 import {getBep20Data} from '../ContractLookup';
 
 async function genToken(world: World, from: string, params: Event): Promise<World> {
-  let {world: newWorld, bep20, tokenData} = await buildBep20(world, from, params);
+  const {world: newWorld, bep20, tokenData} = await buildBep20(world, from, params);
   world = newWorld;
 
   world = addAction(
@@ -47,7 +46,7 @@ async function verifyBep20(world: World, bep20: Bep20, name: string, contract: s
 }
 
 async function approve(world: World, from: string, bep20: Bep20, address: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, bep20.methods.approve(address, amount.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, bep20.methods.approve(address, amount.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -59,7 +58,7 @@ async function approve(world: World, from: string, bep20: Bep20, address: string
 }
 
 async function faucet(world: World, from: string, bep20: Bep20, address: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, bep20.methods.allocateTo(address, amount.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, bep20.methods.allocateTo(address, amount.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -71,7 +70,7 @@ async function faucet(world: World, from: string, bep20: Bep20, address: string,
 }
 
 async function transfer(world: World, from: string, bep20: Bep20, address: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, bep20.methods.transfer(address, amount.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, bep20.methods.transfer(address, amount.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -83,7 +82,7 @@ async function transfer(world: World, from: string, bep20: Bep20, address: strin
 }
 
 async function transferFrom(world: World, from: string, bep20: Bep20, owner: string, spender: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, bep20.methods.transferFrom(owner, spender, amount.encode()), from, VTokenErrorReporter);
+  const invokation = await invoke(world, bep20.methods.transferFrom(owner, spender, amount.encode()), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -95,7 +94,7 @@ async function transferFrom(world: World, from: string, bep20: Bep20, owner: str
 }
 
 async function setFail(world: World, from: string, bep20: Bep20, fail: boolean): Promise<World> {
-  let invokation = await invoke(world, bep20.methods.setFail(fail), from, VTokenErrorReporter);
+  const invokation = await invoke(world, bep20.methods.setFail(fail), from, VTokenErrorReporter);
 
   world = addAction(
     world,
@@ -107,8 +106,8 @@ async function setFail(world: World, from: string, bep20: Bep20, fail: boolean):
 }
 
 async function setPaused(world: World, from: string, bep20: Bep20, pause: boolean): Promise<World> {
-  let method = pause ? bep20.methods.pause() : bep20.methods.unpause();
-  let invokation = await invoke(world, method, from);
+  const method = pause ? bep20.methods.pause() : bep20.methods.unpause();
+  const invokation = await invoke(world, method, from);
 
   world = addAction(
     world,
@@ -120,7 +119,7 @@ async function setPaused(world: World, from: string, bep20: Bep20, pause: boolea
 }
 
 async function setFee(world: World, from: string, bep20: Bep20, basisPointFee: NumberV, maxFee: NumberV): Promise<World> {
-  let invokation = await invoke(world, bep20.methods.setParams(basisPointFee.encode(), maxFee.encode()), from);
+  const invokation = await invoke(world, bep20.methods.setParams(basisPointFee.encode(), maxFee.encode()), from);
 
   world = addAction(
     world,
@@ -156,7 +155,7 @@ export function bep20Commands() {
         new Arg("apiKey", getStringV)
       ],
       async (world, {bep20Arg, apiKey}) => {
-        let [bep20, name, data] = await getBep20Data(world, bep20Arg.val);
+        const [bep20, name, data] = await getBep20Data(world, bep20Arg.val);
 
         return await verifyBep20(world, bep20, name, data.get('contract')!, apiKey.val);
       },

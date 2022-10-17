@@ -58,7 +58,7 @@ export function storeContract(world: World, contract: Contract, name: string, ex
   return world;
 }
 
-export async function saveContract<T>(
+export async function saveContract(
   world: World,
   contract: Contract,
   name: string,
@@ -89,8 +89,8 @@ export async function mergeContractABI(
 ): Promise<World> {
   let networks = await readNetworkFile(world, false);
   let networksABI = await readNetworkFile(world, true);
-  let aABI = networksABI.get(a);
-  let bABI = networksABI.get(b);
+  const aABI = networksABI.get(a);
+  const bABI = networksABI.get(b);
 
   if (!aABI) {
     throw new Error(`Missing contract ABI for ${a}`);
@@ -101,7 +101,7 @@ export async function mergeContractABI(
   }
 
   const itemBySig: { [key: string]: AbiItem } = {};
-  for (let item of aABI.toJS().concat(bABI.toJS())) {
+  for (const item of aABI.toJS().concat(bABI.toJS())) {
     itemBySig[item.signature] = item;
   }
   const fullABI = Object.values(itemBySig);
@@ -112,7 +112,7 @@ export async function mergeContractABI(
 
   networksABI = networksABI.set(targetName, fullABI);
 
-  let mergedContract = new world.web3.eth.Contract(fullABI, contractTarget._address, {});
+  const mergedContract = new world.web3.eth.Contract(fullABI, contractTarget._address, {});
 
   /// XXXS
   world = world.setIn(
@@ -130,8 +130,8 @@ export async function mergeContractABI(
 }
 
 export async function loadContracts(world: World): Promise<[World, string[]]> {
-  let networks = await readNetworkFile(world, false);
-  let networksABI = await readNetworkFile(world, true);
+  const networks = await readNetworkFile(world, false);
+  const networksABI = await readNetworkFile(world, true);
 
   return loadContractData(world, networks, networksABI);
 }
@@ -144,7 +144,7 @@ function updateEventDecoder(world: World, contract: any) {
       return {
         ...accum,
         [signature]: log => {
-          let argTopics = anonymous ? log.topics : log.topics.slice(1);
+          const argTopics = anonymous ? log.topics : log.topics.slice(1);
           return world.web3.eth.abi.decodeLog(inputs, log.data, argTopics);
         }
       };
@@ -159,12 +159,12 @@ export async function loadContractData(
   networksABI: Networks
 ): Promise<[World, string[]]> {
   // Pull off contracts value and the rest is "extra"
-  let contractInfo: string[] = [];
-  let contracts = networks.get('Contracts') || Map({});
+  const contractInfo: string[] = [];
+  const contracts = networks.get('Contracts') || Map({});
 
   world = contracts.reduce((world: World, address: string, name: string) => {
-    let abi: AbiItem[] = networksABI.has(name) ? networksABI.get(name).toJS() : [];
-    let contract = new world.web3.eth.Contract(abi, address, {});
+    const abi: AbiItem[] = networksABI.has(name) ? networksABI.get(name).toJS() : [];
+    const contract = new world.web3.eth.Contract(abi, address, {});
 
     world = updateEventDecoder(world, contract);
 

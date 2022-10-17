@@ -1,7 +1,6 @@
 // FORKING=true npx hardhat run script/hardhat/simulations/vaultUpgrade.js
 
-const { expect, web3 } = require('hardhat');
-const fs = require('fs');
+const { expect } = require('hardhat');
 const { deploy, getContractAt, impersonate } = require('../utils/misc');
 
 async function upgradeVault() {

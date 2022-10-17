@@ -74,8 +74,8 @@ export abstract class Expression<Args> {
     if (this.catchall) {
       return [this.name, event];
     } else {
-      let args = event.slice();
-      let [name] = args.splice(this.namePos, 1);
+      const args = event.slice();
+      const [name] = args.splice(this.namePos, 1);
 
       if (Array.isArray(name)) {
         return [null, event];
@@ -98,10 +98,10 @@ export abstract class Expression<Args> {
   async getArgs(world: World, event: Event): Promise<Args> {
     const [_name, eventArgs] = this.getNameArgs(event);
 
-    let initialAcc = <{currArgs: Args, currEvents: Event}>{currArgs: <Args>{}, currEvents: eventArgs};
+    const initialAcc = <{currArgs: Args, currEvents: Event}>{currArgs: <Args>{}, currEvents: eventArgs};
 
     const {currArgs: args, currEvents: restEvent} = await this.args.reduce(async (acc, arg) => {
-      let {currArgs, currEvents} = await acc;
+      const {currArgs, currEvents} = await acc;
       let val: any;
       let restEventArgs: Event;
 
@@ -122,7 +122,7 @@ export abstract class Expression<Args> {
       } else {
         let eventArg;
 
-        [eventArg, ...restEventArgs] = currEvents;
+        [eventArg, ...restEventArgs] = currEvents; // eslint-disable-line prefer-const
 
         if (eventArg === undefined) {
           if (arg.defaultValue !== undefined) {
@@ -158,7 +158,7 @@ export abstract class Expression<Args> {
         }
       }
 
-      let newArgs = {
+      const newArgs = {
         ...currArgs,
         [arg.name]: val
       };
@@ -192,7 +192,7 @@ export class Command<Args> extends Expression<Args> {
   }
 
   async process(world: World, from: string | null, event: Event): Promise<World> {
-    let args = await this.getArgs(world, event);
+    const args = await this.getArgs(world, event);
     if (this.requireFrom) {
       if (!from) {
         throw new Error(`From required but not given for ${this.name}. Please set a default alias or open unlocked account`);
@@ -222,13 +222,13 @@ export class Fetcher<Args, Ret> extends Expression<Args> {
   }
 
   async fetch(world: World, event: Event): Promise<Ret> {
-    let args = await this.getArgs(world, event);
+    const args = await this.getArgs(world, event);
     return await this.fetcher(world, args);
   }
 }
 
 export async function processCommandEvent<Args>(type: string, commands: Command<Args>[], world: World, event: Event, from: string | null): Promise<World> {
-  let matchingCommand = commands.find((command) => command.matches(event));
+  const matchingCommand = commands.find((command) => command.matches(event));
 
   if (!matchingCommand) {
     throw new Error(`Found unknown ${type} event type ${event.toString()}`);
@@ -238,7 +238,7 @@ export async function processCommandEvent<Args>(type: string, commands: Command<
 }
 
 export async function getFetcherValue<Args, Ret>(type: string, fetchers: Fetcher<Args, Ret>[], world: World, event: Event): Promise<Ret> {
-  let matchingFetcher = fetchers.find((fetcher) => fetcher.matches(event));
+  const matchingFetcher = fetchers.find((fetcher) => fetcher.matches(event));
 
   if (!matchingFetcher) {
     throw new Error(`Found unknown ${type} value type ${JSON.stringify(event)}`);

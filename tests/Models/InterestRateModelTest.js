@@ -1,7 +1,6 @@
 const {
   makeInterestRateModel,
-  getBorrowRate,
-  getSupplyRate
+  getBorrowRate
 } = require('../Utils/Venus');
 
 function utilizationRate(cash, borrows, reserves) {
@@ -16,17 +15,9 @@ function whitePaperRateFn(base, slope, kink = 0.9, jump = 5) {
       return (ur * slope + base) / blocksPerYear;
     } else {
       const excessUtil = ur - kink;
-      const jumpMultiplier = jump * slope;
       return ((excessUtil * jump) + (kink * slope) + base) / blocksPerYear;
     }
   }
-}
-
-function supplyRateFn(base, slope, jump, kink, cash, borrows, reserves, reserveFactor = 0.1) {
-  const ur = utilizationRate(cash, borrows, reserves);
-  const borrowRate = whitePaperRateFn(base, slope, jump, kink)(cash, borrows, reserves);
-
-  return borrowRate * (1 - reserveFactor) * ur;
 }
 
 function makeUtilization(util) {
@@ -43,9 +34,9 @@ function makeUtilization(util) {
     // 1 / ( cash + 1 - 1 ) = util
     // util = 1 / cash
     // cash = 1 / util
-    borrows = 1e18;
-    reserves = 1e18;
-    cash = 1e36 / util;
+    let borrows = 1e18;
+    let reserves = 1e18;
+    let cash = 1e36 / util;
 
     return {
       borrows,
@@ -58,10 +49,6 @@ function makeUtilization(util) {
 let blocksPerYear;
 
 describe('InterestRateModel', () => {
-  let root, accounts;
-  beforeEach(async() => {
-    [root, ...accounts] = saddle.accounts;
-  });
 
   const expectedRates = {
     'baseP025-slopeP20': { base: 0.025, slope: 0.20, model: 'white-paper' },
@@ -130,7 +117,7 @@ describe('InterestRateModel', () => {
 
     describe('jump rate tests', () => {
       describe('chosen points', () => {
-        const tests = [
+        [
           {
             jump: 100,
             kink: 90,

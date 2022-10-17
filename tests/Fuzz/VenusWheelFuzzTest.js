@@ -23,7 +23,7 @@ class AssertionError extends Error {
 expect.extend({
   toFuzzPass(assertion, expected, actual, reason, state, events) {
     let eventStr = events
-      .filter(({ action, failed }) => !failed)
+      .filter(({ failed }) => !failed)
       .map(event => `${JSON.stringify(event)},`)
       .join('\n');
 
@@ -102,7 +102,7 @@ describe.skip('VenusWheelFuzzTest', () => {
       venusBorrowSpeed: new bn(1),
       venusBorrowIndex: new bn(1),
       venusBorrowIndexSnapshots: {},
-      venusSupplyIndexUpdatedBlock: globals.blockNumber,
+      venusBorrowIndexUpdatedBlock: globals.blockNumber,
 
       venusAccruedWithCrank: {}, // naive method, accruing all accounts every block
       venusAccruedWithIndex: {}, // with indices
@@ -163,9 +163,7 @@ describe.skip('VenusWheelFuzzTest', () => {
   // cranked within accrue interest (borrowBalance not updated, totalBorrows should be)
   let flywheelByCrank = (
     state,
-    deltaBlocks,
-    borrowIndexNew,
-    borrowIndexPrev
+    deltaBlocks
   ) => {
     let {
       balances,
@@ -192,7 +190,7 @@ describe.skip('VenusWheelFuzzTest', () => {
     }
 
     // borrowers
-    for (let [account, borrowBalance] of Object.entries(borrowBalances)) {
+    for (let [account] of Object.entries(borrowBalances)) {
       if (isPositive(totalBorrows)) {
         let truedUpBorrowBalance = getAccruedBorrowBalance(state, account);
 
@@ -224,7 +222,6 @@ describe.skip('VenusWheelFuzzTest', () => {
       borrowBalances,
       venusBorrowIndexUpdatedBlock,
       borrowIndex,
-      borrowIndexSnapshots
     } = state;
 
     let deltaBlocks = globals.blockNumber.minus(venusBorrowIndexUpdatedBlock);
@@ -343,10 +340,8 @@ describe.skip('VenusWheelFuzzTest', () => {
 
   let accrueInterest = (globals, state) => {
     let {
-      balances,
       totalCash,
       totalBorrows,
-      totalSupply,
       totalReserves,
       accrualBlockNumber,
       borrowIndex,
@@ -384,10 +379,10 @@ describe.skip('VenusWheelFuzzTest', () => {
   let mine = {
     action: 'mine',
     rate: 10,
-    run: (globals, state, {}, { assert }) => {
+    run: (globals, state) => {
       return state;
     },
-    gen: globals => {
+    gen: () => {
       return {
         mine: rand(100).plus(1)
       };
@@ -397,25 +392,17 @@ describe.skip('VenusWheelFuzzTest', () => {
   let gift = {
     action: 'gift',
     rate: 3,
-    run: (globals, state, { amount }, { assert }) => {
+    run: (globals, state, { amount }) => {
       amount = new bn(amount);
       return {
         ...state,
         totalCash: state.totalCash.plus(amount)
       };
     },
-    gen: globals => {
+    gen: () => {
       return {
         amount: rand(1000)
       };
-    }
-  };
-
-  let test = {
-    action: 'test',
-    run: (globals, state, { amount }, { assert }) => {
-      console.log(state);
-      return state;
     }
   };
 
@@ -476,8 +463,6 @@ describe.skip('VenusWheelFuzzTest', () => {
       let accruedBorrowBalance = getAccruedBorrowBalance(state, account);
       assert(isPositive(accruedBorrowBalance), 'No active borrow');
 
-      let newTotalBorrows;
-
       if (amount.isGreaterThan(accruedBorrowBalance)) {
         // repay full borrow
         delete state.borrowIndexSnapshots[account];
@@ -505,7 +490,7 @@ describe.skip('VenusWheelFuzzTest', () => {
   let mint = {
     action: 'mint',
     rate: 10,
-    run: (globals, state, { account, amount }, { assert }) => {
+    run: (globals, state, { account, amount }) => {
       amount = new bn(amount);
       state = accrueInterest(globals, state);
       state = supplierFlywheelByIndex(globals, state, account);
@@ -630,7 +615,7 @@ describe.skip('VenusWheelFuzzTest', () => {
 
   let executeAction = (globals, state, event, i) => {
     const prevState = deepCopy(state);
-    assert = (assertion, reason) => {
+    let assert = (assertion, reason) => {
       if (!assertion) {
         throw new AssertionError(assertion, reason, event, i);
       }

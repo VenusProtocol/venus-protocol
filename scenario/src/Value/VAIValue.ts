@@ -2,12 +2,10 @@ import { Event } from '../Event';
 import { World } from '../World';
 import { VAI } from '../Contract/VAI';
 import {
-  getAddressV,
-  getNumberV
+  getAddressV
 } from '../CoreValue';
 import {
   AddressV,
-  ListV,
   NumberV,
   StringV,
   Value

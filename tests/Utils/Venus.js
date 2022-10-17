@@ -256,7 +256,6 @@ async function makeVAI(opts = {}) {
 
 async function makeInterestRateModel(opts = {}) {
   const {
-    root = saddle.account,
     kind = 'harnessed'
   } = opts || {};
 
@@ -287,7 +286,6 @@ async function makeInterestRateModel(opts = {}) {
 
 async function makePriceOracle(opts = {}) {
   const {
-    root = saddle.account,
     kind = 'simple'
   } = opts || {};
 
@@ -297,16 +295,11 @@ async function makePriceOracle(opts = {}) {
 }
 
 async function makeChainlinkOracle(opts = {}) {
-  const {
-    root = saddle.account
-  } = opts || {};
-
   return await deploy('MockV3Aggregator', [opts.decimals, opts.initialAnswer]);
 }
 
 async function makeToken(opts = {}) {
   const {
-    root = saddle.account,
     kind = 'bep20'
   } = opts || {};
 
@@ -480,7 +473,7 @@ async function quickMint(vToken, minter, mintAmount, opts = {}) {
   return send(vToken, 'mint', [mintAmount], { from: minter });
 }
 
-async function quickMintVAI(comptroller, vai, vaiMinter, vaiMintAmount, opts = {}) {
+async function quickMintVAI(comptroller, vai, vaiMinter, vaiMintAmount) {
   // make sure to accrue interest
   await fastForward(vai, 1);
 

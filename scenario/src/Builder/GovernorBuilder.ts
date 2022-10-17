@@ -2,8 +2,8 @@ import { Event } from "../Event";
 import { World } from "../World";
 import { Governor } from "../Contract/Governor";
 import { Invokation } from "../Invokation";
-import { getAddressV, getNumberV, getStringV } from "../CoreValue";
-import { AddressV, NumberV, StringV } from "../Value";
+import { getAddressV, getStringV } from "../CoreValue";
+import { AddressV, StringV } from "../Value";
 import { Arg, Fetcher, getFetcherValue } from "../Command";
 import { storeAndSaveContract } from "../Networks";
 import { getContract } from "../Contract";
@@ -85,13 +85,13 @@ export async function buildGovernor(
 
   ];
 
-  let govData = await getFetcherValue<any, GovernorData>(
+  const govData = await getFetcherValue<any, GovernorData>(
     "DeployGovernor",
     fetchers,
     world,
     params
   );
-  let invokation = govData.invokation;
+  const invokation = govData.invokation;
   delete govData.invokation;
 
   if (invokation.error) {

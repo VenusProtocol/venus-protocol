@@ -7,20 +7,22 @@ const {
 
 const BigNum = require('bignumber.js');
 
+let accounts = [];
+
 describe('VRTConverterProxy', () => {
-    let root;
+    let root, alice, bob; // eslint-disable-line @typescript-eslint/no-unused-vars
     let vrtConversion, vrtConversionAddress,
         vrtConverterProxy, vrtConverterProxyAddress, vrtConverterProxyAdmin,
         vrtToken, vrtTokenAddress,
         xvsToken, xvsTokenAddress;
-    let xvsVestingProxy, xvsVestingProxyAddress, xvsVestingProxyAdmin;
+    let xvsVestingProxy, xvsVestingProxyAddress, xvsVestingProxyAdmin; // eslint-disable-line @typescript-eslint/no-unused-vars
     let conversionRatio, conversionStartTime, conversionPeriod;
     let xvsVesting, xvsVestingAddress;
 
     beforeEach(async () => {
         [root, alice, bob, ...accounts] = saddle.accounts;
 
-        blockTimestamp = bnbUnsigned(100);
+        const blockTimestamp = bnbUnsigned(100);
         await freezeTime(blockTimestamp.toNumber());
         conversionStartTime = blockTimestamp;
         conversionPeriod = 360 * 24 * 60 * 60;

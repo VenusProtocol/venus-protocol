@@ -28,7 +28,7 @@ import { encodeParameters, rawValues } from '../Utils';
 import { getGovernorV } from '../Value/GovernorValue';
 
 async function genGovernor(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, governor, govData } = await buildGovernor(world, from, params);
+  const { world: nextWorld, governor, govData } = await buildGovernor(world, from, params);
   world = nextWorld;
 
   return addAction(
@@ -110,7 +110,7 @@ export function governorCommands() {
         new Arg("apiKey", getStringV)
       ],
       async (world, { governorArg, apiKey }) => {
-        let [governor, name, data] = await getGovernorData(world, governorArg.val);
+        const [governor, name, data] = await getGovernorData(world, governorArg.val);
 
         return await verifyGovernor(world, governor, apiKey.val, name, data.get('contract')!)
       },

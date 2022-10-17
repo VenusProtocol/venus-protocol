@@ -168,13 +168,13 @@ export async function buildGovernor(
     )
   ];
 
-  let govData = await getFetcherValue<any, GovernorBravoData>(
+  const govData = await getFetcherValue<any, GovernorBravoData>(
     "DeployGovernor",
     fetchers,
     world,
     params
   );
-  let invokation = govData.invokation;
+  const invokation = govData.invokation;
   delete govData.invokation;
 
   if (invokation.error) {

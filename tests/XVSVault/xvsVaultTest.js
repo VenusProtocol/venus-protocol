@@ -11,6 +11,8 @@ const rewardPerBlock = bnbUnsigned(1e16);
 const defaultLockPeriod = 300;
 const tokenAmount = bnbUnsigned(1e22);
 
+let accounts = [];
+
 describe('XVSVault', () => {
   let root, notAdmin, a1, a2, a3;
   let blockTimestamp;
@@ -743,14 +745,11 @@ describe('XVSVault', () => {
       it('does not add more than one checkpoint in a block', async () => {
         await minerStop();
 
-        let t1 = delegate(a2, { from: a1 });
-        let t2 = deposit(100, { from: a1 });
-        let t3 = requestWithdrawal(10, { from: a1 });
-
         await minerStart();
-        t1 = await t1;
-        t2 = await t2;
-        t3 = await t3;
+
+        const t1 = await delegate(a2, { from: a1 });
+        await deposit(100, { from: a1 });
+        await requestWithdrawal(10, { from: a1 });
 
         await expect(call(xvsVault, 'numCheckpoints', [a2])).resolves.toEqual('1');
 

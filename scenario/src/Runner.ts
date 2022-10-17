@@ -13,7 +13,7 @@ export async function runCommand(world: World, command: string, macros: Macros):
   } else {
     world.printer.printLine(`Command: ${trimmedCommand}`);
 
-    let expanded = expandEvent(macros, event);
+    const expanded = expandEvent(macros, event);
 
     return processEvents(world, expanded);
   }

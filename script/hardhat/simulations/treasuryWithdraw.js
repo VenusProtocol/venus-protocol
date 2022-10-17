@@ -4,7 +4,6 @@
 const { expect, web3 } = require('hardhat');
 const BigNumber = require('bignumber.js');
 const { 
-    deploy, 
     getContractAt, 
     impersonate, 
     setBalance,
@@ -48,7 +47,7 @@ async function treasuryWithdraw() {
     const guyUsdtBalance = await usdtToken.methods.balanceOf(guy).call();
     const guyXvsBalance = await xvsToken.methods.balanceOf(guy).call();
     const guyBnbBalance = await web3.eth.getBalance(guy);
-    const treasuryBnbBalance = await web3.eth.getBalance(treasury);
+    await web3.eth.getBalance(treasury);
 
     expect(guyUsdtBalance).to.equal(usdtBalance.toString(10));
     expect(guyXvsBalance).to.equal(xvsBalance.toString(10));

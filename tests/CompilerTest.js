@@ -1,17 +1,3 @@
-const {
-  bnbBalance,
-  bnbGasCost,
-  getContract
-} = require('./Utils/BSC');
-
-const {
-  makeComptroller,
-  makeVToken,
-  makePriceOracle,
-  pretendBorrow,
-  borrowSnapshot
-} = require('./Utils/Venus');
-
 describe('Const', () => {
   it("does the right thing and not too expensive", async () => {
     const base = await deploy('ConstBase');

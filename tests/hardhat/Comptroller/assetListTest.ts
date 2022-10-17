@@ -1,4 +1,4 @@
-import { ContractTransaction, Signer } from "ethers";
+import { Signer } from "ethers";
 import { ethers } from "hardhat";
 import { setBalance, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
@@ -16,17 +16,14 @@ import { ComptrollerErrorReporter } from "../util/Errors";
 const { Error } = ComptrollerErrorReporter;
 
 describe("assetListTest", () => {
-  let root: Signer;
+  let root: Signer; // eslint-disable-line @typescript-eslint/no-unused-vars
   let customer: Signer;
-  let accounts: Signer[];
   let comptroller: MockContract<Comptroller>;
-  let oracle: FakeContract<PriceOracle>;
   let OMG: FakeContract<VBep20Immutable>;
   let ZRX: FakeContract<VBep20Immutable>;
   let BAT: FakeContract<VBep20Immutable>;
   let SKT: FakeContract<VBep20Immutable>;
   let allTokens: FakeContract<VBep20Immutable>[];
-  let names: string[];
 
   type AssetListFixture = {
     comptroller: MockContract<Comptroller>,
@@ -76,13 +73,14 @@ describe("assetListTest", () => {
   }
 
   beforeEach(async () => {
-    [root, customer, ...accounts] = await ethers.getSigners();
+    [root, customer] = await ethers.getSigners();
     const contracts = await loadFixture(assetListFixture);
     configure(contracts);
-    ({ comptroller, oracle, OMG, ZRX, BAT, SKT, allTokens } = contracts);
+    ({ comptroller, OMG, ZRX, BAT, SKT, allTokens } = contracts);
   });
 
   async function checkMarkets(expectedTokens: FakeContract<VBep20Immutable>[]) {
+    // eslint-disable-next-line prefer-const
     for (let token of allTokens) {
       const isExpected = expectedTokens.some(e => e == token);
       expect(await comptroller.checkMembership(await customer.getAddress(), token.address)).to.equal(isExpected);

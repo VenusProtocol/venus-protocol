@@ -1,6 +1,5 @@
 const [network] = args;
 const contractConfigData = require(`../../../networks/${network}.json`);
-const { bnbUnsigned } = require('../utils/web3-utils');
 
 (async () => {
 

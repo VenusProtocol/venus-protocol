@@ -1,6 +1,6 @@
 import { Contract } from '../Contract';
 import { encodedNumber } from '../Encoding';
-import { Callable, Sendable } from '../Invokation';
+import { Sendable } from '../Invokation';
 
 export interface CounterMethods {
   increment(by: encodedNumber): Sendable<boolean>;

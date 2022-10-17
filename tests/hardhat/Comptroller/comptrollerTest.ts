@@ -1,5 +1,4 @@
 import { constants, Signer } from "ethers";
-import * as hre from "hardhat";
 import { ethers } from "hardhat";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";

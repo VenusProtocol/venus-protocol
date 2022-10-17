@@ -5,8 +5,8 @@ const fs = require('fs');
     if (err) throw err;
     let contracts = JSON.parse(data);
     contracts = contracts["contracts"];
-    comptroller = contracts["contracts/Comptroller.sol:Comptroller"];
-    bin = comptroller["bin-runtime"]
+    const comptroller = contracts["contracts/Comptroller.sol:Comptroller"];
+    const bin = comptroller["bin-runtime"]
     const digits = bin.length;
     const bytes = digits / 2;
     console.log("Current Comptroller compiles to", bytes, "bytes.");

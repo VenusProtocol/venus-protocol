@@ -53,11 +53,11 @@ async function seize(vToken, liquidator, borrower, seizeAmount) {
 }
 
 describe('VToken', function () {
-  let root, liquidator, borrower, accounts;
+  let root, liquidator, borrower; // eslint-disable-line @typescript-eslint/no-unused-vars
   let vToken, vTokenCollateral;
 
   beforeEach(async () => {
-    [root, liquidator, borrower, ...accounts] = saddle.accounts;
+    [root, liquidator, borrower] = saddle.accounts;
     vToken = await makeVToken({comptrollerOpts: {kind: 'bool'}});
     vTokenCollateral = await makeVToken({comptroller: vToken.comptroller});
   });

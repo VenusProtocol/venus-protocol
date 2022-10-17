@@ -4,18 +4,13 @@ import { Governor } from '../Contract/Governor';
 import { invoke } from '../Invokation';
 import {
   getAddressV,
-  getEventV,
   getNumberV,
-  getStringV,
-  getCoreValue
 } from '../CoreValue';
 import {
   AddressV,
-  EventV,
   NumberV,
-  StringV
 } from '../Value';
-import { Arg, Command, processCommandEvent, View } from '../Command';
+import { Arg, Command, processCommandEvent } from '../Command';
 
 export function guardianCommands(governor: Governor) {
   return [
@@ -65,7 +60,7 @@ export function guardianCommands(governor: Governor) {
       }
     ),
 
-    new Command<{}>(
+    new Command(
       `
         #### AcceptAdmin
 
@@ -74,7 +69,7 @@ export function guardianCommands(governor: Governor) {
     `,
       'AcceptAdmin',
       [],
-      async (world, from, { }) => {
+      async (world, from) => {
         const invokation = await invoke(world, governor.methods.__acceptAdmin(), from);
 
         return addAction(
@@ -85,7 +80,7 @@ export function guardianCommands(governor: Governor) {
       }
     ),
 
-    new Command<{}>(
+    new Command(
       `
         #### Abdicate
 
@@ -94,7 +89,7 @@ export function guardianCommands(governor: Governor) {
     `,
       'Abdicate',
       [],
-      async (world, from, { }) => {
+      async (world, from) => {
         const invokation = await invoke(world, governor.methods.__abdicate(), from);
 
         return addAction(

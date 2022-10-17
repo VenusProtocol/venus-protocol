@@ -106,13 +106,11 @@ describe('SXP', () => {
       await minerStop();
 
       let t1 = send(sxp, 'delegate', [a1], { from: guy });
-      let t2 = send(sxp, 'transfer', [a2, 10], { from: guy });
-      let t3 = send(sxp, 'transfer', [a2, 10], { from: guy });
+      await send(sxp, 'transfer', [a2, 10], { from: guy });
+      await send(sxp, 'transfer', [a2, 10], { from: guy });
 
       await minerStart();
       t1 = await t1;
-      t2 = await t2;
-      t3 = await t3;
 
       await expect(call(sxp, 'numCheckpoints', [a1])).resolves.toEqual('1');
 

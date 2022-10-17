@@ -1,5 +1,5 @@
-const { address, both, bnbMantissa } = require('../Utils/BSC');
-const { makeComptroller, makeVToken } = require('../Utils/Venus');
+const { address } = require('../Utils/BSC');
+const { makeVToken } = require('../Utils/Venus');
 
 describe('Comptroller', () => {
   let comptroller, vToken;
@@ -17,8 +17,6 @@ describe('Comptroller', () => {
 
     let globalMethods = ["Mint", "Redeem", "Transfer", "Seize"];
     describe('succeeding', () => {
-      beforeEach(async () => {
-      });
 
       it(`only admin can set protocol state`, async () => {
         await expect(send(comptroller, `_setProtocolPaused`, [true], {from: accounts[2]})).rejects.toRevert("revert access denied");
@@ -26,10 +24,10 @@ describe('Comptroller', () => {
       });
 
       it(`admin can pause`, async () => {
-        result = await send(comptroller, `_setProtocolPaused`, [true], {from: root});
+        let result = await send(comptroller, `_setProtocolPaused`, [true], {from: root});
         expect(result).toHaveLog(`ActionProtocolPaused`, {state: true});
 
-        state = await call(comptroller, `protocolPaused`);
+        let state = await call(comptroller, `protocolPaused`);
         expect(state).toEqual(true);
 
         await expect(send(comptroller, `_setProtocolPaused`, [false], {from: accounts[2]})).rejects.toRevert("revert access denied");

@@ -1,6 +1,5 @@
 import { Signer } from "ethers";
 import { ethers } from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
 import {
@@ -10,9 +9,6 @@ import {
 } from "../../../typechain";
 const { expect } = chai;
 chai.use(smock.matchers);
-
-import { ComptrollerErrorReporter } from "../util/Errors";
-const { Error } = ComptrollerErrorReporter;
 
 describe("Comptroller", () => {
   let user: Signer;

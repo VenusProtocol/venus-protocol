@@ -2,7 +2,6 @@ import { Event } from '../Event';
 import { World } from '../World';
 import { VToken } from '../Contract/VToken';
 import { VBep20Delegator } from '../Contract/VBep20Delegator';
-import { Bep20 } from '../Contract/Bep20';
 import {
   getAddressV,
   getCoreValue,

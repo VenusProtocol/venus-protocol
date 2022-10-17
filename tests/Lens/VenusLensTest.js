@@ -20,6 +20,8 @@ function cullTuple(tuple) {
   }, {});
 }
 
+let accounts = [];
+
 describe('VenusLens', () => {
   let VenusLens;
   let acct;

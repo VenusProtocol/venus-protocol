@@ -1,5 +1,5 @@
 import { Event } from '../Event';
-import { addAction, describeUser, World } from '../World';
+import { addAction, World } from '../World';
 import { Unitroller } from '../Contract/Unitroller';
 import { ComptrollerImpl } from '../Contract/ComptrollerImpl';
 import { invoke } from '../Invokation';
@@ -12,7 +12,7 @@ import { getComptrollerImpl, getUnitroller } from '../ContractLookup';
 import { verify } from '../Verify';
 
 async function genUnitroller(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, unitroller, unitrollerData } = await buildUnitroller(world, from, params);
+  const { world: nextWorld, unitroller, unitrollerData } = await buildUnitroller(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -35,7 +35,7 @@ async function verifyUnitroller(world: World, unitroller: Unitroller, apiKey: st
 }
 
 async function acceptAdmin(world: World, from: string, unitroller: Unitroller): Promise<World> {
-  let invokation = await invoke(world, unitroller.methods._acceptAdmin(), from, ComptrollerErrorReporter);
+  const invokation = await invoke(world, unitroller.methods._acceptAdmin(), from, ComptrollerErrorReporter);
 
   world = addAction(world, `Accept admin as ${from}`, invokation);
 
@@ -48,7 +48,7 @@ async function setPendingAdmin(
   unitroller: Unitroller,
   pendingAdmin: string
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     unitroller.methods._setPendingAdmin(pendingAdmin),
     from,
@@ -66,7 +66,7 @@ async function setPendingImpl(
   unitroller: Unitroller,
   comptrollerImpl: ComptrollerImpl
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     unitroller.methods._setPendingImplementation(comptrollerImpl._address),
     from,

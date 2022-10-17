@@ -85,7 +85,7 @@ const getBep20balance = async (token, address) => {
 }
 
 describe('VRTVaultProxy', () => {
-  let root, notAdmin, accounts, user1, user2, user3, treasury;;
+  let root, notAdmin, accounts, user1, user2, user3, treasury;; // eslint-disable-line @typescript-eslint/no-unused-vars
   let vrtVaultProxy, vrtVaultProxyAdmin, vrtVaultProxyAddress;
   let vrtVault;
   let vrt, vrtAddress, vrtVaultAddress;
@@ -179,8 +179,6 @@ describe('VRTVaultProxy', () => {
   describe("Upgrade VRTVault", () => {
 
     it("should update the implementation and assert the existing-storage on upgraded implementation", async () => {
-      
-      const vrtVaultAddressBeforeUpgrade = vrtVaultAddress;
 
       vrtVault = await deploy('VRTVaultHarness', [], { from: root });
       vrtVaultAddress = vrtVault._address;

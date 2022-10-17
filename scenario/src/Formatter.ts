@@ -7,8 +7,8 @@ export function formatEvent(event: Event, outter=true): string {
       return event[1].toString();
     }
 
-    let mapped = event.map(e => formatEvent(<Event>e, false));
-    let joined = mapped.join(' ');
+    const mapped = event.map(e => formatEvent(<Event>e, false));
+    const joined = mapped.join(' ');
 
     if (outter) {
       return joined;

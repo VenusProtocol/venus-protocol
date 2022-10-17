@@ -4,7 +4,6 @@ import {getCoreValue} from '../CoreValue';
 import {Value, NumberV} from '../Value';
 import {Event} from '../Event';
 import {formatEvent} from '../Formatter';
-import {BigNumber} from 'bignumber.js';
 
 function asNumberV(v: Value): NumberV {
   if (v instanceof NumberV) {
@@ -33,7 +32,7 @@ export class ChangesExpectation implements Expectation {
     return await getCoreValue(world, this.condition);
   };
 
-  async checker(world: World, initialCheck: boolean=false): Promise<void> {
+  async checker(world: World): Promise<void> {
     const currentValue = asNumberV(await this.getCurrentValue(world));
     const trueDelta = currentValue.sub(this.originalValue);
 

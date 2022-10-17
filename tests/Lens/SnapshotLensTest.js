@@ -19,14 +19,13 @@ function cullTuple(tuple) {
 
 describe('SnapshotLens', () => {
   let snapshotLens, comptroller;
-  let borrower, accounts;
-  let usdcFeed;
+  let borrower;
   let oracle, vBnb,
     vUsdc, vUsdcAddress, usdcAddress,
     vUsdt, vUsdtAddress, usdtAddress;
 
   beforeEach(async () => {
-    [borrower, ...accounts] = saddle.accounts;
+    [borrower] = saddle.accounts;
     snapshotLens = await deploy('SnapshotLens');
     oracle = await makePriceOracle();
 

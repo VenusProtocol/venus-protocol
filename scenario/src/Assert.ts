@@ -6,8 +6,8 @@ export type Expect = (actual: any) => {
 export const throwExpect: Expect = (x) => {
   return {
     toEqual: (y) => {
-      let xEnc = JSON.stringify(x);
-      let yEnc = JSON.stringify(y);
+      const xEnc = JSON.stringify(x);
+      const yEnc = JSON.stringify(y);
       if (xEnc !== yEnc) {
         throw new Error(`expected ${x} to equal ${y}`);
       }

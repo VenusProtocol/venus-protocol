@@ -1,6 +1,4 @@
 import { Contract } from '../Contract';
-import { encodedNumber } from '../Encoding';
-import { Callable, Sendable } from '../Invokation';
 
 export interface VenusLensMethods {
   vTokenBalances(vToken: string, account: string): Sendable<[string,number,number,number,number,number]>;

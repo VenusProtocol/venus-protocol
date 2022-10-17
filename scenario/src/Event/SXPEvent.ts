@@ -1,5 +1,5 @@
 import { Event } from '../Event';
-import { addAction, World, describeUser } from '../World';
+import { addAction, World } from '../World';
 import { SXP, SXPScenario } from '../Contract/SXP';
 import { buildSXP } from '../Builder/SXPBuilder';
 import { invoke } from '../Invokation';
@@ -19,10 +19,9 @@ import { Arg, Command, processCommandEvent, View } from '../Command';
 import { getSXP } from '../ContractLookup';
 import { NoErrorReporter } from '../ErrorReporter';
 import { verify } from '../Verify';
-import { encodedNumber } from '../Encoding';
 
 async function genSXP(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, sxp, tokenData } = await buildSXP(world, from, params);
+  const { world: nextWorld, sxp, tokenData } = await buildSXP(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -45,7 +44,7 @@ async function verifySXP(world: World, sxp: SXP, apiKey: string, modelName: stri
 }
 
 async function approve(world: World, from: string, sxp: SXP, address: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, sxp.methods.approve(address, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, sxp.methods.approve(address, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -57,7 +56,7 @@ async function approve(world: World, from: string, sxp: SXP, address: string, am
 }
 
 async function transfer(world: World, from: string, sxp: SXP, address: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, sxp.methods.transfer(address, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, sxp.methods.transfer(address, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -69,7 +68,7 @@ async function transfer(world: World, from: string, sxp: SXP, address: string, a
 }
 
 async function transferFrom(world: World, from: string, sxp: SXP, owner: string, spender: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, sxp.methods.transferFrom(owner, spender, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, sxp.methods.transferFrom(owner, spender, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -81,7 +80,7 @@ async function transferFrom(world: World, from: string, sxp: SXP, owner: string,
 }
 
 async function transferScenario(world: World, from: string, sxp: SXPScenario, addresses: string[], amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, sxp.methods.transferScenario(addresses, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, sxp.methods.transferScenario(addresses, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -93,7 +92,7 @@ async function transferScenario(world: World, from: string, sxp: SXPScenario, ad
 }
 
 async function transferFromScenario(world: World, from: string, sxp: SXPScenario, addresses: string[], amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, sxp.methods.transferFromScenario(addresses, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, sxp.methods.transferFromScenario(addresses, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -105,7 +104,7 @@ async function transferFromScenario(world: World, from: string, sxp: SXPScenario
 }
 
 async function delegate(world: World, from: string, sxp: SXP, account: string): Promise<World> {
-  let invokation = await invoke(world, sxp.methods.delegate(account), from, NoErrorReporter);
+  const invokation = await invoke(world, sxp.methods.delegate(account), from, NoErrorReporter);
 
   world = addAction(
     world,

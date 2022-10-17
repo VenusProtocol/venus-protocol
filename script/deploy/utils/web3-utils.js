@@ -13,7 +13,7 @@ function encodeParameters(types, values) {
 }
 
 function sleep(timeout) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     setTimeout(() => {
       resolve();
     }, timeout);
@@ -44,16 +44,6 @@ function bnbUnsigned(num) {
 }
 
 function mergeInterface(into, from) {
-  const key = (item) => item.inputs ? `${item.name}/${item.inputs.length}` : item.name;
-  const existing = into.options.jsonInterface.reduce((acc, item) => {
-    acc[key(item)] = true;
-    return acc;
-  }, {});
-  const extended = from.options.jsonInterface.reduce((acc, item) => {
-    if (!(key(item) in existing))
-      acc.push(item)
-    return acc;
-  }, into.options.jsonInterface.slice());
   into.options.jsonInterface = into.options.jsonInterface.concat(from.options.jsonInterface);
   return into;
 }
@@ -82,11 +72,6 @@ async function getblockNumber() {
   return parseInt(num);
 }
 
-async function getBlockTimestamp() {
-  const blockNumber = await getblockNumber();
-  const blockRsp = await rpc({method: 'eth_getBlockByNumber', params: [blockNumber]});
-  return blockRsp ? blockTimestampRsp.timestamp : 0;
-}
 
 async function rpc(request) {
   return new Promise((okay, fail) => web3.currentProvider.send(request, (err, res) => err ? fail(err) : okay(res)));
@@ -126,7 +111,6 @@ module.exports = {
   unlockedAccounts,
   unlockedAccount,
   getblockNumber,
-  getBlockTimestamp,
   rpc,
   both,
   sendFallback,

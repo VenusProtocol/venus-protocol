@@ -1,5 +1,4 @@
 import { Contract } from '../Contract';
-import { encodedNumber } from '../Encoding';
 import { Callable, Sendable } from '../Invokation';
 
 export interface ReservoirMethods {

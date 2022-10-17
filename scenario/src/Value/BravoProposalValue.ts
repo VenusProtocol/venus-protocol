@@ -25,7 +25,7 @@ export async function getProposalId(
     proposalIdent[0] === "ActiveProposal" &&
     typeof proposalIdent[1] === "string"
   ) {
-    let proposer = getAddress(world, proposalIdent[1]);
+    const proposer = getAddress(world, proposalIdent[1]);
 
     return Number(await governor.methods.latestProposalIds(proposer).call());
   } else {

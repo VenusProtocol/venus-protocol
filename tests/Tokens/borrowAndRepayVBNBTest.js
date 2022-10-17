@@ -6,12 +6,9 @@ const {
 
 const {
   makeVToken,
-  balanceOf,
   borrowSnapshot,
   totalBorrows,
   fastForward,
-  setBalance,
-  preApprove,
   pretendBorrow,
   setBNBBalance,
   getBalances,
@@ -37,7 +34,7 @@ async function borrowFresh(vToken, borrower, borrowAmount) {
   return send(vToken, 'harnessBorrowFresh', [borrower, borrowAmount], {from: borrower});
 }
 
-async function borrow(vToken, borrower, borrowAmount, opts = {}) {
+async function borrow(vToken, borrower, borrowAmount) {
   await send(vToken, 'harnessFastForward', [1]);
   return send(vToken, 'borrow', [borrowAmount], {from: borrower});
 }
@@ -65,9 +62,9 @@ async function repayBorrowBehalf(vToken, payer, borrower, repayAmount) {
 }
 
 describe('VBNB', function () {
-  let vToken, root, borrower, benefactor, accounts;
+  let vToken, root, borrower, benefactor;
   beforeEach(async () => {
-    [root, borrower, benefactor, ...accounts] = saddle.accounts;
+    [root, borrower, benefactor] = saddle.accounts;
     vToken = await makeVToken({kind: 'vbnb', comptrollerOpts: {kind: 'bool'}});
   });
 

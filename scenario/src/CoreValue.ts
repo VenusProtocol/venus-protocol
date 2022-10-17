@@ -30,7 +30,7 @@ import { mcdFetchers, getMCDValue } from './Value/MCDValue';
 import { getInterestRateModelValue, interestRateModelFetchers } from './Value/InterestRateModelValue';
 import { getPriceOracleValue, priceOracleFetchers } from './Value/PriceOracleValue';
 import { getPriceOracleProxyValue, priceOracleProxyFetchers } from './Value/PriceOracleProxyValue';
-import { getTimelockValue, timelockFetchers, getTimelockAddress } from './Value/TimelockValue';
+import { getTimelockValue, timelockFetchers } from './Value/TimelockValue';
 import { getMaximillionValue, maximillionFetchers } from './Value/MaximillionValue';
 import { getXVSValue, xvsFetchers } from './Value/XVSValue';
 import { getSXPValue, sxpFetchers } from './Value/SXPValue';
@@ -151,18 +151,12 @@ function strToNumberV(str: string): NumberV {
   return new NumberV(str);
 }
 
-function strToExpNumberV(str: string): NumberV {
-  const r = new BigNumber(str);
-
-  return new NumberV(r.multipliedBy(expMantissa).toFixed());
-}
-
 export async function getNumberV(world: World, event: Event): Promise<NumberV> {
   return mapValue<NumberV>(world, event, strToNumberV, getCoreValue, NumberV);
 }
 
 export async function getExpNumberV(world: World, event: Event): Promise<NumberV> {
-  let res = await mapValue<NumberV>(world, event, strToNumberV, getCoreValue, NumberV);
+  const res = await mapValue<NumberV>(world, event, strToNumberV, getCoreValue, NumberV);
 
   const r = new BigNumber(res.val);
 
@@ -170,7 +164,7 @@ export async function getExpNumberV(world: World, event: Event): Promise<NumberV
 }
 
 export async function getPercentV(world: World, event: Event): Promise<NumberV> {
-  let res = await getExpNumberV(world, event);
+  const res = await getExpNumberV(world, event);
 
   return new PercentV(res.val);
 }
@@ -214,13 +208,13 @@ export async function getStringV(world: World, event: Event): Promise<StringV> {
 }
 
 async function getBNBBalance(world: World, address: string): Promise<NumberV> {
-  let balance = await world.web3.eth.getBalance(address);
+  const balance = await world.web3.eth.getBalance(address);
 
   return new NumberV(balance);
 }
 
 const fetchers = [
-  new Fetcher<{}, BoolV>(
+  new Fetcher<Record<string, any>, BoolV>(
     `
       #### True
 
@@ -228,10 +222,10 @@ const fetchers = [
     `,
     'True',
     [],
-    async (world, {}) => new BoolV(true)
+    async () => new BoolV(true)
   ),
 
-  new Fetcher<{}, BoolV>(
+  new Fetcher<Record<string, any>, BoolV>(
     `
       #### False
 
@@ -239,10 +233,10 @@ const fetchers = [
     `,
     'False',
     [],
-    async (world, {}) => new BoolV(false)
+    async () => new BoolV(false)
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### Zero
 
@@ -250,10 +244,10 @@ const fetchers = [
     `,
     'Zero',
     [],
-    async (world, {}) => strToNumberV('0')
+    async () => strToNumberV('0')
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### UInt96Max
 
@@ -261,11 +255,11 @@ const fetchers = [
     `,
     'UInt96Max',
     [],
-    async (world, {}) =>
+    async () =>
       new NumberV('79228162514264337593543950335')
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### UInt256Max
 
@@ -273,11 +267,11 @@ const fetchers = [
     `,
     'UInt256Max',
     [],
-    async (world, {}) =>
+    async () =>
       new NumberV('115792089237316195423570985008687907853269984665640564039457584007913129639935')
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### Some
 
@@ -285,10 +279,10 @@ const fetchers = [
     `,
     'Some',
     [],
-    async (world, {}) => strToNumberV('100e18')
+    async () => strToNumberV('100e18')
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### Little
 
@@ -296,7 +290,7 @@ const fetchers = [
     `,
     'Little',
     [],
-    async (world, {}) => strToNumberV('100e10')
+    async () => strToNumberV('100e10')
   ),
 
   new Fetcher<{ amt: EventV }, NumberV>(
@@ -371,7 +365,7 @@ const fetchers = [
     async (world, { amt }) => new PreciseV(toEncodableNum(amt.val), getSigFigs(amt.val))
   ),
 
-  new Fetcher<{}, AnythingV>(
+  new Fetcher<Record<string, any>, AnythingV>(
     `
       #### Anything
 
@@ -379,10 +373,10 @@ const fetchers = [
     `,
     'Anything',
     [],
-    async (world, {}) => new AnythingV()
+    async () => new AnythingV()
   ),
 
-  new Fetcher<{}, NothingV>(
+  new Fetcher<Record<string, any>, NothingV>(
     `
       #### Nothing
 
@@ -390,7 +384,7 @@ const fetchers = [
     `,
     'Nothing',
     [],
-    async (world, {}) => new NothingV()
+    async () => new NothingV()
   ),
 
   new Fetcher<{ addr: AddressV }, AddressV>(
@@ -459,25 +453,25 @@ const fetchers = [
     ],
     async (world, { addr, slot, key, nestedKey, valType }) => {
       const areEqual = (v, x) => toBN(v).eq(toBN(x));
-      let paddedSlot = slot.toNumber().toString(16).padStart(64, '0');
-      let paddedKey = padLeft(key.val, 64);
-      let newKey = sha3(paddedKey + paddedSlot);
-      let val = await world.web3.eth.getStorageAt(addr.val, newKey);
+      const paddedSlot = slot.toNumber().toString(16).padStart(64, '0');
+      const paddedKey = padLeft(key.val, 64);
+      const newKey = sha3(paddedKey + paddedSlot) as string;
+      const val = await world.web3.eth.getStorageAt(addr.val, newKey);
 
       switch (valType.val) {
-        case 'marketStruct':
-          let isListed = areEqual(val, 1);
-          let collateralFactorKey = '0x' + toBN(newKey).add(toBN(1)).toString(16);
-          let collateralFactorStr = await world.web3.eth.getStorageAt(addr.val, collateralFactorKey);
-          let collateralFactor = toBN(collateralFactorStr);
-          let userMarketBaseKey = padLeft(toBN(newKey).add(toBN(2)).toString(16), 64);
-          let paddedSlot = padLeft(userMarketBaseKey, 64);
-          let paddedKey = padLeft(nestedKey.val, 64);
-          let newKeyTwo = sha3(paddedKey + paddedSlot);
-          let userInMarket = await world.web3.eth.getStorageAt(addr.val, newKeyTwo);
+        case 'marketStruct': {
+          const isListed = areEqual(val, 1);
+          const collateralFactorKey = '0x' + toBN(newKey).add(toBN(1)).toString(16);
+          const collateralFactorStr = await world.web3.eth.getStorageAt(addr.val, collateralFactorKey);
+          const collateralFactor = toBN(collateralFactorStr);
+          const userMarketBaseKey = padLeft(toBN(newKey).add(toBN(2)).toString(16), 64);
+          const paddedSlot = padLeft(userMarketBaseKey, 64);
+          const paddedKey = padLeft(nestedKey.val, 64);
+          const newKeyTwo = sha3(paddedKey + paddedSlot) as string;
+          const userInMarket = await world.web3.eth.getStorageAt(addr.val, newKeyTwo);
 
-          let isCompKey = '0x' + toBN(newKey).add(toBN(3)).toString(16);
-          let isVenusStr = await world.web3.eth.getStorageAt(addr.val, isCompKey);
+          const isCompKey = '0x' + toBN(newKey).add(toBN(3)).toString(16);
+          const isVenusStr = await world.web3.eth.getStorageAt(addr.val, isCompKey);
 
           return new ListV([
             new BoolV(isListed),
@@ -485,6 +479,7 @@ const fetchers = [
             new BoolV(areEqual(userInMarket, 1)),
             new BoolV(areEqual(isVenusStr, 1))
           ]);
+        }
         default:
           return new NothingV();
       }
@@ -508,23 +503,23 @@ const fetchers = [
       new Arg('valType', getStringV)
     ],
     async (world, { addr, slot, key, valType }) => {
-      let paddedSlot = slot.toNumber().toString(16).padStart(64, '0');
-      let paddedKey = padLeft(key.val, 64);
-      let newKey = sha3(paddedKey + paddedSlot);
-      let val = await world.web3.eth.getStorageAt(addr.val, newKey);
+      const paddedSlot = slot.toNumber().toString(16).padStart(64, '0');
+      const paddedKey = padLeft(key.val, 64);
+      const newKey = sha3(paddedKey + paddedSlot) as string;
+      const val = await world.web3.eth.getStorageAt(addr.val, newKey);
 
       switch (valType.val) {
-        case 'list(address)':
-          let p = new Array(toDecimal(val)).fill(undefined).map(async (_v, index) => {
-            let newKeySha = sha3(newKey);
-            let itemKey = toBN(newKeySha).add(toBN(index));
-            let address = await world.web3.eth.getStorageAt(addr.val, padLeft(toHex(itemKey), 40));
+        case 'list(address)': {
+          const p = new Array(toDecimal(val)).fill(undefined).map(async (_v, index) => {
+            const newKeySha = sha3(newKey) as string;
+            const itemKey = toBN(newKeySha).add(toBN(index));
+            const address = await world.web3.eth.getStorageAt(addr.val, padLeft(toHex(itemKey), 40));
             return new AddressV(address);
           });
 
-          let all = await Promise.all(p);
+          const all = await Promise.all(p);
           return new ListV(all);
-
+        }
         case 'bool':
           return new BoolV(val != '0x' && val != '0x0');
         case 'address':
@@ -537,29 +532,29 @@ const fetchers = [
     }
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
     #### BlockNumber
     * BlockNumber
     `,
     'BlockNumber',
     [],
-    async (world, {}) => {
+    async (world) => {
       return new NumberV(await getCurrentBlockNumber(world));
     }
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
     #### GasCounter
     * GasCounter
     `,
     'GasCounter',
     [],
-    async (world, {}) => new NumberV(world.gasCounter.value)
+    async (world) => new NumberV(world.gasCounter.value)
   ),
 
-  new Fetcher<{}, AddressV>(
+  new Fetcher<Record<string, any>, AddressV>(
     `
       #### LastContract
 
@@ -567,10 +562,10 @@ const fetchers = [
     `,
     'LastContract',
     [],
-    async (world, { }) => new AddressV(world.get('lastContract'))
+    async (world) => new AddressV(world.get('lastContract'))
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### LastBlock
 
@@ -578,8 +573,8 @@ const fetchers = [
     `,
     'LastBlock',
     [],
-    async (world, { }) => {
-      let invokation = world.get('lastInvokation');
+    async (world) => {
+      const invokation = world.get('lastInvokation');
       if (!invokation) {
         throw new Error(`Expected last invokation for "lastBlock" but none found.`);
       }
@@ -592,7 +587,7 @@ const fetchers = [
     }
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### LastGas
 
@@ -600,8 +595,8 @@ const fetchers = [
     `,
     'LastGas',
     [],
-    async (world, {}) => {
-      let invokation = world.get('lastInvokation');
+    async (world) => {
+      const invokation = world.get('lastInvokation');
       if (!invokation) {
         throw new Error(`Expected last invokation for "lastGas" but none found.`);
       }
@@ -718,7 +713,7 @@ const fetchers = [
       return new NumberV(secondsBn.plus(getCurrentTimestamp()).toFixed(0));
     }
   ),
-    new Fetcher<{}, NumberV>(
+    new Fetcher<Record<string, any>, NumberV>(
     `
       #### Now
 
@@ -726,11 +721,11 @@ const fetchers = [
     `,
     'Now',
     [],
-    async (world, {}) => {
+    async () => {
       return new NumberV(getCurrentTimestamp());
     }
   ),
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### BlockTimestamp
 
@@ -739,13 +734,13 @@ const fetchers = [
     `,
     'BlockTimestamp',
     [],
-    async (world, {}) => {
+    async (world) => {
       const {result: blockNumber}: any = await sendRPC(world, 'eth_blockNumber', []);
       const {result: block}: any = await sendRPC(world, 'eth_getBlockByNumber', [blockNumber, false]);
       return new NumberV(parseInt(block.timestamp, 16));
     }
   ),
-  new Fetcher<{}, StringV>(
+  new Fetcher<Record<string, any>, StringV>(
     `
       #### Network
 
@@ -1027,7 +1022,7 @@ const fetchers = [
   ),
 ];
 
-let contractFetchers = [
+const contractFetchers = [
   { contract: "Counter", implicit: false },
   { contract: "VenusLens", implicit: false },
   { contract: "Reservoir", implicit: true }
@@ -1038,7 +1033,7 @@ export async function getFetchers(world: World) {
     return { world, fetchers: world.fetchers };
   }
 
-  let allFetchers = fetchers.concat(await Promise.all(contractFetchers.map(({contract, implicit}) => {
+  const allFetchers = fetchers.concat(await Promise.all(contractFetchers.map(({contract, implicit}) => {
     return buildContractFetcher(world, contract, implicit);
   })));
 
@@ -1046,6 +1041,6 @@ export async function getFetchers(world: World) {
 }
 
 export async function getCoreValue(world: World, event: Event): Promise<Value> {
-  let {world: nextWorld, fetchers} = await getFetchers(world);
+  const {world: nextWorld, fetchers} = await getFetchers(world);
   return await getFetcherValue<any, any>('Core', fetchers, nextWorld, event);
 }

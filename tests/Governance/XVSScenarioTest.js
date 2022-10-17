@@ -1,10 +1,10 @@
 
 describe('XVSScenario', () => {
-  let root, accounts;
+  let root;
   let xvs;
 
   beforeEach(async () => {
-    [root, ...accounts] = saddle.accounts;
+    [root] = saddle.accounts;
     xvs = await deploy('XVSScenario', [root]);
   });
 
@@ -40,7 +40,7 @@ describe('XVSScenario', () => {
               log.show();
             }
           },
-          exec: (logs, info) => {
+          exec: (logs) => {
             expect(logs.length).toEqual(expectedReads);
           }
         });

@@ -2,7 +2,6 @@ const BigNum = require('bignumber.js');
 const {Ganache} = require('eth-saddle/dist/config');
 const {bnbUnsigned} = require('../Utils/BSC');
 const {
-  makeInterestRateModel,
   getBorrowRate,
   getSupplyRate
 } = require('../Utils/Venus');
@@ -73,7 +72,7 @@ describe('DAIInterestRateModelV2', () => {
     it.skip("sets jug and ilk address and pokes", async () => {
       // NB: Going back a certain distance requires an archive node, currently that add-on is $250/mo
       //  https://community.infura.io/t/error-returned-error-project-id-does-not-have-access-to-archive-state/847
-      const {kovan, root, accounts} = await getKovanFork();
+      const {kovan, root} = await getKovanFork();
 
       // TODO: Get contract craz
       let {contract: model} = await saddle.deployFull('DAIInterestRateModelV2', [
@@ -85,7 +84,7 @@ describe('DAIInterestRateModelV2', () => {
 
       let args = [0.5e18, 0.45e18, 500].map(bnbUnsigned);
       // let mult = await call(model, 'multiplierPerBlock');
-      let sr = await call(model, 'getSupplyRate', [...args, bnbUnsigned(0.1e18)]);
+       await call(model, 'getSupplyRate', [...args, bnbUnsigned(0.1e18)]);
       // TODO: This doesn't check the return valie?
     });
   });

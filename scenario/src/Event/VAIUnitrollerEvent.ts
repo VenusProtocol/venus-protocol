@@ -1,5 +1,5 @@
 import { Event } from '../Event';
-import { addAction, describeUser, World } from '../World';
+import { addAction, World } from '../World';
 import { VAIUnitroller } from '../Contract/VAIUnitroller';
 import { VAIControllerImpl } from '../Contract/VAIControllerImpl';
 import { invoke } from '../Invokation';
@@ -12,7 +12,7 @@ import { getVAIControllerImpl, getVAIUnitroller } from '../ContractLookup';
 import { verify } from '../Verify';
 
 async function genVAIUnitroller(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, vaiunitroller, vaiunitrollerData } = await buildVAIUnitroller(world, from, params);
+  const { world: nextWorld, vaiunitroller, vaiunitrollerData } = await buildVAIUnitroller(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -35,7 +35,7 @@ async function verifyVAIUnitroller(world: World, vaiunitroller: VAIUnitroller, a
 }
 
 async function acceptAdmin(world: World, from: string, vaiunitroller: VAIUnitroller): Promise<World> {
-  let invokation = await invoke(world, vaiunitroller.methods._acceptAdmin(), from, VAIControllerErrorReporter);
+  const invokation = await invoke(world, vaiunitroller.methods._acceptAdmin(), from, VAIControllerErrorReporter);
 
   world = addAction(world, `Accept admin as ${from}`, invokation);
 
@@ -48,7 +48,7 @@ async function setPendingAdmin(
   vaiunitroller: VAIUnitroller,
   pendingAdmin: string
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     vaiunitroller.methods._setPendingAdmin(pendingAdmin),
     from,
@@ -66,7 +66,7 @@ async function setPendingImpl(
   vaiunitroller: VAIUnitroller,
   vaicontrollerImpl: VAIControllerImpl
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     vaiunitroller.methods._setPendingImplementation(vaicontrollerImpl._address),
     from,

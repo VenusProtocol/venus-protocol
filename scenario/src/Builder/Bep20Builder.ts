@@ -1,23 +1,21 @@
 
 import {Event} from '../Event';
-import {addAction, World} from '../World';
+import {World} from '../World';
 import {Bep20} from '../Contract/Bep20';
-import {Invokation, invoke} from '../Invokation';
+import {Invokation} from '../Invokation';
 import {
   getAddressV,
-  getCoreValue,
   getNumberV,
   getStringV
 } from '../CoreValue';
 import {
   AddressV,
   NumberV,
-  StringV,
-  Value
+  StringV
 } from '../Value';
 import {Arg, Fetcher, getFetcherValue} from '../Command';
 import {storeAndSaveContract} from '../Networks';
-import {getContract, getTestContract} from '../Contract';
+import {getContract} from '../Contract';
 import {encodeABI} from '../Utils';
 
 const ExistingToken = getContract("EIP20Interface");
@@ -206,7 +204,7 @@ export async function buildBep20(world: World, from: string, event: Event): Prom
         new Arg("name", getStringV, {default: new StringV("Wrapped Bitcoin")})
       ],
       async (world, {symbol, name}) => {
-        let decimals = 8;
+        const decimals = 8;
 
         return {
           invokation: await WBTVTokenHarness.deploy<Bep20>(world, from, []),
@@ -247,8 +245,8 @@ export async function buildBep20(world: World, from: string, event: Event): Prom
     ),
   ];
 
-  let tokenData = await getFetcherValue<any, TokenData>("DeployBep20", fetchers, world, event);
-  let invokation = tokenData.invokation;
+  const tokenData = await getFetcherValue<any, TokenData>("DeployBep20", fetchers, world, event);
+  const invokation = tokenData.invokation;
   delete tokenData.invokation;
 
   if (invokation.error) {

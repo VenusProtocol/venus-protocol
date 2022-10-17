@@ -13,7 +13,7 @@ import { verify } from '../Verify';
 import { mergeContractABI } from '../Networks';
 
 async function genComptrollerImpl(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, comptrollerImpl, comptrollerImplData } = await buildComptrollerImpl(
+  const { world: nextWorld, comptrollerImpl, comptrollerImplData } = await buildComptrollerImpl(
     world,
     from,
     params
@@ -49,7 +49,7 @@ async function becomeG1(
   comptrollerImpl: ComptrollerImpl,
   unitroller: Unitroller
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
@@ -72,7 +72,7 @@ async function becomeG2(
   comptrollerImpl: ComptrollerImpl,
   unitroller: Unitroller
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
@@ -95,7 +95,7 @@ async function becomeG3(
   comptrollerImpl: ComptrollerImpl,
   unitroller: Unitroller
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
@@ -118,7 +118,7 @@ async function becomeG4(
   comptrollerImpl: ComptrollerImpl,
   unitroller: Unitroller
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
@@ -141,7 +141,7 @@ async function becomeG5(
   comptrollerImpl: ComptrollerImpl,
   unitroller: Unitroller
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
@@ -164,7 +164,7 @@ async function become(
   comptrollerImpl: ComptrollerImpl,
   unitroller: Unitroller
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
@@ -220,7 +220,7 @@ export function comptrollerImplCommands() {
       'Verify',
       [new Arg('comptrollerImplArg', getStringV), new Arg('apiKey', getStringV)],
       async (world, { comptrollerImplArg, apiKey }) => {
-        let [comptrollerImpl, name, data] = await getComptrollerImplData(world, comptrollerImplArg.val);
+        const [comptrollerImpl, name, data] = await getComptrollerImplData(world, comptrollerImplArg.val);
 
         return await verifyComptrollerImpl(world, comptrollerImpl, name, data.get('contract')!, apiKey.val);
       },

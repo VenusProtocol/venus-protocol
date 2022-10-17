@@ -1,9 +1,9 @@
 import { Event } from '../Event';
-import { World, addAction } from '../World';
+import { World } from '../World';
 import { SXP, SXPScenario } from '../Contract/SXP';
 import { Invokation } from '../Invokation';
 import { getAddressV } from '../CoreValue';
-import { StringV, AddressV } from '../Value';
+import { AddressV } from '../Value';
 import { Arg, Fetcher, getFetcherValue } from '../Command';
 import { storeAndSaveContract } from '../Networks';
 import { getContract } from '../Contract';
@@ -82,8 +82,8 @@ export async function buildSXP(
     )
   ];
 
-  let tokenData = await getFetcherValue<any, TokenData>("DeploySXP", fetchers, world, params);
-  let invokation = tokenData.invokation;
+  const tokenData = await getFetcherValue<any, TokenData>("DeploySXP", fetchers, world, params);
+  const invokation = tokenData.invokation;
   delete tokenData.invokation;
 
   if (invokation.error) {

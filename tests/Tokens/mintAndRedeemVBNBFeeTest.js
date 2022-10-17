@@ -7,7 +7,6 @@ const {
 
 const {
   makeVToken,
-  balanceOf,
   fastForward,
   setBalance,
   setBNBBalance,
@@ -21,7 +20,6 @@ const mintTokens = mintAmount.div(exchangeRate);
 const redeemTokens = bnbUnsigned(10e3);
 const redeemAmount = redeemTokens.mul(exchangeRate);
 const redeemedAmount = redeemAmount.mul(bnbUnsigned(9999e14)).div(bnbUnsigned(1e18));
-const feeAmount = redeemAmount.mul(bnbUnsigned(1e14)).div(bnbUnsigned(1e18));
 
 async function preMint(vToken, minter, mintAmount, mintTokens, exchangeRate) {
   await send(vToken.comptroller, 'setMintAllowed', [true]);
@@ -48,7 +46,7 @@ async function preRedeem(vToken, redeemer, redeemTokens, redeemAmount, exchangeR
   await setBalance(vToken, redeemer, redeemTokens);
 }
 
-async function redeemVTokens(vToken, redeemer, redeemTokens, redeemAmount) {
+async function redeemVTokens(vToken, redeemer, redeemTokens) {
   return send(vToken, 'redeem', [redeemTokens], {from: redeemer});
 }
 
@@ -57,11 +55,11 @@ async function redeemUnderlying(vToken, redeemer, redeemTokens, redeemAmount) {
 }
 
 describe('VBNB', () => {
-  let root, minter, redeemer, accounts;
+  let root, minter, redeemer; // eslint-disable-line @typescript-eslint/no-unused-vars
   let vToken;
 
   beforeEach(async () => {
-    [root, minter, redeemer, ...accounts] = saddle.accounts;
+    [root, minter, redeemer] = saddle.accounts;
     vToken = await makeVToken({kind: 'vbnb', comptrollerOpts: {kind: 'boolFee'}});
     await fastForward(vToken, 1);
   });

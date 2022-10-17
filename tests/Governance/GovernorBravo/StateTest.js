@@ -23,6 +23,8 @@ const statesInverted = solparse
 
 const states = Object.entries(statesInverted).reduce((obj, [key, value]) => ({ ...obj, [value]: key }), {});
 
+let accounts = [];
+
 describe('GovernorBravo#state/1', () => {
   let xvs, xvsVault, gov, root, acct, guardian, delay, timelock;
 
@@ -68,7 +70,7 @@ describe('GovernorBravo#state/1', () => {
     await enfranchise(root, 400001);
 
     await send(gov, 'propose', [targets, values, signatures, callDatas, "do nothing"]);
-    proposalId = await call(gov, 'latestProposalIds', [root]);
+    const proposalId = await call(gov, 'latestProposalIds', [root]);
     trivialProposal = await call(gov, "proposals", [proposalId])
   })
 

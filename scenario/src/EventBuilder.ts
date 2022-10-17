@@ -1,8 +1,7 @@
 import { Event } from './Event';
 import { addAction, World } from './World';
-import { Governor } from './Contract/Governor';
 import { Invokation } from './Invokation';
-import { Arg, Command, Fetcher, getFetcherValue, processCommandEvent, View } from './Command';
+import { Arg, Command, Fetcher, getFetcherValue, processCommandEvent } from './Command';
 import { storeAndSaveContract } from './Networks';
 import { Contract, getContract } from './Contract';
 import { getWorldContract } from './ContractLookup';
@@ -70,7 +69,7 @@ const typeMappings = () => ({
 });
 
 function buildArg(contractName: string, name: string, input: AbiInput): Arg<Value> {
-  let { getter } = typeMappings()[input.type] || {};
+  const { getter } = typeMappings()[input.type] || {};
 
   if (!getter) {
     throw new Error(`Unknown ABI Input Type: ${input.type} of \`${name}\` in ${contractName}`);
@@ -94,19 +93,19 @@ function getContractObjectFn(contractName, implicit) {
     }
   }
 }
-export function buildContractEvent<T extends Contract>(contractName: string, implicit) {
+export function buildContractEvent(contractName: string, implicit) {
 
 
   return async (world) => {
-    let contractDeployer = getContract(contractName);
-    let abis: AbiItem[] = await world.saddle.abi(contractName);
+    const contractDeployer = getContract(contractName);
+    const abis: AbiItem[] = await world.saddle.abi(contractName);
 
     async function build<T extends Contract>(
       world: World,
       from: string,
       params: Event
     ): Promise<{ world: World; contract: T; data: ContractData<T> }> {
-      let constructors = abis.filter(({type}) => type === 'constructor');
+      const constructors = abis.filter(({type}) => type === 'constructor');
       if (constructors.length === 0) {
         constructors.push({
           constant: false,
@@ -119,12 +118,12 @@ export function buildContractEvent<T extends Contract>(contractName: string, imp
       }
 
       const fetchers = constructors.map((abi: any) => {
-        let nameArg = implicit ? [] : [
+        const nameArg = implicit ? [] : [
           new Arg('name', getStringV, { default: new StringV(contractName) })
         ];
-        let nameArgDesc = implicit ? `` : `name:<String>=${contractName}" `
-        let inputNames = abi.inputs.map((input) => getEventName(input.name));
-        let args = abi.inputs.map((input) => buildArg(contractName, input.name, input));
+        const nameArgDesc = implicit ? `` : `name:<String>=${contractName}" `
+        const inputNames = abi.inputs.map((input) => getEventName(input.name));
+        const args = abi.inputs.map((input) => buildArg(contractName, input.name, input));
         return new Fetcher<object, ContractData<T>>(
           `
             #### ${contractName}
@@ -136,9 +135,9 @@ export function buildContractEvent<T extends Contract>(contractName: string, imp
           contractName,
           nameArg.concat(args),
           async (world, paramValues) => {
-            let name = implicit ? contractName : <string>paramValues['name'].val;
-            let params = args.map((arg) => paramValues[arg.name]); // TODO: This is just a guess
-            let paramsEncoded = params.map((param) => typeof(param['encode']) === 'function' ? param.encode() : param.val);
+            const name = implicit ? contractName : <string>paramValues['name'].val;
+            const params = args.map((arg) => paramValues[arg.name]); // TODO: This is just a guess
+            const paramsEncoded = params.map((param) => typeof(param['encode']) === 'function' ? param.encode() : param.val);
 
             return {
               invokation: await contractDeployer.deploy<T>(world, from, paramsEncoded),
@@ -150,8 +149,8 @@ export function buildContractEvent<T extends Contract>(contractName: string, imp
         )
       });
 
-      let data = await getFetcherValue<any, ContractData<T>>(`Deploy${contractName}`, fetchers, world, params);
-      let invokation = data.invokation;
+      const data = await getFetcherValue<any, ContractData<T>>(`Deploy${contractName}`, fetchers, world, params);
+      const invokation = data.invokation;
       delete data.invokation;
 
       if (invokation.error) {
@@ -176,7 +175,7 @@ export function buildContractEvent<T extends Contract>(contractName: string, imp
     }
 
     async function deploy<T extends Contract>(world: World, from: string, params: Event) {
-      let { world: nextWorld, contract, data } = await build<T>(world, from, params);
+      const { world: nextWorld, contract, data } = await build<T>(world, from, params);
       world = nextWorld;
 
       world = addAction(
@@ -189,13 +188,13 @@ export function buildContractEvent<T extends Contract>(contractName: string, imp
     }
 
     function commands<T extends Contract>() {
-      async function buildOutput(world: World, from: string, fn: string, inputs: object, output: AbiItem): Promise<World> {
+      async function buildOutput(world: World, from: string, fn: string, inputs: object): Promise<World> {
 
         const paramsEncoded = Object.values(inputs).slice(1).map(
           (param) => typeof(param['encode']) === 'function' ? param.encode() : param.val
         );
         const sendable = <Sendable<any>>(inputs['contract'].methods[fn](...paramsEncoded));
-        let invokation = await invoke(world, sendable, from);
+        const invokation = await invoke(world, sendable, from);
 
         world = addAction(
           world,
@@ -206,10 +205,10 @@ export function buildContractEvent<T extends Contract>(contractName: string, imp
         return world;
       }
 
-      let abiCommands = abis.filter(({type}) => type === 'function').map((abi: any) => {
-        let eventName = getEventName(abi.name);
-        let inputNames = abi.inputs.map((input) => getEventName(input.name));
-        let args = [
+      const abiCommands = abis.filter(({type}) => type === 'function').map((abi: any) => {
+        const eventName = getEventName(abi.name);
+        const inputNames = abi.inputs.map((input) => getEventName(input.name));
+        const args = [
           new Arg("contract", getContractObjectFn(contractName, implicit), implicit ? { implicit: true } : {})
         ].concat(abi.inputs.map((input) => buildArg(contractName, input.name, input)));
 
@@ -246,7 +245,7 @@ export function buildContractEvent<T extends Contract>(contractName: string, imp
       return await processCommandEvent<any>(contractName, commands(), world, event, from);
     }
 
-    let command = new Command<{ event: EventV }>(
+    const command = new Command<{ event: EventV }>(
       `
         #### ${contractName}
 
@@ -265,15 +264,15 @@ export function buildContractEvent<T extends Contract>(contractName: string, imp
   }
 }
 
-export async function buildContractFetcher<T extends Contract>(world: World, contractName: string, implicit: boolean) {
+export async function buildContractFetcher(world: World, contractName: string, implicit: boolean) {
 
-  let abis: AbiItem[] = await world.saddle.abi(contractName);
+  const abis: AbiItem[] = await world.saddle.abi(contractName);
 
   function fetchers() {
     async function buildOutput(world: World, fn: string, inputs: object, output: AbiItem): Promise<Value> {
       const callable = <Callable<any>>(inputs['contract'].methods[fn](...Object.values(inputs).slice(1)));
-      let value = await callable.call();
-      let { builder } = typeMappings()[output.type] || {};
+      const value = await callable.call();
+      const { builder } = typeMappings()[output.type] || {};
 
       if (!builder) {
         throw new Error(`Unknown ABI Output Type: ${output.type} of \`${fn}\` in ${contractName}`);
@@ -283,9 +282,9 @@ export async function buildContractFetcher<T extends Contract>(world: World, con
     }
 
     return abis.filter(({name}) => !!name).map((abi: any) => {
-      let eventName = getEventName(abi.name);
-      let inputNames = abi.inputs.map((input) => getEventName(input.name));
-      let args = [
+      const eventName = getEventName(abi.name);
+      const inputNames = abi.inputs.map((input) => getEventName(input.name));
+      const args = [
         new Arg("contract", getContractObjectFn(contractName, implicit), implicit ? { implicit: true } : {})
       ].concat(abi.inputs.map((input) => buildArg(contractName, abi.name, input)));
       return new Fetcher<object, Value>(`
@@ -305,7 +304,7 @@ export async function buildContractFetcher<T extends Contract>(world: World, con
     return await getFetcherValue<any, any>(contractName, fetchers(), world, event);
   }
 
-  let fetcher = new Fetcher<{ res: Value }, Value>(
+  const fetcher = new Fetcher<{ res: Value }, Value>(
     `
       #### ${contractName}
 

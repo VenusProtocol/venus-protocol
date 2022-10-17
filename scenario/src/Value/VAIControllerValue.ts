@@ -3,30 +3,21 @@ import {World} from '../World';
 import {VAIController} from '../Contract/VAIController';
 import {
   getAddressV,
-  getCoreValue,
-  getStringV,
-  getNumberV
 } from '../CoreValue';
 import {
   AddressV,
-  BoolV,
-  ListV,
   NumberV,
-  StringV,
   Value
 } from '../Value';
 import {Arg, Fetcher, getFetcherValue} from '../Command';
 import {getVAIController} from '../ContractLookup';
-import {encodedNumber} from '../Encoding';
-import {getVTokenV} from './VTokenValue';
-import { encodeParameters, encodeABI } from '../Utils';
 
 export async function getVAIControllerAddress(world: World, vaicontroller: VAIController): Promise<AddressV> {
   return new AddressV(vaicontroller._address);
 }
 
 async function getMintableVAI(world: World, vaicontroller: VAIController, account: string): Promise<NumberV> {
-  let {0: error, 1: amount} = await vaicontroller.methods.getMintableVAI(account).call();
+  const {0: error, 1: amount} = await vaicontroller.methods.getMintableVAI(account).call();
   if (Number(error) != 0) {
     throw new Error(`Failed to get mintable vai: error code = ${error}`);
   }

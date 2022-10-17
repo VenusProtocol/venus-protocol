@@ -60,12 +60,12 @@ export class EventV implements Value {
 }
 
 export class AnythingV implements Value {
-  compareTo(world: World, given: Value): boolean {
+  compareTo(): boolean {
     // Everything is awesome.
     return true;
   }
 
-  compareOrder(world: World, given: Value): Order {
+  compareOrder(_world: World, given: Value): Order {
     throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
   }
 
@@ -85,7 +85,7 @@ export class NothingV implements Value {
     this.val = null;
   }
 
-  compareTo(world: World, given: Value): boolean {
+  compareTo(): boolean {
     // Everything is not awesome.
     return false;
   }
@@ -282,7 +282,7 @@ export class NumberV implements Value {
     throw new Error(`Cannot convert number ${this.val} into bool`)
   }
 
-  asExp(denom=undefined): string {
+  asExp(): string {
     return new BigNumber(this.val).toExponential();
   }
 

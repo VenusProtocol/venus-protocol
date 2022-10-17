@@ -7,13 +7,14 @@ const {
 
 const BigNum = require('bignumber.js');
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+let accounts = [];
 
 describe('XVSVestingProxy', () => {
     let root;
     let vrtConversionAddress,
         vrtToken,
         xvsToken, xvsTokenAddress;
-    let xvsVestingProxy, xvsVestingProxyAddress, xvsVestingProxyAdmin;
+    let xvsVestingProxy, xvsVestingProxyAdmin;
     let blockTimestamp;
     let vrtConversion, vrtConverterProxy, vrtConverterProxyAddress,
         conversionStartTime, conversionPeriod, conversionRatio;
@@ -26,7 +27,7 @@ describe('XVSVestingProxy', () => {
 
         //deploy VRT
         vrtToken = await deploy('VRT', [root]);
-        vrtTokenAddress = vrtToken._address;
+        let vrtTokenAddress = vrtToken._address;
 
         //deploy XVS
         xvsToken = await deploy('XVS', [root]);
@@ -38,7 +39,6 @@ describe('XVSVestingProxy', () => {
 
         //deploy XVSVestingProxy
         xvsVestingProxy = await deploy("XVSVestingProxy", [xvsVestingAddress, xvsTokenAddress]);
-        xvsVestingProxyAddress = xvsVestingProxy._address;
         xvsVestingProxyAdmin = await call(xvsVestingProxy, "admin");
         mergeInterface(xvsVestingProxy, xvsVesting);
 

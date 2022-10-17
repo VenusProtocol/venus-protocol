@@ -48,12 +48,6 @@ import { printHelp } from './Help';
 import { loadContracts } from './Networks';
 import { fork } from './Hypothetical';
 import { buildContractEvent } from './EventBuilder';
-import { Counter } from './Contract/Counter';
-import { VenusLens } from './Contract/VenusLens';
-import { Reservoir } from './Contract/Reservoir';
-import { XVSStore } from './Contract/XVSVault';
-import { Liquidator } from './Contract/Liquidator';
-import { ComptrollerLens } from './Contract/ComptrollerLens';
 
 export class EventProcessingError extends Error {
   error: Error;
@@ -121,7 +115,7 @@ async function inspect(world: World, string: string | null): Promise<World> {
 }
 
 async function sendBNB(world: World, from: string, to: string, amount: encodedNumber): Promise<World> {
-  let invokation = await fallback(world, from, to, amount);
+  const invokation = await fallback(world, from, to, amount);
 
   world = addAction(world, `Send ${amount} from ${from} to ${to}`, invokation);
 
@@ -205,7 +199,6 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     'SleepUntilBlock',
     [new Arg('blockNumber', getNumberV)],
     async (world, { blockNumber }) => {
-      const delay = blockNumber.toNumber() - await getCurrentBlockNumber(world);
       while (blockNumber.toNumber() > await getCurrentBlockNumber(world)) {
         await sleep(1000);
       }
@@ -255,7 +248,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     [new Arg('message', getStringV)],
     async (world, { message }) => print(world, message.val)
   ),
-  new View<{}>(
+  new View(
     `
       #### PrintTransactionLogs
 
@@ -263,7 +256,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     `,
     'PrintTransactionLogs',
     [],
-    async (world, { }) => {
+    async (world) => {
       return await world.updateSettings(async settings => {
         settings.printTxLogs = true;
 
@@ -300,7 +293,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       if (world.basePath && (network === 'mainnet' || network === 'kovan' || network === 'goerli' || network === 'rinkeby' || network == 'ropsten')) {
         let newWorld = world.set('network', network);
         let contractInfo;
-        [newWorld, contractInfo] = await loadContracts(newWorld);
+        [newWorld, contractInfo] = await loadContracts(newWorld); // eslint-disable-line prefer-const
         if (contractInfo.length > 0) {
           world.printer.printLine(`Contracts:`);
           contractInfo.forEach((info) => world.printer.printLine(`\t${info}`));
@@ -356,7 +349,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     `,
     'Aliases',
     [],
-    async (world, { name, address }) => {
+    async (world) => {
       world.printer.printLine('Aliases:');
       Object.entries(world.settings.aliases).forEach(([name, address]) => {
         world.printer.printLine(`\t${name}: ${address}`);
@@ -412,7 +405,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     }
   ),
 
-  new View<{}>(
+  new View(
     `
       #### MineBlock
 
@@ -421,7 +414,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     `,
     'MineBlock',
     [],
-    async (world, { }) => {
+    async (world) => {
       await sendRPC(world, 'evm_mine', []);
       return world;
     }
@@ -476,7 +469,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     }
   ),
 
-  new View<{}>(
+  new View(
     `
       #### Inspect
 
@@ -484,7 +477,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     `,
     'Inspect',
     [],
-    async (world, { }) => inspect(world, null)
+    async (world) => inspect(world, null)
   ),
 
   new View<{ message: StringV }>(
@@ -964,11 +957,11 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     { subExpressions: governorBravoCommands() }
   ),
 
-  buildContractEvent<Counter>("Counter", false),
-  buildContractEvent<VenusLens>("VenusLens", false),
-  buildContractEvent<Reservoir>("Reservoir", true),
-  buildContractEvent<XVSStore>("XVSStore", true),
-  buildContractEvent<ComptrollerLens>("ComptrollerLens", true),
+  buildContractEvent("Counter", false),
+  buildContractEvent("VenusLens", false),
+  buildContractEvent("Reservoir", true),
+  buildContractEvent("XVSStore", true),
+  buildContractEvent("ComptrollerLens", true),
 
   new View<{ event: EventV }>(
     `
@@ -981,7 +974,7 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
     [new Arg('event', getEventV, { variadic: true })],
     async (world, { event }) => {
       world.printer.printLine('');
-      let { commands } = await getCommands(world);
+      const { commands } = await getCommands(world);
       printHelp(world.printer, event.val, commands);
 
       return world;
@@ -994,7 +987,7 @@ async function getCommands(world: World) {
     return { world, commands: world.commands };
   }
 
-  let allCommands = await Promise.all(commands.map((command) => {
+  const allCommands = await Promise.all(commands.map((command) => {
     if (typeof (command) === 'function') {
       return command(world);
     } else {
@@ -1006,6 +999,6 @@ async function getCommands(world: World) {
 }
 
 export async function processCoreEvent(world: World, event: Event, from: string | null): Promise<World> {
-  let { world: nextWorld, commands } = await getCommands(world);
+  const { world: nextWorld, commands } = await getCommands(world);
   return await processCommandEvent<any>('Core', commands, nextWorld, event, from);
 }

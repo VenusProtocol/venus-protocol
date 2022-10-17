@@ -5,7 +5,7 @@ const {
 } = require('../Utils/Venus');
 
 describe('VToken', function () {
-  let root, accounts;
+  let root, accounts; // eslint-disable-line @typescript-eslint/no-unused-vars
   let vToken, oldComptroller, newComptroller;
   beforeEach(async () => {
     [root, ...accounts] = saddle.accounts;

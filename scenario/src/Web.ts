@@ -1,4 +1,3 @@
-import { parse } from './Parser';
 import { World, initWorld } from './World';
 import { throwExpect } from './Assert';
 import { CallbackPrinter } from './Printer';
@@ -53,7 +52,7 @@ export async function webWorld(
   networksABIData: string,
   printerCallback: (message: any) => void
 ): Promise<World> {
-  let printer = new CallbackPrinter(printerCallback);
+  const printer = new CallbackPrinter(printerCallback);
   let accounts;
   if (web3.currentProvider && typeof(web3.currentProvider) !== 'string') {
     // XXXS
@@ -70,8 +69,8 @@ export async function webWorld(
 
   let world = await initWorld(throwExpect, printer, web3, saddle, network, accounts, null, null);
 
-  let networks = parseNetworkFile(networksData);
-  let networksABI = parseNetworkFile(networksABIData);
+  const networks = parseNetworkFile(networksData);
+  const networksABI = parseNetworkFile(networksABIData);
 
   [world] = await loadContractData(world, networks, networksABI);
   // world = loadInvokationOpts(world);

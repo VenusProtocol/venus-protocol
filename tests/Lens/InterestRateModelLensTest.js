@@ -7,13 +7,11 @@ const {
 
 describe('InterestRateModelLens', () => {
 
-  let root, accounts;
   let interestRateModel, model, baseRate, multiplier, interestRateModelAddresses;
-  let interestRateModelLens, interestRateModelLensAddresses;
+  let interestRateModelLens;
   let referenceAmountInWei, reserveFactor;
 
   beforeEach(async () => {
-    [root, ...accounts] = saddle.accounts;
     model = 'white-paper';
     baseRate = 0.1;
     multiplier =  0.45;
@@ -21,7 +19,6 @@ describe('InterestRateModelLens', () => {
     interestRateModelAddresses = interestRateModel._address;
 
     interestRateModelLens = await deploy('InterestRateModelLens');
-    interestRateModelLensAddresses = interestRateModelLens._address;
   });
 
   describe('getSimulation', () => {

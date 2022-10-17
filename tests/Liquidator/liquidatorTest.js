@@ -90,11 +90,11 @@ function calculateSplitSeizedTokens(amount) {
 }
 
 describe('Liquidator', function () {
-  let root, liquidator, borrower, treasury, accounts;
+  let root, liquidator, borrower, treasury;
   let vToken, vTokenCollateral, liquidatorContract, vBnb;
 
   beforeEach(async () => {
-    [root, liquidator, borrower, treasury, ...accounts] = saddle.accounts;
+    [root, liquidator, borrower, treasury] = saddle.accounts;
     vToken = await makeVToken({ comptrollerOpts: { kind: 'bool' } });
     vTokenCollateral = await makeVToken({ comptroller: vToken.comptroller });
     vBnb = await makeVToken({ kind: 'vbnb', comptroller: vToken.comptroller });

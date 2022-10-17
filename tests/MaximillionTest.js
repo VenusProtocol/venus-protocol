@@ -1,13 +1,10 @@
 const {
   bnbBalance,
-  bnbGasCost,
-  getContract
+  bnbGasCost
 } = require('./Utils/BSC');
 
 const {
-  makeComptroller,
   makeVToken,
-  makePriceOracle,
   pretendBorrow,
   borrowSnapshot
 } = require('./Utils/Venus');

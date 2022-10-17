@@ -1,27 +1,22 @@
 import {ReplPrinter} from './Printer';
 import {
-  addInvariant,
   initWorld,
   loadInvokationOpts,
   loadDryRun,
   loadSettings,
   loadVerbose,
-  World
 } from './World';
 import {throwExpect} from './Assert';
 import {Macros} from './Macro';
-import {formatEvent} from './Formatter';
 import {complete} from './Completer';
 import {loadContracts} from './Networks';
-import {accountAliases, loadAccounts} from './Accounts';
-import {getNetworkPath, readFile} from './File';
-import {SuccessInvariant} from './Invariant/SuccessInvariant';
+import {accountAliases} from './Accounts';
+import {getNetworkPath} from './File';
 import {createInterface} from './HistoricReadline';
 import {runCommand} from './Runner';
 import {parse} from './Parser';
 import {forkWeb3} from './Hypothetical';
 import {getSaddle} from 'eth-saddle';
-import Web3 from 'web3';
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -33,7 +28,7 @@ const baseNetworksPath = path.join(basePath, 'networks');
 const TOTAL_GAS = 8000000;
 
 function questionPromise(rl): Promise<string> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     rl.question(" > ", (command) => {
       resolve(command);
     });
@@ -41,10 +36,10 @@ function questionPromise(rl): Promise<string> {
 }
 
 async function loop(world, rl, macros): Promise<any> {
-  let command = await questionPromise(rl);
+  const command = await questionPromise(rl);
 
   try {
-    let newWorld = await runCommand(world, command, macros);
+    const newWorld = await runCommand(world, command, macros);
 
     return await loop(newWorld, rl, macros);
   } catch (err) {
@@ -74,9 +69,9 @@ async function repl(): Promise<void> {
 
   const macros = <Macros>parse(coreMacros, {startRule: 'macros'});
 
-  let script = process.env['script'];
+  const script = process.env['script'];
 
-  let network = process.env['network'];
+  const network = process.env['network'];
 
   if (!network) {
     throw new Error(`Missing required "network" env argument`);
@@ -84,7 +79,7 @@ async function repl(): Promise<void> {
 
   let world;
 
-  let rl = await createInterface({
+  const rl = await createInterface({
     input: process.stdin,
     output: process.stdout,
     completer: (line) => complete(world, macros, line),
@@ -94,19 +89,22 @@ async function repl(): Promise<void> {
   const verbose: boolean = !!process.env['verbose'];
   const hypothetical: boolean = !!process.env['hypothetical'];
 
-  let printer = new ReplPrinter(rl, verbose);
-  let contractInfo: string[];
-
-  let saddle = await getSaddle(network);
-  let accounts: string[] = saddle.wallet_accounts.concat(saddle.accounts).filter((x) => !!x);
-
+  const printer = new ReplPrinter(rl, verbose);
+  
+  const saddle = await getSaddle(network);
+  const accounts: string[] = saddle.wallet_accounts.concat(saddle.accounts).filter((x) => !!x);
+  
   world = await initWorld(throwExpect, printer, saddle.web3, saddle, network, accounts, basePath, TOTAL_GAS);
-  [world, contractInfo] = await loadContracts(world);
+  const contracts = await loadContracts(world);
+  
+  world = contracts[0];
   world = loadInvokationOpts(world);
   world = loadVerbose(world);
   world = loadDryRun(world);
   world = await loadSettings(world);
-
+  
+  const contractInfo = contracts[1];
+  
   printer.printLine(`Network: ${network}`);
 
   if (hypothetical) {
@@ -114,7 +112,7 @@ async function repl(): Promise<void> {
     let forkJson;
 
     try {
-      let forkJsonString = fs.readFileSync(forkJsonPath, 'utf8');
+      const forkJsonString = fs.readFileSync(forkJsonPath, 'utf8');
       forkJson = JSON.parse(forkJsonString);
     } catch (err) {
       throw new Error(`Cannot read fork configuration from \`${forkJsonPath}\`, ${err}`);

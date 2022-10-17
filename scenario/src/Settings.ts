@@ -52,7 +52,7 @@ export class Settings {
   }
 
   lookupAlias(address: string): string {
-    let entry = Object.entries(this.aliases).find(([key, value]) => {
+    const entry = Object.entries(this.aliases).find(([_key, value]) => {
       return value === address;
     });
 
@@ -64,7 +64,7 @@ export class Settings {
   }
 
   lookupAliases(address: string): string[] {
-    let entries = Object.entries(this.aliases).filter(([key, value]) => {
+    const entries = Object.entries(this.aliases).filter(([_key, value]) => {
       return value === address;
     });
 
@@ -73,7 +73,7 @@ export class Settings {
 
   findAlias(name: string): string | null {
     const alias = Object.entries(this.aliases).find(
-      ([alias, addr]) => alias.toLowerCase() === name.toLowerCase()
+      ([alias]) => alias.toLowerCase() === name.toLowerCase()
     );
 
     if (alias) {

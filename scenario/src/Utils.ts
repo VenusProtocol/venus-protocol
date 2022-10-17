@@ -101,7 +101,7 @@ export function getCurrentTimestamp(): number {
 
 
 export function sleep(timeout: number): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     setTimeout(() => {
       resolve();
     }, timeout);

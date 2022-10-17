@@ -1,12 +1,11 @@
 import {Event} from '../Event';
-import {addAction, describeUser, World} from '../World';
+import {addAction, World} from '../World';
 import {Liquidator} from '../Contract/Liquidator';
 import {invoke} from '../Invokation';
 import {
   getAddressV,
   getEventV,
   getNumberV,
-  getStringV,
 } from '../CoreValue';
 import {
   AddressV,
@@ -18,12 +17,8 @@ import {buildLiquidator} from '../Builder/LiquidatorBuilder';
 import {getLiquidator} from '../ContractLookup';
 import {encodedNumber} from '../Encoding';
 
-function showTrxValue(world: World): string {
-  return new NumberV(world.trxInvokationOpts.get('value')).show();
-}
-
 async function genLiquidator(world: World, from: string, params: Event): Promise<World> {
-  let {world: nextWorld, liquidator, liquidatorData} = await buildLiquidator(world, from, params);
+  const {world: nextWorld, liquidator, liquidatorData} = await buildLiquidator(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -44,7 +39,7 @@ async function liquidateBorrow(
     repayAmount: encodedNumber,
     vTokenCollateral: string
 ): Promise<World> {
-  let invokation = await invoke(world, liquidator.methods.liquidateBorrow(vToken, borrower, repayAmount, vTokenCollateral), from);
+  const invokation = await invoke(world, liquidator.methods.liquidateBorrow(vToken, borrower, repayAmount, vTokenCollateral), from);
 
   world = addAction(
     world,

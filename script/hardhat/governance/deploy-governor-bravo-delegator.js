@@ -1,5 +1,5 @@
 require("dotenv").config();
-const network = process.env.NETWORK;
+
 const { bnbMantissa } = require('../../deploy/utils/web3-utils');
 const hre = require("hardhat");
 const ethers = hre.ethers;

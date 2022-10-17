@@ -1,26 +1,24 @@
 import { Event } from '../Event';
-import { addAction, World, describeUser } from '../World';
+import { addAction, World } from '../World';
 import { XVSVault } from '../Contract/XVSVault';
 import { buildXVSVaultImpl } from '../Builder/XVSVaultImplBuilder';
 import { invoke } from '../Invokation';
 import {
   getAddressV,
   getEventV,
-  getNumberV,
-  getBoolV
+  getNumberV
 } from '../CoreValue';
 import {
   AddressV,
   EventV,
-  NumberV,
-  BoolV
+  NumberV
 } from '../Value';
 import { Arg, Command, processCommandEvent } from '../Command';
 import { getXVSVault } from '../ContractLookup';
 import { NoErrorReporter } from '../ErrorReporter';
 
 async function genXVSVault(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, xvsVaultImpl, xvsVaultData } = await buildXVSVaultImpl(world, from, params);
+  const { world: nextWorld, xvsVaultImpl, xvsVaultData } = await buildXVSVaultImpl(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -33,7 +31,7 @@ async function genXVSVault(world: World, from: string, params: Event): Promise<W
 }
 
 async function delegate(world: World, from: string, xvsVault: XVSVault, account: string): Promise<World> {
-  let invokation = await invoke(world, xvsVault.methods.delegate(account), from, NoErrorReporter);
+  const invokation = await invoke(world, xvsVault.methods.delegate(account), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -51,7 +49,7 @@ async function setXvsStore(
   xvs: string,
   xvsStore: string
 ): Promise<World> {
-  let invokation = await invoke(world, xvsVault.methods.setXvsStore(xvs, xvsStore), from, NoErrorReporter);
+  const invokation = await invoke(world, xvsVault.methods.setXvsStore(xvs, xvsStore), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -72,7 +70,7 @@ async function addPool(
   rewardPerBlock: NumberV,
   lockPeriod: NumberV
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     xvsVault.methods.add(
       rewardToken, allocPoint.encode(), token,
@@ -99,7 +97,7 @@ async function deposit(
   pid: NumberV,
   amount: NumberV
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     xvsVault.methods.deposit(rewardToken, pid.toNumber(), amount.encode()),
     from,
@@ -124,7 +122,7 @@ async function requestWithdrawal(
   pid: NumberV,
   amount: NumberV
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     xvsVault.methods.requestWithdrawal(rewardToken, pid.toNumber(), amount.encode()),
     from,
@@ -148,7 +146,7 @@ async function executeWithdrawal(
   rewardToken: string,
   pid: NumberV
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     xvsVault.methods.executeWithdrawal(rewardToken, pid.toNumber()),
     from,
@@ -173,7 +171,7 @@ async function setWithdrawalLockingPeriod(
   pid: NumberV,
   newPeriod: NumberV
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     xvsVault.methods.setWithdrawalLockingPeriod(rewardToken, pid.toNumber(), newPeriod.toNumber()),
     from,

@@ -50,7 +50,7 @@ class ContractStub {
     // ( world.web3.currentProvider && typeof(world.web3.currentProvider) !== 'string' && world.web3.currentProvider.opts ) || 
     const opts = { from: from };
 
-    let invokationOpts = world.getInvokationOpts(opts);
+    const invokationOpts = world.getInvokationOpts(opts);
 
     const networkContractABI = await world.saddle.abi(this.name);
     const constructorAbi = networkContractABI.find((x) => x.type === 'constructor');
@@ -67,7 +67,7 @@ class ContractStub {
       let receipt;
 
       if (world.dryRun) {
-        let addr = randomAddress();
+        const addr = randomAddress();
         console.log(`Dry run: Deploying ${this.name} at fake address ${addr}`);
         contract = new world.web3.eth.Contract(<any>networkContractABI, addr)
         receipt = {
@@ -122,13 +122,13 @@ export async function decodeCall(world: World, contract: Contract, input: string
     input = input.slice(2);
   }
 
-  let functionSignature = input.slice(0, 8);
-  let argsEncoded = input.slice(8);
+  const functionSignature = input.slice(0, 8);
+  const argsEncoded = input.slice(8);
 
-  let funsMapped = contract._jsonInterface.reduce((acc, fun) => {
+  const funsMapped = contract._jsonInterface.reduce((acc, fun) => {
     if (fun.type === 'function') {
-      let functionAbi = `${fun.name}(${(fun.inputs || []).map((i) => i.type).join(',')})`;
-      let sig = world.web3.utils.sha3(functionAbi)?.slice(2, 10);
+      const functionAbi = `${fun.name}(${(fun.inputs || []).map((i) => i.type).join(',')})`;
+      const sig = world.web3.utils.sha3(functionAbi)?.slice(2, 10);
 
       if (!sig) {
         return acc;
@@ -143,13 +143,13 @@ export async function decodeCall(world: World, contract: Contract, input: string
     }
   }, {});
 
-  let abi = funsMapped[functionSignature];
+  const abi = funsMapped[functionSignature];
 
   if (!abi) {
     throw new Error(`Cannot find function matching signature ${functionSignature}`);
   }
 
-  let decoded = world.web3.eth.abi.decodeParameters(abi.inputs, argsEncoded);
+  const decoded = world.web3.eth.abi.decodeParameters(abi.inputs, argsEncoded);
 
   const args = abi.inputs.map((input) => {
     return `${input.name}=${decoded[input.name]}`;
@@ -159,41 +159,14 @@ export async function decodeCall(world: World, contract: Contract, input: string
   return world;
 }
 
-// XXXS Handle
-async function getNetworkContract(world: World, name: string): Promise<{ abi: any[], bin: string }> {
-  let basePath = world.basePath || ""
-  let network = world.network || ""
-
-  let pizath = (name, ext) => path.join(basePath, '.build', `contracts.json`);
-  let abi, bin;
-  if (network == 'coverage') {
-    let json = await readFile(world, pizath(name, 'json'), null, JSON.parse);
-    abi = json.abi;
-    bin = json.bytecode.substr(2);
-  } else {
-    let { networkContracts } = await getNetworkContracts(world);
-    let networkContract = networkContracts[name];
-    abi = JSON.parse(networkContract.abi);
-    bin = networkContract.bin;
-  }
-  if (!bin) {
-    throw new Error(`no bin for contract ${name} ${network}`)
-  }
-  return {
-    abi: abi,
-    bin: bin
-  }
-}
-
 export async function getNetworkContracts(world: World): Promise<{ networkContracts: object, version: string }> {
-  let basePath = world.basePath || ""
-  let network = world.network || ""
+  const basePath = world.basePath || ""
 
-  let contractsPath = path.join(basePath, '.build', `contracts.json`)
-  let fullContracts = await readFile(world, contractsPath, null, JSON.parse);
-  let version = fullContracts.version;
-  let networkContracts = Object.entries(fullContracts.contracts).reduce((acc, [k, v]) => {
-    let [path, contractName] = k.split(':');
+  const contractsPath = path.join(basePath, '.build', `contracts.json`)
+  const fullContracts = await readFile(world, contractsPath, null, JSON.parse);
+  const version = fullContracts.version;
+  const networkContracts = Object.entries(fullContracts.contracts).reduce((acc, [k, v]) => {
+    const [path, contractName] = k.split(':');
 
     return {
       ...acc,

@@ -1,5 +1,5 @@
 import {Event} from '../Event';
-import {addAction, World} from '../World';
+import {World} from '../World';
 import {Maximillion} from '../Contract/Maximillion';
 import {Invokation} from '../Invokation';
 import {Arg, Fetcher, getFetcherValue} from '../Command';
@@ -40,8 +40,8 @@ export async function buildMaximillion(world: World, from: string, event: Event)
     )
   ];
 
-  let maximillionData = await getFetcherValue<any, MaximillionData>("DeployMaximillion", fetchers, world, event);
-  let invokation = maximillionData.invokation;
+  const maximillionData = await getFetcherValue<any, MaximillionData>("DeployMaximillion", fetchers, world, event);
+  const invokation = maximillionData.invokation;
   delete maximillionData.invokation;
 
   if (invokation.error) {

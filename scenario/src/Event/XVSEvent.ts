@@ -1,5 +1,5 @@
 import { Event } from '../Event';
-import { addAction, World, describeUser } from '../World';
+import { addAction, World } from '../World';
 import { XVS, XVSScenario } from '../Contract/XVS';
 import { buildXVS } from '../Builder/XVSBuilder';
 import { invoke } from '../Invokation';
@@ -19,10 +19,9 @@ import { Arg, Command, processCommandEvent, View } from '../Command';
 import { getXVS } from '../ContractLookup';
 import { NoErrorReporter } from '../ErrorReporter';
 import { verify } from '../Verify';
-import { encodedNumber } from '../Encoding';
 
 async function genXVS(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, xvs, tokenData } = await buildXVS(world, from, params);
+  const { world: nextWorld, xvs, tokenData } = await buildXVS(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -45,7 +44,7 @@ async function verifyXVS(world: World, xvs: XVS, apiKey: string, modelName: stri
 }
 
 async function approve(world: World, from: string, xvs: XVS, address: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, xvs.methods.approve(address, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, xvs.methods.approve(address, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -57,7 +56,7 @@ async function approve(world: World, from: string, xvs: XVS, address: string, am
 }
 
 async function transfer(world: World, from: string, xvs: XVS, address: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, xvs.methods.transfer(address, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, xvs.methods.transfer(address, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -69,7 +68,7 @@ async function transfer(world: World, from: string, xvs: XVS, address: string, a
 }
 
 async function transferFrom(world: World, from: string, xvs: XVS, owner: string, spender: string, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, xvs.methods.transferFrom(owner, spender, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, xvs.methods.transferFrom(owner, spender, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -81,7 +80,7 @@ async function transferFrom(world: World, from: string, xvs: XVS, owner: string,
 }
 
 async function transferScenario(world: World, from: string, xvs: XVSScenario, addresses: string[], amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, xvs.methods.transferScenario(addresses, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, xvs.methods.transferScenario(addresses, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -93,7 +92,7 @@ async function transferScenario(world: World, from: string, xvs: XVSScenario, ad
 }
 
 async function transferFromScenario(world: World, from: string, xvs: XVSScenario, addresses: string[], amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, xvs.methods.transferFromScenario(addresses, amount.encode()), from, NoErrorReporter);
+  const invokation = await invoke(world, xvs.methods.transferFromScenario(addresses, amount.encode()), from, NoErrorReporter);
 
   world = addAction(
     world,
@@ -105,7 +104,7 @@ async function transferFromScenario(world: World, from: string, xvs: XVSScenario
 }
 
 async function delegate(world: World, from: string, xvs: XVS, account: string): Promise<World> {
-  let invokation = await invoke(world, xvs.methods.delegate(account), from, NoErrorReporter);
+  const invokation = await invoke(world, xvs.methods.delegate(account), from, NoErrorReporter);
 
   world = addAction(
     world,

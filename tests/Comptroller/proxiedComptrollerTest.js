@@ -1,6 +1,6 @@
-const { address, bnbMantissa } = require('../Utils/BSC');
+const { bnbMantissa } = require('../Utils/BSC');
 
-const { makeComptroller, makeVToken, makePriceOracle } = require('../Utils/Venus');
+const { makeVToken, makePriceOracle } = require('../Utils/Venus');
 
 describe('Comptroller', function() {
   let root, accounts;

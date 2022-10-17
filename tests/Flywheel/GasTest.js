@@ -4,18 +4,15 @@ const {
 } = require('../Utils/Venus');
 const {
   bnbExp,
-  bnbDouble,
   bnbUnsigned
 } = require('../Utils/BSC');
 
 
 // NB: coverage doesn't like this
 describe.skip('Flywheel trace ops', () => {
-  let root, a1, a2, a3, accounts;
   let comptroller, market;
   beforeEach(async () => {
     let interestRateModelOpts = {borrowRate: 0.000001};
-    [root, a1, a2, a3, ...accounts] = saddle.accounts;
     comptroller = await makeComptroller();
     market = await makeVToken({comptroller, supportMarket: true, underlyingPrice: 3, interestRateModelOpts});
     await send(comptroller, '_addVenusMarkets', [[market].map(c => c._address)]);

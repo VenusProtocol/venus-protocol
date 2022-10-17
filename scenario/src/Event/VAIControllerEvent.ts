@@ -1,38 +1,31 @@
 import {Event} from '../Event';
 import {addAction, describeUser, World} from '../World';
-import {decodeCall, getPastEvents} from '../Contract';
 import {VAIController} from '../Contract/VAIController';
-import {VAIControllerImpl} from '../Contract/VAIControllerImpl';
 import {VToken} from '../Contract/VToken';
 import {invoke} from '../Invokation';
 import {
   getAddressV,
-  getBoolV,
   getEventV,
-  getExpNumberV,
   getNumberV,
-  getPercentV,
   getStringV,
   getCoreValue
 } from '../CoreValue';
 import {
   AddressV,
-  BoolV,
   EventV,
   NumberV,
   StringV
 } from '../Value';
-import {Arg, Command, View, processCommandEvent} from '../Command';
+import {Arg, Command, processCommandEvent} from '../Command';
 import {buildVAIControllerImpl} from '../Builder/VAIControllerImplBuilder';
 import {VAIControllerErrorReporter} from '../ErrorReporter';
-import {getVAIController, getVAIControllerImpl} from '../ContractLookup';
+import {getVAIController} from '../ContractLookup';
 // import {getLiquidity} from '../Value/VAIControllerValue';
 import {getVTokenV} from '../Value/VTokenValue';
-import {encodedNumber} from '../Encoding';
 import {encodeABI, rawValues} from "../Utils";
 
 async function genVAIController(world: World, from: string, params: Event): Promise<World> {
-  let {world: nextWorld, vaicontrollerImpl: vaicontroller, vaicontrollerImplData: vaicontrollerData} = await buildVAIControllerImpl(world, from, params);
+  const {world: nextWorld, vaicontrollerImpl: vaicontroller, vaicontrollerImplData: vaicontrollerData} = await buildVAIControllerImpl(world, from, params);
   world = nextWorld;
 
   world = addAction(
@@ -43,30 +36,6 @@ async function genVAIController(world: World, from: string, params: Event): Prom
 
   return world;
 };
-
-async function setPendingAdmin(world: World, from: string, vaicontroller: VAIController, newPendingAdmin: string): Promise<World> {
-  let invokation = await invoke(world, vaicontroller.methods._setPendingAdmin(newPendingAdmin), from, VAIControllerErrorReporter);
-
-  world = addAction(
-    world,
-    `VAIController: ${describeUser(world, from)} sets pending admin to ${newPendingAdmin}`,
-    invokation
-  );
-
-  return world;
-}
-
-async function acceptAdmin(world: World, from: string, vaicontroller: VAIController): Promise<World> {
-  let invokation = await invoke(world, vaicontroller.methods._acceptAdmin(), from, VAIControllerErrorReporter);
-
-  world = addAction(
-    world,
-    `VAIController: ${describeUser(world, from)} accepts admin`,
-    invokation
-  );
-
-  return world;
-}
 
 async function sendAny(world: World, from:string, vaicontroller: VAIController, signature: string, callArgs: string[]): Promise<World> {
   const fnData = encodeABI(world, signature, callArgs);
@@ -79,7 +48,7 @@ async function sendAny(world: World, from:string, vaicontroller: VAIController, 
 }
 
 async function setComptroller(world: World, from: string, vaicontroller: VAIController, comptroller: string): Promise<World> {
-  let invokation = await invoke(world, vaicontroller.methods._setComptroller(comptroller), from, VAIControllerErrorReporter);
+  const invokation = await invoke(world, vaicontroller.methods._setComptroller(comptroller), from, VAIControllerErrorReporter);
 
   world = addAction(
     world,
@@ -91,7 +60,7 @@ async function setComptroller(world: World, from: string, vaicontroller: VAICont
 }
 
 async function mint(world: World, from: string, vaicontroller: VAIController, amount: NumberV): Promise<World> {
-  let invokation = await invoke(world, vaicontroller.methods.mintVAI(amount.encode()), from, VAIControllerErrorReporter);
+  const invokation = await invoke(world, vaicontroller.methods.mintVAI(amount.encode()), from, VAIControllerErrorReporter);
 
   world = addAction(
     world,
@@ -103,11 +72,8 @@ async function mint(world: World, from: string, vaicontroller: VAIController, am
 }
 
 async function repay(world: World, from: string, vaicontroller: VAIController, amount: NumberV): Promise<World> {
-  let invokation;
-  let showAmount;
-
-  showAmount = amount.show();
-  invokation = await invoke(world, vaicontroller.methods.repayVAI(amount.encode()), from, VAIControllerErrorReporter);
+  const showAmount = amount.show();
+  const invokation = await invoke(world, vaicontroller.methods.repayVAI(amount.encode()), from, VAIControllerErrorReporter);
 
   world = addAction(
     world,
@@ -120,11 +86,8 @@ async function repay(world: World, from: string, vaicontroller: VAIController, a
 
 
 async function liquidateVAI(world: World, from: string, vaicontroller: VAIController, borrower: string, collateral: VToken, repayAmount: NumberV): Promise<World> {
-  let invokation;
-  let showAmount;
-
-  showAmount = repayAmount.show();
-  invokation = await invoke(world, vaicontroller.methods.liquidateVAI(borrower, repayAmount.encode(), collateral._address), from, VAIControllerErrorReporter);
+  const showAmount = repayAmount.show();
+  const invokation = await invoke(world, vaicontroller.methods.liquidateVAI(borrower, repayAmount.encode(), collateral._address), from, VAIControllerErrorReporter);
 
   world = addAction(
     world,
@@ -143,7 +106,7 @@ async function setTreasuryData(
   address: string,
   percent: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(world, vaicontroller.methods._setTreasuryData(guardian, address, percent.encode()), from, VAIControllerErrorReporter);
+  const invokation = await invoke(world, vaicontroller.methods._setTreasuryData(guardian, address, percent.encode()), from, VAIControllerErrorReporter);
 
   world = addAction(
     world,
@@ -159,7 +122,7 @@ async function initialize(
   from: string,
   vaicontroller: VAIController
 ): Promise<World> {
-  let invokation = await invoke(world, vaicontroller.methods.initialize(), from, VAIControllerErrorReporter);
+  const invokation = await invoke(world, vaicontroller.methods.initialize(), from, VAIControllerErrorReporter);
 
   world = addAction(
     world,

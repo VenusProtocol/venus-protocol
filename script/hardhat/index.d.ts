@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars */
 import { Contract } from '@ethersproject/contracts'
 // Governance
 export function deployGovernorBravoDelegate(): Contract { }
