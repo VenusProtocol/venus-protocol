@@ -27,7 +27,7 @@ rules:
   no-useless-escape:
     - warn
   no-control-regex:
-   - warn
+    - warn
 
 env:
   node: true

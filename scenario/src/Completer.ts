@@ -1,5 +1,5 @@
-import {World} from './World';
-import {Macros} from './Macro';
+import { Macros } from "./Macro";
+import { World } from "./World";
 
 // TODO: Get smarter about storing actions as data
 const actions: string[] = [
@@ -30,7 +30,7 @@ function caseInsensitiveSort(a: string, b: string): number {
 
 export function complete(world: World, macros: Macros, line: string) {
   const allActions = actions.concat(Object.keys(macros)).sort(caseInsensitiveSort);
-  const hits = allActions.filter((c) => c.toLowerCase().startsWith(line.toLowerCase()));
+  const hits = allActions.filter(c => c.toLowerCase().startsWith(line.toLowerCase()));
 
   return [hits, line];
 }

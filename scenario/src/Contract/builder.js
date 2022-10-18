@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require("fs");
 
 let [_, _f, buildFile, contract] = process.argv;
 
@@ -8,7 +8,7 @@ if (!buildFile || !contract) {
 if (!fs.existsSync(buildFile)) {
   throw new Error(`build_file: file not found`);
 }
-let buildRaw = fs.readFileSync(buildFile, 'utf8');
+let buildRaw = fs.readFileSync(buildFile, "utf8");
 let build;
 
 try {
@@ -19,7 +19,7 @@ try {
 if (!build.contracts) {
   throw new Error(`Invalid build file, missing contracts`);
 }
-let contractInfo = Object.entries(build.contracts).find(([k]) => k.split(':')[1] === contract);
+let contractInfo = Object.entries(build.contracts).find(([k]) => k.split(":")[1] === contract);
 if (!contractInfo) {
   throw new Error(`Build file does not contain info for ${contract}`);
 }
@@ -29,33 +29,39 @@ console.log(`export interface ${contract}Methods {`);
 contractABI.forEach(abi => {
   function mapped(io) {
     let typeMap = {
-      'address': 'string',
-      'address[]': 'string[]',
-      'uint256': 'number',
-      'bool': 'boolean'
+      address: "string",
+      "address[]": "string[]",
+      uint256: "number",
+      bool: "boolean",
     };
     return typeMap[io.type] || io.type;
-  };
-  if (abi.type === 'function') {
+  }
+  if (abi.type === "function") {
     let name = abi.name;
-    let args = abi.inputs.map((input) => {
-      return `${input.name}: ${mapped(input)}`;
-    }).join(', ');
-    let returnType = abi.outputs.map((output) => {
-      if (output.type == 'tuple' || output.type == 'tuple[]') {
-        let res = output.components.map((c) => {
-          return mapped(c);
-        }).join(',');
-        if (output.type == 'tuple[]') {
-          return `[${res}][]`;
+    let args = abi.inputs
+      .map(input => {
+        return `${input.name}: ${mapped(input)}`;
+      })
+      .join(", ");
+    let returnType = abi.outputs
+      .map(output => {
+        if (output.type == "tuple" || output.type == "tuple[]") {
+          let res = output.components
+            .map(c => {
+              return mapped(c);
+            })
+            .join(",");
+          if (output.type == "tuple[]") {
+            return `[${res}][]`;
+          } else {
+            return `[${res}]`;
+          }
         } else {
-          return `[${res}]`;
+          return mapped(output);
         }
-      } else {
-        return mapped(output);
-      }
-    }).join(',');
-    let able = abi.constant ? 'Callable' : 'Sendable';
+      })
+      .join(",");
+    let able = abi.constant ? "Callable" : "Sendable";
     console.log(`  ${name}(${args}): ${able}<${returnType}>;`);
   }
 });

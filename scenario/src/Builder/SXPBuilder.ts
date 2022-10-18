@@ -1,15 +1,15 @@
-import { Event } from '../Event';
-import { World } from '../World';
-import { SXP, SXPScenario } from '../Contract/SXP';
-import { Invokation } from '../Invokation';
-import { getAddressV } from '../CoreValue';
-import { AddressV } from '../Value';
-import { Arg, Fetcher, getFetcherValue } from '../Command';
-import { storeAndSaveContract } from '../Networks';
-import { getContract } from '../Contract';
+import { Arg, Fetcher, getFetcherValue } from "../Command";
+import { getContract } from "../Contract";
+import { SXP, SXPScenario } from "../Contract/SXP";
+import { getAddressV } from "../CoreValue";
+import { Event } from "../Event";
+import { Invokation } from "../Invokation";
+import { storeAndSaveContract } from "../Networks";
+import { AddressV } from "../Value";
+import { World } from "../World";
 
-const SXPContract = getContract('SXP');
-const SXPScenarioContract = getContract('SXPScenario');
+const SXPContract = getContract("SXP");
+const SXPScenarioContract = getContract("SXPScenario");
 
 export interface TokenData {
   invokation: Invokation<SXP>;
@@ -23,7 +23,7 @@ export interface TokenData {
 export async function buildSXP(
   world: World,
   from: string,
-  params: Event
+  params: Event,
 ): Promise<{ world: World; sxp: SXP; tokenData: TokenData }> {
   const fetchers = [
     new Fetcher<{ account: AddressV }, TokenData>(
@@ -33,19 +33,17 @@ export async function buildSXP(
       * "SXP Deploy Scenario account:<Address>" - Deploys Scenario SXP Token
         * E.g. "SXP Deploy Scenario Geoff"
     `,
-      'Scenario',
-      [
-        new Arg("account", getAddressV),
-      ],
+      "Scenario",
+      [new Arg("account", getAddressV)],
       async (world, { account }) => {
         return {
           invokation: await SXPScenarioContract.deploy<SXPScenario>(world, from, [account.val]),
-          contract: 'SXPScenario',
-          symbol: 'SXP',
-          name: 'Venus Governance Token',
-          decimals: 18
+          contract: "SXPScenario",
+          symbol: "SXP",
+          name: "Venus Governance Token",
+          decimals: 18,
         };
-      }
+      },
     ),
 
     new Fetcher<{ account: AddressV }, TokenData>(
@@ -55,31 +53,29 @@ export async function buildSXP(
       * "SXP Deploy account:<Address>" - Deploys SXP Token
         * E.g. "SXP Deploy Geoff"
     `,
-      'SXP',
-      [
-        new Arg("account", getAddressV),
-      ],
+      "SXP",
+      [new Arg("account", getAddressV)],
       async (world, { account }) => {
         if (world.isLocalNetwork()) {
           return {
             invokation: await SXPScenarioContract.deploy<SXPScenario>(world, from, [account.val]),
-            contract: 'SXPScenario',
-            symbol: 'SXP',
-            name: 'Venus Governance Token',
-            decimals: 18
+            contract: "SXPScenario",
+            symbol: "SXP",
+            name: "Venus Governance Token",
+            decimals: 18,
           };
         } else {
           return {
             invokation: await SXPContract.deploy<SXP>(world, from, [account.val]),
-            contract: 'SXP',
-            symbol: 'SXP',
-            name: 'Venus Governance Token',
-            decimals: 18
+            contract: "SXP",
+            symbol: "SXP",
+            name: "Venus Governance Token",
+            decimals: 18,
           };
         }
       },
-      { catchall: true }
-    )
+      { catchall: true },
+    ),
   ];
 
   const tokenData = await getFetcherValue<any, TokenData>("DeploySXP", fetchers, world, params);
@@ -93,16 +89,10 @@ export async function buildSXP(
   const sxp = invokation.value!;
   tokenData.address = sxp._address;
 
-  world = await storeAndSaveContract(
-    world,
-    sxp,
-    'SXP',
-    invokation,
-    [
-      { index: ['SXP'], data: tokenData },
-      { index: ['Tokens', tokenData.symbol], data: tokenData }
-    ]
-  );
+  world = await storeAndSaveContract(world, sxp, "SXP", invokation, [
+    { index: ["SXP"], data: tokenData },
+    { index: ["Tokens", tokenData.symbol], data: tokenData },
+  ]);
 
   tokenData.invokation = invokation;
 

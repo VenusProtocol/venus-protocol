@@ -6,11 +6,10 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 const hre = require("hardhat");
 
 const main = async () => {
-
-    const vrtConverterAddress = contractConfigData.Contracts.VRTConverter;
-    await hre.run("verify:verify", {
-        address: vrtConverterAddress
-    });
+  const vrtConverterAddress = contractConfigData.Contracts.VRTConverter;
+  await hre.run("verify:verify", {
+    address: vrtConverterAddress,
+  });
 };
 
 module.exports = main;

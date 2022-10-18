@@ -14,7 +14,5 @@ BigNumber.config({
 });
 
 export const convertToUnit = (amount: string | number, decimals: number) => {
-  return new BigNumber(amount)
-    .times(new BigNumber(10).pow(decimals))
-    .toString();
+  return new BigNumber(amount).times(new BigNumber(10).pow(decimals)).toString();
 };

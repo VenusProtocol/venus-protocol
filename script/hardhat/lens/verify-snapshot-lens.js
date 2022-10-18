@@ -6,10 +6,10 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 const hre = require("hardhat");
 
 const main = async () => {
-    const snapshotLens = contractConfigData.Contracts.SnapshotLens;
-    await hre.run("verify:verify", {
-        address: snapshotLens
-    });
+  const snapshotLens = contractConfigData.Contracts.SnapshotLens;
+  await hre.run("verify:verify", {
+    address: snapshotLens,
+  });
 };
 
 module.exports = main;

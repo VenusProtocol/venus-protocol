@@ -1,28 +1,17 @@
-import { Event } from '../Event';
-import { fail, World } from '../World';
-import { getCoreValue } from '../CoreValue';
-import { Failure, InvokationRevertFailure } from '../Invokation';
-import {
-  getEventV,
-  getMapV,
-  getNumberV,
-  getStringV
-} from '../CoreValue';
-import {
-  BoolV,
-  EventV,
-  ListV,
-  MapV,
-  NumberV,
-  Order,
-  StringV,
-  Value
-} from '../Value';
-import { Arg, View, processCommandEvent } from '../Command';
+import { Arg, View, processCommandEvent } from "../Command";
+import { getCoreValue } from "../CoreValue";
+import { getEventV, getMapV, getNumberV, getStringV } from "../CoreValue";
+import { Event } from "../Event";
+import { Failure, InvokationRevertFailure } from "../Invokation";
+import { BoolV, EventV, ListV, MapV, NumberV, Order, StringV, Value } from "../Value";
+import { World, fail } from "../World";
 
 async function assertApprox(world: World, given: NumberV, expected: NumberV, tolerance: NumberV): Promise<World> {
   if (Math.abs(Number(expected.sub(given).div(expected).val)) > Number(tolerance.val)) {
-    return fail(world, `Expected ${given.toString()} to approximately equal ${expected.toString()} within ${tolerance.toString()}`);
+    return fail(
+      world,
+      `Expected ${given.toString()} to approximately equal ${expected.toString()} within ${tolerance.toString()}`,
+    );
   }
 
   return world;
@@ -58,18 +47,26 @@ async function assertFailure(world: World, failure: Failure): Promise<World> {
   }
 
   if (world.lastInvokation.success()) {
-    return fail(world, `Expected ${failure.toString()}, but last invokation was successful with result ${JSON.stringify(world.lastInvokation.value)}.`);
+    return fail(
+      world,
+      `Expected ${failure.toString()}, but last invokation was successful with result ${JSON.stringify(
+        world.lastInvokation.value,
+      )}.`,
+    );
   }
 
   if (world.lastInvokation.error) {
-    return fail(world, `Expected ${failure.toString()}, but last invokation threw error ${world.lastInvokation.error}.`);
+    return fail(
+      world,
+      `Expected ${failure.toString()}, but last invokation threw error ${world.lastInvokation.error}.`,
+    );
   }
 
   if (world.lastInvokation.failures.length === 0) {
     throw new Error(`Invokation requires success, failure or error, got: ${world.lastInvokation.toString()}`);
   }
 
-  if (world.lastInvokation.failures.find((f) => f.equals(failure)) === undefined) {
+  if (world.lastInvokation.failures.find(f => f.equals(failure)) === undefined) {
     return fail(world, `Expected ${failure.toString()}, but got ${world.lastInvokation.failures.toString()}.`);
   }
 
@@ -78,7 +75,7 @@ async function assertFailure(world: World, failure: Failure): Promise<World> {
 
 // coverage tests don't currently support checking full message given with a revert
 function coverageSafeRevertMessage(world: World, message: string): string {
-  if (world.network === 'coverage') {
+  if (world.network === "coverage") {
     return "revert";
   } else {
     return message;
@@ -86,7 +83,8 @@ function coverageSafeRevertMessage(world: World, message: string): string {
 }
 
 async function assertRevertFailure(world: World, err: string, message: string): Promise<World> {
-  if (world.network === 'coverage') { // coverage doesn't have detailed message, thus no revert failures
+  if (world.network === "coverage") {
+    // coverage doesn't have detailed message, thus no revert failures
     return await assertRevert(world, message);
   }
 
@@ -95,7 +93,12 @@ async function assertRevertFailure(world: World, err: string, message: string): 
   }
 
   if (world.lastInvokation.success()) {
-    return fail(world, `Expected revert failure, but last invokation was successful with result ${JSON.stringify(world.lastInvokation.value)}.`);
+    return fail(
+      world,
+      `Expected revert failure, but last invokation was successful with result ${JSON.stringify(
+        world.lastInvokation.value,
+      )}.`,
+    );
   }
 
   if (world.lastInvokation.failures.length > 0) {
@@ -107,13 +110,17 @@ async function assertRevertFailure(world: World, err: string, message: string): 
   }
 
   if (!(world.lastInvokation.error instanceof InvokationRevertFailure)) {
-    throw new Error(`Invokation error mismatch, expected revert failure: "${err}, ${message}", got: "${world.lastInvokation.error.toString()}"`);
+    throw new Error(
+      `Invokation error mismatch, expected revert failure: "${err}, ${message}", got: "${world.lastInvokation.error.toString()}"`,
+    );
   }
 
   const expectedMessage = `VM Exception while processing transaction: ${coverageSafeRevertMessage(world, message)}`;
 
   if (world.lastInvokation.error.error !== err || world.lastInvokation.error.errMessage !== expectedMessage) {
-    throw new Error(`Invokation error mismatch, expected revert failure: err=${err}, message="${expectedMessage}", got: "${world.lastInvokation.error.toString()}"`);
+    throw new Error(
+      `Invokation error mismatch, expected revert failure: err=${err}, message="${expectedMessage}", got: "${world.lastInvokation.error.toString()}"`,
+    );
   }
 
   return world;
@@ -125,7 +132,10 @@ async function assertError(world: World, message: string): Promise<World> {
   }
 
   if (world.lastInvokation.success()) {
-    return fail(world, `Expected revert, but last invokation was successful with result ${JSON.stringify(world.lastInvokation.value)}.`);
+    return fail(
+      world,
+      `Expected revert, but last invokation was successful with result ${JSON.stringify(world.lastInvokation.value)}.`,
+    );
   }
 
   if (world.lastInvokation.failures.length > 0) {
@@ -144,7 +154,7 @@ async function assertError(world: World, message: string): Promise<World> {
 }
 
 function buildRevertMessage(world: World, message: string): string {
-  return `VM Exception while processing transaction: ${coverageSafeRevertMessage(world, message)}`
+  return `VM Exception while processing transaction: ${coverageSafeRevertMessage(world, message)}`;
 }
 
 async function assertRevert(world: World, message: string): Promise<World> {
@@ -179,16 +189,16 @@ async function assertReadError(world: World, event: Event, message: string, isRe
 }
 
 function getLogValue(value: any): Value {
-  if (typeof value === 'number' || (typeof value === 'string' && value.match(/^[0-9]+$/))) {
+  if (typeof value === "number" || (typeof value === "string" && value.match(/^[0-9]+$/))) {
     return new NumberV(Number(value));
-  } else if (typeof value === 'string') {
+  } else if (typeof value === "string") {
     return new StringV(value);
-  } else if (typeof value === 'boolean') {
+  } else if (typeof value === "boolean") {
     return new BoolV(value);
   } else if (Array.isArray(value)) {
     return new ListV(value.map(getLogValue));
   } else {
-    throw new Error('Unknown type of log parameter: ${value}');
+    throw new Error("Unknown type of log parameter: ${value}");
   }
 }
 
@@ -201,7 +211,7 @@ async function assertLog(world: World, event: string, keyValues: MapV): Promise<
     const log = world.lastInvokation.receipt.events && world.lastInvokation.receipt.events[event];
 
     if (!log) {
-      const events = Object.keys(world.lastInvokation.receipt.events || {}).join(', ');
+      const events = Object.keys(world.lastInvokation.receipt.events || {}).join(", ");
       return fail(world, `Expected log with event \`${event}\`, found logs with events: [${events}]`);
     }
 
@@ -227,13 +237,15 @@ async function assertLog(world: World, event: string, keyValues: MapV): Promise<
       });
 
       if (!found) {
-        const eventExpected = Object.entries(keyValues.val).join(', ');
+        const eventExpected = Object.entries(keyValues.val).join(", ");
         const eventDetailsFound = log.map(_log => {
           return Object.entries(_log.returnValues);
         });
-        return fail(world, `Expected log with event \`${eventExpected}\`, found logs for this event with: [${eventDetailsFound}]`);
+        return fail(
+          world,
+          `Expected log with event \`${eventExpected}\`, found logs for this event with: [${eventDetailsFound}]`,
+        );
       }
-
     } else {
       Object.entries(keyValues.val).forEach(([key, value]) => {
         if (log.returnValues[key] === undefined) {
@@ -242,7 +254,10 @@ async function assertLog(world: World, event: string, keyValues: MapV): Promise<
           const logValue = getLogValue(log.returnValues[key]);
 
           if (!logValue.compareTo(world, value)) {
-            fail(world, `Expected log to have param \`${key}\` to match ${value.toString()}, but got ${logValue.toString()}`);
+            fail(
+              world,
+              `Expected log to have param \`${key}\` to match ${value.toString()}, but got ${logValue.toString()}`,
+            );
           }
         }
       });
@@ -254,7 +269,8 @@ async function assertLog(world: World, event: string, keyValues: MapV): Promise<
 
 export function assertionCommands() {
   return [
-    new View<{ given: NumberV, expected: NumberV, tolerance: NumberV }>(`
+    new View<{ given: NumberV; expected: NumberV; tolerance: NumberV }>(
+      `
         #### Approx
 
         * "Approx given:<Value> expected:<Value> tolerance:<Value>" - Asserts that given approximately matches expected.
@@ -266,12 +282,13 @@ export function assertionCommands() {
       [
         new Arg("given", getNumberV),
         new Arg("expected", getNumberV),
-        new Arg("tolerance", getNumberV, { default: new NumberV(0.001) })
+        new Arg("tolerance", getNumberV, { default: new NumberV(0.001) }),
       ],
-      (world, { given, expected, tolerance }) => assertApprox(world, given, expected, tolerance)
+      (world, { given, expected, tolerance }) => assertApprox(world, given, expected, tolerance),
     ),
 
-    new View<{ given: Value, expected: Value }>(`
+    new View<{ given: Value; expected: Value }>(
+      `
         #### Equal
 
         * "Equal given:<Value> expected:<Value>" - Asserts that given matches expected.
@@ -280,97 +297,85 @@ export function assertionCommands() {
           * E.g. "Assert Equal (VToken vZRX Comptroller) (Comptroller Address)"
       `,
       "Equal",
-      [
-        new Arg("given", getCoreValue),
-        new Arg("expected", getCoreValue)
-      ],
-      (world, { given, expected }) => assertEqual(world, given, expected)
+      [new Arg("given", getCoreValue), new Arg("expected", getCoreValue)],
+      (world, { given, expected }) => assertEqual(world, given, expected),
     ),
 
-    new View<{ given: Value, expected: Value }>(`
+    new View<{ given: Value; expected: Value }>(
+      `
         #### LessThan
 
         * "given:<Value> LessThan expected:<Value>" - Asserts that given is less than expected.
           * E.g. "Assert (Exactly 0) LessThan (Exactly 1)"
       `,
       "LessThan",
-      [
-        new Arg("given", getCoreValue),
-        new Arg("expected", getCoreValue)
-      ],
+      [new Arg("given", getCoreValue), new Arg("expected", getCoreValue)],
       (world, { given, expected }) => assertLessThan(world, given, expected),
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
-    new View<{ given: Value, expected: Value }>(`
+    new View<{ given: Value; expected: Value }>(
+      `
         #### GreaterThan
 
         * "given:<Value> GreaterThan expected:<Value>" - Asserts that given is greater than the expected.
           * E.g. "Assert (Exactly 0) GreaterThan (Exactly 1)"
       `,
       "GreaterThan",
-      [
-        new Arg("given", getCoreValue),
-        new Arg("expected", getCoreValue)
-      ],
+      [new Arg("given", getCoreValue), new Arg("expected", getCoreValue)],
       (world, { given, expected }) => assertGreaterThan(world, given, expected),
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
-    new View<{ given: Value }>(`
+    new View<{ given: Value }>(
+      `
         #### True
 
         * "True given:<Value>" - Asserts that given is true.
           * E.g. "Assert True (Comptroller CheckMembership Geoff vBNB)"
       `,
       "True",
-      [
-        new Arg("given", getCoreValue)
-      ],
-      (world, { given }) => assertEqual(world, given, new BoolV(true))
+      [new Arg("given", getCoreValue)],
+      (world, { given }) => assertEqual(world, given, new BoolV(true)),
     ),
 
-    new View<{ given: Value }>(`
+    new View<{ given: Value }>(
+      `
         #### False
 
         * "False given:<Value>" - Asserts that given is false.
           * E.g. "Assert False (Comptroller CheckMembership Geoff vBNB)"
       `,
       "False",
-      [
-        new Arg("given", getCoreValue)
-      ],
-      (world, { given }) => assertEqual(world, given, new BoolV(false))
+      [new Arg("given", getCoreValue)],
+      (world, { given }) => assertEqual(world, given, new BoolV(false)),
     ),
-    new View<{ event: EventV, message: StringV }>(`
+    new View<{ event: EventV; message: StringV }>(
+      `
         #### ReadRevert
 
         * "ReadRevert event:<Event> message:<String>" - Asserts that reading the given value reverts with given message.
           * E.g. "Assert ReadRevert (Comptroller CheckMembership Geoff vBNB) \"revert\""
       `,
       "ReadRevert",
-      [
-        new Arg("event", getEventV),
-        new Arg("message", getStringV)
-      ],
-      (world, { event, message }) => assertReadError(world, event.val, message.val, true)
+      [new Arg("event", getEventV), new Arg("message", getStringV)],
+      (world, { event, message }) => assertReadError(world, event.val, message.val, true),
     ),
 
-    new View<{ event: EventV, message: StringV }>(`
+    new View<{ event: EventV; message: StringV }>(
+      `
         #### ReadError
 
         * "ReadError event:<Event> message:<String>" - Asserts that reading the given value throws given error
           * E.g. "Assert ReadError (Comptroller Bad Address) \"cannot find comptroller\""
       `,
       "ReadError",
-      [
-        new Arg("event", getEventV),
-        new Arg("message", getStringV)
-      ],
-      (world, { event, message }) => assertReadError(world, event.val, message.val, false)
+      [new Arg("event", getEventV), new Arg("message", getStringV)],
+      (world, { event, message }) => assertReadError(world, event.val, message.val, false),
     ),
 
-    new View<{ error: StringV, info: StringV, detail: StringV }>(`
+    new View<{ error: StringV; info: StringV; detail: StringV }>(
+      `
         #### Failure
 
         * "Failure error:<String> info:<String> detail:<Number?>" - Asserts that last transaction had a graceful failure with given error, info and detail.
@@ -383,70 +388,65 @@ export function assertionCommands() {
         new Arg("info", getStringV),
         new Arg("detail", getStringV, { default: new StringV("0") }),
       ],
-      (world, { error, info, detail }) => assertFailure(world, new Failure(error.val, info.val, detail.val))
+      (world, { error, info, detail }) => assertFailure(world, new Failure(error.val, info.val, detail.val)),
     ),
 
-    new View<{ error: StringV, message: StringV }>(`
+    new View<{ error: StringV; message: StringV }>(
+      `
         #### RevertFailure
 
         * "RevertFailure error:<String> message:<String>" - Assert last transaction reverted with a message beginning with an error code
           * E.g. "Assert RevertFailure UNAUTHORIZED \"set reserves failed\""
       `,
       "RevertFailure",
-      [
-        new Arg("error", getStringV),
-        new Arg("message", getStringV),
-      ],
-      (world, { error, message }) => assertRevertFailure(world, error.val, message.val)
+      [new Arg("error", getStringV), new Arg("message", getStringV)],
+      (world, { error, message }) => assertRevertFailure(world, error.val, message.val),
     ),
 
-    new View<{ message: StringV }>(`
+    new View<{ message: StringV }>(
+      `
         #### Revert
 
         * "Revert message:<String>" - Asserts that the last transaction reverted.
       `,
       "Revert",
-      [
-        new Arg("message", getStringV, { default: new StringV("revert") }),
-      ],
-      (world, { message }) => assertRevert(world, message.val)
+      [new Arg("message", getStringV, { default: new StringV("revert") })],
+      (world, { message }) => assertRevert(world, message.val),
     ),
 
-    new View<{ message: StringV }>(`
+    new View<{ message: StringV }>(
+      `
         #### Error
 
         * "Error message:<String>" - Asserts that the last transaction had the given error.
       `,
       "Error",
-      [
-        new Arg("message", getStringV),
-      ],
-      (world, { message }) => assertError(world, message.val)
+      [new Arg("message", getStringV)],
+      (world, { message }) => assertError(world, message.val),
     ),
 
-    new View<{ given: Value }>(`
+    new View<{ given: Value }>(
+      `
         #### Success
 
         * "Success" - Asserts that the last transaction completed successfully (that is, did not revert nor emit graceful failure).
       `,
       "Success",
       [],
-      (world) => assertSuccess(world)
+      world => assertSuccess(world),
     ),
 
-    new View<{ name: StringV, params: MapV }>(`
+    new View<{ name: StringV; params: MapV }>(
+      `
         #### Log
 
         * "Log name:<String> (key:<String> value:<Value>) ..." - Asserts that last transaction emitted log with given name and key-value pairs.
           * E.g. "Assert Log Minted ("account" (User Geoff address)) ("amount" (Exactly 55))"
       `,
       "Log",
-      [
-        new Arg("name", getStringV),
-        new Arg("params", getMapV, { variadic: true }),
-      ],
-      (world, { name, params }) => assertLog(world, name.val, params)
-    )
+      [new Arg("name", getStringV), new Arg("params", getMapV, { variadic: true })],
+      (world, { name, params }) => assertLog(world, name.val, params),
+    ),
   ];
 }
 

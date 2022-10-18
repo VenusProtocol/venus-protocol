@@ -1,4 +1,4 @@
-let { loadConf } = require('./support/tokenConfig');
+let { loadConf } = require("./support/tokenConfig");
 
 function printUsage() {
   console.log(`
@@ -22,14 +22,14 @@ npx saddle -n rinkeby script token:deploy '{
 }
 
 function sleep(timeout) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     setTimeout(() => {
       resolve();
     }, timeout);
   });
 }
 
-(async function() {
+(async function () {
   // @FIX ME This script had undefined vars have been stubbed out for linting
   const network = process.env.NETWORK;
   const addresses = [];
@@ -45,13 +45,22 @@ function sleep(timeout) {
 
   console.log(`Deploying vToken with ${JSON.stringify(conf)}`);
 
-  let deployArgs = [conf.underlying, conf.comptroller, conf.interestRateModel, conf.initialExchangeRateMantissa.toString(), conf.name, conf.symbol, conf.decimals, conf.admin];
-  let contract = await saddle.deploy('VBep20Immutable', deployArgs);
+  let deployArgs = [
+    conf.underlying,
+    conf.comptroller,
+    conf.interestRateModel,
+    conf.initialExchangeRateMantissa.toString(),
+    conf.name,
+    conf.symbol,
+    conf.decimals,
+    conf.admin,
+  ];
+  let contract = await saddle.deploy("VBep20Immutable", deployArgs);
 
   console.log(`Deployed contract to ${contract._address}`);
 
-  if (env['VERIFY']) {
-    const bscscanApiKey = env['BSCSCAN_API_KEY'];
+  if (env["VERIFY"]) {
+    const bscscanApiKey = env["BSCSCAN_API_KEY"];
     if (bscscanApiKey === undefined || bscscanApiKey.length === 0) {
       throw new Error(`BSCSCAN_API_KEY must be set if using VERIFY flag...`);
     }
@@ -60,12 +69,12 @@ function sleep(timeout) {
     await sleep(30000); // Give BscScan time to learn about contract
     console.log(`Now verifying contract on BscScan...`);
 
-    await saddle.verify(bscscanApiKey, contract._address, 'VBep20Immutable', deployArgs, 0);
+    await saddle.verify(bscscanApiKey, contract._address, "VBep20Immutable", deployArgs, 0);
     console.log(`Contract verified at https://${network}.bscscan.io/address/${contract._address}`);
   }
 
   return {
     ...conf,
-    address: contract._address
+    address: contract._address,
   };
 })();

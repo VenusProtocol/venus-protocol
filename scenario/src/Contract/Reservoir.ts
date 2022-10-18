@@ -1,5 +1,5 @@
-import { Contract } from '../Contract';
-import { Callable, Sendable } from '../Invokation';
+import { Contract } from "../Contract";
+import { Callable, Sendable } from "../Invokation";
 
 export interface ReservoirMethods {
   drip(): Sendable<void>;

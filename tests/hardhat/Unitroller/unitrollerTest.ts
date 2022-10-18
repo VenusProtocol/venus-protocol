@@ -1,17 +1,23 @@
-import { Signer, constants, ContractTransaction } from "ethers";
-import { ethers } from "hardhat";
+import { MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { smock, MockContract } from "@defi-wonderland/smock";
 import chai from "chai";
-const { expect } = chai;
-chai.use(smock.matchers);
+import { ContractTransaction, Signer, constants } from "ethers";
+import { ethers } from "hardhat";
 
 import {
-  Unitroller, Unitroller__factory, Comptroller__factory, Comptroller, EchoTypesComptroller, EchoTypesComptroller__factory
+  Comptroller,
+  Comptroller__factory,
+  EchoTypesComptroller,
+  EchoTypesComptroller__factory,
+  Unitroller,
+  Unitroller__factory,
 } from "../../../typechain";
 import { ComptrollerErrorReporter } from "../util/Errors";
 
-describe('Unitroller', () => {
+const { expect } = chai;
+chai.use(smock.matchers);
+
+describe("Unitroller", () => {
   let root: Signer;
   let accounts: Signer[];
   let unitroller: MockContract<Unitroller>;
@@ -26,16 +32,16 @@ describe('Unitroller', () => {
   }
 
   beforeEach(async () => {
-    [ root, ...accounts ] = await ethers.getSigners();
+    [root, ...accounts] = await ethers.getSigners();
     ({ unitroller, brains } = await loadFixture(unitrollerFixture));
   });
 
   async function setPending<Impl extends { address: string }>(
     implementation: Impl,
-    from: Signer
+    from: Signer,
   ): Promise<ContractTransaction> {
     return unitroller.connect(from)._setPendingImplementation(implementation.address);
-  };
+  }
 
   describe("constructor", () => {
     it("sets admin to caller and addresses to 0", async () => {
@@ -58,12 +64,12 @@ describe('Unitroller', () => {
           .to.emit(unitroller, "Failure")
           .withArgs(
             ComptrollerErrorReporter.Error.UNAUTHORIZED,
-            ComptrollerErrorReporter.FailureInfo.SET_PENDING_IMPLEMENTATION_OWNER_CHECK
+            ComptrollerErrorReporter.FailureInfo.SET_PENDING_IMPLEMENTATION_OWNER_CHECK,
           );
       });
 
       it("does not change pending implementation address", async () => {
-        expect(await unitroller.pendingComptrollerImplementation()).to.equal(constants.AddressZero)
+        expect(await unitroller.pendingComptrollerImplementation()).to.equal(constants.AddressZero);
       });
     });
 
@@ -94,7 +100,7 @@ describe('Unitroller', () => {
           .to.emit(unitroller, "Failure")
           .withArgs(
             ComptrollerErrorReporter.Error.UNAUTHORIZED,
-            ComptrollerErrorReporter.FailureInfo.ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK
+            ComptrollerErrorReporter.FailureInfo.ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK,
           );
       });
 
@@ -108,7 +114,7 @@ describe('Unitroller', () => {
       beforeEach(async () => {
         await setPending(brains, root);
         result = await brains._become(unitroller.address);
-        expect(result);//.toSucceed();
+        expect(result); //.toSucceed();
       });
 
       it("Store comptrollerImplementation with value pendingComptrollerImplementation", async () => {
@@ -168,7 +174,7 @@ describe('Unitroller', () => {
       });
 
       it("gets list of ints", async () => {
-        expect(await troll.listOInts([1,2,3])).to.deep.equal(["1", "2", "3"]);
+        expect(await troll.listOInts([1, 2, 3])).to.deep.equal(["1", "2", "3"]);
       });
     });
   });

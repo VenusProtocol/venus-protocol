@@ -1,6 +1,7 @@
-import { Event } from './Event';
-import { World } from './World';
-import { AbiItem } from 'web3-utils';
+import { AbiItem } from "web3-utils";
+
+import { Event } from "./Event";
+import { World } from "./World";
 
 // Wraps the element in an array, if it was not already an array
 // If array is null or undefined, return the empty array
@@ -31,7 +32,7 @@ export function mustLen(arg: any[] | any, len: number, maxLen?: number): any[] {
 }
 
 export function mustString(arg: Event): string {
-  if (typeof arg === 'string') {
+  if (typeof arg === "string") {
     return arg;
   }
 
@@ -39,10 +40,8 @@ export function mustString(arg: Event): string {
 }
 
 export function rawValues(args) {
-  if (Array.isArray(args))
-    return args.map(rawValues);
-  if (Array.isArray(args.val))
-    return args.val.map(rawValues);
+  if (Array.isArray(args)) return args.map(rawValues);
+  if (Array.isArray(args.val)) return args.val.map(rawValues);
   return args.val;
 }
 
@@ -60,7 +59,7 @@ export function encodeABI(world: World, fnABI: string, fnParams: string[]): stri
     const [_, fnName, fnInputs] = <[string, string, string]>(<unknown>res);
     const jsonInterface = {
       name: fnName,
-      inputs: fnInputs.split(',').map(i => ({ name: '', type: i }))
+      inputs: fnInputs.split(",").map(i => ({ name: "", type: i })),
     };
     // XXXS
     return world.web3.eth.abi.encodeFunctionCall(<AbiItem>jsonInterface, fnParams);
@@ -71,10 +70,10 @@ export function encodeParameters(world: World, fnABI: string, fnParams: string[]
   const regex = /(\w+)\(([\w,\[\]]+)\)/;
   const res = regex.exec(fnABI);
   if (!res) {
-    return '0x0';
+    return "0x0";
   }
   const [_, __, fnInputs] = <[string, string, string]>(<unknown>res);
-  return world.web3.eth.abi.encodeParameters(fnInputs.split(','), fnParams);
+  return world.web3.eth.abi.encodeParameters(fnInputs.split(","), fnParams);
 }
 
 export function decodeParameters(world: World, fnABI: string, data: string): string[] {
@@ -84,14 +83,14 @@ export function decodeParameters(world: World, fnABI: string, data: string): str
     return [];
   }
   const [_, __, fnInputs] = <[string, string, string]>(<unknown>res);
-  const inputTypes = fnInputs.split(',');
+  const inputTypes = fnInputs.split(",");
   const parameters = world.web3.eth.abi.decodeParameters(inputTypes, data);
 
   return inputTypes.map((_, index) => parameters[index]);
 }
 
 export async function getCurrentBlockNumber(world: World): Promise<number> {
-  const { result: currentBlockNumber }: any = await sendRPC(world, 'eth_blockNumber', []);
+  const { result: currentBlockNumber }: any = await sendRPC(world, "eth_blockNumber", []);
   return parseInt(currentBlockNumber);
 }
 
@@ -99,9 +98,8 @@ export function getCurrentTimestamp(): number {
   return Math.floor(Date.now() / 1000);
 }
 
-
 export function sleep(timeout: number): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     setTimeout(() => {
       resolve();
     }, timeout);
@@ -110,16 +108,20 @@ export function sleep(timeout: number): Promise<void> {
 
 export function sendRPC(world: World, method: string, params: any[]) {
   return new Promise((resolve, reject) => {
-    if (!world.web3.currentProvider || typeof (world.web3.currentProvider) === 'string' || !world.web3.currentProvider.send) {
+    if (
+      !world.web3.currentProvider ||
+      typeof world.web3.currentProvider === "string" ||
+      !world.web3.currentProvider.send
+    ) {
       return reject(`cannot send from currentProvider=${world.web3.currentProvider}`);
     }
 
     world.web3.currentProvider.send(
       {
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         method: method,
         params: params,
-        id: new Date().getTime() // Id of the request; anything works, really
+        id: new Date().getTime(), // Id of the request; anything works, really
       },
       (err, response) => {
         if (err) {
@@ -127,7 +129,7 @@ export function sendRPC(world: World, method: string, params: any[]) {
         } else {
           resolve(response);
         }
-      }
+      },
     );
   });
 }

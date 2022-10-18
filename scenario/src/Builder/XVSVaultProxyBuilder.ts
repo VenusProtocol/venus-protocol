@@ -1,10 +1,10 @@
-import { Event } from "../Event";
-import { World } from "../World";
-import { Invokation } from "../Invokation";
 import { Fetcher, getFetcherValue } from "../Command";
-import { storeAndSaveContract } from "../Networks";
 import { getContract } from "../Contract";
 import { XVSVaultProxy } from "../Contract/XVSVault";
+import { Event } from "../Event";
+import { Invokation } from "../Invokation";
+import { storeAndSaveContract } from "../Networks";
+import { World } from "../World";
 
 const XVSVaultProxyContract = getContract("XVSVaultProxy");
 
@@ -18,7 +18,7 @@ export interface XVSVaultProxyData {
 export async function buildXVSVaultProxy(
   world: World,
   from: string,
-  params: Event
+  params: Event,
 ): Promise<{ world: World; xvsVaultProxy: XVSVaultProxy; xvsVaultData: XVSVaultProxyData }> {
   const fetchers = [
     new Fetcher<Record<string, any>, XVSVaultProxyData>(
@@ -29,23 +29,18 @@ export async function buildXVSVaultProxy(
       `,
       "XVSVaultProxy",
       [],
-      async (world) => {
+      async world => {
         return {
           invokation: await XVSVaultProxyContract.deploy<XVSVaultProxy>(world, from, []),
           name: "XVSVaultProxy",
-          contract: "XVSVaultProxy"
+          contract: "XVSVaultProxy",
         };
       },
-      { catchall: true }
-    )
+      { catchall: true },
+    ),
   ];
 
-  const xvsVaultData = await getFetcherValue<any, XVSVaultProxyData>(
-    "DeployXVSVaultProxy",
-    fetchers,
-    world,
-    params
-  );
+  const xvsVaultData = await getFetcherValue<any, XVSVaultProxyData>("DeployXVSVaultProxy", fetchers, world, params);
   const invokation = xvsVaultData.invokation!;
   delete xvsVaultData.invokation;
 
@@ -56,15 +51,9 @@ export async function buildXVSVaultProxy(
   const xvsVaultProxy = invokation.value!;
   xvsVaultData.address = xvsVaultProxy._address;
 
-  world = await storeAndSaveContract(
-    world,
-    xvsVaultProxy,
-    xvsVaultData.name,
-    invokation,
-    [
-      { index: ["XVSVaultProxy", xvsVaultData.name], data: xvsVaultData },
-    ]
-  );
+  world = await storeAndSaveContract(world, xvsVaultProxy, xvsVaultData.name, invokation, [
+    { index: ["XVSVaultProxy", xvsVaultData.name], data: xvsVaultData },
+  ]);
 
   return { world, xvsVaultProxy, xvsVaultData };
 }

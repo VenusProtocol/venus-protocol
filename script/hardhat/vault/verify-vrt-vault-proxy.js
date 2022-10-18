@@ -3,10 +3,9 @@ const hre = require("hardhat");
 const network = process.env.NETWORK;
 const contractConfigData = require(`../../../networks/${network}.json`);
 require("@nomiclabs/hardhat-etherscan");
-const { bnbUnsigned } = require('../../deploy/utils/web3-utils');
+const { bnbUnsigned } = require("../../deploy/utils/web3-utils");
 
 const main = async () => {
-
   const vrtVaultProxyAddress = contractConfigData.Contracts.VRTVaultProxy;
 
   const vrtVaultAddress = contractConfigData.Contracts.VRTVault;
@@ -14,11 +13,13 @@ const main = async () => {
   const interestRatePerBlockAsNumber = bnbUnsigned(2853881000);
 
   const constructorArgumentArray = [vrtVaultAddress, vrtAddress, interestRatePerBlockAsNumber];
-  console.log(`Verifying VRTVaultProxy with vrtVaultAddress, vrtAddress, interestRatePerBlockAsNumber in constructorArguments: ${constructorArgumentArray}`);
+  console.log(
+    `Verifying VRTVaultProxy with vrtVaultAddress, vrtAddress, interestRatePerBlockAsNumber in constructorArguments: ${constructorArgumentArray}`,
+  );
 
   await hre.run("verify:verify", {
     address: vrtVaultProxyAddress,
-    constructorArguments: constructorArgumentArray
+    constructorArguments: constructorArgumentArray,
   });
 };
 

@@ -1,29 +1,25 @@
-import { Event } from '../Event';
-import { addAction, World } from '../World';
-import { ComptrollerImpl } from '../Contract/ComptrollerImpl';
-import { Unitroller } from '../Contract/Unitroller';
-import { invoke } from '../Invokation';
-import { getEventV, getStringV } from '../CoreValue';
-import { EventV, StringV } from '../Value';
-import { Arg, Command, View, processCommandEvent } from '../Command';
-import { buildComptrollerImpl } from '../Builder/ComptrollerImplBuilder';
-import { ComptrollerErrorReporter } from '../ErrorReporter';
-import { getComptrollerImpl, getComptrollerImplData, getUnitroller } from '../ContractLookup';
-import { verify } from '../Verify';
-import { mergeContractABI } from '../Networks';
+import { buildComptrollerImpl } from "../Builder/ComptrollerImplBuilder";
+import { Arg, Command, View, processCommandEvent } from "../Command";
+import { ComptrollerImpl } from "../Contract/ComptrollerImpl";
+import { Unitroller } from "../Contract/Unitroller";
+import { getComptrollerImpl, getComptrollerImplData, getUnitroller } from "../ContractLookup";
+import { getEventV, getStringV } from "../CoreValue";
+import { ComptrollerErrorReporter } from "../ErrorReporter";
+import { Event } from "../Event";
+import { invoke } from "../Invokation";
+import { mergeContractABI } from "../Networks";
+import { EventV, StringV } from "../Value";
+import { verify } from "../Verify";
+import { World, addAction } from "../World";
 
 async function genComptrollerImpl(world: World, from: string, params: Event): Promise<World> {
-  const { world: nextWorld, comptrollerImpl, comptrollerImplData } = await buildComptrollerImpl(
-    world,
-    from,
-    params
-  );
+  const { world: nextWorld, comptrollerImpl, comptrollerImplData } = await buildComptrollerImpl(world, from, params);
   world = nextWorld;
 
   world = addAction(
     world,
     `Added Comptroller Implementation (${comptrollerImplData.description}) at address ${comptrollerImpl._address}`,
-    comptrollerImplData.invokation
+    comptrollerImplData.invokation,
   );
 
   return world;
@@ -33,11 +29,11 @@ async function mergeABI(
   world: World,
   from: string,
   comptrollerImpl: ComptrollerImpl,
-  unitroller: Unitroller
+  unitroller: Unitroller,
 ): Promise<World> {
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'Comptroller', unitroller, unitroller.name, comptrollerImpl.name);
+    world = await mergeContractABI(world, "Comptroller", unitroller, unitroller.name, comptrollerImpl.name);
   }
 
   return world;
@@ -47,18 +43,18 @@ async function becomeG1(
   world: World,
   from: string,
   comptrollerImpl: ComptrollerImpl,
-  unitroller: Unitroller
+  unitroller: Unitroller,
 ): Promise<World> {
   const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
-    ComptrollerErrorReporter
+    ComptrollerErrorReporter,
   );
 
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'Comptroller', unitroller, unitroller.name, comptrollerImpl.name);
+    world = await mergeContractABI(world, "Comptroller", unitroller, unitroller.name, comptrollerImpl.name);
   }
 
   world = addAction(world, `Become ${unitroller._address}'s Comptroller Impl`, invokation);
@@ -70,18 +66,18 @@ async function becomeG2(
   world: World,
   from: string,
   comptrollerImpl: ComptrollerImpl,
-  unitroller: Unitroller
+  unitroller: Unitroller,
 ): Promise<World> {
   const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
-    ComptrollerErrorReporter
+    ComptrollerErrorReporter,
   );
 
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'Comptroller', unitroller, unitroller.name, comptrollerImpl.name);
+    world = await mergeContractABI(world, "Comptroller", unitroller, unitroller.name, comptrollerImpl.name);
   }
 
   world = addAction(world, `Become ${unitroller._address}'s Comptroller Impl`, invokation);
@@ -93,18 +89,18 @@ async function becomeG3(
   world: World,
   from: string,
   comptrollerImpl: ComptrollerImpl,
-  unitroller: Unitroller
+  unitroller: Unitroller,
 ): Promise<World> {
   const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
-    ComptrollerErrorReporter
+    ComptrollerErrorReporter,
   );
 
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'Comptroller', unitroller, unitroller.name, comptrollerImpl.name);
+    world = await mergeContractABI(world, "Comptroller", unitroller, unitroller.name, comptrollerImpl.name);
   }
 
   world = addAction(world, `Become ${unitroller._address}'s Comptroller Impl`, invokation);
@@ -116,18 +112,18 @@ async function becomeG4(
   world: World,
   from: string,
   comptrollerImpl: ComptrollerImpl,
-  unitroller: Unitroller
+  unitroller: Unitroller,
 ): Promise<World> {
   const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
-    ComptrollerErrorReporter
+    ComptrollerErrorReporter,
   );
 
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'Comptroller', unitroller, unitroller.name, comptrollerImpl.name);
+    world = await mergeContractABI(world, "Comptroller", unitroller, unitroller.name, comptrollerImpl.name);
   }
 
   world = addAction(world, `Become ${unitroller._address}'s Comptroller Impl`, invokation);
@@ -139,18 +135,18 @@ async function becomeG5(
   world: World,
   from: string,
   comptrollerImpl: ComptrollerImpl,
-  unitroller: Unitroller
+  unitroller: Unitroller,
 ): Promise<World> {
   const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
-    ComptrollerErrorReporter
+    ComptrollerErrorReporter,
   );
 
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'Comptroller', unitroller, unitroller.name, comptrollerImpl.name);
+    world = await mergeContractABI(world, "Comptroller", unitroller, unitroller.name, comptrollerImpl.name);
   }
 
   world = addAction(world, `Become ${unitroller._address}'s Comptroller Impl`, invokation);
@@ -162,18 +158,18 @@ async function become(
   world: World,
   from: string,
   comptrollerImpl: ComptrollerImpl,
-  unitroller: Unitroller
+  unitroller: Unitroller,
 ): Promise<World> {
   const invokation = await invoke(
     world,
     comptrollerImpl.methods._become(unitroller._address),
     from,
-    ComptrollerErrorReporter
+    ComptrollerErrorReporter,
   );
 
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
-    world = await mergeContractABI(world, 'Comptroller', unitroller, unitroller.name, comptrollerImpl.name);
+    world = await mergeContractABI(world, "Comptroller", unitroller, unitroller.name, comptrollerImpl.name);
   }
 
   world = addAction(world, `Become ${unitroller._address}'s Comptroller Impl`, invokation);
@@ -186,7 +182,7 @@ async function verifyComptrollerImpl(
   comptrollerImpl: ComptrollerImpl,
   name: string,
   contract: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<World> {
   if (world.isLocalNetwork()) {
     world.printer.printLine(`Politely declining to verify on local network: ${world.network}.`);
@@ -206,9 +202,9 @@ export function comptrollerImplCommands() {
         * "ComptrollerImpl Deploy ...comptrollerImplParams" - Generates a new Comptroller Implementation
           * E.g. "ComptrollerImpl Deploy MyScen Scenario"
       `,
-      'Deploy',
-      [new Arg('comptrollerImplParams', getEventV, { variadic: true })],
-      (world, from, { comptrollerImplParams }) => genComptrollerImpl(world, from, comptrollerImplParams.val)
+      "Deploy",
+      [new Arg("comptrollerImplParams", getEventV, { variadic: true })],
+      (world, from, { comptrollerImplParams }) => genComptrollerImpl(world, from, comptrollerImplParams.val),
     ),
     new View<{ comptrollerImplArg: StringV; apiKey: StringV }>(
       `
@@ -217,14 +213,14 @@ export function comptrollerImplCommands() {
         * "ComptrollerImpl <Impl> Verify apiKey:<String>" - Verifies Comptroller Implemetation in BscScan
           * E.g. "ComptrollerImpl Verify "myApiKey"
       `,
-      'Verify',
-      [new Arg('comptrollerImplArg', getStringV), new Arg('apiKey', getStringV)],
+      "Verify",
+      [new Arg("comptrollerImplArg", getStringV), new Arg("apiKey", getStringV)],
       async (world, { comptrollerImplArg, apiKey }) => {
         const [comptrollerImpl, name, data] = await getComptrollerImplData(world, comptrollerImplArg.val);
 
-        return await verifyComptrollerImpl(world, comptrollerImpl, name, data.get('contract')!, apiKey.val);
+        return await verifyComptrollerImpl(world, comptrollerImpl, name, data.get("contract")!, apiKey.val);
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
     new Command<{
@@ -236,15 +232,12 @@ export function comptrollerImplCommands() {
         * "ComptrollerImpl <Impl> BecomeG1" - Become the comptroller, if possible.
           * E.g. "ComptrollerImpl MyImpl BecomeG1
       `,
-      'BecomeG1',
-      [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
-        new Arg('comptrollerImpl', getComptrollerImpl)
-      ],
+      "BecomeG1",
+      [new Arg("unitroller", getUnitroller, { implicit: true }), new Arg("comptrollerImpl", getComptrollerImpl)],
       (world, from, { unitroller, comptrollerImpl }) => {
-        return becomeG1(world, from, comptrollerImpl, unitroller)
+        return becomeG1(world, from, comptrollerImpl, unitroller);
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
     new Command<{
@@ -256,15 +249,12 @@ export function comptrollerImplCommands() {
         * "ComptrollerImpl <Impl> BecomeG2" - Become the comptroller, if possible.
           * E.g. "ComptrollerImpl MyImpl BecomeG2
       `,
-      'BecomeG2',
-      [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
-        new Arg('comptrollerImpl', getComptrollerImpl)
-      ],
+      "BecomeG2",
+      [new Arg("unitroller", getUnitroller, { implicit: true }), new Arg("comptrollerImpl", getComptrollerImpl)],
       (world, from, { unitroller, comptrollerImpl }) => {
-        return becomeG2(world, from, comptrollerImpl, unitroller)
+        return becomeG2(world, from, comptrollerImpl, unitroller);
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
     new Command<{
@@ -276,15 +266,12 @@ export function comptrollerImplCommands() {
         * "ComptrollerImpl <Impl> BecomeG3" - Become the comptroller, if possible.
           * E.g. "ComptrollerImpl MyImpl BecomeG3
       `,
-      'BecomeG3',
-      [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
-        new Arg('comptrollerImpl', getComptrollerImpl)
-      ],
+      "BecomeG3",
+      [new Arg("unitroller", getUnitroller, { implicit: true }), new Arg("comptrollerImpl", getComptrollerImpl)],
       (world, from, { unitroller, comptrollerImpl }) => {
-        return becomeG3(world, from, comptrollerImpl, unitroller)
+        return becomeG3(world, from, comptrollerImpl, unitroller);
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
     new Command<{
@@ -296,15 +283,12 @@ export function comptrollerImplCommands() {
         * "ComptrollerImpl <Impl> BecomeG4" - Become the comptroller, if possible.
           * E.g. "ComptrollerImpl MyImpl BecomeG4
       `,
-      'BecomeG4',
-      [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
-        new Arg('comptrollerImpl', getComptrollerImpl)
-      ],
+      "BecomeG4",
+      [new Arg("unitroller", getUnitroller, { implicit: true }), new Arg("comptrollerImpl", getComptrollerImpl)],
       (world, from, { unitroller, comptrollerImpl }) => {
-        return becomeG4(world, from, comptrollerImpl, unitroller)
+        return becomeG4(world, from, comptrollerImpl, unitroller);
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
     new Command<{
@@ -316,15 +300,12 @@ export function comptrollerImplCommands() {
         * "ComptrollerImpl <Impl> BecomeG5" - Become the comptroller, if possible.
           * E.g. "ComptrollerImpl MyImpl BecomeG5
       `,
-      'BecomeG5',
-      [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
-        new Arg('comptrollerImpl', getComptrollerImpl)
-      ],
+      "BecomeG5",
+      [new Arg("unitroller", getUnitroller, { implicit: true }), new Arg("comptrollerImpl", getComptrollerImpl)],
       (world, from, { unitroller, comptrollerImpl }) => {
-        return becomeG5(world, from, comptrollerImpl, unitroller)
+        return becomeG5(world, from, comptrollerImpl, unitroller);
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
     new Command<{
@@ -337,15 +318,12 @@ export function comptrollerImplCommands() {
         * "ComptrollerImpl <Impl> Become" - Become the comptroller, if possible.
           * E.g. "ComptrollerImpl MyImpl Become
       `,
-      'Become',
-      [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
-        new Arg('comptrollerImpl', getComptrollerImpl)
-      ],
+      "Become",
+      [new Arg("unitroller", getUnitroller, { implicit: true }), new Arg("comptrollerImpl", getComptrollerImpl)],
       (world, from, { unitroller, comptrollerImpl }) => {
-        return become(world, from, comptrollerImpl, unitroller)
+        return become(world, from, comptrollerImpl, unitroller);
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
     new Command<{
@@ -358,21 +336,14 @@ export function comptrollerImplCommands() {
         * "ComptrollerImpl <Impl> MergeABI" - Merges the ABI, as if it was a become.
           * E.g. "ComptrollerImpl MyImpl MergeABI
       `,
-      'MergeABI',
-      [
-        new Arg('unitroller', getUnitroller, { implicit: true }),
-        new Arg('comptrollerImpl', getComptrollerImpl)
-      ],
+      "MergeABI",
+      [new Arg("unitroller", getUnitroller, { implicit: true }), new Arg("comptrollerImpl", getComptrollerImpl)],
       (world, from, { unitroller, comptrollerImpl }) => mergeABI(world, from, comptrollerImpl, unitroller),
-      { namePos: 1 }
-    )
+      { namePos: 1 },
+    ),
   ];
 }
 
-export async function processComptrollerImplEvent(
-  world: World,
-  event: Event,
-  from: string | null
-): Promise<World> {
-  return await processCommandEvent<any>('ComptrollerImpl', comptrollerImplCommands(), world, event, from);
+export async function processComptrollerImplEvent(world: World, event: Event, from: string | null): Promise<World> {
+  return await processCommandEvent<any>("ComptrollerImpl", comptrollerImplCommands(), world, event, from);
 }

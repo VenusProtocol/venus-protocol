@@ -1,7 +1,7 @@
-import BigNumber from 'bignumber.js';
-import { utils } from 'ethers';
+import BigNumber from "bignumber.js";
+import { utils } from "ethers";
 
-const smallEnoughNumber = new BigNumber('100000000');
+const smallEnoughNumber = new BigNumber("100000000");
 
 export type encodedNumber = number | utils.BigNumber;
 

@@ -1,15 +1,15 @@
-import { Event } from '../Event';
-import { addAction, World } from '../World';
-import { VAIUnitroller } from '../Contract/VAIUnitroller';
-import { VAIControllerImpl } from '../Contract/VAIControllerImpl';
-import { invoke } from '../Invokation';
-import { getEventV, getStringV, getAddressV } from '../CoreValue';
-import { EventV, StringV, AddressV } from '../Value';
-import { Arg, Command, View, processCommandEvent } from '../Command';
-import { VAIControllerErrorReporter } from '../ErrorReporter';
-import { buildVAIUnitroller } from '../Builder/VAIUnitrollerBuilder';
-import { getVAIControllerImpl, getVAIUnitroller } from '../ContractLookup';
-import { verify } from '../Verify';
+import { buildVAIUnitroller } from "../Builder/VAIUnitrollerBuilder";
+import { Arg, Command, View, processCommandEvent } from "../Command";
+import { VAIControllerImpl } from "../Contract/VAIControllerImpl";
+import { VAIUnitroller } from "../Contract/VAIUnitroller";
+import { getVAIControllerImpl, getVAIUnitroller } from "../ContractLookup";
+import { getAddressV, getEventV, getStringV } from "../CoreValue";
+import { VAIControllerErrorReporter } from "../ErrorReporter";
+import { Event } from "../Event";
+import { invoke } from "../Invokation";
+import { AddressV, EventV, StringV } from "../Value";
+import { verify } from "../Verify";
+import { World, addAction } from "../World";
 
 async function genVAIUnitroller(world: World, from: string, params: Event): Promise<World> {
   const { world: nextWorld, vaiunitroller, vaiunitrollerData } = await buildVAIUnitroller(world, from, params);
@@ -18,7 +18,7 @@ async function genVAIUnitroller(world: World, from: string, params: Event): Prom
   world = addAction(
     world,
     `Added VAIUnitroller (${vaiunitrollerData.description}) at address ${vaiunitroller._address}`,
-    vaiunitrollerData.invokation
+    vaiunitrollerData.invokation,
   );
 
   return world;
@@ -28,7 +28,7 @@ async function verifyVAIUnitroller(world: World, vaiunitroller: VAIUnitroller, a
   if (world.isLocalNetwork()) {
     world.printer.printLine(`Politely declining to verify on local network: ${world.network}.`);
   } else {
-    await verify(world, apiKey, 'VAIUnitroller', 'VAIUnitroller', vaiunitroller._address);
+    await verify(world, apiKey, "VAIUnitroller", "VAIUnitroller", vaiunitroller._address);
   }
 
   return world;
@@ -46,13 +46,13 @@ async function setPendingAdmin(
   world: World,
   from: string,
   vaiunitroller: VAIUnitroller,
-  pendingAdmin: string
+  pendingAdmin: string,
 ): Promise<World> {
   const invokation = await invoke(
     world,
     vaiunitroller.methods._setPendingAdmin(pendingAdmin),
     from,
-    VAIControllerErrorReporter
+    VAIControllerErrorReporter,
   );
 
   world = addAction(world, `Set pending admin to ${pendingAdmin}`, invokation);
@@ -64,13 +64,13 @@ async function setPendingImpl(
   world: World,
   from: string,
   vaiunitroller: VAIUnitroller,
-  vaicontrollerImpl: VAIControllerImpl
+  vaicontrollerImpl: VAIControllerImpl,
 ): Promise<World> {
   const invokation = await invoke(
     world,
     vaiunitroller.methods._setPendingImplementation(vaicontrollerImpl._address),
     from,
-    VAIControllerErrorReporter
+    VAIControllerErrorReporter,
   );
 
   world = addAction(world, `Set pending vaicontroller impl to ${vaicontrollerImpl.name}`, invokation);
@@ -87,9 +87,9 @@ export function vaiunitrollerCommands() {
         * "VAIUnitroller Deploy ...vaiunitrollerParams" - Generates a new VAIUnitroller
           * E.g. "VAIUnitroller Deploy"
       `,
-      'Deploy',
-      [new Arg('vaiunitrollerParams', getEventV, { variadic: true })],
-      (world, from, { vaiunitrollerParams }) => genVAIUnitroller(world, from, vaiunitrollerParams.val)
+      "Deploy",
+      [new Arg("vaiunitrollerParams", getEventV, { variadic: true })],
+      (world, from, { vaiunitrollerParams }) => genVAIUnitroller(world, from, vaiunitrollerParams.val),
     ),
     new View<{ vaiunitroller: VAIUnitroller; apiKey: StringV }>(
       `
@@ -98,9 +98,9 @@ export function vaiunitrollerCommands() {
         * "VAIUnitroller Verify apiKey:<String>" - Verifies VAIUnitroller in BscScan
           * E.g. "VAIUnitroller Verify "myApiKey"
       `,
-      'Verify',
-      [new Arg('vaiunitroller', getVAIUnitroller, { implicit: true }), new Arg('apiKey', getStringV)],
-      (world, { vaiunitroller, apiKey }) => verifyVAIUnitroller(world, vaiunitroller, apiKey.val)
+      "Verify",
+      [new Arg("vaiunitroller", getVAIUnitroller, { implicit: true }), new Arg("apiKey", getStringV)],
+      (world, { vaiunitroller, apiKey }) => verifyVAIUnitroller(world, vaiunitroller, apiKey.val),
     ),
     new Command<{ vaiunitroller: VAIUnitroller; pendingAdmin: AddressV }>(
       `
@@ -109,9 +109,9 @@ export function vaiunitrollerCommands() {
         * "AcceptAdmin" - Accept admin for this vaiunitroller
           * E.g. "VAIUnitroller AcceptAdmin"
       `,
-      'AcceptAdmin',
-      [new Arg('vaiunitroller', getVAIUnitroller, { implicit: true })],
-      (world, from, { vaiunitroller }) => acceptAdmin(world, from, vaiunitroller)
+      "AcceptAdmin",
+      [new Arg("vaiunitroller", getVAIUnitroller, { implicit: true })],
+      (world, from, { vaiunitroller }) => acceptAdmin(world, from, vaiunitroller),
     ),
     new Command<{ vaiunitroller: VAIUnitroller; pendingAdmin: AddressV }>(
       `
@@ -120,10 +120,9 @@ export function vaiunitrollerCommands() {
         * "SetPendingAdmin admin:<Admin>" - Sets the pending admin for this vaiunitroller
           * E.g. "VAIUnitroller SetPendingAdmin Jared"
       `,
-      'SetPendingAdmin',
-      [new Arg('vaiunitroller', getVAIUnitroller, { implicit: true }), new Arg('pendingAdmin', getAddressV)],
-      (world, from, { vaiunitroller, pendingAdmin }) =>
-        setPendingAdmin(world, from, vaiunitroller, pendingAdmin.val)
+      "SetPendingAdmin",
+      [new Arg("vaiunitroller", getVAIUnitroller, { implicit: true }), new Arg("pendingAdmin", getAddressV)],
+      (world, from, { vaiunitroller, pendingAdmin }) => setPendingAdmin(world, from, vaiunitroller, pendingAdmin.val),
     ),
     new Command<{ vaiunitroller: VAIUnitroller; vaicontrollerImpl: VAIControllerImpl }>(
       `
@@ -132,21 +131,17 @@ export function vaiunitrollerCommands() {
         * "SetPendingImpl impl:<Impl>" - Sets the pending vaicontroller implementation for this vaiunitroller
           * E.g. "VAIUnitroller SetPendingImpl MyScenImpl" - Sets the current vaicontroller implementation to MyScenImpl
       `,
-      'SetPendingImpl',
+      "SetPendingImpl",
       [
-        new Arg('vaiunitroller', getVAIUnitroller, { implicit: true }),
-        new Arg('vaicontrollerImpl', getVAIControllerImpl)
+        new Arg("vaiunitroller", getVAIUnitroller, { implicit: true }),
+        new Arg("vaicontrollerImpl", getVAIControllerImpl),
       ],
       (world, from, { vaiunitroller, vaicontrollerImpl }) =>
-        setPendingImpl(world, from, vaiunitroller, vaicontrollerImpl)
-    )
+        setPendingImpl(world, from, vaiunitroller, vaicontrollerImpl),
+    ),
   ];
 }
 
-export async function processVAIUnitrollerEvent(
-  world: World,
-  event: Event,
-  from: string | null
-): Promise<World> {
-  return await processCommandEvent<any>('VAIUnitroller', vaiunitrollerCommands(), world, event, from);
+export async function processVAIUnitrollerEvent(world: World, event: Event, from: string | null): Promise<World> {
+  return await processCommandEvent<any>("VAIUnitroller", vaiunitrollerCommands(), world, event, from);
 }

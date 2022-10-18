@@ -1,6 +1,7 @@
 # Contribution guidelines
 
 We have a strict policy on how we should commit our work. Following these guidelines will help us to:
+
 1. Avoid hard to solve merge conflicts. Our workflow favors rebase over merge in feature branches, so there are no complex dependencies between branches. We sacrifice the “full history” in favor of just “meaningful history”, thus avoiding unnecessary diffs.
 2. Make our contracts more secure. It's easy to make a small mistake that would cost millions of dollars to the contract users. We need to peer review our contracts as thoroughly as possible, thus our workflow ensures the process is easy and rewarding for the reviewers.
 3. Save newcomers' time. When new developers join the team, they want to know how the code evolved and why certain design decisions were made. Our workflow encourages exhaustive commit messages that describe the reason behind each change.
@@ -25,9 +26,9 @@ By default, git merges the upstream changes into your local branch on pull. This
 
 1. The commits should be self-contained and solve one specific problem. Avoid commits incorporating several completely unrelated changes. You can use `git add -p <file>` to stage just a part of the file.
 1. The commit messages should have a header and a body. Forget about commit -m.
-2. The commit header should describe the change in no longer than 60 characters.
-3. The commit body should describe the reason for the change (ideally, describe the problem you're solving, and then the solution you're proposing).
-4. Avoid messages that look like "Update file.js" — these do not contain any additional information, the reviewers can easily look up the list of the updated files in the diff. Rather, focus on why you're making the change.
+1. The commit header should describe the change in no longer than 60 characters.
+1. The commit body should describe the reason for the change (ideally, describe the problem you're solving, and then the solution you're proposing).
+1. Avoid messages that look like "Update file.js" — these do not contain any additional information, the reviewers can easily look up the list of the updated files in the diff. Rather, focus on why you're making the change.
 
 ## Prettify your history
 
@@ -63,6 +64,7 @@ When you rewrite your history, GitHub will refuse to accept your changes. This i
 This policy may require some time and effort: writing lenghty commit messages and doing an interactive rebase isn't as straightforward as `git commit -am`. This pays out quickly, however. When you do `git bisect` to find a bug, you'd really appreciate descriptive commits instead of just "Update file" or "Some fixes". When you're reviewing a PR, you can limit the mental burden by looking at individual commits instead of diving straight into 40 files changed. When you're a newcomer and wonder why a function you wanted to use suddenly disappeared before you fully understood the code, you'll be happy to see the reason straight in `git log`. The same goes for when you `git blame` to understand why a certain line of code is written the way it is.
 
 If we were to summarize everything written above into just three bullet points, we'd go with:
-* **Always** describe the reason for your changes in commit messages like you're talking with the 5-year-old. 
-* Leave only meaningful changes in your PR history. Git history can't and shouldn't encompass everything, just like your school history textbook.
-* Choose **only one** person responsible for a feature. Avoid unnecessary interference.
+
+- **Always** describe the reason for your changes in commit messages like you're talking with the 5-year-old.
+- Leave only meaningful changes in your PR history. Git history can't and shouldn't encompass everything, just like your school history textbook.
+- Choose **only one** person responsible for a feature. Avoid unnecessary interference.

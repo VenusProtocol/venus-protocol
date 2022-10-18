@@ -8,7 +8,7 @@ const main = async () => {
 
   const vrtVaultProxyAddress = contractConfigData.Contracts.VRTVaultProxy;
   const acceptImplementationTxn = await vrtVaultInstance._become(vrtVaultProxyAddress);
-  
+
   console.log(`acceptImplementationTxn is: ${JSON.stringify(acceptImplementationTxn)}`);
 };
 

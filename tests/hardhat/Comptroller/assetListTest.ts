@@ -1,17 +1,23 @@
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
+import { loadFixture, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import chai from "chai";
 import { Signer } from "ethers";
 import { ethers } from "hardhat";
-import { setBalance, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
-import chai from "chai";
-const { expect } = chai;
-chai.use(smock.matchers);
 
-import {
-  Comptroller, PriceOracle, ComptrollerLens, Comptroller__factory, VBep20Immutable, ComptrollerLens__factory, IAccessControlManager
-} from "../../../typechain";
 import { convertToUnit } from "../../../helpers/utils";
+import {
+  Comptroller,
+  ComptrollerLens,
+  ComptrollerLens__factory,
+  Comptroller__factory,
+  IAccessControlManager,
+  PriceOracle,
+  VBep20Immutable,
+} from "../../../typechain";
 import { ComptrollerErrorReporter } from "../util/Errors";
 
+const { expect } = chai;
+chai.use(smock.matchers);
 
 const { Error } = ComptrollerErrorReporter;
 
@@ -26,15 +32,15 @@ describe("assetListTest", () => {
   let allTokens: FakeContract<VBep20Immutable>[];
 
   type AssetListFixture = {
-    comptroller: MockContract<Comptroller>,
-    comptrollerLens: MockContract<ComptrollerLens>,
-    oracle: FakeContract<PriceOracle>,
-    OMG: FakeContract<VBep20Immutable>,
-    ZRX: FakeContract<VBep20Immutable>,
-    BAT: FakeContract<VBep20Immutable>,
-    SKT: FakeContract<VBep20Immutable>,
-    allTokens: FakeContract<VBep20Immutable>[],
-    names: string[]
+    comptroller: MockContract<Comptroller>;
+    comptrollerLens: MockContract<ComptrollerLens>;
+    oracle: FakeContract<PriceOracle>;
+    OMG: FakeContract<VBep20Immutable>;
+    ZRX: FakeContract<VBep20Immutable>;
+    BAT: FakeContract<VBep20Immutable>;
+    SKT: FakeContract<VBep20Immutable>;
+    allTokens: FakeContract<VBep20Immutable>[];
+    names: string[];
   };
 
   async function assetListFixture(): Promise<AssetListFixture> {
@@ -50,13 +56,13 @@ describe("assetListTest", () => {
     await comptroller._setPriceOracle(oracle.address);
     const names = ["OMG", "ZRX", "BAT", "sketch"];
     const [OMG, ZRX, BAT, SKT] = await Promise.all(
-      names.map(async (name) => {
+      names.map(async name => {
         const vToken = await smock.fake<VBep20Immutable>("VBep20Immutable");
         if (name !== "sketch") {
           await comptroller._supportMarket(vToken.address);
         }
         return vToken;
-      })
+      }),
     );
     const allTokens = [OMG, ZRX, BAT, SKT];
     return { comptroller, comptrollerLens, oracle, OMG, ZRX, BAT, SKT, allTokens, names };
@@ -69,7 +75,7 @@ describe("assetListTest", () => {
       vToken.symbol.returns(names[i]);
       vToken.name.returns(names[i]);
       vToken.getAccountSnapshot.returns([0, 0, 0, 0]);
-    })
+    });
   }
 
   beforeEach(async () => {
@@ -90,7 +96,7 @@ describe("assetListTest", () => {
   async function enterAndCheckMarkets(
     enterTokens: FakeContract<VBep20Immutable>[],
     expectedTokens: FakeContract<VBep20Immutable>[],
-    expectedErrors: ComptrollerErrorReporter.Error[] | null = null
+    expectedErrors: ComptrollerErrorReporter.Error[] | null = null,
   ) {
     const reply = await comptroller.connect(customer).callStatic.enterMarkets(enterTokens.map(t => t.address));
     const receipt = await comptroller.connect(customer).enterMarkets(enterTokens.map(t => t.address));
@@ -108,18 +114,18 @@ describe("assetListTest", () => {
     await checkMarkets(expectedTokens);
 
     return receipt;
-  };
+  }
 
   async function enterAndExpectRejection(enterTokens: FakeContract<VBep20Immutable>[], expectedReason: string = "") {
-    await expect(
-      comptroller.connect(customer).enterMarkets(enterTokens.map(t => t.address))
-    ).to.be.revertedWith(expectedReason);
+    await expect(comptroller.connect(customer).enterMarkets(enterTokens.map(t => t.address))).to.be.revertedWith(
+      expectedReason,
+    );
   }
 
   async function exitAndCheckMarkets(
     exitToken: FakeContract<VBep20Immutable>,
     expectedTokens: FakeContract<VBep20Immutable>[],
-    expectedError: ComptrollerErrorReporter.Error = Error.NO_ERROR
+    expectedError: ComptrollerErrorReporter.Error = Error.NO_ERROR,
   ) {
     const reply = await comptroller.connect(customer).callStatic.exitMarket(exitToken.address);
     const receipt = await comptroller.connect(customer).exitMarket(exitToken.address);
@@ -128,14 +134,13 @@ describe("assetListTest", () => {
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
     await checkMarkets(expectedTokens);
     return receipt;
-  };
+  }
 
   describe("enterMarkets", () => {
     it("properly emits events", async () => {
       const tx1 = await enterAndCheckMarkets([OMG], [OMG]);
       const tx2 = await enterAndCheckMarkets([OMG], [OMG]);
-      expect(tx1).to.emit(comptroller, "MarketEntered")
-        .withArgs(OMG.address, customer);
+      expect(tx1).to.emit(comptroller, "MarketEntered").withArgs(OMG.address, customer);
       expect((await tx2.wait()).events).to.be.empty;
     });
 
@@ -157,11 +162,7 @@ describe("assetListTest", () => {
     });
 
     it("returns a list of codes mapping to user's ultimate membership in given addresses", async () => {
-      await enterAndCheckMarkets(
-        [OMG, ZRX, BAT],
-        [OMG, ZRX, BAT],
-        [Error.NO_ERROR, Error.NO_ERROR, Error.NO_ERROR]
-      );
+      await enterAndCheckMarkets([OMG, ZRX, BAT], [OMG, ZRX, BAT], [Error.NO_ERROR, Error.NO_ERROR, Error.NO_ERROR]);
       await enterAndExpectRejection([OMG, SKT], "market not listed");
     });
   });
@@ -236,7 +237,7 @@ describe("assetListTest", () => {
 
     it("reverts when called by not a vtoken", async () => {
       await expect(
-        comptroller.connect(customer).borrowAllowed(BAT.address, await customer.getAddress(), 1)
+        comptroller.connect(customer).borrowAllowed(BAT.address, await customer.getAddress(), 1),
       ).to.be.revertedWith("sender must be vToken");
 
       const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());

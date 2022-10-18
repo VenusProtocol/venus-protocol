@@ -1,7 +1,7 @@
 let rand = x => new bn(Math.floor(Math.random() * x));
 let range = count => [...Array(count).keys()];
 
-const bn = require('bignumber.js');
+const bn = require("bignumber.js");
 bn.config({ ROUNDING_MODE: bn.ROUND_HALF_DOWN });
 
 const RUN_COUNT = 20;
@@ -10,9 +10,7 @@ const PRECISION_DECIMALS = 15;
 
 class AssertionError extends Error {
   constructor(assertion, reason, event, index) {
-    let message = `Assertion Error: ${reason} when processing ${JSON.stringify(
-      event
-    )} at pos ${index}`;
+    let message = `Assertion Error: ${reason} when processing ${JSON.stringify(event)} at pos ${index}`;
 
     super(message);
     this.name = this.constructor.name;
@@ -25,7 +23,7 @@ expect.extend({
     let eventStr = events
       .filter(({ failed }) => !failed)
       .map(event => `${JSON.stringify(event)},`)
-      .join('\n');
+      .join("\n");
 
     return {
       pass: !!assertion(expected, actual),
@@ -33,14 +31,14 @@ expect.extend({
         Expected: ${JSON.stringify(expected)},
         Actual: ${JSON.stringify(actual)},
         Reason: ${reason}
-        State: \n${JSON.stringify(state, null, '\t')}
+        State: \n${JSON.stringify(state, null, "\t")}
         Events:\n${eventStr}
-      `
+      `,
     };
-  }
+  },
 });
 
-describe.skip('VenusWheelFuzzTest', () => {
+describe.skip("VenusWheelFuzzTest", () => {
   // This whole test is fake, but we're testing to see if our equations match reality.
 
   // First, we're going to build a simple simulator of the Venus protocol
@@ -53,10 +51,10 @@ describe.skip('VenusWheelFuzzTest', () => {
     return src || new bn(0);
   };
 
-  let isPositive = (src) => {
+  let isPositive = src => {
     assert(bn.isBigNumber(src), "isPositive got wrong type: expected bigNumber");
     return src.decimalPlaces(PRECISION_DECIMALS).isGreaterThan(0);
-  }
+  };
 
   let almostEqual = (expected, actual) => {
     return expected.decimalPlaces(PRECISION_DECIMALS).eq(actual.decimalPlaces(PRECISION_DECIMALS));
@@ -67,12 +65,12 @@ describe.skip('VenusWheelFuzzTest', () => {
       if (bn.isBigNumber(val)) {
         return {
           ...acc,
-          [key]: new bn(val)
+          [key]: new bn(val),
         };
       } else {
         return {
           ...acc,
-          [key]: deepCopy(val)
+          [key]: deepCopy(val),
         };
       }
     }, {});
@@ -108,21 +106,13 @@ describe.skip('VenusWheelFuzzTest', () => {
       venusAccruedWithIndex: {}, // with indices
 
       activeBorrowBlocks: new bn(0), // # blocks with an active borrow, for which we expect to see xvs distributed. just for fuzz testing.
-      activeSupplyBlocks: new bn(0)
+      activeSupplyBlocks: new bn(0),
     };
   };
 
-  let getExchangeRate = ({
-    totalCash,
-    totalSupply,
-    totalBorrows,
-    totalReserves
-  }) => {
+  let getExchangeRate = ({ totalCash, totalSupply, totalBorrows, totalReserves }) => {
     if (isPositive(totalSupply)) {
-      return totalCash
-        .plus(totalBorrows)
-        .minus(totalReserves)
-        .div(totalSupply);
+      return totalCash.plus(totalBorrows).minus(totalReserves).div(totalSupply);
     } else {
       return new bn(1);
     }
@@ -133,9 +123,7 @@ describe.skip('VenusWheelFuzzTest', () => {
     if (denom.isZero()) {
       return new bn(0);
     } else if (denom.lt(0)) {
-      throw new Error(
-        `Borrow Rate failure cash:${cash} borrows:${borrows} reserves:${reserves}`
-      );
+      throw new Error(`Borrow Rate failure cash:${cash} borrows:${borrows} reserves:${reserves}`);
     } else {
       let util = borrows.div(denom);
       return util.times(0.001);
@@ -148,12 +136,12 @@ describe.skip('VenusWheelFuzzTest', () => {
 
     state = Object.keys(state.venusSupplyIndexSnapshots).reduce(
       (acc, account) => supplierFlywheelByIndex(globals, state, account),
-      state
+      state,
     );
 
     state = Object.keys(state.venusBorrowIndexSnapshots).reduce(
       (acc, account) => borrowerFlywheelByIndex(globals, state, account),
-      state
+      state,
     );
 
     return state;
@@ -161,10 +149,7 @@ describe.skip('VenusWheelFuzzTest', () => {
 
   // manual flywheel loops through every account and updates xvs accrued mapping
   // cranked within accrue interest (borrowBalance not updated, totalBorrows should be)
-  let flywheelByCrank = (
-    state,
-    deltaBlocks
-  ) => {
+  let flywheelByCrank = (state, deltaBlocks) => {
     let {
       balances,
       venusBorrowSpeed,
@@ -172,19 +157,14 @@ describe.skip('VenusWheelFuzzTest', () => {
       totalSupply,
       totalBorrows,
       venusAccruedWithCrank,
-      borrowBalances
+      borrowBalances,
     } = state;
 
     // suppliers
     for (let [account, balance] of Object.entries(balances)) {
       if (isPositive(totalSupply)) {
-        venusAccruedWithCrank[account] = get(
-          state.venusAccruedWithCrank[account]
-        ).plus(
-          deltaBlocks
-            .times(venusSupplySpeed)
-            .times(balance)
-            .div(totalSupply)
+        venusAccruedWithCrank[account] = get(state.venusAccruedWithCrank[account]).plus(
+          deltaBlocks.times(venusSupplySpeed).times(balance).div(totalSupply),
         );
       }
     }
@@ -194,13 +174,8 @@ describe.skip('VenusWheelFuzzTest', () => {
       if (isPositive(totalBorrows)) {
         let truedUpBorrowBalance = getAccruedBorrowBalance(state, account);
 
-        venusAccruedWithCrank[account] = get(
-          state.venusAccruedWithCrank[account]
-        ).plus(
-          deltaBlocks
-            .times(venusBorrowSpeed)
-            .times(truedUpBorrowBalance)
-            .div(totalBorrows)
+        venusAccruedWithCrank[account] = get(state.venusAccruedWithCrank[account]).plus(
+          deltaBlocks.times(venusBorrowSpeed).times(truedUpBorrowBalance).div(totalBorrows),
         );
       }
     }
@@ -227,9 +202,7 @@ describe.skip('VenusWheelFuzzTest', () => {
     let deltaBlocks = globals.blockNumber.minus(venusBorrowIndexUpdatedBlock);
     if (isPositive(totalBorrows)) {
       let scaledTotalBorrows = totalBorrows.div(borrowIndex);
-      venusBorrowIndex = venusBorrowIndex.plus(
-        venusBorrowSpeed.times(deltaBlocks).div(scaledTotalBorrows)
-      );
+      venusBorrowIndex = venusBorrowIndex.plus(venusBorrowSpeed.times(deltaBlocks).div(scaledTotalBorrows));
     }
 
     let indexSnapshot = venusBorrowIndexSnapshots[account];
@@ -240,13 +213,9 @@ describe.skip('VenusWheelFuzzTest', () => {
       borrowBalances[account] !== undefined
     ) {
       // to simulate borrowBalanceStored
-      let borrowBalanceNew = borrowBalances[account]
-        .times(borrowIndex)
-        .div(state.borrowIndexSnapshots[account]);
+      let borrowBalanceNew = borrowBalances[account].times(borrowIndex).div(state.borrowIndexSnapshots[account]);
       venusAccruedWithIndex[account] = get(venusAccruedWithIndex[account]).plus(
-        borrowBalanceNew
-          .div(borrowIndex)
-          .times(venusBorrowIndex.minus(indexSnapshot))
+        borrowBalanceNew.div(borrowIndex).times(venusBorrowIndex.minus(indexSnapshot)),
       );
     }
 
@@ -256,8 +225,8 @@ describe.skip('VenusWheelFuzzTest', () => {
       venusBorrowIndex: venusBorrowIndex,
       venusBorrowIndexSnapshots: {
         ...state.venusBorrowIndexSnapshots,
-        [account]: venusBorrowIndex
-      }
+        [account]: venusBorrowIndex,
+      },
     };
   };
 
@@ -270,22 +239,20 @@ describe.skip('VenusWheelFuzzTest', () => {
       venusSupplyIndexSnapshots,
       venusAccruedWithIndex,
       totalSupply,
-      venusSupplyIndexUpdatedBlock
+      venusSupplyIndexUpdatedBlock,
     } = state;
 
     let deltaBlocks = globals.blockNumber.minus(venusSupplyIndexUpdatedBlock);
 
     if (isPositive(totalSupply)) {
-      venusSupplyIndex = venusSupplyIndex.plus(
-        venusSupplySpeed.times(deltaBlocks).div(totalSupply)
-      );
+      venusSupplyIndex = venusSupplyIndex.plus(venusSupplySpeed.times(deltaBlocks).div(totalSupply));
     }
 
     let indexSnapshot = venusSupplyIndexSnapshots[account];
     if (indexSnapshot !== undefined) {
       // if had prev snapshot,  accrue some xvs
       venusAccruedWithIndex[account] = get(venusAccruedWithIndex[account]).plus(
-        balances[account].times(venusSupplyIndex.minus(indexSnapshot))
+        balances[account].times(venusSupplyIndex.minus(indexSnapshot)),
       );
     }
 
@@ -295,19 +262,14 @@ describe.skip('VenusWheelFuzzTest', () => {
       venusSupplyIndex: venusSupplyIndex,
       venusSupplyIndexSnapshots: {
         ...state.venusSupplyIndexSnapshots,
-        [account]: venusSupplyIndex
+        [account]: venusSupplyIndex,
       },
-      venusAccruedWithIndex: venusAccruedWithIndex
+      venusAccruedWithIndex: venusAccruedWithIndex,
     };
   };
 
   let accrueActiveBlocks = (state, deltaBlocks) => {
-    let {
-      activeBorrowBlocks,
-      activeSupplyBlocks,
-      totalBorrows,
-      totalSupply
-    } = state;
+    let { activeBorrowBlocks, activeSupplyBlocks, totalBorrows, totalSupply } = state;
     if (isPositive(totalSupply)) {
       activeSupplyBlocks = activeSupplyBlocks.plus(deltaBlocks);
     }
@@ -319,34 +281,22 @@ describe.skip('VenusWheelFuzzTest', () => {
     return {
       ...state,
       activeSupplyBlocks: activeSupplyBlocks,
-      activeBorrowBlocks: activeBorrowBlocks
+      activeBorrowBlocks: activeBorrowBlocks,
     };
   };
 
   let getAccruedBorrowBalance = (state, account) => {
     let prevBorrowBalance = state.borrowBalances[account];
     let checkpointBorrowIndex = state.borrowIndexSnapshots[account];
-    if (
-      prevBorrowBalance !== undefined &&
-      checkpointBorrowIndex !== undefined
-    ) {
-      return prevBorrowBalance
-        .times(state.borrowIndex)
-        .div(checkpointBorrowIndex);
+    if (prevBorrowBalance !== undefined && checkpointBorrowIndex !== undefined) {
+      return prevBorrowBalance.times(state.borrowIndex).div(checkpointBorrowIndex);
     } else {
       return new bn(0);
     }
   };
 
   let accrueInterest = (globals, state) => {
-    let {
-      totalCash,
-      totalBorrows,
-      totalReserves,
-      accrualBlockNumber,
-      borrowIndex,
-      reserveFactor
-    } = state;
+    let { totalCash, totalBorrows, totalReserves, accrualBlockNumber, borrowIndex, reserveFactor } = state;
 
     let deltaBlocks = globals.blockNumber.minus(accrualBlockNumber);
     state = accrueActiveBlocks(state, deltaBlocks);
@@ -356,58 +306,51 @@ describe.skip('VenusWheelFuzzTest', () => {
     let borrowIndexNew = borrowIndex.times(simpleInterestFactor.plus(1));
     let interestAccumulated = totalBorrows.times(simpleInterestFactor);
     let totalBorrowsNew = totalBorrows.plus(interestAccumulated);
-    let totalReservesNew = totalReserves
-      .plus(interestAccumulated)
-      .times(reserveFactor);
+    let totalReservesNew = totalReserves.plus(interestAccumulated).times(reserveFactor);
 
-    state = flywheelByCrank(
-      state,
-      deltaBlocks,
-      borrowIndexNew,
-      state.borrowIndex
-    );
+    state = flywheelByCrank(state, deltaBlocks, borrowIndexNew, state.borrowIndex);
 
     return {
       ...state,
       accrualBlockNumber: globals.blockNumber,
       borrowIndex: borrowIndexNew,
       totalBorrows: totalBorrowsNew,
-      totalReserves: totalReservesNew
+      totalReserves: totalReservesNew,
     };
   };
 
   let mine = {
-    action: 'mine',
+    action: "mine",
     rate: 10,
     run: (globals, state) => {
       return state;
     },
     gen: () => {
       return {
-        mine: rand(100).plus(1)
+        mine: rand(100).plus(1),
       };
-    }
+    },
   };
 
   let gift = {
-    action: 'gift',
+    action: "gift",
     rate: 3,
     run: (globals, state, { amount }) => {
       amount = new bn(amount);
       return {
         ...state,
-        totalCash: state.totalCash.plus(amount)
+        totalCash: state.totalCash.plus(amount),
       };
     },
     gen: () => {
       return {
-        amount: rand(1000)
+        amount: rand(1000),
       };
-    }
+    },
   };
 
   let borrow = {
-    action: 'borrow',
+    action: "borrow",
     rate: 10,
     run: (globals, state, { account, amount }, { assert }) => {
       amount = new bn(amount);
@@ -415,19 +358,12 @@ describe.skip('VenusWheelFuzzTest', () => {
       state = borrowerFlywheelByIndex(globals, state, account);
 
       let newTotalCash = state.totalCash.minus(amount);
-      assert(
-        isPositive(newTotalCash.plus(state.totalReserves)),
-        'Attempted to borrow more than total cash'
-      );
+      assert(isPositive(newTotalCash.plus(state.totalReserves)), "Attempted to borrow more than total cash");
 
-      let newBorrowBalance = getAccruedBorrowBalance(state, account).plus(
-        amount
-      );
+      let newBorrowBalance = getAccruedBorrowBalance(state, account).plus(amount);
       assert(
-        get(state.balances[account])
-          .times(getExchangeRate(state))
-          .isGreaterThan(newBorrowBalance),
-        'Borrower undercollateralized'
+        get(state.balances[account]).times(getExchangeRate(state)).isGreaterThan(newBorrowBalance),
+        "Borrower undercollateralized",
       );
 
       return {
@@ -436,24 +372,24 @@ describe.skip('VenusWheelFuzzTest', () => {
         totalCash: newTotalCash,
         borrowBalances: {
           ...state.borrowBalances,
-          [account]: newBorrowBalance
+          [account]: newBorrowBalance,
         },
         borrowIndexSnapshots: {
           ...state.borrowIndexSnapshots,
-          [account]: state.borrowIndex
-        }
+          [account]: state.borrowIndex,
+        },
       };
     },
     gen: globals => {
       return {
         account: randAccount(globals),
-        amount: rand(1000)
+        amount: rand(1000),
       };
-    }
+    },
   };
 
   let repayBorrow = {
-    action: 'repayBorrow',
+    action: "repayBorrow",
     rate: 10,
     run: (globals, state, { account, amount }, { assert }) => {
       amount = new bn(amount);
@@ -461,7 +397,7 @@ describe.skip('VenusWheelFuzzTest', () => {
       state = borrowerFlywheelByIndex(globals, state, account);
 
       let accruedBorrowBalance = getAccruedBorrowBalance(state, account);
-      assert(isPositive(accruedBorrowBalance), 'No active borrow');
+      assert(isPositive(accruedBorrowBalance), "No active borrow");
 
       if (amount.isGreaterThan(accruedBorrowBalance)) {
         // repay full borrow
@@ -476,19 +412,19 @@ describe.skip('VenusWheelFuzzTest', () => {
 
       return {
         ...state,
-        totalCash: state.totalCash.plus(bn.min(amount, accruedBorrowBalance))
+        totalCash: state.totalCash.plus(bn.min(amount, accruedBorrowBalance)),
       };
     },
     gen: globals => {
       return {
         account: randAccount(globals),
-        amount: rand(1000)
+        amount: rand(1000),
       };
-    }
+    },
   };
 
   let mint = {
-    action: 'mint',
+    action: "mint",
     rate: 10,
     run: (globals, state, { account, amount }) => {
       amount = new bn(amount);
@@ -504,20 +440,20 @@ describe.skip('VenusWheelFuzzTest', () => {
         totalSupply: state.totalSupply.plus(tokens),
         balances: {
           ...state.balances,
-          [account]: balance.plus(tokens)
-        }
+          [account]: balance.plus(tokens),
+        },
       };
     },
     gen: globals => {
       return {
         account: randAccount(globals),
-        amount: rand(1000)
+        amount: rand(1000),
       };
-    }
+    },
   };
 
   let redeem = {
-    action: 'redeem',
+    action: "redeem",
     rate: 10,
     run: (globals, state, { account, tokens }, { assert }) => {
       tokens = new bn(tokens);
@@ -525,7 +461,7 @@ describe.skip('VenusWheelFuzzTest', () => {
       state = supplierFlywheelByIndex(globals, state, account);
 
       let balance = get(state.balances[account]);
-      assert(balance.isGreaterThan(tokens), 'Redeem fails for insufficient balance');
+      assert(balance.isGreaterThan(tokens), "Redeem fails for insufficient balance");
       let exchangeRate = getExchangeRate(state);
       let amount = tokens.times(exchangeRate);
 
@@ -535,16 +471,16 @@ describe.skip('VenusWheelFuzzTest', () => {
         totalSupply: state.totalSupply.minus(tokens),
         balances: {
           ...state.balances,
-          [account]: balance.minus(tokens)
-        }
+          [account]: balance.minus(tokens),
+        },
       };
     },
     gen: globals => {
       return {
         account: randAccount(globals),
-        tokens: rand(1000)
+        tokens: rand(1000),
       };
-    }
+    },
   };
 
   let actors = {
@@ -553,14 +489,14 @@ describe.skip('VenusWheelFuzzTest', () => {
     redeem,
     gift,
     borrow,
-    repayBorrow
+    repayBorrow,
     // test
   };
 
   let generateGlobals = () => {
     return {
       blockNumber: new bn(1000),
-      accounts: ['Adam Savage', 'Ben Solo', 'Jeffrey Lebowski']
+      accounts: ["Adam Savage", "Ben Solo", "Jeffrey Lebowski"],
     };
   };
 
@@ -570,16 +506,8 @@ describe.skip('VenusWheelFuzzTest', () => {
       .times(state.venusSupplySpeed)
       .plus(state.activeBorrowBlocks.times(state.venusBorrowSpeed));
 
-    let actual = Object.values(state.venusAccruedWithCrank).reduce(
-      (acc, val) => acc.plus(val),
-      new bn(0)
-    );
-    invariantFn(
-      almostEqual,
-      expected,
-      actual,
-      `crank method distributed xvs inaccurately`
-    );
+    let actual = Object.values(state.venusAccruedWithCrank).reduce((acc, val) => acc.plus(val), new bn(0));
+    invariantFn(almostEqual, expected, actual, `crank method distributed xvs inaccurately`);
   };
 
   // assert xvs distributed by index is the same as amount distributed by crank
@@ -589,15 +517,12 @@ describe.skip('VenusWheelFuzzTest', () => {
     invariantFn(
       (expected, actual) => {
         return Object.keys(expected).reduce((succeeded, account) => {
-          return (
-            almostEqual(get(expected[account]), get(actual[account])) &&
-            succeeded
-          );
+          return almostEqual(get(expected[account]), get(actual[account])) && succeeded;
         }, true);
       },
       expected,
       actual,
-      `crank method does not match index method`
+      `crank method does not match index method`,
     );
   };
 
@@ -649,7 +574,7 @@ describe.skip('VenusWheelFuzzTest', () => {
 
     return {
       ...actor.gen(globals),
-      action: actor.action
+      action: actor.action,
     };
   };
 

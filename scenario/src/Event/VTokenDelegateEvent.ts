@@ -1,18 +1,12 @@
-import { Event } from '../Event';
-import { addAction, World } from '../World';
-import { VBep20Delegate } from '../Contract/VBep20Delegate'
-import {
-  getEventV,
-  getStringV,
-} from '../CoreValue';
-import {
-  EventV,
-  StringV
-} from '../Value';
-import { Arg, Command, View, processCommandEvent } from '../Command';
-import { getVTokenDelegateData } from '../ContractLookup';
-import { buildVTokenDelegate } from '../Builder/VTokenDelegateBuilder';
-import { verify } from '../Verify';
+import { buildVTokenDelegate } from "../Builder/VTokenDelegateBuilder";
+import { Arg, Command, View, processCommandEvent } from "../Command";
+import { VBep20Delegate } from "../Contract/VBep20Delegate";
+import { getVTokenDelegateData } from "../ContractLookup";
+import { getEventV, getStringV } from "../CoreValue";
+import { Event } from "../Event";
+import { EventV, StringV } from "../Value";
+import { verify } from "../Verify";
+import { World, addAction } from "../World";
 
 async function genVTokenDelegate(world: World, from: string, event: Event): Promise<World> {
   const { world: nextWorld, vTokenDelegate, delegateData } = await buildVTokenDelegate(world, from, event);
@@ -21,13 +15,19 @@ async function genVTokenDelegate(world: World, from: string, event: Event): Prom
   world = addAction(
     world,
     `Added vToken ${delegateData.name} (${delegateData.contract}) at address ${vTokenDelegate._address}`,
-    delegateData.invokation
+    delegateData.invokation,
   );
 
   return world;
 }
 
-async function verifyVTokenDelegate(world: World, vTokenDelegate: VBep20Delegate, name: string, contract: string, apiKey: string): Promise<World> {
+async function verifyVTokenDelegate(
+  world: World,
+  vTokenDelegate: VBep20Delegate,
+  name: string,
+  contract: string,
+  apiKey: string,
+): Promise<World> {
   if (world.isLocalNetwork()) {
     world.printer.printLine(`Politely declining to verify on local network: ${world.network}.`);
   } else {
@@ -39,7 +39,8 @@ async function verifyVTokenDelegate(world: World, vTokenDelegate: VBep20Delegate
 
 export function vTokenDelegateCommands() {
   return [
-    new Command<{ vTokenDelegateParams: EventV }>(`
+    new Command<{ vTokenDelegateParams: EventV }>(
+      `
         #### Deploy
 
         * "VTokenDelegate Deploy ...vTokenDelegateParams" - Generates a new VTokenDelegate
@@ -47,25 +48,23 @@ export function vTokenDelegateCommands() {
       `,
       "Deploy",
       [new Arg("vTokenDelegateParams", getEventV, { variadic: true })],
-      (world, from, { vTokenDelegateParams }) => genVTokenDelegate(world, from, vTokenDelegateParams.val)
+      (world, from, { vTokenDelegateParams }) => genVTokenDelegate(world, from, vTokenDelegateParams.val),
     ),
-    new View<{ vTokenDelegateArg: StringV, apiKey: StringV }>(`
+    new View<{ vTokenDelegateArg: StringV; apiKey: StringV }>(
+      `
         #### Verify
 
         * "VTokenDelegate <vTokenDelegate> Verify apiKey:<String>" - Verifies VTokenDelegate in BscScan
           * E.g. "VTokenDelegate vDaiDelegate Verify "myApiKey"
       `,
       "Verify",
-      [
-        new Arg("vTokenDelegateArg", getStringV),
-        new Arg("apiKey", getStringV)
-      ],
+      [new Arg("vTokenDelegateArg", getStringV), new Arg("apiKey", getStringV)],
       async (world, { vTokenDelegateArg, apiKey }) => {
         const [vToken, name, data] = await getVTokenDelegateData(world, vTokenDelegateArg.val);
 
-        return await verifyVTokenDelegate(world, vToken, name, data.get('contract')!, apiKey.val);
+        return await verifyVTokenDelegate(world, vToken, name, data.get("contract")!, apiKey.val);
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
   ];
 }

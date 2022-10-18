@@ -1,18 +1,18 @@
-import { Event } from './Event';
+import { Event } from "./Event";
 
 interface Arg {
-  arg: any
-  def: any
-  splat: any
+  arg: any;
+  def: any;
+  splat: any;
 }
 
 interface Macro {
-  args: Arg[]
-  steps: Event
+  args: Arg[];
+  steps: Event;
 }
 
 type ArgMap = { [arg: string]: Event };
-type NamedArg = { argName: string, argValue: Event };
+type NamedArg = { argName: string; argValue: Event };
 type ArgValue = Event | NamedArg;
 
 export type Macros = { [eventName: string]: Macro };
@@ -37,8 +37,8 @@ function getArgValues(eventArgs: ArgValue[], macroArgs: Arg[]): ArgMap {
   let usedNamedArg: boolean = false;
   let usedSplat: boolean = false;
 
-  eventArgs.forEach((eventArg) => {
-    if (Object.hasOwnProperty.call(eventArg, 'argName')) {
+  eventArgs.forEach(eventArg => {
+    if (Object.hasOwnProperty.call(eventArg, "argName")) {
       const { argName, argValue } = <NamedArg>eventArg;
 
       eventArgNameMap[argName] = argValue;
@@ -81,7 +81,7 @@ export function expandMacro(macro: Macro, event: Event): Event[] {
   const argValues = getArgValues(<ArgValue[]>event, macro.args);
 
   function expandStep(step) {
-    return step.map((token) => {
+    return step.map(token => {
       if (argValues[token] !== undefined) {
         return argValues[token];
       } else {
@@ -92,7 +92,7 @@ export function expandMacro(macro: Macro, event: Event): Event[] {
         }
       }
     });
-  };
+  }
 
   return macro.steps.map(expandStep);
 }

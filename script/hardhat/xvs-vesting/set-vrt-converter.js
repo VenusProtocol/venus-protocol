@@ -7,15 +7,14 @@ const network = process.env.NETWORK;
 const contractConfigData = require(`../../../networks/${network}.json`);
 
 const main = async () => {
+  const xvsVestingProxyAddress = contractConfigData.Contracts.XVSVestingProxy;
 
-    const xvsVestingProxyAddress = contractConfigData.Contracts.XVSVestingProxy;
+  const xvsVestingProxy = await ethers.getContractAt("XVSVesting", xvsVestingProxyAddress);
 
-    const xvsVestingProxy = await ethers.getContractAt("XVSVesting", xvsVestingProxyAddress);
+  const vrtConverterProxyAddress = contractConfigData.Contracts.VRTConverterProxy;
+  const setVRTConverterTxn = await xvsVestingProxy.setVRTConverter(vrtConverterProxyAddress);
 
-    const vrtConverterProxyAddress = contractConfigData.Contracts.VRTConverterProxy;
-    const setVRTConverterTxn = await xvsVestingProxy.setVRTConverter(vrtConverterProxyAddress);
-
-    console.log(`completed setVRTConverter: ${vrtConverterProxyAddress} with txn: ${JSON.stringify(setVRTConverterTxn)}`);
+  console.log(`completed setVRTConverter: ${vrtConverterProxyAddress} with txn: ${JSON.stringify(setVRTConverterTxn)}`);
 };
 
 module.exports = main;

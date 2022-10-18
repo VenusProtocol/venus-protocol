@@ -1,10 +1,11 @@
-import { ErrorReporter, NoErrorReporter } from './ErrorReporter';
-import { mustArray } from './Utils';
-import { World } from './World';
-import { encodedNumber } from './Encoding';
-import { TransactionReceipt } from 'web3-eth';
+import { TransactionReceipt } from "web3-eth";
 
-const errorRegex = /^(.*) \((\d+)\)$/
+import { encodedNumber } from "./Encoding";
+import { ErrorReporter, NoErrorReporter } from "./ErrorReporter";
+import { mustArray } from "./Utils";
+import { World } from "./World";
+
+const errorRegex = /^(.*) \((\d+)\)$/;
 
 function getErrorCode(revertMessage: string): [string, number] | null {
   const res = errorRegex.exec(revertMessage);
@@ -17,13 +18,13 @@ function getErrorCode(revertMessage: string): [string, number] | null {
 }
 
 export interface InvokationOpts {
-  from?: string,
-  gas?: number,
-  gasPrice?: number
+  from?: string;
+  gas?: number;
+  gasPrice?: number;
 }
 
 export class InvokationError extends Error {
-  err: Error
+  err: Error;
   // function : string
   // arguments : {[]}
 
@@ -38,9 +39,9 @@ export class InvokationError extends Error {
 }
 
 export class InvokationRevertFailure extends InvokationError {
-  errCode: number
-  error: string | null
-  errMessage: string
+  errCode: number;
+  error: string | null;
+  errMessage: string;
 
   constructor(err: Error, errMessage: string, errCode: number, error: string | null) {
     super(err);
@@ -56,30 +57,30 @@ export class InvokationRevertFailure extends InvokationError {
 }
 
 interface Argument {
-  name: string
-  type: string
+  name: string;
+  type: string;
 }
 
 interface Method {
-  name: string
-  inputs: Argument[]
+  name: string;
+  inputs: Argument[];
 }
 
 export interface Callable<T> {
-  estimateGas: (InvokationOpts?) => Promise<number>
-  call: (InvokationOpts?) => Promise<T>
-  _method: Method
-  arguments: any[]
+  estimateGas: (InvokationOpts?) => Promise<number>;
+  call: (InvokationOpts?) => Promise<T>;
+  _method: Method;
+  arguments: any[];
 }
 
 export interface Sendable<T> extends Callable<T> {
-  send: (InvokationOpts) => Promise<TransactionReceipt>
+  send: (InvokationOpts) => Promise<TransactionReceipt>;
 }
 
 export class Failure {
-  error: string
-  info: string
-  detail: string
+  error: string;
+  info: string;
+  detail: string;
 
   constructor(error: string, info: string, detail: string) {
     this.error = error;
@@ -92,24 +93,26 @@ export class Failure {
   }
 
   equals(other: Failure): boolean {
-    return (
-      this.error === other.error &&
-      this.info === other.info &&
-      this.detail === other.detail
-    );
+    return this.error === other.error && this.info === other.info && this.detail === other.detail;
   }
 }
 
 export class Invokation<T> {
-  value: T | null
-  receipt: TransactionReceipt | null
-  error: Error | null
-  failures: Failure[]
-  method: string | null
-  args: { arg: string, val: any }[]
-  errorReporter: ErrorReporter
+  value: T | null;
+  receipt: TransactionReceipt | null;
+  error: Error | null;
+  failures: Failure[];
+  method: string | null;
+  args: { arg: string; val: any }[];
+  errorReporter: ErrorReporter;
 
-  constructor(value: T | null, receipt: TransactionReceipt | null, error: Error | null, fn: Callable<T> | null, errorReporter: ErrorReporter=NoErrorReporter) {
+  constructor(
+    value: T | null,
+    receipt: TransactionReceipt | null,
+    error: Error | null,
+    fn: Callable<T> | null,
+    errorReporter: ErrorReporter = NoErrorReporter,
+  ) {
     this.value = value;
     this.receipt = receipt;
     this.error = error;
@@ -126,13 +129,13 @@ export class Invokation<T> {
     if (receipt !== null && receipt.events && receipt.events["Failure"]) {
       const failures = mustArray(receipt.events["Failure"]);
 
-      this.failures = failures.map((failure) => {
-        const { 'error': errorVal, 'info': infoVal, 'detail': detailVal } = failure.returnValues;
+      this.failures = failures.map(failure => {
+        const { error: errorVal, info: infoVal, detail: detailVal } = failure.returnValues;
 
         return new Failure(
           errorReporter.getError(errorVal) || `unknown error=${errorVal}`,
           errorReporter.getInfo(infoVal) || `unknown info=${infoVal}`,
-          errorReporter.getDetail(errorVal, detailVal)
+          errorReporter.getDetail(errorVal, detailVal),
         );
       });
     } else {
@@ -141,14 +144,12 @@ export class Invokation<T> {
   }
 
   success(): boolean {
-    return (
-      this.error === null && this.failures.length === 0
-    );
+    return this.error === null && this.failures.length === 0;
   }
 
   invokation(): string {
     if (this.method) {
-      const argStr = this.args.map(({ arg, val }) => `${arg}=${val.toString()}`).join(',');
+      const argStr = this.args.map(({ arg, val }) => `${arg}=${val.toString()}`).join(",");
       return `"${this.method}(${argStr})"`;
     } else {
       return `unknown method`;
@@ -156,21 +157,28 @@ export class Invokation<T> {
   }
 
   toString(): string {
-    return `Invokation<${this.invokation()}, tx=${this.receipt ? this.receipt.transactionHash : ''}, value=${this.value ? (<any>this.value).toString() : ''}, error=${this.error}, failures=${this.failures.toString()}>`;
+    return `Invokation<${this.invokation()}, tx=${this.receipt ? this.receipt.transactionHash : ""}, value=${
+      this.value ? (<any>this.value).toString() : ""
+    }, error=${this.error}, failures=${this.failures.toString()}>`;
   }
 }
 
-export async function fallback(world: World, from: string, to: string, value: encodedNumber): Promise<Invokation<string>> {
+export async function fallback(
+  world: World,
+  from: string,
+  to: string,
+  value: encodedNumber,
+): Promise<Invokation<string>> {
   const trxObj = {
     from: from,
     to: to,
-    value: value.toString()
+    value: value.toString(),
   };
 
   const estimateGas = async (opts: InvokationOpts) => {
     const trxObjMerged = {
       ...trxObj,
-      ...opts
+      ...opts,
     };
 
     return <number>await world.web3.eth.estimateGas(trxObjMerged);
@@ -179,7 +187,7 @@ export async function fallback(world: World, from: string, to: string, value: en
   const call = async (opts: InvokationOpts) => {
     const trxObjMerged = {
       ...trxObj,
-      ...opts
+      ...opts,
     };
 
     return <string>await world.web3.eth.call(trxObjMerged);
@@ -188,14 +196,14 @@ export async function fallback(world: World, from: string, to: string, value: en
   const send = async (opts: InvokationOpts) => {
     const trxObjMerged = {
       ...trxObj,
-      ...opts
+      ...opts,
     };
 
     const receipt = await world.web3.eth.sendTransaction(trxObjMerged);
     receipt.events = {};
 
     return receipt;
-  }
+  };
 
   const fn: Sendable<string> = {
     estimateGas: estimateGas,
@@ -203,41 +211,46 @@ export async function fallback(world: World, from: string, to: string, value: en
     send: send,
     _method: {
       name: "fallback",
-      inputs: []
+      inputs: [],
     },
-    arguments: []
-  }
+    arguments: [],
+  };
 
   return invoke<string>(world, fn, from, NoErrorReporter);
 }
 
-export async function invoke<T>(world: World, fn: Sendable<T>, from: string, errorReporter: ErrorReporter = NoErrorReporter): Promise<Invokation<T>> {
+export async function invoke<T>(
+  world: World,
+  fn: Sendable<T>,
+  from: string,
+  errorReporter: ErrorReporter = NoErrorReporter,
+): Promise<Invokation<T>> {
   let value: T | null = null;
   let result: TransactionReceipt | null = null;
-  const worldInvokationOpts = world.getInvokationOpts({from: from});
+  const worldInvokationOpts = world.getInvokationOpts({ from: from });
   const trxInvokationOpts = world.trxInvokationOpts.toJS();
 
   let invokationOpts = {
     ...worldInvokationOpts,
-    ...trxInvokationOpts
+    ...trxInvokationOpts,
   };
 
   if (world.totalGas) {
     invokationOpts = {
       ...invokationOpts,
-      gas: world.totalGas
-    }
+      gas: world.totalGas,
+    };
   } else {
     try {
       const gas = await fn.estimateGas({ ...invokationOpts });
       invokationOpts = {
         ...invokationOpts,
-        gas: gas * 2
+        gas: gas * 2,
       };
     } catch (e) {
       invokationOpts = {
         ...invokationOpts,
-        gas: 2000000
+        gas: 2000000,
       };
     }
   }
@@ -252,19 +265,19 @@ export async function invoke<T>(world: World, fn: Sendable<T>, from: string, err
     if (world.dryRun) {
       world.printer.printLine(`Dry run: invoking \`${fn._method.name}\``);
       // XXXS
-      result = <TransactionReceipt><unknown>{
+      result = <TransactionReceipt>(<unknown>{
         blockNumber: -1,
-        transactionHash: '0x',
+        transactionHash: "0x",
         gasUsed: 0,
-        events: {}
-      };
+        events: {},
+      });
     } else {
       result = await fn.send({ ...invokationOpts });
       world.gasCounter.value += result.gasUsed;
     }
 
     if (world.settings.printTxLogs) {
-      const eventLogs = Object.values(result && result.events || {}).map((event: any) => {
+      const eventLogs = Object.values((result && result.events) || {}).map((event: any) => {
         const eventLog = event.raw;
         if (eventLog) {
           const eventDecoder = world.eventDecoder[eventLog.topics[0]];
@@ -275,7 +288,7 @@ export async function invoke<T>(world: World, fn: Sendable<T>, from: string, err
           }
         }
       });
-      console.log('EMITTED EVENTS:   ', eventLogs);
+      console.log("EMITTED EVENTS:   ", eventLogs);
     }
 
     return new Invokation<T>(value, result, null, fn, errorReporter);
@@ -286,7 +299,13 @@ export async function invoke<T>(world: World, fn: Sendable<T>, from: string, err
       if (decoded) {
         const [errMessage, errCode] = decoded;
 
-        return new Invokation<T>(value, result, new InvokationRevertFailure(err, errMessage, errCode, errorReporter.getError(errCode)), fn, errorReporter);
+        return new Invokation<T>(
+          value,
+          result,
+          new InvokationRevertFailure(err, errMessage, errCode, errorReporter.getError(errCode)),
+          fn,
+          errorReporter,
+        );
       }
     }
 

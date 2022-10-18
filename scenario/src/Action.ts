@@ -1,4 +1,4 @@
-import {Invokation} from './Invokation';
+import { Invokation } from "./Invokation";
 
 export class Action<T> {
   log: string;

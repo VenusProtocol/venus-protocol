@@ -1,6 +1,6 @@
-import { Contract } from '../Contract';
-import { encodedNumber } from '../Encoding';
-import { Callable, Sendable } from '../Invokation';
+import { Contract } from "../Contract";
+import { encodedNumber } from "../Encoding";
+import { Callable, Sendable } from "../Invokation";
 
 export interface VAIMethods {
   name(): Callable<string>;
@@ -10,7 +10,7 @@ export interface VAIMethods {
   balanceOf(address: string): Callable<string>;
   allowance(owner: string, spender: string): Callable<string>;
   approve(address: string, amount: encodedNumber): Sendable<number>;
-  allocateTo(address: string, amount: encodedNumber): Sendable<number>
+  allocateTo(address: string, amount: encodedNumber): Sendable<number>;
   transfer(address: string, amount: encodedNumber): Sendable<boolean>;
   transferFrom(owner: string, spender: string, amount: encodedNumber): Sendable<boolean>;
   rely(address: string): Sendable<void>;

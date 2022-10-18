@@ -1,22 +1,17 @@
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import chai from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers, network } from "hardhat";
-import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
-import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
-import chai from "chai";
+
+import { convertToUnit } from "../../../../helpers/utils";
+import { GovernorBravoDelegate, GovernorBravoDelegate__factory, XVS, XVSStore, XVSVault } from "../../../../typechain";
+import { ProposalType } from "../../util/Proposals";
+
 const { expect } = chai;
 chai.use(smock.matchers);
 
 const { encodeParameters } = require("../../../Utils/BSC");
-
-import {
-  GovernorBravoDelegate,
-  GovernorBravoDelegate__factory,
-  XVSVault,
-  XVSStore,
-  XVS,
-} from "../../../../typechain";
-import { ProposalType } from "../../util/Proposals";
-import { convertToUnit } from "../../../../helpers/utils";
 
 let root: Signer;
 let customer: Signer;
@@ -54,8 +49,7 @@ const proposalConfigs = {
 };
 
 async function governorBravoFixture(): Promise<GovernorBravoDelegateFixture> {
-  const GovernorBravoDelegateFactory =
-    await smock.mock<GovernorBravoDelegate__factory>("GovernorBravoDelegate");
+  const GovernorBravoDelegateFactory = await smock.mock<GovernorBravoDelegate__factory>("GovernorBravoDelegate");
   const governorBravoDelegate = await GovernorBravoDelegateFactory.deploy();
   const xvsVault = await smock.fake<XVSVault>("XVSVault");
   const xvsStore = await smock.fake<XVSStore>("XVSStore");
@@ -85,11 +79,9 @@ describe("Governor Bravo Cast Vote Test", () => {
           ["getBalanceOf(address)"],
           [encodeParameters(["address"], [customerAddress])],
           "do nothing",
-          ProposalType.CRITICAL
-        )
-      ).to.be.revertedWith(
-        "GovernorBravo::propose: proposer votes below proposal threshold"
-      );
+          ProposalType.CRITICAL,
+        ),
+      ).to.be.revertedWith("GovernorBravo::propose: proposer votes below proposal threshold");
     });
     describe("after we deposit xvs to the vault", () => {
       let proposalId: BigNumber;
@@ -98,28 +90,21 @@ describe("Governor Bravo Cast Vote Test", () => {
         const rootAddress = await root.getAddress();
         xvsToken.balanceOf.whenCalledWith(rootAddress).returns(400001);
         xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
-        await governorBravoDelegate.setVariable(
-          "proposalConfigs",
-          proposalConfigs
-        );
+        await governorBravoDelegate.setVariable("proposalConfigs", proposalConfigs);
         await governorBravoDelegate.propose(
           [customerAddress],
           ["0"],
           ["getBalanceOf(address)"],
           [encodeParameters(["address"], [customerAddress])],
           "do nothing",
-          ProposalType.CRITICAL
+          ProposalType.CRITICAL,
         );
-        proposalId = await governorBravoDelegate.latestProposalIds(
-          await root.getAddress()
-        );
+        proposalId = await governorBravoDelegate.latestProposalIds(await root.getAddress());
       });
 
       it("There does not exist a proposal with matching proposal id where the current block number is between the proposal's start block (exclusive) and end block (inclusive)", async () => {
-        await expect(
-          governorBravoDelegate.castVote(proposalId, 1)
-        ).to.be.revertedWith(
-          "GovernorBravo::castVoteInternal: voting is closed"
+        await expect(governorBravoDelegate.castVote(proposalId, 1)).to.be.revertedWith(
+          "GovernorBravo::castVoteInternal: voting is closed",
         );
       });
 
@@ -127,34 +112,20 @@ describe("Governor Bravo Cast Vote Test", () => {
         await mine();
         await mine();
 
-        await governorBravoDelegate
-          .connect(accounts[4])
-          .castVote(proposalId, 1);
-        await governorBravoDelegate
-          .connect(accounts[3])
-          .castVoteWithReason(proposalId, 1, "");
-        await expect(
-          governorBravoDelegate.connect(accounts[4]).castVote(proposalId, 1)
-        ).to.be.revertedWith(
-          "GovernorBravo::castVoteInternal: voter already voted"
+        await governorBravoDelegate.connect(accounts[4]).castVote(proposalId, 1);
+        await governorBravoDelegate.connect(accounts[3]).castVoteWithReason(proposalId, 1, "");
+        await expect(governorBravoDelegate.connect(accounts[4]).castVote(proposalId, 1)).to.be.revertedWith(
+          "GovernorBravo::castVoteInternal: voter already voted",
         );
       });
       describe("Otherwise", () => {
         it("we add the sender to the proposal's voters set", async () => {
-          let receipt = await governorBravoDelegate.getReceipt(
-            proposalId,
-            await accounts[2].getAddress()
-          );
+          let receipt = await governorBravoDelegate.getReceipt(proposalId, await accounts[2].getAddress());
           expect(receipt.hasVoted).to.be.false;
           //Mine a block to make the proposal in Active State
           await mine();
-          await governorBravoDelegate
-            .connect(accounts[2])
-            .castVote(proposalId, 1);
-          receipt = await governorBravoDelegate.getReceipt(
-            proposalId,
-            await accounts[2].getAddress()
-          );
+          await governorBravoDelegate.connect(accounts[2]).castVote(proposalId, 1);
+          receipt = await governorBravoDelegate.getReceipt(proposalId, await accounts[2].getAddress());
           expect(receipt.hasVoted).to.be.true;
         });
       });
@@ -174,12 +145,10 @@ describe("Governor Bravo Cast Vote Test", () => {
               ["getBalanceOf(address)"],
               [encodeParameters(["address"], [actorAddress])],
               "do nothing",
-              ProposalType.NORMAL
+              ProposalType.NORMAL,
             );
 
-          proposalId = await governorBravoDelegate.latestProposalIds(
-            actorAddress
-          );
+          proposalId = await governorBravoDelegate.latestProposalIds(actorAddress);
 
           let proposal = await governorBravoDelegate.proposals(proposalId);
           const beforeFors = proposal.forVotes;
@@ -188,9 +157,7 @@ describe("Governor Bravo Cast Vote Test", () => {
           proposal = await governorBravoDelegate.proposals(proposalId);
           const afterFors = proposal.forVotes;
 
-          expect(beforeFors.add(convertToUnit("300000", 18))).to.equal(
-            afterFors
-          );
+          expect(beforeFors.add(convertToUnit("300000", 18))).to.equal(afterFors);
         });
 
         it("or AgainstVotes corresponding to the caller's support flag.", async () => {
@@ -205,12 +172,10 @@ describe("Governor Bravo Cast Vote Test", () => {
               ["getBalanceOf(address)"],
               [encodeParameters(["address"], [actorAddress])],
               "do nothing",
-              ProposalType.NORMAL
+              ProposalType.NORMAL,
             );
 
-          proposalId = await governorBravoDelegate.latestProposalIds(
-            actorAddress
-          );
+          proposalId = await governorBravoDelegate.latestProposalIds(actorAddress);
 
           let proposal = await governorBravoDelegate.proposals(proposalId);
           const beforeAgainsts = proposal.againstVotes;
@@ -219,9 +184,7 @@ describe("Governor Bravo Cast Vote Test", () => {
           proposal = await governorBravoDelegate.proposals(proposalId);
           const afterAgainsts = proposal.againstVotes;
 
-          expect(beforeAgainsts.add(convertToUnit("300000", 18))).to.equal(
-            afterAgainsts
-          );
+          expect(beforeAgainsts.add(convertToUnit("300000", 18))).to.equal(afterAgainsts);
         });
       });
       describe("castVoteBySig", () => {
@@ -232,11 +195,9 @@ describe("Governor Bravo Cast Vote Test", () => {
               0,
               0,
               ethers.utils.formatBytes32String("r"),
-              ethers.utils.formatBytes32String("s")
-            )
-          ).to.be.revertedWith(
-            "GovernorBravo::castVoteBySig: invalid signature"
-          );
+              ethers.utils.formatBytes32String("s"),
+            ),
+          ).to.be.revertedWith("GovernorBravo::castVoteBySig: invalid signature");
         });
 
         it("casts vote on behalf of the signatory", async () => {
@@ -250,7 +211,7 @@ describe("Governor Bravo Cast Vote Test", () => {
               ["getBalanceOf(address)"],
               [encodeParameters(["address"], [actorAddress])],
               "do nothing",
-              ProposalType.NORMAL
+              ProposalType.NORMAL,
             );
 
           let proposal = await governorBravoDelegate.proposals(proposalId);
@@ -278,29 +239,18 @@ describe("Governor Bravo Cast Vote Test", () => {
             },
           };
 
-          const signatureLike = await network.provider.send(
-            "eth_signTypedData_v4",
-            [actorAddress, data]
-          );
+          const signatureLike = await network.provider.send("eth_signTypedData_v4", [actorAddress, data]);
 
           const signature = await ethers.utils.splitSignature(signatureLike);
 
-         const tx = await governorBravoDelegate.castVoteBySig(
-            proposalId,
-            1,
-            signature.v,
-            signature.r,
-            signature.s
-          );
+          const tx = await governorBravoDelegate.castVoteBySig(proposalId, 1, signature.v, signature.r, signature.s);
 
           const receipt = await tx.wait();
           expect(receipt.gasUsed.toNumber() < 80000);
 
           proposal = await governorBravoDelegate.proposals(proposalId);
           const afterFors = proposal.forVotes;
-          expect(beforeFors.add(convertToUnit("300000", 18))).to.equal(
-            afterFors
-          );
+          expect(beforeFors.add(convertToUnit("300000", 18))).to.equal(afterFors);
         });
       });
     });

@@ -2,12 +2,12 @@
 
 ## Contracts for Deployment
 
-| Contract | Description | Constructor Arguments | 
-|---------|-----------|-----------|
-| XVSVault | XVSVault is the VaultImplementation of XVS token | - | 
-| XVSVaultProxy | XVSVaultProxy is the Proxy for XVS-Vault | - | 
+| Contract      | Description                                      | Constructor Arguments |
+| ------------- | ------------------------------------------------ | --------------------- |
+| XVSVault      | XVSVault is the VaultImplementation of XVS token | -                     |
+| XVSVaultProxy | XVSVaultProxy is the Proxy for XVS-Vault         | -                     |
 
----------
+---
 
 ## Deployment Steps
 
@@ -27,8 +27,7 @@ npx saddle script script/deploy/xvs-vault/02-deploy-xvs-vault-proxy.js -n testne
 
 4. copy contract address of `XVSVaultProxy` to property in JSON - [Contracts/XVSVaultProxy](../../../networks/testnet.json#L28)
 
-
----------
+---
 
 ## post Deployment Steps
 
@@ -37,7 +36,6 @@ npx saddle script script/deploy/xvs-vault/02-deploy-xvs-vault-proxy.js -n testne
 ```sh
 npx saddle script script/deploy/xvs-vault/03-set-impl-for-xvs-vault-proxy.js -n testnet
 ```
-
 
 2. `XVSVault` to accept as implementor (implementation) for `XVSVaultProxy`
 
@@ -50,4 +48,5 @@ npx saddle script script/deploy/xvs-vault/04-become-impl-for-xvs-vault-proxy.js 
 ```sh
 npx saddle script script/deploy/xvs-vault/05-query-impl-for-xvs-vault-proxy.js -n testnet
 ```
----------
+
+---

@@ -14,7 +14,9 @@
     "build": "rm -rf dist && tsc --declaration && hardhat compile && cp -r ./{package.json,yarn.lock,artifacts,contracts,networks} dist/",
     "publish:dist": "yarn build && cd dist && yarn publish --access public",
     "lint": "yarn lint:ts && yarn prettier:check",
-    "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts ."
+    "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts .",
+    "prettier": "prettier --config ./.prettierrc.yaml --write \"**/*.{js,json,md,ts,yaml,yml}\"",
+    "prettier:check": "prettier --check --config ./.prettierrc.yaml \"**/*.{js,json,md,ts,yaml,yml}\""
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
@@ -37,6 +39,7 @@
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
+    "@trivago/prettier-plugin-sort-imports": "^3.3.1",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
     "@types/chai": "^4.3.3",

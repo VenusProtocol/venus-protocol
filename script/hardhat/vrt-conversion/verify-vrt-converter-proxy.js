@@ -6,18 +6,23 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 const hre = require("hardhat");
 
 const main = async () => {
+  const vrtConverterAddress = contractConfigData.Contracts.VRTConverter;
+  const vrtAddress = contractConfigData.Contracts.VRT;
+  const xvsAddress = contractConfigData.Contracts.XVS;
+  const conversionRatio = 83333333333000;
+  const conversionStartTime = 1647323525;
+  const conversionPeriod = 365 * 24 * 60 * 60;
 
-    const vrtConverterAddress = contractConfigData.Contracts.VRTConverter;
-    const vrtAddress = contractConfigData.Contracts.VRT;
-    const xvsAddress = contractConfigData.Contracts.XVS;
-    const conversionRatio = 83333333333000;
-    const conversionStartTime = 1647323525;
-    const conversionPeriod = 365 * 24 * 60 * 60;
+  const vrtConverterConstructorArgumentArray = [
+    vrtConverterAddress,
+    vrtAddress,
+    xvsAddress,
+    conversionRatio,
+    conversionStartTime,
+    conversionPeriod,
+  ];
 
-    const vrtConverterConstructorArgumentArray = [vrtConverterAddress, vrtAddress, xvsAddress,
-        conversionRatio, conversionStartTime, conversionPeriod];
-
-    console.log(`VRTConverterProxy with 
+  console.log(`VRTConverterProxy with 
                 vrtConverterAddress: ${vrtConverterAddress} 
                 vrtAddress: ${vrtAddress}
                 xvsAddress: ${xvsAddress}
@@ -25,12 +30,12 @@ const main = async () => {
                 conversionStartTime: ${conversionStartTime}
                 conversionPeriod: ${conversionPeriod}`);
 
-    const vrtConverterProxyAddress = contractConfigData.Contracts.VRTConverterProxy;
+  const vrtConverterProxyAddress = contractConfigData.Contracts.VRTConverterProxy;
 
-    await hre.run("verify:verify", {
-        address: vrtConverterProxyAddress,
-        constructorArguments: vrtConverterConstructorArgumentArray
-    });
+  await hre.run("verify:verify", {
+    address: vrtConverterProxyAddress,
+    constructorArguments: vrtConverterConstructorArgumentArray,
+  });
 };
 
 module.exports = main;

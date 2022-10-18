@@ -1,27 +1,19 @@
-import { Event } from '../Event';
-import { World } from '../World';
-import { Governor } from '../Contract/Governor';
-import {
-  getCoreValue,
-  getEventV,
-  mapValue
-} from '../CoreValue';
-import {
-  AddressV,
-  EventV,
-  Value
-} from '../Value';
-import { Arg, Fetcher, getFetcherValue } from '../Command';
-import { getProposalValue } from './ProposalValue';
-import { getGovernorAddress, getWorldContractByAddress } from '../ContractLookup';
+import { Arg, Fetcher, getFetcherValue } from "../Command";
+import { Governor } from "../Contract/Governor";
+import { getGovernorAddress, getWorldContractByAddress } from "../ContractLookup";
+import { getCoreValue, getEventV, mapValue } from "../CoreValue";
+import { Event } from "../Event";
+import { AddressV, EventV, Value } from "../Value";
+import { World } from "../World";
+import { getProposalValue } from "./ProposalValue";
 
 export async function getGovernorV(world: World, event: Event): Promise<Governor> {
   const address = await mapValue<AddressV>(
     world,
     event,
-    (str) => new AddressV(getGovernorAddress(world, str)),
+    str => new AddressV(getGovernorAddress(world, str)),
     getCoreValue,
-    AddressV
+    AddressV,
   );
 
   return getWorldContractByAddress<Governor>(world, address.val);
@@ -37,47 +29,43 @@ export async function getGovernorGuardian(world: World, governor: Governor): Pro
 
 export function governorFetchers() {
   return [
-    new Fetcher<{ governor: Governor }, AddressV>(`
+    new Fetcher<{ governor: Governor }, AddressV>(
+      `
         #### Address
 
         * "Governor <Governor> Address" - Returns the address of governor contract
           * E.g. "Governor GovernorScenario Address"
       `,
       "Address",
-      [
-        new Arg("governor", getGovernorV)
-      ],
+      [new Arg("governor", getGovernorV)],
       (world, { governor }) => governorAddress(world, governor),
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
-    new Fetcher<{ governor: Governor }, AddressV>(`
+    new Fetcher<{ governor: Governor }, AddressV>(
+      `
         #### Guardian
 
         * "Governor <Governor> Guardian" - Returns the address of governor guardian
           * E.g. "Governor GovernorScenario Guardian"
       `,
       "Guardian",
-      [
-        new Arg("governor", getGovernorV)
-      ],
+      [new Arg("governor", getGovernorV)],
       (world, { governor }) => getGovernorGuardian(world, governor),
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
-    new Fetcher<{ governor: Governor, params: EventV }, Value>(`
+    new Fetcher<{ governor: Governor; params: EventV }, Value>(
+      `
         #### Proposal
 
         * "Governor <Governor> Proposal <...proposalValue>" - Returns information about a proposal
           * E.g. "Governor GovernorScenario Proposal LastProposal Id"
       `,
       "Proposal",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("params", getEventV, { variadic: true })
-      ],
+      [new Arg("governor", getGovernorV), new Arg("params", getEventV, { variadic: true })],
       (world, { governor, params }) => getProposalValue(world, governor, params.val),
-      { namePos: 1 }
+      { namePos: 1 },
     ),
   ];
 }

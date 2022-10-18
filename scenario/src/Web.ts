@@ -1,48 +1,49 @@
-import { World, initWorld } from './World';
-import { throwExpect } from './Assert';
-import { CallbackPrinter } from './Printer';
-import { runCommand } from './Runner';
-import { loadContractData, parseNetworkFile } from './Networks';
-import Web3 from 'web3';
-import { Saddle } from 'eth-saddle';
+import { Saddle } from "eth-saddle";
+import Web3 from "web3";
+
+import { throwExpect } from "./Assert";
+import { loadContractData, parseNetworkFile } from "./Networks";
+import { CallbackPrinter } from "./Printer";
+import { runCommand } from "./Runner";
+import { World, initWorld } from "./World";
 
 function networkFromId(id: number) {
   switch (id) {
     case 0:
-      return 'olympic';
+      return "olympic";
 
     case 1:
-      return 'mainnet';
+      return "mainnet";
 
     case 2:
-      return 'morden';
+      return "morden";
 
     case 3:
-      return 'ropsten';
+      return "ropsten";
 
     case 4:
-      return 'rinkeby';
+      return "rinkeby";
 
     case 5:
-      return 'goerli';
+      return "goerli";
 
     case 8:
-      return 'ubiq';
+      return "ubiq";
 
     case 42:
-      return 'kovan';
+      return "kovan";
 
     case 77:
-      return 'sokol';
+      return "sokol";
 
     case 99:
-      return 'core';
+      return "core";
 
     case 999:
-      return 'development';
+      return "development";
 
     default:
-      return '';
+      return "";
   }
 }
 
@@ -50,11 +51,11 @@ export async function webWorld(
   web3: Web3,
   networksData: string,
   networksABIData: string,
-  printerCallback: (message: any) => void
+  printerCallback: (message: any) => void,
 ): Promise<World> {
   const printer = new CallbackPrinter(printerCallback);
   let accounts;
-  if (web3.currentProvider && typeof(web3.currentProvider) !== 'string') {
+  if (web3.currentProvider && typeof web3.currentProvider !== "string") {
     // XXXS
     accounts = [(<any>web3.currentProvider).address];
   }
@@ -63,9 +64,9 @@ export async function webWorld(
   const network: string = networkFromId(networkId);
 
   // XXXS
-  const saddle = <Saddle><unknown>{
-    web3: web3
-  };
+  const saddle = <Saddle>(<unknown>{
+    web3: web3,
+  });
 
   let world = await initWorld(throwExpect, printer, web3, saddle, network, accounts, null, null);
 

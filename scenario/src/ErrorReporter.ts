@@ -1,9 +1,9 @@
-import {ComptrollerErr, VAIControllerErr, TokenErr} from './ErrorReporterConstants';
+import { ComptrollerErr, TokenErr, VAIControllerErr } from "./ErrorReporterConstants";
 
 export interface ErrorReporter {
-  getError(error: any): string | null
-  getInfo(info: any): string | null
-  getDetail(error: any, detail: number): string
+  getError(error: any): string | null;
+  getInfo(info: any): string | null;
+  getDetail(error: any, detail: number): string;
 }
 
 class NoErrorReporterType implements ErrorReporter {
@@ -117,7 +117,7 @@ class VAIControllerErrorReporterType implements ErrorReporter {
 export function formatResult(errorReporter: ErrorReporter, result: any): string {
   const errorStr = errorReporter.getError(result);
   if (errorStr !== null) {
-    return `Error=${errorStr}`
+    return `Error=${errorStr}`;
   } else {
     return `Result=${result}`;
   }

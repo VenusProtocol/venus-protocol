@@ -1,4 +1,4 @@
-let { loadAddress, loadConf } = require('./support/tokenConfig');
+let { loadAddress, loadConf } = require("./support/tokenConfig");
 
 function printUsage() {
   console.log(`
@@ -20,7 +20,7 @@ npx saddle -n rinkeby script token:verify 0x19B674715cD20626415C738400FDd0d32D68
 }'
   `);
 }
-(async function() {
+(async function () {
   // @FIX ME This script had undefined vars have been stubbed out for linting
   const args = [];
   const addresses = [];
@@ -33,7 +33,7 @@ npx saddle -n rinkeby script token:verify 0x19B674715cD20626415C738400FDd0d32D68
   if (!conf) {
     return printUsage();
   }
-  let bscscanApiKey = env['BSCSCAN_API_KEY'];
+  let bscscanApiKey = env["BSCSCAN_API_KEY"];
   if (!bscscanApiKey) {
     console.error("Missing required $BSCSCAN_API_KEY env variable.");
     return printUsage();
@@ -41,15 +41,24 @@ npx saddle -n rinkeby script token:verify 0x19B674715cD20626415C738400FDd0d32D68
 
   console.log(`Verifying vToken at ${address} with ${JSON.stringify(conf)}`);
 
-  let deployArgs = [conf.underlying, conf.comptroller, conf.interestRateModel, conf.initialExchangeRateMantissa.toString(), conf.name, conf.symbol, conf.decimals, conf.admin];
+  let deployArgs = [
+    conf.underlying,
+    conf.comptroller,
+    conf.interestRateModel,
+    conf.initialExchangeRateMantissa.toString(),
+    conf.name,
+    conf.symbol,
+    conf.decimals,
+    conf.admin,
+  ];
 
   // TODO: Make sure we match optimizations count, etc
-  await saddle.verify(bscscanApiKey, address, 'VBep20Immutable', deployArgs, 200, undefined);
+  await saddle.verify(bscscanApiKey, address, "VBep20Immutable", deployArgs, 200, undefined);
 
   console.log(`Contract verified at https://${network}.bscscan.io/address/${address}`);
 
   return {
     ...conf,
-    address
+    address,
   };
 })();

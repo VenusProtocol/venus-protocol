@@ -1,24 +1,31 @@
-import { constants, Signer } from "ethers";
-import { ethers } from "hardhat";
-import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
+import { Signer, constants } from "ethers";
+import { ethers } from "hardhat";
+
+import { convertToUnit } from "../../../helpers/utils";
+import {
+  Comptroller,
+  ComptrollerLens,
+  ComptrollerLens__factory,
+  Comptroller__factory,
+  EIP20Interface,
+  EIP20Interface__factory,
+  IAccessControlManager,
+  PriceOracle,
+  VToken,
+} from "../../../typechain";
+import { ComptrollerErrorReporter } from "../util/Errors";
+
 const { expect } = chai;
 chai.use(smock.matchers);
 
-import {
-  Comptroller, Comptroller__factory, PriceOracle, ComptrollerLens, ComptrollerLens__factory,
-  VToken, EIP20Interface, EIP20Interface__factory, IAccessControlManager
-} from "../../../typechain";
-import { convertToUnit } from "../../../helpers/utils";
-import { ComptrollerErrorReporter } from "../util/Errors";
-
-
 type SimpleComptrollerFixture = {
-  oracle: FakeContract<PriceOracle>,
-  accessControl: FakeContract<IAccessControlManager>,
-  comptrollerLens: MockContract<ComptrollerLens>,
-  comptroller: MockContract<Comptroller>
+  oracle: FakeContract<PriceOracle>;
+  accessControl: FakeContract<IAccessControlManager>;
+  comptrollerLens: MockContract<ComptrollerLens>;
+  comptroller: MockContract<Comptroller>;
 };
 
 async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
@@ -33,7 +40,7 @@ async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
   await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
-  return { oracle, comptroller, comptrollerLens, accessControl};
+  return { oracle, comptroller, comptrollerLens, accessControl };
 }
 
 function configureOracle(oracle: FakeContract<PriceOracle>) {
@@ -55,7 +62,7 @@ describe("Comptroller", () => {
     [root, ...accounts] = await ethers.getSigners();
   });
 
-  describe('constructor', () => {
+  describe("constructor", () => {
     it("on success it sets admin to creator and pendingAdmin is unset", async () => {
       const { comptroller } = await loadFixture(deploySimpleComptroller);
       expect(await comptroller.admin()).to.equal(await root.getAddress());
@@ -74,14 +81,15 @@ describe("Comptroller", () => {
     });
 
     it("fails if incentive is less than 1e18", async () => {
-      await expect(
-        comptroller._setLiquidationIncentive(tooSmallIncentive)
-      ).to.be.revertedWith("incentive must be over 1e18");
+      await expect(comptroller._setLiquidationIncentive(tooSmallIncentive)).to.be.revertedWith(
+        "incentive must be over 1e18",
+      );
     });
 
     it("accepts a valid incentive and emits a NewLiquidationIncentive event", async () => {
-      expect(await comptroller.callStatic._setLiquidationIncentive(validIncentive))
-        .to.equal(ComptrollerErrorReporter.Error.NO_ERROR);
+      expect(await comptroller.callStatic._setLiquidationIncentive(validIncentive)).to.equal(
+        ComptrollerErrorReporter.Error.NO_ERROR,
+      );
       expect(await comptroller._setLiquidationIncentive(validIncentive))
         .to.emit(comptroller, "NewLiquidationIncentive")
         .withArgs(initialIncentive, validIncentive);
@@ -89,9 +97,9 @@ describe("Comptroller", () => {
     });
   });
 
-  describe('Non zero address check', () => {
+  describe("Non zero address check", () => {
     let comptroller: MockContract<Comptroller>;
-    
+
     beforeEach(async () => {
       ({ comptroller } = await loadFixture(deploySimpleComptroller));
     });
@@ -100,20 +108,18 @@ describe("Comptroller", () => {
 
     function testZeroAddress<Func extends FuncNames>(funcName: Func, args: Parameters<Comptroller[Func]>) {
       it(funcName, async () => {
-        await expect(
-          comptroller[funcName](...args)
-        ).to.be.revertedWith("can't be zero address");
+        await expect(comptroller[funcName](...args)).to.be.revertedWith("can't be zero address");
       });
     }
-    testZeroAddress('_setPriceOracle', [constants.AddressZero]);
-    testZeroAddress('_setCollateralFactor', [constants.AddressZero, 0]);
-    testZeroAddress('_setPauseGuardian', [constants.AddressZero]);
-    testZeroAddress('_setVAIController', [constants.AddressZero]);
-    testZeroAddress('_setTreasuryData', [constants.AddressZero, constants.AddressZero, 0]);
-    testZeroAddress('_setComptrollerLens', [constants.AddressZero]);
-    testZeroAddress('_setVAIVaultInfo', [constants.AddressZero, 0, 0]);
-    testZeroAddress('_setVenusSpeed', [constants.AddressZero, 0]);
-  })
+    testZeroAddress("_setPriceOracle", [constants.AddressZero]);
+    testZeroAddress("_setCollateralFactor", [constants.AddressZero, 0]);
+    testZeroAddress("_setPauseGuardian", [constants.AddressZero]);
+    testZeroAddress("_setVAIController", [constants.AddressZero]);
+    testZeroAddress("_setTreasuryData", [constants.AddressZero, constants.AddressZero, 0]);
+    testZeroAddress("_setComptrollerLens", [constants.AddressZero]);
+    testZeroAddress("_setVAIVaultInfo", [constants.AddressZero, 0, 0]);
+    testZeroAddress("_setVenusSpeed", [constants.AddressZero, 0]);
+  });
 
   describe("_setPriceOracle", () => {
     let comptroller: MockContract<Comptroller>;
@@ -135,8 +141,9 @@ describe("Comptroller", () => {
     });
 
     it("fails if called by non-admin", async () => {
-      await expect(comptroller.connect(accounts[0])._setPriceOracle(oracle.address))
-        .to.be.revertedWith("only admin can");
+      await expect(comptroller.connect(accounts[0])._setPriceOracle(oracle.address)).to.be.revertedWith(
+        "only admin can",
+      );
       expect(await comptroller.oracle()).to.equal(oracle.address);
     });
 
@@ -153,8 +160,8 @@ describe("Comptroller", () => {
     let comptrollerLens: MockContract<ComptrollerLens>;
 
     type Contracts = {
-      comptrollerLens: MockContract<ComptrollerLens>,
-      comptroller: MockContract<Comptroller>
+      comptrollerLens: MockContract<ComptrollerLens>;
+      comptroller: MockContract<Comptroller>;
     };
 
     async function deploy(): Promise<Contracts> {
@@ -170,9 +177,9 @@ describe("Comptroller", () => {
     });
 
     it("fails if not called by admin", async () => {
-      await expect(
-        comptroller.connect(accounts[0])._setComptrollerLens(comptrollerLens.address)
-      ).to.be.revertedWith("only admin can");
+      await expect(comptroller.connect(accounts[0])._setComptrollerLens(comptrollerLens.address)).to.be.revertedWith(
+        "only admin can",
+      );
     });
 
     it("should fire an event", async () => {
@@ -192,8 +199,7 @@ describe("Comptroller", () => {
     });
 
     it("fails if not called by admin", async () => {
-      await expect(comptroller.connect(accounts[0])._setCloseFactor(1))
-        .to.be.revertedWith("only admin can");
+      await expect(comptroller.connect(accounts[0])._setCloseFactor(1)).to.be.revertedWith("only admin can");
     });
   });
 
@@ -219,9 +225,7 @@ describe("Comptroller", () => {
     });
 
     it("fails if asset is not listed", async () => {
-      await expect(
-        comptroller._setCollateralFactor(vToken.address, half)
-      ).to.be.revertedWith("market not listed");
+      await expect(comptroller._setCollateralFactor(vToken.address, half)).to.be.revertedWith("market not listed");
     });
 
     it("fails if factor is set without an underlying price", async () => {
@@ -231,7 +235,7 @@ describe("Comptroller", () => {
         .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.PRICE_ERROR,
-          ComptrollerErrorReporter.FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE
+          ComptrollerErrorReporter.FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE,
         );
     });
 
@@ -285,10 +289,11 @@ describe("Comptroller", () => {
       const tx1 = await comptroller._supportMarket(vToken1.address);
       const tx2 = await comptroller._supportMarket(vToken1.address);
       expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
-      expect(tx2).to.emit(comptroller, "Failure")
+      expect(tx2)
+        .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.MARKET_ALREADY_LISTED,
-          ComptrollerErrorReporter.FailureInfo.SUPPORT_MARKET_EXISTS
+          ComptrollerErrorReporter.FailureInfo.SUPPORT_MARKET_EXISTS,
         );
     });
 
@@ -327,8 +332,9 @@ describe("Comptroller", () => {
     });
 
     it("should not allow you to redeem 5 underlying for 0 tokens", async () => {
-      await expect(comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 0))
-        .to.be.revertedWith("redeemTokens zero");
+      await expect(comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 0)).to.be.revertedWith(
+        "redeemTokens zero",
+      );
     });
-  })
+  });
 });

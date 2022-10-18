@@ -1,53 +1,54 @@
+import { Map } from "immutable";
+
+import { Arg, Command, View, processCommandEvent } from "./Command";
+import { getAddressV, getEventV, getNumberV, getStringV } from "./CoreValue";
+import { getCoreValue, getFetchers } from "./CoreValue";
+import { encodedNumber } from "./Encoding";
+import { Event } from "./Event";
+import { assertionCommands, processAssertionEvent } from "./Event/AssertionEvent";
+import { bep20Commands, processBep20Event } from "./Event/Bep20Event";
+import { comptrollerCommands, processComptrollerEvent } from "./Event/ComptrollerEvent";
+import { comptrollerImplCommands, processComptrollerImplEvent } from "./Event/ComptrollerImplEvent";
+import { expectationCommands, processExpectationEvent } from "./Event/ExpectationEvent";
+import { governorBravoCommands, processGovernorBravoEvent } from "./Event/GovernorBravoEvent";
+import { governorCommands, processGovernorEvent } from "./Event/GovernorEvent";
+import { interestRateModelCommands, processInterestRateModelEvent } from "./Event/InterestRateModelEvent";
+import { invariantCommands, processInvariantEvent } from "./Event/InvariantEvent";
+import { liquidatorCommands, processLiquidatorEvent } from "./Event/LiquidatorEvent";
+import { maximillionCommands, processMaximillionEvent } from "./Event/MaximillionEvent";
+import { priceOracleCommands, processPriceOracleEvent } from "./Event/PriceOracleEvent";
+import { priceOracleProxyCommands, processPriceOracleProxyEvent } from "./Event/PriceOracleProxyEvent";
+import { processSXPEvent, sxpCommands } from "./Event/SXPEvent";
+import { processTimelockEvent, timelockCommands } from "./Event/TimelockEvent";
+import { processTrxEvent, trxCommands } from "./Event/TrxEvent";
+import { processUnitrollerEvent, unitrollerCommands } from "./Event/UnitrollerEvent";
+import { processVAIControllerEvent, vaicontrollerCommands } from "./Event/VAIControllerEvent";
+import { processVAIControllerImplEvent, vaicontrollerImplCommands } from "./Event/VAIControllerImplEvent";
+import { processVAIEvent, vaiCommands } from "./Event/VAIEvent";
+import { processVAIUnitrollerEvent, vaiunitrollerCommands } from "./Event/VAIUnitrollerEvent";
+import { processVTokenDelegateEvent, vTokenDelegateCommands } from "./Event/VTokenDelegateEvent";
+import { processVTokenEvent, vTokenCommands } from "./Event/VTokenEvent";
+import { processXVSEvent, xvsCommands } from "./Event/XVSEvent";
+import { processXVSVaultEvent, xvsVaultCommands } from "./Event/XVSVaultEvent";
+import { processXVSVaultImplEvent, xvsVaultImplCommands } from "./Event/XVSVaultImplEvent";
+import { processXVSVaultProxyEvent, xvsVaultProxyCommands } from "./Event/XVSVaultProxyEvent";
+import { buildContractEvent } from "./EventBuilder";
+import { formatEvent } from "./Formatter";
+import { printHelp } from "./Help";
+import { fork } from "./Hypothetical";
+import { fallback } from "./Invokation";
+import { loadContracts } from "./Networks";
+import { getCurrentBlockNumber, getCurrentTimestamp, sendRPC, sleep } from "./Utils";
+import { AddressV, EventV, NothingV, NumberV, StringV, Value } from "./Value";
 import {
+  World,
   addAction,
   checkExpectations,
   checkInvariants,
   clearInvariants,
   holdInvariants,
   setEvent,
-  World
-} from './World';
-import { Event } from './Event';
-import { getAddressV, getEventV, getNumberV, getStringV } from './CoreValue';
-import { AddressV, EventV, NothingV, NumberV, StringV, Value } from './Value';
-import { Arg, Command, processCommandEvent, View } from './Command';
-import { assertionCommands, processAssertionEvent } from './Event/AssertionEvent';
-import { comptrollerCommands, processComptrollerEvent } from './Event/ComptrollerEvent';
-import { vaicontrollerCommands, processVAIControllerEvent } from './Event/VAIControllerEvent';
-import { processUnitrollerEvent, unitrollerCommands } from './Event/UnitrollerEvent';
-import { processVAIUnitrollerEvent, vaiunitrollerCommands } from './Event/VAIUnitrollerEvent';
-import { comptrollerImplCommands, processComptrollerImplEvent } from './Event/ComptrollerImplEvent';
-import { vaicontrollerImplCommands, processVAIControllerImplEvent } from './Event/VAIControllerImplEvent';
-import { vTokenCommands, processVTokenEvent } from './Event/VTokenEvent';
-import { vTokenDelegateCommands, processVTokenDelegateEvent } from './Event/VTokenDelegateEvent';
-import { bep20Commands, processBep20Event } from './Event/Bep20Event';
-import { interestRateModelCommands, processInterestRateModelEvent } from './Event/InterestRateModelEvent';
-import { priceOracleCommands, processPriceOracleEvent } from './Event/PriceOracleEvent';
-import { priceOracleProxyCommands, processPriceOracleProxyEvent } from './Event/PriceOracleProxyEvent';
-import { maximillionCommands, processMaximillionEvent } from './Event/MaximillionEvent';
-import { liquidatorCommands, processLiquidatorEvent } from './Event/LiquidatorEvent';
-import { invariantCommands, processInvariantEvent } from './Event/InvariantEvent';
-import { expectationCommands, processExpectationEvent } from './Event/ExpectationEvent';
-import { timelockCommands, processTimelockEvent } from './Event/TimelockEvent';
-import { xvsCommands, processXVSEvent } from './Event/XVSEvent';
-import { xvsVaultCommands, processXVSVaultEvent } from './Event/XVSVaultEvent';
-import { xvsVaultImplCommands, processXVSVaultImplEvent } from './Event/XVSVaultImplEvent';
-import { xvsVaultProxyCommands, processXVSVaultProxyEvent } from './Event/XVSVaultProxyEvent';
-import { sxpCommands, processSXPEvent } from './Event/SXPEvent';
-import { vaiCommands, processVAIEvent } from './Event/VAIEvent';
-import { governorCommands, processGovernorEvent } from './Event/GovernorEvent';
-import { governorBravoCommands, processGovernorBravoEvent } from './Event/GovernorBravoEvent';
-import { processTrxEvent, trxCommands } from './Event/TrxEvent';
-import { getFetchers, getCoreValue } from './CoreValue';
-import { formatEvent } from './Formatter';
-import { fallback } from './Invokation';
-import { getCurrentBlockNumber, getCurrentTimestamp, sendRPC, sleep } from './Utils';
-import { Map } from 'immutable';
-import { encodedNumber } from './Encoding';
-import { printHelp } from './Help';
-import { loadContracts } from './Networks';
-import { fork } from './Hypothetical';
-import { buildContractEvent } from './EventBuilder';
+} from "./World";
 
 export class EventProcessingError extends Error {
   error: Error;
@@ -83,15 +84,13 @@ export async function processEvents(originalWorld: World, events: Event[]): Prom
     world = await checkExpectations(world);
 
     // Also clear trx related fields
-    world = world.set('trxInvokationOpts', Map({}));
-    world = world.set('newInvokation', false);
+    world = world.set("trxInvokationOpts", Map({}));
+    world = world.set("newInvokation", false);
 
     if (!world) {
       throw new Error(`Encountered null world result when processing event ${event[0]}: ${world}`);
     } else if (!(world instanceof World)) {
-      throw new Error(
-        `Encountered world result which was not isWorld when processing event ${event[0]}: ${world}`
-      );
+      throw new Error(`Encountered world result which was not isWorld when processing event ${event[0]}: ${world}`);
     }
 
     return world;
@@ -106,9 +105,9 @@ async function print(world: World, message: string): Promise<World> {
 
 async function inspect(world: World, string: string | null): Promise<World> {
   if (string !== null) {
-    console.log(['Inspect', string, world.toJS()]);
+    console.log(["Inspect", string, world.toJS()]);
   } else {
-    console.log(['Inspect', world.toJS()]);
+    console.log(["Inspect", world.toJS()]);
   }
 
   return world;
@@ -131,15 +130,15 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
         * E.g. "History"
         * E.g. "History 10"
     `,
-    'History',
-    [new Arg('n', getNumberV, { default: new NumberV(5) })],
+    "History",
+    [new Arg("n", getNumberV, { default: new NumberV(5) })],
     async (world, { n }) => {
       world.actions.slice(0, Number(n.val)).forEach(action => {
         world.printer.printLine(action.toString());
       });
 
       return world;
-    }
+    },
   ),
   new View<{ seconds: NumberV }>(
     `
@@ -148,12 +147,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "SleepSeconds s:<Number>" - Sleeps for given amount of time.
         * E.g. "SleepSeconds 1" - Sleeps for one second
     `,
-    'SleepSeconds',
-    [new Arg('seconds', getNumberV)],
+    "SleepSeconds",
+    [new Arg("seconds", getNumberV)],
     async (world, { seconds }) => {
       await sleep(seconds.toNumber() * 1000);
       return world;
-    }
+    },
   ),
   new View<{ timestamp: NumberV }>(
     `
@@ -162,15 +161,15 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "SleepUntil timestamp:<Number>" - Sleeps until the given timestamp
         * E.g. "SleepUntil 1579123423" - Sleeps from now until 1579123423
     `,
-    'SleepUntilTimestamp',
-    [new Arg('timestamp', getNumberV)],
+    "SleepUntilTimestamp",
+    [new Arg("timestamp", getNumberV)],
     async (world, { timestamp }) => {
       const delay = timestamp.toNumber() - getCurrentTimestamp();
       if (delay > 0) {
         await sleep(delay * 1000);
       }
       return world;
-    }
+    },
   ),
   new View<{ blocks: NumberV }>(
     `
@@ -179,15 +178,15 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "SleepForBlocks blocks:<Number>" - Sleeps for a given number of blocks
         * E.g. "SleepBlocks 20" - Sleeps for 20 blocks
     `,
-    'SleepBlocks',
-    [new Arg('blocks', getNumberV)],
+    "SleepBlocks",
+    [new Arg("blocks", getNumberV)],
     async (world, { blocks }) => {
-      const targetBlockNumber = blocks.toNumber() + await getCurrentBlockNumber(world);
-      while (await getCurrentBlockNumber(world) < targetBlockNumber) {
+      const targetBlockNumber = blocks.toNumber() + (await getCurrentBlockNumber(world));
+      while ((await getCurrentBlockNumber(world)) < targetBlockNumber) {
         await sleep(1000);
       }
       return world;
-    }
+    },
   ),
   new View<{ blockNumber: NumberV }>(
     `
@@ -196,14 +195,14 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "SleepUntilBlock blockNumber:<Number>" - Sleeps until the given blockNumber
         * E.g. "SleepUntilBlock 2006868" - Sleeps from now until block 2006868.
     `,
-    'SleepUntilBlock',
-    [new Arg('blockNumber', getNumberV)],
+    "SleepUntilBlock",
+    [new Arg("blockNumber", getNumberV)],
     async (world, { blockNumber }) => {
-      while (blockNumber.toNumber() > await getCurrentBlockNumber(world)) {
+      while (blockNumber.toNumber() > (await getCurrentBlockNumber(world))) {
         await sleep(1000);
       }
       return world;
-    }
+    },
   ),
   new View<{ errMsg: StringV }>(
     `
@@ -212,13 +211,13 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Throw errMsg:<String>" - Throws given error
         * E.g. "Throw \"my error message\""
     `,
-    'Throw',
-    [new Arg('errMsg', getStringV)],
+    "Throw",
+    [new Arg("errMsg", getStringV)],
     async (world, { errMsg }) => {
       throw new Error(errMsg.val);
 
       return world;
-    }
+    },
   ),
   async (world: World) =>
     new View<{ res: Value }>(
@@ -228,14 +227,14 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
         * "Read ..." - Reads given value and prints result
           * E.g. "Read VToken vBAT ExchangeRateStored" - Returns exchange rate of vBAT
       `,
-      'Read',
-      [new Arg('res', getCoreValue, { variadic: true })],
+      "Read",
+      [new Arg("res", getCoreValue, { variadic: true })],
       async (world, { res }) => {
         world.printer.printValue(res);
 
         return world;
       },
-      { subExpressions: (await getFetchers(world)).fetchers }
+      { subExpressions: (await getFetchers(world)).fetchers },
     ),
   new View<{ message: StringV }>(
     `
@@ -244,9 +243,9 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Print ..." - Prints given string
         * E.g. "Print \"Hello there\""
     `,
-    'Print',
-    [new Arg('message', getStringV)],
-    async (world, { message }) => print(world, message.val)
+    "Print",
+    [new Arg("message", getStringV)],
+    async (world, { message }) => print(world, message.val),
   ),
   new View(
     `
@@ -254,15 +253,15 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
 
       * "PrintTransactionLogs" - Prints logs from all transacions
     `,
-    'PrintTransactionLogs',
+    "PrintTransactionLogs",
     [],
-    async (world) => {
+    async world => {
       return await world.updateSettings(async settings => {
         settings.printTxLogs = true;
 
         return settings;
       });
-    }
+    },
   ),
   new View<{ url: StringV; unlockedAccounts: AddressV[] }>(
     `
@@ -271,39 +270,48 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Web3Fork url:<String> unlockedAccounts:<String>[]" - Creates an in-memory ganache
         * E.g. "Web3Fork \"https://mainnet.infura.io/v3/e1a5d4d2c06a4e81945fca56d0d5d8ea\" (\"0x8b8592e9570e96166336603a1b4bd1e8db20fa20\")"
     `,
-    'Web3Fork',
-    [
-      new Arg('url', getStringV),
-      new Arg('unlockedAccounts', getAddressV, { default: [], mapped: true })
-    ],
-    async (world, { url, unlockedAccounts }) => fork(world, url.val, unlockedAccounts.map(v => v.val))
+    "Web3Fork",
+    [new Arg("url", getStringV), new Arg("unlockedAccounts", getAddressV, { default: [], mapped: true })],
+    async (world, { url, unlockedAccounts }) =>
+      fork(
+        world,
+        url.val,
+        unlockedAccounts.map(v => v.val),
+      ),
   ),
 
-  new View<{ networkVal: StringV; }>(
+  new View<{ networkVal: StringV }>(
     `
       #### UseConfigs
 
       * "UseConfigs networkVal:<String>" - Updates world to use the configs for specified network
         * E.g. "UseConfigs mainnet"
     `,
-    'UseConfigs',
-    [new Arg('networkVal', getStringV)],
+    "UseConfigs",
+    [new Arg("networkVal", getStringV)],
     async (world, { networkVal }) => {
       const network = networkVal.val;
-      if (world.basePath && (network === 'mainnet' || network === 'kovan' || network === 'goerli' || network === 'rinkeby' || network == 'ropsten')) {
-        let newWorld = world.set('network', network);
+      if (
+        world.basePath &&
+        (network === "mainnet" ||
+          network === "kovan" ||
+          network === "goerli" ||
+          network === "rinkeby" ||
+          network == "ropsten")
+      ) {
+        let newWorld = world.set("network", network);
         let contractInfo;
         [newWorld, contractInfo] = await loadContracts(newWorld); // eslint-disable-line prefer-const
         if (contractInfo.length > 0) {
           world.printer.printLine(`Contracts:`);
-          contractInfo.forEach((info) => world.printer.printLine(`\t${info}`));
+          contractInfo.forEach(info => world.printer.printLine(`\t${info}`));
         }
 
         return newWorld;
       }
 
       return world;
-    }
+    },
   ),
 
   new View<{ address: AddressV }>(
@@ -313,15 +321,15 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "MyAddress address:<String>" - Sets default from address (same as "Alias Me <addr>")
         * E.g. "MyAddress \"0x9C1856636d78C051deAd6CAB9c5699e4E25549e9\""
     `,
-    'MyAddress',
-    [new Arg('address', getAddressV)],
+    "MyAddress",
+    [new Arg("address", getAddressV)],
     async (world, { address }) => {
       return await world.updateSettings(async settings => {
-        settings.aliases['Me'] = address.val;
+        settings.aliases["Me"] = address.val;
 
         return settings;
       });
-    }
+    },
   ),
   new View<{ name: StringV; address: AddressV }>(
     `
@@ -330,15 +338,15 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Alias name:<String> address:<String>" - Stores an alias between name and address
         * E.g. "Alias Me \"0x9C1856636d78C051deAd6CAB9c5699e4E25549e9\""
     `,
-    'Alias',
-    [new Arg('name', getStringV), new Arg('address', getAddressV)],
+    "Alias",
+    [new Arg("name", getStringV), new Arg("address", getAddressV)],
     async (world, { name, address }) => {
       return await world.updateSettings(async settings => {
         settings.aliases[name.val] = address.val;
 
         return settings;
       });
-    }
+    },
   ),
 
   new View<{ name: StringV; address: AddressV }>(
@@ -347,16 +355,16 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
 
       * "Aliases - Prints all aliases
     `,
-    'Aliases',
+    "Aliases",
     [],
-    async (world) => {
-      world.printer.printLine('Aliases:');
+    async world => {
+      world.printer.printLine("Aliases:");
       Object.entries(world.settings.aliases).forEach(([name, address]) => {
         world.printer.printLine(`\t${name}: ${address}`);
       });
 
       return world;
-    }
+    },
   ),
 
   new View<{ seconds: NumberV }>(
@@ -366,13 +374,13 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "IncreaseTime seconds:<Number>" - Increase Ganache evm time by a number of seconds
         * E.g. "IncreaseTime 60"
     `,
-    'IncreaseTime',
-    [new Arg('seconds', getNumberV)],
+    "IncreaseTime",
+    [new Arg("seconds", getNumberV)],
     async (world, { seconds }) => {
-      await sendRPC(world, 'evm_increaseTime', [Number(seconds.val)]);
-      await sendRPC(world, 'evm_mine', []);
+      await sendRPC(world, "evm_increaseTime", [Number(seconds.val)]);
+      await sendRPC(world, "evm_mine", []);
       return world;
-    }
+    },
   ),
 
   new View<{ timestamp: NumberV }>(
@@ -382,12 +390,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "SetTime timestamp:<Number>" - Increase Ganache evm time to specific timestamp
         * E.g. "SetTime 1573597400"
     `,
-    'SetTime',
-    [new Arg('timestamp', getNumberV)],
+    "SetTime",
+    [new Arg("timestamp", getNumberV)],
     async (world, { timestamp }) => {
-      await sendRPC(world, 'evm_mine', [timestamp.val]);
+      await sendRPC(world, "evm_mine", [timestamp.val]);
       return world;
-    }
+    },
   ),
 
   new View<{ timestamp: NumberV }>(
@@ -397,12 +405,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "FreezeTime timestamp:<Number>" - Freeze Ganache evm time to specific timestamp
         * E.g. "FreezeTime 1573597400"
     `,
-    'FreezeTime',
-    [new Arg('timestamp', getNumberV)],
+    "FreezeTime",
+    [new Arg("timestamp", getNumberV)],
     async (world, { timestamp }) => {
-      await sendRPC(world, 'evm_freezeTime', [timestamp.val]);
+      await sendRPC(world, "evm_freezeTime", [timestamp.val]);
       return world;
-    }
+    },
   ),
 
   new View(
@@ -412,12 +420,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "MineBlock" - Increase Ganache evm block number
         * E.g. "MineBlock"
     `,
-    'MineBlock',
+    "MineBlock",
     [],
-    async (world) => {
-      await sendRPC(world, 'evm_mine', []);
+    async world => {
+      await sendRPC(world, "evm_mine", []);
       return world;
-    }
+    },
   ),
 
   new Command<{ blockNumber: NumberV }>(
@@ -427,30 +435,27 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "SetBlockNumber 10" - Increase Ganache evm block number
         * E.g. "SetBlockNumber 10"
     `,
-    'SetBlockNumber',
-    [new Arg('blockNumber', getNumberV)],
+    "SetBlockNumber",
+    [new Arg("blockNumber", getNumberV)],
     async (world, from, { blockNumber }) => {
-      await sendRPC(world, 'evm_mineBlockNumber', [blockNumber.toNumber() - 1])
+      await sendRPC(world, "evm_mineBlockNumber", [blockNumber.toNumber() - 1]);
       return world;
-    }
+    },
   ),
 
-  new Command<{ blockNumber: NumberV, event: EventV }>(
+  new Command<{ blockNumber: NumberV; event: EventV }>(
     `
       #### Block
 
       * "Block 10 (...event)" - Set block to block N and run event
         * E.g. "Block 10 (XVS Deploy Admin)"
     `,
-    'Block',
-    [
-      new Arg('blockNumber', getNumberV),
-      new Arg('event', getEventV)
-    ],
+    "Block",
+    [new Arg("blockNumber", getNumberV), new Arg("event", getEventV)],
     async (world, from, { blockNumber, event }) => {
-      await sendRPC(world, 'evm_mineBlockNumber', [blockNumber.toNumber() - 2])
+      await sendRPC(world, "evm_mineBlockNumber", [blockNumber.toNumber() - 2]);
       return await processCoreEvent(world, event.val, from);
-    }
+    },
   ),
 
   new Command<{ blockNumber: NumberV }>(
@@ -460,13 +465,13 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "AdvanceBlocks 10" - Increase Ganache latest + block number
         * E.g. "AdvanceBlocks 10"
     `,
-    'AdvanceBlocks',
-    [new Arg('blockNumber', getNumberV)],
+    "AdvanceBlocks",
+    [new Arg("blockNumber", getNumberV)],
     async (world, from, { blockNumber }) => {
       const currentBlockNumber = await getCurrentBlockNumber(world);
-      await sendRPC(world, 'evm_mineBlockNumber', [Number(blockNumber.val) + currentBlockNumber]);
+      await sendRPC(world, "evm_mineBlockNumber", [Number(blockNumber.val) + currentBlockNumber]);
       return world;
-    }
+    },
   ),
 
   new View(
@@ -475,9 +480,9 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
 
       * "Inspect" - Prints debugging information about the world
     `,
-    'Inspect',
+    "Inspect",
     [],
-    async (world) => inspect(world, null)
+    async world => inspect(world, null),
   ),
 
   new View<{ message: StringV }>(
@@ -486,9 +491,9 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
 
       * "Debug message:<String>" - Same as inspect but prepends with a string
     `,
-    'Debug',
-    [new Arg('message', getStringV)],
-    async (world, { message }) => inspect(world, message.val)
+    "Debug",
+    [new Arg("message", getStringV)],
+    async (world, { message }) => inspect(world, message.val),
   ),
 
   new View<{ account: AddressV; event: EventV }>(
@@ -498,9 +503,9 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "From <User> <Event>" - Runs event as the given user
         * E.g. "From Geoff (VToken vZRX Mint 5e18)"
     `,
-    'From',
-    [new Arg('account', getAddressV), new Arg('event', getEventV)],
-    async (world, { account, event }) => processCoreEvent(world, event.val, account.val)
+    "From",
+    [new Arg("account", getAddressV), new Arg("event", getEventV)],
+    async (world, { account, event }) => processCoreEvent(world, event.val, account.val),
   ),
 
   new Command<{ event: EventV }>(
@@ -510,10 +515,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Trx ...trxEvent" - Handles event to set details of next transaction
         * E.g. "Trx Value 1.0e18 (VToken vBnb Mint 1.0e18)"
     `,
-    'Trx',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Trx",
+    [new Arg("event", getEventV, { variadic: true })],
     async (world, from, { event }) => processTrxEvent(world, event.val, from),
-    { subExpressions: trxCommands() }
+    { subExpressions: trxCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -523,10 +528,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Invariant ...invariant" - Adds a new invariant to the world which is checked after each transaction
         * E.g. "Invariant Static (VToken vZRX TotalSupply)"
     `,
-    'Invariant',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Invariant",
+    [new Arg("event", getEventV, { variadic: true })],
     async (world, from, { event }) => processInvariantEvent(world, event.val, from),
-    { subExpressions: invariantCommands() }
+    { subExpressions: invariantCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -536,10 +541,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Expect ...expectation" - Adds an expectation to hold after the next transaction
         * E.g. "Expect Changes (VToken vZRX TotalSupply) +10.0e18"
     `,
-    'Expect',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Expect",
+    [new Arg("event", getEventV, { variadic: true })],
     async (world, from, { event }) => processExpectationEvent(world, event.val, from),
-    { subExpressions: expectationCommands() }
+    { subExpressions: expectationCommands() },
   ),
 
   new View<{ type: StringV }>(
@@ -553,9 +558,9 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
         * E.g. "HoldInvariants Remains" - Skips "remains" invariants
         * E.g. "HoldInvariants Static" - Skips "static" invariants
     `,
-    'HoldInvariants',
-    [new Arg('type', getStringV, { default: new StringV('All') })],
-    async (world, { type }) => holdInvariants(world, type.val)
+    "HoldInvariants",
+    [new Arg("type", getStringV, { default: new StringV("All") })],
+    async (world, { type }) => holdInvariants(world, type.val),
   ),
 
   new View<{ type: StringV }>(
@@ -569,9 +574,9 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
         * E.g. "ClearInvariants Remains" - Removes "remains" invariants
         * E.g. "ClearInvariants Static" - Removes "static" invariants
     `,
-    'ClearInvariants',
-    [new Arg('type', getStringV, { default: new StringV('All') })],
-    async (world, { type }) => clearInvariants(world, type.val)
+    "ClearInvariants",
+    [new Arg("type", getStringV, { default: new StringV("All") })],
+    async (world, { type }) => clearInvariants(world, type.val),
   ),
 
   new Command<{ event: EventV }>(
@@ -581,10 +586,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Assert ...event" - Validates given assertion, raising an exception if assertion fails
         * E.g. "Assert Equal (Bep20 BAT TokenBalance Geoff) (Exactly 5.0)"
     `,
-    'Assert',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Assert",
+    [new Arg("event", getEventV, { variadic: true })],
     async (world, from, { event }) => processAssertionEvent(world, event.val, from),
-    { subExpressions: assertionCommands() }
+    { subExpressions: assertionCommands() },
   ),
 
   new Command<{ gate: Value; event: EventV }>(
@@ -594,15 +599,15 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Gate value event" - Runs event only if value is falsey. Thus, gate can be used to build idempotency.
         * E.g. "Gate (Bep20 ZRX Address) (Bep20 Deploy BAT)"
     `,
-    'Gate',
-    [new Arg('gate', getCoreValue, { rescue: new NothingV() }), new Arg('event', getEventV)],
+    "Gate",
+    [new Arg("gate", getCoreValue, { rescue: new NothingV() }), new Arg("event", getEventV)],
     async (world, from, { gate, event }) => {
       if (gate.truthy()) {
         return world;
       } else {
         return processCoreEvent(world, event.val, from);
       }
-    }
+    },
   ),
 
   new Command<{ given: Value; event: EventV }>(
@@ -612,15 +617,15 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Given value event" - Runs event only if value is truthy. Thus, given can be used to build existence checks.
         * E.g. "Given ($var) (PriceOracle SetPrice vBAT $var)"
     `,
-    'Given',
-    [new Arg('given', getCoreValue, { rescue: new NothingV() }), new Arg('event', getEventV)],
+    "Given",
+    [new Arg("given", getCoreValue, { rescue: new NothingV() }), new Arg("event", getEventV)],
     async (world, from, { given, event }) => {
       if (given.truthy()) {
         return processCoreEvent(world, event.val, from);
       } else {
         return world;
       }
-    }
+    },
   ),
 
   new Command<{ address: AddressV; amount: NumberV }>(
@@ -630,9 +635,9 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Send <Address> <Amount>" - Sends a given amount of bnb to given address
         * E.g. "Send vBNB 0.5e18"
     `,
-    'Send',
-    [new Arg('address', getAddressV), new Arg('amount', getNumberV)],
-    (world, from, { address, amount }) => sendBNB(world, from, address.val, amount.encode())
+    "Send",
+    [new Arg("address", getAddressV), new Arg("amount", getNumberV)],
+    (world, from, { address, amount }) => sendBNB(world, from, address.val, amount.encode()),
   ),
 
   new Command<{ event: EventV }>(
@@ -642,10 +647,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Unitroller ...event" - Runs given Unitroller event
         * E.g. "Unitroller SetPendingImpl MyComptrollerImpl"
     `,
-    'Unitroller',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Unitroller",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processUnitrollerEvent(world, event.val, from),
-    { subExpressions: unitrollerCommands() }
+    { subExpressions: unitrollerCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -655,10 +660,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Comptroller ...event" - Runs given Comptroller event
         * E.g. "Comptroller _setReserveFactor 0.5"
     `,
-    'Comptroller',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Comptroller",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processComptrollerEvent(world, event.val, from),
-    { subExpressions: comptrollerCommands() }
+    { subExpressions: comptrollerCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -668,10 +673,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "ComptrollerImpl ...event" - Runs given ComptrollerImpl event
         * E.g. "ComptrollerImpl MyImpl Become"
     `,
-    'ComptrollerImpl',
-    [new Arg('event', getEventV, { variadic: true })],
+    "ComptrollerImpl",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processComptrollerImplEvent(world, event.val, from),
-    { subExpressions: comptrollerImplCommands() }
+    { subExpressions: comptrollerImplCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -681,10 +686,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "VAIUnitroller ...event" - Runs given VAIUnitroller event
         * E.g. "VAIUnitroller SetPendingImpl MyVAIControllerImpl"
     `,
-    'VAIUnitroller',
-    [new Arg('event', getEventV, { variadic: true })],
+    "VAIUnitroller",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processVAIUnitrollerEvent(world, event.val, from),
-    { subExpressions: vaiunitrollerCommands() }
+    { subExpressions: vaiunitrollerCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -694,10 +699,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "VAIController ...event" - Runs given VAIController event
         * E.g. "VAIController mint 0.5"
     `,
-    'VAIController',
-    [new Arg('event', getEventV, { variadic: true })],
+    "VAIController",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processVAIControllerEvent(world, event.val, from),
-    { subExpressions: vaicontrollerCommands() }
+    { subExpressions: vaicontrollerCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -707,10 +712,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "VAIControllerImpl ...event" - Runs given VAIControllerImpl event
         * E.g. "VAIControllerImpl MyImpl Become"
     `,
-    'VAIControllerImpl',
-    [new Arg('event', getEventV, { variadic: true })],
+    "VAIControllerImpl",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processVAIControllerImplEvent(world, event.val, from),
-    { subExpressions: vaicontrollerImplCommands() }
+    { subExpressions: vaicontrollerImplCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -720,10 +725,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "VToken ...event" - Runs given VToken event
         * E.g. "VToken vZRX Mint 5e18"
     `,
-    'VToken',
-    [new Arg('event', getEventV, { variadic: true })],
+    "VToken",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processVTokenEvent(world, event.val, from),
-    { subExpressions: vTokenCommands() }
+    { subExpressions: vTokenCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -733,10 +738,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "VTokenDelegate ...event" - Runs given VTokenDelegate event
         * E.g. "VTokenDelegate Deploy VDaiDelegate vDaiDelegate"
     `,
-    'VTokenDelegate',
-    [new Arg('event', getEventV, { variadic: true })],
+    "VTokenDelegate",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processVTokenDelegateEvent(world, event.val, from),
-    { subExpressions: vTokenDelegateCommands() }
+    { subExpressions: vTokenDelegateCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -746,10 +751,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Bep20 ...event" - Runs given Bep20 event
         * E.g. "Bep20 ZRX Facuet Geoff 5e18"
     `,
-    'Bep20',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Bep20",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processBep20Event(world, event.val, from),
-    { subExpressions: bep20Commands() }
+    { subExpressions: bep20Commands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -759,10 +764,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "InterestRateModel ...event" - Runs given interest rate model event
         * E.g. "InterestRateModel Deploy Fixed StdRate 0.5"
     `,
-    'InterestRateModel',
-    [new Arg('event', getEventV, { variadic: true })],
+    "InterestRateModel",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processInterestRateModelEvent(world, event.val, from),
-    { subExpressions: interestRateModelCommands() }
+    { subExpressions: interestRateModelCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -772,10 +777,10 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "PriceOracle ...event" - Runs given Price Oracle event
         * E.g. "PriceOracle SetPrice vZRX 1.5"
     `,
-    'PriceOracle',
-    [new Arg('event', getEventV, { variadic: true })],
+    "PriceOracle",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => processPriceOracleEvent(world, event.val, from),
-    { subExpressions: priceOracleCommands() }
+    { subExpressions: priceOracleCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -785,12 +790,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "PriceOracleProxy ...event" - Runs given Price Oracle event
       * E.g. "PriceOracleProxy Deploy (Unitroller Address) (PriceOracle Address) (VToken vBNB Address)"
     `,
-    'PriceOracleProxy',
-    [new Arg('event', getEventV, { variadic: true })],
+    "PriceOracleProxy",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processPriceOracleProxyEvent(world, event.val, from);
     },
-    { subExpressions: priceOracleProxyCommands() }
+    { subExpressions: priceOracleProxyCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -800,12 +805,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Maximillion ...event" - Runs given Maximillion event
       * E.g. "Maximillion Deploy (VToken vBNB Address)"
     `,
-    'Maximillion',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Maximillion",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processMaximillionEvent(world, event.val, from);
     },
-    { subExpressions: maximillionCommands() }
+    { subExpressions: maximillionCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -815,12 +820,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Liquidator ...event" - Venus v3 liquidation interface
       * E.g. "Liquidator Deploy Admin (Address Zero) (Comptroller Address) (Address Zero) Admin 5e16"
     `,
-    'Liquidator',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Liquidator",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processLiquidatorEvent(world, event.val, from);
     },
-    { subExpressions: liquidatorCommands() }
+    { subExpressions: liquidatorCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -830,12 +835,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Timelock ...event" - Runs given Timelock event
       * E.g. "Timelock Deploy Geoff 604800"
     `,
-    'Timelock',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Timelock",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processTimelockEvent(world, event.val, from);
     },
-    { subExpressions: timelockCommands() }
+    { subExpressions: timelockCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -845,12 +850,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "XVS ...event" - Runs given xvs event
       * E.g. "XVS Deploy"
     `,
-    'XVS',
-    [new Arg('event', getEventV, { variadic: true })],
+    "XVS",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processXVSEvent(world, event.val, from);
     },
-    { subExpressions: xvsCommands() }
+    { subExpressions: xvsCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -860,12 +865,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "XVSVault ...event" - Runs given XVS Vault event
       * E.g. "XVSVault Deploy"
     `,
-    'XVSVault',
-    [new Arg('event', getEventV, { variadic: true })],
+    "XVSVault",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processXVSVaultEvent(world, event.val, from);
     },
-    { subExpressions: xvsVaultCommands() }
+    { subExpressions: xvsVaultCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -875,12 +880,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "XVSVaultImpl ...event" - Runs given XVS Vault implementation event
       * E.g. "XVSVaultImpl Deploy MyVaultImpl"
     `,
-    'XVSVaultImpl',
-    [new Arg('event', getEventV, { variadic: true })],
+    "XVSVaultImpl",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processXVSVaultImplEvent(world, event.val, from);
     },
-    { subExpressions: xvsVaultImplCommands() }
+    { subExpressions: xvsVaultImplCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -890,12 +895,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "XVSVaultProxy ...event" - Runs given XVS Vault proxy event
       * E.g. "XVSVaultProxy Deploy"
     `,
-    'XVSVaultProxy',
-    [new Arg('event', getEventV, { variadic: true })],
+    "XVSVaultProxy",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processXVSVaultProxyEvent(world, event.val, from);
     },
-    { subExpressions: xvsVaultProxyCommands() }
+    { subExpressions: xvsVaultProxyCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -905,12 +910,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "SXP ...event" - Runs given sxp event
       * E.g. "SXP Deploy"
     `,
-    'SXP',
-    [new Arg('event', getEventV, { variadic: true })],
+    "SXP",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processSXPEvent(world, event.val, from);
     },
-    { subExpressions: sxpCommands() }
+    { subExpressions: sxpCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -920,12 +925,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "VAI ...event" - Runs given xvs event
       * E.g. "VAI Deploy"
     `,
-    'VAI',
-    [new Arg('event', getEventV, { variadic: true })],
+    "VAI",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processVAIEvent(world, event.val, from);
     },
-    { subExpressions: vaiCommands() }
+    { subExpressions: vaiCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -935,12 +940,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Governor ...event" - Runs given governor event
       * E.g. "Governor Deploy Alpha"
     `,
-    'Governor',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Governor",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processGovernorEvent(world, event.val, from);
     },
-    { subExpressions: governorCommands() }
+    { subExpressions: governorCommands() },
   ),
 
   new Command<{ event: EventV }>(
@@ -949,12 +954,12 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "GovernorBravo ...event" - Runs given governorBravo event
       * E.g. "GovernorBravo Deploy BravoDelegate"
     `,
-    'GovernorBravo',
-    [new Arg('event', getEventV, { variadic: true })],
+    "GovernorBravo",
+    [new Arg("event", getEventV, { variadic: true })],
     (world, from, { event }) => {
       return processGovernorBravoEvent(world, event.val, from);
     },
-    { subExpressions: governorBravoCommands() }
+    { subExpressions: governorBravoCommands() },
   ),
 
   buildContractEvent("Counter", false),
@@ -970,16 +975,16 @@ export const commands: (View<any> | ((world: World) => Promise<View<any>>))[] = 
       * "Help ...event" - Prints help for given command
       * E.g. "Help From"
     `,
-    'Help',
-    [new Arg('event', getEventV, { variadic: true })],
+    "Help",
+    [new Arg("event", getEventV, { variadic: true })],
     async (world, { event }) => {
-      world.printer.printLine('');
+      world.printer.printLine("");
       const { commands } = await getCommands(world);
       printHelp(world.printer, event.val, commands);
 
       return world;
-    }
-  )
+    },
+  ),
 ];
 
 async function getCommands(world: World) {
@@ -987,18 +992,20 @@ async function getCommands(world: World) {
     return { world, commands: world.commands };
   }
 
-  const allCommands = await Promise.all(commands.map((command) => {
-    if (typeof (command) === 'function') {
-      return command(world);
-    } else {
-      return Promise.resolve(command);
-    }
-  }));
+  const allCommands = await Promise.all(
+    commands.map(command => {
+      if (typeof command === "function") {
+        return command(world);
+      } else {
+        return Promise.resolve(command);
+      }
+    }),
+  );
 
-  return { world: world.set('commands', allCommands), commands: allCommands };
+  return { world: world.set("commands", allCommands), commands: allCommands };
 }
 
 export async function processCoreEvent(world: World, event: Event, from: string | null): Promise<World> {
   const { world: nextWorld, commands } = await getCommands(world);
-  return await processCommandEvent<any>('Core', commands, nextWorld, event, from);
+  return await processCommandEvent<any>("Core", commands, nextWorld, event, from);
 }
