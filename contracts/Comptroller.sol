@@ -1369,14 +1369,6 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function claimVenus(address[] memory holders, VToken[] memory vTokens, bool borrowers, bool suppliers, bool collateral) public {
         uint j;
-        // Save shortfalls of all holders
-        // if there is a positive shortfall, the XVS reward is accrued,
-        // but won't be granted to this holder
-        uint[] memory shortfalls = new uint[](holders.length);
-        for (j = 0; j < holders.length; j++) {
-            (, , uint shortfall) = getHypotheticalAccountLiquidityInternal(holders[j], VToken(0), 0, 0);
-            shortfalls[j] = shortfall;
-        }
         for (uint i = 0; i < vTokens.length; i++) {
             VToken vToken = vTokens[i];
             ensureListed(markets[address(vToken)]);
@@ -1385,16 +1377,22 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
                 updateVenusBorrowIndex(address(vToken), borrowIndex);
                 for (j = 0; j < holders.length; j++) {
                     distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
-                    venusAccrued[holders[j]] = grantXVSInternal(holders[j], venusAccrued[holders[j]], shortfalls[j], collateral);
                 }
             }
             if (suppliers) {
                 updateVenusSupplyIndex(address(vToken));
                 for (j = 0; j < holders.length; j++) {
                     distributeSupplierVenus(address(vToken), holders[j]);
-                    venusAccrued[holders[j]] = grantXVSInternal(holders[j], venusAccrued[holders[j]], shortfalls[j], collateral);
                 }
             }
+        }
+
+        for (j = 0; j < holders.length; j++) {
+            address holder = holders[j];
+            // If there is a positive shortfall, the XVS reward is accrued,
+            // but won't be granted to this holder
+            (, , uint shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(0), 0, 0);
+            venusAccrued[holder] = grantXVSInternal(holder, venusAccrued[holder], shortfall, collateral);
         }
     }
 
@@ -1418,6 +1416,15 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @return The amount of XVS which was NOT transferred to the user
      */
     function grantXVSInternal(address user, uint amount, uint shortfall, bool collateral) internal returns (uint) {
+        // If the user is blacklisted, they can't get XVS rewards
+        require(
+            user != 0xEF044206Db68E40520BfA82D45419d498b4bc7Bf
+            && user != 0x7589dD3355DAE848FDbF75044A3495351655cB1A
+            && user != 0x33df7a7F6D44307E1e5F3B15975b47515e5524c0
+            && user != 0x24e77E5b74B30b026E9996e4bc3329c881e24968,
+            "Blacklisted"
+        );
+
         XVS xvs = XVS(getXVSAddress());
         uint venusRemaining = xvs.balanceOf(address(this));
         bool bankrupt = shortfall > 0;

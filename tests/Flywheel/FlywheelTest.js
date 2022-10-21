@@ -669,6 +669,24 @@ describe('Flywheel', () => {
         send(comptroller, 'claimVenus', [[a1, a2], [cNOT._address], true, true])
       ).rejects.toRevert('revert market not listed');
     });
+
+    it('should revert if user is blacklisted', async () => {
+      let claimAccts = [
+        "0xEF044206Db68E40520BfA82D45419d498b4bc7Bf",
+        "0x7589dD3355DAE848FDbF75044A3495351655cB1A",
+        "0x33df7a7F6D44307E1e5F3B15975b47515e5524c0",
+        "0x24e77E5b74B30b026E9996e4bc3329c881e24968"
+      ];
+
+      for (const user of claimAccts) {
+        await expect(
+          send(comptroller, 'claimVenus', [[user], [vLOW._address], false, true, false])
+        ).rejects.toRevert('revert Blacklisted');
+        await expect(
+          send(comptroller, 'claimVenus', [[user], [vLOW._address], false, true, true])
+        ).rejects.toRevert('revert Blacklisted');
+      }
+    })
   });
 
   describe('harnessRefreshVenusSpeeds', () => {
