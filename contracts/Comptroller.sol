@@ -3,6 +3,7 @@ pragma solidity ^0.5.16;
 import "./VToken.sol";
 import "./ErrorReporter.sol";
 import "./PriceOracle.sol";
+import "./CarefulMath.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
@@ -13,7 +14,7 @@ import "./VAI/VAI.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract ComptrollerDev is ComptrollerVDStorage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError, CarefulMath {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -45,7 +46,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     event ActionPaused(string action, bool pauseState);
 
     /// @notice Emitted when an action is paused on a market
-    event ActionPaused(VToken vToken, string action, bool pauseState);
+    event ActionPausedMarket(VToken vToken, string action, bool pauseState);
 
     /// @notice Emitted when Venus VAI rate is changed
     event NewVenusVAIRate(uint oldVenusVAIRate, uint newVenusVAIRate);
@@ -95,10 +96,20 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address recipient, uint amount);
 
+    /// @notice Emiitted whe VAI base rate is changed
+    event NewVAIBaseRate(uint oldBaseRateMantissa, uint newBaseRateMantissa);
+
+    /// @notice Emiitted whe VAI float rate is changed
+    event NewVAIFloatRate(uint oldFloatRateMantissa, uint newFlatRateMantissa);
+
+    /// @notice Emiitted whe VAI receiver address is changed
+    event NewVAIReceiver(address oldReceiver, address newReceiver);
+
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
 
     // closeFactorMantissa must be strictly greater than this value
+    
     uint internal constant closeFactorMinMantissa = 0.05e18; // 0.05
 
     // closeFactorMantissa must not exceed this value
@@ -519,7 +530,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         if (address(vTokenBorrowed) != address(vaiController)) {
             borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
         } else {
-            borrowBalance = mintedVAIs[borrower];
+            borrowBalance = getVAIRepayAmount(borrower);
         }
 
         uint maxClose = mul_ScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
@@ -690,6 +701,71 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
         Exp tokensToDenom;
     }
 
+    function getVAIRepayRate() public view returns (uint) {
+        MathError mErr;
+        uint rate = 1e18;
+        if (baseRateMantissa > 0) {
+            if (floatRateMantissa > 0) {
+                uint oraclePrice = oracle.assetPrices(vaiController.getVAIAddress());
+                if (1e18 >= oraclePrice) {
+                    uint delta;
+                    (mErr, delta) = subUInt(1e18, oraclePrice);
+                    require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+
+                    (mErr, delta) = mulUInt(delta, floatRateMantissa);
+                    require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+
+                    (mErr, delta) = divUInt(delta, 1e18);
+                    require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+
+                    (mErr, rate) = addUInt(rate, delta);
+                    require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+                }
+            }
+            (mErr, rate) = addUInt(rate, baseRateMantissa);
+            require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+        }
+        return rate;
+    }
+
+    /**
+     * @dev Get the VAI actual total amount of repayment by the user
+     */
+    function getVAIRepayAmount(address account) public view returns (uint) {
+        MathError mErr;
+        uint amount = mintedVAIs[account];
+        uint rate = getVAIRepayRate();
+        
+        (mErr, amount) = mulUInt(rate, amount);
+        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
+
+        (mErr, amount) = divUInt(amount, 1e18);
+        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
+
+        return amount;
+    }
+
+    /**
+     * @dev Calculate the VAI amount of principal repayment
+     */
+    function getVAICalculateRepayAmount(address account, uint repayAmount) public view returns (uint) {
+        MathError mErr;
+        uint amount = repayAmount;
+        uint totalRepayAmount = getVAIRepayAmount(account);
+        
+        if(totalRepayAmount >= repayAmount) {
+            uint rate = getVAIRepayRate();
+            (mErr, repayAmount) = mulUInt(repayAmount, 1e18);
+            require(mErr == MathError.NO_ERROR, "VAI_REPAY_AMOUNT_CALCULATION_FAILED");
+            (mErr, amount) = divUInt(repayAmount, rate);
+            require(mErr == MathError.NO_ERROR, "VAI_REPAY_AMOUNT_CALCULATION_FAILED");
+        } else {
+            amount = mintedVAIs[account];
+        }
+
+        return amount;
+    }
+
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
      * @return (possible error code (semi-opaque),
@@ -783,7 +859,7 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
             }
         }
 
-        vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, mintedVAIs[account]);
+        vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, getVAIRepayAmount(account));
 
         // These are safe, as the underflow condition is checked first
         if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
@@ -1136,6 +1212,45 @@ contract Comptroller is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function adminOrInitializing() internal view returns (bool) {
         return msg.sender == admin || msg.sender == comptrollerImplementation;
+    }
+
+    /**
+     * @dev Set VAI borrow base rate
+     */
+    function _setBaseRate(uint newBaseRateMantissa) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAICONTROLLER_OWNER_CHECK);
+        }
+        uint old = baseRateMantissa;
+        baseRateMantissa = newBaseRateMantissa;
+        emit NewVAIBaseRate(old, baseRateMantissa);
+    }
+
+    /**
+     * @dev Set VAI borrow float rate
+     */
+    function _setFloatRate(uint newFloatRateMantissa) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAICONTROLLER_OWNER_CHECK);
+        }
+        uint old = floatRateMantissa;
+        floatRateMantissa = newFloatRateMantissa;
+        emit NewVAIFloatRate(old, floatRateMantissa);
+    }
+
+    /**
+     * @dev Set VAI receiver address
+     */
+    function _setReceiver(address newReceiver) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAICONTROLLER_OWNER_CHECK);
+        }
+        address old = receiver;
+        receiver = newReceiver;
+        emit NewVAIReceiver(old, newReceiver);
     }
 
     /*** Venus Distribution ***/
