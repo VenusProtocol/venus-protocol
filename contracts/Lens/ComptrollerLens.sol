@@ -150,7 +150,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             }
         }
 
-        vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, Comptroller(comptroller).mintedVAIs(account));
+        vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, Comptroller(comptroller).getVAIRepayAmount(account));
 
         // These are safe, as the underflow condition is checked first
         if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
