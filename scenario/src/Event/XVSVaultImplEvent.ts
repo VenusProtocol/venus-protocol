@@ -1,39 +1,34 @@
-import { Event } from '../Event';
-import { addAction, World } from '../World';
-import { XVSVault, XVSVaultImpl, XVSVaultProxy } from '../Contract/XVSVault';
-import { buildXVSVaultImpl } from '../Builder/XVSVaultImplBuilder';
-import { invoke } from '../Invokation';
-import { getEventV } from '../CoreValue';
-import { EventV } from '../Value';
-import { Arg, Command, processCommandEvent, View } from '../Command';
-import { getXVSVaultImpl, getXVSVaultProxy } from '../ContractLookup';
-import { NoErrorReporter } from '../ErrorReporter';
-import { mergeContractABI } from '../Networks';
+import { buildXVSVaultImpl } from "../Builder/XVSVaultImplBuilder";
+import { Arg, Command, processCommandEvent } from "../Command";
+import { XVSVault, XVSVaultImpl, XVSVaultProxy } from "../Contract/XVSVault";
+import { getXVSVaultImpl, getXVSVaultProxy } from "../ContractLookup";
+import { getEventV } from "../CoreValue";
+import { NoErrorReporter } from "../ErrorReporter";
+import { Event } from "../Event";
+import { invoke } from "../Invokation";
+import { mergeContractABI } from "../Networks";
+import { EventV } from "../Value";
+import { World, addAction } from "../World";
 
 async function genXVSVault(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, xvsVaultImpl, xvsVaultData } = await buildXVSVaultImpl(world, from, params);
+  const { world: nextWorld, xvsVaultImpl, xvsVaultData } = await buildXVSVaultImpl(world, from, params);
   world = nextWorld;
 
   world = addAction(
     world,
     `Deployed XVS Vault implementation (${xvsVaultImpl.name}) to address ${xvsVaultImpl._address}`,
-    xvsVaultData.invokation
+    xvsVaultData.invokation,
   );
 
   return world;
 }
 
-async function become(
-    world: World,
-    from: string,
-    impl: XVSVaultImpl,
-    proxy: XVSVaultProxy
-  ): Promise<World> {
-  let invokation = await invoke(
+async function become(world: World, from: string, impl: XVSVaultImpl, proxy: XVSVaultProxy): Promise<World> {
+  const invokation = await invoke(
     world,
     impl.methods._become(proxy._address),
     from,
-    NoErrorReporter // TODO: Change to vault reporter
+    NoErrorReporter, // TODO: Change to vault reporter
   );
 
   if (!world.dryRun) {
@@ -43,7 +38,7 @@ async function become(
     // what exactly the "number of reasons" means here. So let me just hate people who write
     // these kinds of comments.
 
-    world = await mergeContractABI(world, 'XVSVault', proxy, proxy.name, impl.name);
+    world = await mergeContractABI(world, "XVSVault", proxy, proxy.name, impl.name);
   }
 
   world = addAction(world, `Become ${proxy._address}'s XVS Vault Implementation`, invokation);
@@ -61,13 +56,11 @@ export function xvsVaultImplCommands() {
         * E.g. "XVSVaultImpl Deploy MyVaultImpl"
       `,
       "Deploy",
-      [
-        new Arg("params", getEventV, { variadic: true })
-      ],
-      (world, from, { params }) => genXVSVault(world, from, params.val)
+      [new Arg("params", getEventV, { variadic: true })],
+      (world, from, { params }) => genXVSVault(world, from, params.val),
     ),
 
-    new Command<{ proxy: XVSVault, impl: XVSVaultImpl }>(
+    new Command<{ proxy: XVSVault; impl: XVSVaultImpl }>(
       `
         #### Become
 
@@ -75,13 +68,10 @@ export function xvsVaultImplCommands() {
         * E.g. "XVSVaultImpl MyVoteImpl Become"
       `,
       "Become",
-      [
-        new Arg("proxy", getXVSVaultProxy, { implicit: true }),
-        new Arg("impl", getXVSVaultImpl),
-      ],
+      [new Arg("proxy", getXVSVaultProxy, { implicit: true }), new Arg("impl", getXVSVaultImpl)],
       (world, from, { proxy, impl }) => become(world, from, impl, proxy),
-      { namePos: 1 }
-    )
+      { namePos: 1 },
+    ),
   ];
 }
 

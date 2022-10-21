@@ -1,6 +1,6 @@
 require("dotenv").config();
 const contractConfigData = require("../../../networks/testnet.json");
-const { bnbMantissa } = require('../../deploy/utils/web3-utils');
+const { bnbMantissa } = require("../../deploy/utils/web3-utils");
 const hre = require("hardhat");
 
 const main = async () => {
@@ -15,12 +15,23 @@ const main = async () => {
   const proposalThreshold = bnbMantissa(1e4);
   const guardian = contractConfigData.Accounts.Guardian;
 
-  const constructorArgumentArray = [timelockAddress, xvsVaultAddress, admin, governorBravoDelegateAddress, votingPeriod, votingDelay, proposalThreshold, guardian];
-  console.log(`Verifying GovernorBravoDelegator with timelockAddress, xvsVaultAddress, admin, governorBravoDelegateAddress, votingPeriod, votingDelay, proposalThreshold, guardian in constructorArguments: ${constructorArgumentArray}`);
+  const constructorArgumentArray = [
+    timelockAddress,
+    xvsVaultAddress,
+    admin,
+    governorBravoDelegateAddress,
+    votingPeriod,
+    votingDelay,
+    proposalThreshold,
+    guardian,
+  ];
+  console.log(
+    `Verifying GovernorBravoDelegator with timelockAddress, xvsVaultAddress, admin, governorBravoDelegateAddress, votingPeriod, votingDelay, proposalThreshold, guardian in constructorArguments: ${constructorArgumentArray}`,
+  );
 
   await hre.run("verify:verify", {
     address: governorBravoDelegatorAddress,
-    constructorArguments: constructorArgumentArray
+    constructorArguments: constructorArgumentArray,
   });
   return governorBravoDelegatorAddress;
 };

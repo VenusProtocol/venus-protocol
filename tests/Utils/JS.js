@@ -13,12 +13,12 @@ function lookup(obj, path = []) {
 }
 
 function select(obj, keys = []) {
-  return keys.reduce((a, k) => (a[k] = obj[k], a), {})
+  return keys.reduce((a, k) => ((a[k] = obj[k]), a), {});
 }
 
 module.exports = {
   dfn,
   last,
   lookup,
-  select
+  select,
 };

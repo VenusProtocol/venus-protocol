@@ -1,29 +1,23 @@
-import { BigNumber, Signer } from "ethers";
-import { ethers, network } from "hardhat";
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
-import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
+import { BigNumber, Signer } from "ethers";
+import { ethers } from "hardhat";
+
+import { convertToUnit } from "../../../../helpers/utils";
+import { GovernorBravoDelegate, GovernorBravoDelegate__factory, XVS, XVSStore, XVSVault } from "../../../../typechain";
+import { ProposalType } from "../../util/Proposals";
+
 const { expect } = chai;
 chai.use(smock.matchers);
 
 const { encodeParameters } = require("../../../Utils/BSC");
-
-import {
-  GovernorBravoDelegate,
-  GovernorBravoDelegate__factory,
-  XVSVault,
-  XVSStore,
-  XVS,
-} from "../../../../typechain";
-import { ProposalType } from "../../util/Proposals";
-import { convertToUnit } from "../../../../helpers/utils";;
 
 let root: Signer;
 let customer: Signer;
 let accounts: Signer[];
 let governorBravoDelegate: MockContract<GovernorBravoDelegate>;
 let xvsVault: FakeContract<XVSVault>;
-let xvsStore: FakeContract<XVSStore>;
 let xvsToken: FakeContract<XVS>;
 
 type GovernorBravoDelegateFixture = {
@@ -34,8 +28,7 @@ type GovernorBravoDelegateFixture = {
 };
 
 async function governorBravoFixture(): Promise<GovernorBravoDelegateFixture> {
-  const GovernorBravoDelegateFactory =
-    await smock.mock<GovernorBravoDelegate__factory>("GovernorBravoDelegate");
+  const GovernorBravoDelegateFactory = await smock.mock<GovernorBravoDelegate__factory>("GovernorBravoDelegate");
   const governorBravoDelegate = await GovernorBravoDelegateFactory.deploy();
   const xvsVault = await smock.fake<XVSVault>("XVSVault");
   const xvsStore = await smock.fake<XVSStore>("XVSStore");
@@ -64,12 +57,9 @@ const proposalConfigs = {
   },
 };
 
-let targets: any[],
-  values: string | any[],
-  signatures: string | any[],
-  callDatas: string | any[];
+let targets: any[], values: string | any[], signatures: string | any[], callDatas: string | any[];
 describe("Governor Bravo Propose Tests", () => {
-  let rootAddress: String;
+  let rootAddress: string;
   let proposalId: BigNumber;
   let trivialProposal: any;
   let proposalBlock: number;
@@ -81,7 +71,7 @@ describe("Governor Bravo Propose Tests", () => {
     signatures = ["getBalanceOf(address)"];
     callDatas = [encodeParameters(["address"], [rootAddress])];
     const contracts = await loadFixture(governorBravoFixture);
-    ({ governorBravoDelegate, xvsVault, xvsStore, xvsToken } = contracts);
+    ({ governorBravoDelegate, xvsVault, xvsToken } = contracts);
     await governorBravoDelegate.setVariable("admin", await root.getAddress());
     await governorBravoDelegate.setVariable("initialProposalId", 1);
     await governorBravoDelegate.setVariable("proposalCount", 1);
@@ -90,14 +80,7 @@ describe("Governor Bravo Propose Tests", () => {
     xvsToken.balanceOf.returns(400001);
     xvsVault.getPriorVotes.returns(convertToUnit("300000", 18));
     await governorBravoDelegate.setVariable("proposalConfigs", proposalConfigs);
-    await governorBravoDelegate.propose(
-      targets,
-      values,
-      signatures,
-      callDatas,
-      "do nothing",
-      ProposalType.CRITICAL
-    );
+    await governorBravoDelegate.propose(targets, values, signatures, callDatas, "do nothing", ProposalType.CRITICAL);
     proposalBlock = (await ethers.provider.getBlock("latest")).number;
     proposalId = await governorBravoDelegate.latestProposalIds(rootAddress);
     trivialProposal = await governorBravoDelegate.proposals(proposalId);
@@ -117,9 +100,7 @@ describe("Governor Bravo Propose Tests", () => {
 
     it("End block is set to the current block number plus the sum of vote delay and vote period", async () => {
       expect(trivialProposal.endBlock).to.equal(
-        proposalBlock +
-          proposalConfigs[2].votingDelay +
-          proposalConfigs[2].votingPeriod
+        proposalBlock + proposalConfigs[2].votingDelay + proposalConfigs[2].votingPeriod,
       );
     });
 
@@ -138,9 +119,7 @@ describe("Governor Bravo Propose Tests", () => {
     });
 
     it("Targets, Values, Signatures, Calldatas are set according to parameters", async () => {
-      let dynamicFields = await governorBravoDelegate.getActions(
-        trivialProposal.id
-      );
+      const dynamicFields = await governorBravoDelegate.getActions(trivialProposal.id);
       expect(dynamicFields.targets).to.deep.equal([rootAddress]);
       // values cannot be get with .values since it is reserved word and returns function
       expect(dynamicFields[1]).to.deep.equal(values);
@@ -157,11 +136,9 @@ describe("Governor Bravo Propose Tests", () => {
             signatures,
             callDatas,
             "do nothing",
-            ProposalType.CRITICAL
-          )
-        ).to.be.revertedWith(
-          "GovernorBravo::propose: proposal function information arity mismatch"
-        );
+            ProposalType.CRITICAL,
+          ),
+        ).to.be.revertedWith("GovernorBravo::propose: proposal function information arity mismatch");
 
         await expect(
           governorBravoDelegate.propose(
@@ -170,11 +147,9 @@ describe("Governor Bravo Propose Tests", () => {
             signatures,
             callDatas,
             "do nothing",
-            ProposalType.CRITICAL
-          )
-        ).to.be.revertedWith(
-          "GovernorBravo::propose: proposal function information arity mismatch"
-        );
+            ProposalType.CRITICAL,
+          ),
+        ).to.be.revertedWith("GovernorBravo::propose: proposal function information arity mismatch");
 
         await expect(
           governorBravoDelegate.propose(
@@ -183,11 +158,9 @@ describe("Governor Bravo Propose Tests", () => {
             signatures.concat(rootAddress.toString()),
             callDatas,
             "do nothing",
-            ProposalType.CRITICAL
-          )
-        ).to.be.revertedWith(
-          "GovernorBravo::propose: proposal function information arity mismatch"
-        );
+            ProposalType.CRITICAL,
+          ),
+        ).to.be.revertedWith("GovernorBravo::propose: proposal function information arity mismatch");
 
         await expect(
           governorBravoDelegate.propose(
@@ -196,39 +169,23 @@ describe("Governor Bravo Propose Tests", () => {
             signatures,
             callDatas,
             "do nothing",
-            ProposalType.CRITICAL
-          )
-        ).to.be.revertedWith(
-          "GovernorBravo::propose: proposal function information arity mismatch"
-        );
+            ProposalType.CRITICAL,
+          ),
+        ).to.be.revertedWith("GovernorBravo::propose: proposal function information arity mismatch");
       });
 
       it("or if that length is zero or greater than Max Operations.", async () => {
         await expect(
-          governorBravoDelegate.propose(
-            [],
-            [],
-            [],
-            [],
-            "do nothing",
-            ProposalType.CRITICAL
-          )
+          governorBravoDelegate.propose([], [], [], [], "do nothing", ProposalType.CRITICAL),
         ).to.be.revertedWith("GovernorBravo::propose: must provide actions");
       });
 
       describe("Additionally, if there exists a pending or active proposal from the same proposer, we must revert.", () => {
         it("reverts with pending", async () => {
           await expect(
-            governorBravoDelegate.propose(
-              targets,
-              values,
-              signatures,
-              callDatas,
-              "do nothing",
-              ProposalType.CRITICAL
-            )
+            governorBravoDelegate.propose(targets, values, signatures, callDatas, "do nothing", ProposalType.CRITICAL),
           ).to.be.revertedWith(
-            "GovernorBravo::propose: one live proposal per proposer, found an already pending proposal"
+            "GovernorBravo::propose: one live proposal per proposer, found an already pending proposal",
           );
         });
         it("reverts with active", async () => {
@@ -236,16 +193,9 @@ describe("Governor Bravo Propose Tests", () => {
           await mine();
 
           await expect(
-            governorBravoDelegate.propose(
-              targets,
-              values,
-              signatures,
-              callDatas,
-              "do nothing",
-              ProposalType.CRITICAL
-            )
+            governorBravoDelegate.propose(targets, values, signatures, callDatas, "do nothing", ProposalType.CRITICAL),
           ).to.be.revertedWith(
-            "GovernorBravo::propose: one live proposal per proposer, found an already active proposal"
+            "GovernorBravo::propose: one live proposal per proposer, found an already active proposal",
           );
         });
       });
@@ -256,55 +206,28 @@ describe("Governor Bravo Propose Tests", () => {
 
       await governorBravoDelegate
         .connect(customer)
-        .propose(
-          targets,
-          values,
-          signatures,
-          callDatas,
-          "yoot",
-          ProposalType.CRITICAL
-        );
+        .propose(targets, values, signatures, callDatas, "yoot", ProposalType.CRITICAL);
 
-      let nextProposalId = await governorBravoDelegate.latestProposalIds(
-        await customer.getAddress()
-      );
+      const nextProposalId = await governorBravoDelegate.latestProposalIds(await customer.getAddress());
       expect(+nextProposalId).to.be.equal(+trivialProposal.id + 1);
     });
 
     it("emits log with id and description", async () => {
       await mine();
       await governorBravoDelegate
-	    .connect(accounts[3])
-        .propose(
-          targets,
-          values,
-          signatures,
-          callDatas,
-          "yoot",
-          ProposalType.CRITICAL
-        );
+        .connect(accounts[3])
+        .propose(targets, values, signatures, callDatas, "yoot", ProposalType.CRITICAL);
 
-      let nextProposalId = await governorBravoDelegate.latestProposalIds(
-        await customer.getAddress()
-      );
+      const nextProposalId = await governorBravoDelegate.latestProposalIds(await customer.getAddress());
 
       const currentBlockNumber = (await ethers.provider.getBlock("latest")).number;
-      const proposeStartBlock =
-        currentBlockNumber + proposalConfigs[2].votingDelay;
-      const proposeEndBlock =
-        proposeStartBlock + proposalConfigs[2].votingPeriod;
+      const proposeStartBlock = currentBlockNumber + proposalConfigs[2].votingDelay;
+      const proposeEndBlock = proposeStartBlock + proposalConfigs[2].votingPeriod;
 
       expect(
         await governorBravoDelegate
           .connect(customer)
-          .propose(
-            targets,
-            values,
-            signatures,
-            callDatas,
-            "second proposal",
-            ProposalType.CRITICAL
-          )
+          .propose(targets, values, signatures, callDatas, "second proposal", ProposalType.CRITICAL),
       )
         .to.emit(governorBravoDelegate, "ProposalCreated")
         .withArgs(
@@ -316,7 +239,7 @@ describe("Governor Bravo Propose Tests", () => {
           proposeStartBlock,
           proposeEndBlock,
           "second proposal",
-          customer
+          customer,
         );
     });
   });

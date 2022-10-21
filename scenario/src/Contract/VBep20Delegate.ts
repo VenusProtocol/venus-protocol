@@ -1,6 +1,6 @@
-import { Contract } from '../Contract';
-import { Sendable } from '../Invokation';
-import { VTokenMethods, VTokenScenarioMethods } from './VToken';
+import { Contract } from "../Contract";
+import { Sendable } from "../Invokation";
+import { VTokenMethods, VTokenScenarioMethods } from "./VToken";
 
 interface VBep20DelegateMethods extends VTokenMethods {
   _becomeImplementation(data: string): Sendable<void>;

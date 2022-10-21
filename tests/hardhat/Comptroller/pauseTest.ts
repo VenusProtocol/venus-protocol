@@ -1,15 +1,17 @@
-import { Signer } from "ethers";
-import { ethers } from "hardhat";
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
-const { expect } = chai;
-chai.use(smock.matchers);
 
 import {
-  Comptroller, PriceOracle, Comptroller__factory, VBep20Immutable, IAccessControlManager
+  Comptroller,
+  Comptroller__factory,
+  IAccessControlManager,
+  PriceOracle,
+  VBep20Immutable,
 } from "../../../typechain";
 
+const { expect } = chai;
+chai.use(smock.matchers);
 
 type PauseFixture = {
   accessControl: FakeContract<IAccessControlManager>;
@@ -34,19 +36,19 @@ async function pauseFixture(): Promise<PauseFixture> {
   await comptroller._setPriceOracle(oracle.address);
   const names = ["OMG", "ZRX", "BAT", "sketch"];
   const [OMG, ZRX, BAT, SKT] = await Promise.all(
-    names.map(async (name) => {
+    names.map(async name => {
       const vToken = await smock.fake<VBep20Immutable>("VBep20Immutable");
       if (name !== "sketch") {
         await comptroller._supportMarket(vToken.address);
       }
       return vToken;
-    })
+    }),
   );
   const allTokens = [OMG, ZRX, BAT];
   return { accessControl, comptroller, oracle, OMG, ZRX, BAT, SKT, allTokens, names };
 }
 
-function configure({ accessControl, oracle, allTokens, names }: PauseFixture) {
+function configure({ accessControl, allTokens, names }: PauseFixture) {
   accessControl.isAllowedToCall.reset();
   accessControl.isAllowedToCall.returns(true);
   allTokens.map((vToken, i) => {
@@ -57,13 +59,7 @@ function configure({ accessControl, oracle, allTokens, names }: PauseFixture) {
   });
 }
 
-
 describe("Comptroller", () => {
-  let root: Signer;
-  let rootAddress: string;
-  let customer: Signer;
-  let accounts: Signer[];
-  let accessControl: FakeContract<IAccessControlManager>;
   let comptroller: MockContract<Comptroller>;
   let OMG: FakeContract<VBep20Immutable>;
   let ZRX: FakeContract<VBep20Immutable>;
@@ -71,17 +67,16 @@ describe("Comptroller", () => {
   let SKT: FakeContract<VBep20Immutable>;
 
   beforeEach(async () => {
-    [root, customer, ...accounts] = await ethers.getSigners();
     const contracts = await loadFixture(pauseFixture);
     configure(contracts);
-    ({ accessControl, comptroller, OMG, ZRX, BAT, SKT } = contracts);
-    rootAddress = await root.getAddress();
+    ({ comptroller, OMG, ZRX, BAT, SKT } = contracts);
   });
 
   describe("_setActionsPaused", () => {
     it("reverts if the market is not listed", async () => {
-      await expect(comptroller._setActionsPaused([SKT.address], [1], true))
-        .to.be.revertedWith("cannot pause a market that is not listed");
+      await expect(comptroller._setActionsPaused([SKT.address], [1], true)).to.be.revertedWith(
+        "cannot pause a market that is not listed",
+      );
     });
 
     it("does nothing if the actions list is empty", async () => {

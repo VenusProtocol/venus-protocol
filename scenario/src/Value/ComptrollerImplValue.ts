@@ -1,15 +1,9 @@
-import {Event} from '../Event';
-import {World} from '../World';
-import {ComptrollerImpl} from '../Contract/ComptrollerImpl';
-import {
-  getAddressV
-} from '../CoreValue';
-import {
-  AddressV,
-  Value
-} from '../Value';
-import {Arg, Fetcher, getFetcherValue} from '../Command';
-import {getComptrollerImpl} from '../ContractLookup';
+import { Arg, Fetcher, getFetcherValue } from "../Command";
+import { ComptrollerImpl } from "../Contract/ComptrollerImpl";
+import { getComptrollerImpl } from "../ContractLookup";
+import { Event } from "../Event";
+import { AddressV, Value } from "../Value";
+import { World } from "../World";
 
 export async function getComptrollerImplAddress(world: World, comptrollerImpl: ComptrollerImpl): Promise<AddressV> {
   return new AddressV(comptrollerImpl._address);
@@ -17,16 +11,17 @@ export async function getComptrollerImplAddress(world: World, comptrollerImpl: C
 
 export function comptrollerImplFetchers() {
   return [
-    new Fetcher<{comptrollerImpl: ComptrollerImpl}, AddressV>(`
+    new Fetcher<{ comptrollerImpl: ComptrollerImpl }, AddressV>(
+      `
         #### Address
 
         * "ComptrollerImpl Address" - Returns address of comptroller implementation
       `,
       "Address",
       [new Arg("comptrollerImpl", getComptrollerImpl)],
-      (world, {comptrollerImpl}) => getComptrollerImplAddress(world, comptrollerImpl),
-      {namePos: 1}
-    )
+      (world, { comptrollerImpl }) => getComptrollerImplAddress(world, comptrollerImpl),
+      { namePos: 1 },
+    ),
   ];
 }
 

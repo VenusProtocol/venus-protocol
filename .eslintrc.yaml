@@ -1,0 +1,50 @@
+extends:
+  - "eslint:recommended"
+  - "plugin:@typescript-eslint/eslint-recommended"
+  - "plugin:@typescript-eslint/recommended"
+  - "prettier"
+parser: "@typescript-eslint/parser"
+parserOptions:
+  project: ".eslinttsconfigrc"
+plugins:
+  - "@typescript-eslint"
+  - "jest"
+root: true
+rules:
+  "@typescript-eslint/no-floating-promises":
+    - warn
+    - ignoreIIFE: true
+      ignoreVoid: true
+  "@typescript-eslint/no-inferrable-types": "off"
+  "@typescript-eslint/no-unused-vars":
+    - error
+    - argsIgnorePattern: "_"
+      varsIgnorePattern: "_"
+  "@typescript-eslint/no-var-requires":
+    - warn
+  "@typescript-eslint/no-namespace":
+    - warn
+  no-useless-escape:
+    - warn
+  no-control-regex:
+    - warn
+
+env:
+  node: true
+  jest/globals: true
+
+globals:
+  ethers: readonly
+  send: readonly
+  web3: readonly
+  call: readonly
+  saddle: readonly
+  deploy: readonly
+  minter: readonly
+  redeemer: readonly
+  root: readonly
+  assert: writable
+  test: readonly
+  globals: readonly
+  env: readonly
+  args: readonly

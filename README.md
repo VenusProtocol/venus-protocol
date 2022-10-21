@@ -1,9 +1,8 @@
 [![GitHub Actions](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml/badge.svg)](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml)
 
-Venus Protocol
-=================
+# Venus Protocol
 
-The Venus Protocol is an Binance Smart Chain smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain *supply* capital (BNB or BEP-20 tokens) to receive vTokens or *borrow* assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers.
+The Venus Protocol is an Binance Smart Chain smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain _supply_ capital (BNB or BEP-20 tokens) to receive vTokens or _borrow_ assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers.
 
 Before getting started with this repo, please read:
 
@@ -11,8 +10,7 @@ Before getting started with this repo, please read:
 
 Interested in contributing? Please checkout our [contributing guidelines](./docs/CONTRIBUTING.md)
 
-Contracts
-=========
+# Contracts
 
 We detail a few of the core contracts in the Venus protocol.
 
@@ -71,16 +69,15 @@ We detail a few of the core contracts in the Venus protocol.
   <dd>Initial interest rate model, as defined in the Whitepaper. This contract accepts a base rate and slope parameter in its constructor.</dd>
 </dl>
 
-Installation
-------------
+## Installation
+
 To run venus, pull the repository from GitHub and install its dependencies. You will need [yarn](https://yarnpkg.com/lang/en/docs/install/) or [npm](https://docs.npmjs.com/cli/install) installed.
 
     git clone https://github.com/VenusProtocol/venus-protocol
     cd venus-protocol
     yarn install --lock-file # or `npm install`
 
-Solidity Compiler Installation on MacOS
-------------
+## Solidity Compiler Installation on MacOS
 
 - Solidity smart contracts in venus-protocol use `solc` version 0.5.16
 
@@ -91,7 +88,7 @@ Solidity Compiler Installation on MacOS
   ```sh
   git clone git@github.com:ethereum/homebrew-ethereum.git
   ```
-  
+
   2. change to project directory
 
   ```sh
@@ -116,16 +113,14 @@ Solidity Compiler Installation on MacOS
     solc --version
   ```
 
-   - the command should print the console log:
+  - the command should print the console log:
 
-   ```
-   solc, the solidity compiler commandline interface
-   Version: 0.5.16+commit.9c3226ce.Darwin.appleclang
-   ```  
+  ```
+  solc, the solidity compiler commandline interface
+  Version: 0.5.16+commit.9c3226ce.Darwin.appleclang
+  ```
 
-
-REPL
-----
+## REPL
 
 The Venus Protocol has a simple scenario evaluation tool to test and evaluate scenarios which could occur on the blockchain. This is primarily used for constructing high-level integration tests. The tool also has a REPL to interact with local the Venus Protocol (similar to `truffle console`).
 
@@ -138,43 +133,39 @@ The Venus Protocol has a simple scenario evaluation tool to test and evaluate sc
 
 You can read more about the scenario runner in the [Scenario Docs](https://github.com/VenusProtocol/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
 
-Testing
--------
+## Testing
+
 Jest contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
 
     yarn test
 
-Integration Specs
------------------
+## Integration Specs
 
 There are additional tests under the [spec/scenario](https://github.com/VenusProtocol/venus-protocol/tree/master/spec/scenario) folder. These are high-level integration tests based on the scenario runner depicted above. The aim of these tests is to be highly literate and have high coverage in the interaction of contracts.
 
-Formal Verification Specs
--------------------------
+## Formal Verification Specs
 
 The Venus Protocol has a number of formal verification specifications, powered by [Certik](https://certik.foundation/projects/swipe). The Certik Verification evaluates smart contracts for vulnerabilities and certifies their behavior with respect to a custom function specification.
 
+## Testing
 
-Testing
--------
 Contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
 
     yarn test
 
-Code Coverage
--------------
+## Code Coverage
+
 To run code coverage, run:
 
     yarn coverage
 
-Linting
--------
+## Linting
+
 To lint the code, run:
 
     yarn lint
 
-Docker
-------
+## Docker
 
 To run in docker:
 
@@ -207,8 +198,7 @@ From within a docker shell, you can interact locally with the protocol via ganac
     '28971492600000000000000000'
 ```
 
-Console
--------
+## Console
 
 After you deploy, as above, you can run a truffle console with the following command:
 
@@ -236,8 +226,7 @@ This command will start a saddle console conencted to Goerli testnet (see [Saddl
     '28971492600000000000000000'
 ```
 
-Deploying a VToken from Source
-------------------------------
+## Deploying a VToken from Source
 
 Note: you will need to set `~/.ethereum/<network>` with your private key or assign your private key to the environment variable `ACCOUNT`.
 
@@ -289,7 +278,8 @@ npx saddle -n rinkeby script token:match 0x19B674715cD20626415C738400FDd0d32D680
 ```
 
 ## Deploying a VToken from Docker Build
----------------------------------------
+
+---
 
 To deploy a specific version of the Venus Protocol, you can use the `token:deploy` script through Docker:
 
@@ -321,8 +311,7 @@ docker run --env ACCOUNT=0x$(cat ~/.ethereum/rinkeby) SwipeWallet/venus-protocol
 }'
 ```
 
-Discussion
-----------
+## Discussion
 
 For any concerns with the protocol, open an issue or visit us on [Telegram](https://t.me/venusprotocol) to discuss.
 

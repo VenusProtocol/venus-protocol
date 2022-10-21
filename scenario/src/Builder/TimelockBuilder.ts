@@ -1,16 +1,16 @@
-import { Event } from '../Event';
-import { World } from '../World';
-import { Timelock } from '../Contract/Timelock';
-import { Invokation } from '../Invokation';
-import { getAddressV, getNumberV } from '../CoreValue';
-import { AddressV, NumberV } from '../Value';
-import { Arg, Fetcher, getFetcherValue } from '../Command';
-import { storeAndSaveContract } from '../Networks';
-import { getContract, getTestContract } from '../Contract';
+import { Arg, Fetcher, getFetcherValue } from "../Command";
+import { getContract, getTestContract } from "../Contract";
+import { Timelock } from "../Contract/Timelock";
+import { getAddressV, getNumberV } from "../CoreValue";
+import { Event } from "../Event";
+import { Invokation } from "../Invokation";
+import { storeAndSaveContract } from "../Networks";
+import { AddressV, NumberV } from "../Value";
+import { World } from "../World";
 
-const TimelockContract = getContract('Timelock');
-const TimelockScenarioContract = getTestContract('TimelockHarness');
-const TimelockTestContract = getTestContract('TimelockTest');
+const TimelockContract = getContract("Timelock");
+const TimelockScenarioContract = getTestContract("TimelockHarness");
+const TimelockTestContract = getTestContract("TimelockTest");
 
 export interface TimelockData {
   invokation: Invokation<Timelock>;
@@ -24,7 +24,7 @@ export interface TimelockData {
 export async function buildTimelock(
   world: World,
   from: string,
-  event: Event
+  event: Event,
 ): Promise<{ world: World; timelock: Timelock; timelockData: TimelockData }> {
   const fetchers = [
     new Fetcher<{ admin: AddressV; delay: NumberV }, TimelockData>(
@@ -34,15 +34,15 @@ export async function buildTimelock(
         * "Scenario admin:<Address> delay:<Number>" - The Timelock Scenario for local testing
           * E.g. "Timelock Deploy Scenario Geoff 604800"
       `,
-      'Scenario',
-      [new Arg('admin', getAddressV), new Arg('delay', getNumberV)],
+      "Scenario",
+      [new Arg("admin", getAddressV), new Arg("delay", getNumberV)],
       async (world, { admin, delay }) => ({
         invokation: await TimelockScenarioContract.deploy<Timelock>(world, from, [admin.val, delay.val]),
-        contract: 'TimelockScenario',
-        description: 'Scenario Timelock',
+        contract: "TimelockScenario",
+        description: "Scenario Timelock",
         admin: admin.val,
-        delay: delay.val
-      })
+        delay: delay.val,
+      }),
     ),
     new Fetcher<{ admin: AddressV; delay: NumberV }, TimelockData>(
       `
@@ -51,15 +51,15 @@ export async function buildTimelock(
         * "Standard admin:<Address> delay:<Number>" - The standard Timelock contract
           * E.g. "Timelock Deploy Standard Geoff 604800"
       `,
-      'Standard',
-      [new Arg('admin', getAddressV), new Arg('delay', getNumberV)],
+      "Standard",
+      [new Arg("admin", getAddressV), new Arg("delay", getNumberV)],
       async (world, { admin, delay }) => ({
         invokation: await TimelockContract.deploy<Timelock>(world, from, [admin.val, delay.val]),
-        contract: 'Timelock',
-        description: 'Standard Timelock',
+        contract: "Timelock",
+        description: "Standard Timelock",
         admin: admin.val,
-        delay: delay.val
-      })
+        delay: delay.val,
+      }),
     ),
     new Fetcher<{ admin: AddressV; delay: NumberV }, TimelockData>(
       `
@@ -68,15 +68,15 @@ export async function buildTimelock(
         * "Test admin:<Address> delay:<Number>" - The a standard Timelock contract with a lower minimum delay for testing
           * E.g. "Timelock Deploy Test Geoff 120"
       `,
-      'Test',
-      [new Arg('admin', getAddressV), new Arg('delay', getNumberV)],
+      "Test",
+      [new Arg("admin", getAddressV), new Arg("delay", getNumberV)],
       async (world, { admin, delay }) => ({
         invokation: await TimelockTestContract.deploy<Timelock>(world, from, [admin.val, delay.val]),
-        contract: 'Timelock',
-        description: 'Test Timelock',
+        contract: "Timelock",
+        description: "Test Timelock",
         admin: admin.val,
-        delay: delay.val
-      })
+        delay: delay.val,
+      }),
     ),
     new Fetcher<{ admin: AddressV; delay: NumberV }, TimelockData>(
       `
@@ -85,33 +85,33 @@ export async function buildTimelock(
         * "name:<String>" - The standard Timelock contract
           * E.g. "Timelock Deploy Geoff 604800"
       `,
-      'Default',
-      [new Arg('admin', getAddressV), new Arg('delay', getNumberV)],
+      "Default",
+      [new Arg("admin", getAddressV), new Arg("delay", getNumberV)],
       async (world, { admin, delay }) => {
         if (world.isLocalNetwork()) {
           // Note: we're going to use the scenario contract as the standard deployment on local networks
           return {
             invokation: await TimelockScenarioContract.deploy<Timelock>(world, from, [admin.val, delay.val]),
-            contract: 'TimelockScenario',
-            description: 'Scenario Timelock',
+            contract: "TimelockScenario",
+            description: "Scenario Timelock",
             admin: admin.val,
-            delay: delay.val
+            delay: delay.val,
           };
         } else {
           return {
             invokation: await TimelockContract.deploy<Timelock>(world, from, [admin.val, delay.val]),
-            contract: 'Timelock',
-            description: 'Standard Timelock',
+            contract: "Timelock",
+            description: "Standard Timelock",
             admin: admin.val,
-            delay: delay.val
+            delay: delay.val,
           };
         }
       },
-      { catchall: true }
-    )
+      { catchall: true },
+    ),
   ];
 
-  const timelockData = await getFetcherValue<any, TimelockData>('DeployTimelock', fetchers, world, event);
+  const timelockData = await getFetcherValue<any, TimelockData>("DeployTimelock", fetchers, world, event);
   const invokation = timelockData.invokation;
   delete timelockData.invokation;
 
@@ -121,15 +121,15 @@ export async function buildTimelock(
   const timelock = invokation.value!;
   timelockData.address = timelock._address;
 
-  world = await storeAndSaveContract(world, timelock, 'Timelock', invokation, [
+  world = await storeAndSaveContract(world, timelock, "Timelock", invokation, [
     {
-      index: ['Timelock'],
+      index: ["Timelock"],
       data: {
         address: timelock._address,
         contract: timelockData.contract,
-        description: timelockData.description
-      }
-    }
+        description: timelockData.description,
+      },
+    },
   ]);
 
   return { world, timelock, timelockData };

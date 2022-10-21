@@ -1,9 +1,9 @@
-import {Invariant} from '../Invariant';
-import {fail, World} from '../World';
-import {getCoreValue} from '../CoreValue';
-import {Value} from '../Value';
-import {Event} from '../Event';
-import {formatEvent} from '../Formatter';
+import { getCoreValue } from "../CoreValue";
+import { Event } from "../Event";
+import { formatEvent } from "../Formatter";
+import { Invariant } from "../Invariant";
+import { Value } from "../Value";
+import { World, fail } from "../World";
 
 export class StaticInvariant implements Invariant {
   condition: Event;
@@ -17,13 +17,18 @@ export class StaticInvariant implements Invariant {
 
   async getCurrentValue(world: World): Promise<Value> {
     return await getCoreValue(world, this.condition);
-  };
+  }
 
   async checker(world: World): Promise<void> {
     const currentValue = await this.getCurrentValue(world);
 
     if (!this.value.compareTo(world, currentValue)) {
-      fail(world, `Static invariant broken! Expected ${this.toString()} to remain static value \`${this.value}\` but became \`${currentValue}\``);
+      fail(
+        world,
+        `Static invariant broken! Expected ${this.toString()} to remain static value \`${
+          this.value
+        }\` but became \`${currentValue}\``,
+      );
     }
   }
 

@@ -1,30 +1,30 @@
-import { BigNumber, ContractTransaction, Signer } from "ethers";
-import { ethers, network } from "hardhat";
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
-import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
+import { BigNumber, Signer } from "ethers";
+import { ethers } from "hardhat";
+
+import { convertToUnit } from "../../../../helpers/utils";
+import {
+  GovernorBravoDelegate,
+  GovernorBravoDelegate__factory,
+  Timelock,
+  XVS,
+  XVSStore,
+  XVSVault,
+} from "../../../../typechain";
+import { ProposalType } from "../../util/Proposals";
+
 const { expect } = chai;
 chai.use(smock.matchers);
 
 const { encodeParameters } = require("../../../Utils/BSC");
-
-import {
-  GovernorBravoDelegate,
-  GovernorBravoDelegate__factory,
-  XVSVault,
-  XVSStore,
-  XVS,
-  Timelock,
-} from "../../../../typechain";
-import { ProposalState, ProposalType } from "../../util/Proposals";
-import { convertToUnit } from "../../../../helpers/utils";
 
 let root: Signer;
 let customer: Signer;
 let accounts: Signer[];
 let governorBravoDelegate: MockContract<GovernorBravoDelegate>;
 let xvsVault: FakeContract<XVSVault>;
-let xvsStore: FakeContract<XVSStore>;
 let xvsToken: FakeContract<XVS>;
 let timelock: FakeContract<Timelock>;
 
@@ -37,8 +37,7 @@ type GovernorBravoDelegateFixture = {
 };
 
 async function governorBravoFixture(): Promise<GovernorBravoDelegateFixture> {
-  const GovernorBravoDelegateFactory =
-    await smock.mock<GovernorBravoDelegate__factory>("GovernorBravoDelegate");
+  const GovernorBravoDelegateFactory = await smock.mock<GovernorBravoDelegate__factory>("GovernorBravoDelegate");
   const governorBravoDelegate = await GovernorBravoDelegateFactory.deploy();
   const xvsVault = await smock.fake<XVSVault>("XVSVault");
   const xvsStore = await smock.fake<XVSStore>("XVSStore");
@@ -69,14 +68,13 @@ const proposalConfigs = {
 };
 
 describe("Governor Bravo Queue Tests", () => {
-  let rootAddress: String;
+  let rootAddress: string;
   let proposalId: BigNumber;
   beforeEach(async () => {
     [root, customer, ...accounts] = await ethers.getSigners();
     rootAddress = await root.getAddress();
     const contracts = await loadFixture(governorBravoFixture);
-    ({ governorBravoDelegate, xvsVault, xvsStore, xvsToken, timelock } =
-      contracts);
+    ({ governorBravoDelegate, xvsVault, xvsToken, timelock } = contracts);
 
     await governorBravoDelegate.setVariable("admin", await root.getAddress());
     await governorBravoDelegate.setVariable("initialProposalId", 1);
@@ -96,30 +94,18 @@ describe("Governor Bravo Queue Tests", () => {
       const targets = [xvsToken.address, xvsToken.address];
       const values = ["0", "0"];
       const signatures = ["getBalanceOf(address)", "getBalanceOf(address)"];
-      const calldatas = [
-        encodeParameters(["address"], [rootAddress]),
-        encodeParameters(["address"], [rootAddress]),
-      ];
+      const calldatas = [encodeParameters(["address"], [rootAddress]), encodeParameters(["address"], [rootAddress])];
       await governorBravoDelegate
         .connect(customer)
-        .propose(
-          targets,
-          values,
-          signatures,
-          calldatas,
-          "do nothing",
-          ProposalType.CRITICAL
-        );
-      proposalId = await governorBravoDelegate.latestProposalIds(
-        await customer.getAddress()
-      );
+        .propose(targets, values, signatures, calldatas, "do nothing", ProposalType.CRITICAL);
+      proposalId = await governorBravoDelegate.latestProposalIds(await customer.getAddress());
       await mine();
 
       await governorBravoDelegate.connect(customer).castVote(proposalId, 1);
       await advanceBlocks(17);
       timelock.queuedTransactions.returns(true);
       await expect(governorBravoDelegate.queue(proposalId)).to.be.revertedWith(
-        "GovernorBravo::queueOrRevertInternal: identical proposal action already queued at eta"
+        "GovernorBravo::queueOrRevertInternal: identical proposal action already queued at eta",
       );
     });
 
@@ -133,46 +119,29 @@ describe("Governor Bravo Queue Tests", () => {
 
       await governorBravoDelegate
         .connect(customer)
-        .propose(
-          targets,
-          values,
-          signatures,
-          calldatas,
-          "do nothing1",
-          ProposalType.CRITICAL
-        );
+        .propose(targets, values, signatures, calldatas, "do nothing1", ProposalType.CRITICAL);
 
-      const proposalId1 = await governorBravoDelegate.latestProposalIds(
-        await customer.getAddress()
-      );
+      const proposalId1 = await governorBravoDelegate.latestProposalIds(await customer.getAddress());
 
       await governorBravoDelegate
         .connect(accounts[3])
-        .propose(
-          targets,
-          values,
-          signatures,
-          calldatas,
-          "do nothing",
-          ProposalType.CRITICAL
-        );
+        .propose(targets, values, signatures, calldatas, "do nothing", ProposalType.CRITICAL);
 
-      const proposalId2 = await governorBravoDelegate.latestProposalIds(
-        await accounts[3].getAddress()
-      );
+      const proposalId2 = await governorBravoDelegate.latestProposalIds(await accounts[3].getAddress());
       await mine();
 
-	  await governorBravoDelegate.connect(customer).castVote(proposalId1,1);
-	  await governorBravoDelegate.connect(accounts[3]).castVote(proposalId2,1);
+      await governorBravoDelegate.connect(customer).castVote(proposalId1, 1);
+      await governorBravoDelegate.connect(accounts[3]).castVote(proposalId2, 1);
       await advanceBlocks(17);
-	  timelock.queuedTransactions.returns(false);
-	  await  governorBravoDelegate.queue(proposalId1);
-	  timelock.queuedTransactions.returns(true);
-	  await expect(governorBravoDelegate.queue(proposalId2)).to.be.revertedWith("GovernorBravo::queueOrRevertInternal: identical proposal action already queued at eta");
+      timelock.queuedTransactions.returns(false);
+      await governorBravoDelegate.queue(proposalId1);
+      timelock.queuedTransactions.returns(true);
+      await expect(governorBravoDelegate.queue(proposalId2)).to.be.revertedWith(
+        "GovernorBravo::queueOrRevertInternal: identical proposal action already queued at eta",
+      );
     });
   });
 });
-
 
 async function advanceBlocks(blocks: number) {
   await mine(blocks);

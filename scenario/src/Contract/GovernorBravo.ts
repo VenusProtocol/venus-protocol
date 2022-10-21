@@ -1,20 +1,20 @@
-import { Contract } from '../Contract';
-import { Callable, Sendable } from '../Invokation';
-import { encodedNumber } from '../Encoding';
+import { Contract } from "../Contract";
+import { encodedNumber } from "../Encoding";
+import { Callable, Sendable } from "../Invokation";
 
 export interface Proposal {
-  id: number
-  proposer: string
-  eta: number
-  targets: string[]
-  values: number[]
-  signatures: string[]
-  calldatas: string[]
-  startBlock: number
-  endBlock: number
-  forVotes: number
-  againstVotes: number
-  abstainVotes: number
+  id: number;
+  proposer: string;
+  eta: number;
+  targets: string[];
+  values: number[];
+  signatures: string[];
+  calldatas: string[];
+  startBlock: number;
+  endBlock: number;
+  forVotes: number;
+  againstVotes: number;
+  abstainVotes: number;
 }
 
 export const proposalStateEnums = {
@@ -25,19 +25,25 @@ export const proposalStateEnums = {
   4: "Succeeded",
   5: "Queued",
   6: "Expired",
-  7: "Executed"
-}
+  7: "Executed",
+};
 
 export interface GovernorBravoMethods {
   admin(): Callable<string>;
   pendingAdmin(): Callable<string>;
   implementation(): Callable<string>;
   guardian(): Callable<string>;
-  propose(targets: string[], values: encodedNumber[], signatures: string[], calldatas: string[], description: string): Sendable<void>
+  propose(
+    targets: string[],
+    values: encodedNumber[],
+    signatures: string[],
+    calldatas: string[],
+    description: string,
+  ): Sendable<void>;
   proposals(proposalId: number): Callable<Proposal>;
   proposalCount(): Callable<number>;
   latestProposalIds(proposer: string): Callable<number>;
-  getReceipt(proposalId: number, voter: string): Callable<{ hasVoted: boolean, support: number, votes: number }>;
+  getReceipt(proposalId: number, voter: string): Callable<{ hasVoted: boolean; support: number; votes: number }>;
   castVote(proposalId: number, support: number): Sendable<void>;
   castVoteWithReason(proposalId: number, support: number, reason: string): Sendable<void>;
   queue(proposalId: encodedNumber): Sendable<void>;

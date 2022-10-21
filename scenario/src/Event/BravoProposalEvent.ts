@@ -1,11 +1,11 @@
-import { Event } from "../Event";
-import { addAction, describeUser, World } from "../World";
-import { GovernorBravo } from "../Contract/GovernorBravo";
-import { invoke } from "../Invokation";
-import { getEventV } from "../CoreValue";
-import { EventV } from "../Value";
 import { Arg, Command, processCommandEvent } from "../Command";
+import { GovernorBravo } from "../Contract/GovernorBravo";
+import { getEventV } from "../CoreValue";
+import { Event } from "../Event";
+import { invoke } from "../Invokation";
+import { EventV } from "../Value";
 import { getProposalId } from "../Value/BravoProposalValue";
+import { World, addAction, describeUser } from "../World";
 
 function getSupport(support: Event): number {
   if (typeof support === "string") {
@@ -15,9 +15,7 @@ function getSupport(support: Event): number {
       else if (support === "Abstain") return 2;
     }
   }
-  throw new Error(
-    `Unknown support flag \`${support}\`, expected "For", "Against", or "Abstain"`
-  );
+  throw new Error(`Unknown support flag \`${support}\`, expected "For", "Against", or "Abstain"`);
 }
 
 function getReason(reason: Event): string {
@@ -28,11 +26,7 @@ function getReason(reason: Event): string {
   }
 }
 
-async function describeProposal(
-  world: World,
-  governor: GovernorBravo,
-  proposalId: number
-): Promise<string> {
+async function describeProposal(world: World, governor: GovernorBravo, proposalId: number): Promise<string> {
   // const proposal = await governor.methods.proposals(proposalId).call();
   return `proposal ${proposalId.toString()}`; // TODO: Cleanup
 }
@@ -46,37 +40,25 @@ export function proposalCommands(governor: GovernorBravo) {
         * E.g. "GovernorBravo GovernorBravoScenario Proposal LastProposal VoteWithReason For 'must be done'"
     `,
       "VoteWithReason",
-      [
-        new Arg("proposalIdent", getEventV),
-        new Arg("support", getEventV),
-        new Arg("reason", getEventV),
-      ],
+      [new Arg("proposalIdent", getEventV), new Arg("support", getEventV), new Arg("reason", getEventV)],
       async (world, from, { proposalIdent, support, reason }) => {
-        const proposalId = await getProposalId(
-          world,
-          governor,
-          proposalIdent.val
-        );
+        const proposalId = await getProposalId(world, governor, proposalIdent.val);
         const invokation = await invoke(
           world,
-          governor.methods.castVoteWithReason(
-            proposalId,
-            getSupport(support.val),
-            getReason(reason.val)
-          ),
-          from
+          governor.methods.castVoteWithReason(proposalId, getSupport(support.val), getReason(reason.val)),
+          from,
         );
 
         return addAction(
           world,
           `Cast ${support.val.toString()} vote from ${describeUser(
             world,
-            from
+            from,
           )} for proposal ${proposalId} with reason ${reason.val.toString()}`,
-          invokation
+          invokation,
         );
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
     new Command<{ proposalIdent: EventV; support: EventV }>(
@@ -86,35 +68,18 @@ export function proposalCommands(governor: GovernorBravo) {
         * E.g. "GovernorBravo GovernorBravoScenario Proposal LastProposal Vote For"
     `,
       "Vote",
-      [
-        new Arg("proposalIdent", getEventV),
-        new Arg("support", getEventV)
-      ],
+      [new Arg("proposalIdent", getEventV), new Arg("support", getEventV)],
       async (world, from, { proposalIdent, support }) => {
-        const proposalId = await getProposalId(
-          world,
-          governor,
-          proposalIdent.val
-        );
-        const invokation = await invoke(
-          world,
-          governor.methods.castVote(
-            proposalId,
-            getSupport(support.val)
-          ),
-          from
-        );
+        const proposalId = await getProposalId(world, governor, proposalIdent.val);
+        const invokation = await invoke(world, governor.methods.castVote(proposalId, getSupport(support.val)), from);
 
         return addAction(
           world,
-          `Cast ${support.val.toString()} vote from ${describeUser(
-            world,
-            from
-          )} for proposal ${proposalId}`,
-          invokation
+          `Cast ${support.val.toString()} vote from ${describeUser(world, from)} for proposal ${proposalId}`,
+          invokation,
         );
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
 
     new Command<{ proposalIdent: EventV }>(
@@ -126,28 +91,16 @@ export function proposalCommands(governor: GovernorBravo) {
       "Queue",
       [new Arg("proposalIdent", getEventV)],
       async (world, from, { proposalIdent }) => {
-        const proposalId = await getProposalId(
-          world,
-          governor,
-          proposalIdent.val
-        );
-        const invokation = await invoke(
-          world,
-          governor.methods.queue(proposalId),
-          from
-        );
+        const proposalId = await getProposalId(world, governor, proposalIdent.val);
+        const invokation = await invoke(world, governor.methods.queue(proposalId), from);
 
         return addAction(
           world,
-          `Queue proposal ${await describeProposal(
-            world,
-            governor,
-            proposalId
-          )} from ${describeUser(world, from)}`,
-          invokation
+          `Queue proposal ${await describeProposal(world, governor, proposalId)} from ${describeUser(world, from)}`,
+          invokation,
         );
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
     new Command<{ proposalIdent: EventV }>(
       `
@@ -158,28 +111,16 @@ export function proposalCommands(governor: GovernorBravo) {
       "Execute",
       [new Arg("proposalIdent", getEventV)],
       async (world, from, { proposalIdent }) => {
-        const proposalId = await getProposalId(
-          world,
-          governor,
-          proposalIdent.val
-        );
-        const invokation = await invoke(
-          world,
-          governor.methods.execute(proposalId),
-          from
-        );
+        const proposalId = await getProposalId(world, governor, proposalIdent.val);
+        const invokation = await invoke(world, governor.methods.execute(proposalId), from);
 
         return addAction(
           world,
-          `Execute proposal ${await describeProposal(
-            world,
-            governor,
-            proposalId
-          )} from ${describeUser(world, from)}`,
-          invokation
+          `Execute proposal ${await describeProposal(world, governor, proposalId)} from ${describeUser(world, from)}`,
+          invokation,
         );
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
     new Command<{ proposalIdent: EventV }>(
       `
@@ -190,28 +131,16 @@ export function proposalCommands(governor: GovernorBravo) {
       "Cancel",
       [new Arg("proposalIdent", getEventV)],
       async (world, from, { proposalIdent }) => {
-        const proposalId = await getProposalId(
-          world,
-          governor,
-          proposalIdent.val
-        );
-        const invokation = await invoke(
-          world,
-          governor.methods.cancel(proposalId),
-          from
-        );
+        const proposalId = await getProposalId(world, governor, proposalIdent.val);
+        const invokation = await invoke(world, governor.methods.cancel(proposalId), from);
 
         return addAction(
           world,
-          `Cancel proposal ${await describeProposal(
-            world,
-            governor,
-            proposalId
-          )} from ${describeUser(world, from)}`,
-          invokation
+          `Cancel proposal ${await describeProposal(world, governor, proposalId)} from ${describeUser(world, from)}`,
+          invokation,
         );
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
   ];
 }
@@ -220,13 +149,7 @@ export async function processProposalEvent(
   world: World,
   governor: GovernorBravo,
   event: Event,
-  from: string | null
+  from: string | null,
 ): Promise<World> {
-  return await processCommandEvent<any>(
-    "Proposal",
-    proposalCommands(governor),
-    world,
-    event,
-    from
-  );
+  return await processCommandEvent<any>("Proposal", proposalCommands(governor), world, event, from);
 }

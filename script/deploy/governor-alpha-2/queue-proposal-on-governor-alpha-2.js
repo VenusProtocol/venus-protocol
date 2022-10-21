@@ -1,11 +1,10 @@
 const [network] = args;
 const contractConfigData = require(`../../../networks/${network}.json`);
 
-(async () => {  
-
+(async () => {
   const governorAlpha2Address = contractConfigData.Contracts.GovernorAlpha2;
 
-  const governorAlpha2ContractInstance = await saddle.getContractAt('GovernorAlpha2', governorAlpha2Address);
+  const governorAlpha2ContractInstance = await saddle.getContractAt("GovernorAlpha2", governorAlpha2Address);
 
   const proposalId = 101;
 

@@ -1,12 +1,12 @@
-const fs = require('fs');
+const fs = require("fs");
 
 (async () => {
-  fs.readFile('.build/contracts-trace.json', (err, data) => {
+  fs.readFile(".build/contracts-trace.json", (err, data) => {
     if (err) throw err;
     let contracts = JSON.parse(data);
     contracts = contracts["contracts"];
-    comptroller = contracts["contracts/Comptroller.sol:Comptroller"];
-    bin = comptroller["bin-runtime"]
+    const comptroller = contracts["contracts/Comptroller.sol:Comptroller"];
+    const bin = comptroller["bin-runtime"];
     const digits = bin.length;
     const bytes = digits / 2;
     console.log("Current Comptroller compiles to", bytes, "bytes.");

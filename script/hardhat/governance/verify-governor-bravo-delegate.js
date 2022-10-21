@@ -6,7 +6,7 @@ const main = async () => {
   const governorBravoDelegateAddress = contractConfigData.Contracts.GovernorBravoDelegate;
 
   await hre.run("verify:verify", {
-    address: governorBravoDelegateAddress
+    address: governorBravoDelegateAddress,
   });
   return governorBravoDelegateAddress;
 };

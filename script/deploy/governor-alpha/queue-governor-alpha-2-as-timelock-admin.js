@@ -1,12 +1,11 @@
 const [network] = args;
 const contractConfigData = require(`../../../networks/${network}.json`);
-const { bnbUnsigned } = require('../utils/web3-utils');
+const { bnbUnsigned } = require("../utils/web3-utils");
 
-(async () => {  
-
+(async () => {
   const governorAlphaAddress = contractConfigData.Contracts.GovernorAlpha;
 
-  const governorAlphaContractInstance = await saddle.getContractAt('GovernorAlpha', governorAlphaAddress);
+  const governorAlphaContractInstance = await saddle.getContractAt("GovernorAlpha", governorAlphaAddress);
 
   const governorAlpha2Address = contractConfigData.Contracts.GovernorAlpha2;
 
@@ -16,10 +15,13 @@ const { bnbUnsigned } = require('../utils/web3-utils');
   const timestamp = block.timestamp;
   const eta = bnbUnsigned(timestamp).add(delay).add(120);
 
-  console.log(`queueing SetTimelockPendingAdmin with governorAlpha2: ${governorAlpha2Address} - configuredDelay: ${delay},  eta: ${eta}`);
+  console.log(
+    `queueing SetTimelockPendingAdmin with governorAlpha2: ${governorAlpha2Address} - configuredDelay: ${delay},  eta: ${eta}`,
+  );
 
-  const queueSetTimelockPendingAdminTxn = 
-    await governorAlphaContractInstance.methods.__queueSetTimelockPendingAdmin(governorAlpha2Address, eta).send();
+  const queueSetTimelockPendingAdminTxn = await governorAlphaContractInstance.methods
+    .__queueSetTimelockPendingAdmin(governorAlpha2Address, eta)
+    .send();
 
-  console.log(`queueSetTimelockPendingAdminTxn is: ${queueSetTimelockPendingAdminTxn.status}`);                                                                              
+  console.log(`queueSetTimelockPendingAdminTxn is: ${queueSetTimelockPendingAdminTxn.status}`);
 })();

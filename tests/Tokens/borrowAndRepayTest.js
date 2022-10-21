@@ -1,7 +1,4 @@
-const {
-  bnbUnsigned,
-  bnbMantissa
-} = require('../Utils/BSC');
+const { bnbUnsigned, bnbMantissa } = require("../Utils/BSC");
 
 const {
   makeVToken,
@@ -11,73 +8,73 @@ const {
   fastForward,
   setBalance,
   preApprove,
-  pretendBorrow
-} = require('../Utils/Venus');
+  pretendBorrow,
+} = require("../Utils/Venus");
 
 const borrowAmount = bnbUnsigned(10e3);
 const repayAmount = bnbUnsigned(10e2);
 
 async function preBorrow(vToken, borrower, borrowAmount) {
-  await send(vToken.comptroller, 'setBorrowAllowed', [true]);
-  await send(vToken.comptroller, 'setBorrowVerify', [true]);
-  await send(vToken.interestRateModel, 'setFailBorrowRate', [false]);
-  await send(vToken.underlying, 'harnessSetBalance', [vToken._address, borrowAmount]);
-  await send(vToken, 'harnessSetFailTransferToAddress', [borrower, false]);
-  await send(vToken, 'harnessSetAccountBorrows', [borrower, 0, 0]);
-  await send(vToken, 'harnessSetTotalBorrows', [0]);
+  await send(vToken.comptroller, "setBorrowAllowed", [true]);
+  await send(vToken.comptroller, "setBorrowVerify", [true]);
+  await send(vToken.interestRateModel, "setFailBorrowRate", [false]);
+  await send(vToken.underlying, "harnessSetBalance", [vToken._address, borrowAmount]);
+  await send(vToken, "harnessSetFailTransferToAddress", [borrower, false]);
+  await send(vToken, "harnessSetAccountBorrows", [borrower, 0, 0]);
+  await send(vToken, "harnessSetTotalBorrows", [0]);
 }
 
 async function borrowFresh(vToken, borrower, borrowAmount) {
-  return send(vToken, 'harnessBorrowFresh', [borrower, borrowAmount]);
+  return send(vToken, "harnessBorrowFresh", [borrower, borrowAmount]);
 }
 
-async function borrow(vToken, borrower, borrowAmount, opts = {}) {
+async function borrow(vToken, borrower, borrowAmount) {
   // make sure to have a block delta so we accrue interest
-  await send(vToken, 'harnessFastForward', [1]);
-  return send(vToken, 'borrow', [borrowAmount], {from: borrower});
+  await send(vToken, "harnessFastForward", [1]);
+  return send(vToken, "borrow", [borrowAmount], { from: borrower });
 }
 
 async function preRepay(vToken, benefactor, borrower, repayAmount) {
   // setup either benefactor OR borrower for success in repaying
-  await send(vToken.comptroller, 'setRepayBorrowAllowed', [true]);
-  await send(vToken.comptroller, 'setRepayBorrowVerify', [true]);
-  await send(vToken.interestRateModel, 'setFailBorrowRate', [false]);
-  await send(vToken.underlying, 'harnessSetFailTransferFromAddress', [benefactor, false]);
-  await send(vToken.underlying, 'harnessSetFailTransferFromAddress', [borrower, false]);
+  await send(vToken.comptroller, "setRepayBorrowAllowed", [true]);
+  await send(vToken.comptroller, "setRepayBorrowVerify", [true]);
+  await send(vToken.interestRateModel, "setFailBorrowRate", [false]);
+  await send(vToken.underlying, "harnessSetFailTransferFromAddress", [benefactor, false]);
+  await send(vToken.underlying, "harnessSetFailTransferFromAddress", [borrower, false]);
   await pretendBorrow(vToken, borrower, 1, 1, repayAmount);
   await preApprove(vToken, benefactor, repayAmount);
   await preApprove(vToken, borrower, repayAmount);
 }
 
 async function repayBorrowFresh(vToken, payer, borrower, repayAmount) {
-  return send(vToken, 'harnessRepayBorrowFresh', [payer, borrower, repayAmount], {from: payer});
+  return send(vToken, "harnessRepayBorrowFresh", [payer, borrower, repayAmount], { from: payer });
 }
 
 async function repayBorrow(vToken, borrower, repayAmount) {
   // make sure to have a block delta so we accrue interest
-  await send(vToken, 'harnessFastForward', [1]);
-  return send(vToken, 'repayBorrow', [repayAmount], {from: borrower});
+  await send(vToken, "harnessFastForward", [1]);
+  return send(vToken, "repayBorrow", [repayAmount], { from: borrower });
 }
 
 async function repayBorrowBehalf(vToken, payer, borrower, repayAmount) {
   // make sure to have a block delta so we accrue interest
-  await send(vToken, 'harnessFastForward', [1]);
-  return send(vToken, 'repayBorrowBehalf', [borrower, repayAmount], {from: payer});
+  await send(vToken, "harnessFastForward", [1]);
+  return send(vToken, "repayBorrowBehalf", [borrower, repayAmount], { from: payer });
 }
 
-describe('VToken', function () {
-  let vToken, root, borrower, benefactor, accounts;
+describe("VToken", function () {
+  let vToken, root, borrower, benefactor; // eslint-disable-line @typescript-eslint/no-unused-vars
   beforeEach(async () => {
-    [root, borrower, benefactor, ...accounts] = saddle.accounts;
-    vToken = await makeVToken({comptrollerOpts: {kind: 'bool'}});
+    [root, borrower, benefactor] = saddle.accounts;
+    vToken = await makeVToken({ comptrollerOpts: { kind: "bool" } });
   });
 
-  describe('borrowFresh', () => {
+  describe("borrowFresh", () => {
     beforeEach(async () => await preBorrow(vToken, borrower, borrowAmount));
 
     it("fails if comptroller tells it to", async () => {
-      await send(vToken.comptroller, 'setBorrowAllowed', [false]);
-      expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTrollReject('BORROW_COMPTROLLER_REJECTION');
+      await send(vToken.comptroller, "setBorrowAllowed", [false]);
+      expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTrollReject("BORROW_COMPTROLLER_REJECTION");
     });
 
     it("proceeds if comptroller tells it to", async () => {
@@ -86,40 +83,63 @@ describe('VToken', function () {
 
     it("fails if market not fresh", async () => {
       await fastForward(vToken);
-      expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTokenFailure('MARKET_NOT_FRESH', 'BORROW_FRESHNESS_CHECK');
+      expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTokenFailure(
+        "MARKET_NOT_FRESH",
+        "BORROW_FRESHNESS_CHECK",
+      );
     });
 
     it("continues if fresh", async () => {
-      await expect(await send(vToken, 'accrueInterest')).toSucceed();
+      await expect(await send(vToken, "accrueInterest")).toSucceed();
       await expect(await borrowFresh(vToken, borrower, borrowAmount)).toSucceed();
     });
 
     it("fails if error if protocol has less than borrowAmount of underlying", async () => {
-      expect(await borrowFresh(vToken, borrower, borrowAmount.add(1))).toHaveTokenFailure('TOKEN_INSUFFICIENT_CASH', 'BORROW_CASH_NOT_AVAILABLE');
+      expect(await borrowFresh(vToken, borrower, borrowAmount.add(1))).toHaveTokenFailure(
+        "TOKEN_INSUFFICIENT_CASH",
+        "BORROW_CASH_NOT_AVAILABLE",
+      );
     });
 
     it("fails if borrowBalanceStored fails (due to non-zero stored principal with zero account index)", async () => {
       await pretendBorrow(vToken, borrower, 0, 3e18, 5e18);
-      expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTokenFailure('MATH_ERROR', 'BORROW_ACCUMULATED_BALANCE_CALCULATION_FAILED');
+      expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTokenFailure(
+        "MATH_ERROR",
+        "BORROW_ACCUMULATED_BALANCE_CALCULATION_FAILED",
+      );
     });
 
     it("fails if calculating account new total borrow balance overflows", async () => {
-      await pretendBorrow(vToken, borrower, 1e-18, 1e-18, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
-      expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTokenFailure('MATH_ERROR', 'BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED');
+      await pretendBorrow(
+        vToken,
+        borrower,
+        1e-18,
+        1e-18,
+        "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+      );
+      expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTokenFailure(
+        "MATH_ERROR",
+        "BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED",
+      );
     });
 
     it("fails if calculation of new total borrow balance overflows", async () => {
-      await send(vToken, 'harnessSetTotalBorrows', ['0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF']);
-      expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTokenFailure('MATH_ERROR', 'BORROW_NEW_TOTAL_BALANCE_CALCULATION_FAILED');
+      await send(vToken, "harnessSetTotalBorrows", [
+        "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+      ]);
+      expect(await borrowFresh(vToken, borrower, borrowAmount)).toHaveTokenFailure(
+        "MATH_ERROR",
+        "BORROW_NEW_TOTAL_BALANCE_CALCULATION_FAILED",
+      );
     });
 
     it("reverts if transfer out fails", async () => {
-      await send(vToken, 'harnessSetFailTransferToAddress', [borrower, true]);
+      await send(vToken, "harnessSetFailTransferToAddress", [borrower, true]);
       await expect(borrowFresh(vToken, borrower, borrowAmount)).rejects.toRevert("revert TOKEN_TRANSFER_OUT_FAILED");
     });
 
-    it("reverts if borrowVerify fails", async() => {
-      await send(vToken.comptroller, 'setBorrowVerify', [false]);
+    it("reverts if borrowVerify fails", async () => {
+      await send(vToken.comptroller, "setBorrowVerify", [false]);
       await expect(borrowFresh(vToken, borrower, borrowAmount)).rejects.toRevert("revert borrowVerify rejected borrow");
     });
 
@@ -132,16 +152,16 @@ describe('VToken', function () {
       expect(await balanceOf(vToken.underlying, borrower)).toEqualNumber(beforeAccountCash.add(borrowAmount));
       expect(await balanceOf(vToken.underlying, vToken._address)).toEqualNumber(beforeProtocolCash.sub(borrowAmount));
       expect(await totalBorrows(vToken)).toEqualNumber(beforeProtocolBorrows.add(borrowAmount));
-      expect(result).toHaveLog('Transfer', {
+      expect(result).toHaveLog("Transfer", {
         from: vToken._address,
         to: borrower,
-        amount: borrowAmount.toString()
+        amount: borrowAmount.toString(),
       });
-      expect(result).toHaveLog('Borrow', {
+      expect(result).toHaveLog("Borrow", {
         borrower: borrower,
         borrowAmount: borrowAmount.toString(),
         accountBorrows: borrowAmount.toString(),
-        totalBorrows: beforeProtocolBorrows.add(borrowAmount).toString()
+        totalBorrows: beforeProtocolBorrows.add(borrowAmount).toString(),
       });
     });
 
@@ -156,16 +176,19 @@ describe('VToken', function () {
     });
   });
 
-  describe('borrow', () => {
+  describe("borrow", () => {
     beforeEach(async () => await preBorrow(vToken, borrower, borrowAmount));
 
     it("emits a borrow failure if interest accrual fails", async () => {
-      await send(vToken.interestRateModel, 'setFailBorrowRate', [true]);
+      await send(vToken.interestRateModel, "setFailBorrowRate", [true]);
       await expect(borrow(vToken, borrower, borrowAmount)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
     });
 
     it("returns error from borrowFresh without emitting any extra logs", async () => {
-      expect(await borrow(vToken, borrower, borrowAmount.add(1))).toHaveTokenFailure('TOKEN_INSUFFICIENT_CASH', 'BORROW_CASH_NOT_AVAILABLE');
+      expect(await borrow(vToken, borrower, borrowAmount.add(1))).toHaveTokenFailure(
+        "TOKEN_INSUFFICIENT_CASH",
+        "BORROW_CASH_NOT_AVAILABLE",
+      );
     });
 
     it("returns success from borrowFresh and transfers the correct amount", async () => {
@@ -176,8 +199,8 @@ describe('VToken', function () {
     });
   });
 
-  describe('repayBorrowFresh', () => {
-    [true, false].forEach((benefactorIsPayer) => {
+  describe("repayBorrowFresh", () => {
+    [true, false].forEach(benefactorIsPayer => {
       let payer;
       const label = benefactorIsPayer ? "benefactor paying" : "borrower paying";
       describe(label, () => {
@@ -187,62 +210,80 @@ describe('VToken', function () {
         });
 
         it("fails if repay is not allowed", async () => {
-          await send(vToken.comptroller, 'setRepayBorrowAllowed', [false]);
-          expect(await repayBorrowFresh(vToken, payer, borrower, repayAmount)).toHaveTrollReject('REPAY_BORROW_COMPTROLLER_REJECTION', 'MATH_ERROR');
+          await send(vToken.comptroller, "setRepayBorrowAllowed", [false]);
+          expect(await repayBorrowFresh(vToken, payer, borrower, repayAmount)).toHaveTrollReject(
+            "REPAY_BORROW_COMPTROLLER_REJECTION",
+            "MATH_ERROR",
+          );
         });
 
         it("fails if block number ≠ current block number", async () => {
           await fastForward(vToken);
-          expect(await repayBorrowFresh(vToken, payer, borrower, repayAmount)).toHaveTokenFailure('MARKET_NOT_FRESH', 'REPAY_BORROW_FRESHNESS_CHECK');
+          expect(await repayBorrowFresh(vToken, payer, borrower, repayAmount)).toHaveTokenFailure(
+            "MARKET_NOT_FRESH",
+            "REPAY_BORROW_FRESHNESS_CHECK",
+          );
         });
 
-        it("fails if insufficient approval", async() => {
+        it("fails if insufficient approval", async () => {
           await preApprove(vToken, payer, 1);
-          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert('revert Insufficient allowance');
+          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert(
+            "revert Insufficient allowance",
+          );
         });
 
-        it("fails if insufficient balance", async() => {
+        it("fails if insufficient balance", async () => {
           await setBalance(vToken.underlying, payer, 1);
-          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert('revert Insufficient balance');
+          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert(
+            "revert Insufficient balance",
+          );
         });
-
 
         it("returns an error if calculating account new account borrow balance fails", async () => {
           await pretendBorrow(vToken, borrower, 1, 1, 1);
-          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert("revert REPAY_BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED");
+          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert(
+            "revert REPAY_BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED",
+          );
         });
 
         it("returns an error if calculation of new total borrow balance fails", async () => {
-          await send(vToken, 'harnessSetTotalBorrows', [1]);
-          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert("revert REPAY_BORROW_NEW_TOTAL_BALANCE_CALCULATION_FAILED");
+          await send(vToken, "harnessSetTotalBorrows", [1]);
+          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert(
+            "revert REPAY_BORROW_NEW_TOTAL_BALANCE_CALCULATION_FAILED",
+          );
         });
-
 
         it("reverts if doTransferIn fails", async () => {
-          await send(vToken.underlying, 'harnessSetFailTransferFromAddress', [payer, true]);
-          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert("revert TOKEN_TRANSFER_IN_FAILED");
+          await send(vToken.underlying, "harnessSetFailTransferFromAddress", [payer, true]);
+          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert(
+            "revert TOKEN_TRANSFER_IN_FAILED",
+          );
         });
 
-        it("reverts if repayBorrowVerify fails", async() => {
-          await send(vToken.comptroller, 'setRepayBorrowVerify', [false]);
-          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert("revert repayBorrowVerify rejected repayBorrow");
+        it("reverts if repayBorrowVerify fails", async () => {
+          await send(vToken.comptroller, "setRepayBorrowVerify", [false]);
+          await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).rejects.toRevert(
+            "revert repayBorrowVerify rejected repayBorrow",
+          );
         });
 
         it("transfers the underlying cash, and emits Transfer, RepayBorrow events", async () => {
           const beforeProtocolCash = await balanceOf(vToken.underlying, vToken._address);
           const result = await repayBorrowFresh(vToken, payer, borrower, repayAmount);
-          expect(await balanceOf(vToken.underlying, vToken._address)).toEqualNumber(beforeProtocolCash.add(repayAmount));
-          expect(result).toHaveLog('Transfer', {
+          expect(await balanceOf(vToken.underlying, vToken._address)).toEqualNumber(
+            beforeProtocolCash.add(repayAmount),
+          );
+          expect(result).toHaveLog("Transfer", {
             from: payer,
             to: vToken._address,
-            amount: repayAmount.toString()
+            amount: repayAmount.toString(),
           });
-          expect(result).toHaveLog('RepayBorrow', {
+          expect(result).toHaveLog("RepayBorrow", {
             payer: payer,
             borrower: borrower,
             repayAmount: repayAmount.toString(),
             accountBorrows: "0",
-            totalBorrows: "0"
+            totalBorrows: "0",
           });
         });
 
@@ -259,19 +300,19 @@ describe('VToken', function () {
     });
   });
 
-  describe('repayBorrow', () => {
+  describe("repayBorrow", () => {
     beforeEach(async () => {
       await preRepay(vToken, borrower, borrower, repayAmount);
     });
 
     it("emits a repay borrow failure if interest accrual fails", async () => {
-      await send(vToken.interestRateModel, 'setFailBorrowRate', [true]);
+      await send(vToken.interestRateModel, "setFailBorrowRate", [true]);
       await expect(repayBorrow(vToken, borrower, repayAmount)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
     });
 
     it("returns error from repayBorrowFresh without emitting any extra logs", async () => {
       await setBalance(vToken.underlying, borrower, 1);
-      await expect(repayBorrow(vToken, borrower, repayAmount)).rejects.toRevert('revert Insufficient balance');
+      await expect(repayBorrow(vToken, borrower, repayAmount)).rejects.toRevert("revert Insufficient balance");
     });
 
     it("returns success from repayBorrowFresh and repays the right amount", async () => {
@@ -284,7 +325,9 @@ describe('VToken', function () {
 
     it("repays the full amount owed if payer has enough", async () => {
       await fastForward(vToken);
-      expect(await repayBorrow(vToken, borrower, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')).toSucceed();
+      expect(
+        await repayBorrow(vToken, borrower, "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+      ).toSucceed();
       const afterAccountBorrowSnap = await borrowSnapshot(vToken, borrower);
       expect(afterAccountBorrowSnap.principal).toEqualNumber(0);
     });
@@ -292,11 +335,13 @@ describe('VToken', function () {
     it("fails gracefully if payer does not have enough", async () => {
       await setBalance(vToken.underlying, borrower, 3);
       await fastForward(vToken);
-      await expect(repayBorrow(vToken, borrower, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')).rejects.toRevert('revert Insufficient balance');
+      await expect(
+        repayBorrow(vToken, borrower, "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
+      ).rejects.toRevert("revert Insufficient balance");
     });
   });
 
-  describe('repayBorrowBehalf', () => {
+  describe("repayBorrowBehalf", () => {
     let payer;
 
     beforeEach(async () => {
@@ -305,13 +350,17 @@ describe('VToken', function () {
     });
 
     it("emits a repay borrow failure if interest accrual fails", async () => {
-      await send(vToken.interestRateModel, 'setFailBorrowRate', [true]);
-      await expect(repayBorrowBehalf(vToken, payer, borrower, repayAmount)).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
+      await send(vToken.interestRateModel, "setFailBorrowRate", [true]);
+      await expect(repayBorrowBehalf(vToken, payer, borrower, repayAmount)).rejects.toRevert(
+        "revert INTEREST_RATE_MODEL_ERROR",
+      );
     });
 
     it("returns error from repayBorrowFresh without emitting any extra logs", async () => {
       await setBalance(vToken.underlying, payer, 1);
-      await expect(repayBorrowBehalf(vToken, payer, borrower, repayAmount)).rejects.toRevert('revert Insufficient balance');
+      await expect(repayBorrowBehalf(vToken, payer, borrower, repayAmount)).rejects.toRevert(
+        "revert Insufficient balance",
+      );
     });
 
     it("returns success from repayBorrowFresh and repays the right amount", async () => {

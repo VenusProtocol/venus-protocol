@@ -1,27 +1,27 @@
-import {Event} from './Event';
+import { Event } from "./Event";
 
 interface Arg {
-  arg: any
-  def: any
-  splat: any
+  arg: any;
+  def: any;
+  splat: any;
 }
 
 interface Macro {
-  args: Arg[]
-  steps: Event
+  args: Arg[];
+  steps: Event;
 }
 
-type ArgMap = {[arg: string]: Event};
-type NamedArg = { argName: string, argValue: Event };
+type ArgMap = { [arg: string]: Event };
+type NamedArg = { argName: string; argValue: Event };
 type ArgValue = Event | NamedArg;
 
-export type Macros = {[eventName: string]: Macro};
+export type Macros = { [eventName: string]: Macro };
 
 export function expandEvent(macros: Macros, event: Event): Event[] {
   const [eventName, ...eventArgs] = event;
 
   if (macros[<string>eventName]) {
-    let expanded = expandMacro(macros[<string>eventName], eventArgs);
+    const expanded = expandMacro(macros[<string>eventName], eventArgs);
 
     // Recursively expand steps
     return expanded.map(event => expandEvent(macros, event)).flat();
@@ -37,9 +37,9 @@ function getArgValues(eventArgs: ArgValue[], macroArgs: Arg[]): ArgMap {
   let usedNamedArg: boolean = false;
   let usedSplat: boolean = false;
 
-  eventArgs.forEach((eventArg) => {
-    if (eventArg.hasOwnProperty('argName')) {
-      const {argName, argValue} = <NamedArg>eventArg;
+  eventArgs.forEach(eventArg => {
+    if (Object.hasOwnProperty.call(eventArg, "argName")) {
+      const { argName, argValue } = <NamedArg>eventArg;
 
       eventArgNameMap[argName] = argValue;
       usedNamedArg = true;
@@ -52,7 +52,7 @@ function getArgValues(eventArgs: ArgValue[], macroArgs: Arg[]): ArgMap {
     }
   });
 
-  macroArgs.forEach(({arg, def, splat}, argIndex) => {
+  macroArgs.forEach(({ arg, def, splat }, argIndex) => {
     let val;
 
     if (usedSplat) {
@@ -81,7 +81,7 @@ export function expandMacro(macro: Macro, event: Event): Event[] {
   const argValues = getArgValues(<ArgValue[]>event, macro.args);
 
   function expandStep(step) {
-    return step.map((token) => {
+    return step.map(token => {
       if (argValues[token] !== undefined) {
         return argValues[token];
       } else {
@@ -92,7 +92,7 @@ export function expandMacro(macro: Macro, event: Event): Event[] {
         }
       }
     });
-  };
+  }
 
   return macro.steps.map(expandStep);
 }

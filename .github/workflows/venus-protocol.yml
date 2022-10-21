@@ -22,11 +22,28 @@ jobs:
         run: docker container prune -f && docker image prune -f
       - name: Build docker
         run: docker build -t venus:${GITHUB_SHA::7} .
-      - name: Lint
-        run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} lint
-      - name: Clear
-        run: docker rm ${GITHUB_SHA::7}
       - name: Run compound tests
         run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} test
       - name: Clear
         run: docker rm ${GITHUB_SHA::7}
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+          cache: "yarn"
+
+      - name: Install dependencies
+        # Hack to get around failing "ethereumjs-abi The remote archive doesn't match the expected checksum" error
+        run: YARN_CHECKSUM_BEHAVIOR=update yarn
+
+      - name: Lint soliditidy and ts files
+        run: yarn lint

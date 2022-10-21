@@ -1,30 +1,18 @@
-import { BigNumber, ContractTransaction, Signer } from "ethers";
-import { ethers, network } from "hardhat";
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { smock, MockContract, FakeContract } from "@defi-wonderland/smock";
 import chai from "chai";
+import { Signer } from "ethers";
+import { ethers, network } from "hardhat";
+
+import { XVS, XVSStore, XVSVault, XVSVault__factory } from "../../../typechain";
+
 const { expect } = chai;
 chai.use(smock.matchers);
 
-const { encodeParameters } = require("../../Utils/BSC");
-
-import { XVSVault, XVSVault__factory, XVSStore, XVS } from "../../../typechain";
-import { ProposalType } from "../util/Proposals";
-import { convertToUnit } from "../../../helpers/utils";
-
 let root: Signer;
-let customer: Signer;
-let accounts: Signer[];
 let xvsVault: MockContract<XVSVault>;
-let xvsStore: FakeContract<XVSStore>;
-let xvsToken: FakeContract<XVS>;
 
-const typedData = (
-  delegatee: String,
-  nonce: number,
-  expiry: number,
-  vaultAddress: String
-) => ({
+const typedData = (delegatee: string, nonce: number, expiry: number, vaultAddress: string) => ({
   types: {
     Delegation: [
       { name: "delegatee", type: "address" },
@@ -56,23 +44,21 @@ async function xvsVaultFixture(): Promise<XVSVaultFixture> {
 }
 
 describe("XVS Vault Tests", () => {
-  let rootAddress: String;
-  let delegatee: String;
-  let nonce: number;
-  let expiry: number;
+  let rootAddress: string;
+
   beforeEach(async () => {
-    [root, customer, ...accounts] = await ethers.getSigners();
+    [root] = await ethers.getSigners();
     rootAddress = await root.getAddress();
     const contracts = await loadFixture(xvsVaultFixture);
-    ({ xvsVault, xvsStore, xvsToken } = contracts);
+    ({ xvsVault } = contracts);
   });
 
   describe("delegateBySig", () => {
     it("reverts if the signatory is invalid", async () => {
-      const signatureLike = await network.provider.send(
-        "eth_signTypedData_v4",
-        [rootAddress, typedData(rootAddress, 0, 0, xvsVault.address)]
-      );
+      const signatureLike = await network.provider.send("eth_signTypedData_v4", [
+        rootAddress,
+        typedData(rootAddress, 0, 0, xvsVault.address),
+      ]);
       const signature = ethers.utils.splitSignature(signatureLike);
 
       await expect(
@@ -82,70 +68,55 @@ describe("XVS Vault Tests", () => {
           0,
           signature.v,
           ethers.utils.formatBytes32String("r"),
-          ethers.utils.formatBytes32String("s")
-        )
+          ethers.utils.formatBytes32String("s"),
+        ),
       ).to.be.revertedWith("ECDSA: invalid signature");
     });
     it("reverts if the nonce is bad ", async () => {
-      const signatureLike = await network.provider.send(
-        "eth_signTypedData_v4",
-        [rootAddress, typedData(rootAddress, 1, 1, xvsVault.address)]
-      );
+      const signatureLike = await network.provider.send("eth_signTypedData_v4", [
+        rootAddress,
+        typedData(rootAddress, 1, 1, xvsVault.address),
+      ]);
       const signature = ethers.utils.splitSignature(signatureLike);
 
-      await expect(
-        xvsVault.delegateBySig(
-          rootAddress,
-          1,
-          0,
-          signature.v,
-          signature.r,
-          signature.s
-        )
-      ).to.be.revertedWith("XVSVault::delegateBySig: invalid nonce");
+      await expect(xvsVault.delegateBySig(rootAddress, 1, 0, signature.v, signature.r, signature.s)).to.be.revertedWith(
+        "XVSVault::delegateBySig: invalid nonce",
+      );
     });
     it("reverts if the signature has expired", async () => {
-      const signatureLike = await network.provider.send(
-        "eth_signTypedData_v4",
-        [rootAddress, typedData(rootAddress, 1, 1, xvsVault.address)]
-      );
+      const signatureLike = await network.provider.send("eth_signTypedData_v4", [
+        rootAddress,
+        typedData(rootAddress, 1, 1, xvsVault.address),
+      ]);
       const signature = ethers.utils.splitSignature(signatureLike);
 
-      await expect(
-        xvsVault.delegateBySig(
-          rootAddress,
-          0,
-          0,
-          signature.v,
-          signature.r,
-          signature.s
-        )
-      ).to.be.revertedWith("XVSVault::delegateBySig: signature expired");
+      await expect(xvsVault.delegateBySig(rootAddress, 0, 0, signature.v, signature.r, signature.s)).to.be.revertedWith(
+        "XVSVault::delegateBySig: signature expired",
+      );
     });
     // NOTE: Couldn't mock any mapping with address as a key using smock
-	// TODO: investigate why we couldn't mock this
+    // TODO: investigate why we couldn't mock this
     // it("delegates on behalf of the signatory", async () => {
     //   const xvsAddress = xvsToken.address;
-     
+
     //   await xvsVault.setVariable("xvsAddress", xvsToken.address);
     //   await xvsVault.setVariable("xvsStore", xvsStore.address);
-	//   await xvsVault.add(xvsAddress,100,xvsAddress,10,100);
-	  
+    //   await xvsVault.add(xvsAddress,100,xvsAddress,10,100);
 
-	//   await xvsVault.deposit(xvsAddress,0,100);
+    //   await xvsVault.deposit(xvsAddress,0,100);
 
-	//   await xvsVault.setVariable('userInfos',[{
-	// 	xvsAddress: {
-	// 		0: {
-	// 			rootAddress: {
-	// 				amount: 100,
-	// 				rewardDebt: 10,
-	// 				pendingWithdrawals: 10
-	// 			}
-	// 		}
-	// 	}
-	// }
-	// ]);
+    //   await xvsVault.setVariable('userInfos',[{
+    // 	xvsAddress: {
+    // 		0: {
+    // 			rootAddress: {
+    // 				amount: 100,
+    // 				rewardDebt: 10,
+    // 				pendingWithdrawals: 10
+    // 			}
+    // 		}
+    // 	}
+    // }
+    // ]);
     //   const customerAddress = await customer.getAddress();
     //   const signatureLike = await network.provider.send(
     //     "eth_signTypedData_v4",

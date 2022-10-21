@@ -1,45 +1,31 @@
-import { Event } from '../Event';
-import { addAction, World, describeUser } from '../World';
-import { XVSVault } from '../Contract/XVSVault';
-import { buildXVSVaultImpl } from '../Builder/XVSVaultImplBuilder';
-import { invoke } from '../Invokation';
-import {
-  getAddressV,
-  getEventV,
-  getNumberV,
-  getBoolV
-} from '../CoreValue';
-import {
-  AddressV,
-  EventV,
-  NumberV,
-  BoolV
-} from '../Value';
-import { Arg, Command, processCommandEvent } from '../Command';
-import { getXVSVault } from '../ContractLookup';
-import { NoErrorReporter } from '../ErrorReporter';
+import { buildXVSVaultImpl } from "../Builder/XVSVaultImplBuilder";
+import { Arg, Command, processCommandEvent } from "../Command";
+import { XVSVault } from "../Contract/XVSVault";
+import { getXVSVault } from "../ContractLookup";
+import { getAddressV, getEventV, getNumberV } from "../CoreValue";
+import { NoErrorReporter } from "../ErrorReporter";
+import { Event } from "../Event";
+import { invoke } from "../Invokation";
+import { AddressV, EventV, NumberV } from "../Value";
+import { World, addAction } from "../World";
 
 async function genXVSVault(world: World, from: string, params: Event): Promise<World> {
-  let { world: nextWorld, xvsVaultImpl, xvsVaultData } = await buildXVSVaultImpl(world, from, params);
+  const { world: nextWorld, xvsVaultImpl, xvsVaultData } = await buildXVSVaultImpl(world, from, params);
   world = nextWorld;
 
   world = addAction(
     world,
     `Deployed immutable XVS Vault (${xvsVaultImpl.name}) to address ${xvsVaultImpl._address}`,
-    xvsVaultData.invokation
+    xvsVaultData.invokation,
   );
 
   return world;
 }
 
 async function delegate(world: World, from: string, xvsVault: XVSVault, account: string): Promise<World> {
-  let invokation = await invoke(world, xvsVault.methods.delegate(account), from, NoErrorReporter);
+  const invokation = await invoke(world, xvsVault.methods.delegate(account), from, NoErrorReporter);
 
-  world = addAction(
-    world,
-    `"Delegated from" ${from} to ${account}`,
-    invokation
-  );
+  world = addAction(world, `"Delegated from" ${from} to ${account}`, invokation);
 
   return world;
 }
@@ -49,14 +35,14 @@ async function setXvsStore(
   from: string,
   xvsVault: XVSVault,
   xvs: string,
-  xvsStore: string
+  xvsStore: string,
 ): Promise<World> {
-  let invokation = await invoke(world, xvsVault.methods.setXvsStore(xvs, xvsStore), from, NoErrorReporter);
+  const invokation = await invoke(world, xvsVault.methods.setXvsStore(xvs, xvsStore), from, NoErrorReporter);
 
   world = addAction(
     world,
     `Configured XVS=${xvs}, XVSStore=${xvsStore} in the XVSVault (${xvsVault._address})`,
-    invokation
+    invokation,
   );
 
   return world;
@@ -70,23 +56,16 @@ async function addPool(
   allocPoint: NumberV,
   token: string,
   rewardPerBlock: NumberV,
-  lockPeriod: NumberV
+  lockPeriod: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
-    xvsVault.methods.add(
-      rewardToken, allocPoint.encode(), token,
-      rewardPerBlock.encode(), lockPeriod.encode()
-    ),
+    xvsVault.methods.add(rewardToken, allocPoint.encode(), token, rewardPerBlock.encode(), lockPeriod.encode()),
     from,
-    NoErrorReporter
+    NoErrorReporter,
   );
 
-  world = addAction(
-    world,
-    `Added new (${token}, ${rewardToken}) pool to XVSVault (${xvsVault._address})`,
-    invokation
-  );
+  world = addAction(world, `Added new (${token}, ${rewardToken}) pool to XVSVault (${xvsVault._address})`, invokation);
 
   return world;
 }
@@ -97,20 +76,20 @@ async function deposit(
   xvsVault: XVSVault,
   rewardToken: string,
   pid: NumberV,
-  amount: NumberV
+  amount: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     xvsVault.methods.deposit(rewardToken, pid.toNumber(), amount.encode()),
     from,
-    NoErrorReporter
+    NoErrorReporter,
   );
 
   world = addAction(
     world,
     `Deposited ${amount.toString()} tokens to pool (${rewardToken}, ${pid.toNumber()})
      in the XVSVault (${xvsVault._address})`,
-    invokation
+    invokation,
   );
 
   return world;
@@ -122,20 +101,20 @@ async function requestWithdrawal(
   xvsVault: XVSVault,
   rewardToken: string,
   pid: NumberV,
-  amount: NumberV
+  amount: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     xvsVault.methods.requestWithdrawal(rewardToken, pid.toNumber(), amount.encode()),
     from,
-    NoErrorReporter
+    NoErrorReporter,
   );
 
   world = addAction(
     world,
     `Requested withdrawal of ${amount.toString()} tokens from pool (${rewardToken}, ${pid.toNumber()})
      in the XVSVault (${xvsVault._address})`,
-    invokation
+    invokation,
   );
 
   return world;
@@ -146,20 +125,20 @@ async function executeWithdrawal(
   from: string,
   xvsVault: XVSVault,
   rewardToken: string,
-  pid: NumberV
+  pid: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     xvsVault.methods.executeWithdrawal(rewardToken, pid.toNumber()),
     from,
-    NoErrorReporter
+    NoErrorReporter,
   );
 
   world = addAction(
     world,
     `Executed withdrawal of tokens from pool (${rewardToken}, ${pid.toNumber()})
      in the XVSVault (${xvsVault._address})`,
-    invokation
+    invokation,
   );
 
   return world;
@@ -171,19 +150,19 @@ async function setWithdrawalLockingPeriod(
   xvsVault: XVSVault,
   rewardToken: string,
   pid: NumberV,
-  newPeriod: NumberV
+  newPeriod: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     xvsVault.methods.setWithdrawalLockingPeriod(rewardToken, pid.toNumber(), newPeriod.toNumber()),
     from,
-    NoErrorReporter
+    NoErrorReporter,
   );
 
   world = addAction(
     world,
     `Set lock period to ${newPeriod.toString()} in the XVSVault (${xvsVault._address})`,
-    invokation
+    invokation,
   );
 
   return world;
@@ -199,13 +178,11 @@ export function xvsVaultCommands() {
         * E.g. "XVSVault Deploy MyVaultImpl"
       `,
       "Deploy",
-      [
-        new Arg("params", getEventV, { variadic: true })
-      ],
-      (world, from, { params }) => genXVSVault(world, from, params.val)
+      [new Arg("params", getEventV, { variadic: true })],
+      (world, from, { params }) => genXVSVault(world, from, params.val),
     ),
 
-    new Command<{ xvsVault: XVSVault, account: AddressV }>(
+    new Command<{ xvsVault: XVSVault; account: AddressV }>(
       `
         #### Delegate
 
@@ -213,14 +190,11 @@ export function xvsVaultCommands() {
         * E.g. "XVSVault Delegate Torrey"
       `,
       "Delegate",
-      [
-        new Arg("xvsVault", getXVSVault, { implicit: true }),
-        new Arg("account", getAddressV),
-      ],
-      (world, from, { xvsVault, account }) => delegate(world, from, xvsVault, account.val)
+      [new Arg("xvsVault", getXVSVault, { implicit: true }), new Arg("account", getAddressV)],
+      (world, from, { xvsVault, account }) => delegate(world, from, xvsVault, account.val),
     ),
 
-    new Command<{ xvsVault: XVSVault, xvs: AddressV, xvsStore: AddressV }>(
+    new Command<{ xvsVault: XVSVault; xvs: AddressV; xvsStore: AddressV }>(
       `
         #### SetXvsStore
 
@@ -233,17 +207,16 @@ export function xvsVaultCommands() {
         new Arg("xvs", getAddressV),
         new Arg("xvsStore", getAddressV),
       ],
-      (world, from, { xvsVault, xvs, xvsStore }) =>
-          setXvsStore(world, from, xvsVault, xvs.val, xvsStore.val)
+      (world, from, { xvsVault, xvs, xvsStore }) => setXvsStore(world, from, xvsVault, xvs.val, xvsStore.val),
     ),
 
     new Command<{
-      xvsVault: XVSVault,
-      rewardToken: AddressV,
-      allocPoint: NumberV,
-      token: AddressV,
-      rewardPerBlock: NumberV,
-      lockPeriod: NumberV
+      xvsVault: XVSVault;
+      rewardToken: AddressV;
+      allocPoint: NumberV;
+      token: AddressV;
+      rewardPerBlock: NumberV;
+      lockPeriod: NumberV;
     }>(
       `
         #### Add
@@ -259,20 +232,17 @@ export function xvsVaultCommands() {
         new Arg("allocPoint", getNumberV),
         new Arg("token", getAddressV),
         new Arg("rewardPerBlock", getNumberV),
-        new Arg("lockPeriod", getNumberV)
+        new Arg("lockPeriod", getNumberV),
       ],
       (world, from, { xvsVault, rewardToken, allocPoint, token, rewardPerBlock, lockPeriod }) =>
-          addPool(
-            world, from, xvsVault, rewardToken.val, allocPoint,
-            token.val, rewardPerBlock, lockPeriod
-          )
+        addPool(world, from, xvsVault, rewardToken.val, allocPoint, token.val, rewardPerBlock, lockPeriod),
     ),
 
     new Command<{
-      xvsVault: XVSVault,
-      rewardToken: AddressV,
-      pid: NumberV,
-      amount: NumberV
+      xvsVault: XVSVault;
+      rewardToken: AddressV;
+      pid: NumberV;
+      amount: NumberV;
     }>(
       `
         #### Deposit
@@ -289,14 +259,14 @@ export function xvsVaultCommands() {
         new Arg("amount", getNumberV),
       ],
       (world, from, { xvsVault, rewardToken, pid, amount }) =>
-          deposit(world, from, xvsVault, rewardToken.val, pid, amount)
+        deposit(world, from, xvsVault, rewardToken.val, pid, amount),
     ),
 
     new Command<{
-      xvsVault: XVSVault,
-      rewardToken: AddressV,
-      pid: NumberV,
-      amount: NumberV
+      xvsVault: XVSVault;
+      rewardToken: AddressV;
+      pid: NumberV;
+      amount: NumberV;
     }>(
       `
         #### RequestWithdrawal
@@ -313,13 +283,13 @@ export function xvsVaultCommands() {
         new Arg("amount", getNumberV),
       ],
       (world, from, { xvsVault, rewardToken, pid, amount }) =>
-          requestWithdrawal(world, from, xvsVault, rewardToken.val, pid, amount)
+        requestWithdrawal(world, from, xvsVault, rewardToken.val, pid, amount),
     ),
 
     new Command<{
-      xvsVault: XVSVault,
-      rewardToken: AddressV,
-      pid: NumberV
+      xvsVault: XVSVault;
+      rewardToken: AddressV;
+      pid: NumberV;
     }>(
       `
         #### ExecuteWithdrawal
@@ -334,15 +304,14 @@ export function xvsVaultCommands() {
         new Arg("rewardToken", getAddressV),
         new Arg("pid", getNumberV),
       ],
-      (world, from, { xvsVault, rewardToken, pid }) =>
-          executeWithdrawal(world, from, xvsVault, rewardToken.val, pid)
+      (world, from, { xvsVault, rewardToken, pid }) => executeWithdrawal(world, from, xvsVault, rewardToken.val, pid),
     ),
 
     new Command<{
-      xvsVault: XVSVault,
-      rewardToken: AddressV,
-      pid: NumberV,
-      newPeriod: NumberV
+      xvsVault: XVSVault;
+      rewardToken: AddressV;
+      pid: NumberV;
+      newPeriod: NumberV;
     }>(
       `
         #### SetWithdrawalLockingPeriod
@@ -359,7 +328,7 @@ export function xvsVaultCommands() {
         new Arg("newPeriod", getNumberV),
       ],
       (world, from, { xvsVault, rewardToken, pid, newPeriod }) =>
-        setWithdrawalLockingPeriod(world, from, xvsVault, rewardToken.val, pid, newPeriod)
+        setWithdrawalLockingPeriod(world, from, xvsVault, rewardToken.val, pid, newPeriod),
     ),
   ];
 }

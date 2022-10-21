@@ -1,6 +1,6 @@
-import { Contract } from '../Contract';
-import { encodedNumber } from '../Encoding';
-import { Callable, Sendable } from '../Invokation';
+import { Contract } from "../Contract";
+import { encodedNumber } from "../Encoding";
+import { Callable, Sendable } from "../Invokation";
 
 interface Checkpoint {
   fromBlock: number;
@@ -37,8 +37,11 @@ export interface XVSVaultImplMethods {
   _become(xvsVaultProxy: string): Sendable<void>;
   setXvsStore(xvs: string, xvsStore: string): Sendable<void>;
   add(
-    rewardToken: string, allocPoint: encodedNumber, token: string,
-    rewardPerBlock: encodedNumber, lockPeriod: encodedNumber
+    rewardToken: string,
+    allocPoint: encodedNumber,
+    token: string,
+    rewardPerBlock: encodedNumber,
+    lockPeriod: encodedNumber,
   ): Sendable<void>;
   deposit(rewardToken: string, pid: number, amount: encodedNumber): Sendable<void>;
   requestWithdrawal(rewardToken: string, pid: number, amount: encodedNumber): Sendable<void>;
@@ -56,7 +59,7 @@ export interface XVSVaultImpl extends Contract {
   name: string;
 }
 
-export interface XVSVaultMethods extends XVSVaultProxyMethods, XVSVaultImplMethods { }
+export interface XVSVaultMethods extends XVSVaultProxyMethods, XVSVaultImplMethods {}
 
 export interface XVSVault extends Contract {
   methods: XVSVaultMethods;

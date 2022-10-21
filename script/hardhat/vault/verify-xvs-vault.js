@@ -6,7 +6,7 @@ const main = async () => {
   const xvsVaultAddress = contractConfigData.Contracts.XVSVault;
 
   await hre.run("verify:verify", {
-    address: xvsVaultAddress
+    address: xvsVaultAddress,
   });
 };
 

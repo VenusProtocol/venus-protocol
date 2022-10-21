@@ -1,55 +1,66 @@
-const { last } = require('./Utils/JS');
-const { address, bnbUnsigned } = require('./Utils/BSC');
-const diff = require('jest-diff').default;
-const { ComptrollerErr, VAIControllerErr, TokenErr, IRErr, MathErr } = require('./Errors');
+const { last } = require("./Utils/JS");
+const { address, bnbUnsigned } = require("./Utils/BSC");
+const diff = require("jest-diff").default;
+const { ComptrollerErr, VAIControllerErr, TokenErr, MathErr } = require("./Errors");
 
 function opts(comment) {
   return {
     comment: comment,
     promise: this.promise,
-    isNot: this.isNot
+    isNot: this.isNot,
   };
 }
 
-function fail(msg, received=undefined) {
+function fail(msg, received = undefined) {
   return {
     pass: false,
     message: () => {
-      return received === undefined ? msg : `${msg}\n\nReceived: ${this.utils.printReceived(received)}`
-    }
+      return received === undefined ? msg : `${msg}\n\nReceived: ${this.utils.printReceived(received)}`;
+    },
   };
 }
 
 function logReporterFormatter(reporter) {
-  return (log) => logFormatter(log, reporter);
+  return log => logFormatter(log, reporter);
 }
 
-function logFormatter(log, reporter=undefined) {
-  return "Log {\n" + Object.entries(log).map(([key, values]) => {
-    let valuesFormatted = typeof(values) === 'object'
-      ?
-        '\n' + Object.entries(values).map(([k, v]) => {
-          let vShow = v;
-          vShow = reporter && k === 'error' ? reporter.ErrorInv[v] : vShow;
-          vShow = reporter && k === 'info' ? reporter.FailureInfoInv[v] : vShow;
-          vShow = reporter && k === 'detail' && reporter.ErrorInv[values['error']] === 'MATH_ERROR' ? MathErr.ErrorInv[v] : vShow;
+function logFormatter(log, reporter = undefined) {
+  return (
+    "Log {\n" +
+    Object.entries(log)
+      .map(([key, values]) => {
+        let valuesFormatted =
+          typeof values === "object"
+            ? "\n" +
+              Object.entries(values)
+                .map(([k, v]) => {
+                  let vShow = v;
+                  vShow = reporter && k === "error" ? reporter.ErrorInv[v] : vShow;
+                  vShow = reporter && k === "info" ? reporter.FailureInfoInv[v] : vShow;
+                  vShow =
+                    reporter && k === "detail" && reporter.ErrorInv[values["error"]] === "MATH_ERROR"
+                      ? MathErr.ErrorInv[v]
+                      : vShow;
 
-          return `\t  ${k}: ${vShow}`;
-        }).join("\n")
-      :
-        values;
+                  return `\t  ${k}: ${vShow}`;
+                })
+                .join("\n")
+            : values;
 
-    return `\t${key}: ${valuesFormatted}`;
-  }).join("\n") + "\n}";
+        return `\t${key}: ${valuesFormatted}`;
+      })
+      .join("\n") +
+    "\n}"
+  );
 }
 
-function match(received, expected, pass, opts, receivedFormatter=undefined) {
+function match(received, expected, pass, opts, receivedFormatter = undefined) {
   receivedFormatter = receivedFormatter || this.utils.printReceived;
 
   const message = pass
     ? () =>
         this.utils.matcherHint(opts.comment, undefined, undefined, opts) +
-        '\n\n' +
+        "\n\n" +
         `Expected: ${this.utils.printExpected(expected)}\n` +
         `Received: ${receivedFormatter(received)}`
     : () => {
@@ -58,50 +69,49 @@ function match(received, expected, pass, opts, receivedFormatter=undefined) {
         });
         return (
           this.utils.matcherHint(opts.comment, undefined, undefined, opts) +
-          '\n\n' +
-          (diffString && diffString.includes('- Expect')
+          "\n\n" +
+          (diffString && diffString.includes("- Expect")
             ? `Difference:\n\n${diffString}`
-            : `Expected: ${this.utils.printExpected(expected)}\n` +
-              `Received: ${receivedFormatter(received)}`)
+            : `Expected: ${this.utils.printExpected(expected)}\n` + `Received: ${receivedFormatter(received)}`)
         );
       };
 
   return {
     pass: pass,
-    message: message
-  }
+    message: message,
+  };
 }
 
-function solo(received, expectedThing, pass, opts, receivedFormatter=undefined) {
+function solo(received, expectedThing, pass, opts, receivedFormatter = undefined) {
   receivedFormatter = receivedFormatter || this.utils.printReceived;
 
   const message = pass
     ? () =>
         this.utils.matcherHint(opts.comment, undefined, undefined, opts) +
-        '\n\n' +
+        "\n\n" +
         `Expected: ${expectedThing}\n` +
         `Received: ${receivedFormatter(received)}`
     : () => {
         return (
           this.utils.matcherHint(opts.comment, undefined, undefined, opts) +
-          '\n\n' +
-              `Expected: ${expectedThing}\n` +
-              `Received: ${receivedFormatter(received)}`
+          "\n\n" +
+          `Expected: ${expectedThing}\n` +
+          `Received: ${receivedFormatter(received)}`
         );
       };
 
   return {
     pass: pass,
-    message: message
-  }
+    message: message,
+  };
 }
 
 function hasError(actual, expectedErrorName, reporter) {
-  let actualErrorCode = typeof(actual) === 'object' ? actual[0] : actual;
+  let actualErrorCode = typeof actual === "object" ? actual[0] : actual;
   let expectedErrorCode = reporter.Error[expectedErrorName];
   let pass = actualErrorCode == expectedErrorCode;
 
-  return match.call(this, actual, expectedErrorName, pass, opts.call(this, `hasError[${reporter}]`))
+  return match.call(this, actual, expectedErrorName, pass, opts.call(this, `hasError[${reporter}]`));
 }
 
 function arrayEqual(a, b) {
@@ -118,12 +128,12 @@ function arrayEqual(a, b) {
   return true;
 }
 
-function objectEqual(a, b, partial=false, map=undefined) {
-  return doObjectEqual(a, b, partial, map || ((x) => x));
+function objectEqual(a, b, partial = false, map = undefined) {
+  return doObjectEqual(a, b, partial, map || (x => x));
 }
 
 function doObjectEqual(a, b, partial, map) {
-  if (typeof(a) !== 'object' || typeof(b) !== 'object') {
+  if (typeof a !== "object" || typeof b !== "object") {
     return a === b;
   }
 
@@ -143,8 +153,8 @@ function doObjectEqual(a, b, partial, map) {
 function doGetLog(result, logType, comment) {
   if (!result || !result.events) {
     return {
-      failure: fail.call(this, 'Expected result object with events key', result),
-      log: null
+      failure: fail.call(this, "Expected result object with events key", result),
+      log: null,
     };
   }
 
@@ -157,25 +167,32 @@ function doGetLog(result, logType, comment) {
   const log = logs[el !== undefined ? el : logs.length - 1];
   if (!log) {
     return {
-      failure: solo.call(this, result.events, `Expected log with \`${logType}\` event.`, false, opts(comment), logFormatter),
-      log: null
+      failure: solo.call(
+        this,
+        result.events,
+        `Expected log with \`${logType}\` event.`,
+        false,
+        opts(comment),
+        logFormatter,
+      ),
+      log: null,
     };
   }
 
   return {
     failure: null,
-    log: log
+    log: log,
   };
 }
 
 let mapValues = (l, f) => {
   return Object.entries(l).reduce((acc, [key, value]) => {
-    return {...acc, [key]: f(value)}
-   }, {});
-  }
+    return { ...acc, [key]: f(value) };
+  }, {});
+};
 
 function hasLog(result, logType, params) {
-  let {failure, log} = doGetLog.call(this, result, logType, "hasLog");
+  let { failure, log } = doGetLog.call(this, result, logType, "hasLog");
   if (failure) {
     return failure;
   }
@@ -186,8 +203,8 @@ function hasLog(result, logType, params) {
     delete returnValues[i]; // delete log entries "0", "1", etc, since they are dups
   }
 
-  let actual = mapValues(returnValues, (x) => x.toString());
-  let expected = mapValues(params, (x) => x.toString());
+  let actual = mapValues(returnValues, x => x.toString());
+  let expected = mapValues(params, x => x.toString());
 
   // TODO: Maybe a better success message for `isNot`?
   let pass = objectEqual(actual, expected);
@@ -195,7 +212,7 @@ function hasLog(result, logType, params) {
 }
 
 function hasFailure(result, expectedError, expectedInfo, expectedDetail, reporter, comment) {
-  let {failure, log} = doGetLog.call(this, result, 'Failure', comment);
+  let { failure, log } = doGetLog.call(this, result, "Failure", comment);
   if (failure) {
     return failure;
   }
@@ -208,7 +225,7 @@ function hasFailure(result, expectedError, expectedInfo, expectedDetail, reporte
 
   const expected = {
     error: reporter.Error[expectedError],
-    info: reporter.FailureInfo[expectedInfo]
+    info: reporter.FailureInfo[expectedInfo],
   };
 
   if (expectedDetail) {
@@ -222,17 +239,17 @@ function hasFailure(result, expectedError, expectedInfo, expectedDetail, reporte
 
 function success(result, comment, reporter) {
   if (!result || !result.events) {
-    return fail.call(this, 'Expected result object with events key', result);
+    return fail.call(this, "Expected result object with events key", result);
   }
 
   const events = result.events;
-  const log = last(events['Failure']);
+  const log = last(events["Failure"]);
 
   // TODO: Better messages here
   return solo.call(this, log, "a result with no `Failure` event", !log, opts(comment), logReporterFormatter(reporter));
 }
 
-function hasErrorTuple(result, tuple, reporter, cmp=undefined) {
+function hasErrorTuple(result, tuple, reporter, cmp = undefined) {
   cmp = cmp || ((x, y) => x.toString() === y.toString());
 
   const hasErrorResult = hasError.call(this, result[0], tuple[0], reporter);
@@ -240,62 +257,65 @@ function hasErrorTuple(result, tuple, reporter, cmp=undefined) {
     return hasErrorResult;
   }
 
-  const likeResult = match.call(this, result[1], tuple[1], cmp(result[1], tuple[1]), opts.call(this, 'hasErrorTuple [first tuple]'));
+  const likeResult = match.call(
+    this,
+    result[1],
+    tuple[1],
+    cmp(result[1], tuple[1]),
+    opts.call(this, "hasErrorTuple [first tuple]"),
+  );
   if (!likeResult.pass) {
     return likeResult;
   }
 
   if (tuple[2] !== undefined) {
-    const like2Result = match.call(this, result[2], tuple[2], cmp(result[2], tuple[2]), opts.call(this, 'hasErrorTuple [second tuple]'));
+    const like2Result = match.call(
+      this,
+      result[2],
+      tuple[2],
+      cmp(result[2], tuple[2]),
+      opts.call(this, "hasErrorTuple [second tuple]"),
+    );
     if (!like2Result.pass) {
       return like2Result;
     }
   }
 
-  return match.call(this, result, tuple, true, opts('hasErrorTuple'));
+  return match.call(this, result, tuple, true, opts("hasErrorTuple"));
 }
 
 // TODO: Improve
 function revert(actual, msg) {
   return {
-    pass: !!actual['message'] && actual.message === `VM Exception while processing transaction: ${msg}`,
+    pass: !!actual["message"] && actual.message === `VM Exception while processing transaction: ${msg}`,
     message: () => {
       if (actual["message"]) {
-        return `expected VM Exception while processing transaction: ${msg}, got ${actual["message"]}`
+        return `expected VM Exception while processing transaction: ${msg}, got ${actual["message"]}`;
       } else {
-        return `expected revert, but transaction succeeded: ${JSON.stringify(actual)}`
+        return `expected revert, but transaction succeeded: ${JSON.stringify(actual)}`;
       }
-    }
-  }
+    },
+  };
 }
 
 function toBeWithinDelta(received, expected, delta) {
   const pass = Math.abs(Number(received) - Number(expected)) < delta;
   if (pass) {
     return {
-      message: () =>
-        `expected ${received} not to be within range ${expected} ± ${delta}`,
+      message: () => `expected ${received} not to be within range ${expected} ± ${delta}`,
       pass: true,
     };
   } else {
     return {
-      message: () =>
-        `expected ${received} to be within range ${expected} ± ${delta}`,
+      message: () => `expected ${received} to be within range ${expected} ± ${delta}`,
       pass: false,
     };
   }
-};
-
+}
 
 expect.extend({
   toBeAddressZero(actual) {
-    return match.call(
-      this,
-      actual,
-      address(0),
-      actual === address(0),
-      opts('Expected to be zero address')
-    )
+    return match.call(this, actual, address(0), actual === address(0), opts("Expected to be zero address"));
   },
 
   toBeWithinDelta(actual, expected, delta) {
@@ -318,67 +338,99 @@ expect.extend({
     return hasLog.call(this, result, event, params);
   },
 
-  toHaveTrollFailure(result, err, info, detail=undefined) {
-    return hasFailure.call(this, result, err, info, detail, ComptrollerErr, 'toHaveTrollFailure');
+  toHaveTrollFailure(result, err, info, detail = undefined) {
+    return hasFailure.call(this, result, err, info, detail, ComptrollerErr, "toHaveTrollFailure");
   },
 
-  toHaveVAITrollFailure(result, err, info, detail=undefined) {
-    return hasFailure.call(this, result, err, info, detail, VAIControllerErr, 'toHaveVAITrollFailure');
+  toHaveVAITrollFailure(result, err, info, detail = undefined) {
+    return hasFailure.call(this, result, err, info, detail, VAIControllerErr, "toHaveVAITrollFailure");
   },
 
-  toHaveTokenFailure(result, err, info, detail=undefined) {
-    return hasFailure.call(this, result, err, info, detail, TokenErr, 'toHaveTokenFailure');
+  toHaveTokenFailure(result, err, info, detail = undefined) {
+    return hasFailure.call(this, result, err, info, detail, TokenErr, "toHaveTokenFailure");
   },
 
   toHaveVAITrollMathFailure(result, info, detail) {
-    return hasFailure.call(this, result, 'MATH_ERROR', info, detail && (MathErr.Error[detail] || -1), VAIControllerErr, 'toHaveVAITrollMathFailure');
+    return hasFailure.call(
+      this,
+      result,
+      "MATH_ERROR",
+      info,
+      detail && (MathErr.Error[detail] || -1),
+      VAIControllerErr,
+      "toHaveVAITrollMathFailure",
+    );
   },
 
   toHaveTokenMathFailure(result, info, detail) {
-    return hasFailure.call(this, result, 'MATH_ERROR', info, detail && (MathErr.Error[detail] || -1), TokenErr, 'toHaveTokenMathFailure');
+    return hasFailure.call(
+      this,
+      result,
+      "MATH_ERROR",
+      info,
+      detail && (MathErr.Error[detail] || -1),
+      TokenErr,
+      "toHaveTokenMathFailure",
+    );
   },
 
   toHaveTrollReject(result, info, detail) {
-    return hasFailure.call(this, result, 'COMPTROLLER_REJECTION', info, detail && ComptrollerErr.Error[detail], TokenErr, 'toHaveTrollReject');
+    return hasFailure.call(
+      this,
+      result,
+      "COMPTROLLER_REJECTION",
+      info,
+      detail && ComptrollerErr.Error[detail],
+      TokenErr,
+      "toHaveTrollReject",
+    );
   },
 
-  toHaveTrollErrorTuple(result, tuple, cmp=undefined) {
+  toHaveTrollErrorTuple(result, tuple, cmp = undefined) {
     return hasErrorTuple.call(this, result, tuple, ComptrollerErr, cmp);
   },
 
   toHaveVAITrollReject(result, info, detail) {
-    return hasFailure.call(this, result, 'REJECTION', info, detail && ComptrollerErr.Error[detail], VAIControllerErr, 'toHaveVAITrollReject');
+    return hasFailure.call(
+      this,
+      result,
+      "REJECTION",
+      info,
+      detail && ComptrollerErr.Error[detail],
+      VAIControllerErr,
+      "toHaveVAITrollReject",
+    );
   },
 
-  toHaveVAITrollErrorTuple(result, tuple, cmp=undefined) {
+  toHaveVAITrollErrorTuple(result, tuple, cmp = undefined) {
     return hasErrorTuple.call(this, result, tuple, VAIControllerErr, cmp);
   },
 
   toEqualNumber(actual, expected) {
-    return match.call(this, actual, expected, bnbUnsigned(actual).eq(bnbUnsigned(expected)), opts('toEqualNumber'));
+    return match.call(this, actual, expected, bnbUnsigned(actual).eq(bnbUnsigned(expected)), opts("toEqualNumber"));
   },
 
   toPartEqual(actual, expected) {
-    return match.call(this, actual, expected, objectEqual(actual, expected, true), opts('toPartEqual'));
+    return match.call(this, actual, expected, objectEqual(actual, expected, true), opts("toPartEqual"));
   },
 
   toSucceed(actual) {
-    return success.call(this, actual, 'success');
+    return success.call(this, actual, "success");
   },
 
   toTokenSucceed(actual) {
-    return success.call(this, actual, 'success', TokenErr);
+    return success.call(this, actual, "success", TokenErr);
   },
 
-  toRevert(actual, msg='revert') {
+  toRevert(actual, msg = "revert") {
     return revert.call(this, actual, msg);
   },
 
-  toRevertWithError(trx, expectedErrorName, reason='revert', reporter=TokenErr) {
-    return revert.call(this, trx, `${reason} (${reporter.Error[expectedErrorName].padStart(2, '0')})`);
+  toRevertWithError(trx, expectedErrorName, reason = "revert", reporter = TokenErr) {
+    return revert.call(this, trx, `${reason} (${reporter.Error[expectedErrorName].padStart(2, "0")})`);
   },
 
   fail(received, msg) {
     return fail.call(this, msg, received);
-  }
+  },
 });

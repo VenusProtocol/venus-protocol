@@ -1,17 +1,17 @@
-import { Event } from '../Event';
-import { addAction, World } from '../World';
-import { VAIControllerImpl } from '../Contract/VAIControllerImpl';
-import { Invokation, invoke } from '../Invokation';
-import { getAddressV, getExpNumberV, getNumberV, getStringV } from '../CoreValue';
-import { AddressV, NumberV, StringV } from '../Value';
-import { Arg, Fetcher, getFetcherValue } from '../Command';
-import { storeAndSaveContract } from '../Networks';
-import { getContract, getTestContract } from '../Contract';
+import { Arg, Fetcher, getFetcherValue } from "../Command";
+import { getContract, getTestContract } from "../Contract";
+import { VAIControllerImpl } from "../Contract/VAIControllerImpl";
+import { getStringV } from "../CoreValue";
+import { Event } from "../Event";
+import { Invokation } from "../Invokation";
+import { storeAndSaveContract } from "../Networks";
+import { StringV } from "../Value";
+import { World } from "../World";
 
-const VAIControllerScenarioContract = getTestContract('VAIControllerScenario');
-const VAIControllerContract = getContract('VAIController');
+const VAIControllerScenarioContract = getTestContract("VAIControllerScenario");
+const VAIControllerContract = getContract("VAIController");
 
-const VAIControllerBorkedContract = getTestContract('VAIControllerBorked');
+const VAIControllerBorkedContract = getTestContract("VAIControllerBorked");
 
 export interface VAIControllerImplData {
   invokation: Invokation<VAIControllerImpl>;
@@ -23,10 +23,9 @@ export interface VAIControllerImplData {
 export async function buildVAIControllerImpl(
   world: World,
   from: string,
-  event: Event
+  event: Event,
 ): Promise<{ world: World; vaicontrollerImpl: VAIControllerImpl; vaicontrollerImplData: VAIControllerImplData }> {
   const fetchers = [
-
     new Fetcher<{ name: StringV }, VAIControllerImplData>(
       `
         #### Scenario
@@ -34,14 +33,14 @@ export async function buildVAIControllerImpl(
         * "Scenario name:<String>" - The VAIController Scenario for local testing
           * E.g. "VAIControllerImpl Deploy Scenario MyScen"
       `,
-      'Scenario',
-      [new Arg('name', getStringV)],
+      "Scenario",
+      [new Arg("name", getStringV)],
       async (world, { name }) => ({
         invokation: await VAIControllerScenarioContract.deploy<VAIControllerImpl>(world, from, []),
         name: name.val,
-        contract: 'VAIControllerScenario',
-        description: 'Scenario VAIController Impl'
-      })
+        contract: "VAIControllerScenario",
+        description: "Scenario VAIController Impl",
+      }),
     ),
 
     new Fetcher<{ name: StringV }, VAIControllerImplData>(
@@ -51,16 +50,16 @@ export async function buildVAIControllerImpl(
         * "Standard name:<String>" - The standard VAIController contract
           * E.g. "VAIControllerImpl Deploy Standard MyStandard"
       `,
-      'Standard',
-      [new Arg('name', getStringV)],
+      "Standard",
+      [new Arg("name", getStringV)],
       async (world, { name }) => {
         return {
           invokation: await VAIControllerContract.deploy<VAIControllerImpl>(world, from, []),
           name: name.val,
-          contract: 'VAIController',
-          description: 'Standard VAIController Impl'
+          contract: "VAIController",
+          description: "Standard VAIController Impl",
         };
-      }
+      },
     ),
 
     new Fetcher<{ name: StringV }, VAIControllerImplData>(
@@ -70,14 +69,14 @@ export async function buildVAIControllerImpl(
         * "Borked name:<String>" - A Borked VAIController for testing
           * E.g. "VAIControllerImpl Deploy Borked MyBork"
       `,
-      'Borked',
-      [new Arg('name', getStringV)],
+      "Borked",
+      [new Arg("name", getStringV)],
       async (world, { name }) => ({
         invokation: await VAIControllerBorkedContract.deploy<VAIControllerImpl>(world, from, []),
         name: name.val,
-        contract: 'VAIControllerBorked',
-        description: 'Borked VAIController Impl'
-      })
+        contract: "VAIControllerBorked",
+        description: "Borked VAIController Impl",
+      }),
     ),
     new Fetcher<{ name: StringV }, VAIControllerImplData>(
       `
@@ -86,37 +85,37 @@ export async function buildVAIControllerImpl(
         * "name:<String>" - The standard VAIController contract
           * E.g. "VAIControllerImpl Deploy MyDefault"
       `,
-      'Default',
-      [new Arg('name', getStringV)],
+      "Default",
+      [new Arg("name", getStringV)],
       async (world, { name }) => {
         if (world.isLocalNetwork()) {
           // Note: we're going to use the scenario contract as the standard deployment on local networks
           return {
             invokation: await VAIControllerScenarioContract.deploy<VAIControllerImpl>(world, from, []),
             name: name.val,
-            contract: 'VAIControllerScenario',
-            description: 'Scenario VAIController Impl'
+            contract: "VAIControllerScenario",
+            description: "Scenario VAIController Impl",
           };
         } else {
           return {
             invokation: await VAIControllerContract.deploy<VAIControllerImpl>(world, from, []),
             name: name.val,
-            contract: 'VAIController',
-            description: 'Standard VAIController Impl'
+            contract: "VAIController",
+            description: "Standard VAIController Impl",
           };
         }
       },
-      { catchall: true }
-    )
+      { catchall: true },
+    ),
   ];
 
-  let vaicontrollerImplData = await getFetcherValue<any, VAIControllerImplData>(
-    'DeployVAIControllerImpl',
+  const vaicontrollerImplData = await getFetcherValue<any, VAIControllerImplData>(
+    "DeployVAIControllerImpl",
     fetchers,
     world,
-    event
+    event,
   );
-  let invokation = vaicontrollerImplData.invokation;
+  const invokation = vaicontrollerImplData.invokation;
   delete vaicontrollerImplData.invokation;
 
   if (invokation.error) {
@@ -126,13 +125,13 @@ export async function buildVAIControllerImpl(
 
   world = await storeAndSaveContract(world, vaicontrollerImpl, vaicontrollerImplData.name, invokation, [
     {
-      index: ['VAIController', vaicontrollerImplData.name],
+      index: ["VAIController", vaicontrollerImplData.name],
       data: {
         address: vaicontrollerImpl._address,
         contract: vaicontrollerImplData.contract,
-        description: vaicontrollerImplData.description
-      }
-    }
+        description: vaicontrollerImplData.description,
+      },
+    },
   ]);
 
   return { world, vaicontrollerImpl, vaicontrollerImplData };

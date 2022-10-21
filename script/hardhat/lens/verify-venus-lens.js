@@ -6,10 +6,10 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 const hre = require("hardhat");
 
 const main = async () => {
-    const venusLens = contractConfigData.Contracts.VenusLens;
-    await hre.run("verify:verify", {
-        address: venusLens
-    });
+  const venusLens = contractConfigData.Contracts.VenusLens;
+  await hre.run("verify:verify", {
+    address: venusLens,
+  });
 };
 
 module.exports = main;
