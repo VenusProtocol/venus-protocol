@@ -74,9 +74,8 @@ describe("Comptroller", () => {
 
   describe("_setActionsPaused", () => {
     it("reverts if the market is not listed", async () => {
-      await expect(comptroller._setActionsPaused([SKT.address], [1], true)).to.be.revertedWith(
-        "cannot pause a market that is not listed",
-      );
+      await expect(comptroller._setActionsPaused([SKT.address], [1], true))
+        .to.be.revertedWith("market not listed");
     });
 
     it("does nothing if the actions list is empty", async () => {
