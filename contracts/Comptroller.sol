@@ -1102,9 +1102,11 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     {
         ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
 
-        for (uint market_idx = 0; market_idx < markets.length; ++market_idx) {
-            for (uint action_idx = 0; action_idx < actions.length; ++action_idx) {
-                setActionPausedInternal(markets[market_idx], actions[action_idx], paused);
+        uint256 numMarkets = markets.length;
+        uint256 numActions = actions.length;
+        for (uint marketIdx = 0; marketIdx < numMarkets; ++marketIdx) {
+            for (uint actionIdx = 0; actionIdx < numActions; ++actionIdx) {
+                setActionPausedInternal(markets[marketIdx], actions[actionIdx], paused);
             }
         }
     }
