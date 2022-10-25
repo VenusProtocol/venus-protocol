@@ -1070,7 +1070,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
 
         require(numMarkets != 0 && numMarkets == numSupplyCaps, "invalid input");
 
-        for(uint i = 0; i < numMarkets; i++) {
+        for(uint i; i < numMarkets; ++i) {
             supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
             emit NewSupplyCap(vTokens[i], newSupplyCaps[i]);
         }
@@ -1104,8 +1104,8 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
 
         uint256 numMarkets = markets.length;
         uint256 numActions = actions.length;
-        for (uint marketIdx = 0; marketIdx < numMarkets; ++marketIdx) {
-            for (uint actionIdx = 0; actionIdx < numActions; ++actionIdx) {
+        for (uint marketIdx; marketIdx < numMarkets; ++marketIdx) {
+            for (uint actionIdx; actionIdx < numActions; ++actionIdx) {
                 setActionPausedInternal(markets[marketIdx], actions[actionIdx], paused);
             }
         }
