@@ -25,13 +25,11 @@ describe("Comptroller", () => {
 
   describe("_setAccessControlManager", () => {
     it("Reverts if called by non-admin", async () => {
-      expect(comptroller.connect(user)._setAccessControl(accessControl.address))
-        .to.be.revertedWith("only admin can");
+      expect(comptroller.connect(user)._setAccessControl(accessControl.address)).to.be.revertedWith("only admin can");
     });
 
     it("Reverts if ACM is zero address", async () => {
-      expect(comptroller._setAccessControl(constants.AddressZero))
-        .to.be.revertedWith("can't be zero address");
+      expect(comptroller._setAccessControl(constants.AddressZero)).to.be.revertedWith("can't be zero address");
     });
 
     it("Sets ACM address in storage", async () => {
