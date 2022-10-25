@@ -907,6 +907,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     function _setAccessControl(address newAccessControlAddress) external returns (uint) {
         // Check caller is admin
         ensureAdmin();
+        ensureNonzeroAddress(newAccessControlAddress);
 
         address oldAccessControlAddress = accessControl;
         accessControl = newAccessControlAddress;
