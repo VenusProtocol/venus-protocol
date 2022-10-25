@@ -300,7 +300,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         uint256 supplyCap = supplyCaps[vToken];
 
         // Supply cap of 0 corresponds to Minting notAllowed 
-        require(supplyCap > 0, "market supply cap is 0");
+        require(supplyCap != 0, "market supply cap is 0");
 
         uint totalSupply = VToken(vToken).totalSupply();
         uint256 nextTotalSupply = add_(totalSupply, mintAmount);
