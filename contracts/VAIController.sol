@@ -64,6 +64,15 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     event MintFee(address minter, uint feeAmount);
 
+    /// @notice Emiitted whe VAI base rate is changed
+    event NewVAIBaseRate(uint oldBaseRateMantissa, uint newBaseRateMantissa);
+
+    /// @notice Emiitted whe VAI float rate is changed
+    event NewVAIFloatRate(uint oldFloatRateMantissa, uint newFlatRateMantissa);
+
+    /// @notice Emiitted whe VAI receiver address is changed
+    event NewVAIReceiver(address oldReceiver, address newReceiver);
+
     /*** Main Actions ***/
     struct MintLocalVars {
         uint oErr;
@@ -408,6 +417,112 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         emit NewTreasuryPercent(oldTreasuryPercent, newTreasuryPercent);
 
         return uint(Error.NO_ERROR);
+    }
+
+    function getVAIRepayRate() public view returns (uint) {
+        PriceOracle oracle = ComptrollerImplInterface(address(comptroller)).oracle();
+
+        MathError mErr;
+        uint rate = 1e18;
+        if (baseRateMantissa > 0) {
+            if (floatRateMantissa > 0) {
+                uint oraclePrice = oracle.getUnderlyingPrice(VToken(getVAIAddress()));
+                if (1e18 >= oraclePrice) {
+                    uint delta;
+                    (mErr, delta) = subUInt(1e18, oraclePrice);
+                    require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+
+                    (mErr, delta) = mulUInt(delta, floatRateMantissa);
+                    require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+
+                    (mErr, delta) = divUInt(delta, 1e18);
+                    require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+
+                    (mErr, rate) = addUInt(rate, delta);
+                    require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+                }
+            }
+            (mErr, rate) = addUInt(rate, baseRateMantissa);
+            require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+        }
+        return rate;
+    }
+
+    /**
+     * @dev Get the VAI actual total amount of repayment by the user
+     */
+    function getVAIRepayAmount(address account) public view returns (uint) {
+        MathError mErr;
+        uint amount = ComptrollerImplInterface(address(comptroller)).mintedVAIs(account);
+        uint rate = getVAIRepayRate();
+
+        (mErr, amount) = mulUInt(rate, amount);
+        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
+
+        (mErr, amount) = divUInt(amount, 1e18);
+        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
+
+        return amount;
+    }
+
+    /**
+     * @dev Calculate the VAI amount of principal repayment
+     */
+    function getVAICalculateRepayAmount(address account, uint repayAmount) public view returns (uint) {
+        MathError mErr;
+        uint amount = repayAmount;
+        uint totalRepayAmount = getVAIRepayAmount(account);
+
+        if(totalRepayAmount >= repayAmount) {
+            uint rate = getVAIRepayRate();
+            (mErr, repayAmount) = mulUInt(repayAmount, 1e18);
+            require(mErr == MathError.NO_ERROR, "VAI_REPAY_AMOUNT_CALCULATION_FAILED");
+            (mErr, amount) = divUInt(repayAmount, rate);
+            require(mErr == MathError.NO_ERROR, "VAI_REPAY_AMOUNT_CALCULATION_FAILED");
+        } else {
+            amount = ComptrollerImplInterface(address(comptroller)).mintedVAIs(account);
+        }
+
+        return amount;
+    }
+
+        /**
+     * @dev Set VAI borrow base rate
+     */
+    function _setBaseRate(uint newBaseRateMantissa) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
+        }
+        uint old = baseRateMantissa;
+        baseRateMantissa = newBaseRateMantissa;
+        emit NewVAIBaseRate(old, baseRateMantissa);
+    }
+
+    /**
+     * @dev Set VAI borrow float rate
+     */
+    function _setFloatRate(uint newFloatRateMantissa) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
+        }
+        uint old = floatRateMantissa;
+        floatRateMantissa = newFloatRateMantissa;
+        emit NewVAIFloatRate(old, floatRateMantissa);
+    }
+
+    /**
+     * @dev Set VAI receiver address
+     */
+    function _setReceiver(address newReceiver) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
+        }
+        address old = receiver;
+        receiver = newReceiver;
+        emit NewVAIReceiver(old, newReceiver);
     }
 
     function getBlockNumber() public view returns (uint) {

@@ -12,4 +12,6 @@ contract VAIControllerInterface {
     function _initializeVenusVAIState(uint blockNumber) external returns (uint);
     function updateVenusVAIMintIndex() external returns (uint);
     function calcDistributeVAIMinterVenus(address vaiMinter) external returns(uint, uint, uint, uint);
+
+    function getVAIRepayAmount(address account) public view returns (uint);
 }

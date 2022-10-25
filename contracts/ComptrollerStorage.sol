@@ -225,19 +225,4 @@ contract ComptrollerV9Storage is ComptrollerV8Storage {
 
     /// @notice True if a certain action is paused on a certain market
     mapping (address => mapping(uint => bool)) internal _actionPaused;
-
-    /**
-     * @notice The base rate for stability fee
-     */
-    uint public baseRateMantissa;
-
-    /**
-     * @notice The float rate for stability fee
-     */
-    uint public floatRateMantissa;
-
-    /**
-     * @notice The address for VAI receiver
-     */
-    address public receiver;
 }

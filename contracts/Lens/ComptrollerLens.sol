@@ -7,6 +7,7 @@ import "../EIP20Interface.sol";
 import "../PriceOracle.sol";
 import "../ErrorReporter.sol";
 import "../Comptroller.sol";
+import "../VAIControllerInterface.sol";
 
 contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, ExponentialNoError {
     /** liquidate seize calculation **/
@@ -150,7 +151,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             }
         }
 
-        vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, Comptroller(comptroller).getVAIRepayAmount(account));
+        vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, Comptroller(comptroller).vaiController().getVAIRepayAmount(account));
 
         // These are safe, as the underflow condition is checked first
         if (vars.sumCollateral > vars.sumBorrowPlusEffects) {

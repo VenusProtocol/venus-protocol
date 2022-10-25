@@ -57,4 +57,19 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
 
     /// @notice Guard variable for re-entrancy checks
     bool internal _notEntered;
+
+    /**
+     * @notice The base rate for stability fee
+     */
+    uint public baseRateMantissa;
+
+    /**
+     * @notice The float rate for stability fee
+     */
+    uint public floatRateMantissa;
+
+    /**
+     * @notice The address for VAI receiver
+     */
+    address public receiver;
 }
