@@ -108,7 +108,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
 
     // No collateralFactorMantissa may exceed this value
     uint internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
-    
+
     constructor() public {
         admin = msg.sender;
     }
@@ -299,7 +299,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
 
         uint256 supplyCap = supplyCaps[vToken];
 
-        // Supply cap of 0 corresponds to Minting notAllowed 
+        // Supply cap of 0 corresponds to Minting notAllowed
         require(supplyCap != 0, "market supply cap is 0");
 
         uint totalSupply = VToken(vToken).totalSupply();
@@ -822,9 +822,9 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         returns (uint, uint)
     {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
-            address(this), 
-            vTokenBorrowed, 
-            vTokenCollateral, 
+            address(this),
+            vTokenBorrowed,
+            vTokenCollateral,
             actualRepayAmount
         );
         return (err, seizeTokens);
@@ -846,8 +846,8 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         returns (uint, uint)
     {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
-            address(this), 
-            vTokenCollateral, 
+            address(this),
+            vTokenCollateral,
             actualRepayAmount
         );
         return (err, seizeTokens);
@@ -1437,9 +1437,9 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
             return 0;
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
-        // anything, otherwise, we will transfer the pending xvs as collateral to 
+        // anything, otherwise, we will transfer the pending xvs as collateral to
         // vXVS token and mint vXVS for the user.
-        // 
+        //
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt accounts can only collateralize their pending xvs rewards");
 
