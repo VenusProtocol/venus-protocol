@@ -151,7 +151,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             }
         }
 
-        vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, Comptroller(comptroller).vaiController().getVAIRepayAmount(account));
+        VAIControllerInterface vaiController = Comptroller(comptroller).vaiController();
+
+        if (address(vaiController) != address(0)) {
+            vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, Comptroller(comptroller).vaiController().getVAIRepayAmount(account));
+        }
 
         // These are safe, as the underflow condition is checked first
         if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
