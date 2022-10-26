@@ -168,19 +168,19 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     function repayVAIFresh(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
         uint actualBurnAmount;
+        MathError mErr;
 
         uint vaiBalanceBorrower = ComptrollerImplInterface(address(comptroller)).mintedVAIs(borrower);
+        actualBurnAmount = getVAICalculateRepayAmount(borrower, repayAmount);
 
-        if(vaiBalanceBorrower > repayAmount) {
-            actualBurnAmount = repayAmount;
-        } else {
-            actualBurnAmount = vaiBalanceBorrower;
-        }
-
-        MathError mErr;
-        uint accountVAINew;
-
+        uint interestAmount;
+        (mErr, interestAmount) = subUInt(repayAmount, actualBurnAmount);
+        require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+        
         VAI(getVAIAddress()).burn(payer, actualBurnAmount);
+        VAI(getVAIAddress()).transferFrom(payer, receiver, interestAmount);
+
+        uint accountVAINew;
 
         (mErr, accountVAINew) = subUInt(vaiBalanceBorrower, actualBurnAmount);
         require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
