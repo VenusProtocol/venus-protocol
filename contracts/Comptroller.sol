@@ -572,6 +572,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
             borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
         } else {
             borrowBalance = vaiController.getVAIRepayAmount(borrower);
+            
         }
         uint maxClose = mul_ScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
         if (repayAmount > maxClose) {
