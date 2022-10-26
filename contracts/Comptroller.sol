@@ -302,8 +302,9 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         // Supply cap of 0 corresponds to Minting notAllowed
         require(supplyCap != 0, "market supply cap is 0");
 
-        uint totalSupply = VToken(vToken).totalSupply();
-        uint256 nextTotalSupply = add_(totalSupply, mintAmount);
+        uint256 vTokenSupply = VToken(vToken).totalSupply();
+        Exp memory exchangeRate = Exp({ mantissa: VToken(vToken).exchangeRateStored() });
+        uint256 nextTotalSupply = mul_ScalarTruncateAddUInt(exchangeRate, vTokenSupply, mintAmount);
         require(nextTotalSupply <= supplyCap, "market supply cap reached");
 
         // Keep the flywheel moving
