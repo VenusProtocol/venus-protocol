@@ -50,6 +50,7 @@ function configureOracle(oracle: FakeContract<PriceOracle>) {
 function configureVToken(vToken: FakeContract<VToken>, comptroller: MockContract<Comptroller>) {
   vToken.comptroller.returns(comptroller.address);
   vToken.isVToken.returns(true);
+  vToken.exchangeRateStored.returns(convertToUnit("2", 18));
   vToken.totalSupply.returns(convertToUnit("1000000", 18));
   vToken.totalBorrows.returns(convertToUnit("900000", 18));
 }
@@ -305,7 +306,7 @@ describe("Comptroller", () => {
     });
   });
 
-  describe("redeemVerify", () => {
+  describe("Hooks", () => {
     let comptroller: MockContract<Comptroller>;
     let vToken: FakeContract<VToken>;
 
@@ -323,18 +324,60 @@ describe("Comptroller", () => {
       configureVToken(vToken, comptroller);
     });
 
-    it("should allow you to redeem 0 underlying for 0 tokens", async () => {
-      await comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 0, 0);
+    describe("mintAllowed", () => {
+      beforeEach(async () => {
+        ({ comptroller, vToken  } = await loadFixture(deploy));
+        configureVToken(vToken, comptroller);
+      });
+
+      it("allows minting if cap is not reached", async () => {
+        const cap = convertToUnit("1001", 18);
+        const currentVTokenSupply = convertToUnit("500", 18);
+        const exchangeRate = convertToUnit("2", 18);
+        // underlying supply = currentVTokenSupply * exchangeRate = 1000
+
+        vToken.totalSupply.returns(currentVTokenSupply);
+        vToken.exchangeRateStored.returns(exchangeRate);
+        await comptroller._setMarketSupplyCaps([vToken.address], [cap]);
+        expect(
+          await comptroller.callStatic.mintAllowed(vToken.address, await root.getAddress(), convertToUnit("0.9999", 18))
+        ).to.equal(0); // 0 means "no error"
+      });
+
+      it("reverts if supply cap reached", async () => {
+        const cap = convertToUnit("1001", 18);
+        const currentVTokenSupply = convertToUnit("500", 18);
+        const exchangeRate = convertToUnit("2", 18);
+        // underlying supply = currentVTokenSupply * exchangeRate = 1000
+
+        vToken.totalSupply.returns(currentVTokenSupply);
+        vToken.exchangeRateStored.returns(exchangeRate);
+        await comptroller._setMarketSupplyCaps([vToken.address], [cap]);
+        await expect(comptroller.mintAllowed(vToken.address, await root.getAddress(), convertToUnit("1.01", 18)))
+          .to.be.revertedWith("market supply cap reached");
+      });
+
+      it("reverts if market is not listed", async () => {
+        const someVToken = await smock.fake<VToken>("VToken");
+        await expect(comptroller.mintAllowed(someVToken.address, await root.getAddress(), convertToUnit("1", 18)))
+          .to.be.revertedWith("market not listed");
+      });
     });
 
-    it("should allow you to redeem 5 underlyig for 5 tokens", async () => {
-      await comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 5);
-    });
+    describe("redeemVerify", () => {
+      it("should allow you to redeem 0 underlying for 0 tokens", async () => {
+        await comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 0, 0);
+      });
 
-    it("should not allow you to redeem 5 underlying for 0 tokens", async () => {
-      await expect(comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 0)).to.be.revertedWith(
-        "redeemTokens zero",
-      );
+      it("should allow you to redeem 5 underlyig for 5 tokens", async () => {
+        await comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 5);
+      });
+
+      it("should not allow you to redeem 5 underlying for 0 tokens", async () => {
+        await expect(comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 0)).to.be.revertedWith(
+          "redeemTokens zero",
+        );
+      });
     });
   });
 });

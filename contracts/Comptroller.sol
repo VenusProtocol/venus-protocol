@@ -43,11 +43,8 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when pause guardian is changed
     event NewPauseGuardian(address oldPauseGuardian, address newPauseGuardian);
 
-    /// @notice Emitted when an action is paused globally
-    event ActionPaused(string action, bool pauseState);
-
     /// @notice Emitted when an action is paused on a market
-    event ActionPausedMarket(VToken vToken, Action action, bool pauseState);
+    event ActionPausedMarket(VToken indexed vToken, Action indexed action, bool pauseState);
 
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
@@ -111,7 +108,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
 
     // No collateralFactorMantissa may exceed this value
     uint internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
-    
+
     constructor() public {
         admin = msg.sender;
     }
@@ -302,11 +299,12 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
 
         uint256 supplyCap = supplyCaps[vToken];
 
-        // Supply cap of 0 corresponds to Minting notAllowed 
-        require(supplyCap > 0, "market supply cap is 0");
+        // Supply cap of 0 corresponds to Minting notAllowed
+        require(supplyCap != 0, "market supply cap is 0");
 
-        uint totalSupply = VToken(vToken).totalSupply();
-        uint256 nextTotalSupply = add_(totalSupply, mintAmount);
+        uint256 vTokenSupply = VToken(vToken).totalSupply();
+        Exp memory exchangeRate = Exp({ mantissa: VToken(vToken).exchangeRateStored() });
+        uint256 nextTotalSupply = mul_ScalarTruncateAddUInt(exchangeRate, vTokenSupply, mintAmount);
         require(nextTotalSupply <= supplyCap, "market supply cap reached");
 
         // Keep the flywheel moving
@@ -825,9 +823,9 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         returns (uint, uint)
     {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
-            address(this), 
-            vTokenBorrowed, 
-            vTokenCollateral, 
+            address(this),
+            vTokenBorrowed,
+            vTokenCollateral,
             actualRepayAmount
         );
         return (err, seizeTokens);
@@ -849,8 +847,8 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         returns (uint, uint)
     {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
-            address(this), 
-            vTokenCollateral, 
+            address(this),
+            vTokenCollateral,
             actualRepayAmount
         );
         return (err, seizeTokens);
@@ -907,6 +905,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     function _setAccessControl(address newAccessControlAddress) external returns (uint) {
         // Check caller is admin
         ensureAdmin();
+        ensureNonzeroAddress(newAccessControlAddress);
 
         address oldAccessControlAddress = accessControl;
         accessControl = newAccessControlAddress;
@@ -1072,7 +1071,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
 
         require(numMarkets != 0 && numMarkets == numSupplyCaps, "invalid input");
 
-        for(uint i = 0; i < numMarkets; i++) {
+        for(uint i; i < numMarkets; ++i) {
             supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
             emit NewSupplyCap(vTokens[i], newSupplyCaps[i]);
         }
@@ -1104,9 +1103,11 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     {
         ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
 
-        for (uint market_idx = 0; market_idx < markets.length; ++market_idx) {
-            for (uint action_idx = 0; action_idx < actions.length; ++action_idx) {
-                setActionPausedInternal(markets[market_idx], actions[action_idx], paused);
+        uint256 numMarkets = markets.length;
+        uint256 numActions = actions.length;
+        for (uint marketIdx; marketIdx < numMarkets; ++marketIdx) {
+            for (uint actionIdx; actionIdx < numActions; ++actionIdx) {
+                setActionPausedInternal(markets[marketIdx], actions[actionIdx], paused);
             }
         }
     }
@@ -1118,10 +1119,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @param paused The new paused state (true=paused, false=unpaused)
      */
     function setActionPausedInternal(address market, Action action, bool paused) internal {
-        require(
-            markets[market].isListed,
-            "cannot pause a market that is not listed"
-        );
+        ensureListed(markets[market]);
         _actionPaused[market][uint(action)] = paused;
         emit ActionPausedMarket(VToken(market), action, paused);
     }
@@ -1440,9 +1438,9 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
             return 0;
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
-        // anything, otherwise, we will transfer the pending xvs as collateral to 
+        // anything, otherwise, we will transfer the pending xvs as collateral to
         // vXVS token and mint vXVS for the user.
-        // 
+        //
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt accounts can only collateralize their pending xvs rewards");
 
