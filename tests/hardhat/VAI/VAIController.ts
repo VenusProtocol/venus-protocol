@@ -47,8 +47,8 @@ describe('Comptroller', async () => {
     })
 
     async function comptrollerFixture(): Promise<ComptrollerFixture> {
-      let testTokenFactory = await ethers.getContractFactory('BEP20Harness')
-      let usdt = (await testTokenFactory.deploy(
+      const testTokenFactory = await ethers.getContractFactory('BEP20Harness')
+      const usdt = (await testTokenFactory.deploy(
           bigNumber18.mul(100000000),
           "usdt",
           BigNumber.from(18),
@@ -135,12 +135,12 @@ describe('Comptroller', async () => {
         })
 
         it('getAssetsIn', async () => {
-            let enteredMarkets = await comptroller.getAssetsIn(user1.address)
+            const enteredMarkets = await comptroller.getAssetsIn(user1.address)
             expect(enteredMarkets.length).to.eq(1)
         })
 
         it('getAccountSnapshot', async () => {
-            let res = await vusdt.getAccountSnapshot(user1.address)
+            const res = await vusdt.getAccountSnapshot(user1.address)
             expect(res[0]).to.eq(0)
             expect(res[1]).to.eq(bigNumber18.mul(100))
             expect(res[2]).to.eq(BigNumber.from(0))
@@ -157,7 +157,7 @@ describe('Comptroller', async () => {
         })
 
         it('success', async () => {
-            let res = await vaiController.getMintableVAI(user1.address)
+            const res = await vaiController.getMintableVAI(user1.address)
             expect(res[1]).to.eq(bigNumber18.mul(100))
         })
     })
@@ -211,7 +211,7 @@ describe('Comptroller', async () => {
 
         it('success for zero rate 0.9 vusdt collateralFactor', async () => {
             await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9))
-            let res = await comptroller.getHypotheticalAccountLiquidity(user1.address, ethers.constants.AddressZero, BigNumber.from(0), BigNumber.from(0));
+            const res = await comptroller.getHypotheticalAccountLiquidity(user1.address, ethers.constants.AddressZero, BigNumber.from(0), BigNumber.from(0));
             expect(res[1]).to.eq(0)
             expect(res[2]).to.eq(bigNumber18.mul(10))
         })
@@ -219,7 +219,7 @@ describe('Comptroller', async () => {
         it('success for 1.2 rate 0.9 vusdt collateralFactor', async () => {
             await vaiController._setBaseRate(bigNumber17.mul(2))
             await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9))
-            let res = await comptroller.getHypotheticalAccountLiquidity(user1.address, ethers.constants.AddressZero, BigNumber.from(0), BigNumber.from(0));
+            const res = await comptroller.getHypotheticalAccountLiquidity(user1.address, ethers.constants.AddressZero, BigNumber.from(0), BigNumber.from(0));
             expect(res[1]).to.eq(0)
             expect(res[2]).to.eq(bigNumber18.mul(30))
         })
@@ -262,7 +262,7 @@ describe('Comptroller', async () => {
 
     describe('#getVAIRepayRate', async () => {
         it('success for zero baseRate', async () => {
-            let res = await vaiController.getVAIRepayRate()
+            const res = await vaiController.getVAIRepayRate()
             expect(res).to.eq(bigNumber18)
         })
 
