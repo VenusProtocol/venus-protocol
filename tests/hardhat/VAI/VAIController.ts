@@ -4,7 +4,7 @@ import { expect } from "chai";
 import { BigNumber, Wallet } from "ethers";
 import { ethers } from "hardhat";
 
-import { Comptroller, ComptrollerLens__factory, Comptroller__factory, IAccessControlManager } from "../../../typechain";
+import { Comptroller, ComptrollerLens__factory, Comptroller__factory, IAccessControlManager, VAIControllerHarness__factory } from "../../../typechain";
 import { SimplePriceOracle } from "../../../typechain";
 import { XVS } from "../../../typechain";
 import { VAIScenario } from "../../../typechain";
@@ -20,12 +20,18 @@ export const bigNumber15 = BigNumber.from("1000000000000000"); //1e15
 export const bigNumber8 = BigNumber.from("100000000"); // 1e8
 export const dateNow = BigNumber.from("1636429275"); // 2021-11-09 11:41:15
 
+async function mineNBlocks(n) {
+  for (let index = 0; index < n; index++) {
+    await ethers.provider.send('evm_mine');
+  }
+}
+
 interface ComptrollerFixture {
   usdt: BEP20Harness;
   comptroller: MockContract<Comptroller>;
   priceOracle: SimplePriceOracle;
   vai: VAIScenario;
-  vaiController: VAIControllerHarness;
+  vaiController: MockContract<VAIControllerHarness>;
   vusdt: VBep20Harness;
 }
 
@@ -38,7 +44,7 @@ describe("Comptroller", async () => {
   let comptroller: MockContract<Comptroller>;
   let priceOracle: SimplePriceOracle;
   let vai: VAIScenario;
-  let vaiController: VAIControllerHarness;
+  let vaiController: MockContract<VAIControllerHarness>;
   let usdt: BEP20Harness;
   let vusdt: VBep20Harness;
 
@@ -75,8 +81,8 @@ describe("Comptroller", async () => {
 
     const venusRate = bigNumber18;
 
-    const vaiControllerFactory = await ethers.getContractFactory("VAIControllerHarness");
-    const vaiController = (await vaiControllerFactory.deploy()) as VAIControllerHarness;
+    const vaiControllerFactory = await smock.mock<VAIControllerHarness__factory>("VAIControllerHarness"); 
+    const vaiController = await vaiControllerFactory.deploy();
 
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const comptrollerLens = await ComptrollerLensFactory.deploy();
@@ -90,6 +96,7 @@ describe("Comptroller", async () => {
     await comptroller._setPriceOracle(priceOracle.address);
     comptroller.getXVSAddress.returns(xvs.address);
     await vaiController.setVAIAddress(vai.address);
+    await vaiController.initVenusVAIInterestState();
     await comptroller.setVariable("venusRate", venusRate);
     await vai.rely(vaiController.address);
     await comptroller._setTreasuryData(
