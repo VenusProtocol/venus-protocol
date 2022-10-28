@@ -430,31 +430,20 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         return uint(Error.NO_ERROR);
     }
 
-    function getVAIRepayRatePerBlock() public view returns (uint) {
+    function getVAIRepayRate() public view returns (uint) {
         PriceOracle oracle = ComptrollerImplInterface(address(comptroller)).oracle();
 
-        uint blocksPerYear = 10512000; //(24 * 60 * 60 * 365) / 3;
         MathError mErr;
         uint rate = 1e18;
         if (baseRateMantissa > 0) {
-            
-            uint baseRatePerBlockMantissa;
-            (mErr, baseRatePerBlockMantissa) = divUInt(baseRateMantissa, blocksPerYear);
-            require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
-
             if (floatRateMantissa > 0) {
-                
-                uint floatRatePerBlockMantissa;
-                (mErr, floatRatePerBlockMantissa) = divUInt(floatRateMantissa, blocksPerYear);
-                require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
-
                 uint oraclePrice = oracle.getUnderlyingPrice(VToken(getVAIAddress()));
                 if (1e18 >= oraclePrice) {
                     uint delta;
                     (mErr, delta) = subUInt(1e18, oraclePrice);
                     require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
 
-                    (mErr, delta) = mulUInt(delta, floatRatePerBlockMantissa);
+                    (mErr, delta) = mulUInt(delta, floatRateMantissa);
                     require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
 
                     (mErr, delta) = divUInt(delta, 1e18);
@@ -464,9 +453,23 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
                     require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
                 }
             }
-            (mErr, rate) = addUInt(rate, baseRatePerBlockMantissa);
+            (mErr, rate) = addUInt(rate, baseRateMantissa);
             require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
         }
+        return rate;
+    }
+
+    function getVAIRepayRatePerBlock() public view returns (uint) {
+        PriceOracle oracle = ComptrollerImplInterface(address(comptroller)).oracle();
+        uint yearlyRate = getVAIRepayRate();
+
+        uint blocksPerYear = 10512000; //(24 * 60 * 60 * 365) / 3;
+        MathError mErr;
+        uint rate;
+
+        (mErr, rate) = divUInt(yearlyRate, blocksPerYear);
+        require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+
         return rate;
     }
 
