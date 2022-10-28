@@ -5,6 +5,7 @@ import "../VAIController.sol";
 contract VAIControllerHarness is VAIController {
     address vaiAddress;
     uint public blockNumber;
+    uint public blocksPerYear;
 
     constructor() VAIController() public {
         admin = msg.sender;
@@ -51,7 +52,15 @@ contract VAIControllerHarness is VAIController {
         blockNumber = number;
     }
 
+    function setBlocksPerYear(uint number) public {
+        blocksPerYear = number;
+    }
+
     function getBlockNumber() public view returns (uint) {
         return blockNumber;
+    }
+
+    function getBlocksPerYear() public view returns (uint) {
+        return blocksPerYear;
     }
 }

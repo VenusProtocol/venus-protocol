@@ -8,6 +8,8 @@ import "./VAIControllerStorage.sol";
 import "./VAIUnitroller.sol";
 import "./VAI/VAI.sol";
 
+import "hardhat/console.sol";
+
 interface ComptrollerImplInterface {
     function protocolPaused() external view returns (bool);
     function mintedVAIs(address account) external view returns (uint);
@@ -432,14 +434,15 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
     function getVAIRepayRate() public view returns (uint) {
         PriceOracle oracle = ComptrollerImplInterface(address(comptroller)).oracle();
-
         MathError mErr;
-        uint rate = 1e18;
+
         if (baseRateMantissa > 0) {
             if (floatRateMantissa > 0) {
                 uint oraclePrice = oracle.getUnderlyingPrice(VToken(getVAIAddress()));
                 if (1e18 >= oraclePrice) {
                     uint delta;
+                    uint rate;
+
                     (mErr, delta) = subUInt(1e18, oraclePrice);
                     require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
 
@@ -449,25 +452,29 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
                     (mErr, delta) = divUInt(delta, 1e18);
                     require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
 
-                    (mErr, rate) = addUInt(rate, delta);
+                    (mErr, rate) = addUInt(delta, baseRateMantissa);
                     require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+
+                    return rate;
+                } else {
+                    return baseRateMantissa;
                 }
+            } else {
+                return baseRateMantissa;
             }
-            (mErr, rate) = addUInt(rate, baseRateMantissa);
-            require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
+        } else {
+            return 0;
         }
-        return rate;
     }
 
     function getVAIRepayRatePerBlock() public view returns (uint) {
         PriceOracle oracle = ComptrollerImplInterface(address(comptroller)).oracle();
         uint yearlyRate = getVAIRepayRate();
 
-        uint blocksPerYear = 10512000; //(24 * 60 * 60 * 365) / 3;
         MathError mErr;
         uint rate;
 
-        (mErr, rate) = divUInt(yearlyRate, blocksPerYear);
+        (mErr, rate) = divUInt(yearlyRate, getBlocksPerYear());
         require(mErr == MathError.NO_ERROR, "VAI_REPAY_RATE_CALCULATION_FAILED");
 
         return rate;
@@ -481,11 +488,17 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint delta;
 
         uint amount = ComptrollerImplInterface(address(comptroller)).mintedVAIs(account);
+
+        (mErr, delta) = mulUInt(vaiInterestIndex, 1e18);
+        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
         
-        (mErr, delta) = divUInt(vaiInterestIndex, vaiMinterInterestIndex[account]);
+        (mErr, delta) = divUInt(delta, vaiMinterInterestIndex[account]);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
         (mErr, amount) = mulUInt(amount, delta);
+        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
+
+        (mErr, amount) = divUInt(amount, 1e18);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
         
         return amount;
@@ -501,11 +514,18 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
         if(totalRepayAmount >= repayAmount) {
             uint delta;
+            uint rate;
 
-            (mErr, delta) = divUInt(vaiInterestIndex, vaiMinterInterestIndex[account]);
+            (mErr, delta) = mulUInt(vaiInterestIndex, 1e18);
             require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
-            (mErr, amount) = mulUInt(repayAmount, delta);
+            (mErr, rate) = divUInt(delta, vaiMinterInterestIndex[account]);
+            require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
+
+            (mErr, repayAmount) = mulUInt(repayAmount, 1e18);
+            require(mErr == MathError.NO_ERROR, "VAI_REPAY_AMOUNT_CALCULATION_FAILED");
+
+            (mErr, amount) = divUInt(repayAmount, rate);
             require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
         } else {
             amount = ComptrollerImplInterface(address(comptroller)).mintedVAIs(account);
@@ -519,6 +539,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint delta;
 
         (mErr, delta) = mulUInt(vaiInterestIndex, getVAIRepayRatePerBlock());
+        require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
+
+        (mErr, delta) = divUInt(delta, 1e18);
         require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
 
         (mErr, delta) = mulUInt(delta, getBlockNumber() - vaiInterestBlockNumber);
@@ -571,6 +594,10 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
     function getBlockNumber() public view returns (uint) {
         return block.number;
+    }
+
+    function getBlocksPerYear() public view returns (uint) {
+        return 10512000; //(24 * 60 * 60 * 365) / 3;
     }
 
     /**
