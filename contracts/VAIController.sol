@@ -8,8 +8,6 @@ import "./VAIControllerStorage.sol";
 import "./VAIUnitroller.sol";
 import "./VAI/VAI.sol";
 
-import "hardhat/console.sol";
-
 interface ComptrollerImplInterface {
     function protocolPaused() external view returns (bool);
     function mintedVAIs(address account) external view returns (uint);
@@ -488,7 +486,6 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint delta;
 
         uint amount = ComptrollerImplInterface(address(comptroller)).mintedVAIs(account);
-
         (mErr, delta) = mulUInt(vaiInterestIndex, 1e18);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
         
@@ -551,6 +548,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
 
         vaiInterestIndex = delta;
+        vaiInterestBlockNumber = getBlockNumber();
     }
         
     /**

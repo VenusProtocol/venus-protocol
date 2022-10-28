@@ -253,7 +253,10 @@ describe("Comptroller", async () => {
   });
 
   describe("#liquidateVAI", async () => {
+    const TEMP_BLOCKS_PER_YEAR = 100000
     beforeEach("user1 borrow", async () => {
+      vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
+
       await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
       await vai.allocateTo(user2.address, bigNumber18.mul(100));
       expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(100));
@@ -277,11 +280,11 @@ describe("Comptroller", async () => {
     it("success for 1.2 rate 0.9 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
 
-      const TEMP_BLOCKS_PER_YEAR = 100000
-      vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
-      
       await vaiController._setBaseRate(bigNumber17.mul(2));
+      await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
+
       await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
+      
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(72), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(28));
       expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
