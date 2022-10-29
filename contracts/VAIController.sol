@@ -104,7 +104,14 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
                 return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
             }
 
-            (vars.mathErr, vars.accountMintVAINew) = addUInt(ComptrollerImplInterface(address(comptroller)).mintedVAIs(minter), mintVAIAmount);
+            // Calculate the minted balance based on interest index
+            uint totalMintedVAI = ComptrollerImplInterface(address(comptroller)).mintedVAIs(minter);
+
+            if (totalMintedVAI > 0) {
+                totalMintedVAI = getVAIRepayAmount(minter);
+            }  
+
+            (vars.mathErr, vars.accountMintVAINew) = addUInt(totalMintedVAI, mintVAIAmount);
             require(vars.mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
             uint error = comptroller.setMintedVAIOf(minter, vars.accountMintVAINew);
             if (error != 0 ) {
@@ -486,6 +493,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint delta;
 
         uint amount = ComptrollerImplInterface(address(comptroller)).mintedVAIs(account);
+
         (mErr, delta) = mulUInt(vaiMintIndex, 1e18);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
         
