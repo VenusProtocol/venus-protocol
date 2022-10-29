@@ -74,13 +74,13 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
     address public receiver;
 
     /**
-     * @notice The last updated VAI repay rate index. For example: 1.64 (= 164%).
+     * @notice Accumulator of the total earned interest rate since the opening of the market. For example: 0.6 (60%)
      */
-    uint vaiInterestIndex;
+    uint vaiMintIndex;
 
-    // @notice The block number when vaiInterestIndex was updated
-    uint vaiInterestBlockNumber;
+    // @notice Block number that interest was last accrued at
+    uint accrualBlockNumber;
 
-    // @notice The VAI mint index of minter during mint
+    // @notice Global vaiMintIndex as of the most recent balance-changing action for user
     mapping (address => uint) vaiMinterInterestIndex;
 }

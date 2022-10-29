@@ -17,8 +17,8 @@ contract VAIControllerHarness is VAIController {
     }
 
     function initVenusVAIInterestState() public {
-        vaiInterestIndex = 1e18;
-        vaiInterestBlockNumber = getBlockNumber();
+        vaiMintIndex = 1e18;
+        accrualBlockNumber = getBlockNumber();
     }
 
     function setVAIAddress(address vaiAddress_) public {

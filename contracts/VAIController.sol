@@ -138,7 +138,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             }
 
             VAI(getVAIAddress()).mint(minter, remainedAmount);
-            vaiMinterInterestIndex[minter] = vaiInterestIndex;
+            vaiMinterInterestIndex[minter] = vaiMintIndex;
 
             emit MintVAI(minter, remainedAmount);
 
@@ -319,8 +319,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
         require(unitroller._acceptImplementation() == 0, "change not authorized");
 
-        vaiInterestIndex = 1e18;
-        vaiInterestBlockNumber = getBlockNumber();
+        vaiMintIndex = 1e18;
+        accrualBlockNumber = getBlockNumber();
     }
 
     /**
@@ -486,7 +486,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint delta;
 
         uint amount = ComptrollerImplInterface(address(comptroller)).mintedVAIs(account);
-        (mErr, delta) = mulUInt(vaiInterestIndex, 1e18);
+        (mErr, delta) = mulUInt(vaiMintIndex, 1e18);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
         
         (mErr, delta) = divUInt(delta, vaiMinterInterestIndex[account]);
@@ -513,7 +513,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             uint delta;
             uint rate;
 
-            (mErr, delta) = mulUInt(vaiInterestIndex, 1e18);
+            (mErr, delta) = mulUInt(vaiMintIndex, 1e18);
             require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
             (mErr, rate) = divUInt(delta, vaiMinterInterestIndex[account]);
@@ -535,20 +535,20 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         MathError mErr;
         uint delta;
 
-        (mErr, delta) = mulUInt(vaiInterestIndex, getVAIRepayRatePerBlock());
+        (mErr, delta) = mulUInt(vaiMintIndex, getVAIRepayRatePerBlock());
         require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
 
         (mErr, delta) = divUInt(delta, 1e18);
         require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
 
-        (mErr, delta) = mulUInt(delta, getBlockNumber() - vaiInterestBlockNumber);
+        (mErr, delta) = mulUInt(delta, getBlockNumber() - accrualBlockNumber);
         require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
 
-        (mErr, delta) = addUInt(delta, vaiInterestIndex);
+        (mErr, delta) = addUInt(delta, vaiMintIndex);
         require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
 
-        vaiInterestIndex = delta;
-        vaiInterestBlockNumber = getBlockNumber();
+        vaiMintIndex = delta;
+        accrualBlockNumber = getBlockNumber();
     }
         
     /**
