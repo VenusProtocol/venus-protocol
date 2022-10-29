@@ -38,7 +38,7 @@ contract VenusChainlinkOracle is PriceOracle {
         if (compareStrings(symbol, "vBNB")) {
             return getChainlinkPrice(getFeed(symbol));
         } else if (compareStrings(symbol, "VAI")) {
-            return VAI_VALUE;
+            return getChainlinkPrice(getFeed(symbol));
         } else if (compareStrings(symbol, "XVS")) {
             return prices[address(vToken)];
         } else {
