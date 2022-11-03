@@ -4,7 +4,13 @@ import { expect } from "chai";
 import { BigNumber, Wallet } from "ethers";
 import { ethers } from "hardhat";
 
-import { Comptroller, ComptrollerLens__factory, Comptroller__factory, IAccessControlManager, VAIControllerHarness__factory } from "../../../typechain";
+import {
+  Comptroller,
+  ComptrollerLens__factory,
+  Comptroller__factory,
+  IAccessControlManager,
+  VAIControllerHarness__factory,
+} from "../../../typechain";
 import { SimplePriceOracle } from "../../../typechain";
 import { XVS } from "../../../typechain";
 import { VAIScenario } from "../../../typechain";
@@ -77,7 +83,7 @@ describe("Comptroller", async () => {
 
     const venusRate = bigNumber18;
 
-    const vaiControllerFactory = await smock.mock<VAIControllerHarness__factory>("VAIControllerHarness"); 
+    const vaiControllerFactory = await smock.mock<VAIControllerHarness__factory>("VAIControllerHarness");
     const vaiController = await vaiControllerFactory.deploy();
 
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
@@ -277,14 +283,14 @@ describe("Comptroller", async () => {
     it("success for 1.2 rate 0.9 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
 
-      const TEMP_BLOCKS_PER_YEAR = 100000
+      const TEMP_BLOCKS_PER_YEAR = 100000;
       vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
 
       await vaiController._setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
 
       await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
-      
+
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(72), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(28));
       expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
@@ -310,7 +316,7 @@ describe("Comptroller", async () => {
     it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
       await vaiController._setBaseRate(bigNumber17);
       await vaiController._setFloatRate(bigNumber17);
-      
+
       await priceOracle.setDirectPrice(vai.address, bigNumber17.mul(5));
       expect(await vaiController.getVAIRepayRate()).to.eq(bigNumber16.mul(15));
     });
@@ -332,10 +338,9 @@ describe("Comptroller", async () => {
       await vaiController._setFloatRate(bigNumber17);
       await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
       await vaiController.accrueVAIInterest();
-      
+
       expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(110));
     });
-
 
     it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
       await vaiController._setBaseRate(bigNumber17);
