@@ -1,6 +1,6 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import chai from "chai";
-import { Signer } from "ethers";
+import { constants, Signer } from "ethers";
 import { ethers } from "hardhat";
 
 import { Comptroller, Comptroller__factory, IAccessControlManager } from "../../../typechain";
@@ -21,12 +21,28 @@ describe("Comptroller", () => {
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     comptroller = await ComptrollerFactory.deploy();
     accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
-    await comptroller._setAccessControl(accessControl.address);
+  });
+
+  describe("_setAccessControlManager", () => {
+    it("Reverts if called by non-admin", async () => {
+      expect(comptroller.connect(user)._setAccessControl(accessControl.address)).to.be.revertedWith("only admin can");
+    });
+
+    it("Reverts if ACM is zero address", async () => {
+      expect(comptroller._setAccessControl(constants.AddressZero)).to.be.revertedWith("can't be zero address");
+    });
+
+    it("Sets ACM address in storage", async () => {
+      expect(await comptroller._setAccessControl(accessControl.address))
+        .to.emit(comptroller, "NewAccessControl")
+        .withArgs(constants.AddressZero, accessControl.address);
+      expect(await comptroller.getVariable("accessControl")).to.equal(accessControl.address);
+    });
   });
 
   describe("Access Control", () => {
-    it("ACM address is set in storage", async () => {
-      expect(await comptroller.getVariable("accessControl")).to.equal(accessControl.address);
+    beforeEach(async () => {
+      await comptroller._setAccessControl(accessControl.address);
     });
 
     describe("setCollateralFactor", () => {
