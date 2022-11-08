@@ -2,7 +2,7 @@ pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
 import "./PriceOracle.sol";
-import "./VBep20.sol";
+import "./Tokens/VTokens/VBep20.sol";
 import "./BEP20Interface.sol";
 import "./SafeMath.sol";
 

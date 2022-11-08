@@ -1,12 +1,12 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../VBep20.sol";
-import "../VToken.sol";
+import "../Tokens/VTokens/VBep20.sol";
+import "../Tokens/VTokens/VToken.sol";
 import "../PriceOracle.sol";
 import "../EIP20Interface.sol";
 import "../Governance/GovernorAlpha.sol";
-import "../Governance/XVS.sol";
+import "../Tokens/XVS.sol";
 import "../ComptrollerInterface.sol";
 import "../SafeMath.sol";
 

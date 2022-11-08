@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "./VToken.sol";
+import "../VTokens/VToken.sol";
 
 contract VAIControllerInterface {
     function getVAIAddress() public view returns (address);

@@ -1,13 +1,13 @@
 pragma solidity ^0.5.16;
 
-import "./VToken.sol";
+import "./Tokens/VTokens/VToken.sol";
 import "./ErrorReporter.sol";
 import "./PriceOracle.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
-import "./Governance/XVS.sol";
-import "./VAI/VAI.sol";
+import "./Tokens/XVS.sol";
+import "./Tokens/VAI/VAI.sol";
 
 /**
  * @title Venus's Comptroller Contract

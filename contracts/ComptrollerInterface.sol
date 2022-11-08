@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "./VToken.sol";
+import "./Tokens/VTokens/VToken.sol";
 import "./PriceOracle.sol";
 
 contract ComptrollerInterfaceG1 {

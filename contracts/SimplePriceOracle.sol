@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
 import "./PriceOracle.sol";
-import "./VBep20.sol";
+import "./Tokens/VTokens/VBep20.sol";
 
 contract SimplePriceOracle is PriceOracle {
     mapping(address => uint) prices;

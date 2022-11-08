@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "./VToken.sol";
+import "./Tokens/VTokens/VToken.sol";
 
 contract PriceOracle {
     /// @notice Indicator that this is a PriceOracle contract (for inspection)

@@ -1,15 +1,14 @@
 pragma solidity ^0.5.16;
 
-import "./VToken.sol";
-import "./PriceOracle.sol";
-import "./ErrorReporter.sol";
-import "./Exponential.sol";
+import "../../PriceOracle.sol";
+import "../../ErrorReporter.sol";
+import "../../Exponential.sol";
+import "../../ComptrollerStorage.sol";
+import "../../Comptroller.sol";
+import "../VTokens/VToken.sol";
 import "./VAIControllerStorage.sol";
 import "./VAIUnitroller.sol";
-import "./VAI/VAI.sol";
-import "./ComptrollerStorage.sol";
-import "./Comptroller.sol";
-
+import "./VAI.sol";
 
 interface ComptrollerImplInterface {
     function protocolPaused() external view returns (bool);

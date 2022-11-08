@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "./VToken.sol";
+import "./Tokens/VTokens/VToken.sol";
 
 interface ComptrollerLensInterface {
     function liquidateCalculateSeizeTokens(
