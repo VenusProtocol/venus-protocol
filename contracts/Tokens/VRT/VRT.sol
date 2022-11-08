@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../Utils/Tokenlock.sol";
+import "../../Utils/Tokenlock.sol";
 
 contract VRT is Tokenlock {
     /// @notice BEP-20 token name for this token

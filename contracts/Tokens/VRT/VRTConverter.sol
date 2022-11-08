@@ -1,8 +1,8 @@
 pragma solidity ^0.5.16;
 
-import "../Utils/IBEP20.sol";
-import "../Utils/SafeBEP20.sol";
-import "./IXVSVesting.sol";
+import "../../Utils/IBEP20.sol";
+import "../../Utils/SafeBEP20.sol";
+import "../XVS/IXVSVesting.sol";
 import "./VRTConverterStorage.sol";
 import "./VRTConverterProxy.sol";
 
