@@ -6,7 +6,7 @@ import "../Tokens/VTokens/VBep20.sol";
 import "../Tokens/VTokens/VToken.sol";
 import "../EIP20Interface.sol";
 import "../Governance/GovernorAlpha.sol";
-import "../Tokens/XVS.sol";
+import "../Tokens/XVS/XVS.sol";
 import "../ComptrollerInterface.sol";
 import "../SafeMath.sol";
 

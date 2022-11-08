@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/VRT/XVSVesting.sol";
+import "../../contracts/Tokens/XVS/XVSVesting.sol";
 
 contract XVSVestingHarness is XVSVesting {
 

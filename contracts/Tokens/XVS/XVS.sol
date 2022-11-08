@@ -1,50 +1,6 @@
 pragma solidity ^0.5.16;
 
-contract Owned {
-
-    address public owner;
-
-    event OwnershipTransferred(address indexed _from, address indexed _to);
-
-    constructor() public {
-        owner = msg.sender;
-    }
-
-    modifier onlyOwner {
-        require(msg.sender == owner, "Should be owner");
-        _;
-    }
-
-    function transferOwnership(address newOwner) public onlyOwner {
-        owner = newOwner;
-        emit OwnershipTransferred(owner, newOwner);
-    }
-}
-
-contract Tokenlock is Owned {
-    /// @notice Indicates if token is locked
-    uint8 isLocked = 0;
-
-    event Freezed();
-    event UnFreezed();
-
-    modifier validLock {
-        require(isLocked == 0, "Token is locked");
-        _;
-    }
-
-    function freeze() public onlyOwner {
-        isLocked = 1;
-
-        emit Freezed();
-    }
-
-    function unfreeze() public onlyOwner {
-        isLocked = 0;
-
-        emit UnFreezed();
-    }
-}
+import "../../Utils/Tokenlock.sol";
 
 contract XVS is Tokenlock {
     /// @notice BEP-20 token name for this token

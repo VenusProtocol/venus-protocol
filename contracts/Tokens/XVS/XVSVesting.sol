@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
-import "../Utils/IBEP20.sol";
-import "../Utils/SafeBEP20.sol";
+import "../../Utils/IBEP20.sol";
+import "../../Utils/SafeBEP20.sol";
 import "./XVSVestingStorage.sol";
 import "./XVSVestingProxy.sol";
 

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
-import "../Utils/SafeMath.sol";
-import "../Utils/IBEP20.sol";
+import "../../Utils/SafeMath.sol";
+import "../../Utils/IBEP20.sol";
 
 contract XVSVestingAdminStorage {
     /**

@@ -7,7 +7,7 @@ import "./Exponential.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
-import "./Tokens/XVS.sol";
+import "./Tokens/XVS/XVS.sol";
 import "./Tokens/VAI/VAI.sol";
 
 /**
