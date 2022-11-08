@@ -10,13 +10,12 @@ import "./Governance/XVS.sol";
 import "./VAI/VAI.sol";
 import "./ComptrollerLensInterface.sol";
 import "./IAccessControlManager.sol";
-import "./CarefulMath.sol";
 
 /**
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError, CarefulMath {
+contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 

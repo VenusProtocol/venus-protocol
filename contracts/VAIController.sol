@@ -159,6 +159,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     function repayVAI(uint repayVAIAmount) external nonReentrant returns (uint, uint) {
         if(address(comptroller) != address(0)) {
+            accrueVAIInterest();
+
             require(repayVAIAmount > 0, "repayVAIAmount cannt be zero");
 
             require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
@@ -178,8 +180,6 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     function repayVAIFresh(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
-        accrueVAIInterest();
-
         uint actualBurnAmount;
         MathError mErr;
 
@@ -564,9 +564,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     function _setBaseRate(uint newBaseRateMantissa) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
+        require(msg.sender == admin, "UNAUTHORIZED");
+
         uint old = baseRateMantissa;
         baseRateMantissa = newBaseRateMantissa;
         emit NewVAIBaseRate(old, baseRateMantissa);
@@ -577,9 +576,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     function _setFloatRate(uint newFloatRateMantissa) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
+        require(msg.sender == admin, "UNAUTHORIZED");
+
         uint old = floatRateMantissa;
         floatRateMantissa = newFloatRateMantissa;
         emit NewVAIFloatRate(old, floatRateMantissa);
@@ -590,9 +588,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     function _setReceiver(address newReceiver) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
+        require(msg.sender == admin, "UNAUTHORIZED");
+
         address old = receiver;
         receiver = newReceiver;
         emit NewVAIReceiver(old, newReceiver);
