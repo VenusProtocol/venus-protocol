@@ -473,7 +473,6 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     function getVAIRepayRatePerBlock() public view returns (uint) {
-        PriceOracle oracle = ComptrollerImplInterface(address(comptroller)).oracle();
         uint yearlyRate = getVAIRepayRate();
 
         MathError mErr;
