@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../PriceOracle.sol";
+import "@venusprotocol/oracle/contracts/PriceOracle.sol";
 
 contract FixedPriceOracle is PriceOracle {
     uint public price;
@@ -9,7 +9,7 @@ contract FixedPriceOracle is PriceOracle {
         price = _price;
     }
 
-    function getUnderlyingPrice(VToken vToken) public view returns (uint) {
+    function getUnderlyingPrice(address vToken) public view returns (uint) {
         vToken;
         return price;
     }

@@ -1,19 +1,20 @@
 pragma solidity ^0.5.16;
 
-import "./PriceOracle.sol";
-import "./Tokens/VTokens/VBep20.sol";
+import "@venusprotocol/oracle/contracts/PriceOracle.sol";
+import "../Tokens/VTokens/VBep20.sol";
 
 contract SimplePriceOracle is PriceOracle {
     mapping(address => uint) prices;
     event PricePosted(address asset, uint previousPriceMantissa, uint requestedPriceMantissa, uint newPriceMantissa);
 
-    function getUnderlyingPrice(VToken vToken) public view returns (uint) {
-        if (compareStrings(vToken.symbol(), "vBNB")) {
+    function getUnderlyingPrice(address vToken) public view returns (uint) {
+        VToken vTokenInstance = VBep20(vToken);
+        if (compareStrings(vTokenInstance.symbol(), "vBNB")) {
             return 1e18;
-        } else if (compareStrings(vToken.symbol(), "VAI")) {
-            return prices[address(vToken)];
+        } else if (compareStrings(vTokenInstance.symbol(), "VAI")) {
+            return prices[vToken];
         } else {
-            return prices[address(VBep20(address(vToken)).underlying())];
+            return prices[address(VBep20(vToken).underlying())];
         }
     }
 

@@ -1,8 +1,8 @@
 pragma solidity ^0.5.16;
 
+import "@venusprotocol/oracle/contracts/PriceOracle.sol";
 import "./Tokens/VTokens/VToken.sol";
 import "./ErrorReporter.sol";
-import "./PriceOracle.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
@@ -413,7 +413,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
             }
         }
 
-        if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
+        if (oracle.getUnderlyingPrice(vToken) == 0) {
             return uint(Error.PRICE_ERROR);
         }
 
@@ -940,7 +940,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         }
 
         // If collateral factor != 0, fail if price == 0
-        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(vToken) == 0) {
+        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(address(vToken)) == 0) {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
 

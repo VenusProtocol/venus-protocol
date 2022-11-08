@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "./PriceOracle.sol";
+import "@venusprotocol/oracle/contracts/PriceOracle.sol";
 import "./Tokens/VTokens/VBep20.sol";
 import "./BEP20Interface.sol";
 import "./SafeMath.sol";

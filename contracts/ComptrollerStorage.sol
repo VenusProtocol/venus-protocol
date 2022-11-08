@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
+import "@venusprotocol/oracle/contracts/PriceOracle.sol";
 import "./Tokens/VTokens/VToken.sol";
-import "./PriceOracle.sol";
 import "./Tokens/VAI/VAIControllerInterface.sol";
 import "./ComptrollerLensInterface.sol";
 

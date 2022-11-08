@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
+import "@venusprotocol/oracle/contracts/PriceOracle.sol";
 import "../Comptroller.sol";
-import "../PriceOracle.sol";
 
 contract ComptrollerKovan is Comptroller {
   function getXVSAddress() public view returns (address) {
@@ -78,7 +78,7 @@ contract ComptrollerHarness is Comptroller {
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets_[i];
             if (venusSpeeds[address(vToken)] > 0) {
-                Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(vToken)});
+                Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(address(vToken))});
                 Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
                 utilities[i] = utility;
                 totalUtility = add_(totalUtility, utility);
