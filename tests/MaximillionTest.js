@@ -1,24 +1,14 @@
-const {
-  bnbBalance,
-  bnbGasCost,
-  getContract
-} = require('./Utils/BSC');
+const { bnbBalance, bnbGasCost } = require("./Utils/BSC");
 
-const {
-  makeComptroller,
-  makeVToken,
-  makePriceOracle,
-  pretendBorrow,
-  borrowSnapshot
-} = require('./Utils/Venus');
+const { makeVToken, pretendBorrow, borrowSnapshot } = require("./Utils/Venus");
 
-describe('Maximillion', () => {
+describe("Maximillion", () => {
   let root, borrower;
   let maximillion, vBnb;
   beforeEach(async () => {
     [root, borrower] = saddle.accounts;
-    vBnb = await makeVToken({kind: "vbnb", supportMarket: true});
-    maximillion = await deploy('Maximillion', [vBnb._address]);
+    vBnb = await makeVToken({ kind: "vbnb", supportMarket: true });
+    maximillion = await deploy("Maximillion", [vBnb._address]);
   });
 
   describe("constructor", () => {
@@ -30,7 +20,7 @@ describe('Maximillion', () => {
   describe("repayBehalf", () => {
     it("refunds the entire amount with no borrows", async () => {
       const beforeBalance = await bnbBalance(root);
-      const result = await send(maximillion, "repayBehalf", [borrower], {value: 100});
+      const result = await send(maximillion, "repayBehalf", [borrower], { value: 100 });
       const gasCost = await bnbGasCost(result);
       const afterBalance = await bnbBalance(root);
       expect(result).toSucceed();
@@ -40,7 +30,7 @@ describe('Maximillion', () => {
     it("repays part of a borrow", async () => {
       await pretendBorrow(vBnb, borrower, 1, 1, 150);
       const beforeBalance = await bnbBalance(root);
-      const result = await send(maximillion, "repayBehalf", [borrower], {value: 100});
+      const result = await send(maximillion, "repayBehalf", [borrower], { value: 100 });
       const gasCost = await bnbGasCost(result);
       const afterBalance = await bnbBalance(root);
       const afterBorrowSnap = await borrowSnapshot(vBnb, borrower);
@@ -52,7 +42,7 @@ describe('Maximillion', () => {
     it("repays a full borrow and refunds the rest", async () => {
       await pretendBorrow(vBnb, borrower, 1, 1, 90);
       const beforeBalance = await bnbBalance(root);
-      const result = await send(maximillion, "repayBehalf", [borrower], {value: 100});
+      const result = await send(maximillion, "repayBehalf", [borrower], { value: 100 });
       const gasCost = await bnbGasCost(result);
       const afterBalance = await bnbBalance(root);
       const afterBorrowSnap = await borrowSnapshot(vBnb, borrower);

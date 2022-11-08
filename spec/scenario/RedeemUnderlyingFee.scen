@@ -3,6 +3,7 @@
 Test "Mint then Redeem All"
     NewFeeComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Check current affairs
@@ -20,6 +21,7 @@ Test "Mint then Redeem All"
 Test "Mint then Redeem Part"
     NewFeeComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Check current affairs
@@ -36,6 +38,7 @@ Test "Mint then Redeem Part"
 Test "Mint then Redeem Too Much"
     NewFeeComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Check and hold static
@@ -51,6 +54,7 @@ Test "Mint then Redeem Too Much"
 Test "Mint then Redeem Zero"
     NewFeeComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Check current affairs
@@ -67,6 +71,7 @@ Test "Mint then Redeem Zero"
 Test "Mint then redeem with interest - no reserves"
     NewFeeComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Invariant Remains (VToken vZRX Reserves) Zero
     Prep Geoff 50e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
@@ -95,6 +100,7 @@ Test "Mint then redeem with interest - no reserves"
 Test "Mint then redeem part with interest - no reserves"
     NewFeeComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Invariant Remains (VToken vZRX Reserves) Zero
     Prep Geoff 50e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
@@ -121,6 +127,7 @@ Test "Mint then redeem part with interest - no reserves"
 Test "Mint then redeem with reserves and interest"
     NewFeeComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff 50e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
@@ -152,6 +159,7 @@ Test "Mint then redeem with reserves and interest"
 Test "Two users Mint, one redeems"
     NewFeeComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff Some ZRX vZRX
     Prep Torrey Some ZRX vZRX
     Mint Geoff 2e18 vZRX
@@ -169,6 +177,7 @@ Test "Two users Mint, one redeems"
 Test "Mint then Redeem 1 wei of underlying"
     NewFeeComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     AllowFailures

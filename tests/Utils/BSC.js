@@ -1,28 +1,24 @@
 "use strict";
 
-const BigNum = require('bignumber.js');
-const ethers = require('ethers');
+const BigNum = require("bignumber.js");
+const ethers = require("ethers");
 BigNum.prototype.add = BigNum.prototype.plus;
 BigNum.prototype.mul = BigNum.prototype.times;
 BigNum.prototype.sub = BigNum.prototype.minus;
 
 function address(n) {
-  return `0x${n.toString(16).padStart(40, '0')}`;
+  return `0x${n.toString(16).padStart(40, "0")}`;
 }
 
 function encodeParameters(types, values) {
   const abi = new ethers.utils.AbiCoder();
   const valuesPatched = values.map(v => {
-    return v instanceof BigNum ? v.toFixed() : v; 
+    return v instanceof BigNum ? v.toFixed() : v;
   });
   return abi.encode(types, valuesPatched);
 }
 
 async function bnbBalance(addr) {
-  return new BigNum(await web3.eth.getBalance(addr));
-}
-
-async function vaiBalance(vai, addr) {
   return new BigNum(await web3.eth.getBalance(addr));
 }
 
@@ -37,11 +33,14 @@ function getBigNumber(value) {
   return new BigNum(value);
 }
 
-function bnbExp(num) { return bnbMantissa(num, 1e18) }
-function bnbDouble(num) { return bnbMantissa(num, 1e36) }
+function bnbExp(num) {
+  return bnbMantissa(num, 1e18);
+}
+function bnbDouble(num) {
+  return bnbMantissa(num, 1e36);
+}
 function bnbMantissa(num, scale = 1e18) {
-  if (num < 0)
-    return new BigNum(2).pow(256).plus(num);
+  if (num < 0) return new BigNum(2).pow(256).plus(num);
   return new BigNum(num).times(scale);
 }
 
@@ -50,16 +49,6 @@ function bnbUnsigned(num) {
 }
 
 function mergeInterface(into, from) {
-  const key = (item) => item.inputs ? `${item.name}/${item.inputs.length}` : item.name;
-  const existing = into.options.jsonInterface.reduce((acc, item) => {
-    acc[key(item)] = true;
-    return acc;
-  }, {});
-  const extended = from.options.jsonInterface.reduce((acc, item) => {
-    if (!(key(item) in existing))
-      acc.push(item)
-    return acc;
-  }, into.options.jsonInterface.slice());
   into.options.jsonInterface = into.options.jsonInterface.concat(from.options.jsonInterface);
   return into;
 }
@@ -74,8 +63,7 @@ function keccak256(values) {
 
 function unlockedAccounts() {
   let provider = web3.currentProvider;
-  if (provider._providers)
-    provider = provider._providers.find(p => p._ganacheProvider)._ganacheProvider;
+  if (provider._providers) provider = provider._providers.find(p => p._ganacheProvider)._ganacheProvider;
   return provider.manager.state.unlocked_accounts;
 }
 
@@ -84,47 +72,47 @@ function unlockedAccount(a) {
 }
 
 async function mineBlockNumber(blockNumber) {
-  return rpc({method: 'evm_mineBlockNumber', params: [blockNumber]});
+  return rpc({ method: "evm_mineBlockNumber", params: [blockNumber] });
 }
 
 async function mineBlock() {
-  return rpc({ method: 'evm_mine' });
+  return rpc({ method: "evm_mine" });
 }
 
 async function increaseTime(seconds) {
-  await rpc({ method: 'evm_increaseTime', params: [seconds] });
-  return rpc({ method: 'evm_mine' });
+  await rpc({ method: "evm_increaseTime", params: [seconds] });
+  return rpc({ method: "evm_mine" });
 }
 
 async function setTime(seconds) {
-  await rpc({ method: 'evm_setTime', params: [new Date(seconds * 1000)] });
+  await rpc({ method: "evm_setTime", params: [new Date(seconds * 1000)] });
 }
 
 async function freezeTime(seconds) {
-  await rpc({ method: 'evm_freezeTime', params: [seconds] });
-  return rpc({ method: 'evm_mine' });
+  await rpc({ method: "evm_freezeTime", params: [seconds] });
+  return rpc({ method: "evm_mine" });
 }
 
 async function advanceBlocks(blocks) {
-  let { result: num } = await rpc({ method: 'eth_blockNumber' });
-  await rpc({ method: 'evm_mineBlockNumber', params: [blocks + parseInt(num)] });
+  let { result: num } = await rpc({ method: "eth_blockNumber" });
+  await rpc({ method: "evm_mineBlockNumber", params: [blocks + parseInt(num)] });
 }
 
 async function blockNumber() {
-  let { result: num } = await rpc({ method: 'eth_blockNumber' });
+  let { result: num } = await rpc({ method: "eth_blockNumber" });
   return parseInt(num);
 }
 
 async function minerStart() {
-  return rpc({ method: 'miner_start' });
+  return rpc({ method: "miner_start" });
 }
 
 async function minerStop() {
-  return rpc({ method: 'miner_stop' });
+  return rpc({ method: "miner_stop" });
 }
 
 async function rpc(request) {
-  return new Promise((okay, fail) => web3.currentProvider.send(request, (err, res) => err ? fail(err) : okay(res)));
+  return new Promise((okay, fail) => web3.currentProvider.send(request, (err, res) => (err ? fail(err) : okay(res))));
 }
 
 async function both(contract, method, args = [], opts = {}) {
@@ -134,7 +122,10 @@ async function both(contract, method, args = [], opts = {}) {
 }
 
 async function sendFallback(contract, opts = {}) {
-  const receipt = await web3.eth.sendTransaction({ to: contract._address, ...Object.assign(getContractDefaults(), opts) });
+  const receipt = await web3.eth.sendTransaction({
+    to: contract._address,
+    ...Object.assign(getContractDefaults(), opts),
+  });
   return Object.assign(receipt, { events: receipt.logs });
 }
 
@@ -164,5 +155,5 @@ module.exports = {
   setTime,
   both,
   sendFallback,
-  getBigNumber
+  getBigNumber,
 };

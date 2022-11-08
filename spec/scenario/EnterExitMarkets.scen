@@ -23,7 +23,9 @@ Test "Entered Market Must Be Supported"
 	EnterMarkets Geoff vZRX
 	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 1)
 	NewVToken OMG vOMG
+	AllowFailures
 	EnterMarkets Geoff vZRX vOMG
+    Assert Revert "revert market not listed"
 	Assert Equal (Comptroller MembershipLength Geoff) (Exactly 1)
 	Assert True (Comptroller CheckMembership Geoff vZRX)
 	Assert False (Comptroller CheckMembership Geoff vOMG)
@@ -90,6 +92,8 @@ Test "Realistic Market Scenario"
 	ListedVToken ZRX vZRX
 	SetPriceCF vZRX 0.002 0.4
 	ListedBNBToken vBNB
+	Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
+	Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
 	Comptroller SetCollateralFactor vBnb 0.8
 	ListedVToken BAT vBAT
 	SetPriceCF vBAT 0.0015 0.3

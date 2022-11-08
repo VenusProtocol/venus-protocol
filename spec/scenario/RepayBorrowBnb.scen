@@ -3,7 +3,9 @@
 Macro SetupBorrow borrowRate
     NewComptroller price:1.0 -- TODO: This should really be a price for a specific asset
     ListedVToken ZRX vZRX borrowRate
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     ListedBNBToken vBNB borrowRate 0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2e30)
     SetCollateralFactor vZRX collateralFactor:0.5
     SetCollateralFactor vBNB collateralFactor:0.5
     Donate vBNB 0.003e18
@@ -200,7 +202,7 @@ Test "Prohibit repay by comptroller hook"
     Comptroller UnList vBNB -- Mock unlist vBNB
     AllowFailures
     RepayBorrowBnb Geoff 0.001e18 vBNB
-    Assert RevertFailure COMPTROLLER_REJECTION "revert repayBorrow failed"
+    Assert Revert "revert market not listed"
     ---- Let's check the overall numbers
     Assert Equal (VToken vBNB BorrowBalance Geoff) 0.0025e18
     Assert Equal (VToken vBNB TotalBorrowsCurrent) 0.0025e18

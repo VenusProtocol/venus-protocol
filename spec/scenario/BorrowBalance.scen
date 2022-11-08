@@ -4,6 +4,8 @@ Macro NewBorrow borrowAmount borrowRate user=Geoff
     NewComptroller price:1.0 -- TODO: This should really be a price for a specific asset
     NewVToken ZRX vZRX
     NewVToken BAT vBAT borrowRate -- note: cannot use macros with named args right now
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
     Support vBAT collateralFactor:0.5
@@ -52,6 +54,7 @@ Test "Borrow Balance after accrual then changed interest rate"
     -- Note: this should accrue interest
     InterestRateModel Deploy Fixed Std 0.000004
     VToken vBAT SetInterestRateModel (InterestRateModel Std Address)
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
     -- Check borrow balance still based on old figure (with previous interest accrual)
     Assert Equal (vToken vBAT BorrowBalance Geoff) (Exactly 2.5e18)
     Assert Equal (vToken vBAT TotalBorrowsCurrent) (Exactly 2.5e18)

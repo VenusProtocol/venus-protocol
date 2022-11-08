@@ -80,16 +80,21 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
 
     /**
      * @notice The Pause Guardian can pause certain actions as a safety mechanism.
-     *  Actions which allow users to remove their own assets cannot be paused.
-     *  Liquidation / seizing / transfer can only be paused globally, not by market.
      */
     address public pauseGuardian;
-    bool public _mintGuardianPaused;
-    bool public _borrowGuardianPaused;
-    bool public transferGuardianPaused;
-    bool public seizeGuardianPaused;
-    mapping(address => bool) public mintGuardianPaused;
-    mapping(address => bool) public borrowGuardianPaused;
+
+    /// @notice Whether minting is paused (deprecated, superseded by actionPaused)
+    bool private _mintGuardianPaused;
+    /// @notice Whether borrowing is paused (deprecated, superseded by actionPaused)
+    bool private _borrowGuardianPaused;
+    /// @notice Whether borrowing is paused (deprecated, superseded by actionPaused)
+    bool internal transferGuardianPaused;
+    /// @notice Whether borrowing is paused (deprecated, superseded by actionPaused)
+    bool internal seizeGuardianPaused;
+    /// @notice Whether borrowing is paused (deprecated, superseded by actionPaused)
+    mapping(address => bool) internal mintGuardianPaused;
+    /// @notice Whether borrowing is paused (deprecated, superseded by actionPaused)
+    mapping(address => bool) internal borrowGuardianPaused;
 
     struct VenusMarketState {
         /// @notice The market's last updated venusBorrowIndex or venusSupplyIndex
@@ -143,8 +148,8 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
      */
     bool public protocolPaused;
 
-    /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block
-    uint public venusVAIRate;
+    /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block (deprecated)
+    uint private venusVAIRate;
 }
 
 contract ComptrollerV2Storage is ComptrollerV1Storage {
@@ -179,12 +184,13 @@ contract ComptrollerV4Storage is ComptrollerV3Storage {
     /// @notice Fee percent of accrued interest with decimal 18
     uint256 public treasuryPercent;
 }
-contract ComptrollerV5Storage is ComptrollerV4Storage {
-    /// @notice The portion of XVS that each contributor receives per block
-    mapping(address => uint) public venusContributorSpeeds;
 
-    /// @notice Last block at which a contributor's XVS rewards have been allocated
-    mapping(address => uint) public lastContributorBlock;
+contract ComptrollerV5Storage is ComptrollerV4Storage {
+    /// @notice The portion of XVS that each contributor receives per block (deprecated)
+    mapping(address => uint) private venusContributorSpeeds;
+
+    /// @notice Last block at which a contributor's XVS rewards have been allocated (deprecated)
+    mapping(address => uint) private lastContributorBlock;
 }
 
 contract ComptrollerV6Storage is ComptrollerV5Storage {
@@ -193,4 +199,30 @@ contract ComptrollerV6Storage is ComptrollerV5Storage {
 
 contract ComptrollerV7Storage is ComptrollerV6Storage {
     ComptrollerLensInterface public comptrollerLens;
+}
+
+contract ComptrollerV8Storage is ComptrollerV7Storage {
+    
+    /// @notice Supply caps enforced by mintAllowed for each vToken address. Defaults to zero which corresponds to minting notAllowed
+    mapping(address => uint256) public supplyCaps;
+}
+    
+contract ComptrollerV9Storage is ComptrollerV8Storage {
+    /// @notice AccessControlManager address
+    address accessControl;
+
+    enum Action {
+        MINT,
+        REDEEM,
+        BORROW,
+        REPAY,
+        SEIZE,
+        LIQUIDATE,
+        TRANSFER,
+        ENTER_MARKET,
+        EXIT_MARKET
+    }
+
+    /// @notice True if a certain action is paused on a certain market
+    mapping (address => mapping(uint => bool)) internal _actionPaused;
 }

@@ -1,61 +1,67 @@
-import {Event} from '../Event';
-import {addAction, World} from '../World';
-import {PriceOracle} from '../Contract/PriceOracle';
-import {buildPriceOracle, setPriceOracle} from '../Builder/PriceOracleBuilder';
-import {invoke} from '../Invokation';
-import {
-  getAddressV,
-  getEventV,
-  getExpNumberV,
-  getStringV
-} from '../CoreValue';
-import {
-  AddressV,
-  EventV,
-  NumberV,
-  StringV
-} from '../Value';
-import {Arg, Command, processCommandEvent, View} from '../Command';
-import {getPriceOracle} from '../ContractLookup';
-import {verify} from '../Verify';
-import {encodedNumber} from '../Encoding';
+import { buildPriceOracle, setPriceOracle } from "../Builder/PriceOracleBuilder";
+import { Arg, Command, View, processCommandEvent } from "../Command";
+import { PriceOracle } from "../Contract/PriceOracle";
+import { getPriceOracle } from "../ContractLookup";
+import { getAddressV, getEventV, getExpNumberV, getStringV } from "../CoreValue";
+import { Event } from "../Event";
+import { invoke } from "../Invokation";
+import { AddressV, EventV, NumberV, StringV } from "../Value";
+import { verify } from "../Verify";
+import { World, addAction } from "../World";
 
 async function genPriceOracle(world: World, from: string, params: Event): Promise<World> {
-  let {world: nextWorld, priceOracle, priceOracleData} = await buildPriceOracle(world, from, params);
+  const { world: nextWorld, priceOracle, priceOracleData } = await buildPriceOracle(world, from, params);
   world = nextWorld;
 
   world = addAction(
     world,
     `Deployed PriceOracle (${priceOracleData.description}) to address ${priceOracle._address}`,
-    priceOracleData.invokation!
+    priceOracleData.invokation!,
   );
 
   return world;
 }
 
 async function setPriceOracleFn(world: World, params: Event): Promise<World> {
-  let {world: nextWorld, priceOracle, priceOracleData} = await setPriceOracle(world, params);
+  const { world: nextWorld } = await setPriceOracle(world, params);
 
   return nextWorld;
 }
 
-async function setPrice(world: World, from: string, priceOracle: PriceOracle, vToken: string, amount: NumberV): Promise<World> {
+async function setPrice(
+  world: World,
+  from: string,
+  priceOracle: PriceOracle,
+  vToken: string,
+  amount: NumberV,
+): Promise<World> {
   return addAction(
     world,
     `Set price oracle price for ${vToken} to ${amount.show()}`,
-    await invoke(world, priceOracle.methods.setUnderlyingPrice(vToken, amount.encode()), from)
+    await invoke(world, priceOracle.methods.setUnderlyingPrice(vToken, amount.encode()), from),
   );
 }
 
-async function setDirectPrice(world: World, from: string, priceOracle: PriceOracle, address: string, amount: NumberV): Promise<World> {
+async function setDirectPrice(
+  world: World,
+  from: string,
+  priceOracle: PriceOracle,
+  address: string,
+  amount: NumberV,
+): Promise<World> {
   return addAction(
     world,
     `Set price oracle price for ${address} to ${amount.show()}`,
-    await invoke(world, priceOracle.methods.setDirectPrice(address, amount.encode()), from)
+    await invoke(world, priceOracle.methods.setDirectPrice(address, amount.encode()), from),
   );
 }
 
-async function verifyPriceOracle(world: World, priceOracle: PriceOracle, apiKey: string, contractName: string): Promise<World> {
+async function verifyPriceOracle(
+  world: World,
+  priceOracle: PriceOracle,
+  apiKey: string,
+  contractName: string,
+): Promise<World> {
   if (world.isLocalNetwork()) {
     world.printer.printLine(`Politely declining to verify on local network: ${world.network}.`);
   } else {
@@ -67,7 +73,8 @@ async function verifyPriceOracle(world: World, priceOracle: PriceOracle, apiKey:
 
 export function priceOracleCommands() {
   return [
-    new Command<{params: EventV}>(`
+    new Command<{ params: EventV }>(
+      `
         #### Deploy
 
         * "Deploy ...params" - Generates a new price oracle
@@ -76,25 +83,23 @@ export function priceOracleCommands() {
           * E.g. "PriceOracle Deploy NotPriceOracle"
       `,
       "Deploy",
-      [
-        new Arg("params", getEventV, {variadic: true})
-      ],
-      (world, from, {params}) => genPriceOracle(world, from, params.val)
+      [new Arg("params", getEventV, { variadic: true })],
+      (world, from, { params }) => genPriceOracle(world, from, params.val),
     ),
-    new Command<{params: EventV}>(`
+    new Command<{ params: EventV }>(
+      `
         #### Set
 
         * "Set ...params" - Sets the price oracle to given deployed contract
           * E.g. "PriceOracle Set Standard \"0x...\" \"My Already Deployed Oracle\""
       `,
       "Set",
-      [
-        new Arg("params", getEventV, {variadic: true})
-      ],
-      (world, from, {params}) => setPriceOracleFn(world, params.val)
+      [new Arg("params", getEventV, { variadic: true })],
+      (world, from, { params }) => setPriceOracleFn(world, params.val),
     ),
 
-    new Command<{priceOracle: PriceOracle, vToken: AddressV, amount: NumberV}>(`
+    new Command<{ priceOracle: PriceOracle; vToken: AddressV; amount: NumberV }>(
+      `
         #### SetPrice
 
         * "SetPrice <VToken> <Amount>" - Sets the per-bnb price for the given vToken
@@ -102,14 +107,15 @@ export function priceOracleCommands() {
       `,
       "SetPrice",
       [
-        new Arg("priceOracle", getPriceOracle, {implicit: true}),
+        new Arg("priceOracle", getPriceOracle, { implicit: true }),
         new Arg("vToken", getAddressV),
-        new Arg("amount", getExpNumberV)
+        new Arg("amount", getExpNumberV),
       ],
-      (world, from, {priceOracle, vToken, amount}) => setPrice(world, from, priceOracle, vToken.val, amount)
+      (world, from, { priceOracle, vToken, amount }) => setPrice(world, from, priceOracle, vToken.val, amount),
     ),
 
-    new Command<{priceOracle: PriceOracle, address: AddressV, amount: NumberV}>(`
+    new Command<{ priceOracle: PriceOracle; address: AddressV; amount: NumberV }>(
+      `
         #### SetDirectPrice
 
         * "SetDirectPrice <Address> <Amount>" - Sets the per-bnb price for the given vToken
@@ -117,14 +123,15 @@ export function priceOracleCommands() {
       `,
       "SetDirectPrice",
       [
-        new Arg("priceOracle", getPriceOracle, {implicit: true}),
+        new Arg("priceOracle", getPriceOracle, { implicit: true }),
         new Arg("address", getAddressV),
-        new Arg("amount", getExpNumberV)
+        new Arg("amount", getExpNumberV),
       ],
-      (world, from, {priceOracle, address, amount}) => setDirectPrice(world, from, priceOracle, address.val, amount)
+      (world, from, { priceOracle, address, amount }) => setDirectPrice(world, from, priceOracle, address.val, amount),
     ),
 
-    new View<{priceOracle: PriceOracle, apiKey: StringV, contractName: StringV}>(`
+    new View<{ priceOracle: PriceOracle; apiKey: StringV; contractName: StringV }>(
+      `
         #### Verify
 
         * "Verify apiKey:<String> contractName:<String>=PriceOracle" - Verifies PriceOracle in BscScan
@@ -132,12 +139,13 @@ export function priceOracleCommands() {
       `,
       "Verify",
       [
-        new Arg("priceOracle", getPriceOracle, {implicit: true}),
+        new Arg("priceOracle", getPriceOracle, { implicit: true }),
         new Arg("apiKey", getStringV),
-        new Arg("contractName", getStringV, {default: new StringV("PriceOracle")})
+        new Arg("contractName", getStringV, { default: new StringV("PriceOracle") }),
       ],
-      (world, {priceOracle, apiKey, contractName}) => verifyPriceOracle(world, priceOracle, apiKey.val, contractName.val)
-    )
+      (world, { priceOracle, apiKey, contractName }) =>
+        verifyPriceOracle(world, priceOracle, apiKey.val, contractName.val),
+    ),
   ];
 }
 

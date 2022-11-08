@@ -1,5 +1,4 @@
-
 export interface Invariant {
-	held: boolean
+  held: boolean;
   checker: (world: any) => Promise<void>;
 }

@@ -1,6 +1,6 @@
-import { Contract } from '../Contract';
-import { Callable, Sendable } from '../Invokation';
-import { encodedNumber } from '../Encoding';
+import { Contract } from "../Contract";
+import { encodedNumber } from "../Encoding";
+import { Callable, Sendable } from "../Invokation";
 
 export interface VTokenMethods {
   _resignImplementation(): Sendable<void>;
@@ -30,12 +30,7 @@ export interface VTokenMethods {
   liquidateBorrow(borrower: string, vTokenCollateral: string): Sendable<number>;
   liquidateBorrow(borrower: string, repayAmount: encodedNumber, vTokenCollateral: string): Sendable<number>;
   seize(liquidator: string, borrower: string, seizeTokens: encodedNumber): Sendable<number>;
-  evilSeize(
-    treasure: string,
-    liquidator: string,
-    borrower: string,
-    seizeTokens: encodedNumber
-  ): Sendable<number>;
+  evilSeize(treasure: string, liquidator: string, borrower: string, seizeTokens: encodedNumber): Sendable<number>;
   _addReserves(amount: encodedNumber): Sendable<number>;
   _reduceReserves(amount: encodedNumber): Sendable<number>;
   _setReserveFactor(reserveFactor: encodedNumber): Sendable<number>;

@@ -1,24 +1,24 @@
-import { Expect, throwExpect } from './Assert';
-import { Action } from './Action';
-import { Contract } from './Contract';
-import { Record } from 'immutable';
-import { Printer } from './Printer';
-import { Invariant } from './Invariant';
-import { SuccessInvariant } from './Invariant/SuccessInvariant';
-import { RemainsInvariant } from './Invariant/RemainsInvariant';
-import { StaticInvariant } from './Invariant/StaticInvariant';
-import { Expectation } from './Expectation';
-import { formatResult } from './ErrorReporter';
-import { Invokation, InvokationOpts } from './Invokation';
-import { Event } from './Event';
-import { formatEvent } from './Formatter';
-import { Map } from 'immutable';
-import { Settings } from './Settings';
-import { Accounts, loadAccounts } from './Accounts';
-import Web3 from 'web3';
-import { Saddle } from 'eth-saddle';
-import { Command, Fetcher } from './Command';
-import { Value} from './Value';
+import { Saddle } from "eth-saddle";
+import { Record } from "immutable";
+import { Map } from "immutable";
+import Web3 from "web3";
+
+import { Accounts, loadAccounts } from "./Accounts";
+import { Action } from "./Action";
+import { Expect, throwExpect } from "./Assert";
+import { Command, Fetcher } from "./Command";
+import { Contract } from "./Contract";
+import { Event } from "./Event";
+import { Expectation } from "./Expectation";
+import { formatEvent } from "./Formatter";
+import { Invariant } from "./Invariant";
+import { RemainsInvariant } from "./Invariant/RemainsInvariant";
+import { StaticInvariant } from "./Invariant/StaticInvariant";
+import { SuccessInvariant } from "./Invariant/SuccessInvariant";
+import { Invokation, InvokationOpts } from "./Invokation";
+import { Printer } from "./Printer";
+import { Settings } from "./Settings";
+import { Value } from "./Value";
 
 const startingBlockNumber = 1000;
 
@@ -63,7 +63,7 @@ const defaultWorldProps: WorldProps = {
   lastInvokation: null,
   newInvokation: false,
   blockNumber: 0,
-  gasCounter: {value: 0},
+  gasCounter: { value: 0 },
   lastContract: null,
   invariants: [],
   expectations: [],
@@ -122,12 +122,12 @@ export class World extends Record(defaultWorldProps) {
     return {
       ...baseOpts,
       ...this.invokationOpts,
-      ...this.value ? {value: this.value.toString()} : {}
+      ...(this.value ? { value: this.value.toString() } : {}),
     };
   }
 
   isLocalNetwork(): boolean {
-    return this.network === 'test' || this.network === 'development' || this.network === 'coverage';
+    return this.network === "test" || this.network === "development" || this.network === "coverage";
   }
 
   async updateSettings(fn: (settings: Settings) => Promise<Settings>): Promise<World> {
@@ -137,16 +137,16 @@ export class World extends Record(defaultWorldProps) {
     // TODO: Should we await or just let it clobber?
     await newSettings.save();
 
-    return this.set('settings', newSettings);
+    return this.set("settings", newSettings);
   }
 
   defaultFrom(): string | null {
-    let settingsFrom = this.settings.findAlias('Me');
+    const settingsFrom = this.settings.findAlias("Me");
     if (settingsFrom) {
       return settingsFrom;
     }
 
-    let accountsDefault = this.accounts.get('default');
+    const accountsDefault = this.accounts.get("default");
     if (accountsDefault) {
       return accountsDefault.address;
     }
@@ -162,20 +162,20 @@ export function loadInvokationOpts(world: World): World {
     networkOpts = JSON.parse(networkOptsStr);
   }
 
-  return world.set('invokationOpts', networkOpts);
+  return world.set("invokationOpts", networkOpts);
 }
 
 export function loadVerbose(world: World): World {
-  return world.set('verbose', !!process.env['verbose']);
+  return world.set("verbose", !!process.env["verbose"]);
 }
 
 export function loadDryRun(world: World): World {
-  return world.set('dryRun', !!process.env['dry_run']);
+  return world.set("dryRun", !!process.env["dry_run"]);
 }
 
 export async function loadSettings(world: World): Promise<World> {
   if (world.basePath) {
-    return world.set('settings', await Settings.load(world.basePath, world.network));
+    return world.set("settings", await Settings.load(world.basePath, world.network));
   } else {
     return world;
   }
@@ -189,7 +189,7 @@ export async function initWorld(
   network: string,
   accounts: string[],
   basePath: string | null,
-  totalGas: number | null
+  totalGas: number | null,
 ): Promise<World> {
   return new World({
     actions: [],
@@ -197,7 +197,7 @@ export async function initWorld(
     lastInvokation: null,
     newInvokation: true,
     blockNumber: startingBlockNumber,
-    gasCounter: {value: 0},
+    gasCounter: { value: 0 },
     lastContract: null,
     invariants: [new SuccessInvariant()], // Start with invariant success,
     expectations: [],
@@ -214,45 +214,45 @@ export async function initWorld(
     basePath: basePath,
     totalGas: totalGas ? totalGas : null,
     eventDecoder: {},
-    fs: network === 'test' ? {} : null
+    fs: network === "test" ? {} : null,
   });
 }
 
 export function setEvent(world: World, event: Event): World {
-  return world.set('event', event);
+  return world.set("event", event);
 }
 
 export function addAction(world: World, log: string, invokation: Invokation<any>): World {
   const action = new Action(log, invokation);
 
-  world = world.update('actions', actions => actions.concat([action]));
+  world = world.update("actions", actions => actions.concat([action]));
 
   // Print the action via the printer
   world.printer.printAction(action);
 
   return world.merge(world, {
     lastInvokation: invokation,
-    newInvokation: true
+    newInvokation: true,
   });
 }
 
 export function addInvariant(world: World, invariant: Invariant): World {
-  return world.update('invariants', invariants => invariants.concat([invariant]));
+  return world.update("invariants", invariants => invariants.concat([invariant]));
 }
 
 export function addExpectation(world: World, expectation: Expectation): World {
-  return world.update('expectations', expectations => expectations.concat([expectation]));
+  return world.update("expectations", expectations => expectations.concat([expectation]));
 }
 
 function getInvariantFilter(type: string) {
-  let filters: { [filter: string]: (invariant: Invariant) => boolean } = {
+  const filters: { [filter: string]: (invariant: Invariant) => boolean } = {
     all: _invariant => true,
     success: invariant => !(invariant instanceof SuccessInvariant),
     remains: invariant => !(invariant instanceof RemainsInvariant),
-    static: invariant => !(invariant instanceof StaticInvariant)
+    static: invariant => !(invariant instanceof StaticInvariant),
   };
 
-  let filter = filters[type.toLowerCase()];
+  const filter = filters[type.toLowerCase()];
 
   if (!filter) {
     throw new Error(`Unknown invariant type \`${type}\` when wiping invariants.`);
@@ -262,15 +262,15 @@ function getInvariantFilter(type: string) {
 }
 
 export function clearInvariants(world: World, type: string): World {
-  let filter = getInvariantFilter(type);
+  const filter = getInvariantFilter(type);
 
-  return world.update('invariants', invariants => world.invariants.filter(filter));
+  return world.update("invariants", () => world.invariants.filter(filter));
 }
 
 export function holdInvariants(world: World, type: string): World {
-  let filter = getInvariantFilter(type);
+  const filter = getInvariantFilter(type);
 
-  return world.update('invariants', invariants => {
+  return world.update("invariants", () => {
     return world.invariants.map(invariant => {
       if (filter(invariant)) {
         invariant.held = true;
@@ -282,37 +282,37 @@ export function holdInvariants(world: World, type: string): World {
 }
 
 export async function checkExpectations(world: World): Promise<World> {
-  if (!world.get('newInvokation')) {
+  if (!world.get("newInvokation")) {
     return world;
   } else {
     // Lastly, check invariants each hold
     await Promise.all(
-      world.get('expectations').map(expectation => {
+      world.get("expectations").map(expectation => {
         // Check the expectation holds
         return expectation.checker(world);
-      })
+      }),
     );
 
-    return world.set('expectations', []);
+    return world.set("expectations", []);
   }
 }
 
 export async function checkInvariants(world: World): Promise<World> {
-  if (!world.get('newInvokation')) {
+  if (!world.get("newInvokation")) {
     return world;
   } else {
     // Lastly, check invariants each hold
     await Promise.all(
-      world.get('invariants').map(invariant => {
+      world.get("invariants").map(invariant => {
         // Check the invariant still holds
         if (!invariant.held) {
           return invariant.checker(world);
         }
-      })
+      }),
     );
 
     // Remove holds
-    return world.update('invariants', invariants => {
+    return world.update("invariants", invariants => {
       return invariants.map(invariant => {
         invariant.held = false;
 
@@ -324,20 +324,20 @@ export async function checkInvariants(world: World): Promise<World> {
 
 export function describeUser(world: World, address: string): string {
   // Look up by alias
-  let alias = Object.entries(world.settings.aliases).find(([name, aliasAddr]) => aliasAddr === address);
+  const alias = Object.entries(world.settings.aliases).find(([_name, aliasAddr]) => aliasAddr === address);
   if (alias) {
-    return `${alias[0]} (${address.slice(0,6)}...)`;
+    return `${alias[0]} (${address.slice(0, 6)}...)`;
   }
 
   // Look up by `from`
   if (world.settings.from === address) {
-    return `root (${address.slice(0,6)}...)`;
+    return `root (${address.slice(0, 6)}...)`;
   }
 
   // Look up by unlocked accounts
-  let account = world.accounts.find(account => account.address === address);
+  const account = world.accounts.find(account => account.address === address);
   if (account) {
-    return `${account.name} (${address.slice(0,6)}...)`;
+    return `${account.name} (${address.slice(0, 6)}...)`;
   }
 
   // Otherwise, just return the address itself

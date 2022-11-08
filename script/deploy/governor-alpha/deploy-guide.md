@@ -2,7 +2,7 @@
 
 1. GovernorAlpha2
 
- - deploy GovernorAlpha2 Contract to bsc-testnet
+- deploy GovernorAlpha2 Contract to bsc-testnet
 
 ```sh
 npx saddle script script/deploy/governor-alpha/deploy-governor-alpha-2.js -n testnet

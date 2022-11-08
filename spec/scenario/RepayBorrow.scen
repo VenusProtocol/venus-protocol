@@ -3,7 +3,9 @@
 Macro NewBorrow borrowAmount borrowRate
     NewComptroller price:1.0 -- TODO: This should really be a price for a specific asset
     NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     NewVToken BAT vBAT borrowRate -- note: cannot use macros with named args right now
+    Comptroller SetMarketSupplyCaps (vBAT) (2e30)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
     Support vBAT collateralFactor:0.5
@@ -131,7 +133,7 @@ Test "Prohibit repay by comptroller rejection due to mock unlist"
     Expect Changes (Bep20 BAT TokenBalance vBAT) Zero
     Comptroller UnList vZRX -- Mock unlist ZRX
     RepayBorrow Geoff 2.5e18 vZRX
-    Assert Failure COMPTROLLER_REJECTION REPAY_BORROW_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"
     -- Let's check the overall numbers
     Assert Equal (VToken vBAT BorrowBalance Geoff) 2.5e18
     Assert Equal (VToken vBAT TotalBorrowsCurrent) 2.5e18

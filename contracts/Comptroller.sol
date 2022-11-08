@@ -9,12 +9,13 @@ import "./Unitroller.sol";
 import "./Governance/XVS.sol";
 import "./VAI/VAI.sol";
 import "./ComptrollerLensInterface.sol";
+import "./IAccessControlManager.sol";
 
 /**
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -42,14 +43,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when pause guardian is changed
     event NewPauseGuardian(address oldPauseGuardian, address newPauseGuardian);
 
-    /// @notice Emitted when an action is paused globally
-    event ActionPaused(string action, bool pauseState);
-
     /// @notice Emitted when an action is paused on a market
-    event ActionPausedMarket(VToken vToken, string action, bool pauseState);
-
-    /// @notice Emitted when Venus VAI rate is changed
-    event NewVenusVAIRate(uint oldVenusVAIRate, uint newVenusVAIRate);
+    event ActionPausedMarket(VToken indexed vToken, Action indexed action, bool pauseState);
 
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
@@ -62,9 +57,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
 
     /// @notice Emitted when XVS is distributed to a borrower
     event DistributedBorrowerVenus(VToken indexed vToken, address indexed borrower, uint venusDelta, uint venusBorrowIndex);
-
-    /// @notice Emitted when XVS is distributed to a VAI minter
-    event DistributedVAIMinterVenus(address indexed vaiMinter, uint venusDelta, uint venusVAIMintIndex);
 
     /// @notice Emitted when XVS is distributed to VAI Vault
     event DistributedVAIVaultVenus(uint amount);
@@ -80,9 +72,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
 
     /// @notice Emitted when borrow cap for a vToken is changed
     event NewBorrowCap(VToken indexed vToken, uint newBorrowCap);
-
-    /// @notice Emitted when borrow cap guardian is changed
-    event NewBorrowCapGuardian(address oldBorrowCapGuardian, address newBorrowCapGuardian);
 
     /// @notice Emitted when treasury guardian is changed
     event NewTreasuryGuardian(address oldTreasuryGuardian, address newTreasuryGuardian);
@@ -102,6 +91,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted whe ComptrollerLens address is changed
     event NewComptrollerLens(address oldComptrollerLens, address newComptrollerLens);
 
+    /// @notice Emitted when supply cap for a vToken is changed
+    event NewSupplyCap(VToken indexed vToken, uint newSupplyCap);
+
+    /// @notice Emitted when access control address is changed by admin
+    event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
+
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
 
@@ -118,28 +113,44 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         admin = msg.sender;
     }
 
-    modifier onlyProtocolAllowed {
+    /// @notice Reverts if the protocol is paused
+    function checkProtocolPauseState() private view {
         require(!protocolPaused, "protocol is paused");
-        _;
     }
 
-    function ensureAdmin() private {
+    /// @notice Reverts if a certain action is paused on a market
+    function checkActionPauseState(address market, Action action) private view {
+        require(!actionPaused(market, action), "action is paused");
+    }
+
+    /// @notice Reverts if the caller is not admin
+    function ensureAdmin() private view {
         require(msg.sender == admin, "only admin can");
     }
 
-    function ensureNonzeroAddress(address someone) private {
+    /// @notice Checks the passed address is nonzero
+    function ensureNonzeroAddress(address someone) private pure {
         require(someone != address(0), "can't be zero address");
     }
 
-    modifier onlyListedMarket(VToken vToken) {
-        require(markets[address(vToken)].isListed, "venus market is not listed");
-        _;
+    /// @notice Reverts if the market is not listed
+    function ensureListed(Market storage market) private view {
+        require(market.isListed, "market not listed");
     }
 
-    modifier validPauseState(bool state) {
-        require(msg.sender == pauseGuardian || msg.sender == admin, "only pause guardian and admin can");
-        require(msg.sender == admin || state, "only admin can unpause");
-        _;
+    /// @notice Reverts if the caller is neither admin nor the passed address
+    function ensureAdminOr(address privilegedAddress) private view {
+        require(
+            msg.sender == admin || msg.sender == privilegedAddress,
+            "access denied"
+        );
+    }
+
+    function ensureAllowed(string memory functionSig) private view {
+        require(
+            IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig),
+            "access denied"
+        );
     }
 
     /*** Assets You Are In ***/
@@ -186,12 +197,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @return Success indicator for whether the market was entered
      */
     function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
-        Market storage marketToJoin = markets[address(vToken)];
+        checkActionPauseState(address(vToken), Action.ENTER_MARKET);
 
-        if (!marketToJoin.isListed) {
-            // market is not listed, cannot join
-            return Error.MARKET_NOT_LISTED;
-        }
+        Market storage marketToJoin = markets[address(vToken)];
+        ensureListed(marketToJoin);
 
         if (marketToJoin.accountMembership[borrower]) {
             // already joined
@@ -219,6 +228,8 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @return Whether or not the account successfully exited the market
      */
     function exitMarket(address vTokenAddress) external returns (uint) {
+        checkActionPauseState(vTokenAddress, Action.EXIT_MARKET);
+
         VToken vToken = VToken(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
         (uint oErr, uint tokensHeld, uint amountOwed, ) = vToken.getAccountSnapshot(msg.sender);
@@ -266,6 +277,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         return uint(Error.NO_ERROR);
     }
 
+
     /*** Policy Hooks ***/
 
     /**
@@ -275,16 +287,25 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param mintAmount The amount of underlying being supplied to the market in exchange for tokens
      * @return 0 if the mint is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function mintAllowed(address vToken, address minter, uint mintAmount) external onlyProtocolAllowed returns (uint) {
+    function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        require(!mintGuardianPaused[vToken], "mint is paused");
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.MINT);
 
         // Shh - currently unused
         mintAmount;
 
-        if (!markets[vToken].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
-        }
+        ensureListed(markets[vToken]);
+
+        uint256 supplyCap = supplyCaps[vToken];
+
+        // Supply cap of 0 corresponds to Minting notAllowed
+        require(supplyCap != 0, "market supply cap is 0");
+
+        uint256 vTokenSupply = VToken(vToken).totalSupply();
+        Exp memory exchangeRate = Exp({ mantissa: VToken(vToken).exchangeRateStored() });
+        uint256 nextTotalSupply = mul_ScalarTruncateAddUInt(exchangeRate, vTokenSupply, mintAmount);
+        require(nextTotalSupply <= supplyCap, "market supply cap reached");
 
         // Keep the flywheel moving
         updateVenusSupplyIndex(vToken);
@@ -315,7 +336,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param redeemTokens The number of vTokens to exchange for the underlying asset in the market
      * @return 0 if the redeem is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external onlyProtocolAllowed returns (uint) {
+    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint) {
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.REDEEM);
+
         uint allowed = redeemAllowedInternal(vToken, redeemer, redeemTokens);
         if (allowed != uint(Error.NO_ERROR)) {
             return allowed;
@@ -329,9 +353,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     function redeemAllowedInternal(address vToken, address redeemer, uint redeemTokens) internal view returns (uint) {
-        if (!markets[vToken].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
-        }
+        ensureListed(markets[vToken]);
 
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
         if (!markets[vToken].accountMembership[redeemer]) {
@@ -373,13 +395,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param borrowAmount The amount of underlying the account would borrow
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external onlyProtocolAllowed returns (uint) {
+    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        require(!borrowGuardianPaused[vToken], "borrow is paused");
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.BORROW);
 
-        if (!markets[vToken].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
-        }
+        ensureListed(markets[vToken]);
 
         if (!markets[vToken].accountMembership[borrower]) {
             // only vTokens may call borrowAllowed if borrower not in market
@@ -450,15 +471,19 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address vToken,
         address payer,
         address borrower,
-        uint repayAmount) external onlyProtocolAllowed returns (uint) {
+        uint repayAmount
+    )
+        external
+        returns (uint)
+    {
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.REPAY);
         // Shh - currently unused
         payer;
         borrower;
         repayAmount;
 
-        if (!markets[vToken].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
-        }
+        ensureListed(markets[vToken]);
 
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({mantissa: VToken(vToken).borrowIndex()});
@@ -480,7 +505,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address payer,
         address borrower,
         uint actualRepayAmount,
-        uint borrowerIndex) external {
+        uint borrowerIndex
+    )
+        external
+    {
         // Shh - currently unused
         vToken;
         payer;
@@ -507,13 +535,23 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address vTokenCollateral,
         address liquidator,
         address borrower,
-        uint repayAmount) external onlyProtocolAllowed returns (uint) {
+        uint repayAmount
+    )
+        external
+        returns (uint)
+    {
+        checkProtocolPauseState();
+
+        // if we want to pause liquidating to vTokenCollateral, we should pause seizing
+        checkActionPauseState(vTokenBorrowed, Action.LIQUIDATE);
+
         if (liquidatorContract != address(0) && liquidator != liquidatorContract) {
             return uint(Error.UNAUTHORIZED);
         }
 
-        if (!(markets[vTokenBorrowed].isListed || address(vTokenBorrowed) == address(vaiController)) || !markets[vTokenCollateral].isListed) {
-            return uint(Error.MARKET_NOT_LISTED);
+        ensureListed(markets[vTokenCollateral]);
+        if (address(vTokenBorrowed) != address(vaiController)) {
+            ensureListed(markets[vTokenBorrowed]);
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
@@ -555,7 +593,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address liquidator,
         address borrower,
         uint actualRepayAmount,
-        uint seizeTokens) external {
+        uint seizeTokens
+    )
+        external
+    {
         // Shh - currently unused
         vTokenBorrowed;
         vTokenCollateral;
@@ -583,16 +624,22 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address vTokenBorrowed,
         address liquidator,
         address borrower,
-        uint seizeTokens) external onlyProtocolAllowed returns (uint) {
+        uint seizeTokens
+    )
+        external
+        returns (uint)
+    {
         // Pausing is a very serious situation - we revert to sound the alarms
-        require(!seizeGuardianPaused, "seize is paused");
+        checkProtocolPauseState();
+        checkActionPauseState(vTokenCollateral, Action.SEIZE);
 
         // Shh - currently unused
         seizeTokens;
 
         // We've added VAIController as a borrowed token list check for seize
-        if (!markets[vTokenCollateral].isListed || !(markets[vTokenBorrowed].isListed || address(vTokenBorrowed) == address(vaiController))) {
-            return uint(Error.MARKET_NOT_LISTED);
+        ensureListed(markets[vTokenCollateral]);
+        if (address(vTokenBorrowed) != address(vaiController)) {
+            ensureListed(markets[vTokenBorrowed]);
         }
 
         if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
@@ -620,7 +667,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address vTokenBorrowed,
         address liquidator,
         address borrower,
-        uint seizeTokens) external {
+        uint seizeTokens
+    )
+        external
+    {
         // Shh - currently unused
         vTokenCollateral;
         vTokenBorrowed;
@@ -642,9 +692,10 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param transferTokens The number of vTokens to transfer
      * @return 0 if the transfer is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external onlyProtocolAllowed returns (uint) {
+    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        require(!transferGuardianPaused, "transfer is paused");
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.TRANSFER);
 
         // Currently the only consideration is whether or not
         //  the src is allowed to redeem this many tokens
@@ -707,8 +758,18 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address account,
         address vTokenModify,
         uint redeemTokens,
-        uint borrowAmount) public view returns (uint, uint, uint) {
-        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(account, VToken(vTokenModify), redeemTokens, borrowAmount);
+        uint borrowAmount
+    )
+        public
+        view
+        returns (uint, uint, uint)
+    {
+        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(
+            account,
+            VToken(vTokenModify),
+            redeemTokens,
+            borrowAmount
+        );
         return (uint(err), liquidity, shortfall);
     }
 
@@ -728,7 +789,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         address account,
         VToken vTokenModify,
         uint redeemTokens,
-        uint borrowAmount) internal view returns (Error, uint, uint) {
+        uint borrowAmount
+    )
+        internal
+        view
+        returns (Error, uint, uint)
+    {
         (uint err, uint liquidity, uint shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
             account,
@@ -747,12 +813,21 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
-    function liquidateCalculateSeizeTokens(address vTokenBorrowed, address vTokenCollateral, uint actualRepayAmount) external view returns (uint, uint) {
+    function liquidateCalculateSeizeTokens(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint actualRepayAmount
+    )
+        external
+        view
+        returns (uint, uint)
+    {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
-            address(this), 
-            vTokenBorrowed, 
-            vTokenCollateral, 
-            actualRepayAmount);
+            address(this),
+            vTokenBorrowed,
+            vTokenCollateral,
+            actualRepayAmount
+        );
         return (err, seizeTokens);
     }
 
@@ -763,13 +838,22 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
-    function liquidateVAICalculateSeizeTokens(address vTokenCollateral, uint actualRepayAmount) external view returns (uint, uint) {
+    function liquidateVAICalculateSeizeTokens(
+        address vTokenCollateral,
+        uint actualRepayAmount
+    )
+        external
+        view
+        returns (uint, uint)
+    {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
-            address(this), 
-            vTokenCollateral, 
-            actualRepayAmount);
+            address(this),
+            vTokenCollateral,
+            actualRepayAmount
+        );
         return (err, seizeTokens);
     }
+
 
     /*** Admin Functions ***/
 
@@ -780,10 +864,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
       */
     function _setPriceOracle(PriceOracle newOracle) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PRICE_ORACLE_OWNER_CHECK);
-        }
-
+        ensureAdmin();
         ensureNonzeroAddress(address(newOracle));
 
         // Track the old oracle for the comptroller
@@ -815,26 +896,39 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         return uint(Error.NO_ERROR);
     }
 
+     /**
+      * @notice Sets the address of the access control of this contract
+      * @dev Admin function to set the access control address
+      * @param newAccessControlAddress New address for the access control
+      * @return uint 0=success, otherwise will revert
+      */
+    function _setAccessControl(address newAccessControlAddress) external returns (uint) {
+        // Check caller is admin
+        ensureAdmin();
+        ensureNonzeroAddress(newAccessControlAddress);
+
+        address oldAccessControlAddress = accessControl;
+        accessControl = newAccessControlAddress;
+        emit NewAccessControl(oldAccessControlAddress, accessControl);
+
+        return uint(Error.NO_ERROR);
+    }
+
     /**
       * @notice Sets the collateralFactor for a market
-      * @dev Admin function to set per-market collateralFactor
+      * @dev Restricted function to set per-market collateralFactor
       * @param vToken The market to set the factor on
       * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
       * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
       */
     function _setCollateralFactor(VToken vToken, uint newCollateralFactorMantissa) external returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COLLATERAL_FACTOR_OWNER_CHECK);
-        }
-
+        // Check caller is allowed by access control manager
+        ensureAllowed("_setCollateralFactor(address,uint256)");
         ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
         Market storage market = markets[address(vToken)];
-        if (!market.isListed) {
-            return fail(Error.MARKET_NOT_LISTED, FailureInfo.SET_COLLATERAL_FACTOR_NO_EXISTS);
-        }
+        ensureListed(market);
 
         Exp memory newCollateralFactorExp = Exp({mantissa: newCollateralFactorMantissa});
 
@@ -866,10 +960,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
       * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
       */
     function _setLiquidationIncentive(uint newLiquidationIncentiveMantissa) external returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_LIQUIDATION_INCENTIVE_OWNER_CHECK);
-        }
+        ensureAllowed("_setLiquidationIncentive(uint256)");
 
         require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
 
@@ -886,6 +977,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     function _setLiquidatorContract(address newLiquidatorContract_) external {
+        // Check caller is admin
         ensureAdmin();
         address oldLiquidatorContract = liquidatorContract;
         liquidatorContract = newLiquidatorContract_;
@@ -899,9 +991,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
       * @return uint 0=success, otherwise a failure. (See enum Error for details)
       */
     function _supportMarket(VToken vToken) external returns (uint) {
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SUPPORT_MARKET_OWNER_CHECK);
-        }
+        ensureAllowed("_supportMarket(address)");
 
         if (markets[address(vToken)].isListed) {
             return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
@@ -920,7 +1010,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     function _addMarketInternal(VToken vToken) internal {
-        for (uint i = 0; i < allMarkets.length; i ++) {
+        for (uint i = 0; i < allMarkets.length; i++) {
             require(allMarkets[i] != vToken, "market already added");
         }
         allMarkets.push(vToken);
@@ -932,10 +1022,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @return uint 0=success, otherwise a failure. (See enum Error for details)
      */
     function _setPauseGuardian(address newPauseGuardian) external returns (uint) {
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PAUSE_GUARDIAN_OWNER_CHECK);
-        }
-
+        ensureAdmin();
         ensureNonzeroAddress(newPauseGuardian);
 
         // Save current value for inclusion in log
@@ -952,12 +1039,12 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
 
     /**
       * @notice Set the given borrow caps for the given vToken markets. Borrowing that brings total borrows to or above borrow cap will revert.
-      * @dev Admin or borrowCapGuardian function to set the borrow caps. A borrow cap of 0 corresponds to unlimited borrowing.
+      * @dev Access is controled by ACM. A borrow cap of 0 corresponds to unlimited borrowing.
       * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
       * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing.
       */
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint[] calldata newBorrowCaps) external {
-        require(msg.sender == admin || msg.sender == borrowCapGuardian, "only admin or borrow cap guardian can set borrow caps");
+        ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");
 
         uint numMarkets = vTokens.length;
         uint numBorrowCaps = newBorrowCaps.length;
@@ -971,30 +1058,70 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
     }
 
     /**
-     * @notice Admin function to change the Borrow Cap Guardian
-     * @param newBorrowCapGuardian The address of the new Borrow Cap Guardian
-     */
-    function _setBorrowCapGuardian(address newBorrowCapGuardian) external {
-        ensureAdmin();
-        ensureNonzeroAddress(newBorrowCapGuardian);
+      * @notice Set the given supply caps for the given vToken markets. Supply that brings total Supply to or above supply cap will revert.
+      * @dev Admin function to set the supply caps. A supply cap of 0 corresponds to Minting NotAllowed.
+      * @param vTokens The addresses of the markets (tokens) to change the supply caps for
+      * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed.
+      */
+    function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
+        ensureAllowed("_setMarketSupplyCaps(address[],uint256[])");
 
-        // Save current value for inclusion in log
-        address oldBorrowCapGuardian = borrowCapGuardian;
+        uint numMarkets = vTokens.length;
+        uint numSupplyCaps = newSupplyCaps.length;
 
-        // Store borrowCapGuardian with value newBorrowCapGuardian
-        borrowCapGuardian = newBorrowCapGuardian;
+        require(numMarkets != 0 && numMarkets == numSupplyCaps, "invalid input");
 
-        // Emit NewBorrowCapGuardian(OldBorrowCapGuardian, NewBorrowCapGuardian)
-        emit NewBorrowCapGuardian(oldBorrowCapGuardian, newBorrowCapGuardian);
+        for(uint i; i < numMarkets; ++i) {
+            supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
+            emit NewSupplyCap(vTokens[i], newSupplyCaps[i]);
+        }
     }
 
     /**
      * @notice Set whole protocol pause/unpause state
      */
-    function _setProtocolPaused(bool state) external validPauseState(state) returns(bool) {
+    function _setProtocolPaused(bool state) external returns(bool) {
+        ensureAllowed("_setProtocolPaused(bool)");
+
         protocolPaused = state;
         emit ActionProtocolPaused(state);
         return state;
+    }
+
+    /**
+     * @notice Pause/unpause certain actions
+     * @param markets Markets to pause/unpause the actions on
+     * @param actions List of action ids to pause/unpause
+     * @param paused The new paused state (true=paused, false=unpaused)
+     */
+    function _setActionsPaused(
+        address[] calldata markets,
+        Action[] calldata actions,
+        bool paused
+    )
+        external
+    {
+        ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
+
+        uint256 numMarkets = markets.length;
+        uint256 numActions = actions.length;
+        for (uint marketIdx; marketIdx < numMarkets; ++marketIdx) {
+            for (uint actionIdx; actionIdx < numActions; ++actionIdx) {
+                setActionPausedInternal(markets[marketIdx], actions[actionIdx], paused);
+            }
+        }
+    }
+
+    /**
+     * @dev Pause/unpause an action on a market
+     * @param market Market to pause/unpause the action on
+     * @param action Action id to pause/unpause
+     * @param paused The new paused state (true=paused, false=unpaused)
+     */
+    function setActionPausedInternal(address market, Action action, bool paused) internal {
+        ensureListed(markets[market]);
+        _actionPaused[market][uint(action)] = paused;
+        emit ActionPausedMarket(VToken(market), action, paused);
     }
 
     /**
@@ -1004,10 +1131,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
       */
     function _setVAIController(VAIControllerInterface vaiController_) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAICONTROLLER_OWNER_CHECK);
-        }
-
+        ensureAdmin();
         ensureNonzeroAddress(address(vaiController_));
 
         VAIControllerInterface oldVaiController = vaiController;
@@ -1019,10 +1143,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
 
     function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_VAI_MINT_RATE_CHECK);
-        }
-
+        ensureAdmin();
         uint oldVAIMintRate = vaiMintRate;
         vaiMintRate = newVAIMintRate;
         emit NewVAIMintRate(oldVAIMintRate, newVAIMintRate);
@@ -1032,9 +1153,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
 
     function _setTreasuryData(address newTreasuryGuardian, address newTreasuryAddress, uint newTreasuryPercent) external returns (uint) {
         // Check caller is admin
-        if (!(msg.sender == admin || msg.sender == treasuryGuardian)) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_TREASURY_OWNER_CHECK);
-        }
+        ensureAdminOr(treasuryGuardian);
 
         require(newTreasuryPercent < 1e18, "treasury percent cap overflow");
         ensureNonzeroAddress(newTreasuryGuardian);
@@ -1060,13 +1179,6 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         require(unitroller._acceptImplementation() == 0, "not authorized");
     }
 
-    /**
-     * @notice Checks caller is admin, or this contract is becoming the new implementation
-     */
-    function adminOrInitializing() internal view returns (bool) {
-        return msg.sender == admin || msg.sender == comptrollerImplementation;
-    }
-
     /*** Venus Distribution ***/
 
     function setVenusSpeedInternal(VToken vToken, uint venusSpeed) internal {
@@ -1078,8 +1190,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
             updateVenusBorrowIndex(address(vToken), borrowIndex);
         } else if (venusSpeed != 0) {
             // Add the XVS market
-            Market memory market = markets[address(vToken)];
-            require(market.isListed, "venus market is not listed");
+            ensureListed(markets[address(vToken)]);
 
             if (venusSupplyState[address(vToken)].index == 0 && venusSupplyState[address(vToken)].block == 0) {
                 venusSupplyState[address(vToken)] = VenusMarketState({
@@ -1089,7 +1200,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
             }
 
 
-        if (venusBorrowState[address(vToken)].index == 0 && venusBorrowState[address(vToken)].block == 0) {
+            if (venusBorrowState[address(vToken)].index == 0 && venusBorrowState[address(vToken)].block == 0) {
                 venusBorrowState[address(vToken)] = VenusMarketState({
                     index: venusInitialIndex,
                     block: safe32(getBlockNumber(), "block number exceeds 32 bits")
@@ -1258,7 +1369,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         uint j;
         for (uint i = 0; i < vTokens.length; i++) {
             VToken vToken = vTokens[i];
-            require(markets[address(vToken)].isListed, "not listed market");
+            ensureListed(markets[address(vToken)]);
             if (borrowers) {
                 Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
                 updateVenusBorrowIndex(address(vToken), borrowIndex);
@@ -1327,9 +1438,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
             return 0;
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
-        // anything, otherwise, we will transfer the pending xvs as collateral to 
+        // anything, otherwise, we will transfer the pending xvs as collateral to
         // vXVS token and mint vXVS for the user.
-        // 
+        //
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt accounts can only collateralize their pending xvs rewards");
 
@@ -1352,7 +1463,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param amount The amount of XVS to (possibly) transfer
      */
     function _grantXVS(address recipient, uint amount) external {
-        require(adminOrInitializing(), "only admin or impl can grant xvs");
+        ensureAdminOr(comptrollerImplementation);
         uint amountLeft = grantXVSInternal(recipient, amount, 0, false);
         require(amountLeft == 0, "insufficient xvs for grant");
         emit VenusGranted(recipient, amount);
@@ -1392,7 +1503,7 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param venusSpeed New XVS speed for market
      */
     function _setVenusSpeed(VToken vToken, uint venusSpeed) external {
-        require(adminOrInitializing(), "only admin or impl can set venus speed");
+        ensureAdminOr(comptrollerImplementation);
         ensureNonzeroAddress(address(vToken));
         setVenusSpeedInternal(vToken, venusSpeed);
     }
@@ -1426,6 +1537,16 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
         return 0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D;
     }
 
+    /**
+     * @notice Checks if a certain action is paused on a market
+     * @param action Action id
+     * @param market vToken address
+     */
+    function actionPaused(address market, Action action) public view returns (bool) {
+        return _actionPaused[market][uint(action)];
+    }
+
+
     /*** VAI functions ***/
 
     /**
@@ -1434,7 +1555,9 @@ contract Comptroller is ComptrollerV7Storage, ComptrollerInterfaceG2, Comptrolle
      * @param amount The amount of VAI to set to the account
      * @return The number of minted VAI by `owner`
      */
-    function setMintedVAIOf(address owner, uint amount) external onlyProtocolAllowed returns (uint) {
+    function setMintedVAIOf(address owner, uint amount) external returns (uint) {
+        checkProtocolPauseState();
+
         // Pausing is a very serious situation - we revert to sound the alarms
         require(!mintVAIGuardianPaused && !repayVAIGuardianPaused, "VAI is paused");
         // Check caller is vaiController

@@ -1,0 +1,73 @@
+Test "Attempt to set supplyCap for BEP20"
+    NewComptroller price:1.0
+    NewVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (10e18)
+    Assert Equal (Comptroller SupplyCaps vZRX) (Exactly 10e18)
+
+Test "Attempt to supply below set cap BEP20"
+    NewComptroller price:1.0
+    ListedVToken ZRX vZRX initialExchangeRate:1
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
+    Prep Geoff 100e18 ZRX vZRX
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) (Exactly 100e18)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 0)
+    Mint Geoff 100e18 vZRX
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) (Exactly 0)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 1e20)
+
+Test "Attempt to supply equal to set cap BEP20"
+    NewComptroller price:1.0
+    ListedVToken ZRX vZRX initialExchangeRate:1
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
+    Prep Geoff 1000e18 ZRX vZRX
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) (Exactly 1000e18)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 0)
+    Mint Geoff 1000e18 vZRX
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) (Exactly 0)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 1e21)
+
+Test "Attempt to supply over set cap BEP20"
+    NewComptroller price:1.0
+    ListedVToken ZRX vZRX initialExchangeRate:1
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
+    Prep Geoff 1001e18 ZRX vZRX
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) (Exactly 1001e18)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 0)
+    AllowFailures
+    Mint Geoff 1001e18 vZRX
+    Assert Revert "revert market supply cap reached"
+
+Test "Attempt to supply with no cap set BEP20"
+    NewComptroller price:1.0
+    ListedVToken ZRX vZRX initialExchangeRate:1
+    Prep Geoff 100e18 ZRX vZRX
+    Assert Equal (Bep20 ZRX TokenBalance Geoff) (Exactly 100e18)
+    Assert Equal (Bep20 vZRX TokenBalance Geoff) (Exactly 0)
+    AllowFailures
+    Mint Geoff 100e18 vZRX
+    Assert Revert "revert market supply cap is 0"
+
+Test "Setting supply cap restricted to admin"
+    NewComptroller price:1.0
+    ListedVToken ZRX vZRX
+    ListedBNBToken vBNB initialExchangeRate:0.005e9
+    AllowFailures
+    From Robert (Comptroller SetMarketSupplyCaps (vBNB) (0.01e18))
+    Assert Revert "revert only admin can set supply caps"
+
+Test "Invalid markets while setting Market SupplyCaps"
+    NewComptroller price:1.0
+    ListedVToken ZRX vZRX
+    ListedVToken BAT vBAT
+    AllowFailures
+    Comptroller SetMarketSupplyCaps (vZRX) (0.5e18 0.7e18)
+    Assert Revert "revert invalid input"
+
+Test "Invalid SupplyCap while setting Market SupplyCaps"
+    NewComptroller price:1.0
+    ListedVToken ZRX vZRX
+    ListedVToken BAT vBAT
+    AllowFailures
+    Comptroller SetMarketSupplyCaps (vZRX vBAT) (0.5e18)
+    Assert Revert "revert invalid input"
+

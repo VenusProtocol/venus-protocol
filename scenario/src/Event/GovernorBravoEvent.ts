@@ -1,67 +1,33 @@
-import { Event } from "../Event";
-import { addAction, World } from "../World";
-import { GovernorBravo } from "../Contract/GovernorBravo";
 import { buildGovernor } from "../Builder/GovernorBravoBuilder";
-import { invoke } from "../Invokation";
-import {
-  getAddressV,
-  getArrayV,
-  getEventV,
-  getNumberV,
-  getStringV,
-  getCoreValue,
-} from "../CoreValue";
-import { AddressV, ArrayV, EventV, NumberV, StringV } from "../Value";
-import { Arg, Command, processCommandEvent, View } from "../Command";
-import { verify } from "../Verify";
+import { Arg, Command, processCommandEvent } from "../Command";
+import { GovernorBravo } from "../Contract/GovernorBravo";
+import { getAddressV, getArrayV, getCoreValue, getEventV, getNumberV, getStringV } from "../CoreValue";
 import { encodedNumber } from "../Encoding";
-import { processProposalEvent } from "./BravoProposalEvent";
-import { encodeParameters, rawValues } from "../Utils";
-import { getGovernorV } from "../Value/GovernorBravoValue";
+import { Event } from "../Event";
+import { invoke } from "../Invokation";
 import { mergeContractABI } from "../Networks";
+import { encodeParameters, rawValues } from "../Utils";
+import { AddressV, ArrayV, EventV, NumberV, StringV } from "../Value";
+import { getGovernorV } from "../Value/GovernorBravoValue";
+import { World, addAction } from "../World";
+import { processProposalEvent } from "./BravoProposalEvent";
 
-async function genGovernor(
-  world: World,
-  from: string,
-  params: Event
-): Promise<World> {
-  let { world: nextWorld, governor, govData } = await buildGovernor(
-    world,
-    from,
-    params
-  );
+async function genGovernor(world: World, from: string, params: Event): Promise<World> {
+  const { world: nextWorld, governor, govData } = await buildGovernor(world, from, params);
   world = nextWorld;
 
   return addAction(
     world,
     `Deployed GovernorBravo ${govData.contract} to address ${governor._address}`,
-    govData.invokation
+    govData.invokation,
   );
-}
-
-async function verifyGovernor(
-  world: World,
-  governor: GovernorBravo,
-  apiKey: string,
-  modelName: string,
-  contractName: string
-): Promise<World> {
-  if (world.isLocalNetwork()) {
-    world.printer.printLine(
-      `Politely declining to verify on local network: ${world.network}.`
-    );
-  } else {
-    await verify(world, apiKey, modelName, contractName, governor._address);
-  }
-
-  return world;
 }
 
 async function mergeABI(
   world: World,
   from: string,
   governorDelegator: GovernorBravo,
-  governorDelegate: GovernorBravo
+  governorDelegate: GovernorBravo,
 ): Promise<World> {
   if (!world.dryRun) {
     // Skip this specifically on dry runs since it's likely to crash due to a number of reasons
@@ -70,7 +36,7 @@ async function mergeABI(
       "BravoDelegator",
       governorDelegator,
       governorDelegator.name,
-      governorDelegate.name
+      governorDelegate.name,
     );
   }
 
@@ -85,43 +51,25 @@ async function propose(
   values: encodedNumber[],
   signatures: string[],
   calldatas: string[],
-  description: string
+  description: string,
 ): Promise<World> {
   const invokation = await invoke(
     world,
-    governor.methods.propose(
-      targets,
-      values,
-      signatures,
-      calldatas,
-      description
-    ),
-    from
+    governor.methods.propose(targets, values, signatures, calldatas, description),
+    from,
   );
-  return addAction(
-    world,
-    `Created new proposal "${description}" with id=${invokation.value} in Governor`,
-    invokation
-  );
+  return addAction(world, `Created new proposal "${description}" with id=${invokation.value} in Governor`, invokation);
 }
 
 async function setVotingDelay(
   world: World,
   from: string,
   governor: GovernorBravo,
-  newVotingDelay: NumberV
+  newVotingDelay: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(
-    world,
-    governor.methods._setVotingDelay(newVotingDelay.encode()),
-    from
-  );
+  const invokation = await invoke(world, governor.methods._setVotingDelay(newVotingDelay.encode()), from);
 
-  world = addAction(
-    world,
-    `Set voting delay to ${newVotingDelay.show()}`,
-    invokation
-  );
+  world = addAction(world, `Set voting delay to ${newVotingDelay.show()}`, invokation);
 
   return world;
 }
@@ -130,19 +78,11 @@ async function setVotingPeriod(
   world: World,
   from: string,
   governor: GovernorBravo,
-  newVotingPeriod: NumberV
+  newVotingPeriod: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(
-    world,
-    governor.methods._setVotingPeriod(newVotingPeriod.encode()),
-    from
-  );
+  const invokation = await invoke(world, governor.methods._setVotingPeriod(newVotingPeriod.encode()), from);
 
-  world = addAction(
-    world,
-    `Set voting period to ${newVotingPeriod.show()}`,
-    invokation
-  );
+  world = addAction(world, `Set voting period to ${newVotingPeriod.show()}`, invokation);
 
   return world;
 }
@@ -151,19 +91,11 @@ async function setProposalThreshold(
   world: World,
   from: string,
   governor: GovernorBravo,
-  newProposalThreshold: NumberV
+  newProposalThreshold: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(
-    world,
-    governor.methods._setProposalThreshold(newProposalThreshold.encode()),
-    from
-  );
+  const invokation = await invoke(world, governor.methods._setProposalThreshold(newProposalThreshold.encode()), from);
 
-  world = addAction(
-    world,
-    `Set proposal threshold to ${newProposalThreshold.show()}`,
-    invokation
-  );
+  world = addAction(world, `Set proposal threshold to ${newProposalThreshold.show()}`, invokation);
 
   return world;
 }
@@ -172,19 +104,15 @@ async function setProposalMaxOperations(
   world: World,
   from: string,
   governor: GovernorBravo,
-  newProposalMaxOperations: NumberV
+  newProposalMaxOperations: NumberV,
 ): Promise<World> {
-  let invokation = await invoke(
+  const invokation = await invoke(
     world,
     governor.methods._setProposalMaxOperations(newProposalMaxOperations.encode()),
-    from
+    from,
   );
 
-  world = addAction(
-    world,
-    `Set proposal max operations to ${newProposalMaxOperations.show()}`,
-    invokation
-  );
+  world = addAction(world, `Set proposal max operations to ${newProposalMaxOperations.show()}`, invokation);
 
   return world;
 }
@@ -193,58 +121,29 @@ async function setImplementation(
   world: World,
   from: string,
   governor: GovernorBravo,
-  newImplementation: GovernorBravo
+  newImplementation: GovernorBravo,
 ): Promise<World> {
-  let invokation = await invoke(
-    world,
-    governor.methods._setImplementation(newImplementation._address),
-    from
-  );
+  const invokation = await invoke(world, governor.methods._setImplementation(newImplementation._address), from);
 
-  world = addAction(
-    world,
-    `Set GovernorBravo implementation to ${newImplementation}`,
-    invokation
-  );
+  world = addAction(world, `Set GovernorBravo implementation to ${newImplementation}`, invokation);
 
-  mergeABI(world, from, governor, newImplementation)
+  mergeABI(world, from, governor, newImplementation);
 
   return world;
 }
 
-async function initiate(
-  world: World,
-  from: string,
-  governor: GovernorBravo,
-  governorAlpha: string
-): Promise<World> {
-  let invokation = await invoke(
-    world,
-    governor.methods._initiate(governorAlpha),
-    from
-  );
+async function initiate(world: World, from: string, governor: GovernorBravo, governorAlpha: string): Promise<World> {
+  const invokation = await invoke(world, governor.methods._initiate(governorAlpha), from);
 
-  world = addAction(
-    world,
-    `Initiated governor from GovernorAlpha at ${governorAlpha}`,
-    invokation
-  );
+  world = addAction(world, `Initiated governor from GovernorAlpha at ${governorAlpha}`, invokation);
 
   return world;
 }
 
-async function harnessInitiate(
-  world: World,
-  from: string,
-  governor: GovernorBravo
-): Promise<World> {
-  let invokation = await invoke(world, governor.methods._initiate(), from);
+async function harnessInitiate(world: World, from: string, governor: GovernorBravo): Promise<World> {
+  const invokation = await invoke(world, governor.methods._initiate(), from);
 
-  world = addAction(
-    world,
-    `Initiated governor using harness function`,
-    invokation
-  );
+  world = addAction(world, `Initiated governor using harness function`, invokation);
 
   return world;
 }
@@ -253,52 +152,27 @@ async function setPendingAdmin(
   world: World,
   from: string,
   governor: GovernorBravo,
-  newPendingAdmin: string
+  newPendingAdmin: string,
 ): Promise<World> {
-  let invokation = await invoke(
-    world,
-    governor.methods._setPendingAdmin(newPendingAdmin),
-    from
-  );
+  const invokation = await invoke(world, governor.methods._setPendingAdmin(newPendingAdmin), from);
 
-  world = addAction(
-    world,
-    `Governor pending admin set to ${newPendingAdmin}`,
-    invokation
-  );
+  world = addAction(world, `Governor pending admin set to ${newPendingAdmin}`, invokation);
 
   return world;
 }
 
-async function acceptAdmin(
-  world: World,
-  from: string,
-  governor: GovernorBravo
-): Promise<World> {
-  let invokation = await invoke(world, governor.methods._acceptAdmin(), from);
+async function acceptAdmin(world: World, from: string, governor: GovernorBravo): Promise<World> {
+  const invokation = await invoke(world, governor.methods._acceptAdmin(), from);
 
   world = addAction(world, `Governor admin accepted`, invokation);
 
   return world;
 }
 
-async function setGuardian(
-  world: World,
-  from: string,
-  governor: GovernorBravo,
-  newGuardian: string
-): Promise<World> {
-  let invokation = await invoke(
-    world,
-    governor.methods._setGuardian(newGuardian),
-    from
-  );
+async function setGuardian(world: World, from: string, governor: GovernorBravo, newGuardian: string): Promise<World> {
+  const invokation = await invoke(world, governor.methods._setGuardian(newGuardian), from);
 
-  world = addAction(
-    world,
-    `Governor guardian set to ${newGuardian}`,
-    invokation
-  );
+  world = addAction(world, `Governor guardian set to ${newGuardian}`, invokation);
 
   return world;
 }
@@ -307,16 +181,12 @@ async function setBlockNumber(
   world: World,
   from: string,
   governor: GovernorBravo,
-  blockNumber: NumberV
+  blockNumber: NumberV,
 ): Promise<World> {
   return addAction(
     world,
     `Set Governor blockNumber to ${blockNumber.show()}`,
-    await invoke(
-      world,
-      governor.methods.setBlockNumber(blockNumber.encode()),
-      from
-    )
+    await invoke(world, governor.methods.setBlockNumber(blockNumber.encode()), from),
   );
 }
 
@@ -324,16 +194,12 @@ async function setBlockTimestamp(
   world: World,
   from: string,
   governor: GovernorBravo,
-  blockTimestamp: NumberV
+  blockTimestamp: NumberV,
 ): Promise<World> {
   return addAction(
     world,
     `Set Governor blockTimestamp to ${blockTimestamp.show()}`,
-    await invoke(
-      world,
-      governor.methods.setBlockTimestamp(blockTimestamp.encode()),
-      from
-    )
+    await invoke(world, governor.methods.setBlockTimestamp(blockTimestamp.encode()), from),
   );
 }
 
@@ -347,7 +213,7 @@ export function governorBravoCommands() {
       `,
       "Deploy",
       [new Arg("params", getEventV, { variadic: true })],
-      (world, from, { params }) => genGovernor(world, from, params.val)
+      (world, from, { params }) => genGovernor(world, from, params.val),
     ),
 
     new Command<{
@@ -372,31 +238,18 @@ export function governorBravoCommands() {
         new Arg("signatures", getArrayV(getStringV)),
         new Arg("callDataArgs", getArrayV(getArrayV(getCoreValue))),
       ],
-      async (
-        world,
-        from,
-        { governor, description, targets, values, signatures, callDataArgs }
-      ) => {
-        const targetsU = targets.val.map((a) => a.val);
-        const valuesU = values.val.map((a) => a.encode());
-        const signaturesU = signatures.val.map((a) => a.val);
+      async (world, from, { governor, description, targets, values, signatures, callDataArgs }) => {
+        const targetsU = targets.val.map(a => a.val);
+        const valuesU = values.val.map(a => a.encode());
+        const signaturesU = signatures.val.map(a => a.val);
         const callDatasU: string[] = signatures.val.reduce((acc, cur, idx) => {
           const args = rawValues(callDataArgs.val[idx]);
           acc.push(encodeParameters(world, cur.val, args));
           return acc;
         }, <string[]>[]);
-        return await propose(
-          world,
-          from,
-          governor,
-          targetsU,
-          valuesU,
-          signaturesU,
-          callDatasU,
-          description.val
-        );
+        return await propose(world, from, governor, targetsU, valuesU, signaturesU, callDatasU, description.val);
       },
-      { namePos: 1 }
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo; params: EventV }>(
       `
@@ -405,13 +258,9 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo GovernorScenario Proposal LastProposal Vote For"
       `,
       "Proposal",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("params", getEventV, { variadic: true }),
-      ],
-      (world, from, { governor, params }) =>
-        processProposalEvent(world, governor, params.val, from),
-      { namePos: 1 }
+      [new Arg("governor", getGovernorV), new Arg("params", getEventV, { variadic: true })],
+      (world, from, { governor, params }) => processProposalEvent(world, governor, params.val, from),
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo; blockNumber: NumberV }>(
       `
@@ -421,9 +270,8 @@ export function governorBravoCommands() {
     `,
       "SetBlockNumber",
       [new Arg("governor", getGovernorV), new Arg("blockNumber", getNumberV)],
-      (world, from, { governor, blockNumber }) =>
-        setBlockNumber(world, from, governor, blockNumber),
-      { namePos: 1 }
+      (world, from, { governor, blockNumber }) => setBlockNumber(world, from, governor, blockNumber),
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo; blockTimestamp: NumberV }>(
       `
@@ -432,13 +280,9 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo GovernorScenario SetBlockTimestamp 500"
     `,
       "SetBlockTimestamp",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("blockTimestamp", getNumberV),
-      ],
-      (world, from, { governor, blockTimestamp }) =>
-        setBlockTimestamp(world, from, governor, blockTimestamp),
-      { namePos: 1 }
+      [new Arg("governor", getGovernorV), new Arg("blockTimestamp", getNumberV)],
+      (world, from, { governor, blockTimestamp }) => setBlockTimestamp(world, from, governor, blockTimestamp),
+      { namePos: 1 },
     ),
 
     new Command<{ governor: GovernorBravo; newVotingDelay: NumberV }>(
@@ -448,13 +292,9 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo GovernorBravoScenario SetVotingDelay 2"
     `,
       "SetVotingDelay",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("newVotingDelay", getNumberV),
-      ],
-      (world, from, { governor, newVotingDelay }) =>
-        setVotingDelay(world, from, governor, newVotingDelay),
-      { namePos: 1 }
+      [new Arg("governor", getGovernorV), new Arg("newVotingDelay", getNumberV)],
+      (world, from, { governor, newVotingDelay }) => setVotingDelay(world, from, governor, newVotingDelay),
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo; newVotingPeriod: NumberV }>(
       `
@@ -463,13 +303,9 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo GovernorBravoScenario SetVotingPeriod 500"
     `,
       "SetVotingPeriod",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("newVotingPeriod", getNumberV),
-      ],
-      (world, from, { governor, newVotingPeriod }) =>
-        setVotingPeriod(world, from, governor, newVotingPeriod),
-      { namePos: 1 }
+      [new Arg("governor", getGovernorV), new Arg("newVotingPeriod", getNumberV)],
+      (world, from, { governor, newVotingPeriod }) => setVotingPeriod(world, from, governor, newVotingPeriod),
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo; newProposalThreshold: NumberV }>(
       `
@@ -478,13 +314,10 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo GovernorBravoScenario SetProposalThreshold 500e18"
     `,
       "SetProposalThreshold",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("newProposalThreshold", getNumberV),
-      ],
+      [new Arg("governor", getGovernorV), new Arg("newProposalThreshold", getNumberV)],
       (world, from, { governor, newProposalThreshold }) =>
         setProposalThreshold(world, from, governor, newProposalThreshold),
-      { namePos: 1 }
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo; newProposalMaxOperations: NumberV }>(
       `
@@ -493,13 +326,10 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo GovernorBravoScenario SetProposalMaxOperations 42"
     `,
       "SetProposalMaxOperations",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("newProposalMaxOperations", getNumberV),
-      ],
+      [new Arg("governor", getGovernorV), new Arg("newProposalMaxOperations", getNumberV)],
       (world, from, { governor, newProposalMaxOperations }) =>
         setProposalMaxOperations(world, from, governor, newProposalMaxOperations),
-      { namePos: 1 }
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo; governorAlpha: AddressV }>(
       `
@@ -508,13 +338,9 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo GovernorBravoScenario Initiate (Address GovernorAlpha)"
     `,
       "Initiate",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("governorAlpha", getAddressV),
-      ],
-      (world, from, { governor, governorAlpha }) =>
-        initiate(world, from, governor, governorAlpha.val),
-      { namePos: 1 }
+      [new Arg("governor", getGovernorV), new Arg("governorAlpha", getAddressV)],
+      (world, from, { governor, governorAlpha }) => initiate(world, from, governor, governorAlpha.val),
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo }>(
       `
@@ -525,7 +351,7 @@ export function governorBravoCommands() {
       "HarnessInitiate",
       [new Arg("governor", getGovernorV)],
       (world, from, { governor }) => harnessInitiate(world, from, governor),
-      { namePos: 1 }
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo; newImplementation: GovernorBravo }>(
       `
@@ -534,13 +360,9 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo GovernorBravoScenario SetImplementation newImplementation"
     `,
       "SetImplementation",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("newImplementation", getGovernorV),
-      ],
-      (world, from, { governor, newImplementation }) =>
-        setImplementation(world, from, governor, newImplementation),
-      { namePos: 1 }
+      [new Arg("governor", getGovernorV), new Arg("newImplementation", getGovernorV)],
+      (world, from, { governor, newImplementation }) => setImplementation(world, from, governor, newImplementation),
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo; newPendingAdmin: AddressV }>(
       `
@@ -549,13 +371,9 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo GovernorBravoScenario SetPendingAdmin newAdmin"
     `,
       "SetPendingAdmin",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("newPendingAdmin", getAddressV),
-      ],
-      (world, from, { governor, newPendingAdmin }) =>
-        setPendingAdmin(world, from, governor, newPendingAdmin.val),
-      { namePos: 1 }
+      [new Arg("governor", getGovernorV), new Arg("newPendingAdmin", getAddressV)],
+      (world, from, { governor, newPendingAdmin }) => setPendingAdmin(world, from, governor, newPendingAdmin.val),
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo }>(
       `
@@ -566,7 +384,7 @@ export function governorBravoCommands() {
       "AcceptAdmin",
       [new Arg("governor", getGovernorV)],
       (world, from, { governor }) => acceptAdmin(world, from, governor),
-      { namePos: 1 }
+      { namePos: 1 },
     ),
     new Command<{ governor: GovernorBravo; newGuardian: AddressV }>(
       `
@@ -575,13 +393,9 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo GovernorBravoScenario SetGuardian newGuardian"
     `,
       "SetGuardian",
-      [
-        new Arg("governor", getGovernorV),
-        new Arg("newGuardian", getAddressV),
-      ],
-      (world, from, { governor, newGuardian }) =>
-        setGuardian(world, from, governor, newGuardian.val),
-      { namePos: 1 }
+      [new Arg("governor", getGovernorV), new Arg("newGuardian", getAddressV)],
+      (world, from, { governor, newGuardian }) => setGuardian(world, from, governor, newGuardian.val),
+      { namePos: 1 },
     ),
     new Command<{
       governorDelegator: GovernorBravo;
@@ -592,27 +406,14 @@ export function governorBravoCommands() {
         * E.g. "GovernorBravo MyImpl MergeABI
       `,
       "MergeABI",
-      [
-        new Arg("governorDelegator", getGovernorV),
-        new Arg("governorDelegate", getGovernorV),
-      ],
+      [new Arg("governorDelegator", getGovernorV), new Arg("governorDelegate", getGovernorV)],
       (world, from, { governorDelegator, governorDelegate }) =>
         mergeABI(world, from, governorDelegator, governorDelegate),
-      { namePos: 1 }
+      { namePos: 1 },
     ),
   ];
 }
 
-export async function processGovernorBravoEvent(
-  world: World,
-  event: Event,
-  from: string | null
-): Promise<World> {
-  return await processCommandEvent<any>(
-    "Governor",
-    governorBravoCommands(),
-    world,
-    event,
-    from
-  );
+export async function processGovernorBravoEvent(world: World, event: Event, from: string | null): Promise<World> {
+  return await processCommandEvent<any>("Governor", governorBravoCommands(), world, event, from);
 }

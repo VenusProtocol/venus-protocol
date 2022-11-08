@@ -2,12 +2,12 @@
 
 ## Contracts for Deployment
 
-| Contract | Description | Constructor Arguments | 
-|---------|-----------|-----------|
-| GovernorBravoDelegate | Implementation of GovernorBravo contract | - | 
-| GovernorBravoDelegator | Proxy/Delegator for GovernorBravo | timelockAddress, xvsVaultAddress, admin, governorBravoDelegateAddress, votingPeriod, votingDelay, proposalThreshold, guardian, proposalCount | 
+| Contract               | Description                              | Constructor Arguments                                                                                                                        |
+| ---------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| GovernorBravoDelegate  | Implementation of GovernorBravo contract | -                                                                                                                                            |
+| GovernorBravoDelegator | Proxy/Delegator for GovernorBravo        | timelockAddress, xvsVaultAddress, admin, governorBravoDelegateAddress, votingPeriod, votingDelay, proposalThreshold, guardian, proposalCount |
 
----------
+---
 
 ## Deployment Steps
 
@@ -17,7 +17,7 @@
 npx saddle script script/deploy/governor-bravo/01-deploy-governor-bravo-delegate.js -n testnet
 ```
 
-- File location:  [01-deploy-governor-bravo-delegate](./01-deploy-governor-bravo-delegate.js)
+- File location: [01-deploy-governor-bravo-delegate](./01-deploy-governor-bravo-delegate.js)
 
 2. copy contract address of `GovernorBravoDelegate` to property in JSON [Contracts/GovernorBravoDelegate](../../../networks/testnet.json#L25)
 
@@ -27,13 +27,11 @@ npx saddle script script/deploy/governor-bravo/01-deploy-governor-bravo-delegate
 npx saddle script script/deploy/governor-bravo/02-deploy-governor-bravo-delegator.js -n testnet
 ```
 
-- File location:  [02-deploy-governor-bravo-delegator](./02-deploy-governor-bravo-delegator.js)
-
+- File location: [02-deploy-governor-bravo-delegator](./02-deploy-governor-bravo-delegator.js)
 
 4. copy contract address of `GovernorBravoDelegator` to property in JSON - [Contracts/GovernorBravoDelegator](../../../networks/testnet.json#L26)
 
-
----------
+---
 
 ## post Deployment Steps
 
@@ -49,8 +47,7 @@ npx saddle script script/deploy/governor-bravo/03-set-proposal-count-to-governor
 npx saddle script script/deploy/governor-alpha-2/queue-governor-bravo-as-timelock-admin.js -n testnet
 ```
 
-- File location:  [queue-governor-bravo-as-timelock-admin](../governor-alpha-2/queue-governor-bravo-as-timelock-admin.js)
-
+- File location: [queue-governor-bravo-as-timelock-admin](../governor-alpha-2/queue-governor-bravo-as-timelock-admin.js)
 
 2. Execute `GovernorBravoDelegator` as Admin in `Timelock`
 
@@ -58,6 +55,6 @@ npx saddle script script/deploy/governor-alpha-2/queue-governor-bravo-as-timeloc
 npx saddle script script/deploy/governor-alpha-2/execute-governor-bravo-as-timelock-admin.js -n testnet
 ```
 
-- File location:  [execute-governor-bravo-as-timelock-admin](../governor-alpha-2/execute-governor-bravo-as-timelock-admin.js)
+- File location: [execute-governor-bravo-as-timelock-admin](../governor-alpha-2/execute-governor-bravo-as-timelock-admin.js)
 
----------
+---

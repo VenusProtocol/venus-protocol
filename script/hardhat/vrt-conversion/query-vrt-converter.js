@@ -7,16 +7,11 @@ const network = process.env.NETWORK;
 const contractConfigData = require(`../../../networks/${network}.json`);
 
 const main = async () => {
+  const vrtConverterProxyAddress = contractConfigData.Contracts.VRTConverterProxy;
+  const vrtConverterProxy = await ethers.getContractAt("VRTConverter", vrtConverterProxyAddress);
+  const conversionRatio = await vrtConverterProxy.conversionRatio();
 
-    const vrtConverterProxyAddress = contractConfigData.Contracts.VRTConverterProxy;
-    const vrtConverterProxy = await ethers.getContractAt("VRTConverter", vrtConverterProxyAddress);
-    const conversionRatio = await vrtConverterProxy.conversionRatio();
-
-    console.log(`conversionRatio of VRTConverter: ${conversionRatio}`);
+  console.log(`conversionRatio of VRTConverter: ${conversionRatio}`);
 };
 
-main().then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+module.exports = main;

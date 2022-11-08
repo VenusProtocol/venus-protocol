@@ -47,9 +47,6 @@ contract ComptrollerG5 is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrol
     /// @notice Emitted when an action is paused on a market
     event ActionPaused(VToken vToken, string action, bool pauseState);
 
-    /// @notice Emitted when Venus VAI rate is changed
-    event NewVenusVAIRate(uint oldVenusVAIRate, uint newVenusVAIRate);
-
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
 
@@ -1382,16 +1379,6 @@ contract ComptrollerG5 is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrol
         uint amountLeft = grantXVSInternal(recipient, amount);
         require(amountLeft == 0, "insufficient xvs for grant");
         emit VenusGranted(recipient, amount);
-    }
-
-    /**
-     * @notice Set the amount of XVS distributed per block to VAI Mint
-     * @param venusVAIRate_ The amount of XVS wei per block to distribute to VAI Mint
-     */
-    function _setVenusVAIRate(uint venusVAIRate_) public onlyAdmin {
-        uint oldVAIRate = venusVAIRate;
-        venusVAIRate = venusVAIRate_;
-        emit NewVenusVAIRate(oldVAIRate, venusVAIRate_);
     }
 
     /**

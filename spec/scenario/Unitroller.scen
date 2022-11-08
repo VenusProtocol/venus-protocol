@@ -8,7 +8,9 @@ Test "Standard Upgrade"
     Comptroller SetPriceOracle (PriceOracle Address)
     Comptroller SetCloseFactor 0.2
     ListedVToken ZRX vZRX
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     ListedVToken DAI vDAI
+    Comptroller SetMarketSupplyCaps (vDAI) (2e30)
     Assert Equal (Comptroller Implementation) (Address ScenComptroller)
     Assert Equal (Comptroller CloseFactor) 0.2
     -- Upgrade to V*
@@ -137,6 +139,8 @@ Pending "Keeps all storage"
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
     Support vBAT collateralFactor:0.4
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
+    Comptroller SetMarketSupplyCaps (vBAT) (2e30)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 100e18 vZRX
     EnterMarkets Geoff vZRX vBAT

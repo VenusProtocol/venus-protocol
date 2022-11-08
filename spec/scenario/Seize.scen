@@ -2,19 +2,23 @@
 Test "Fail to seize calling directly"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     ListedVToken BAT vBAT initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vBAT) (2e30)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 50e18 vZRX
     Invariant Remains (Bep20 vZRX TokenBalance Geoff) 50e9
     AllowFailures
     Seize 1e9 vZRX caller:Geoff liquidator:Geoff borrower:Torrey
     -- The caller must be from another vToken market, thus this fails
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_SEIZE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"
 
 Test "Seize tokens with a paused WBTC vToken-- like normal"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     ListedVToken WBTC vWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2e30)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 50e18 vZRX
     Bep20 WBTC Pause
@@ -22,12 +26,14 @@ Test "Seize tokens with a paused WBTC vToken-- like normal"
     AllowFailures
     Seize 1e9 vWBTC caller:Geoff liquidator:Geoff borrower:Torrey
     -- The caller must be from another vToken market, thus this fails
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_SEIZE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"
 
 Test "Not able to seize tokens with a malicious unlisted vToken"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     NewVTokenImmutable EVL vEVL initialExchangeRate:1e9 vTokenType:VEvil
+    Comptroller SetMarketSupplyCaps (vEVL) (2e30)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 50e18 vZRX
     Invariant Remains (Bep20 vZRX TokenBalance Geoff) 50e9
@@ -36,12 +42,14 @@ Test "Not able to seize tokens with a malicious unlisted vToken"
     AllowFailures
     EvilSeize vEVL 1e9 vZRX seizer:Geoff seizee:Torrey
     -- The caller must be from another vToken market, thus this fails
-    Assert Failure COMPTROLLER_REJECTION LIQUIDATE_SEIZE_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"
 
 Test "Able to seize tokens with a malicious listed vToken"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2e30)
     ListedVTokenImmutable EVL vEVL initialExchangeRate:1e9 vTokenType:VEvil
+    Comptroller SetMarketSupplyCaps (vEVL) (2e30)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 50e18 vZRX
     Assert Equal (Bep20 vZRX TokenBalance Geoff) 50e9

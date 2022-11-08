@@ -5,6 +5,7 @@ Test "Borrow some BNB enters BNB and succeeds when BNB not entered"
     ListedBNBToken vBNB initialExchangeRate:0.005e9
     SetCollateralFactor vZRX collateralFactor:0.5
     SetCollateralFactor vBNB collateralFactor:0.5
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Donate vBNB 0.003e18
     Prep Geoff Some ZRX vZRX
     Mint Geoff 1e18 vZRX
@@ -22,6 +23,7 @@ Test "Borrow some BNB fails when no BNB available"
     ListedBNBToken vBNB initialExchangeRate:0.005e9
     SetCollateralFactor vZRX collateralFactor:0.5
     SetCollateralFactor vBNB collateralFactor:0.5
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Prep Geoff Some ZRX vZRX
     Mint Geoff 100e18 vZRX
     EnterMarkets Geoff vZRX vBNB
@@ -39,6 +41,7 @@ Test "Borrow some BNB from excess cash"
     ListedBNBToken vBNB initialExchangeRate:0.005e9
     SetCollateralFactor vZRX collateralFactor:0.5
     SetCollateralFactor vBNB collateralFactor:0.5
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Donate vBNB 0.003e18
     Prep Geoff Some ZRX vZRX
     Mint Geoff 1e18 vZRX

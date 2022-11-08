@@ -6,14 +6,10 @@ const contractConfigData = require(`../../../networks/${network}.json`);
 const hre = require("hardhat");
 
 const main = async () => {
-    const xvsVestingAddress = contractConfigData.Contracts.XVSVesting;
-    await hre.run("verify:verify", {
-        address: xvsVestingAddress
-    });
+  const xvsVestingAddress = contractConfigData.Contracts.XVSVesting;
+  await hre.run("verify:verify", {
+    address: xvsVestingAddress,
+  });
 };
 
-main().then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+module.exports = main;

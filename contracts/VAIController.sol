@@ -12,7 +12,6 @@ interface ComptrollerImplInterface {
     function protocolPaused() external view returns (bool);
     function mintedVAIs(address account) external view returns (uint);
     function vaiMintRate() external view returns (uint);
-    function venusVAIRate() external view returns (uint);
     function venusAccrued(address account) external view returns(uint);
     function getAssetsIn(address account) external view returns (VToken[] memory);
     function oracle() external view returns (PriceOracle);

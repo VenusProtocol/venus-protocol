@@ -3,6 +3,7 @@
 Test "Mint WBTC then Redeem All"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Prep Geoff 70e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC
     -- Check current affairs
@@ -19,6 +20,7 @@ Test "Mint WBTC then Redeem All"
 Test "Mint WBTC, Enter and then Redeem All"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Prep Geoff 70e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC
     -- Check current affairs
@@ -36,6 +38,7 @@ Test "Mint WBTC, Enter and then Redeem All"
 Test "Mint WBTC then Redeem Part"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Prep Geoff 70e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC
     -- Check current affairs
@@ -52,6 +55,7 @@ Test "Mint WBTC then Redeem Part"
 Test "Mint WBTC then Redeem Too Much"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Prep Geoff 70e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC
     -- Check and hold static
@@ -67,6 +71,7 @@ Test "Mint WBTC then Redeem Too Much"
 Test "Mint WBTC then Redeem Zero"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Prep Geoff 70e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC
     -- Check current affairs
@@ -83,6 +88,7 @@ Test "Mint WBTC then Redeem Zero"
 Test "Mint WBTC then redeem with interest - no reserves"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Invariant Remains (VToken fWBTC Reserves) Zero
     Prep Geoff 50e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC
@@ -109,6 +115,7 @@ Test "Mint WBTC then redeem with interest - no reserves"
 Test "Mint WBTC then redeem part with interest - no reserves"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Invariant Remains (VToken fWBTC Reserves) Zero
     Prep Geoff 50e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC
@@ -133,6 +140,7 @@ Test "Mint WBTC then redeem part with interest - no reserves"
 Test "Mint WBTC then redeem with reserves and interest"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Prep Geoff 50e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC
     Assert Equal (Bep20 fWBTC TokenBalance Geoff) 500e8
@@ -162,6 +170,7 @@ Test "Mint WBTC then redeem with reserves and interest"
 Test "Two users Mint WBTC, one redeems"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Prep Geoff Some WBTC fWBTC
     Prep Torrey Some WBTC fWBTC
     Mint Geoff 2e8 fWBTC
@@ -179,6 +188,7 @@ Test "Two users Mint WBTC, one redeems"
 Test "Redeem WBTC transfer out fails"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Prep Geoff 70e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC
     -- Check current affairs
@@ -195,6 +205,7 @@ Test "Redeem WBTC transfer out fails"
 Test "Mint WBTC, Enter, then Redeem Too Much (collateral factor: 0)"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Prep Geoff 70e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC
     -- Check and hold static
@@ -211,6 +222,7 @@ Test "Mint WBTC, Enter, then Redeem Too Much (collateral factor: 0)"
 Test "Mint WBTC, Enter, then Redeem Too Much (collateral factor: 0.1)"
     NewFeeComptroller
     ListedVToken WBTC fWBTC initialExchangeRate:0.1 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (fWBTC) (2e30)
     Comptroller SetCollateralFactor fWBTC 0.1
     Prep Geoff 70e8 WBTC fWBTC
     Mint Geoff 50e8 fWBTC

@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 
 contract GovernorBravoEvents {
     /// @notice An event emitted when a new proposal is created
-    event ProposalCreated(uint id, address proposer, address[] targets, uint[] values, string[] signatures, bytes[] calldatas, uint startBlock, uint endBlock, string description);
+    event ProposalCreated(uint id, address proposer, address[] targets, uint[] values, string[] signatures, bytes[] calldatas, uint startBlock, uint endBlock, string description, uint8 proposalType);
 
     /// @notice An event emitted when a vote has been cast on a proposal
     /// @param voter The address which casted a vote
@@ -68,13 +68,13 @@ contract GovernorBravoDelegatorStorage {
  */
 contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
 
-    /// @notice The delay before voting on a proposal may take place, once proposed, in blocks
+    /// @notice DEPRECATED The delay before voting on a proposal may take place, once proposed, in blocks
     uint public votingDelay;
 
-    /// @notice The duration of voting on a proposal, in blocks
+    /// @notice DEPRECATED The duration of voting on a proposal, in blocks
     uint public votingPeriod;
 
-    /// @notice The number of votes required in order for a voter to become a proposer
+    /// @notice DEPRECATED The number of votes required in order for a voter to become a proposer
     uint public proposalThreshold;
 
     /// @notice Initial proposal id set at become
@@ -141,6 +141,9 @@ contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
 
         /// @notice Receipts of ballots for the entire set of voters
         mapping (address => Receipt) receipts;
+
+        /// @notice The type of the proposal
+        uint8 proposalType;
     }
 
     /// @notice Ballot receipt record for a voter
@@ -174,6 +177,32 @@ contract GovernorBravoDelegateStorageV1 is GovernorBravoDelegatorStorage {
     address public guardian;
 }
 
+contract GovernorBravoDelegateStorageV2 is GovernorBravoDelegateStorageV1 {
+ 
+    enum ProposalType  {
+        NORMAL,
+        FASTTRACK,
+        CRITICAL
+    }
+
+    struct ProposalConfig {
+        /// @notice The delay before voting on a proposal may take place, once proposed, in blocks
+        uint256 votingDelay;
+
+        /// @notice The duration of voting on a proposal, in blocks
+        uint256 votingPeriod;
+
+        /// @notice The number of votes required in order for a voter to become a proposer
+        uint256 proposalThreshold;
+    }
+
+    /// @notice mapping containing configuration for each proposal type
+    mapping (uint => ProposalConfig) public proposalConfigs;
+
+    /// @notice mapping containing Timelock addresses for each proposal type
+    mapping (uint => TimelockInterface) public proposalTimelocks;
+}
+
 interface TimelockInterface {
     function delay() external view returns (uint);
     function GRACE_PERIOD() external view returns (uint);
@@ -188,7 +217,7 @@ interface XvsVaultInterface {
     function getPriorVotes(address account, uint blockNumber) external view returns (uint96);
 }
 
-interface GovernorAlpha {
+interface GovernorAlphaInterface {
     /// @notice The total number of proposals
     function proposalCount() external returns (uint);
 }

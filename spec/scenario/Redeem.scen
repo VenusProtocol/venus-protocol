@@ -3,6 +3,7 @@
 Test "Mint then Redeem All"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Check current affairs
@@ -19,6 +20,7 @@ Test "Mint then Redeem All"
 Test "Mint, Enter and then Redeem All"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Check current affairs
@@ -36,6 +38,7 @@ Test "Mint, Enter and then Redeem All"
 Test "Mint then Redeem Part"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Check current affairs
@@ -52,6 +55,7 @@ Test "Mint then Redeem Part"
 Test "Mint then Redeem Too Much"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Check and hold static
@@ -67,6 +71,7 @@ Test "Mint then Redeem Too Much"
 Test "Mint then Redeem Zero"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Check current affairs
@@ -83,6 +88,7 @@ Test "Mint then Redeem Zero"
 Test "Mint then redeem with interest - no reserves"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Invariant Remains (VToken vZRX Reserves) Zero
     Prep Geoff 50e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
@@ -109,6 +115,7 @@ Test "Mint then redeem with interest - no reserves"
 Test "Mint then redeem part with interest - no reserves"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Invariant Remains (VToken vZRX Reserves) Zero
     Prep Geoff 50e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
@@ -133,6 +140,7 @@ Test "Mint then redeem part with interest - no reserves"
 Test "Mint then redeem with reserves and interest"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Prep Geoff 50e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     Assert Equal (Bep20 vZRX TokenBalance Geoff) 500e8
@@ -162,6 +170,7 @@ Test "Mint then redeem with reserves and interest"
 Test "Two users Mint, one redeems"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Prep Geoff Some ZRX vZRX
     Prep Torrey Some ZRX vZRX
     Mint Geoff 2e18 vZRX
@@ -179,6 +188,7 @@ Test "Two users Mint, one redeems"
 Test "Redeem transfer out fails"
     NewComptroller
     ListedVToken EVL vEVL initialExchangeRate:1e9 tokenType:Evil
+    Comptroller SetMarketSupplyCaps (vEVL) (2000e18)
     Bep20 EVL SetFail False
     Prep Geoff 70e18 EVL vEVL
     Mint Geoff 50e18 vEVL
@@ -196,6 +206,7 @@ Test "Redeem transfer out fails"
 Test "Mint, Enter, then Redeem Too Much (collateral factor: 0)"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX
     -- Check and hold static
@@ -212,6 +223,7 @@ Test "Mint, Enter, then Redeem Too Much (collateral factor: 0)"
 Test "Mint, Enter, then Redeem Too Much (collateral factor: 0.1)"
     NewComptroller
     ListedVToken ZRX vZRX initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vZRX) (2000e18)
     Comptroller SetCollateralFactor vZRX 0.1
     Prep Geoff 70e18 ZRX vZRX
     Mint Geoff 50e18 vZRX

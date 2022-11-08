@@ -1,6 +1,6 @@
 const [network] = args;
 const contractConfigData = require(`../../../networks/${network}.json`);
-const { bnbMantissa } = require('../utils/web3-utils');
+const { bnbMantissa } = require("../utils/web3-utils");
 
 (async () => {
   const timelockAddress = contractConfigData.Contracts.Timelock;
@@ -12,10 +12,26 @@ const { bnbMantissa } = require('../utils/web3-utils');
   const proposalThreshold = bnbMantissa(1e4);
   const guardian = contractConfigData.Accounts.Guardian;
 
-  const constructorArgumentArray = [timelockAddress, xvsVaultAddress, admin, governorBravoDelegateAddress, votingPeriod, votingDelay, proposalThreshold, guardian];
-  console.log(`Deploying GovernorBravoDelegator with timelockAddress, xvsVaultAddress, admin, governorBravoDelegateAddress, votingPeriod, votingDelay, proposalThreshold, guardian in constructorArguments: ${constructorArgumentArray}`);
-  
-  let deployedGovernorBravoDelegator = await saddle.deploy('GovernorBravoDelegator', constructorArgumentArray);
-  const constructorData = web3.eth.abi.encodeParameters(['address','address','address', 'address','uint256','uint256', 'uint256','address'], constructorArgumentArray);
-  console.log(`Deployed GovernorBravoDelegator to ${deployedGovernorBravoDelegator._address} with constructorData: ${constructorData}`);
+  const constructorArgumentArray = [
+    timelockAddress,
+    xvsVaultAddress,
+    admin,
+    governorBravoDelegateAddress,
+    votingPeriod,
+    votingDelay,
+    proposalThreshold,
+    guardian,
+  ];
+  console.log(
+    `Deploying GovernorBravoDelegator with timelockAddress, xvsVaultAddress, admin, governorBravoDelegateAddress, votingPeriod, votingDelay, proposalThreshold, guardian in constructorArguments: ${constructorArgumentArray}`,
+  );
+
+  let deployedGovernorBravoDelegator = await saddle.deploy("GovernorBravoDelegator", constructorArgumentArray);
+  const constructorData = web3.eth.abi.encodeParameters(
+    ["address", "address", "address", "address", "uint256", "uint256", "uint256", "address"],
+    constructorArgumentArray,
+  );
+  console.log(
+    `Deployed GovernorBravoDelegator to ${deployedGovernorBravoDelegator._address} with constructorData: ${constructorData}`,
+  );
 })();

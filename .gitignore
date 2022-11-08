@@ -47,3 +47,6 @@ junit.xml
 typechain
 artifacts
 cache
+
+# Build
+dist

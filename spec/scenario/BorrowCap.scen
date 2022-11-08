@@ -4,6 +4,8 @@ Test "Attempt to borrow over set cap BEP20"
     NewVToken ZRX vZRX
     NewVToken BAT vBAT
     Comptroller SetMarketBorrowCaps (vBAT) (0.5e18)
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Assert Equal (Comptroller BorrowCaps vBAT) (Exactly 0.5e18)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
@@ -23,6 +25,8 @@ Test "Attempt to borrow at set cap BEP20"
     NewVToken ZRX vZRX
     NewVToken BAT vBAT
     Comptroller SetMarketBorrowCaps (vBAT) (1000000000000000001)
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
     Support vBAT collateralFactor:0.5
@@ -41,6 +45,8 @@ Test "Attempt to borrow below set cap BEP20"
     NewComptroller price:1.0
     NewVToken ZRX vZRX
     NewVToken BAT vBAT
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Comptroller SetMarketBorrowCaps (vBAT) (10e18)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow
     Support vZRX collateralFactor:0.5
@@ -62,6 +68,8 @@ Test "Borrow some Bnb over cap"
     ListedBNBToken vBNB initialExchangeRate:0.005e9
     SetCollateralFactor vZRX collateralFactor:0.5
     SetCollateralFactor vBNB collateralFactor:0.5
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
+    Comptroller SetMarketSupplyCaps (vBNB) (0.01e18)
     Comptroller SetMarketBorrowCaps (vBNB) (0.0001e18)
     Donate vBNB 0.003e18
     Prep Geoff Some ZRX vZRX
@@ -78,6 +86,9 @@ Test "Borrow some Bnb enters Bnb and succeeds when Bnb not entered. At borrow ca
     ListedBNBToken vBNB initialExchangeRate:0.005e9
     SetCollateralFactor vZRX collateralFactor:0.5
     SetCollateralFactor vBNB collateralFactor:0.5
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
+    Comptroller SetMarketBorrowCaps (vBNB) (0.01e18)
+    Comptroller SetMarketSupplyCaps (vBNB) (1000e18)
     Comptroller SetMarketBorrowCaps (vBNB) (1000000000000001)
     Donate vBNB 0.003e18
     Prep Geoff Some ZRX vZRX
@@ -97,6 +108,8 @@ Test "Borrow some Bnb enters Bnb and succeeds when Bnb not entered. At under bor
     SetCollateralFactor vZRX collateralFactor:0.5
     SetCollateralFactor vBNB collateralFactor:0.5
     Comptroller SetMarketBorrowCaps (vBNB) (0.01e18)
+    Comptroller SetMarketSupplyCaps (vBNB) (0.01e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Donate vBNB 0.003e18
     Prep Geoff Some ZRX vZRX
     Mint Geoff 1e18 vZRX
@@ -146,6 +159,8 @@ Test "SetBorrowCaps works correctly too"
     NewVToken BAT vBAT
     NewVToken USDC vUSDC
     Comptroller SetMarketBorrowCaps (vBAT vUSDC) (0.5e18 1000001)
+    Comptroller SetMarketSupplyCaps (vBAT) (1000e18)
+    Comptroller SetMarketSupplyCaps (vZRX) (1000e18)
     Assert Equal (Comptroller BorrowCaps vBAT) (Exactly 0.5e18)
     Assert Equal (Comptroller BorrowCaps vUSDC) (Exactly 1000001)
     Give vBAT 10e18 BAT -- Faucet some bat to borrow

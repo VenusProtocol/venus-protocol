@@ -1,6 +1,7 @@
 {
   "Contracts": {
     "VenusLens": "0x4C97B56d596d5cCc11727c0AD7d171E7F0d5134e",
+    "SnapshotLens": "0x61610DeC84448Ed17A2a0317667a99ca0CC6f697",
     "WhitepaperInterestRateModel": "0xdE9beC5102ee897a2c934321309517dD6c0106F4",
     "Comptroller": "0xfd301ad2503b25a7670a45b11a043c20b04ee896",
     "Unitroller": "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D",

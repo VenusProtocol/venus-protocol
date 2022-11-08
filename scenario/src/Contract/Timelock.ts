@@ -1,6 +1,6 @@
-import { Contract } from '../Contract';
-import { Callable, Sendable } from '../Invokation';
-import { encodedNumber } from '../Encoding';
+import { Contract } from "../Contract";
+import { encodedNumber } from "../Encoding";
+import { Callable, Sendable } from "../Invokation";
 
 interface TimelockMethods {
   admin(): Callable<string>;
@@ -15,21 +15,21 @@ interface TimelockMethods {
     value: encodedNumber,
     signature: string,
     data: string,
-    eta: encodedNumber
+    eta: encodedNumber,
   ): Sendable<string>;
   cancelTransaction(
     target: string,
     value: encodedNumber,
     signature: string,
     data: string,
-    eta: encodedNumber
+    eta: encodedNumber,
   ): Sendable<void>;
   executeTransaction(
     target: string,
     value: encodedNumber,
     signature: string,
     data: string,
-    eta: encodedNumber
+    eta: encodedNumber,
   ): Sendable<string>;
 
   blockTimestamp(): Callable<number>;

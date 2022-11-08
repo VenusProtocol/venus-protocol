@@ -1,28 +1,32 @@
-
-describe('XVSScenario', () => {
-  let root, accounts;
+describe("XVSScenario", () => {
+  let root;
   let xvs;
 
   beforeEach(async () => {
-    [root, ...accounts] = saddle.accounts;
-    xvs = await deploy('XVSScenario', [root]);
+    [root] = saddle.accounts;
+    xvs = await deploy("XVSScenario", [root]);
   });
 
-  describe('lookup curve', () => {
+  describe("lookup curve", () => {
     [
       [1, 3],
       [2, 5],
       [20, 8],
       [100, 10],
       [500, 12],
-      ...(process.env['SLOW'] ? [ [5000, 16], [20000, 18] ] : [])
+      ...(process.env["SLOW"]
+        ? [
+            [5000, 16],
+            [20000, 18],
+          ]
+        : []),
     ].forEach(([checkpoints, expectedReads]) => {
       it(`with ${checkpoints} checkpoints, has ${expectedReads} reads`, async () => {
         let remaining = checkpoints;
         let offset = 0;
         while (remaining > 0) {
           let amt = remaining > 1000 ? 1000 : remaining;
-          await xvs.methods.generateCheckpoints(amt, offset).send({from: root, gas: 200000000});
+          await xvs.methods.generateCheckpoints(amt, offset).send({ from: root, gas: 200000000 });
           remaining -= amt;
           offset += amt;
         }
@@ -31,18 +35,18 @@ describe('XVSScenario', () => {
 
         await saddle.trace(result, {
           constants: {
-            "account": root
+            account: root,
           },
-          preFilter: ({op}) => op === 'SLOAD',
-          postFilter: ({source}) => !source || !source.includes('mockBlockNumber'),
-          execLog: (log) => {
-            if (process.env['VERBOSE']) {
+          preFilter: ({ op }) => op === "SLOAD",
+          postFilter: ({ source }) => !source || !source.includes("mockBlockNumber"),
+          execLog: log => {
+            if (process.env["VERBOSE"]) {
               log.show();
             }
           },
-          exec: (logs, info) => {
+          exec: logs => {
             expect(logs.length).toEqual(expectedReads);
-          }
+          },
         });
       }, 600000);
     });

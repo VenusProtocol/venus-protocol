@@ -1,23 +1,24 @@
-import {World} from './World';
-import {Event} from './Event';
-import BigNumber from 'bignumber.js';
-import {toEncodableNum} from './Encoding';
-import {formatEvent} from './Formatter';
+import BigNumber from "bignumber.js";
+
+import { toEncodableNum } from "./Encoding";
+import { Event } from "./Event";
+import { formatEvent } from "./Formatter";
+import { World } from "./World";
 
 BigNumber.config({ ROUNDING_MODE: 3 });
-const mantissaOne = new BigNumber('1.0e18');
+const mantissaOne = new BigNumber("1.0e18");
 
 export enum Order {
   EQUAL,
   LESS_THAN,
-  GREATER_THAN
+  GREATER_THAN,
 }
 
 export interface Value {
-  compareTo(world: World, given: Value): boolean
-  compareOrder(world: World, given: Value): Order
-  toString(): string
-  truthy(): boolean
+  compareTo(world: World, given: Value): boolean;
+  compareOrder(world: World, given: Value): Order;
+  toString(): string;
+  truthy(): boolean;
 }
 
 function compareInt(a: number, b: number): Order {
@@ -31,7 +32,7 @@ function compareInt(a: number, b: number): Order {
 }
 
 export class EventV implements Value {
-  val: Event
+  val: Event;
 
   constructor(val) {
     this.val = val;
@@ -46,7 +47,9 @@ export class EventV implements Value {
   }
 
   compareOrder(world: World, given: Value): Order {
-    throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
+    throw new Error(
+      `Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`,
+    );
   }
 
   toString() {
@@ -60,13 +63,15 @@ export class EventV implements Value {
 }
 
 export class AnythingV implements Value {
-  compareTo(world: World, given: Value): boolean {
+  compareTo(): boolean {
     // Everything is awesome.
     return true;
   }
 
-  compareOrder(world: World, given: Value): Order {
-    throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
+  compareOrder(_world: World, given: Value): Order {
+    throw new Error(
+      `Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`,
+    );
   }
 
   toString() {
@@ -79,19 +84,21 @@ export class AnythingV implements Value {
 }
 
 export class NothingV implements Value {
-  val: null
+  val: null;
 
   constructor() {
     this.val = null;
   }
 
-  compareTo(world: World, given: Value): boolean {
+  compareTo(): boolean {
     // Everything is not awesome.
     return false;
   }
 
   compareOrder(world: World, given: Value): Order {
-    throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
+    throw new Error(
+      `Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`,
+    );
   }
 
   encode() {
@@ -108,7 +115,7 @@ export class NothingV implements Value {
 }
 
 export class BoolV implements Value {
-  val: boolean
+  val: boolean;
 
   constructor(val) {
     this.val = val;
@@ -119,15 +126,17 @@ export class BoolV implements Value {
       return this.val === given.val;
     } else if (given instanceof NumberV) {
       return this.compareTo(world, given.toBoolV());
-    } else if (given instanceof StringV && ( given.val === 'true' || given.val === 'false' )) {
-      return this.val || given.val !== 'true';
+    } else if (given instanceof StringV && (given.val === "true" || given.val === "false")) {
+      return this.val || given.val !== "true";
     } else {
       throw new Error(`Cannot compare ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
     }
   }
 
   compareOrder(world: World, given: Value): Order {
-    throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
+    throw new Error(
+      `Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`,
+    );
   }
 
   toString() {
@@ -140,7 +149,7 @@ export class BoolV implements Value {
 }
 
 export class StringV implements Value {
-  val: string
+  val: string;
 
   constructor(val) {
     this.val = val;
@@ -149,7 +158,7 @@ export class StringV implements Value {
   compareTo(world: World, given: Value): boolean {
     if (given instanceof StringV) {
       return this.val === given.val;
-    } else if ( given instanceof AddressV) {
+    } else if (given instanceof AddressV) {
       return world.web3.utils.toChecksumAddress(this.val) === world.web3.utils.toChecksumAddress(given.val);
     } else {
       throw new Error(`Cannot compare ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
@@ -157,7 +166,9 @@ export class StringV implements Value {
   }
 
   compareOrder(world: World, given: Value): Order {
-    throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
+    throw new Error(
+      `Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`,
+    );
   }
 
   toString() {
@@ -170,7 +181,7 @@ export class StringV implements Value {
 }
 
 export class MapV implements Value {
-  val: object
+  val: object;
 
   constructor(val) {
     this.val = val;
@@ -185,7 +196,9 @@ export class MapV implements Value {
   }
 
   compareOrder(world: World, given: Value): Order {
-    throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
+    throw new Error(
+      `Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`,
+    );
   }
 
   toString() {
@@ -198,7 +211,7 @@ export class MapV implements Value {
 }
 
 export class AddressV implements Value {
-  val: string
+  val: string;
 
   constructor(val) {
     this.val = val;
@@ -213,7 +226,9 @@ export class AddressV implements Value {
   }
 
   compareOrder(world: World, given: Value): Order {
-    throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
+    throw new Error(
+      `Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`,
+    );
   }
 
   toString() {
@@ -226,7 +241,7 @@ export class AddressV implements Value {
 }
 
 export class NumberV implements Value {
-  val : number | string
+  val: number | string;
 
   constructor(val: number | string, denom?: number | undefined) {
     if (denom) {
@@ -274,15 +289,15 @@ export class NumberV implements Value {
 
   toBoolV(): BoolV {
     if (this.val === 0) {
-      return new BoolV(true)
+      return new BoolV(true);
     } else if (this.val === 1) {
       return new BoolV(false);
     }
 
-    throw new Error(`Cannot convert number ${this.val} into bool`)
+    throw new Error(`Cannot convert number ${this.val} into bool`);
   }
 
-  asExp(denom=undefined): string {
+  asExp(): string {
     return new BigNumber(this.val).toExponential();
   }
 
@@ -323,13 +338,13 @@ export class ExpNumberV extends NumberV {
 
 export class PercentV extends NumberV {
   show() {
-    return new BigNumber(this.val).dividedBy(mantissaOne).multipliedBy(new BigNumber(100)).toNumber().toString() + '%';
+    return new BigNumber(this.val).dividedBy(mantissaOne).multipliedBy(new BigNumber(100)).toNumber().toString() + "%";
   }
 }
 
 export class PreciseV implements Value {
-  val: number
-  precision: number
+  val: number;
+  precision: number;
 
   constructor(val, precision) {
     this.val = val;
@@ -351,7 +366,9 @@ export class PreciseV implements Value {
   }
 
   compareOrder(world: World, given: Value): Order {
-    throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
+    throw new Error(
+      `Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`,
+    );
   }
 
   toNumberV(): NumberV {
@@ -368,7 +385,7 @@ export class PreciseV implements Value {
 }
 
 export class ListV implements Value {
-  val: Value[]
+  val: Value[];
 
   constructor(els) {
     this.val = els;
@@ -383,11 +400,13 @@ export class ListV implements Value {
   }
 
   compareOrder(world: World, given: Value): Order {
-    throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
+    throw new Error(
+      `Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`,
+    );
   }
 
   toString() {
-    return `ListV<val=${this.val.map(el => el.toString()).join(',')}>`;
+    return `ListV<val=${this.val.map(el => el.toString()).join(",")}>`;
   }
 
   truthy() {
@@ -396,7 +415,7 @@ export class ListV implements Value {
 }
 
 export class ArrayV<T extends Value> implements Value {
-  val: T[]
+  val: T[];
 
   constructor(els) {
     this.val = els;
@@ -411,11 +430,13 @@ export class ArrayV<T extends Value> implements Value {
   }
 
   compareOrder(world: World, given: Value): Order {
-    throw new Error(`Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`);
+    throw new Error(
+      `Cannot compare order of ${typeof this} to ${typeof given} (${this.toString()}, ${given.toString()})`,
+    );
   }
 
   toString() {
-    return `ArrayV<val=${this.val.map(el => el.toString()).join(',')}>`;
+    return `ArrayV<val=${this.val.map(el => el.toString()).join(",")}>`;
   }
 
   truthy() {

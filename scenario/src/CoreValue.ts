@@ -1,5 +1,12 @@
-import { Event } from './Event';
-import { World } from './World';
+import { BigNumber } from "bignumber.js";
+import { padLeft, sha3, toBN, toDecimal, toHex } from "web3-utils";
+
+import { Arg, Fetcher, getFetcherValue } from "./Command";
+import { getAddress } from "./ContractLookup";
+import { toEncodableNum } from "./Encoding";
+import { Event } from "./Event";
+import { buildContractFetcher } from "./EventBuilder";
+import { getCurrentBlockNumber, getCurrentTimestamp, mustArray, sendRPC } from "./Utils";
 import {
   AddressV,
   AnythingV,
@@ -14,50 +21,37 @@ import {
   PercentV,
   PreciseV,
   StringV,
-  Value
-} from './Value';
-import { Arg, Fetcher, getFetcherValue } from './Command';
-import { getUserValue, userFetchers } from './Value/UserValue';
-import { comptrollerFetchers, getComptrollerValue } from './Value/ComptrollerValue';
-import { comptrollerImplFetchers, getComptrollerImplValue } from './Value/ComptrollerImplValue';
-import { vaicontrollerFetchers, getVAIControllerValue } from './Value/VAIControllerValue';
-import { vaicontrollerImplFetchers, getVAIControllerImplValue } from './Value/VAIControllerImplValue';
-import { getUnitrollerValue, unitrollerFetchers } from './Value/UnitrollerValue';
-import { vTokenFetchers, getVTokenValue } from './Value/VTokenValue';
-import { vTokenDelegateFetchers, getVTokenDelegateValue } from './Value/VTokenDelegateValue';
-import { bep20Fetchers, getBep20Value } from './Value/Bep20Value';
-import { mcdFetchers, getMCDValue } from './Value/MCDValue';
-import { getInterestRateModelValue, interestRateModelFetchers } from './Value/InterestRateModelValue';
-import { getPriceOracleValue, priceOracleFetchers } from './Value/PriceOracleValue';
-import { getPriceOracleProxyValue, priceOracleProxyFetchers } from './Value/PriceOracleProxyValue';
-import { getTimelockValue, timelockFetchers, getTimelockAddress } from './Value/TimelockValue';
-import { getMaximillionValue, maximillionFetchers } from './Value/MaximillionValue';
-import { getXVSValue, xvsFetchers } from './Value/XVSValue';
-import { getSXPValue, sxpFetchers } from './Value/SXPValue';
-import { getVAIValue, vaiFetchers } from './Value/VAIValue';
-import { getGovernorValue, governorFetchers } from './Value/GovernorValue';
-import { getGovernorBravoValue, governorBravoFetchers } from './Value/GovernorBravoValue';
-import { getAddress } from './ContractLookup';
-import { getCurrentBlockNumber, getCurrentTimestamp, mustArray, sendRPC } from './Utils';
-import { toEncodableNum } from './Encoding';
-import { BigNumber } from 'bignumber.js';
-import { buildContractFetcher } from './EventBuilder';
+  Value,
+} from "./Value";
+import { bep20Fetchers, getBep20Value } from "./Value/Bep20Value";
+import { comptrollerImplFetchers, getComptrollerImplValue } from "./Value/ComptrollerImplValue";
+import { comptrollerFetchers, getComptrollerValue } from "./Value/ComptrollerValue";
+import { getGovernorBravoValue, governorBravoFetchers } from "./Value/GovernorBravoValue";
+import { getGovernorValue, governorFetchers } from "./Value/GovernorValue";
+import { getInterestRateModelValue, interestRateModelFetchers } from "./Value/InterestRateModelValue";
+import { getMCDValue, mcdFetchers } from "./Value/MCDValue";
+import { getMaximillionValue, maximillionFetchers } from "./Value/MaximillionValue";
+import { getPriceOracleProxyValue, priceOracleProxyFetchers } from "./Value/PriceOracleProxyValue";
+import { getPriceOracleValue, priceOracleFetchers } from "./Value/PriceOracleValue";
+import { getSXPValue, sxpFetchers } from "./Value/SXPValue";
+import { getTimelockValue, timelockFetchers } from "./Value/TimelockValue";
+import { getUnitrollerValue, unitrollerFetchers } from "./Value/UnitrollerValue";
+import { getUserValue, userFetchers } from "./Value/UserValue";
+import { getVAIControllerImplValue, vaicontrollerImplFetchers } from "./Value/VAIControllerImplValue";
+import { getVAIControllerValue, vaicontrollerFetchers } from "./Value/VAIControllerValue";
+import { getVAIValue, vaiFetchers } from "./Value/VAIValue";
+import { getVTokenDelegateValue, vTokenDelegateFetchers } from "./Value/VTokenDelegateValue";
+import { getVTokenValue, vTokenFetchers } from "./Value/VTokenValue";
+import { getXVSValue, xvsFetchers } from "./Value/XVSValue";
+import { World } from "./World";
 
-import {
-  padLeft,
-  sha3,
-  toBN,
-  toDecimal,
-  toHex
-} from 'web3-utils';
-
-const expMantissa = new BigNumber('1000000000000000000');
+const expMantissa = new BigNumber("1000000000000000000");
 
 function getSigFigs(value) {
   let str = value.toString();
 
-  str = str.replace(/e\d+/, ''); // Remove e01
-  str = str.replace(/\./, ''); // Remove decimal point
+  str = str.replace(/e\d+/, ""); // Remove e01
+  str = str.replace(/\./, ""); // Remove decimal point
 
   return str.length;
 }
@@ -74,12 +68,12 @@ export async function mapValue<T>(
   event: Event,
   simple: (string) => T,
   complex: (World, Event) => Promise<Value>,
-  type: any
+  type: any,
 ): Promise<T> {
   let simpleErr;
   let val;
 
-  if (typeof event === 'string') {
+  if (typeof event === "string") {
     try {
       return simple(<string>event);
     } catch (err) {
@@ -114,14 +108,14 @@ export async function getBoolV(world: World, event: Event): Promise<BoolV> {
     str => {
       const lower = str.trim().toLowerCase();
 
-      if (lower == 'true' || lower == 't' || lower == '1') {
+      if (lower == "true" || lower == "t" || lower == "1") {
         return new BoolV(true);
       } else {
         return new BoolV(false);
       }
     },
     getCoreValue,
-    BoolV
+    BoolV,
   );
 }
 
@@ -139,22 +133,16 @@ export async function getAddressV(world: World, event: Event): Promise<AddressV>
         return coreVal;
       }
     },
-    AddressV
+    AddressV,
   );
 }
 
 function strToNumberV(str: string): NumberV {
   if (isNaN(Number(str))) {
-    throw 'not a number';
+    throw "not a number";
   }
 
   return new NumberV(str);
-}
-
-function strToExpNumberV(str: string): NumberV {
-  const r = new BigNumber(str);
-
-  return new NumberV(r.multipliedBy(expMantissa).toFixed());
 }
 
 export async function getNumberV(world: World, event: Event): Promise<NumberV> {
@@ -162,7 +150,7 @@ export async function getNumberV(world: World, event: Event): Promise<NumberV> {
 }
 
 export async function getExpNumberV(world: World, event: Event): Promise<NumberV> {
-  let res = await mapValue<NumberV>(world, event, strToNumberV, getCoreValue, NumberV);
+  const res = await mapValue<NumberV>(world, event, strToNumberV, getCoreValue, NumberV);
 
   const r = new BigNumber(res.val);
 
@@ -170,7 +158,7 @@ export async function getExpNumberV(world: World, event: Event): Promise<NumberV
 }
 
 export async function getPercentV(world: World, event: Event): Promise<NumberV> {
-  let res = await getExpNumberV(world, event);
+  const res = await getExpNumberV(world, event);
 
   return new PercentV(res.val);
 }
@@ -181,10 +169,10 @@ export async function getMapV(world: World, event: Event): Promise<MapV> {
 
   await Promise.all(
     mustArray(event).map(async e => {
-      if (Array.isArray(e) && e.length === 2 && typeof e[0] === 'string') {
+      if (Array.isArray(e) && e.length === 2 && typeof e[0] === "string") {
         const [key, valueEvent] = e;
         let value;
-        if (typeof valueEvent === 'string') {
+        if (typeof valueEvent === "string") {
           value = new StringV(valueEvent);
         } else {
           value = await getCoreValue(world, <Event>valueEvent);
@@ -194,19 +182,23 @@ export async function getMapV(world: World, event: Event): Promise<MapV> {
       } else {
         throw new Error(`Expected all string pairs for MapV from ${event.toString()}, got: ${e.toString()}`);
       }
-    })
+    }),
   );
 
   return new MapV(res);
 }
 
-export function getArrayV<T extends Value>(fetcher: (World, Event) => Promise<T>): (World, Event) => Promise<ArrayV<T>> {
+export function getArrayV<T extends Value>(
+  fetcher: (World, Event) => Promise<T>,
+): (World, Event) => Promise<ArrayV<T>> {
   return async (world: World, event: Event): Promise<ArrayV<T>> => {
     const res = await Promise.all(
-      mustArray(event).filter((x) => x !== 'List').map(e => fetcher(world, e))
+      mustArray(event)
+        .filter(x => x !== "List")
+        .map(e => fetcher(world, e)),
     );
     return new ArrayV(res);
-  }
+  };
 }
 
 export async function getStringV(world: World, event: Event): Promise<StringV> {
@@ -214,89 +206,87 @@ export async function getStringV(world: World, event: Event): Promise<StringV> {
 }
 
 async function getBNBBalance(world: World, address: string): Promise<NumberV> {
-  let balance = await world.web3.eth.getBalance(address);
+  const balance = await world.web3.eth.getBalance(address);
 
   return new NumberV(balance);
 }
 
 const fetchers = [
-  new Fetcher<{}, BoolV>(
+  new Fetcher<Record<string, any>, BoolV>(
     `
       #### True
 
       * "True" - Returns true
     `,
-    'True',
+    "True",
     [],
-    async (world, {}) => new BoolV(true)
+    async () => new BoolV(true),
   ),
 
-  new Fetcher<{}, BoolV>(
+  new Fetcher<Record<string, any>, BoolV>(
     `
       #### False
 
       * "False" - Returns false
     `,
-    'False',
+    "False",
     [],
-    async (world, {}) => new BoolV(false)
+    async () => new BoolV(false),
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### Zero
 
       * "Zero" - Returns 0
     `,
-    'Zero',
+    "Zero",
     [],
-    async (world, {}) => strToNumberV('0')
+    async () => strToNumberV("0"),
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### UInt96Max
 
       * "UInt96Max" - Returns 2^96 - 1
     `,
-    'UInt96Max',
+    "UInt96Max",
     [],
-    async (world, {}) =>
-      new NumberV('79228162514264337593543950335')
+    async () => new NumberV("79228162514264337593543950335"),
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### UInt256Max
 
       * "UInt256Max" - Returns 2^256 - 1
     `,
-    'UInt256Max',
+    "UInt256Max",
     [],
-    async (world, {}) =>
-      new NumberV('115792089237316195423570985008687907853269984665640564039457584007913129639935')
+    async () => new NumberV("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### Some
 
       * "Some" - Returns 100e18
     `,
-    'Some',
+    "Some",
     [],
-    async (world, {}) => strToNumberV('100e18')
+    async () => strToNumberV("100e18"),
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### Little
 
       * "Little" - Returns 100e10
     `,
-    'Little',
+    "Little",
     [],
-    async (world, {}) => strToNumberV('100e10')
+    async () => strToNumberV("100e10"),
   ),
 
   new Fetcher<{ amt: EventV }, NumberV>(
@@ -306,10 +296,10 @@ const fetchers = [
       * "Exactly <Amount>" - Returns a strict numerical value
         * E.g. "Exactly 5.0"
     `,
-    'Exactly',
-    [new Arg('amt', getEventV)],
-    async (world, { amt }) => getNumberV(world, amt.val)
-    ),
+    "Exactly",
+    [new Arg("amt", getEventV)],
+    async (world, { amt }) => getNumberV(world, amt.val),
+  ),
 
   new Fetcher<{ hexVal: EventV }, StringV>(
     `
@@ -318,9 +308,9 @@ const fetchers = [
       * "Hex <HexVal>" - Returns a byte string with given hex value
         * E.g. "Hex \"0xffff\""
     `,
-    'Hex',
-    [new Arg('hexVal', getEventV)],
-    async (world, { hexVal }) => getStringV(world, hexVal.val)
+    "Hex",
+    [new Arg("hexVal", getEventV)],
+    async (world, { hexVal }) => getStringV(world, hexVal.val),
   ),
 
   new Fetcher<{ str: EventV }, StringV>(
@@ -330,9 +320,9 @@ const fetchers = [
       * "String <Str>" - Returns a string literal
         * E.g. "String MyString"
     `,
-    'String',
-    [new Arg('str', getEventV)],
-    async (world, { str }) => getStringV(world, str.val)
+    "String",
+    [new Arg("str", getEventV)],
+    async (world, { str }) => getStringV(world, str.val),
   ),
 
   new Fetcher<{ amt: EventV }, NumberV>(
@@ -342,9 +332,9 @@ const fetchers = [
       * "Exp <Amount>" - Returns the mantissa for a given exp
         * E.g. "Exp 5.5"
     `,
-    'Exp',
-    [new Arg('amt', getEventV)],
-    async (world, { amt }) => getExpNumberV(world, amt.val)
+    "Exp",
+    [new Arg("amt", getEventV)],
+    async (world, { amt }) => getExpNumberV(world, amt.val),
   ),
 
   new Fetcher<{ amt: EventV }, NumberV>(
@@ -354,9 +344,9 @@ const fetchers = [
       * "Neg <Amount>" - Returns the amount subtracted from zero
         * E.g. "Neg amount"
     `,
-    'Neg',
-    [new Arg('amt', getEventV)],
-    async (world, { amt }) => new NumberV(0).sub(await getNumberV(world, amt.val))
+    "Neg",
+    [new Arg("amt", getEventV)],
+    async (world, { amt }) => new NumberV(0).sub(await getNumberV(world, amt.val)),
   ),
 
   new Fetcher<{ amt: StringV }, PreciseV>(
@@ -366,31 +356,31 @@ const fetchers = [
       * "Precisely <Amount>" - Matches a number to given number of significant figures
         * E.g. "Precisely 5.1000" - Matches to 5 sig figs
     `,
-    'Precisely',
-    [new Arg('amt', getStringV)],
-    async (world, { amt }) => new PreciseV(toEncodableNum(amt.val), getSigFigs(amt.val))
+    "Precisely",
+    [new Arg("amt", getStringV)],
+    async (world, { amt }) => new PreciseV(toEncodableNum(amt.val), getSigFigs(amt.val)),
   ),
 
-  new Fetcher<{}, AnythingV>(
+  new Fetcher<Record<string, any>, AnythingV>(
     `
       #### Anything
 
       * "Anything" - Matches any value for assertions
     `,
-    'Anything',
+    "Anything",
     [],
-    async (world, {}) => new AnythingV()
+    async () => new AnythingV(),
   ),
 
-  new Fetcher<{}, NothingV>(
+  new Fetcher<Record<string, any>, NothingV>(
     `
       #### Nothing
 
       * "Nothing" - Matches no values and is nothing.
     `,
-    'Nothing',
+    "Nothing",
     [],
-    async (world, {}) => new NothingV()
+    async () => new NothingV(),
   ),
 
   new Fetcher<{ addr: AddressV }, AddressV>(
@@ -399,9 +389,9 @@ const fetchers = [
 
       * "Address arg:<Address>" - Returns an address
     `,
-    'Address',
-    [new Arg('addr', getAddressV)],
-    async (world, { addr }) => addr
+    "Address",
+    [new Arg("addr", getAddressV)],
+    async (world, { addr }) => addr,
   ),
 
   new Fetcher<
@@ -413,31 +403,31 @@ const fetchers = [
 
     * "StorageAt addr:<Address> slot:<Number> start:<Number>, valType:<VToCastTo>" - Returns bytes at storage slot
     `,
-    'StorageAt',
+    "StorageAt",
     [
-      new Arg('addr', getAddressV),
-      new Arg('slot', getNumberV),
-      new Arg('start', getNumberV),
-      new Arg('valType', getStringV)
+      new Arg("addr", getAddressV),
+      new Arg("slot", getNumberV),
+      new Arg("start", getNumberV),
+      new Arg("valType", getStringV),
     ],
     async (world, { addr, slot, start, valType }) => {
-      const startVal = start.toNumber()
-      const reverse = s => s.split('').reverse().join('');
+      const startVal = start.toNumber();
+      const reverse = s => s.split("").reverse().join("");
       const storage = await world.web3.eth.getStorageAt(addr.val, slot.toNumber());
       const stored = reverse(storage.slice(2)); // drop leading 0x and reverse since items are packed from the back of the slot
 
       // Don't forget to re-reverse
       switch (valType.val) {
-        case 'bool':
+        case "bool":
           return new BoolV(!!reverse(stored.slice(startVal, startVal + 2)));
-        case 'address':
-          return new AddressV('0x' + padLeft(reverse(stored.slice(startVal, startVal + 40)), 40));
-        case 'number':
-          return new NumberV(toBN('0x' + reverse(stored)).toString());
+        case "address":
+          return new AddressV("0x" + padLeft(reverse(stored.slice(startVal, startVal + 40)), 40));
+        case "number":
+          return new NumberV(toBN("0x" + reverse(stored)).toString());
         default:
           return new NothingV();
       }
-    }
+    },
   ),
 
   new Fetcher<
@@ -449,46 +439,47 @@ const fetchers = [
 
     * "StorageAtNestedMapping addr:<Address> slot:<Number>, key:<address>, nestedKey:<address>, valType:<VToCastTo>" - Returns bytes at storage slot
     `,
-    'StorageAtNestedMapping',
+    "StorageAtNestedMapping",
     [
-      new Arg('addr', getAddressV),
-      new Arg('slot', getNumberV),
-      new Arg('key', getAddressV),
-      new Arg('nestedKey', getAddressV),
-      new Arg('valType', getStringV)
+      new Arg("addr", getAddressV),
+      new Arg("slot", getNumberV),
+      new Arg("key", getAddressV),
+      new Arg("nestedKey", getAddressV),
+      new Arg("valType", getStringV),
     ],
     async (world, { addr, slot, key, nestedKey, valType }) => {
       const areEqual = (v, x) => toBN(v).eq(toBN(x));
-      let paddedSlot = slot.toNumber().toString(16).padStart(64, '0');
-      let paddedKey = padLeft(key.val, 64);
-      let newKey = sha3(paddedKey + paddedSlot);
-      let val = await world.web3.eth.getStorageAt(addr.val, newKey);
+      const paddedSlot = slot.toNumber().toString(16).padStart(64, "0");
+      const paddedKey = padLeft(key.val, 64);
+      const newKey = sha3(paddedKey + paddedSlot) as string;
+      const val = await world.web3.eth.getStorageAt(addr.val, newKey);
 
       switch (valType.val) {
-        case 'marketStruct':
-          let isListed = areEqual(val, 1);
-          let collateralFactorKey = '0x' + toBN(newKey).add(toBN(1)).toString(16);
-          let collateralFactorStr = await world.web3.eth.getStorageAt(addr.val, collateralFactorKey);
-          let collateralFactor = toBN(collateralFactorStr);
-          let userMarketBaseKey = padLeft(toBN(newKey).add(toBN(2)).toString(16), 64);
-          let paddedSlot = padLeft(userMarketBaseKey, 64);
-          let paddedKey = padLeft(nestedKey.val, 64);
-          let newKeyTwo = sha3(paddedKey + paddedSlot);
-          let userInMarket = await world.web3.eth.getStorageAt(addr.val, newKeyTwo);
+        case "marketStruct": {
+          const isListed = areEqual(val, 1);
+          const collateralFactorKey = "0x" + toBN(newKey).add(toBN(1)).toString(16);
+          const collateralFactorStr = await world.web3.eth.getStorageAt(addr.val, collateralFactorKey);
+          const collateralFactor = toBN(collateralFactorStr);
+          const userMarketBaseKey = padLeft(toBN(newKey).add(toBN(2)).toString(16), 64);
+          const paddedSlot = padLeft(userMarketBaseKey, 64);
+          const paddedKey = padLeft(nestedKey.val, 64);
+          const newKeyTwo = sha3(paddedKey + paddedSlot) as string;
+          const userInMarket = await world.web3.eth.getStorageAt(addr.val, newKeyTwo);
 
-          let isCompKey = '0x' + toBN(newKey).add(toBN(3)).toString(16);
-          let isVenusStr = await world.web3.eth.getStorageAt(addr.val, isCompKey);
+          const isCompKey = "0x" + toBN(newKey).add(toBN(3)).toString(16);
+          const isVenusStr = await world.web3.eth.getStorageAt(addr.val, isCompKey);
 
           return new ListV([
             new BoolV(isListed),
             new ExpNumberV(collateralFactor.toString(), 1e18),
             new BoolV(areEqual(userInMarket, 1)),
-            new BoolV(areEqual(isVenusStr, 1))
+            new BoolV(areEqual(isVenusStr, 1)),
           ]);
+        }
         default:
           return new NothingV();
       }
-    }
+    },
   ),
 
   new Fetcher<
@@ -500,86 +491,86 @@ const fetchers = [
 
     * "StorageAtMapping addr:<Address> slot:<Number>, key:<address>, valType:<VToCastTo>" - Returns bytes at storage slot
     `,
-    'StorageAtMapping',
+    "StorageAtMapping",
     [
-      new Arg('addr', getAddressV),
-      new Arg('slot', getNumberV),
-      new Arg('key', getAddressV),
-      new Arg('valType', getStringV)
+      new Arg("addr", getAddressV),
+      new Arg("slot", getNumberV),
+      new Arg("key", getAddressV),
+      new Arg("valType", getStringV),
     ],
     async (world, { addr, slot, key, valType }) => {
-      let paddedSlot = slot.toNumber().toString(16).padStart(64, '0');
-      let paddedKey = padLeft(key.val, 64);
-      let newKey = sha3(paddedKey + paddedSlot);
-      let val = await world.web3.eth.getStorageAt(addr.val, newKey);
+      const paddedSlot = slot.toNumber().toString(16).padStart(64, "0");
+      const paddedKey = padLeft(key.val, 64);
+      const newKey = sha3(paddedKey + paddedSlot) as string;
+      const val = await world.web3.eth.getStorageAt(addr.val, newKey);
 
       switch (valType.val) {
-        case 'list(address)':
-          let p = new Array(toDecimal(val)).fill(undefined).map(async (_v, index) => {
-            let newKeySha = sha3(newKey);
-            let itemKey = toBN(newKeySha).add(toBN(index));
-            let address = await world.web3.eth.getStorageAt(addr.val, padLeft(toHex(itemKey), 40));
+        case "list(address)": {
+          const p = new Array(toDecimal(val)).fill(undefined).map(async (_v, index) => {
+            const newKeySha = sha3(newKey) as string;
+            const itemKey = toBN(newKeySha).add(toBN(index));
+            const address = await world.web3.eth.getStorageAt(addr.val, padLeft(toHex(itemKey), 40));
             return new AddressV(address);
           });
 
-          let all = await Promise.all(p);
+          const all = await Promise.all(p);
           return new ListV(all);
-
-        case 'bool':
-          return new BoolV(val != '0x' && val != '0x0');
-        case 'address':
+        }
+        case "bool":
+          return new BoolV(val != "0x" && val != "0x0");
+        case "address":
           return new AddressV(val);
-        case 'number':
+        case "number":
           return new NumberV(toBN(val).toString());
         default:
           return new NothingV();
       }
-    }
+    },
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
     #### BlockNumber
     * BlockNumber
     `,
-    'BlockNumber',
+    "BlockNumber",
     [],
-    async (world, {}) => {
+    async world => {
       return new NumberV(await getCurrentBlockNumber(world));
-    }
+    },
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
     #### GasCounter
     * GasCounter
     `,
-    'GasCounter',
+    "GasCounter",
     [],
-    async (world, {}) => new NumberV(world.gasCounter.value)
+    async world => new NumberV(world.gasCounter.value),
   ),
 
-  new Fetcher<{}, AddressV>(
+  new Fetcher<Record<string, any>, AddressV>(
     `
       #### LastContract
 
       * "LastContract" - The address of last constructed contract
     `,
-    'LastContract',
+    "LastContract",
     [],
-    async (world, { }) => new AddressV(world.get('lastContract'))
+    async world => new AddressV(world.get("lastContract")),
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### LastBlock
 
       * "LastBlock" - The block of the last transaction
     `,
-    'LastBlock',
+    "LastBlock",
     [],
-    async (world, { }) => {
-      let invokation = world.get('lastInvokation');
+    async world => {
+      const invokation = world.get("lastInvokation");
       if (!invokation) {
         throw new Error(`Expected last invokation for "lastBlock" but none found.`);
       }
@@ -589,19 +580,19 @@ const fetchers = [
       }
 
       return new NumberV(invokation.receipt.blockNumber);
-    }
+    },
   ),
 
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### LastGas
 
       * "LastGas" - The gas consumed by the last transaction
     `,
-    'LastGas',
+    "LastGas",
     [],
-    async (world, {}) => {
-      let invokation = world.get('lastInvokation');
+    async world => {
+      const invokation = world.get("lastInvokation");
       if (!invokation) {
         throw new Error(`Expected last invokation for "lastGas" but none found.`);
       }
@@ -611,7 +602,7 @@ const fetchers = [
       }
 
       return new NumberV(invokation.receipt.gasUsed);
-    }
+    },
   ),
 
   new Fetcher<{ els: Value[] }, AnythingV>(
@@ -620,9 +611,9 @@ const fetchers = [
 
       * "List ..." - Returns a list of given elements
     `,
-    'List',
-    [new Arg('els', getCoreValue, { variadic: true, mapped: true })],
-    async (world, { els }) => new ListV(els)
+    "List",
+    [new Arg("els", getCoreValue, { variadic: true, mapped: true })],
+    async (world, { els }) => new ListV(els),
   ),
   new Fetcher<{ val: Value; def: EventV }, Value>(
     `
@@ -630,15 +621,15 @@ const fetchers = [
 
       * "Default val:<Value> def:<Value>" - Returns value if truthy, otherwise default. Note: this **does** short circuit.
     `,
-    'Default',
-    [new Arg('val', getCoreValue), new Arg('def', getEventV)],
+    "Default",
+    [new Arg("val", getCoreValue), new Arg("def", getEventV)],
     async (world, { val, def }) => {
       if (val.truthy()) {
         return val;
       } else {
         return await getCoreValue(world, def.val);
       }
-    }
+    },
   ),
   new Fetcher<{ minutes: NumberV }, NumberV>(
     `
@@ -646,12 +637,12 @@ const fetchers = [
 
       * "Minutes minutes:<NumberV>" - Returns number of minutes in seconds
     `,
-    'Minutes',
-    [new Arg('minutes', getNumberV)],
+    "Minutes",
+    [new Arg("minutes", getNumberV)],
     async (world, { minutes }) => {
       const minutesBn = new BigNumber(minutes.val);
       return new NumberV(minutesBn.times(60).toFixed(0));
-    }
+    },
   ),
   new Fetcher<{ hours: NumberV }, NumberV>(
     `
@@ -659,12 +650,12 @@ const fetchers = [
 
       * "Hours hours:<NumberV>" - Returns number of hours in seconds
     `,
-    'Hours',
-    [new Arg('hours', getNumberV)],
+    "Hours",
+    [new Arg("hours", getNumberV)],
     async (world, { hours }) => {
       const hoursBn = new BigNumber(hours.val);
       return new NumberV(hoursBn.times(3600).toFixed(0));
-    }
+    },
   ),
   new Fetcher<{ days: NumberV }, NumberV>(
     `
@@ -672,12 +663,12 @@ const fetchers = [
 
       * "Days days:<NumberV>" - Returns number of days in seconds
     `,
-    'Days',
-    [new Arg('days', getNumberV)],
+    "Days",
+    [new Arg("days", getNumberV)],
     async (world, { days }) => {
       const daysBn = new BigNumber(days.val);
       return new NumberV(daysBn.times(86400).toFixed(0));
-    }
+    },
   ),
   new Fetcher<{ weeks: NumberV }, NumberV>(
     `
@@ -685,12 +676,12 @@ const fetchers = [
 
       * "Weeks weeks:<NumberV>" - Returns number of weeks in seconds
     `,
-    'Weeks',
-    [new Arg('weeks', getNumberV)],
+    "Weeks",
+    [new Arg("weeks", getNumberV)],
     async (world, { weeks }) => {
       const weeksBn = new BigNumber(weeks.val);
       return new NumberV(weeksBn.times(604800).toFixed(0));
-    }
+    },
   ),
   new Fetcher<{ years: NumberV }, NumberV>(
     `
@@ -698,12 +689,12 @@ const fetchers = [
 
       * "Years years:<NumberV>" - Returns number of years in seconds
     `,
-    'Years',
-    [new Arg('years', getNumberV)],
+    "Years",
+    [new Arg("years", getNumberV)],
     async (world, { years }) => {
       const yearsBn = new BigNumber(years.val);
       return new NumberV(yearsBn.times(31536000).toFixed(0));
-    }
+    },
   ),
   new Fetcher<{ seconds: NumberV }, NumberV>(
     `
@@ -711,49 +702,49 @@ const fetchers = [
 
       * "FromNow seconds:<NumberV>" - Returns future timestamp of given seconds from now
     `,
-    'FromNow',
-    [new Arg('seconds', getNumberV)],
+    "FromNow",
+    [new Arg("seconds", getNumberV)],
     async (world, { seconds }) => {
       const secondsBn = new BigNumber(seconds.val);
       return new NumberV(secondsBn.plus(getCurrentTimestamp()).toFixed(0));
-    }
+    },
   ),
-    new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### Now
 
       * "Now seconds:<NumberV>" - Returns current timestamp
     `,
-    'Now',
+    "Now",
     [],
-    async (world, {}) => {
+    async () => {
       return new NumberV(getCurrentTimestamp());
-    }
+    },
   ),
-  new Fetcher<{}, NumberV>(
+  new Fetcher<Record<string, any>, NumberV>(
     `
       #### BlockTimestamp
 
       * "BlockTimestamp" - Returns the current block's timestamp
         * E.g. "BlockTimestamp"
     `,
-    'BlockTimestamp',
+    "BlockTimestamp",
     [],
-    async (world, {}) => {
-      const {result: blockNumber}: any = await sendRPC(world, 'eth_blockNumber', []);
-      const {result: block}: any = await sendRPC(world, 'eth_getBlockByNumber', [blockNumber, false]);
+    async world => {
+      const { result: blockNumber }: any = await sendRPC(world, "eth_blockNumber", []);
+      const { result: block }: any = await sendRPC(world, "eth_getBlockByNumber", [blockNumber, false]);
       return new NumberV(parseInt(block.timestamp, 16));
-    }
+    },
   ),
-  new Fetcher<{}, StringV>(
+  new Fetcher<Record<string, any>, StringV>(
     `
       #### Network
 
       * "Network" - Returns the current Network
     `,
-    'Network',
+    "Network",
     [],
-    async world => new StringV(world.network)
+    async world => new StringV(world.network),
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -761,10 +752,10 @@ const fetchers = [
 
       * "User ...userArgs" - Returns user value
     `,
-    'User',
-    [new Arg('res', getUserValue, { variadic: true })],
+    "User",
+    [new Arg("res", getUserValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: userFetchers() }
+    { subExpressions: userFetchers() },
   ),
   new Fetcher<{ address: AddressV }, Value>(
     `
@@ -772,9 +763,9 @@ const fetchers = [
 
       * "BNBBalance <Address>" - Returns given address' bnb balance.
     `,
-    'BNBBalance',
-    [new Arg('address', getAddressV)],
-    (world, { address }) => getBNBBalance(world, address.val)
+    "BNBBalance",
+    [new Arg("address", getAddressV)],
+    (world, { address }) => getBNBBalance(world, address.val),
   ),
   new Fetcher<{ given: Value; expected: Value }, BoolV>(
     `
@@ -785,47 +776,48 @@ const fetchers = [
         * E.g. "Equal (VToken vZRX TotalSupply) (Exactly 55)"
         * E.g. "Equal (VToken vZRX Comptroller) (Comptroller Address)"
     `,
-    'Equal',
-    [new Arg('given', getCoreValue), new Arg('expected', getCoreValue)],
-    async (world, { given, expected }) => new BoolV(expected.compareTo(world, given))
+    "Equal",
+    [new Arg("given", getCoreValue), new Arg("expected", getCoreValue)],
+    async (world, { given, expected }) => new BoolV(expected.compareTo(world, given)),
   ),
   new Fetcher<
-      {
-        argTypes: StringV[];
-        args: StringV[];
-      },
-      StringV
-    >(
-      `
+    {
+      argTypes: StringV[];
+      args: StringV[];
+    },
+    StringV
+  >(
+    `
         #### EncodeParameters
 
         * "EncodeParameters (...argTypes:<String>) (...args:<Anything>)
           * E.g. "EncodeParameters (\"address\" \"address\") (\"0xabc\" \"0x123\")
       `,
-      'EncodeParameters',
-      [
-        new Arg('argTypes', getStringV, { mapped: true }),
-        new Arg('args', getStringV, { mapped: true })
-      ],
-      async (world, { argTypes, args }) => {
-        const realArgs = args.map((a, i) => {
-          if (argTypes[i].val == 'address')
-            return getAddress(world, a.val);
-          return a.val;
-        });
-        return new StringV(world.web3.eth.abi.encodeParameters(argTypes.map(t => t.val), realArgs));
-      }
-    ),
+    "EncodeParameters",
+    [new Arg("argTypes", getStringV, { mapped: true }), new Arg("args", getStringV, { mapped: true })],
+    async (world, { argTypes, args }) => {
+      const realArgs = args.map((a, i) => {
+        if (argTypes[i].val == "address") return getAddress(world, a.val);
+        return a.val;
+      });
+      return new StringV(
+        world.web3.eth.abi.encodeParameters(
+          argTypes.map(t => t.val),
+          realArgs,
+        ),
+      );
+    },
+  ),
   new Fetcher<{ res: Value }, Value>(
     `
       #### Unitroller
 
       * "Unitroller ...unitrollerArgs" - Returns unitroller value
     `,
-    'Unitroller',
-    [new Arg('res', getUnitrollerValue, { variadic: true })],
+    "Unitroller",
+    [new Arg("res", getUnitrollerValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: unitrollerFetchers() }
+    { subExpressions: unitrollerFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -833,10 +825,10 @@ const fetchers = [
 
       * "Comptroller ...comptrollerArgs" - Returns comptroller value
     `,
-    'Comptroller',
-    [new Arg('res', getComptrollerValue, { variadic: true })],
+    "Comptroller",
+    [new Arg("res", getComptrollerValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: comptrollerFetchers() }
+    { subExpressions: comptrollerFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -844,10 +836,10 @@ const fetchers = [
 
       * "ComptrollerImpl ...comptrollerImplArgs" - Returns comptroller implementation value
     `,
-    'ComptrollerImpl',
-    [new Arg('res', getComptrollerImplValue, { variadic: true })],
+    "ComptrollerImpl",
+    [new Arg("res", getComptrollerImplValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: comptrollerImplFetchers() }
+    { subExpressions: comptrollerImplFetchers() },
   ),
 
   new Fetcher<{ res: Value }, Value>(
@@ -856,10 +848,10 @@ const fetchers = [
 
       * "VAIController ...vaicontrollerArgs" - Returns vaicontroller value
     `,
-    'VAIController',
-    [new Arg('res', getVAIControllerValue, { variadic: true })],
+    "VAIController",
+    [new Arg("res", getVAIControllerValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: vaicontrollerFetchers() }
+    { subExpressions: vaicontrollerFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -867,10 +859,10 @@ const fetchers = [
 
       * "VAIControllerImpl ...vaicontrollerImplArgs" - Returns vaicontroller implementation value
     `,
-    'VAIControllerImpl',
-    [new Arg('res', getVAIControllerImplValue, { variadic: true })],
+    "VAIControllerImpl",
+    [new Arg("res", getVAIControllerImplValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: vaicontrollerImplFetchers() }
+    { subExpressions: vaicontrollerImplFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -878,10 +870,10 @@ const fetchers = [
 
       * "VToken ...vTokenArgs" - Returns vToken value
     `,
-    'VToken',
-    [new Arg('res', getVTokenValue, { variadic: true })],
+    "VToken",
+    [new Arg("res", getVTokenValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: vTokenFetchers() }
+    { subExpressions: vTokenFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -889,10 +881,10 @@ const fetchers = [
 
       * "VTokenDelegate ...vTokenDelegateArgs" - Returns vToken delegate value
     `,
-    'VTokenDelegate',
-    [new Arg('res', getVTokenDelegateValue, { variadic: true })],
+    "VTokenDelegate",
+    [new Arg("res", getVTokenDelegateValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: vTokenDelegateFetchers() }
+    { subExpressions: vTokenDelegateFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -900,10 +892,10 @@ const fetchers = [
 
       * "Bep20 ...bep20Args" - Returns Bep20 value
     `,
-    'Bep20',
-    [new Arg('res', getBep20Value, { variadic: true })],
+    "Bep20",
+    [new Arg("res", getBep20Value, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: bep20Fetchers() }
+    { subExpressions: bep20Fetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -911,10 +903,10 @@ const fetchers = [
 
       * "InterestRateModel ...interestRateModelArgs" - Returns InterestRateModel value
     `,
-    'InterestRateModel',
-    [new Arg('res', getInterestRateModelValue, { variadic: true })],
+    "InterestRateModel",
+    [new Arg("res", getInterestRateModelValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: interestRateModelFetchers() }
+    { subExpressions: interestRateModelFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -922,10 +914,10 @@ const fetchers = [
 
       * "PriceOracle ...priceOracleArgs" - Returns PriceOracle value
     `,
-    'PriceOracle',
-    [new Arg('res', getPriceOracleValue, { variadic: true })],
+    "PriceOracle",
+    [new Arg("res", getPriceOracleValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: priceOracleFetchers() }
+    { subExpressions: priceOracleFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -933,10 +925,10 @@ const fetchers = [
 
       * "PriceOracleProxy ...priceOracleProxyArgs" - Returns PriceOracleProxy value
     `,
-    'PriceOracleProxy',
-    [new Arg('res', getPriceOracleProxyValue, { variadic: true })],
+    "PriceOracleProxy",
+    [new Arg("res", getPriceOracleProxyValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: priceOracleProxyFetchers() }
+    { subExpressions: priceOracleProxyFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -944,10 +936,10 @@ const fetchers = [
 
       * "Timelock ...timeLockArgs" - Returns Timelock value
     `,
-    'Timelock',
-    [new Arg('res', getTimelockValue, { variadic: true })],
+    "Timelock",
+    [new Arg("res", getTimelockValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: timelockFetchers() }
+    { subExpressions: timelockFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -955,10 +947,10 @@ const fetchers = [
 
       * "Maximillion ...maximillionArgs" - Returns Maximillion value
     `,
-    'Maximillion',
-    [new Arg('res', getMaximillionValue, { variadic: true })],
+    "Maximillion",
+    [new Arg("res", getMaximillionValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: maximillionFetchers() }
+    { subExpressions: maximillionFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -966,10 +958,10 @@ const fetchers = [
 
       * "MCD ...mcdArgs" - Returns MCD value
     `,
-    'MCD',
-    [new Arg('res', getMCDValue, { variadic: true })],
+    "MCD",
+    [new Arg("res", getMCDValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: mcdFetchers() }
+    { subExpressions: mcdFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -977,10 +969,10 @@ const fetchers = [
 
       * "XVS ...venusArgs" - Returns XVS value
     `,
-    'XVS',
-    [new Arg('res', getXVSValue, { variadic: true })],
+    "XVS",
+    [new Arg("res", getXVSValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: xvsFetchers() }
+    { subExpressions: xvsFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -988,10 +980,10 @@ const fetchers = [
 
       * "SXP ...venusArgs" - Returns SXP value
     `,
-    'SXP',
-    [new Arg('res', getSXPValue, { variadic: true })],
+    "SXP",
+    [new Arg("res", getSXPValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: sxpFetchers() }
+    { subExpressions: sxpFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -999,10 +991,10 @@ const fetchers = [
 
       * "VAI ...venusArgs" - Returns VAI value
     `,
-    'VAI',
-    [new Arg('res', getVAIValue, { variadic: true })],
+    "VAI",
+    [new Arg("res", getVAIValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: vaiFetchers() }
+    { subExpressions: vaiFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
@@ -1010,27 +1002,27 @@ const fetchers = [
 
       * "Governor ...governorArgs" - Returns Governor value
     `,
-    'Governor',
-    [new Arg('res', getGovernorValue, { variadic: true })],
+    "Governor",
+    [new Arg("res", getGovernorValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: governorFetchers() }
+    { subExpressions: governorFetchers() },
   ),
   new Fetcher<{ res: Value }, Value>(
     `
       #### GovernorBravo
       * "GovernorBravo ...governorArgs" - Returns GovernorBravo value
     `,
-    'GovernorBravo',
-    [new Arg('res', getGovernorBravoValue, { variadic: true })],
+    "GovernorBravo",
+    [new Arg("res", getGovernorBravoValue, { variadic: true })],
     async (world, { res }) => res,
-    { subExpressions: governorBravoFetchers() }
+    { subExpressions: governorBravoFetchers() },
   ),
 ];
 
-let contractFetchers = [
+const contractFetchers = [
   { contract: "Counter", implicit: false },
   { contract: "VenusLens", implicit: false },
-  { contract: "Reservoir", implicit: true }
+  { contract: "Reservoir", implicit: true },
 ];
 
 export async function getFetchers(world: World) {
@@ -1038,14 +1030,18 @@ export async function getFetchers(world: World) {
     return { world, fetchers: world.fetchers };
   }
 
-  let allFetchers = fetchers.concat(await Promise.all(contractFetchers.map(({contract, implicit}) => {
-    return buildContractFetcher(world, contract, implicit);
-  })));
+  const allFetchers = fetchers.concat(
+    await Promise.all(
+      contractFetchers.map(({ contract, implicit }) => {
+        return buildContractFetcher(world, contract, implicit);
+      }),
+    ),
+  );
 
-  return { world: world.set('fetchers', allFetchers), fetchers: allFetchers };
+  return { world: world.set("fetchers", allFetchers), fetchers: allFetchers };
 }
 
 export async function getCoreValue(world: World, event: Event): Promise<Value> {
-  let {world: nextWorld, fetchers} = await getFetchers(world);
-  return await getFetcherValue<any, any>('Core', fetchers, nextWorld, event);
+  const { world: nextWorld, fetchers } = await getFetchers(world);
+  return await getFetcherValue<any, any>("Core", fetchers, nextWorld, event);
 }

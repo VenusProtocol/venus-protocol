@@ -1,82 +1,86 @@
-const {
-  bnbUnsigned,
-  bnbMantissa
-} = require('../Utils/BSC');
+const { bnbUnsigned, bnbMantissa } = require("../Utils/BSC");
 
-const {
-  makeVToken,
-  setBorrowRate,
-  pretendBorrow
-} = require('../Utils/Venus');
+const { makeVToken, setBorrowRate, pretendBorrow, setMarketSupplyCap } = require("../Utils/Venus");
 
-describe('VToken', function () {
+describe("VToken", function () {
   let root, admin, accounts;
   beforeEach(async () => {
     [root, admin, ...accounts] = saddle.accounts;
   });
 
-  describe('constructor', () => {
+  describe("constructor", () => {
     it("fails when non bep-20 underlying", async () => {
       await expect(makeVToken({ underlying: { _address: root } })).rejects.toRevert("revert");
     });
 
     it("fails when 0 initial exchange rate", async () => {
-      await expect(makeVToken({ exchangeRate: 0 })).rejects.toRevert("revert initial exchange rate must be greater than zero.");
+      await expect(makeVToken({ exchangeRate: 0 })).rejects.toRevert(
+        "revert initial exchange rate must be greater than zero.",
+      );
     });
 
     it("succeeds with bep-20 underlying and non-zero exchange rate", async () => {
       const vToken = await makeVToken();
-      expect(await call(vToken, 'underlying')).toEqual(vToken.underlying._address);
-      expect(await call(vToken, 'admin')).toEqual(root);
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
+      expect(await call(vToken, "underlying")).toEqual(vToken.underlying._address);
+      expect(await call(vToken, "admin")).toEqual(root);
     });
 
     it("succeeds when setting admin to contructor argument", async () => {
       const vToken = await makeVToken({ admin: admin });
-      expect(await call(vToken, 'admin')).toEqual(admin);
+      expect(await call(vToken, "admin")).toEqual(admin);
     });
   });
 
-  describe('name, symbol, decimals', () => {
+  describe("name, symbol, decimals", () => {
     let vToken;
 
     beforeEach(async () => {
       vToken = await makeVToken({ name: "VToken Foo", symbol: "cFOO", decimals: 10 });
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
     });
 
-    it('should return correct name', async () => {
-      expect(await call(vToken, 'name')).toEqual("VToken Foo");
+    it("should return correct name", async () => {
+      expect(await call(vToken, "name")).toEqual("VToken Foo");
     });
 
-    it('should return correct symbol', async () => {
-      expect(await call(vToken, 'symbol')).toEqual("cFOO");
+    it("should return correct symbol", async () => {
+      expect(await call(vToken, "symbol")).toEqual("cFOO");
     });
 
-    it('should return correct decimals', async () => {
-      expect(await call(vToken, 'decimals')).toEqualNumber(10);
+    it("should return correct decimals", async () => {
+      expect(await call(vToken, "decimals")).toEqualNumber(10);
     });
   });
 
-  describe('balanceOfUnderlying', () => {
+  describe("balanceOfUnderlying", () => {
     it("has an underlying balance", async () => {
       const vToken = await makeVToken({ supportMarket: true, exchangeRate: 2 });
-      await send(vToken, 'harnessSetBalance', [root, 100]);
-      expect(await call(vToken, 'balanceOfUnderlying', [root])).toEqualNumber(200);
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
+      await send(vToken, "harnessSetBalance", [root, 100]);
+      expect(await call(vToken, "balanceOfUnderlying", [root])).toEqualNumber(200);
     });
   });
 
-  describe('borrowRatePerBlock', () => {
+  describe("borrowRatePerBlock", () => {
     it("has a borrow rate", async () => {
-      const vToken = await makeVToken({ supportMarket: true, interestRateModelOpts: { kind: 'jump-rate', baseRate: .05, multiplier: 0.45, kink: 0.95, jump: 5 } });
-      const blocksPerYear = await call(vToken.interestRateModel, 'blocksPerYear');
-      const perBlock = await call(vToken, 'borrowRatePerBlock');
+      const vToken = await makeVToken({
+        supportMarket: true,
+        interestRateModelOpts: { kind: "jump-rate", baseRate: 0.05, multiplier: 0.45, kink: 0.95, jump: 5 },
+      });
+      const blocksPerYear = await call(vToken.interestRateModel, "blocksPerYear");
+      const perBlock = await call(vToken, "borrowRatePerBlock");
       expect(Math.abs(perBlock * blocksPerYear - 5e16)).toBeLessThanOrEqual(1e8);
     });
   });
 
-  describe('supplyRatePerBlock', () => {
+  describe("supplyRatePerBlock", () => {
     it("returns 0 if there's no supply", async () => {
-      const vToken = await makeVToken({ supportMarket: true, interestRateModelOpts: { kind: 'jump-rate', baseRate: .05, multiplier: 0.45, kink: 0.95, jump: 5 } });
-      const perBlock = await call(vToken, 'supplyRatePerBlock');
+      const vToken = await makeVToken({
+        supportMarket: true,
+        interestRateModelOpts: { kind: "jump-rate", baseRate: 0.05, multiplier: 0.45, kink: 0.95, jump: 5 },
+      });
+      const perBlock = await call(vToken, "supplyRatePerBlock");
       await expect(perBlock).toEqualNumber(0);
     });
 
@@ -85,16 +89,19 @@ describe('VToken', function () {
       const multiplier = 0.45;
       const kink = 0.95;
       const jump = 5 * multiplier;
-      const vToken = await makeVToken({ supportMarket: true, interestRateModelOpts: { kind: 'jump-rate', baseRate, multiplier, kink, jump } });
-      await send(vToken, 'harnessSetReserveFactorFresh', [bnbMantissa(.01)]);
-      await send(vToken, 'harnessExchangeRateDetails', [1, 1, 0]);
-      await send(vToken, 'harnessSetExchangeRate', [bnbMantissa(1)]);
+      const vToken = await makeVToken({
+        supportMarket: true,
+        interestRateModelOpts: { kind: "jump-rate", baseRate, multiplier, kink, jump },
+      });
+      await send(vToken, "harnessSetReserveFactorFresh", [bnbMantissa(0.01)]);
+      await send(vToken, "harnessExchangeRateDetails", [1, 1, 0]);
+      await send(vToken, "harnessSetExchangeRate", [bnbMantissa(1)]);
       // Full utilization (Over the kink so jump is included), 1% reserves
-      const borrowRate = baseRate + multiplier * kink + jump * .05;
-      const expectedSuplyRate = borrowRate * .99;
+      const borrowRate = baseRate + multiplier * kink + jump * 0.05;
+      const expectedSuplyRate = borrowRate * 0.99;
 
-      const blocksPerYear = await call(vToken.interestRateModel, 'blocksPerYear');
-      const perBlock = await call(vToken, 'supplyRatePerBlock');
+      const blocksPerYear = await call(vToken.interestRateModel, "blocksPerYear");
+      const perBlock = await call(vToken, "supplyRatePerBlock");
       expect(Math.abs(perBlock * blocksPerYear - expectedSuplyRate * 1e18)).toBeLessThanOrEqual(1e8);
     });
   });
@@ -106,31 +113,34 @@ describe('VToken', function () {
     beforeEach(async () => {
       borrower = accounts[0];
       vToken = await makeVToken();
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
     });
 
     beforeEach(async () => {
-      await setBorrowRate(vToken, .001)
-      await send(vToken.interestRateModel, 'setFailBorrowRate', [false]);
+      await setBorrowRate(vToken, 0.001);
+      await send(vToken.interestRateModel, "setFailBorrowRate", [false]);
     });
 
     it("reverts if interest accrual fails", async () => {
-      await send(vToken.interestRateModel, 'setFailBorrowRate', [true]);
+      await send(vToken.interestRateModel, "setFailBorrowRate", [true]);
       // make sure we accrue interest
-      await send(vToken, 'harnessFastForward', [1]);
-      await expect(send(vToken, 'borrowBalanceCurrent', [borrower])).rejects.toRevert("revert INTEREST_RATE_MODEL_ERROR");
+      await send(vToken, "harnessFastForward", [1]);
+      await expect(send(vToken, "borrowBalanceCurrent", [borrower])).rejects.toRevert(
+        "revert INTEREST_RATE_MODEL_ERROR",
+      );
     });
 
     it("returns successful result from borrowBalanceStored with no interest", async () => {
       await setBorrowRate(vToken, 0);
       await pretendBorrow(vToken, borrower, 1, 1, 5e18);
-      expect(await call(vToken, 'borrowBalanceCurrent', [borrower])).toEqualNumber(5e18)
+      expect(await call(vToken, "borrowBalanceCurrent", [borrower])).toEqualNumber(5e18);
     });
 
     it("returns successful result from borrowBalanceCurrent with no interest", async () => {
       await setBorrowRate(vToken, 0);
       await pretendBorrow(vToken, borrower, 1, 3, 5e18);
-      expect(await send(vToken, 'harnessFastForward', [5])).toSucceed();
-      expect(await call(vToken, 'borrowBalanceCurrent', [borrower])).toEqualNumber(5e18 * 3)
+      expect(await send(vToken, "harnessFastForward", [5])).toSucceed();
+      expect(await call(vToken, "borrowBalanceCurrent", [borrower])).toEqualNumber(5e18 * 3);
     });
   });
 
@@ -140,21 +150,21 @@ describe('VToken', function () {
 
     beforeEach(async () => {
       borrower = accounts[0];
-      vToken = await makeVToken({ comptrollerOpts: { kind: 'bool' } });
+      vToken = await makeVToken({ comptrollerOpts: { kind: "bool" } });
     });
 
     it("returns 0 for account with no borrows", async () => {
-      expect(await call(vToken, 'borrowBalanceStored', [borrower])).toEqualNumber(0)
+      expect(await call(vToken, "borrowBalanceStored", [borrower])).toEqualNumber(0);
     });
 
     it("returns stored principal when account and market indexes are the same", async () => {
       await pretendBorrow(vToken, borrower, 1, 1, 5e18);
-      expect(await call(vToken, 'borrowBalanceStored', [borrower])).toEqualNumber(5e18);
+      expect(await call(vToken, "borrowBalanceStored", [borrower])).toEqualNumber(5e18);
     });
 
     it("returns calculated balance when market index is higher than account index", async () => {
       await pretendBorrow(vToken, borrower, 1, 3, 5e18);
-      expect(await call(vToken, 'borrowBalanceStored', [borrower])).toEqualNumber(5e18 * 3);
+      expect(await call(vToken, "borrowBalanceStored", [borrower])).toEqualNumber(5e18 * 3);
     });
 
     it("has undefined behavior when market index is lower than account index", async () => {
@@ -162,67 +172,78 @@ describe('VToken', function () {
     });
 
     it("reverts on overflow of principal", async () => {
-      await pretendBorrow(vToken, borrower, 1, 3, '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
-      await expect(call(vToken, 'borrowBalanceStored', [borrower])).rejects.toRevert("revert borrowBalanceStored: borrowBalanceStoredInternal failed");
+      await pretendBorrow(vToken, borrower, 1, 3, "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+      await expect(call(vToken, "borrowBalanceStored", [borrower])).rejects.toRevert(
+        "revert borrowBalanceStored: borrowBalanceStoredInternal failed",
+      );
     });
 
     it("reverts on non-zero stored principal with zero account index", async () => {
       await pretendBorrow(vToken, borrower, 0, 3, 5);
-      await expect(call(vToken, 'borrowBalanceStored', [borrower])).rejects.toRevert("revert borrowBalanceStored: borrowBalanceStoredInternal failed");
+      await expect(call(vToken, "borrowBalanceStored", [borrower])).rejects.toRevert(
+        "revert borrowBalanceStored: borrowBalanceStoredInternal failed",
+      );
     });
   });
 
-  describe('exchangeRateStored', () => {
-    let vToken, exchangeRate = 2;
+  describe("exchangeRateStored", () => {
+    let vToken,
+      exchangeRate = 2;
 
     beforeEach(async () => {
       vToken = await makeVToken({ exchangeRate });
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
     });
 
     it("returns initial exchange rate with zero vTokenSupply", async () => {
-      const result = await call(vToken, 'exchangeRateStored');
+      const result = await call(vToken, "exchangeRateStored");
       expect(result).toEqualNumber(bnbMantissa(exchangeRate));
     });
 
     it("calculates with single vTokenSupply and single total borrow", async () => {
-      const vTokenSupply = 1, totalBorrows = 1, totalReserves = 0;
-      await send(vToken, 'harnessExchangeRateDetails', [vTokenSupply, totalBorrows, totalReserves]);
-      const result = await call(vToken, 'exchangeRateStored');
+      const vTokenSupply = 1,
+        totalBorrows = 1,
+        totalReserves = 0;
+      await send(vToken, "harnessExchangeRateDetails", [vTokenSupply, totalBorrows, totalReserves]);
+      const result = await call(vToken, "exchangeRateStored");
       expect(result).toEqualNumber(bnbMantissa(1));
     });
 
     it("calculates with vTokenSupply and total borrows", async () => {
-      const vTokenSupply = 100e18, totalBorrows = 10e18, totalReserves = 0;
-      await send(vToken, 'harnessExchangeRateDetails', [vTokenSupply, totalBorrows, totalReserves].map(bnbUnsigned));
-      const result = await call(vToken, 'exchangeRateStored');
-      expect(result).toEqualNumber(bnbMantissa(.1));
+      const vTokenSupply = 100e18,
+        totalBorrows = 10e18,
+        totalReserves = 0;
+      await send(vToken, "harnessExchangeRateDetails", [vTokenSupply, totalBorrows, totalReserves].map(bnbUnsigned));
+      const result = await call(vToken, "exchangeRateStored");
+      expect(result).toEqualNumber(bnbMantissa(0.1));
     });
 
     it("calculates with cash and vTokenSupply", async () => {
-      const vTokenSupply = 5e18, totalBorrows = 0, totalReserves = 0;
-      expect(
-        await send(vToken.underlying, 'transfer', [vToken._address, bnbMantissa(500)])
-      ).toSucceed();
-      await send(vToken, 'harnessExchangeRateDetails', [vTokenSupply, totalBorrows, totalReserves].map(bnbUnsigned));
-      const result = await call(vToken, 'exchangeRateStored');
+      const vTokenSupply = 5e18,
+        totalBorrows = 0,
+        totalReserves = 0;
+      expect(await send(vToken.underlying, "transfer", [vToken._address, bnbMantissa(500)])).toSucceed();
+      await send(vToken, "harnessExchangeRateDetails", [vTokenSupply, totalBorrows, totalReserves].map(bnbUnsigned));
+      const result = await call(vToken, "exchangeRateStored");
       expect(result).toEqualNumber(bnbMantissa(100));
     });
 
     it("calculates with cash, borrows, reserves and vTokenSupply", async () => {
-      const vTokenSupply = 500e18, totalBorrows = 500e18, totalReserves = 5e18;
-      expect(
-        await send(vToken.underlying, 'transfer', [vToken._address, bnbMantissa(500)])
-      ).toSucceed();
-      await send(vToken, 'harnessExchangeRateDetails', [vTokenSupply, totalBorrows, totalReserves].map(bnbUnsigned));
-      const result = await call(vToken, 'exchangeRateStored');
+      const vTokenSupply = 500e18,
+        totalBorrows = 500e18,
+        totalReserves = 5e18;
+      expect(await send(vToken.underlying, "transfer", [vToken._address, bnbMantissa(500)])).toSucceed();
+      await send(vToken, "harnessExchangeRateDetails", [vTokenSupply, totalBorrows, totalReserves].map(bnbUnsigned));
+      const result = await call(vToken, "exchangeRateStored");
       expect(result).toEqualNumber(bnbMantissa(1.99));
     });
   });
 
-  describe('getCash', () => {
+  describe("getCash", () => {
     it("gets the cash", async () => {
       const vToken = await makeVToken();
-      const result = await call(vToken, 'getCash');
+      await setMarketSupplyCap(vToken.comptroller, [vToken._address], [100000000000]);
+      const result = await call(vToken, "getCash");
       expect(result).toEqualNumber(0);
     });
   });

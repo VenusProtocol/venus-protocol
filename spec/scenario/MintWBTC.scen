@@ -3,6 +3,7 @@
 Test "Mint 1 vWBTC"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.2 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2000e18)
     Prep Geoff Some WBTC vWBTC
     Mint Geoff 10e8 vWBTC
     Assert Equal (Bep20 vWBTC TokenBalance Geoff) (Exactly 50e8)
@@ -11,6 +12,7 @@ Test "Mint 1 vWBTC"
 Test "Mint WBTC with insufficient allowance"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.2 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2000e18)
     Prep Geoff 5e8 WBTC vWBTC allowanceAmount:4.9e8
     AllowFailures
     Mint Geoff 5e8 vWBTC
@@ -21,6 +23,7 @@ Test "Mint WBTC with insufficient allowance"
 Test "Mint WBTC with insufficient balance"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.2 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2000e18)
     Prep Geoff 4.9e8 WBTC vWBTC allowanceAmount:5e8
     AllowFailures
     Mint Geoff 5e8 vWBTC
@@ -31,6 +34,7 @@ Test "Mint WBTC with insufficient balance"
 Test "Mint two WBTC after minting two WBTC, and then I mint two more"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.2 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2000e18)
     Prep Geoff Some WBTC vWBTC
     Mint Geoff 2e8 vWBTC
     Assert Equal (Bep20 vWBTC TokenBalance Geoff) (Exactly 10e8)
@@ -45,6 +49,7 @@ Test "Mint two WBTC after minting two WBTC, and then I mint two more"
 Test "Two users Mint WBTC"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.2 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2000e18)
     Prep Geoff Some WBTC vWBTC
     Prep Torrey Some WBTC vWBTC
     Mint Geoff 2e8 vWBTC
@@ -58,6 +63,7 @@ Test "Two users Mint WBTC"
 Test "Mint WBTC accrues no interest without borrows"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.2 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2000e18)
     Prep Geoff Some WBTC vWBTC
     Prep Torrey Some WBTC vWBTC
     Mint Geoff 2e8 vWBTC
@@ -70,6 +76,7 @@ Test "Mint WBTC accrues no interest without borrows"
 Test "Mint WBTC transfer in fails due to paused"
     NewComptroller
     ListedVToken WBTC vWBTC initialExchangeRate:0.2 tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2000e18)
     Prep Geoff Some WBTC vWBTC
     Prep Torrey Some WBTC vWBTC
     Invariant Static (Bep20 vWBTC TokenBalance Geoff)
@@ -83,6 +90,7 @@ Test "Mint WBTC transfer in fails due to paused"
 Test "Denied by comptroller because WBTC unlisted"
     NewComptroller
     NewVToken WBTC vWBTC tokenType:WBTC
+    Comptroller SetMarketSupplyCaps (vWBTC) (2000e18)
     Prep Geoff Some WBTC vWBTC
     Prep Torrey Some WBTC vWBTC
     Invariant Static (Bep20 vWBTC TokenBalance Geoff)
@@ -90,4 +98,4 @@ Test "Denied by comptroller because WBTC unlisted"
     Invariant Static (Bep20 WBTC TotalSupply)
     AllowFailures
     Mint Geoff 2e8 vWBTC
-    Assert Failure COMPTROLLER_REJECTION MINT_COMPTROLLER_REJECTION MARKET_NOT_LISTED
+    Assert Revert "revert market not listed"

@@ -1,20 +1,20 @@
-import {Value} from './Value';
-import {Action} from './Action';
-import {EventProcessingError} from './CoreEvent'
-import {formatEvent} from './Formatter';
+import * as readline from "readline";
 
-import * as readline from 'readline';
+import { Action } from "./Action";
+import { EventProcessingError } from "./CoreEvent";
+import { formatEvent } from "./Formatter";
+import { Value } from "./Value";
 
 export interface Printer {
-  printLine(str: string): void
-  printMarkdown(str: string): void
-  printValue(val: Value): void
-  printError(err: Error): void
-  printAction(action: Action<any>): void
+  printLine(str: string): void;
+  printMarkdown(str: string): void;
+  printValue(val: Value): void;
+  printError(err: Error): void;
+  printAction(action: Action<any>): void;
 }
 
 export class CallbackPrinter implements Printer {
-  callback: (message: any, format: object) => void
+  callback: (message: any, format: object) => void;
 
   constructor(callback: (message: string) => void) {
     this.callback = callback;
@@ -25,28 +25,28 @@ export class CallbackPrinter implements Printer {
   }
 
   printMarkdown(str: string): void {
-    this.callback(str, {markdown: true});
+    this.callback(str, { markdown: true });
   }
 
   printValue(val: Value): void {
-    this.callback(val.toString(), {value: true});
+    this.callback(val.toString(), { value: true });
   }
 
   printError(err: Error): void {
-    if (process.env['verbose']) {
-      this.callback(err, {error: true});
+    if (process.env["verbose"]) {
+      this.callback(err, { error: true });
     }
 
-    this.callback(`Error: ${err.toString()}`, {error: true});
+    this.callback(`Error: ${err.toString()}`, { error: true });
   }
 
-  printAction(action: Action<any>): void {
+  printAction(): void {
     // Do nothing
   }
 }
 
 export class ConsolePrinter implements Printer {
-  verbose: boolean
+  verbose: boolean;
 
   constructor(verbose: boolean) {
     this.verbose = verbose;
@@ -80,8 +80,8 @@ export class ConsolePrinter implements Printer {
 }
 
 export class ReplPrinter implements Printer {
-  rl : readline.Interface;
-  verbose : boolean
+  rl: readline.Interface;
+  verbose: boolean;
 
   constructor(rl: readline.Interface, verbose: boolean) {
     this.rl = rl;

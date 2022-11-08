@@ -5,8 +5,12 @@ const contractConfigData = require(`../../../../networks/${network}.json`);
   const venusChainlinkOracleAddress = contractConfigData.Contracts.VenusPriceOracle;
 
   //load venusChainlinkOracleContractInstance from venusChainlinkOracleAddress
-  const venusChainlinkOracleContractInstance = await saddle.getContractAt('VenusChainlinkOracle', venusChainlinkOracleAddress);
+  const venusChainlinkOracleContractInstance = await saddle.getContractAt(
+    "VenusChainlinkOracle",
+    venusChainlinkOracleAddress,
+  );
 
-  await venusChainlinkOracleContractInstance.methods.setUnderlyingPrice(contractConfigData.Contracts.vTRX,
-    1000000000000000000n).send();
+  await venusChainlinkOracleContractInstance.methods
+    .setUnderlyingPrice(contractConfigData.Contracts.vTRX, 1000000000000000000n)
+    .send();
 })();

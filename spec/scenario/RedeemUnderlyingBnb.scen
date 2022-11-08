@@ -3,6 +3,7 @@
 Test "Mint then Redeem All"
     NewComptroller
     ListedBNBToken vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     CallMintBnb Geoff 0.005e18 vBNB
     -- Check current affairs
     Assert Equal (Bep20 vBNB TokenBalance Geoff) 10e8
@@ -18,6 +19,7 @@ Test "Mint then Redeem All"
 Test "Mint then Redeem Part"
     NewComptroller
     ListedBNBToken vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     CallMintBnb Geoff 0.005e18 vBNB
     -- Check current affairs
     Assert Equal (Bep20 vBNB TokenBalance Geoff) 10e8
@@ -33,6 +35,7 @@ Test "Mint then Redeem Part"
 Test "Mint then Redeem Too Much"
     NewComptroller
     ListedBNBToken vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     CallMintBnb Geoff 0.005e18 vBNB
     AllowFailures
     -- Check and hold static
@@ -49,6 +52,7 @@ Test "Mint then Redeem Too Much"
 Test "Mint then Redeem Zero"
     NewComptroller
     ListedBNBToken vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     CallMintBnb Geoff 0.005e18 vBNB
     -- Check and hold static
     Invariant Static (VToken vBNB ExchangeRateStored)
@@ -88,6 +92,7 @@ Pending "Mint then redeem part with interest - no reserves"
     Invariant Success
     NewComptroller
     ListedVToken ZRX vBNB initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     Invariant Remains (VToken vBNB Reserves) Zero
     Prep Geoff 50e18 ZRX vBNB
     Mint Geoff 50e18 vBNB
@@ -113,6 +118,7 @@ Pending "Mint then redeem with reserves and interest"
     Invariant Success
     NewComptroller
     ListedVToken ZRX vBNB initialExchangeRate:1e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     Prep Geoff 50e18 ZRX vBNB
     Mint Geoff 50e18 vBNB
     Assert Equal (Bep20 vBNB TokenBalance Geoff) 500e8
@@ -142,6 +148,7 @@ Pending "Mint then redeem with reserves and interest"
 Test "Two users Mint, one redeems"
     NewComptroller
     ListedBNBToken vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     CallMintBnb Geoff 0.002e18 vBNB
     Assert Equal (Bep20 vBNB TokenBalance Geoff) 4e8
     Assert Equal (Bep20 vBNB TotalSupply) 4e8
@@ -157,6 +164,7 @@ Test "Two users Mint, one redeems"
 Test "Mint then redeem 1 wei"
     NewComptroller
     ListedBNBToken vBNB initialExchangeRate:0.005e9
+    Comptroller SetMarketSupplyCaps (vBNB) (2000e18)
     CallMintBnb Geoff 0.005e18 vBNB
     AllowFailures
     -- Check current affairs
