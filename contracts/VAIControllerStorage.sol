@@ -85,5 +85,5 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
     mapping (address => uint) vaiMinterInterestIndex;
 
     // @notice tracks the amount of mintedVAI of a user that represents the accrued interest
-    mapping(address => uint) public totalVAIInterest;
+    mapping(address => uint) public pastVAIInterest;
 }
