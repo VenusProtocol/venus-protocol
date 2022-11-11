@@ -140,51 +140,51 @@ describe("Comptroller", async () => {
     await comptroller.connect(user1).enterMarkets([vusdt.address]);
   });
 
-  it("check wallet usdt balance", async () => {
-    expect(await usdt.balanceOf(wallet.address)).to.eq(bigNumber18.mul(100000000));
-    expect(await vusdt.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
-  });
+  // it("check wallet usdt balance", async () => {
+  //   expect(await usdt.balanceOf(wallet.address)).to.eq(bigNumber18.mul(100000000));
+  //   expect(await vusdt.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
+  // });
 
-  describe("#getMintableVAI", async () => {
-    it("oracle", async () => {
-      expect(await comptroller.oracle()).to.eq(priceOracle.address);
-    });
+  // describe("#getMintableVAI", async () => {
+  //   it("oracle", async () => {
+  //     expect(await comptroller.oracle()).to.eq(priceOracle.address);
+  //   });
 
-    it("getAssetsIn", async () => {
-      const enteredMarkets = await comptroller.getAssetsIn(user1.address);
-      expect(enteredMarkets.length).to.eq(1);
-    });
+  //   it("getAssetsIn", async () => {
+  //     const enteredMarkets = await comptroller.getAssetsIn(user1.address);
+  //     expect(enteredMarkets.length).to.eq(1);
+  //   });
 
-    it("getAccountSnapshot", async () => {
-      const res = await vusdt.getAccountSnapshot(user1.address);
-      expect(res[0]).to.eq(0);
-      expect(res[1]).to.eq(bigNumber18.mul(100));
-      expect(res[2]).to.eq(BigNumber.from(0));
-      expect(res[3]).to.eq(bigNumber18);
-    });
+  //   it("getAccountSnapshot", async () => {
+  //     const res = await vusdt.getAccountSnapshot(user1.address);
+  //     expect(res[0]).to.eq(0);
+  //     expect(res[1]).to.eq(bigNumber18.mul(100));
+  //     expect(res[2]).to.eq(BigNumber.from(0));
+  //     expect(res[3]).to.eq(bigNumber18);
+  //   });
 
-    it("getUnderlyingPrice", async () => {
-      expect(await priceOracle.getUnderlyingPrice(vusdt.address)).to.eq(bigNumber18);
-    });
+  //   it("getUnderlyingPrice", async () => {
+  //     expect(await priceOracle.getUnderlyingPrice(vusdt.address)).to.eq(bigNumber18);
+  //   });
 
-    it("getComtroller", async () => {
-      expect(await vaiController.admin()).to.eq(wallet.address);
-      expect(await vaiController.comptroller()).to.eq(comptroller.address);
-    });
+  //   it("getComtroller", async () => {
+  //     expect(await vaiController.admin()).to.eq(wallet.address);
+  //     expect(await vaiController.comptroller()).to.eq(comptroller.address);
+  //   });
 
-    it("success", async () => {
-      const res = await vaiController.getMintableVAI(user1.address);
-      expect(res[1]).to.eq(bigNumber18.mul(100));
-    });
-  });
+  //   it("success", async () => {
+  //     const res = await vaiController.getMintableVAI(user1.address);
+  //     expect(res[1]).to.eq(bigNumber18.mul(100));
+  //   });
+  // });
 
-  describe("#mintVAI", async () => {
-    it("success", async () => {
-      await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
-      expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
-      expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(100));
-    });
-  });
+  // describe("#mintVAI", async () => {
+  //   it("success", async () => {
+  //     await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
+  //     expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
+  //     expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(100));
+  //   });
+  // });
 
   describe("#repayVAI", async () => {
     beforeEach("mintVAI", async () => {
@@ -193,22 +193,22 @@ describe("Comptroller", async () => {
       await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
     });
 
-    it("success for zero rate", async () => {
-      await vaiController.connect(user1).repayVAI(bigNumber18.mul(100));
-      expect(await vai.balanceOf(user1.address)).to.eq(BigNumber.from(0));
-      expect(await comptroller.mintedVAIs(user1.address)).to.eq(BigNumber.from(0));
-    });
+    // it("success for zero rate", async () => {
+    //   await vaiController.connect(user1).repayVAI(bigNumber18.mul(100));
+    //   expect(await vai.balanceOf(user1.address)).to.eq(BigNumber.from(0));
+    //   expect(await comptroller.mintedVAIs(user1.address)).to.eq(BigNumber.from(0));
+    // });
 
-    it("success for 1.2 rate repay all", async () => {
-      await vai.allocateTo(user1.address, bigNumber18.mul(20));
-      await vaiController._setBaseRate(bigNumber17.mul(2));
-      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+    // it("success for 1.2 rate repay all", async () => {
+    //   await vai.allocateTo(user1.address, bigNumber18.mul(20));
+    //   await vaiController._setBaseRate(bigNumber17.mul(2));
+    //   await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
 
-      await vaiController.connect(user1).repayVAI(bigNumber18.mul(120));
-      expect(await vai.balanceOf(user1.address)).to.eq(BigNumber.from(0));
-      expect(await comptroller.mintedVAIs(user1.address)).to.eq(BigNumber.from(0));
-      expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(20));
-    });
+    //   await vaiController.connect(user1).repayVAI(bigNumber18.mul(120));
+    //   expect(await vai.balanceOf(user1.address)).to.eq(BigNumber.from(0));
+    //   expect(await comptroller.mintedVAIs(user1.address)).to.eq(BigNumber.from(0));
+    //   expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(20));
+    // });
 
     it("success for 1.2 rate repay half", async () => {
       await vaiController._setBaseRate(bigNumber17.mul(2));
@@ -221,166 +221,166 @@ describe("Comptroller", async () => {
     });
   });
 
-  describe("#getHypotheticalAccountLiquidity", async () => {
-    beforeEach("user1 borrow", async () => {
-      await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
-      await vai.allocateTo(user2.address, bigNumber18.mul(100));
-      expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(100));
-      expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
-    });
+  // describe("#getHypotheticalAccountLiquidity", async () => {
+  //   beforeEach("user1 borrow", async () => {
+  //     await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
+  //     await vai.allocateTo(user2.address, bigNumber18.mul(100));
+  //     expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(100));
+  //     expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
+  //   });
 
-    it("success for zero rate 0.9 vusdt collateralFactor", async () => {
-      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
-      const res = await comptroller.getHypotheticalAccountLiquidity(
-        user1.address,
-        ethers.constants.AddressZero,
-        BigNumber.from(0),
-        BigNumber.from(0),
-      );
-      expect(res[1]).to.eq(0);
-      expect(res[2]).to.eq(bigNumber18.mul(10));
-    });
+  //   it("success for zero rate 0.9 vusdt collateralFactor", async () => {
+  //     await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
+  //     const res = await comptroller.getHypotheticalAccountLiquidity(
+  //       user1.address,
+  //       ethers.constants.AddressZero,
+  //       BigNumber.from(0),
+  //       BigNumber.from(0),
+  //     );
+  //     expect(res[1]).to.eq(0);
+  //     expect(res[2]).to.eq(bigNumber18.mul(10));
+  //   });
 
-    it("success for 1.2 rate 0.9 vusdt collateralFactor", async () => {
-      await vaiController._setBaseRate(bigNumber17.mul(2));
-      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
-      await vaiController.accrueVAIInterest();
+  //   it("success for 1.2 rate 0.9 vusdt collateralFactor", async () => {
+  //     await vaiController._setBaseRate(bigNumber17.mul(2));
+  //     await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+  //     await vaiController.accrueVAIInterest();
 
-      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
-      const res = await comptroller.getHypotheticalAccountLiquidity(
-        user1.address,
-        ethers.constants.AddressZero,
-        BigNumber.from(0),
-        BigNumber.from(0),
-      );
-      expect(res[1]).to.eq(0);
-      expect(res[2]).to.eq(bigNumber18.mul(30));
-    });
-  });
+  //     await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
+  //     const res = await comptroller.getHypotheticalAccountLiquidity(
+  //       user1.address,
+  //       ethers.constants.AddressZero,
+  //       BigNumber.from(0),
+  //       BigNumber.from(0),
+  //     );
+  //     expect(res[1]).to.eq(0);
+  //     expect(res[2]).to.eq(bigNumber18.mul(30));
+  //   });
+  // });
 
-  describe("#liquidateVAI", async () => {
-    beforeEach("user1 borrow", async () => {
-      await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
-      await vai.allocateTo(user2.address, bigNumber18.mul(100));
-      expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(100));
-      expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
-      expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(100));
-    });
+  // describe("#liquidateVAI", async () => {
+  //   beforeEach("user1 borrow", async () => {
+  //     await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
+  //     await vai.allocateTo(user2.address, bigNumber18.mul(100));
+  //     expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(100));
+  //     expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
+  //     expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(100));
+  //   });
 
-    it("liquidationIncentiveMantissa", async () => {
-      expect(await comptroller.liquidationIncentiveMantissa()).to.eq(bigNumber18);
-    });
+  //   it("liquidationIncentiveMantissa", async () => {
+  //     expect(await comptroller.liquidationIncentiveMantissa()).to.eq(bigNumber18);
+  //   });
 
-    it("success for zero rate 0.9 vusdt collateralFactor", async () => {
-      await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
-      await vaiController.harnessSetBlockNumber(BigNumber.from(100000));
-      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
-      await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
-      expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
-      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
-    });
+  //   it("success for zero rate 0.9 vusdt collateralFactor", async () => {
+  //     await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
+  //     await vaiController.harnessSetBlockNumber(BigNumber.from(100000));
+  //     await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
+  //     await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
+  //     expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
+  //     expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
+  //   });
 
-    it("success for 1.2 rate 0.9 vusdt collateralFactor", async () => {
-      await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
+  //   it("success for 1.2 rate 0.9 vusdt collateralFactor", async () => {
+  //     await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
 
-      const TEMP_BLOCKS_PER_YEAR = 100000;
-      vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
+  //     const TEMP_BLOCKS_PER_YEAR = 100000;
+  //     vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
 
-      await vaiController._setBaseRate(bigNumber17.mul(2));
-      await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
+  //     await vaiController._setBaseRate(bigNumber17.mul(2));
+  //     await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
 
-      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
+  //     await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
 
-      await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(72), vusdt.address);
-      expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(28));
-      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
-      expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(12));
-      expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(40));
-    });
-  });
+  //     await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(72), vusdt.address);
+  //     expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(28));
+  //     expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
+  //     expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(12));
+  //     expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(40));
+  //   });
+  // });
 
-  describe("#getVAIRepayRate", async () => {
-    it("success for zero baseRate", async () => {
-      const res = await vaiController.getVAIRepayRate();
-      expect(res).to.eq(0);
-    });
+  // describe("#getVAIRepayRate", async () => {
+  //   it("success for zero baseRate", async () => {
+  //     const res = await vaiController.getVAIRepayRate();
+  //     expect(res).to.eq(0);
+  //   });
 
-    it("success for baseRate 0.1 floatRate 0.1 vaiPirce 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
-      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+  //   it("success for baseRate 0.1 floatRate 0.1 vaiPirce 1e18", async () => {
+  //     await vaiController._setBaseRate(bigNumber17);
+  //     await vaiController._setFloatRate(bigNumber17);
+  //     await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
 
-      expect(await vaiController.getVAIRepayRate()).to.eq(bigNumber17);
-    });
+  //     expect(await vaiController.getVAIRepayRate()).to.eq(bigNumber17);
+  //   });
 
-    it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
+  //   it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
+  //     await vaiController._setBaseRate(bigNumber17);
+  //     await vaiController._setFloatRate(bigNumber17);
 
-      await priceOracle.setDirectPrice(vai.address, bigNumber17.mul(5));
-      expect(await vaiController.getVAIRepayRate()).to.eq(bigNumber16.mul(15));
-    });
-  });
+  //     await priceOracle.setDirectPrice(vai.address, bigNumber17.mul(5));
+  //     expect(await vaiController.getVAIRepayRate()).to.eq(bigNumber16.mul(15));
+  //   });
+  // });
 
-  describe("#getVAIRepayAmount", async () => {
-    beforeEach("mintVAI", async () => {
-      await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
-      expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
-      await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
-    });
+  // describe("#getVAIRepayAmount", async () => {
+  //   beforeEach("mintVAI", async () => {
+  //     await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
+  //     expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
+  //     await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
+  //   });
 
-    it("success for zero rate", async () => {
-      expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(100));
-    });
+  //   it("success for zero rate", async () => {
+  //     expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(100));
+  //   });
 
-    it("success for baseRate 0.1 floatRate 0.1 vaiPirce 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
-      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
-      await vaiController.accrueVAIInterest();
+  //   it("success for baseRate 0.1 floatRate 0.1 vaiPirce 1e18", async () => {
+  //     await vaiController._setBaseRate(bigNumber17);
+  //     await vaiController._setFloatRate(bigNumber17);
+  //     await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+  //     await vaiController.accrueVAIInterest();
 
-      expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(110));
-    });
+  //     expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(110));
+  //   });
 
-    it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
-      await priceOracle.setDirectPrice(vai.address, bigNumber17.mul(5));
-      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
-      await vaiController.accrueVAIInterest();
+  //   it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
+  //     await vaiController._setBaseRate(bigNumber17);
+  //     await vaiController._setFloatRate(bigNumber17);
+  //     await priceOracle.setDirectPrice(vai.address, bigNumber17.mul(5));
+  //     await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+  //     await vaiController.accrueVAIInterest();
 
-      expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(115));
-    });
-  });
+  //     expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(115));
+  //   });
+  // });
 
-  describe("#getVAICalculateRepayAmount", async () => {
-    beforeEach("mintVAI", async () => {
-      await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
-      expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
-      await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
-    });
+  // describe("#getVAICalculateRepayAmount", async () => {
+  //   beforeEach("mintVAI", async () => {
+  //     await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
+  //     expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
+  //     await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
+  //   });
 
-    it("success for zero rate", async () => {
-      expect(await vaiController.getVAICalculateRepayAmount(user1.address, bigNumber18.mul(50))).to.eq(
-        bigNumber18.mul(50),
-      );
-    });
+  //   it("success for zero rate", async () => {
+  //     expect(await vaiController.getVAICalculateRepayAmount(user1.address, bigNumber18.mul(50))).to.eq(
+  //       bigNumber18.mul(50),
+  //     );
+  //   });
 
-    it("success for baseRate 0.1 floatRate 0.1 vaiPirce 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
-      expect(await vaiController.getVAICalculateRepayAmount(user1.address, bigNumber18.mul(110))).to.eq(
-        bigNumber18.mul(100),
-      );
-    });
+  //   it("success for baseRate 0.1 floatRate 0.1 vaiPirce 1e18", async () => {
+  //     await vaiController._setBaseRate(bigNumber17);
+  //     await vaiController._setFloatRate(bigNumber17);
+  //     expect(await vaiController.getVAICalculateRepayAmount(user1.address, bigNumber18.mul(110))).to.eq(
+  //       bigNumber18.mul(100),
+  //     );
+  //   });
 
-    it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
-      await priceOracle.setDirectPrice(vai.address, bigNumber17.mul(5));
-      expect(await vaiController.getVAICalculateRepayAmount(user1.address, bigNumber18.mul(115))).to.eq(
-        bigNumber18.mul(100),
-      );
-    });
-  });
+  //   it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
+  //     await vaiController._setBaseRate(bigNumber17);
+  //     await vaiController._setFloatRate(bigNumber17);
+  //     await priceOracle.setDirectPrice(vai.address, bigNumber17.mul(5));
+  //     expect(await vaiController.getVAICalculateRepayAmount(user1.address, bigNumber18.mul(115))).to.eq(
+  //       bigNumber18.mul(100),
+  //     );
+  //   });
+  // });
 });

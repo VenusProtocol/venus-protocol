@@ -83,4 +83,7 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
 
     // @notice Global vaiMintIndex as of the most recent balance-changing action for user
     mapping (address => uint) vaiMinterInterestIndex;
+
+    // @notice tracks the amount of mintedVAI of a user that represents the accrued interest
+    mapping(address => uint) public totalVAIInterest;
 }
