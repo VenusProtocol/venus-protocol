@@ -196,10 +196,10 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     function repayVAIFresh(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
         MathError mErr;
 
-        (uint burn, uint interest) = getVAICalculateRepayAmount(borrower, repayAmount);
+        (uint burn, uint partOfCurrentInterest, uint partOfPastInterest) = getVAICalculateRepayAmount(borrower, repayAmount);
 
         VAI(getVAIAddress()).burn(payer, burn);
-        VAI(getVAIAddress()).transferFrom(payer, receiver, interest);
+        VAI(getVAIAddress()).transferFrom(payer, receiver, partOfCurrentInterest);
 
         uint vaiBalanceBorrower = ComptrollerImplInterface(address(comptroller)).mintedVAIs(borrower);
         uint accountVAINew;
@@ -207,21 +207,12 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         (mErr, accountVAINew) = subUInt(vaiBalanceBorrower, burn);
         require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
 
-        if(pastVAIInterest[borrower] > 0) {
-            if(pastVAIInterest[borrower] >= interest) {
-                (mErr, accountVAINew) = subUInt(accountVAINew, interest);
-                require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+        (mErr, accountVAINew) = subUInt(accountVAINew, partOfPastInterest);
+        require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
 
-                (mErr, pastVAIInterest[borrower]) = subUInt(pastVAIInterest[borrower], interest);
-                require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
-            } else {   
-                (mErr, accountVAINew) = subUInt(accountVAINew, pastVAIInterest[borrower]);
-                require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
-
-                pastVAIInterest[borrower] = 0;
-            }
-        }
-
+        (mErr, pastVAIInterest[borrower]) = subUInt(pastVAIInterest[borrower], partOfPastInterest);
+        require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+        
         uint error = comptroller.setMintedVAIOf(borrower, accountVAINew);
         if (error != 0) {
             return (error, 0);
@@ -532,22 +523,20 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         return amount;
     }
 
-    function getVAICalculateRepayAmount(address borrower, uint256 repayAmount) public view returns (uint, uint) {
+    function getVAICalculateRepayAmount(address borrower, uint256 repayAmount) public view returns (uint, uint, uint) {
         MathError mErr;
         uint256 totalRepayAmount = getVAIRepayAmount(borrower);
-        uint vaiBalanceBorrower = ComptrollerImplInterface(address(comptroller)).mintedVAIs(borrower);
-
-        uint remainedAmount;
         uint currentInterest;
 
-        (mErr, remainedAmount) = subUInt(totalRepayAmount, vaiBalanceBorrower);
+        (mErr, currentInterest) = subUInt(totalRepayAmount, ComptrollerImplInterface(address(comptroller)).mintedVAIs(borrower));
         require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
 
-        (mErr, currentInterest) = addUInt(pastVAIInterest[borrower], remainedAmount);
+        (mErr, currentInterest) = addUInt(pastVAIInterest[borrower], currentInterest);
         require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
 
         uint burn;
-        uint interest = currentInterest;
+        uint partOfCurrentInterest = currentInterest;
+        uint partOfPastInterest = pastVAIInterest[borrower];
     
         if (repayAmount >= totalRepayAmount) {
             (mErr, burn) = subUInt(totalRepayAmount, currentInterest);
@@ -571,14 +560,20 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             (mErr, burn) = divUInt(burn, 1e18);
             require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
 
-            (mErr, interest) = mulUInt(currentInterest, delta);
+            (mErr, partOfCurrentInterest) = mulUInt(currentInterest, delta);
             require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
 
-            (mErr, interest) = divUInt(interest, 1e18);
+            (mErr, partOfCurrentInterest) = divUInt(partOfCurrentInterest, 1e18);
+            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+
+            (mErr, partOfPastInterest) = mulUInt(pastVAIInterest[borrower], delta);
+            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+
+            (mErr, partOfPastInterest) = divUInt(partOfPastInterest, 1e18);
             require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
         }
 
-        return (burn, interest);
+        return (burn, partOfCurrentInterest, partOfPastInterest);
     }
 
     function accrueVAIInterest() public {
