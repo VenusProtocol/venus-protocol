@@ -8,6 +8,7 @@ import "./VAIControllerStorage.sol";
 import "./VAIUnitroller.sol";
 import "./VAI/VAI.sol";
 import "./ComptrollerStorage.sol";
+import "./Comptroller.sol";
 
 import "hardhat/console.sol";
 
@@ -18,7 +19,6 @@ interface ComptrollerImplInterface {
     function venusAccrued(address account) external view returns(uint);
     function getAssetsIn(address account) external view returns (VToken[] memory);
     function oracle() external view returns (PriceOracle);
-    function getCollateralFactor(VToken vToken) view external returns (uint);
 }
 
 /**
@@ -416,7 +416,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
                 return (uint(Error.MATH_ERROR), 0);
             }
 
-            uint collateralFactorMantissa = ComptrollerImplInterface(address(comptroller)).getCollateralFactor(enteredMarkets[i]);
+            (, uint collateralFactorMantissa,) = Comptroller(address(comptroller)).markets(address(enteredMarkets[i]));
             (vars.mErr, vars.sumSupply) = mulUInt(vars.sumSupply, collateralFactorMantissa);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
