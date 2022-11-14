@@ -272,16 +272,16 @@ describe("Comptroller", async () => {
       expect(await comptroller.liquidationIncentiveMantissa()).to.eq(bigNumber18);
     });
 
-    it("success for zero rate 0.9 vusdt collateralFactor", async () => {
+    it("success for zero rate 0.2 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
       await vaiController.harnessSetBlockNumber(BigNumber.from(100000));
-      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
+      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
-      expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(100));
-      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(0));
+      expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
+      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
     });
 
-    it("success for 1.2 rate 0.9 vusdt collateralFactor", async () => {
+    it("success for 1.2 rate 0.3 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
 
       const TEMP_BLOCKS_PER_YEAR = 100000;
@@ -290,13 +290,13 @@ describe("Comptroller", async () => {
       await vaiController._setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
 
-      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(9));
+      await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
 
-      await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(72), vusdt.address);
-      expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(100));
-      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(0));
-      expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(0));
-      expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(100));
+      await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
+      expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
+      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(50));
+      expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(10));
+      expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(50));
     });
   });
 
