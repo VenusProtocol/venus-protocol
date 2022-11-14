@@ -7,15 +7,36 @@ import "./Exponential.sol";
 import "./VAIControllerStorage.sol";
 import "./VAIUnitroller.sol";
 import "./VAI/VAI.sol";
+import "./ComptrollerStorage.sol";
+
 import "hardhat/console.sol";
 
 interface ComptrollerImplInterface {
+    struct Market {
+        /// @notice Whether or not this market is listed
+        bool isListed;
+
+        /**
+         * @notice Multiplier representing the most one can borrow against their collateral in this market.
+         *  For instance, 0.9 to allow borrowing 90% of collateral value.
+         *  Must be between 0 and 1, and stored as a mantissa.
+         */
+        uint collateralFactorMantissa;
+
+        /// @notice Per-market mapping of "accounts in this asset"
+        mapping(address => bool) accountMembership;
+
+        /// @notice Whether or not this market receives XVS
+        bool isVenus;
+    }
+
     function protocolPaused() external view returns (bool);
     function mintedVAIs(address account) external view returns (uint);
     function vaiMintRate() external view returns (uint);
     function venusAccrued(address account) external view returns(uint);
     function getAssetsIn(address account) external view returns (VToken[] memory);
     function oracle() external view returns (PriceOracle);
+    function getCollateralFactor(VToken vToken) view external returns (uint);
 }
 
 /**
@@ -409,6 +430,17 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
             // sumSupply += tokensToDenom * vTokenBalance
             (vars.mErr, vars.sumSupply) = mulScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumSupply);
+            if (vars.mErr != MathError.NO_ERROR) {
+                return (uint(Error.MATH_ERROR), 0);
+            }
+
+            uint collateralFactorMantissa = ComptrollerImplInterface(address(comptroller)).getCollateralFactor(enteredMarkets[i]);
+            (vars.mErr, vars.sumSupply) = mulUInt(vars.sumSupply, collateralFactorMantissa);
+            if (vars.mErr != MathError.NO_ERROR) {
+                return (uint(Error.MATH_ERROR), 0);
+            }
+
+            (vars.mErr, vars.sumSupply) = divUInt(vars.sumSupply, 1e18);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
             }
