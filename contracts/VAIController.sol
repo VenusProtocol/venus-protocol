@@ -65,14 +65,17 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     event MintFee(address minter, uint feeAmount);
 
-    /// @notice Emiitted whe VAI base rate is changed
+    /// @notice Emiitted when VAI base rate is changed
     event NewVAIBaseRate(uint oldBaseRateMantissa, uint newBaseRateMantissa);
 
-    /// @notice Emiitted whe VAI float rate is changed
+    /// @notice Emiitted when VAI float rate is changed
     event NewVAIFloatRate(uint oldFloatRateMantissa, uint newFlatRateMantissa);
 
-    /// @notice Emiitted whe VAI receiver address is changed
+    /// @notice Emiitted when VAI receiver address is changed
     event NewVAIReceiver(address oldReceiver, address newReceiver);
+
+    /// @notice Emiitted when VAI mint cap is changed
+    event NewVAIMintCap(uint oldMintCap, uint newMintCap);
 
     /*** Main Actions ***/
     struct MintLocalVars {
@@ -94,6 +97,12 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             MintLocalVars memory vars;
 
             address minter = msg.sender;
+
+            (vars.mathErr, totalMintedVAI) = addUInt(totalMintedVAI, mintVAIAmount);
+
+            if (mintCap != 0) {
+                require(totalMintedVAI <= mintCap, "mint cap reached");
+            }
 
             (vars.oErr, vars.accountMintableVAI) = getMintableVAI(minter);
             if (vars.oErr != uint(Error.NO_ERROR)) {
@@ -343,6 +352,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
         vaiMintIndex = 1e18;
         accrualBlockNumber = getBlockNumber();
+        mintCap = 0;
+        totalMintedVAI = EIP20Interface(getVAIAddress()).totalSupply();
     }
 
     /**
@@ -599,7 +610,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @dev Set VAI borrow base rate
      */
-    function _setBaseRate(uint newBaseRateMantissa) external returns (uint) {
+    function _setBaseRate(uint newBaseRateMantissa) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
@@ -611,7 +622,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @dev Set VAI borrow float rate
      */
-    function _setFloatRate(uint newFloatRateMantissa) external returns (uint) {
+    function _setFloatRate(uint newFloatRateMantissa) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
@@ -623,13 +634,25 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @dev Set VAI receiver address
      */
-    function _setReceiver(address newReceiver) external returns (uint) {
+    function _setReceiver(address newReceiver) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
         address old = receiver;
         receiver = newReceiver;
         emit NewVAIReceiver(old, newReceiver);
+    }
+
+    /**
+     * @dev Set VAI mint cap
+     */
+    function _setMintCap(uint _mintCap) external {
+        // Check caller is admin
+        require(msg.sender == admin, "UNAUTHORIZED");
+
+        uint old = mintCap;
+        mintCap = _mintCap;
+        emit NewVAIMintCap(old, _mintCap);
     }
 
     function getBlockNumber() public view returns (uint) {
