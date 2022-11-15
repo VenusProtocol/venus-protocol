@@ -80,7 +80,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     /**
       * @notice Function used to propose a new proposal. Sender must have delegates above the proposal threshold
       * @dev NOTE: Proposals with duplicate set of actions can not be queued for execution. If the proposals consists 
-      *  of repetitive actions, its recommended to split those actions into separate proposals
+      *  of duplicate actions, its recommended to split those actions into separate proposals
       * @param targets Target addresses for proposal calls
       * @param values Eth values for proposal calls
       * @param signatures Function signatures for proposal calls
