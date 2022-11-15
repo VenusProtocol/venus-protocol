@@ -954,10 +954,6 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         return uint(Error.NO_ERROR);
     }
 
-    function getCollateralFactor(VToken vToken) external returns (uint) {
-        return markets[address(vToken)].collateralFactorMantissa;
-    }
-
     /**
       * @notice Sets liquidationIncentive
       * @dev Admin function to set liquidationIncentive
