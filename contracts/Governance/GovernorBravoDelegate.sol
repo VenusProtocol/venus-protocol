@@ -90,7 +90,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description, ProposalType proposalType) public returns (uint) {
         // Reject proposals before initiating as Governor
         require(initialProposalId != 0, "GovernorBravo::propose: Governor Bravo not active");
-        require(xvsVault.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalConfigs[uint8(proposalType)].proposalThreshold, "GovernorBravo::propose: proposer votes below proposal threshold");
+        require(xvsVault.getPriorVotes(msg.sender, sub256(block.number, 1)) >= proposalConfigs[uint8(proposalType)].proposalThreshold, "GovernorBravo::propose: proposer votes below proposal threshold");
         require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "GovernorBravo::propose: proposal function information arity mismatch");
         require(targets.length != 0, "GovernorBravo::propose: must provide actions");
         require(targets.length <= proposalMaxOperations, "GovernorBravo::propose: too many actions");
