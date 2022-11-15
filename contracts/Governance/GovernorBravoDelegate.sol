@@ -62,7 +62,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         guardian = guardian_;
 
         //Set parameters for each Governance Route
-        for(uint256 i; i<proposalConfigs_.length; ++i){
+        uint256 arrLenght = proposalConfigs_.length;
+        for(uint256 i; i<arrLenght; ++i){
             require(proposalConfigs_[i].votingPeriod >= MIN_VOTING_PERIOD, "GovernorBravo::initialize: invalid min voting period");
             require(proposalConfigs_[i].votingPeriod <= MAX_VOTING_PERIOD, "GovernorBravo::initialize: invalid max voting period");
             require(proposalConfigs_[i].votingDelay >= MIN_VOTING_DELAY, "GovernorBravo::initialize: invalid min voting delay");
@@ -138,7 +139,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         require(state(proposalId) == ProposalState.Succeeded, "GovernorBravo::queue: proposal can only be queued if it is succeeded");
         Proposal storage proposal = proposals[proposalId];
         uint eta = add256(block.timestamp, proposalTimelocks[uint8(proposal.proposalType)].delay());
-        for (uint i = 0; i < proposal.targets.length; i++) {
+        for (uint i; i < proposal.targets.length; ++i) {
             queueOrRevertInternal(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta, uint8(proposal.proposalType));
         }
         proposal.eta = eta;
@@ -158,7 +159,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         require(state(proposalId) == ProposalState.Queued, "GovernorBravo::execute: proposal can only be executed if it is queued");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
-        for (uint i = 0; i < proposal.targets.length; i++) {
+        for (uint i; i < proposal.targets.length; ++i) {
             proposalTimelocks[uint8(proposal.proposalType)].executeTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
         emit ProposalExecuted(proposalId);
