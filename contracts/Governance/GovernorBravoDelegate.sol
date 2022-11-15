@@ -40,6 +40,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
       * @param xvsVault_ The address of the XvsVault
       * @param proposalConfigs_ Governance confifgs for each GovernanceType
       * @param timelocks Timelock addresses for each GovernanceType
+      * @param guardian_ address of governance guardian
       */
     function initialize(
         address xvsVault_,
@@ -83,6 +84,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
       * @param signatures Function signatures for proposal calls
       * @param calldatas Calldatas for proposal calls
       * @param description String description of the proposal
+      * @param proposalType the type of the proposal (e.g NORMAL, FASTTRACK, CRITICAL)
       * @return Proposal id of new proposal
       */
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description, ProposalType proposalType) public returns (uint) {
@@ -255,6 +257,11 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     /**
       * @notice Cast a vote for a proposal by signature
       * @dev External function that accepts EIP-712 signatures for voting on proposals.
+      * @param proposalId The id of the proposal to vote on
+      * @param support The support value for the vote. 0=against, 1=for, 2=abstain
+      * @param v recovery id of ECDSA signature
+      * @param r part of the ECDSA sig output
+      * @param s part of the ECDSA sig output
       */
     function castVoteBySig(uint proposalId, uint8 support, uint8 v, bytes32 r, bytes32 s) external {
         bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainIdInternal(), address(this)));
