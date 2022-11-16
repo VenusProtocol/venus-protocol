@@ -63,7 +63,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
 
         //Set parameters for each Governance Route
         uint256 arrLength = proposalConfigs_.length;
-        for(uint256 i; i<arrLength; ++i){
+        for (uint256 i; i < arrLength; ++i) {
             require(proposalConfigs_[i].votingPeriod >= MIN_VOTING_PERIOD, "GovernorBravo::initialize: invalid min voting period");
             require(proposalConfigs_[i].votingPeriod <= MAX_VOTING_PERIOD, "GovernorBravo::initialize: invalid max voting period");
             require(proposalConfigs_[i].votingDelay >= MIN_VOTING_DELAY, "GovernorBravo::initialize: invalid min voting delay");
