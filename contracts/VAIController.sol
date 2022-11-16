@@ -356,7 +356,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
         vaiMintIndex = 1e18;
         accrualBlockNumber = getBlockNumber();
-        mintCap = 0;
+        mintCap = uint(-1);
         totalMintedVAI = EIP20Interface(getVAIAddress()).totalSupply();
     }
 
