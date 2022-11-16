@@ -368,6 +368,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint oErr;
         MathError mErr;
         uint sumSupply;
+        uint marketSupply;
         uint sumBorrowPlusEffects;
         uint vTokenBalance;
         uint borrowBalance;
@@ -410,19 +411,24 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
                 return (uint(Error.MATH_ERROR), 0);
             }
 
-            // sumSupply += tokensToDenom * vTokenBalance
-            (vars.mErr, vars.sumSupply) = mulScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumSupply);
+            // marketSupply = tokensToDenom * vTokenBalance
+            (vars.mErr, vars.marketSupply) = mulScalarTruncate(vars.tokensToDenom, vars.vTokenBalance);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
             }
 
             (, uint collateralFactorMantissa,) = Comptroller(address(comptroller)).markets(address(enteredMarkets[i]));
-            (vars.mErr, vars.sumSupply) = mulUInt(vars.sumSupply, collateralFactorMantissa);
+            (vars.mErr, vars.marketSupply) = mulUInt(vars.marketSupply, collateralFactorMantissa);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
             }
 
-            (vars.mErr, vars.sumSupply) = divUInt(vars.sumSupply, 1e18);
+            (vars.mErr, vars.marketSupply) = divUInt(vars.marketSupply, 1e18);
+            if (vars.mErr != MathError.NO_ERROR) {
+                return (uint(Error.MATH_ERROR), 0);
+            }
+
+            (vars.mErr, vars.sumSupply) = addUInt(vars.sumSupply, vars.marketSupply);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
             }
