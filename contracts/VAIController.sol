@@ -7,6 +7,9 @@ import "./Exponential.sol";
 import "./VAIControllerStorage.sol";
 import "./VAIUnitroller.sol";
 import "./VAI/VAI.sol";
+import "./ComptrollerStorage.sol";
+import "./Comptroller.sol";
+
 import "hardhat/console.sol";
 
 interface ComptrollerImplInterface {
@@ -65,14 +68,17 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     event MintFee(address minter, uint feeAmount);
 
-    /// @notice Emiitted whe VAI base rate is changed
+    /// @notice Emiitted when VAI base rate is changed
     event NewVAIBaseRate(uint oldBaseRateMantissa, uint newBaseRateMantissa);
 
-    /// @notice Emiitted whe VAI float rate is changed
+    /// @notice Emiitted when VAI float rate is changed
     event NewVAIFloatRate(uint oldFloatRateMantissa, uint newFlatRateMantissa);
 
-    /// @notice Emiitted whe VAI receiver address is changed
+    /// @notice Emiitted when VAI receiver address is changed
     event NewVAIReceiver(address oldReceiver, address newReceiver);
+
+    /// @notice Emiitted when VAI mint cap is changed
+    event NewVAIMintCap(uint oldMintCap, uint newMintCap);
 
     /*** Main Actions ***/
     struct MintLocalVars {
@@ -94,6 +100,15 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             MintLocalVars memory vars;
 
             address minter = msg.sender;
+            uint vaiTotalSupply = EIP20Interface(getVAIAddress()).totalSupply();
+            uint vaiNewTotalSupply;
+
+            (vars.mathErr, vaiNewTotalSupply) = addUInt(vaiTotalSupply, mintVAIAmount);
+            require(vaiNewTotalSupply <= mintCap, "mint cap reached");
+
+            if (vars.mathErr != MathError.NO_ERROR) {
+                return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
+            }
 
             (vars.oErr, vars.accountMintableVAI) = getMintableVAI(minter);
             if (vars.oErr != uint(Error.NO_ERROR)) {
@@ -343,6 +358,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
         vaiMintIndex = 1e18;
         accrualBlockNumber = getBlockNumber();
+        mintCap = uint(-1);
     }
 
     /**
@@ -354,6 +370,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint oErr;
         MathError mErr;
         uint sumSupply;
+        uint marketSupply;
         uint sumBorrowPlusEffects;
         uint vTokenBalance;
         uint borrowBalance;
@@ -396,8 +413,24 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
                 return (uint(Error.MATH_ERROR), 0);
             }
 
-            // sumSupply += tokensToDenom * vTokenBalance
-            (vars.mErr, vars.sumSupply) = mulScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumSupply);
+            // marketSupply = tokensToDenom * vTokenBalance
+            (vars.mErr, vars.marketSupply) = mulScalarTruncate(vars.tokensToDenom, vars.vTokenBalance);
+            if (vars.mErr != MathError.NO_ERROR) {
+                return (uint(Error.MATH_ERROR), 0);
+            }
+
+            (, uint collateralFactorMantissa,) = Comptroller(address(comptroller)).markets(address(enteredMarkets[i]));
+            (vars.mErr, vars.marketSupply) = mulUInt(vars.marketSupply, collateralFactorMantissa);
+            if (vars.mErr != MathError.NO_ERROR) {
+                return (uint(Error.MATH_ERROR), 0);
+            }
+
+            (vars.mErr, vars.marketSupply) = divUInt(vars.marketSupply, 1e18);
+            if (vars.mErr != MathError.NO_ERROR) {
+                return (uint(Error.MATH_ERROR), 0);
+            }
+
+            (vars.mErr, vars.sumSupply) = addUInt(vars.sumSupply, vars.marketSupply);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
             }
@@ -599,7 +632,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @dev Set VAI borrow base rate
      */
-    function _setBaseRate(uint newBaseRateMantissa) external returns (uint) {
+    function _setBaseRate(uint newBaseRateMantissa) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
@@ -611,7 +644,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @dev Set VAI borrow float rate
      */
-    function _setFloatRate(uint newFloatRateMantissa) external returns (uint) {
+    function _setFloatRate(uint newFloatRateMantissa) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
@@ -623,13 +656,25 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @dev Set VAI receiver address
      */
-    function _setReceiver(address newReceiver) external returns (uint) {
+    function _setReceiver(address newReceiver) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
         address old = receiver;
         receiver = newReceiver;
         emit NewVAIReceiver(old, newReceiver);
+    }
+
+    /**
+     * @dev Set VAI mint cap
+     */
+    function _setMintCap(uint _mintCap) external {
+        // Check caller is admin
+        require(msg.sender == admin, "UNAUTHORIZED");
+
+        uint old = mintCap;
+        mintCap = _mintCap;
+        emit NewVAIMintCap(old, _mintCap);
     }
 
     function getBlockNumber() public view returns (uint) {
