@@ -100,9 +100,11 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             MintLocalVars memory vars;
 
             address minter = msg.sender;
+            uint vaiTotalSupply = EIP20Interface(getVAIAddress()).totalSupply();
+            uint vaiNewTotalSupply;
 
-            (vars.mathErr, totalMintedVAI) = addUInt(totalMintedVAI, mintVAIAmount);
-            require(totalMintedVAI <= mintCap, "mint cap reached");
+            (vars.mathErr, vaiNewTotalSupply) = addUInt(vaiTotalSupply, mintVAIAmount);
+            require(vaiNewTotalSupply <= mintCap, "mint cap reached");
 
             if (vars.mathErr != MathError.NO_ERROR) {
                 return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
@@ -357,7 +359,6 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         vaiMintIndex = 1e18;
         accrualBlockNumber = getBlockNumber();
         mintCap = uint(-1);
-        totalMintedVAI = EIP20Interface(getVAIAddress()).totalSupply();
     }
 
     /**

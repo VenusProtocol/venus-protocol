@@ -89,7 +89,4 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
 
     // @notice VAI mint cap
     uint mintCap;
-
-    // @notice total VAI minted by all users
-    uint totalMintedVAI;
 }
