@@ -102,9 +102,10 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             address minter = msg.sender;
 
             (vars.mathErr, totalMintedVAI) = addUInt(totalMintedVAI, mintVAIAmount);
+            require(totalMintedVAI <= mintCap, "mint cap reached");
 
-            if (mintCap != 0) {
-                require(totalMintedVAI <= mintCap, "mint cap reached");
+            if (vars.mathErr != MathError.NO_ERROR) {
+                return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
             }
 
             (vars.oErr, vars.accountMintableVAI) = getMintableVAI(minter);
