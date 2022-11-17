@@ -5,6 +5,7 @@ import "../VBep20Delegator.sol";
 import "../VBep20Delegate.sol";
 import "../VDaiDelegate.sol";
 import "./ComptrollerScenario.sol";
+import "../ComptrollerInterface.sol";
 
 contract VBep20Scenario is VBep20Immutable {
     constructor(address underlying_,
@@ -42,17 +43,18 @@ contract VBep20Scenario is VBep20Immutable {
 contract EvilXToken is VBep20Delegate {
     event Log(string x, address y);
     event Log(string x, uint y);
+    event LogLiquidity(uint liquidity);
 
     uint blockNumber = 100000;
     uint harnessExchangeRate;
     bool harnessExchangeRateStored;
 
-    address public tokenAddress;
+    address public comptrollerAddress;
 
     mapping (address => bool) public failTransferToAddresses;
 
-    function setTokenAddress(address _tokenAddress) external {
-        tokenAddress = _tokenAddress;
+    function setComptrollerAddress(address _comptrollerAddress) external {
+        comptrollerAddress = _comptrollerAddress;
     }
 
     function exchangeRateStoredInternal() internal view returns (MathError, uint) {
@@ -65,9 +67,10 @@ contract EvilXToken is VBep20Delegate {
     function doTransferOut(address payable to, uint amount) internal {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
         super.doTransferOut(to, amount);
-        // Evil token tries to borrow more vTokens.
-        // Test for the Reentrancy attack happened on the Defipie and Cream protocols.
-        VBep20Interface(tokenAddress).borrow(amount);
+
+        // Checking the Liquidity of the user after the tranfer.
+        (uint errorCode, uint liquidity, uint shortfall) = ComptrollerInterface(comptrollerAddress).getAccountLiquidity(msg.sender);
+        emit LogLiquidity(liquidity);
         return;
     }
 
