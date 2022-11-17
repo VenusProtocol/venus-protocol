@@ -68,7 +68,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     event MintFee(address minter, uint feeAmount);
 
     /// @notice Emiitted when VAI base rate is changed
-    event NewVAIBaseRate(uint oldBaseRateMantissa, uint newBaseRateMantissa);
+    event NewVAIBaseRate(uint256 oldBaseRateMantissa, uint256 newBaseRateMantissa);
 
     /// @notice Emiitted when VAI float rate is changed
     event NewVAIFloatRate(uint oldFloatRateMantissa, uint newFlatRateMantissa);
