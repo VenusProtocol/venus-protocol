@@ -10,7 +10,6 @@ import "./VAI/VAI.sol";
 import "./ComptrollerStorage.sol";
 import "./Comptroller.sol";
 
-import "hardhat/console.sol";
 
 interface ComptrollerImplInterface {
     function protocolPaused() external view returns (bool);
