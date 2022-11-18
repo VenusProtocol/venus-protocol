@@ -1,25 +1,45 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity ^0.8.10;
 
-import "./ComptrollerInterface.sol";
-import "./VAIControllerInterface.sol";
-import "./VBNB.sol";
-import "./VBep20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import "./Utils/ReentrancyGuard.sol";
 import "./Utils/WithAdmin.sol";
-import "./Utils/SafeMath.sol";
-import "./Utils/IBEP20.sol";
-import "./Utils/SafeBEP20.sol";
+
+interface IComptroller {
+    function liquidationIncentiveMantissa() external view returns (uint256);
+}
+
+interface IVToken is IERC20 {}
+
+interface IVBep20 is IVToken {
+    function underlying() external view returns (address);
+    function liquidateBorrow(address borrower, uint256 repayAmount, IVToken vTokenCollateral)
+        external
+        returns (uint256);
+}
+
+interface IVBNB is IVToken {
+    function liquidateBorrow(address borrower, IVToken vTokenCollateral) external payable;
+}
+
+interface IVAIController {
+    function liquidateVAI(address borrower, uint256 repayAmount, IVToken vTokenCollateral)
+        external
+        returns (uint256, uint256);
+    function getVAIAddress() external view returns (address);
+}
 
 contract Liquidator is WithAdmin, ReentrancyGuard {
 
     /// @notice Address of vBNB contract.
-    VBNB public vBnb;
+    IVBNB public vBnb;
 
     /// @notice Address of Venus Unitroller contract.
     IComptroller comptroller;
 
     /// @notice Address of VAIUnitroller contract.
-    VAIControllerInterface vaiController;
+    IVAIController vaiController;
 
     /// @notice Address of Venus Treasury.
     address public treasury;
@@ -32,10 +52,16 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     event NewLiquidationTreasuryPercent(uint256 oldPercent, uint256 newPercent);
 
     /// @notice Event emitted when a borrow is liquidated
-    event LiquidateBorrowedTokens(address liquidator, address borrower, uint256 repayAmount, address vTokenCollateral, uint256 seizeTokensForTreasury, uint256 seizeTokensForLiquidator);
+    event LiquidateBorrowedTokens(
+        address indexed liquidator,
+        address indexed borrower,
+        uint256 repayAmount,
+        address indexed vTokenCollateral,
+        uint256 seizeTokensForTreasury,
+        uint256 seizeTokensForLiquidator
+    );
 
-    using SafeMath for uint256;
-    using SafeBEP20 for IBEP20;
+    using SafeERC20 for IERC20;
 
     constructor(
         address admin_,
@@ -45,7 +71,6 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         address treasury_,
         uint256 treasuryPercentMantissa_
     )
-        public
         WithAdmin(admin_)
         ReentrancyGuard()
     {
@@ -54,9 +79,9 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         ensureNonzeroAddress(comptroller_);
         ensureNonzeroAddress(vaiController_);
         ensureNonzeroAddress(treasury_);
-        vBnb = VBNB(vBnb_);
+        vBnb = IVBNB(vBnb_);
         comptroller = IComptroller(comptroller_);
-        vaiController = VAIControllerInterface(vaiController_);
+        vaiController = IVAIController(vaiController_);
         treasury = treasury_;
         treasuryPercentMantissa = treasuryPercentMantissa_;
     }
@@ -74,7 +99,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         address vToken,
         address borrower,
         uint256 repayAmount,
-        VToken vTokenCollateral
+        IVToken vTokenCollateral
     )
         external
         payable
@@ -84,17 +109,17 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
         if (vToken == address(vBnb)) {
             require(repayAmount == msg.value, "wrong amount");
-            vBnb.liquidateBorrow.value(msg.value)(borrower, vTokenCollateral);
+            vBnb.liquidateBorrow{value: msg.value}(borrower, vTokenCollateral);
         } else {
             require(msg.value == 0, "you shouldn't pay for this");
             if (vToken == address(vaiController)) {
                 _liquidateVAI(borrower, repayAmount, vTokenCollateral);
             } else {
-                _liquidateBep20(VBep20(vToken), borrower, repayAmount, vTokenCollateral);
+                _liquidateBep20(IVBep20(vToken), borrower, repayAmount, vTokenCollateral);
             }
         }
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
-        uint256 seizedAmount = ourBalanceAfter.sub(ourBalanceBefore);
+        uint256 seizedAmount = ourBalanceAfter - ourBalanceBefore;
         (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(vTokenCollateral, seizedAmount);
         emit LiquidateBorrowedTokens(msg.sender, borrower, repayAmount, address(vTokenCollateral), ours, theirs);
     }
@@ -104,7 +129,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     /// @param newTreasuryPercentMantissa New treasury percent (scaled by 10^18).
     function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external onlyAdmin {
         require(
-            newTreasuryPercentMantissa <= comptroller.liquidationIncentiveMantissa().sub(1e18),
+            newTreasuryPercentMantissa <= comptroller.liquidationIncentiveMantissa() - 1e18,
             "appetite too big"
         );
         emit NewLiquidationTreasuryPercent(treasuryPercentMantissa, newTreasuryPercentMantissa);
@@ -113,14 +138,14 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
 
     /// @dev Transfers BEP20 tokens to self, then approves vToken to take these tokens.
     function _liquidateBep20(
-        VBep20 vToken,
+        IVBep20 vToken,
         address borrower,
         uint256 repayAmount,
-        VToken vTokenCollateral
+        IVToken vTokenCollateral
     )
         internal
     {
-        IBEP20 borrowedToken = IBEP20(vToken.underlying());
+        IERC20 borrowedToken = IERC20(vToken.underlying());
         uint256 actualRepayAmount = _transferBep20(borrowedToken, msg.sender, address(this), repayAmount);
         borrowedToken.safeApprove(address(vToken), 0);
         borrowedToken.safeApprove(address(vToken), actualRepayAmount);
@@ -131,10 +156,10 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     }
 
     /// @dev Transfers BEP20 tokens to self, then approves vai to take these tokens.
-    function _liquidateVAI(address borrower, uint256 repayAmount, VToken vTokenCollateral)
+    function _liquidateVAI(address borrower, uint256 repayAmount, IVToken vTokenCollateral)
         internal
     {
-        IBEP20 vai = IBEP20(vaiController.getVAIAddress());
+        IERC20 vai = IERC20(vaiController.getVAIAddress());
         vai.safeTransferFrom(msg.sender, address(this), repayAmount);
         vai.safeApprove(address(vaiController), repayAmount);
 
@@ -143,7 +168,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     }
 
     /// @dev Splits the received vTokens between the liquidator and treasury.
-    function _distributeLiquidationIncentive(VToken vTokenCollateral, uint256 siezedAmount)
+    function _distributeLiquidationIncentive(IVToken vTokenCollateral, uint256 siezedAmount)
         internal returns (uint256 ours, uint256 theirs)
     {
         (ours, theirs) = _splitLiquidationIncentive(siezedAmount);
@@ -159,13 +184,13 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     }
 
     /// @dev Transfers tokens and returns the actual transfer amount
-    function _transferBep20(IBEP20 token, address from, address to, uint256 amount)
+    function _transferBep20(IERC20 token, address from, address to, uint256 amount)
         internal
         returns (uint256 actualAmount)
     {
         uint256 prevBalance = token.balanceOf(to);
         token.safeTransferFrom(from, to, amount);
-        return token.balanceOf(to).sub(prevBalance);
+        return token.balanceOf(to) - prevBalance;
     }
 
     /// @dev Computes the amounts that would go to treasury and to the liquidator.
@@ -175,9 +200,9 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         returns (uint256 ours, uint256 theirs)
     {
         uint256 totalIncentive = comptroller.liquidationIncentiveMantissa();
-        uint256 seizedForRepayment = seizedAmount.mul(1e18).div(totalIncentive);
-        ours = seizedForRepayment.mul(treasuryPercentMantissa).div(1e18);
-        theirs = seizedAmount.sub(ours);
+        uint256 seizedForRepayment = seizedAmount * 1e18 / totalIncentive;
+        ours = seizedForRepayment * treasuryPercentMantissa / 1e18;
+        theirs = seizedAmount - ours;
         return (ours, theirs);
     }
 
@@ -193,11 +218,11 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
             fullMessage[i] = bytes(message)[i];
         }
 
-        fullMessage[i+0] = byte(uint8(32));
-        fullMessage[i+1] = byte(uint8(40));
-        fullMessage[i+2] = byte(uint8(48 + ( errCode / 10 )));
-        fullMessage[i+3] = byte(uint8(48 + ( errCode % 10 )));
-        fullMessage[i+4] = byte(uint8(41));
+        fullMessage[i+0] = bytes1(uint8(32));
+        fullMessage[i+1] = bytes1(uint8(40));
+        fullMessage[i+2] = bytes1(uint8(48 + ( errCode / 10 )));
+        fullMessage[i+3] = bytes1(uint8(48 + ( errCode % 10 )));
+        fullMessage[i+4] = bytes1(uint8(41));
 
         revert(string(fullMessage));
     }

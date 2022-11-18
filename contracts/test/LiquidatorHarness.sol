@@ -1,7 +1,6 @@
-pragma solidity ^0.5.16;
+pragma solidity ^0.8;
 
 import "../Liquidator.sol";
-import "./ComptrollerScenario.sol";
 
 contract LiquidatorHarness is Liquidator {
 
@@ -29,7 +28,7 @@ contract LiquidatorHarness is Liquidator {
 
     /// @dev Splits the received vTokens between the liquidator and treasury.
     function distributeLiquidationIncentive(
-        VToken vTokenCollateral,
+        IVToken vTokenCollateral,
         uint256 siezedAmount
     ) public returns (uint256 ours, uint256 theirs) {
         (ours, theirs) = super._distributeLiquidationIncentive(vTokenCollateral, siezedAmount);

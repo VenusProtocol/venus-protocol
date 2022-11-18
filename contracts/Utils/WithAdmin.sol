@@ -1,7 +1,7 @@
-pragma solidity ^0.5.16;
+pragma solidity ^0.8;
 
 
-contract WithAdmin {
+abstract contract WithAdmin {
     /// @notice Current admin address
     address public admin;
 
@@ -22,7 +22,7 @@ contract WithAdmin {
         _;
     }
 
-    constructor(address admin_) internal {
+    constructor(address admin_) {
         admin = admin_;
         pendingAdmin = address(0);
     }

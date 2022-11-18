@@ -1,7 +1,7 @@
-pragma solidity ^0.5.16;
+pragma solidity ^0.8;
 
 
-contract ReentrancyGuard {
+abstract contract ReentrancyGuard {
     bool public _notEntered;
 
     /**
@@ -14,7 +14,7 @@ contract ReentrancyGuard {
         _notEntered = true; // get a gas-refund post-Istanbul
     }
 
-    constructor() internal {
+    constructor() {
         _notEntered = true;
     }
 }
