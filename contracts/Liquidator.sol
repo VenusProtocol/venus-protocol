@@ -47,6 +47,12 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     /// @notice Percent of seized amount that goes to treasury.
     uint256 public treasuryPercentMantissa;
 
+    /// @notice Whether the borrower can be liquidated by liquidator if liquidationRestricted[borrower] == true
+    mapping (address => mapping (address => bool)) public liquidationAllowed;
+
+    /// @notice Whether the liquidations are restricted to allowlisted addresses only
+    mapping (address => bool) public liquidationRestricted;
+
     /// @notice Emitted when once changes the percent of the seized amount
     ///         that goes to treasury.
     event NewLiquidationTreasuryPercent(uint256 oldPercent, uint256 newPercent);
@@ -60,6 +66,18 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         uint256 seizeTokensForTreasury,
         uint256 seizeTokensForLiquidator
     );
+
+    /// @notice Emitted when the liquidation is restricted for a certain borrower
+    event LiquidationRestricted(address indexed borrower);
+
+    /// @notice Emitted when the liquidation restrictions are removed for a certain borrower
+    event LiquidationRestrictionsDisabled(address indexed borrower);
+
+    /// @notice Emitted when a liquidator is added to the allowlist
+    event AllowlistEntryAdded(address indexed borrower, address indexed liquidator);
+
+    /// @notice Emitted when a liquidator is removed from the allowlist
+    event AllowlistEntryRemoved(address indexed borrower, address indexed liquidator);
 
     using SafeERC20 for IERC20;
 
@@ -86,6 +104,46 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         treasuryPercentMantissa = treasuryPercentMantissa_;
     }
 
+    /// @notice An admin function to restrict liquidations to allowed addresses only.
+    /// @dev Use {addTo,removeFrom}Allowlist to configure the allowed addresses.
+    /// @param borrower The address of the borrower
+    function restrictLiquidation(address borrower) external onlyAdmin {
+        require(!liquidationRestricted[borrower], "already restricted");
+        liquidationRestricted[borrower] = true;
+        emit LiquidationRestricted(borrower);
+    }
+
+    /// @notice An admin function to remove restrictions for liquidations.
+    /// @dev Does not impact the allowlist for the borrower, just turns off the check.
+    /// @param borrower The address of the borrower
+    function unrestrictLiquidation(address borrower) external onlyAdmin {
+        require(liquidationRestricted[borrower], "not restricted");
+        liquidationRestricted[borrower] = false;
+        emit LiquidationRestrictionsDisabled(borrower);
+    }
+
+    /// @notice An admin function to add the liquidator to the allowlist for a certain
+    ///         borrower. If the liquidations are restricted, only liquidators from the
+    ///         allowlist can participate in liquidating the positions of this borrower.
+    /// @param borrower The address of the borrower
+    /// @param borrower The address of the liquidator
+    function addToAllowlist(address borrower, address liquidator) external onlyAdmin {
+        require(!liquidationAllowed[borrower][liquidator], "already allowed");
+        liquidationAllowed[borrower][liquidator] = true;
+        emit AllowlistEntryAdded(borrower, liquidator);
+    }
+
+    /// @notice An admin function to remove the liquidator from the allowlist of a certain
+    ///         borrower. If the liquidations are restricted, this liquidator will not be
+    ///         able to liquidate the positions of this borrower.
+    /// @param borrower The address of the borrower
+    /// @param borrower The address of the liquidator
+    function removeFromAllowlist(address borrower, address liquidator) external onlyAdmin {
+        require(liquidationAllowed[borrower][liquidator], "not in allowlist");
+        liquidationAllowed[borrower][liquidator] = false;
+        emit AllowlistEntryRemoved(borrower, liquidator);
+    }
+
     /// @notice Liquidates a borrow and splits the seized amount between treasury and
     ///         liquidator. The liquidators should use this interface instead of calling
     ///         vToken.liquidateBorrow(...) directly.
@@ -106,6 +164,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
         nonReentrant
     {
         ensureNonzeroAddress(borrower);
+        checkRestrictions(borrower, msg.sender);
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
         if (vToken == address(vBnb)) {
             require(repayAmount == msg.value, "wrong amount");
@@ -229,5 +288,14 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
 
     function ensureNonzeroAddress(address addr) internal pure {
         require(addr != address(0), "address should be nonzero");
+    }
+
+    function checkRestrictions(address borrower, address liquidator) internal view {
+        if (liquidationRestricted[borrower]) {
+            require(
+                liquidationAllowed[borrower][liquidator],
+                "restricted to allowed liquidators only"
+            );
+        }
     }
 }
