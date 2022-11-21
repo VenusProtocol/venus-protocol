@@ -326,7 +326,7 @@ describe("Comptroller", () => {
 
     describe("mintAllowed", () => {
       beforeEach(async () => {
-        ({ comptroller, vToken  } = await loadFixture(deploy));
+        ({ comptroller, vToken } = await loadFixture(deploy));
         configureVToken(vToken, comptroller);
       });
 
@@ -340,7 +340,11 @@ describe("Comptroller", () => {
         vToken.exchangeRateStored.returns(exchangeRate);
         await comptroller._setMarketSupplyCaps([vToken.address], [cap]);
         expect(
-          await comptroller.callStatic.mintAllowed(vToken.address, await root.getAddress(), convertToUnit("0.9999", 18))
+          await comptroller.callStatic.mintAllowed(
+            vToken.address,
+            await root.getAddress(),
+            convertToUnit("0.9999", 18),
+          ),
         ).to.equal(0); // 0 means "no error"
       });
 
@@ -353,14 +357,16 @@ describe("Comptroller", () => {
         vToken.totalSupply.returns(currentVTokenSupply);
         vToken.exchangeRateStored.returns(exchangeRate);
         await comptroller._setMarketSupplyCaps([vToken.address], [cap]);
-        await expect(comptroller.mintAllowed(vToken.address, await root.getAddress(), convertToUnit("1.01", 18)))
-          .to.be.revertedWith("market supply cap reached");
+        await expect(
+          comptroller.mintAllowed(vToken.address, await root.getAddress(), convertToUnit("1.01", 18)),
+        ).to.be.revertedWith("market supply cap reached");
       });
 
       it("reverts if market is not listed", async () => {
         const someVToken = await smock.fake<VToken>("VToken");
-        await expect(comptroller.mintAllowed(someVToken.address, await root.getAddress(), convertToUnit("1", 18)))
-          .to.be.revertedWith("market not listed");
+        await expect(
+          comptroller.mintAllowed(someVToken.address, await root.getAddress(), convertToUnit("1", 18)),
+        ).to.be.revertedWith("market not listed");
       });
     });
 
