@@ -1,6 +1,6 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import chai from "chai";
-import { constants, Signer } from "ethers";
+import { Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import { Comptroller, Comptroller__factory, IAccessControlManager } from "../../../typechain";
