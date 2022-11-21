@@ -13,6 +13,7 @@ contract ComptrollerErrorReporter {
         MARKET_NOT_ENTERED, // no longer possible
         MARKET_NOT_LISTED,
         MARKET_ALREADY_LISTED,
+        MARKET_ALREADY_UNLISTED,
         MATH_ERROR,
         NONZERO_BORROW_BALANCE,
         PRICE_ERROR,
@@ -42,6 +43,7 @@ contract ComptrollerErrorReporter {
         SET_PENDING_IMPLEMENTATION_OWNER_CHECK,
         SET_PRICE_ORACLE_OWNER_CHECK,
         SUPPORT_MARKET_EXISTS,
+        SUPPORT_MARKET_DOESNOT_EXISTS,
         SUPPORT_MARKET_OWNER_CHECK,
         SET_PAUSE_GUARDIAN_OWNER_CHECK,
         SET_VAI_MINT_RATE_CHECK,

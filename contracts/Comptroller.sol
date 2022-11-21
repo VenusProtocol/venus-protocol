@@ -19,6 +19,9 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
+    /// @notice Emitted when an admin supports a market
+    event MarketUnlisted(VToken vToken);
+
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken vToken, address account);
 
@@ -1014,6 +1017,37 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
             require(allMarkets[i] != vToken, "market already added");
         }
         allMarkets.push(vToken);
+    }
+
+    /**
+      * @notice delete the market to the markets mapping and set it as unlisted
+      * @dev Admin function to set isListed to false and delete support for the market
+      * @param vToken The address of the market (token) to list
+      * @return uint 0=success, otherwise a failure. (See enum Error for details)
+      */
+    function _unlistMarket(VToken vToken) external returns (uint) {
+        ensureAllowed("_unlistMarket(address)");
+
+        if (!markets[address(vToken)].isListed) {
+            return fail(Error.MARKET_ALREADY_UNLISTED, FailureInfo.SUPPORT_MARKET_DOESNOT_EXISTS);
+        }
+
+        vToken.isVToken(); // Sanity check to make sure its really a VToken
+
+        _removeMarketInternal(vToken);
+
+        emit MarketUnlisted(vToken);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    function _removeMarketInternal(VToken vToken) internal {
+        markets[address(vToken)].isListed = false; 
+        for (uint i = 0; i < allMarkets.length; ++i) {
+            if(allMarkets[i] == vToken){
+                delete allMarkets[i];
+            }
+        }
     }
 
     /**
