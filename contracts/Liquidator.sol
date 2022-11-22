@@ -65,6 +65,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         address indexed liquidator,
         address indexed borrower,
         uint256 repayAmount,
+        address vTokenBorrowed,
         address indexed vTokenCollateral,
         uint256 seizeTokensForTreasury,
         uint256 seizeTokensForLiquidator
@@ -196,7 +197,15 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
         uint256 seizedAmount = ourBalanceAfter - ourBalanceBefore;
         (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(vTokenCollateral, seizedAmount);
-        emit LiquidateBorrowedTokens(msg.sender, borrower, repayAmount, address(vTokenCollateral), ours, theirs);
+        emit LiquidateBorrowedTokens(
+            msg.sender,
+            borrower,
+            repayAmount,
+            vToken,
+            address(vTokenCollateral),
+            ours,
+            theirs
+        );
     }
 
     /// @notice Sets the new percent of the seized amount that goes to treasury. Should
