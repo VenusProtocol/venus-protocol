@@ -47,6 +47,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable treasury;
 
+
+    /* State */
+
     /// @notice Percent of seized amount that goes to treasury.
     uint256 public treasuryPercentMantissa;
 
@@ -55,6 +58,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
 
     /// @notice Whether the liquidations are restricted to allowlisted addresses only
     mapping (address => bool) public liquidationRestricted;
+
+
+    /* Events */
 
     /// @notice Emitted when once changes the percent of the seized amount
     ///         that goes to treasury.
@@ -82,6 +88,41 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
 
     /// @notice Emitted when a liquidator is removed from the allowlist
     event AllowlistEntryRemoved(address indexed borrower, address indexed liquidator);
+
+
+    /* Errors */
+
+    /// @notice Thrown if the liquidation is restricted and the liquidator is not in the allowlist
+    error LiquidationNotAllowed(address borrower, address liquidator);
+
+    /// @notice Thrown if VToken transfer fails after the liquidation
+    error VTokenTransferFailed(address from, address to, uint256 amount);
+
+    /// @notice Thrown if the liquidation is not successful (the error code is from TokenErrorReporter)
+    error LiquidationFailed(uint256 errorCode);
+
+    /// @notice Thrown if trying to restrict liquidations for an already restricted borrower
+    error AlreadyRestricted(address borrower);
+
+    /// @notice Thrown if trying to unrestrict liquidations for a borrower that is not restricted
+    error NoRestrictionsExist(address borrower);
+
+    /// @notice Thrown if the liquidator is already in the allowlist
+    error AlreadyAllowed(address borrower, address liquidator);
+
+    /// @notice Thrown if trying to remove a liquidator that is not in the allowlist
+    error AllowlistEntryNotFound(address borrower, address liquidator);
+
+    /// @notice Thrown if BNB amount sent with the transaction doesn't correspond to the
+    ///         intended BNB repayment
+    error WrongTransactionAmount(uint256 expected, uint256 actual);
+
+    /// @notice Thrown if the argument is a zero address, probably it is a mistake
+    error UnexpectedZeroAddress();
+
+    /// @notice Thrown if trying to set treasury percent larger than the liquidation profit
+    error TreasuryPercentTooHigh(uint256 maxTreasuryPercentMantissa, uint256 treasuryPercentMantissa_);
+
 
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -118,6 +159,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @dev Liquidator initializer for derived contracts that doesn't call parent initializers.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
     function __Liquidator_init_unchained(uint256 treasuryPercentMantissa_) internal onlyInitializing {
+        validateTreasuryPercentMantissa(treasuryPercentMantissa_);
         treasuryPercentMantissa = treasuryPercentMantissa_;
     }
 
@@ -125,7 +167,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @dev Use {addTo,removeFrom}Allowlist to configure the allowed addresses.
     /// @param borrower The address of the borrower
     function restrictLiquidation(address borrower) external onlyOwner {
-        require(!liquidationRestricted[borrower], "already restricted");
+        if (liquidationRestricted[borrower]) {
+            revert AlreadyRestricted(borrower);
+        }
         liquidationRestricted[borrower] = true;
         emit LiquidationRestricted(borrower);
     }
@@ -134,7 +178,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @dev Does not impact the allowlist for the borrower, just turns off the check.
     /// @param borrower The address of the borrower
     function unrestrictLiquidation(address borrower) external onlyOwner {
-        require(liquidationRestricted[borrower], "not restricted");
+        if (!liquidationRestricted[borrower]) {
+            revert NoRestrictionsExist(borrower);
+        }
         liquidationRestricted[borrower] = false;
         emit LiquidationRestrictionsDisabled(borrower);
     }
@@ -145,7 +191,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @param borrower The address of the borrower
     /// @param borrower The address of the liquidator
     function addToAllowlist(address borrower, address liquidator) external onlyOwner {
-        require(!liquidationAllowed[borrower][liquidator], "already allowed");
+        if (liquidationAllowed[borrower][liquidator]) {
+            revert AlreadyAllowed(borrower, liquidator);
+        }
         liquidationAllowed[borrower][liquidator] = true;
         emit AllowlistEntryAdded(borrower, liquidator);
     }
@@ -156,7 +204,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @param borrower The address of the borrower
     /// @param borrower The address of the liquidator
     function removeFromAllowlist(address borrower, address liquidator) external onlyOwner {
-        require(liquidationAllowed[borrower][liquidator], "not in allowlist");
+        if (!liquidationAllowed[borrower][liquidator]) {
+            revert AllowlistEntryNotFound(borrower, liquidator);
+        }
         liquidationAllowed[borrower][liquidator] = false;
         emit AllowlistEntryRemoved(borrower, liquidator);
     }
@@ -184,10 +234,14 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         checkRestrictions(borrower, msg.sender);
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
         if (vToken == address(vBnb)) {
-            require(repayAmount == msg.value, "wrong amount");
+            if (repayAmount != msg.value) {
+                revert WrongTransactionAmount(repayAmount, msg.value);
+            }
             vBnb.liquidateBorrow{value: msg.value}(borrower, vTokenCollateral);
         } else {
-            require(msg.value == 0, "you shouldn't pay for this");
+            if (msg.value != 0) {
+                revert WrongTransactionAmount(0, msg.value);
+            }
             if (vToken == address(vaiController)) {
                 _liquidateVAI(borrower, repayAmount, vTokenCollateral);
             } else {
@@ -212,10 +266,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     ///         be less than or equal to comptroller.liquidationIncentiveMantissa().sub(1e18).
     /// @param newTreasuryPercentMantissa New treasury percent (scaled by 10^18).
     function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external onlyOwner {
-        require(
-            newTreasuryPercentMantissa <= comptroller.liquidationIncentiveMantissa() - 1e18,
-            "appetite too big"
-        );
+        validateTreasuryPercentMantissa(newTreasuryPercentMantissa);
         emit NewLiquidationTreasuryPercent(treasuryPercentMantissa, newTreasuryPercentMantissa);
         treasuryPercentMantissa = newTreasuryPercentMantissa;
     }
@@ -234,8 +285,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         borrowedToken.safeApprove(address(vToken), 0);
         borrowedToken.safeApprove(address(vToken), actualRepayAmount);
         requireNoError(
-            vToken.liquidateBorrow(borrower, actualRepayAmount, vTokenCollateral),
-            "failed to liquidate"
+            vToken.liquidateBorrow(borrower, actualRepayAmount, vTokenCollateral)
         );
     }
 
@@ -245,10 +295,11 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     {
         IERC20Upgradeable vai = IERC20Upgradeable(vaiController.getVAIAddress());
         vai.safeTransferFrom(msg.sender, address(this), repayAmount);
+        vai.safeApprove(address(vaiController), 0);
         vai.safeApprove(address(vaiController), repayAmount);
 
         (uint err,) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
-        requireNoError(err, "failed to liquidate");
+        requireNoError(err);
     }
 
     /// @dev Splits the received vTokens between the liquidator and treasury.
@@ -256,14 +307,12 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         internal returns (uint256 ours, uint256 theirs)
     {
         (ours, theirs) = _splitLiquidationIncentive(siezedAmount);
-        require(
-            vTokenCollateral.transfer(msg.sender, theirs),
-            "failed to transfer to liquidator"
-        );
-        require(
-            vTokenCollateral.transfer(treasury, ours),
-            "failed to transfer to treasury"
-        );
+        if (!vTokenCollateral.transfer(msg.sender, theirs)) {
+            revert VTokenTransferFailed(address(this), msg.sender, theirs);
+        }
+        if (!vTokenCollateral.transfer(treasury, ours)) {
+            revert VTokenTransferFailed(address(this), treasury, ours);
+        }
         return (ours, theirs);
     }
 
@@ -290,37 +339,30 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         return (ours, theirs);
     }
 
-    function requireNoError(uint errCode, string memory message) internal pure {
+    function requireNoError(uint errCode) internal pure {
         if (errCode == uint(0)) {
             return;
         }
 
-        bytes memory fullMessage = new bytes(bytes(message).length + 5);
-        uint i;
-
-        for (i = 0; i < bytes(message).length; i++) {
-            fullMessage[i] = bytes(message)[i];
-        }
-
-        fullMessage[i+0] = bytes1(uint8(32));
-        fullMessage[i+1] = bytes1(uint8(40));
-        fullMessage[i+2] = bytes1(uint8(48 + ( errCode / 10 )));
-        fullMessage[i+3] = bytes1(uint8(48 + ( errCode % 10 )));
-        fullMessage[i+4] = bytes1(uint8(41));
-
-        revert(string(fullMessage));
+        revert LiquidationFailed(errCode);
     }
 
-    function ensureNonzeroAddress(address addr) internal pure {
-        require(addr != address(0), "address should be nonzero");
+    function ensureNonzeroAddress(address address_) internal pure {
+        if (address_ == address(0)) {
+            revert UnexpectedZeroAddress();
+        }
     }
 
     function checkRestrictions(address borrower, address liquidator) internal view {
-        if (liquidationRestricted[borrower]) {
-            require(
-                liquidationAllowed[borrower][liquidator],
-                "restricted to allowed liquidators only"
-            );
+        if (liquidationRestricted[borrower] && !liquidationAllowed[borrower][liquidator]) {
+            revert LiquidationNotAllowed(borrower, liquidator);
+        }
+    }
+
+    function validateTreasuryPercentMantissa(uint256 treasuryPercentMantissa_) internal view {
+        uint256 maxTreasuryPercentMantissa = comptroller.liquidationIncentiveMantissa() - 1e18;
+        if (treasuryPercentMantissa_ > maxTreasuryPercentMantissa) {
+            revert TreasuryPercentTooHigh(maxTreasuryPercentMantissa, treasuryPercentMantissa_);
         }
     }
 }

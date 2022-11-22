@@ -22,6 +22,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const treasuryPercentMantissa = convertToUnit("0.05", 18);
 
   const comptroller = await smock.fake<Comptroller>("Comptroller");
+  comptroller.liquidationIncentiveMantissa.returns(convertToUnit("1.1", 18));
   const vBnb = await smock.fake<VBNB>("VBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
@@ -67,7 +68,9 @@ describe("Liquidator", () => {
 
       it("fails if already in the allowlist", async () => {
         await liquidator.addToAllowlist(borrower.address, guy.address);
-        await expect(liquidator.addToAllowlist(borrower.address, guy.address)).to.be.revertedWith("already allowed");
+        await expect(liquidator.addToAllowlist(borrower.address, guy.address))
+          .to.be.revertedWithCustomError(liquidator, "AlreadyAllowed")
+          .withArgs(borrower.address, guy.address);
       });
 
       it("emits LiquidationPermissionGranted event", async () => {
@@ -85,9 +88,9 @@ describe("Liquidator", () => {
       });
 
       it("fails if not in the allowlist", async () => {
-        await expect(liquidator.removeFromAllowlist(borrower.address, guy.address)).to.be.revertedWith(
-          "not in allowlist",
-        );
+        await expect(liquidator.removeFromAllowlist(borrower.address, guy.address))
+          .to.be.revertedWithCustomError(liquidator, "AllowlistEntryNotFound")
+          .withArgs(borrower.address, guy.address);
       });
 
       it("removes address from allowlist", async () => {
@@ -120,7 +123,9 @@ describe("Liquidator", () => {
       it("fails if already restricted", async () => {
         await liquidator.restrictLiquidation(borrower.address);
         expect(await liquidator.liquidationRestricted(borrower.address)).to.equal(true);
-        await expect(liquidator.restrictLiquidation(borrower.address)).to.be.revertedWith("already restricted");
+        await expect(liquidator.restrictLiquidation(borrower.address))
+          .to.be.revertedWithCustomError(liquidator, "AlreadyRestricted")
+          .withArgs(borrower.address);
       });
 
       it("emits LiquidationRestricted event", async () => {
@@ -145,7 +150,9 @@ describe("Liquidator", () => {
       });
 
       it("fails if not restricted", async () => {
-        await expect(liquidator.unrestrictLiquidation(borrower.address)).to.be.revertedWith("not restricted");
+        await expect(liquidator.unrestrictLiquidation(borrower.address))
+          .to.be.revertedWithCustomError(liquidator, "NoRestrictionsExist")
+          .withArgs(borrower.address);
       });
 
       it("emits LiquidationRestricted event", async () => {
@@ -161,8 +168,10 @@ describe("Liquidator", () => {
         await liquidator.restrictLiquidation(borrower.address);
         const repayAmount = "1";
         await expect(
-          liquidator.liquidateBorrow(vBep20.address, borrower.address, repayAmount, vBep20.address),
-        ).to.be.revertedWith("restricted to allowed liquidators only");
+          liquidator.connect(guy).liquidateBorrow(vBep20.address, borrower.address, repayAmount, vBep20.address),
+        )
+          .to.be.revertedWithCustomError(liquidator, "LiquidationNotAllowed")
+          .withArgs(borrower.address, guy.address);
       });
 
       it("proceeds with the liquidation if the guy is allowed to", async () => {
@@ -171,7 +180,7 @@ describe("Liquidator", () => {
         const repayAmount = "1";
         await expect(
           liquidator.connect(guy).liquidateBorrow(vBep20.address, borrower.address, repayAmount, vBep20.address),
-        ).to.not.be.revertedWith("restricted to allowed liquidators only");
+        ).to.not.be.revertedWithCustomError(liquidator, "LiquidationNotAllowed");
       });
     });
   });
