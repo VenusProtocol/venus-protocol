@@ -333,8 +333,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         returns (uint256 ours, uint256 theirs)
     {
         uint256 totalIncentive = comptroller.liquidationIncentiveMantissa();
-        uint256 seizedForRepayment = seizedAmount * 1e18 / totalIncentive;
-        ours = seizedForRepayment * treasuryPercentMantissa / 1e18;
+        ours = seizedAmount * treasuryPercentMantissa / totalIncentive;
         theirs = seizedAmount - ours;
         return (ours, theirs);
     }
