@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.10;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "./Utils/ReentrancyGuard.sol";
-import "./Utils/WithAdmin.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 interface IComptroller {
     function liquidationIncentiveMantissa() external view returns (uint256);
+    function vaiController() external view returns (IVAIController);
 }
 
-interface IVToken is IERC20 {}
+interface IVToken is IERC20Upgradeable {}
 
 interface IVBep20 is IVToken {
     function underlying() external view returns (address);
@@ -30,19 +30,22 @@ interface IVAIController {
     function getVAIAddress() external view returns (address);
 }
 
-contract Liquidator is WithAdmin, ReentrancyGuard {
-
+contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice Address of vBNB contract.
-    IVBNB public vBnb;
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IVBNB public immutable vBnb;
 
     /// @notice Address of Venus Unitroller contract.
-    IComptroller comptroller;
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IComptroller public immutable comptroller;
 
     /// @notice Address of VAIUnitroller contract.
-    IVAIController vaiController;
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IVAIController public immutable vaiController;
 
     /// @notice Address of Venus Treasury.
-    address public treasury;
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable treasury;
 
     /// @notice Percent of seized amount that goes to treasury.
     uint256 public treasuryPercentMantissa;
@@ -79,35 +82,48 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     /// @notice Emitted when a liquidator is removed from the allowlist
     event AllowlistEntryRemoved(address indexed borrower, address indexed liquidator);
 
-    using SafeERC20 for IERC20;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    constructor(
-        address admin_,
-        address payable vBnb_,
-        address comptroller_,
-        address vaiController_,
-        address treasury_,
-        uint256 treasuryPercentMantissa_
-    )
-        WithAdmin(admin_)
-        ReentrancyGuard()
-    {
-        ensureNonzeroAddress(admin_);
+    /// @notice Constructor for the implementation contract. Sets immutable variables.
+    /// @param comptroller_ The address of the Comptroller contract
+    /// @param vBnb_ The address of the VBNB
+    /// @param treasury_ The address of Venus treasury
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(address comptroller_, address payable vBnb_, address treasury_) {
         ensureNonzeroAddress(vBnb_);
         ensureNonzeroAddress(comptroller_);
-        ensureNonzeroAddress(vaiController_);
         ensureNonzeroAddress(treasury_);
         vBnb = IVBNB(vBnb_);
         comptroller = IComptroller(comptroller_);
-        vaiController = IVAIController(vaiController_);
+        vaiController = IVAIController(IComptroller(comptroller_).vaiController());
         treasury = treasury_;
+        _disableInitializers();
+    }
+
+    /// @notice Initializer for the implementation contract.
+    /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
+    function initialize(uint256 treasuryPercentMantissa_) external virtual initializer {
+        __Liquidator_init(treasuryPercentMantissa_);
+    }
+
+    /// @dev Liquidator initializer for derived contracts.
+    /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
+    function __Liquidator_init(uint256 treasuryPercentMantissa_) internal onlyInitializing {
+        __Ownable2Step_init();
+        __ReentrancyGuard_init();
+        __Liquidator_init_unchained(treasuryPercentMantissa_);
+    }
+
+    /// @dev Liquidator initializer for derived contracts that doesn't call parent initializers.
+    /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
+    function __Liquidator_init_unchained(uint256 treasuryPercentMantissa_) internal onlyInitializing {
         treasuryPercentMantissa = treasuryPercentMantissa_;
     }
 
     /// @notice An admin function to restrict liquidations to allowed addresses only.
     /// @dev Use {addTo,removeFrom}Allowlist to configure the allowed addresses.
     /// @param borrower The address of the borrower
-    function restrictLiquidation(address borrower) external onlyAdmin {
+    function restrictLiquidation(address borrower) external onlyOwner {
         require(!liquidationRestricted[borrower], "already restricted");
         liquidationRestricted[borrower] = true;
         emit LiquidationRestricted(borrower);
@@ -116,7 +132,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     /// @notice An admin function to remove restrictions for liquidations.
     /// @dev Does not impact the allowlist for the borrower, just turns off the check.
     /// @param borrower The address of the borrower
-    function unrestrictLiquidation(address borrower) external onlyAdmin {
+    function unrestrictLiquidation(address borrower) external onlyOwner {
         require(liquidationRestricted[borrower], "not restricted");
         liquidationRestricted[borrower] = false;
         emit LiquidationRestrictionsDisabled(borrower);
@@ -127,7 +143,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     ///         allowlist can participate in liquidating the positions of this borrower.
     /// @param borrower The address of the borrower
     /// @param borrower The address of the liquidator
-    function addToAllowlist(address borrower, address liquidator) external onlyAdmin {
+    function addToAllowlist(address borrower, address liquidator) external onlyOwner {
         require(!liquidationAllowed[borrower][liquidator], "already allowed");
         liquidationAllowed[borrower][liquidator] = true;
         emit AllowlistEntryAdded(borrower, liquidator);
@@ -138,7 +154,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     ///         able to liquidate the positions of this borrower.
     /// @param borrower The address of the borrower
     /// @param borrower The address of the liquidator
-    function removeFromAllowlist(address borrower, address liquidator) external onlyAdmin {
+    function removeFromAllowlist(address borrower, address liquidator) external onlyOwner {
         require(liquidationAllowed[borrower][liquidator], "not in allowlist");
         liquidationAllowed[borrower][liquidator] = false;
         emit AllowlistEntryRemoved(borrower, liquidator);
@@ -186,7 +202,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     /// @notice Sets the new percent of the seized amount that goes to treasury. Should
     ///         be less than or equal to comptroller.liquidationIncentiveMantissa().sub(1e18).
     /// @param newTreasuryPercentMantissa New treasury percent (scaled by 10^18).
-    function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external onlyAdmin {
+    function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external onlyOwner {
         require(
             newTreasuryPercentMantissa <= comptroller.liquidationIncentiveMantissa() - 1e18,
             "appetite too big"
@@ -204,7 +220,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     )
         internal
     {
-        IERC20 borrowedToken = IERC20(vToken.underlying());
+        IERC20Upgradeable borrowedToken = IERC20Upgradeable(vToken.underlying());
         uint256 actualRepayAmount = _transferBep20(borrowedToken, msg.sender, address(this), repayAmount);
         borrowedToken.safeApprove(address(vToken), 0);
         borrowedToken.safeApprove(address(vToken), actualRepayAmount);
@@ -218,7 +234,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     function _liquidateVAI(address borrower, uint256 repayAmount, IVToken vTokenCollateral)
         internal
     {
-        IERC20 vai = IERC20(vaiController.getVAIAddress());
+        IERC20Upgradeable vai = IERC20Upgradeable(vaiController.getVAIAddress());
         vai.safeTransferFrom(msg.sender, address(this), repayAmount);
         vai.safeApprove(address(vaiController), repayAmount);
 
@@ -243,7 +259,7 @@ contract Liquidator is WithAdmin, ReentrancyGuard {
     }
 
     /// @dev Transfers tokens and returns the actual transfer amount
-    function _transferBep20(IERC20 token, address from, address to, uint256 amount)
+    function _transferBep20(IERC20Upgradeable token, address from, address to, uint256 amount)
         internal
         returns (uint256 actualAmount)
     {

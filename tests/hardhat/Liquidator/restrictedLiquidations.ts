@@ -2,16 +2,15 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
-import { Comptroller, Liquidator, Liquidator__factory, VAIController, VBNB, VBep20Immutable } from "../../../typechain";
+import { Comptroller, Liquidator, Liquidator__factory, VBNB, VBep20Immutable } from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
 
 type LiquidatorFixture = {
-  vaiController: FakeContract<VAIController>;
   vBep20: FakeContract<VBep20Immutable>;
   vBnb: FakeContract<VBNB>;
   comptroller: FakeContract<Comptroller>;
@@ -19,25 +18,19 @@ type LiquidatorFixture = {
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
-  const [admin, treasury] = await ethers.getSigners();
+  const [, treasury] = await ethers.getSigners();
   const treasuryPercentMantissa = convertToUnit("0.05", 18);
 
   const comptroller = await smock.fake<Comptroller>("Comptroller");
-  const vaiController = await smock.fake<VAIController>("VAIController");
   const vBnb = await smock.fake<VBNB>("VBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
   const Liquidator = await smock.mock<Liquidator__factory>("Liquidator");
-  const liquidator = await Liquidator.deploy(
-    admin.address,
-    vBnb.address,
-    comptroller.address,
-    vaiController.address,
-    treasury.address,
-    treasuryPercentMantissa,
-  );
+  const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercentMantissa], {
+    constructorArgs: [comptroller.address, vBnb.address, treasury.address],
+  });
 
-  return { comptroller, vaiController, vBnb, vBep20, liquidator };
+  return { comptroller, vBnb, vBep20, liquidator };
 }
 
 function configure(fixture: LiquidatorFixture) {
@@ -63,7 +56,7 @@ describe("Liquidator", () => {
     describe("addToAllowlist", async () => {
       it("fails if called by a non-admin", async () => {
         await expect(liquidator.connect(guy).addToAllowlist(borrower.address, guy.address)).to.be.revertedWith(
-          "only admin allowed",
+          "Ownable: caller is not the owner",
         );
       });
 
@@ -87,7 +80,7 @@ describe("Liquidator", () => {
     describe("removeFromAllowlist", async () => {
       it("fails if called by a non-admin", async () => {
         await expect(liquidator.connect(guy).removeFromAllowlist(borrower.address, guy.address)).to.be.revertedWith(
-          "only admin allowed",
+          "Ownable: caller is not the owner",
         );
       });
 
@@ -115,7 +108,7 @@ describe("Liquidator", () => {
     describe("restrictLiquidation", async () => {
       it("fails if called by a non-admin", async () => {
         await expect(liquidator.connect(guy).restrictLiquidation(borrower.address)).to.be.revertedWith(
-          "only admin allowed",
+          "Ownable: caller is not the owner",
         );
       });
 
@@ -140,7 +133,7 @@ describe("Liquidator", () => {
     describe("unrestrictLiquidation", async () => {
       it("fails if called by a non-admin", async () => {
         await expect(liquidator.connect(guy).unrestrictLiquidation(borrower.address)).to.be.revertedWith(
-          "only admin allowed",
+          "Ownable: caller is not the owner",
         );
       });
 

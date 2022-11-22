@@ -22,6 +22,7 @@
   "author": "Venus",
   "license": "BSD-3-Clause",
   "dependencies": {
+    "@openzeppelin/contracts-upgradeable": "^4.8.0",
     "dotenv": "^16.0.1"
   },
   "peerDependencies": {
@@ -39,6 +40,7 @@
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
+    "@openzeppelin/hardhat-upgrades": "^1.21.0",
     "@trivago/prettier-plugin-sort-imports": "^3.3.1",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
