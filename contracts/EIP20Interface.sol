@@ -18,7 +18,7 @@ interface EIP20Interface {
     /**
      * @notice Gets the balance of the specified address
      * @param owner The address from which the balance will be retrieved
-     * @return The balance
+     * @return balance
      */
     function balanceOf(address owner) external view returns (uint256 balance);
 
@@ -26,7 +26,7 @@ interface EIP20Interface {
       * @notice Transfer `amount` tokens from `msg.sender` to `dst`
       * @param dst The address of the destination account
       * @param amount The number of tokens to transfer
-      * @return Whether or not the transfer succeeded
+      * @return success whether or not the transfer succeeded
       */
     function transfer(address dst, uint256 amount) external returns (bool success);
 
@@ -35,7 +35,7 @@ interface EIP20Interface {
       * @param src The address of the source account
       * @param dst The address of the destination account
       * @param amount The number of tokens to transfer
-      * @return Whether or not the transfer succeeded
+      * @return success whether or not the transfer succeeded
       */
     function transferFrom(address src, address dst, uint256 amount) external returns (bool success);
 
@@ -44,7 +44,7 @@ interface EIP20Interface {
       * @dev This will overwrite the approval amount for `spender`
       * @param spender The address of the account which may transfer tokens
       * @param amount The number of tokens that are approved (-1 means infinite)
-      * @return Whether or not the approval succeeded
+      * @return success whether or not the approval succeeded
       */
     function approve(address spender, uint256 amount) external returns (bool success);
 
@@ -52,7 +52,7 @@ interface EIP20Interface {
       * @notice Get the current allowance from `owner` for `spender`
       * @param owner The address of the account which owns the tokens to be spent
       * @param spender The address of the account which may transfer tokens
-      * @return The number of tokens allowed to be spent (-1 means infinite)
+      * @return remaining The number of tokens allowed to be spent
       */
     function allowance(address owner, address spender) external view returns (uint256 remaining);
 
