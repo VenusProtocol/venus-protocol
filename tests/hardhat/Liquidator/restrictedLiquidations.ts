@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { ethers, upgrades } from "hardhat";
 
-import { convertToUnit } from "../../../helpers/utils";
+import { convertToBigInt } from "../../../helpers/utils";
 import { Comptroller, Liquidator, Liquidator__factory, VBNB, VBep20Immutable } from "../../../typechain";
 
 const { expect } = chai;
@@ -19,10 +19,10 @@ type LiquidatorFixture = {
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
   const [, treasury] = await ethers.getSigners();
-  const treasuryPercentMantissa = convertToUnit("0.05", 18);
+  const treasuryPercentMantissa = convertToBigInt("0.05", 18);
 
   const comptroller = await smock.fake<Comptroller>("Comptroller");
-  comptroller.liquidationIncentiveMantissa.returns(convertToUnit("1.1", 18));
+  comptroller.liquidationIncentiveMantissa.returns(convertToBigInt("1.1", 18));
   const vBnb = await smock.fake<VBNB>("VBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
@@ -36,7 +36,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
 
 function configure(fixture: LiquidatorFixture) {
   const { comptroller } = fixture;
-  comptroller.liquidationIncentiveMantissa.returns(convertToUnit("1.1", 18));
+  comptroller.liquidationIncentiveMantissa.returns(convertToBigInt("1.1", 18));
 }
 
 describe("Liquidator", () => {
