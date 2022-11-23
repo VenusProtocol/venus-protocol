@@ -5,6 +5,7 @@ import "../VAIController.sol";
 contract VAIControllerHarness is VAIController {
     address vaiAddress;
     uint public blockNumber;
+    uint public blocksPerYear;
 
     constructor() VAIController() public {
         admin = msg.sender;
@@ -13,6 +14,12 @@ contract VAIControllerHarness is VAIController {
     function setVenusVAIState(uint224 index, uint32 blockNumber_) public {
         venusVAIState.index = index;
         venusVAIState.block = blockNumber_;
+    }
+
+    function initVenusVAIInterestState() public {
+        vaiMintIndex = 1e18;
+        accrualBlockNumber = getBlockNumber();
+        mintCap = uint(-1);
     }
 
     function setVAIAddress(address vaiAddress_) public {
@@ -46,7 +53,15 @@ contract VAIControllerHarness is VAIController {
         blockNumber = number;
     }
 
+    function setBlocksPerYear(uint number) public {
+        blocksPerYear = number;
+    }
+
     function getBlockNumber() public view returns (uint) {
         return blockNumber;
+    }
+
+    function getBlocksPerYear() public view returns (uint) {
+        return blocksPerYear;
     }
 }

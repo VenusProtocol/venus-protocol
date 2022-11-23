@@ -57,4 +57,36 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
 
     /// @notice Guard variable for re-entrancy checks
     bool internal _notEntered;
+
+    /**
+     * @notice The base rate for stability fee
+     */
+    uint public baseRateMantissa;
+
+    /**
+     * @notice The float rate for stability fee
+     */
+    uint public floatRateMantissa;
+
+    /**
+     * @notice The address for VAI receiver
+     */
+    address public receiver;
+
+    /**
+     * @notice Accumulator of the total earned interest rate since the opening of the market. For example: 0.6 (60%)
+     */
+    uint vaiMintIndex;
+
+    // @notice Block number that interest was last accrued at
+    uint accrualBlockNumber;
+
+    // @notice Global vaiMintIndex as of the most recent balance-changing action for user
+    mapping (address => uint) vaiMinterInterestIndex;
+
+    // @notice tracks the amount of mintedVAI of a user that represents the accrued interest
+    mapping(address => uint) public pastVAIInterest;
+
+    // @notice VAI mint cap
+    uint mintCap;
 }
