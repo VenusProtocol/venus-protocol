@@ -67,7 +67,7 @@ describe("Governor Bravo Cast Vote Test", () => {
     await governorBravoDelegate.setVariable("proposalCount", 1);
     await governorBravoDelegate.setVariable("xvsVault", xvsVault.address);
     await governorBravoDelegate.setVariable("proposalMaxOperations", 10);
-    await governorBravoDelegate.setVariable("proposalConfigs",proposalConfigs);
+    await governorBravoDelegate.setVariable("proposalConfigs", proposalConfigs);
   });
   describe("We must revert if:", () => {
     let customerAddress;
