@@ -7,8 +7,8 @@ import "@typechain/hardhat";
 import { ethers } from "ethers";
 import fs from "fs";
 import "hardhat-deploy";
-import "solidity-docgen";
 import { HardhatUserConfig, task } from "hardhat/config";
+import "solidity-docgen";
 
 require("dotenv").config();
 
@@ -136,7 +136,7 @@ const config: HardhatUserConfig = {
   docgen: {
     outputDir: "./docs",
     pages: "files",
-  }
+  },
 };
 
 export default config;
