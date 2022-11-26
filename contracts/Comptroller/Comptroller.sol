@@ -15,7 +15,7 @@ import "./Unitroller.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -49,8 +49,11 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
 
-    /// @notice Emitted when a new Venus speed is calculated for a market
-    event VenusSpeedUpdated(VToken indexed vToken, uint newSpeed);
+    /// @notice Emitted when a new borrow-side VENUS speed is calculated for a market
+    event VenusBorrowSpeedUpdated(VToken indexed vToken, uint newSpeed);
+
+    /// @notice Emitted when a new supply-side VENUS speed is calculated for a market
+    event VenusSupplySpeedUpdated(VToken indexed vToken, uint newSpeed); 
 
     /// @notice Emitted when XVS is distributed to a supplier
     event DistributedSupplierVenus(VToken indexed vToken, address indexed supplier, uint venusDelta, uint venusSupplyIndex);
@@ -1004,6 +1007,7 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         markets[address(vToken)] = Market({isListed: true, isVenus: false, collateralFactorMantissa: 0});
 
         _addMarketInternal(vToken);
+        _initializeMarket(address(vToken));
 
         emit MarketListed(vToken);
 
@@ -1015,6 +1019,31 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
             require(allMarkets[i] != vToken, "market already added");
         }
         allMarkets.push(vToken);
+    }
+
+    function _initializeMarket(address vToken) internal {
+        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
+
+        VenusMarketState storage supplyState = venusSupplyState[vToken];
+        VenusMarketState storage borrowState = venusBorrowState[vToken];
+
+        /*
+         * Update market state indices
+         */
+        if (supplyState.index == 0) {
+             // Initialize supply state index with default value
+            supplyState.index = venusInitialIndex;
+        }
+
+        if (borrowState.index == 0) {
+            // Initialize borrow state index with default value
+            borrowState.index = venusInitialIndex;
+        }
+
+        /*
+         * Update market state block numbers
+         */
+         supplyState.block = borrowState.block = blockNumber;
     }
 
     /**
@@ -1178,40 +1207,69 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
     function _become(Unitroller unitroller) external {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
         require(unitroller._acceptImplementation() == 0, "not authorized");
+
+
+        // TODO: Remove this post upgrade
+        Comptroller(address(unitroller))._upgradeSplitVenusRewards();
+    }
+
+    function _upgradeSplitVenusRewards() public {
+        require(msg.sender == comptrollerImplementation, "only brains can become itself");
+
+        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
+
+        // venusSpeeds -> venusBorrowSpeeds & venusSupplySpeeds t
+        for (uint i = 0; i < allMarkets.length; i ++) {
+            venusBorrowSpeeds[address(allMarkets[i])] = venusSupplySpeeds[address(allMarkets[i])] = venusSpeeds[address(allMarkets[i])];
+            delete venusSpeeds[address(allMarkets[i])];
+
+            /*
+             * Ensure supply and borrow state indices are all set. If not set, update to default value
+             */
+            VenusMarketState storage supplyState = venusSupplyState[address(allMarkets[i])];
+            VenusMarketState storage borrowState = venusBorrowState[address(allMarkets[i])];
+
+            if (supplyState.index == 0) {
+                // Initialize supply state index with default value
+                supplyState.index = venusInitialIndex;
+                supplyState.block = blockNumber;
+            }
+
+            if (borrowState.index == 0) {
+                // Initialize borrow state index with default value
+                borrowState.index = venusInitialIndex;
+                borrowState.block = blockNumber;
+            }
+        }
     }
 
     /*** Venus Distribution ***/
 
-    function setVenusSpeedInternal(VToken vToken, uint venusSpeed) internal {
-        uint currentVenusSpeed = venusSpeeds[address(vToken)];
-        if (currentVenusSpeed != 0) {
-            // note that XVS speed could be set to 0 to halt liquidity rewards for a market
-            Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
+    function setVenusSpeedInternal(VToken vToken, uint supplySpeed, uint borrowSpeed) internal {
+        Market storage market = markets[address(vToken)];
+        require(market.isListed, "venus market is not listed");
+
+        if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
+            // Supply speed updated so let's update supply state to ensure that
+            //  1. VENUS accrued properly for the old speed, and
+            //  2. VENUS accrued at the new speed starts after this block.
+
             updateVenusSupplyIndex(address(vToken));
-            updateVenusBorrowIndex(address(vToken), borrowIndex);
-        } else if (venusSpeed != 0) {
-            // Add the XVS market
-            ensureListed(markets[address(vToken)]);
-
-            if (venusSupplyState[address(vToken)].index == 0 && venusSupplyState[address(vToken)].block == 0) {
-                venusSupplyState[address(vToken)] = VenusMarketState({
-                    index: venusInitialIndex,
-                    block: safe32(getBlockNumber(), "block number exceeds 32 bits")
-                });
-            }
-
-
-            if (venusBorrowState[address(vToken)].index == 0 && venusBorrowState[address(vToken)].block == 0) {
-                venusBorrowState[address(vToken)] = VenusMarketState({
-                    index: venusInitialIndex,
-                    block: safe32(getBlockNumber(), "block number exceeds 32 bits")
-                });
-            }
+             // Update speed and emit event
+            venusSupplySpeeds[address(vToken)] = supplySpeed;
+            emit VenusSupplySpeedUpdated(vToken, supplySpeed);
         }
 
-        if (currentVenusSpeed != venusSpeed) {
-            venusSpeeds[address(vToken)] = venusSpeed;
-            emit VenusSpeedUpdated(vToken, venusSpeed);
+        if (venusBorrowSpeeds[address(vToken)] != borrowSpeed) {
+            // Borrow speed updated so let's update borrow state to ensure that
+            //  1. VENUS accrued properly for the old speed, and
+            //  2. VENUS accrued at the new speed starts after this block.
+            Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
+            updateVenusBorrowIndex(address(vToken), borrowIndex);
+
+            // Update speed and emit event
+            venusBorrowSpeeds[address(vToken)] = borrowSpeed;
+            emit VenusBorrowSpeedUpdated(vToken, borrowSpeed);
         }
     }
 
@@ -1234,20 +1292,17 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function updateVenusSupplyIndex(address vToken) internal {
         VenusMarketState storage supplyState = venusSupplyState[vToken];
-        uint supplySpeed = venusSpeeds[vToken];
-        uint blockNumber = getBlockNumber();
-        uint deltaBlocks = sub_(blockNumber, uint(supplyState.block));
+        uint supplySpeed = venusSupplySpeeds[vToken];
+        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
+        uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
             uint supplyTokens = VToken(vToken).totalSupply();
             uint venusAccrued = mul_(deltaBlocks, supplySpeed);
             Double memory ratio = supplyTokens > 0 ? fraction(venusAccrued, supplyTokens) : Double({mantissa: 0});
-            Double memory index = add_(Double({mantissa: supplyState.index}), ratio);
-            venusSupplyState[vToken] = VenusMarketState({
-                index: safe224(index.mantissa, "new index overflows"),
-                block: safe32(blockNumber, "block number overflows")
-            });
+            supplyState.index = safe224(add_(Double({mantissa: supplyState.index}), ratio).mantissa, "new index exceeds 224 bits");
+            supplyState.block = blockNumber;
         } else if (deltaBlocks > 0) {
-            supplyState.block = safe32(blockNumber, "block number overflows");
+            supplyState.block = blockNumber;
         }
     }
 
@@ -1257,20 +1312,17 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      */
     function updateVenusBorrowIndex(address vToken, Exp memory marketBorrowIndex) internal {
         VenusMarketState storage borrowState = venusBorrowState[vToken];
-        uint borrowSpeed = venusSpeeds[vToken];
-        uint blockNumber = getBlockNumber();
-        uint deltaBlocks = sub_(blockNumber, uint(borrowState.block));
+        uint borrowSpeed = venusBorrowSpeeds[vToken];
+        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
+        uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
             uint borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
             uint venusAccrued = mul_(deltaBlocks, borrowSpeed);
             Double memory ratio = borrowAmount > 0 ? fraction(venusAccrued, borrowAmount) : Double({mantissa: 0});
-            Double memory index = add_(Double({mantissa: borrowState.index}), ratio);
-            venusBorrowState[vToken] = VenusMarketState({
-                index: safe224(index.mantissa, "new index overflows"),
-                block: safe32(blockNumber, "block number overflows")
-            });
+            borrowState.index = safe224(add_(Double({mantissa: borrowState.index}), ratio).mantissa, "new index exceeds 224 bits");
+            borrowState.block = blockNumber;
         } else if (deltaBlocks > 0) {
-            borrowState.block = safe32(blockNumber, "block number overflows");
+            borrowState.block = blockNumber;
         }
     }
 
@@ -1285,20 +1337,26 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         }
 
         VenusMarketState memory supplyState = venusSupplyState[vToken];
-        Double memory supplyIndex = Double({mantissa: supplyState.index});
-        Double memory supplierIndex = Double({mantissa: venusSupplierIndex[vToken][supplier]});
-        venusSupplierIndex[vToken][supplier] = supplyIndex.mantissa;
+        uint supplyIndex = supplyState.index;
+        uint supplierIndex = venusSupplierIndex[vToken][supplier];
 
-        if (supplierIndex.mantissa == 0 && supplyIndex.mantissa > 0) {
-            supplierIndex.mantissa = venusInitialIndex;
+        // Update supplier's index to the current index since we are distributing accrued VENUS
+        venusSupplierIndex[vToken][supplier] = supplyIndex;
+
+        if (supplierIndex == 0 && supplyIndex >= venusInitialIndex) {
+            // Covers the case where users supplied tokens before the market's supply state index was set.
+            // Rewards the user with VENUS accrued from the start of when supplier rewards were first
+            // set for the market.
+            supplierIndex = venusInitialIndex;
         }
 
-        Double memory deltaIndex = sub_(supplyIndex, supplierIndex);
+        // Calculate change in the cumulative sum of the VENUS per vToken accrued
+        Double memory deltaIndex = Double({mantissa: sub_(supplyIndex, supplierIndex)});
         uint supplierTokens = VToken(vToken).balanceOf(supplier);
         uint supplierDelta = mul_(supplierTokens, deltaIndex);
         uint supplierAccrued = add_(venusAccrued[supplier], supplierDelta);
         venusAccrued[supplier] = supplierAccrued;
-        emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex.mantissa);
+        emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex);
     }
 
     /**
@@ -1313,18 +1371,31 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
         }
 
         VenusMarketState memory borrowState = venusBorrowState[vToken];
-        Double memory borrowIndex = Double({mantissa: borrowState.index});
-        Double memory borrowerIndex = Double({mantissa: venusBorrowerIndex[vToken][borrower]});
-        venusBorrowerIndex[vToken][borrower] = borrowIndex.mantissa;
+        uint borrowIndex = borrowState.index;
+        uint borrowerIndex = venusBorrowerIndex[vToken][borrower];
 
-        if (borrowerIndex.mantissa > 0) {
-            Double memory deltaIndex = sub_(borrowIndex, borrowerIndex);
-            uint borrowerAmount = div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex);
-            uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
-            uint borrowerAccrued = add_(venusAccrued[borrower], borrowerDelta);
-            venusAccrued[borrower] = borrowerAccrued;
-            emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex.mantissa);
+        // Update borrowers's index to the current index since we are distributing accrued VENUS
+        venusBorrowerIndex[vToken][borrower] = borrowIndex;
+
+        if (borrowerIndex == 0 && borrowIndex >= venusInitialIndex) {
+            // Covers the case where users borrowed tokens before the market's borrow state index was set.
+            // Rewards the user with VENUS accrued from the start of when borrower rewards were first
+            // set for the market.
+            borrowerIndex = venusInitialIndex;
         }
+
+        // Calculate change in the cumulative sum of the VENUS per borrowed unit accrued
+        Double memory deltaIndex = Double({mantissa: sub_(borrowIndex, borrowerIndex)});
+
+        uint borrowerAmount = div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex);
+
+        // Calculate VENUS accrued: vTokenAmount * accruedPerBorrowedUnit
+        uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
+
+        uint borrowerAccrued = add_(venusAccrued[borrower], borrowerDelta);
+        venusAccrued[borrower] = borrowerAccrued;
+
+        emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
     }
 
     /**
@@ -1424,6 +1495,18 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
             "Blacklisted"
         );
 
+        for (uint i = 0; i < allMarkets.length; ++i) {
+            address market = address(allMarkets[i]);
+
+            bool noOriginalSpeed = venusBorrowSpeeds[market] == 0;
+            bool invalidSupply = noOriginalSpeed && venusSupplierIndex[market][user] > 0;
+            bool invalidBorrow = noOriginalSpeed && venusBorrowerIndex[market][user] > 0;
+
+            if (invalidSupply || invalidBorrow) {
+                return amount;
+            }
+        }
+        
         XVS xvs = XVS(getXVSAddress());
         uint venusRemaining = xvs.balanceOf(address(this));
         bool bankrupt = shortfall > 0;
@@ -1503,10 +1586,16 @@ contract Comptroller is ComptrollerV9Storage, ComptrollerInterfaceG2, Comptrolle
      * @param vToken The market whose XVS speed to update
      * @param venusSpeed New XVS speed for market
      */
-    function _setVenusSpeed(VToken vToken, uint venusSpeed) external {
+    function _setVenusSpeeds(VToken[] memory vTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) external {
         ensureAdminOr(comptrollerImplementation);
-        ensureNonzeroAddress(address(vToken));
-        setVenusSpeedInternal(vToken, venusSpeed);
+
+        uint numTokens = vTokens.length;
+        require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "Comptroller::_setVenusSpeeds invalid input");
+
+        for (uint i = 0; i < numTokens; ++i) {
+            ensureNonzeroAddress(address(vTokens[i]));
+            setVenusSpeedInternal(vTokens[i], supplySpeeds[i], borrowSpeeds[i]);
+        }
     }
 
     /**
