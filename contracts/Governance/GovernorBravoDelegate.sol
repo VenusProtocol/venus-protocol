@@ -40,6 +40,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
       * @param xvsVault_ The address of the XvsVault
       * @param proposalConfigs_ Governance confifgs for each GovernanceType
       * @param timelocks Timelock addresses for each GovernanceType
+      * @param guardian_ address of governance guardian
       */
     function initialize(
         address xvsVault_,
@@ -61,8 +62,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         guardian = guardian_;
 
         //Set parameters for each Governance Route
-        for(uint256 i; i<proposalConfigs_.length; ++i){
-            uint _votingPeriod = proposalConfigs_[i].votingPeriod;
+        uint256 arrLength = proposalConfigs_.length;
+        for (uint256 i; i < arrLength; ++i) {
             require(proposalConfigs_[i].votingPeriod >= MIN_VOTING_PERIOD, "GovernorBravo::initialize: invalid min voting period");
             require(proposalConfigs_[i].votingPeriod <= MAX_VOTING_PERIOD, "GovernorBravo::initialize: invalid max voting period");
             require(proposalConfigs_[i].votingDelay >= MIN_VOTING_DELAY, "GovernorBravo::initialize: invalid min voting delay");
@@ -78,17 +79,20 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
 
     /**
       * @notice Function used to propose a new proposal. Sender must have delegates above the proposal threshold
+      * @dev NOTE: Proposals with duplicate set of actions can not be queued for execution. If the proposals consists 
+      *  of duplicate actions, it's recommended to split those actions into separate proposals
       * @param targets Target addresses for proposal calls
       * @param values Eth values for proposal calls
       * @param signatures Function signatures for proposal calls
       * @param calldatas Calldatas for proposal calls
       * @param description String description of the proposal
+      * @param proposalType the type of the proposal (e.g NORMAL, FASTTRACK, CRITICAL)
       * @return Proposal id of new proposal
       */
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description, ProposalType proposalType) public returns (uint) {
         // Reject proposals before initiating as Governor
         require(initialProposalId != 0, "GovernorBravo::propose: Governor Bravo not active");
-        require(xvsVault.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalConfigs[uint8(proposalType)].proposalThreshold, "GovernorBravo::propose: proposer votes below proposal threshold");
+        require(xvsVault.getPriorVotes(msg.sender, sub256(block.number, 1)) >= proposalConfigs[uint8(proposalType)].proposalThreshold, "GovernorBravo::propose: proposer votes below proposal threshold");
         require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "GovernorBravo::propose: proposal function information arity mismatch");
         require(targets.length != 0, "GovernorBravo::propose: must provide actions");
         require(targets.length <= proposalMaxOperations, "GovernorBravo::propose: too many actions");
@@ -137,7 +141,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         require(state(proposalId) == ProposalState.Succeeded, "GovernorBravo::queue: proposal can only be queued if it is succeeded");
         Proposal storage proposal = proposals[proposalId];
         uint eta = add256(block.timestamp, proposalTimelocks[uint8(proposal.proposalType)].delay());
-        for (uint i = 0; i < proposal.targets.length; i++) {
+        for (uint i; i < proposal.targets.length; ++i) {
             queueOrRevertInternal(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta, uint8(proposal.proposalType));
         }
         proposal.eta = eta;
@@ -157,7 +161,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         require(state(proposalId) == ProposalState.Queued, "GovernorBravo::execute: proposal can only be executed if it is queued");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
-        for (uint i = 0; i < proposal.targets.length; i++) {
+        for (uint i; i < proposal.targets.length; ++i) {
             proposalTimelocks[uint8(proposal.proposalType)].executeTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
         emit ProposalExecuted(proposalId);
@@ -255,6 +259,11 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     /**
       * @notice Cast a vote for a proposal by signature
       * @dev External function that accepts EIP-712 signatures for voting on proposals.
+      * @param proposalId The id of the proposal to vote on
+      * @param support The support value for the vote. 0=against, 1=for, 2=abstain
+      * @param v recovery id of ECDSA signature
+      * @param r part of the ECDSA sig output
+      * @param s part of the ECDSA sig output
       */
     function castVoteBySig(uint proposalId, uint8 support, uint8 v, bytes32 r, bytes32 s) external {
         bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainIdInternal(), address(this)));
