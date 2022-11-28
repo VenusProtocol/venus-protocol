@@ -16,7 +16,8 @@
     "lint": "yarn lint:ts && yarn prettier:check",
     "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts .",
     "prettier": "prettier --config ./.prettierrc.yaml --write \"**/*.{js,json,md,ts,yaml,yml}\"",
-    "prettier:check": "prettier --check --config ./.prettierrc.yaml \"**/*.{js,json,md,ts,yaml,yml}\""
+    "prettier:check": "prettier --check --config ./.prettierrc.yaml \"**/*.{js,json,md,ts,yaml,yml}\"",
+    "docgen": "hardhat docgen"
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
