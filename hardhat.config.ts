@@ -7,6 +7,7 @@ import "@typechain/hardhat";
 import { ethers } from "ethers";
 import fs from "fs";
 import "hardhat-deploy";
+import "solidity-docgen";
 import { HardhatUserConfig, task } from "hardhat/config";
 import "solidity-docgen";
 
