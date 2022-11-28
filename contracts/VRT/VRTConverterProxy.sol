@@ -96,7 +96,7 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
     /**
     * @notice Accepts new implementation of VRTConverter. msg.sender must be pendingImplementation
     * @dev Admin function for new implementation to accept it's role as implementation
-    * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+    * @dev return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
     */
     function _acceptImplementation() public {
         // Check caller is pendingImplementation
@@ -119,7 +119,7 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
       * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
       * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
       * @param newPendingAdmin New pending admin.
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+      * @dev return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
     function _setPendingAdmin(address newPendingAdmin) nonZeroAddress(newPendingAdmin) public {
         // Check caller = admin
@@ -139,7 +139,7 @@ contract VRTConverterProxy is VRTConverterAdminStorage {
     /**
       * @notice Accepts transfer of admin rights. msg.sender must be pendingAdmin
       * @dev Admin function for pending admin to accept role and update admin
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+      * @dev return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
       */
     function _acceptAdmin() public {
         // Check caller is pendingAdmin

@@ -193,7 +193,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     /**
       * @notice Gets actions of a proposal
       * @param proposalId the id of the proposal
-      * @return Targets, values, signatures, and calldatas of the proposal actions
+      * @return targets, values, signatures, and calldatas of the proposal actions
       */
     function getActions(uint proposalId) external view returns (address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas) {
         Proposal storage p = proposals[proposalId];

@@ -152,7 +152,7 @@ contract XVSVesting is XVSVestingStorage {
     /**
      * @notice get Withdrawable XVS Amount
      * @param recipient The vesting recipient
-     * @return A tuple with totalWithdrawableAmount , totalVestedAmount and totalWithdrawnAmount
+     * @dev returns A tuple with totalWithdrawableAmount , totalVestedAmount and totalWithdrawnAmount
      */
     function getWithdrawableAmount(address recipient) view public isInitialized nonZeroAddress(recipient) vestingExistCheck(recipient)
     returns (uint256 totalWithdrawableAmount, uint256 totalVestedAmount, uint256 totalWithdrawnAmount)
@@ -176,7 +176,7 @@ contract XVSVesting is XVSVestingStorage {
      * @param amount Amount deposited for vesting
      * @param vestingStartTime time in epochSeconds at the time of vestingDeposit
      * @param withdrawnAmount XVSAmount withdrawn from VestedAmount
-     * @return A tuple with vestedAmount and withdrawableAmount
+     * @dev returns A tuple with vestedAmount and withdrawableAmount
      */
     function calculateWithdrawableAmount(uint256 amount, uint256 vestingStartTime, uint256 withdrawnAmount)
       view internal returns (uint256, uint256) {

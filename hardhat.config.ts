@@ -8,6 +8,8 @@ import { ethers } from "ethers";
 import fs from "fs";
 import "hardhat-deploy";
 import { HardhatUserConfig, task } from "hardhat/config";
+import "solidity-docgen";
+import "solidity-docgen";
 
 require("dotenv").config();
 
@@ -131,6 +133,10 @@ const config: HardhatUserConfig = {
         artifacts: "node_modules/@venusprotocol/isolated-pools/artifacts",
       },
     ],
+  },
+  docgen: {
+    outputDir: "./docs",
+    pages: "files",
   },
 };
 
