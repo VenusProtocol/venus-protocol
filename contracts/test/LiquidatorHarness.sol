@@ -1,35 +1,33 @@
-pragma solidity ^0.5.16;
+// SPDX-License-Identifier: BSD-3-Clause
+
+pragma solidity 0.8.17;
 
 import "../Liquidator.sol";
-import "./ComptrollerScenario.sol";
 
 contract LiquidatorHarness is Liquidator {
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
-        address admin_,
-        address payable vBnb_,
         address comptroller_,
-        address vaiController_,
-        address treasury_,
-        uint256 treasuryPercentMantissa_
+        address payable vBnb_,
+        address treasury_
     )
-        public
         Liquidator(
-            admin_,
-            vBnb_,
             comptroller_,
-            vaiController_,
-            treasury_,
-            treasuryPercentMantissa_
+            vBnb_,
+            treasury_
         )
     {}
 
-    event DistributeLiquidationIncentive(uint256 seizeTokensForTreasury, uint256 seizeTokensForLiquidator);
+    function initialize(uint256 liquidationIncentiveMantissa_) external override initializer {
+        __Liquidator_init(liquidationIncentiveMantissa_);
+    }
 
+    event DistributeLiquidationIncentive(uint256 seizeTokensForTreasury, uint256 seizeTokensForLiquidator);
 
     /// @dev Splits the received vTokens between the liquidator and treasury.
     function distributeLiquidationIncentive(
-        VToken vTokenCollateral,
+        IVToken vTokenCollateral,
         uint256 siezedAmount
     ) public returns (uint256 ours, uint256 theirs) {
         (ours, theirs) = super._distributeLiquidationIncentive(vTokenCollateral, siezedAmount);

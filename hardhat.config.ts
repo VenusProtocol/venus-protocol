@@ -2,6 +2,7 @@ import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
+import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import { ethers } from "ethers";
 import fs from "fs";
@@ -52,6 +53,20 @@ const config: HardhatUserConfig = {
           optimizer: {
             enabled: true,
             runs: 200,
+          },
+          outputSelection: {
+            "*": {
+              "*": ["storageLayout"],
+            },
+          },
+        },
+      },
+      {
+        version: "0.8.17",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 10000,
           },
           outputSelection: {
             "*": {
