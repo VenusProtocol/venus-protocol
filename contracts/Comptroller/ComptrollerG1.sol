@@ -1,20 +1,20 @@
 pragma solidity ^0.5.16;
 
 import "@venusprotocol/oracle/contracts/PriceOracle.sol";
-import "./Tokens/VTokens/VToken.sol";
-import "./ErrorReporter.sol";
-import "./Exponential.sol";
+import "../Tokens/VTokens/VToken.sol";
+import "../ErrorReporter.sol";
+import "../Exponential.sol";
+import "../Tokens/XVS/XVS.sol";
+import "../Tokens/VAI/VAI.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
-import "./Tokens/XVS/XVS.sol";
-import "./Tokens/VAI/VAI.sol";
 
 /**
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract ComptrollerG2 is ComptrollerV1Storage, ComptrollerInterfaceG1, ComptrollerErrorReporter, Exponential {
+contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, ComptrollerErrorReporter, Exponential {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 

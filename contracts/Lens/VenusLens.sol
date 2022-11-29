@@ -7,7 +7,7 @@ import "../Tokens/VTokens/VToken.sol";
 import "../EIP20Interface.sol";
 import "../Governance/GovernorAlpha.sol";
 import "../Tokens/XVS/XVS.sol";
-import "../ComptrollerInterface.sol";
+import "../Comptroller/ComptrollerInterface.sol";
 import "../SafeMath.sol";
 
 contract VenusLens is ExponentialNoError {

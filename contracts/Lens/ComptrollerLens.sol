@@ -6,7 +6,7 @@ import "../Tokens/VTokens/VBep20.sol";
 import "../Tokens/VTokens/VToken.sol";
 import "../EIP20Interface.sol";
 import "../ErrorReporter.sol";
-import "../Comptroller.sol";
+import "../Comptroller/Comptroller.sol";
 import "../Tokens/VAI/VAIControllerInterface.sol";
 
 contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, ExponentialNoError {

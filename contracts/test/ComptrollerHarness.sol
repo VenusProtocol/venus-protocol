@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
 import "@venusprotocol/oracle/contracts/PriceOracle.sol";
-import "../Comptroller.sol";
+import "../Comptroller/Comptroller.sol";
 
 contract ComptrollerKovan is Comptroller {
   function getXVSAddress() public view returns (address) {

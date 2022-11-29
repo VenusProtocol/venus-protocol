@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "../Tokens/VTokens/VToken.sol";
 import "../SafeMath.sol";
-import "../Comptroller.sol";
+import "../Comptroller/Comptroller.sol";
 import "../EIP20Interface.sol";
 import "../Tokens/VTokens/VBep20.sol";
 

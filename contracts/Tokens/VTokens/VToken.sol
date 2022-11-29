@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../ComptrollerInterface.sol";
+import "../../Comptroller/ComptrollerInterface.sol";
 import "../../ErrorReporter.sol";
 import "../../Exponential.sol";
 import "../../EIP20Interface.sol";

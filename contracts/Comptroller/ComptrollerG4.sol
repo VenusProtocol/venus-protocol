@@ -1,19 +1,19 @@
 pragma solidity ^0.5.16;
 
 import "@venusprotocol/oracle/contracts/PriceOracle.sol";
-import "./Tokens/VTokens/VToken.sol";
-import "./ErrorReporter.sol";
+import "../Tokens/VTokens/VToken.sol";
+import "../ErrorReporter.sol";
+import "../Tokens/XVS/XVS.sol";
+import "../Tokens/VAI/VAI.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
-import "./Tokens/XVS/XVS.sol";
-import "./Tokens/VAI/VAI.sol";
 
 /**
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract ComptrollerG5 is ComptrollerV5Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract ComptrollerG4 is ComptrollerV4Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -88,9 +88,6 @@ contract ComptrollerG5 is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrol
 
     /// @notice Emitted when treasury percent is changed
     event NewTreasuryPercent(uint oldTreasuryPercent, uint newTreasuryPercent);
-
-    /// @notice Emitted when Venus is granted by admin
-    event VenusGranted(address recipient, uint amount);
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
@@ -1367,19 +1364,6 @@ contract ComptrollerG5 is ComptrollerV5Storage, ComptrollerInterfaceG2, Comptrol
     }
 
     /*** Venus Distribution Admin ***/
-
-    /**
-     * @notice Transfer XVS to the recipient
-     * @dev Note: If there is not enough XVS, we do not perform the transfer all.
-     * @param recipient The address of the recipient to transfer XVS to
-     * @param amount The amount of XVS to (possibly) transfer
-     */
-    function _grantXVS(address recipient, uint amount) public {
-        require(adminOrInitializing(), "only admin can grant xvs");
-        uint amountLeft = grantXVSInternal(recipient, amount);
-        require(amountLeft == 0, "insufficient xvs for grant");
-        emit VenusGranted(recipient, amount);
-    }
 
     /**
      * @notice Set the amount of XVS distributed per block to VAI Vault
