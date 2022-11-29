@@ -659,6 +659,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     function setReceiver(address newReceiver) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
+        require(newReceiver != address(0), "invalid receiver address");
 
         address old = receiver;
         receiver = newReceiver;
