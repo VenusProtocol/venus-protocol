@@ -631,7 +631,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @dev Set VAI borrow base rate
      */
-    function _setBaseRate(uint newBaseRateMantissa) external {
+    function setBaseRate(uint newBaseRateMantissa) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
@@ -643,7 +643,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @dev Set VAI borrow float rate
      */
-    function _setFloatRate(uint newFloatRateMantissa) external {
+    function setFloatRate(uint newFloatRateMantissa) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
@@ -655,7 +655,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @dev Set VAI receiver address
      */
-    function _setReceiver(address newReceiver) external {
+    function setReceiver(address newReceiver) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
@@ -667,7 +667,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     /**
      * @dev Set VAI mint cap
      */
-    function _setMintCap(uint _mintCap) external {
+    function setMintCap(uint _mintCap) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
