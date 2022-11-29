@@ -108,7 +108,7 @@ describe("Comptroller", async () => {
       BigNumber.from("100000000000000"),
     );
     await comptroller._setVAIMintRate(BigNumber.from(10000));
-    await vaiController._setReceiver(treasuryAddress.address);
+    await vaiController.setReceiver(treasuryAddress.address);
     await vaiController.initialize();
 
     const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
@@ -202,7 +202,7 @@ describe("Comptroller", async () => {
 
     it("success for 1.2 rate repay all", async () => {
       await vai.allocateTo(user1.address, bigNumber18.mul(20));
-      await vaiController._setBaseRate(bigNumber17.mul(2));
+      await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
 
       await vaiController.connect(user1).repayVAI(bigNumber18.mul(120));
@@ -212,7 +212,7 @@ describe("Comptroller", async () => {
     });
 
     it("success for 1.2 rate repay half", async () => {
-      await vaiController._setBaseRate(bigNumber17.mul(2));
+      await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
 
       await vaiController.connect(user1).repayVAI(bigNumber18.mul(60));
@@ -243,7 +243,7 @@ describe("Comptroller", async () => {
     });
 
     it("success for 1.2 rate 0.9 vusdt collateralFactor", async () => {
-      await vaiController._setBaseRate(bigNumber17.mul(2));
+      await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
       await vaiController.accrueVAIInterest();
 
@@ -287,7 +287,7 @@ describe("Comptroller", async () => {
       const TEMP_BLOCKS_PER_YEAR = 100000;
       vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
 
-      await vaiController._setBaseRate(bigNumber17.mul(2));
+      await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
 
       await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
@@ -307,16 +307,16 @@ describe("Comptroller", async () => {
     });
 
     it("success for baseRate 0.1 floatRate 0.1 vaiPirce 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
+      await vaiController.setBaseRate(bigNumber17);
+      await vaiController.setFloatRate(bigNumber17);
       await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
 
       expect(await vaiController.getVAIRepayRate()).to.eq(bigNumber17);
     });
 
     it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
+      await vaiController.setBaseRate(bigNumber17);
+      await vaiController.setFloatRate(bigNumber17);
 
       await priceOracle.setDirectPrice(vai.address, bigNumber17.mul(5));
       expect(await vaiController.getVAIRepayRate()).to.eq(bigNumber16.mul(15));
@@ -335,8 +335,8 @@ describe("Comptroller", async () => {
     });
 
     it("success for baseRate 0.1 floatRate 0.1 vaiPirce 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
+      await vaiController.setBaseRate(bigNumber17);
+      await vaiController.setFloatRate(bigNumber17);
       await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
       await vaiController.accrueVAIInterest();
 
@@ -344,8 +344,8 @@ describe("Comptroller", async () => {
     });
 
     it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
+      await vaiController.setBaseRate(bigNumber17);
+      await vaiController.setFloatRate(bigNumber17);
       await priceOracle.setDirectPrice(vai.address, bigNumber17.mul(5));
       await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
       await vaiController.accrueVAIInterest();
@@ -368,16 +368,16 @@ describe("Comptroller", async () => {
     });
 
     it("success for baseRate 0.1 floatRate 0.1 vaiPirce 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
+      await vaiController.setBaseRate(bigNumber17);
+      await vaiController.setFloatRate(bigNumber17);
       expect((await vaiController.getVAICalculateRepayAmount(user1.address, bigNumber18.mul(110)))[0]).to.eq(
         bigNumber18.mul(100),
       );
     });
 
     it("success for baseRate 0.1 floatRate 0.1 vaiPirce 0.5 * 1e18", async () => {
-      await vaiController._setBaseRate(bigNumber17);
-      await vaiController._setFloatRate(bigNumber17);
+      await vaiController.setBaseRate(bigNumber17);
+      await vaiController.setFloatRate(bigNumber17);
       await priceOracle.setDirectPrice(vai.address, bigNumber17.mul(5));
       expect((await vaiController.getVAICalculateRepayAmount(user1.address, bigNumber18.mul(115)))[0]).to.eq(
         bigNumber18.mul(100),

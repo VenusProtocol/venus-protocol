@@ -213,7 +213,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         (uint burn, uint partOfCurrentInterest, uint partOfPastInterest) = getVAICalculateRepayAmount(borrower, repayAmount);
 
         VAI(getVAIAddress()).burn(payer, burn);
-        VAI(getVAIAddress()).transferFrom(payer, receiver, partOfCurrentInterest);
+        bool success = VAI(getVAIAddress()).transferFrom(payer, receiver, partOfCurrentInterest);
+        require(success == true, "failed to transfer VAI fee");
 
         uint vaiBalanceBorrower = ComptrollerImplInterface(address(comptroller)).mintedVAIs(borrower);
         uint accountVAINew;
@@ -532,7 +533,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     /**
-     * @dev Get the VAI actual total amount of repayment by the user
+     * @notice Get the current total VAI a user needs to repay
+     * @param account The address of the VAI borrower
+     * @return (uint) The total amount of VAI the user needs to repay
      */
     function getVAIRepayAmount(address account) public view returns (uint) {
         MathError mErr;
@@ -555,6 +558,12 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         return amount;
     }
 
+    /**
+     * @notice Calculate how much VAI the user needs to repay
+     * @param borrower The address of the VAI borrower
+     * @param repayAmount The amount of VAI being returned
+     * @return (uint, uint, uint) Amount of VAI to be burned, amount of VAI the user needs to pay in current interest and amount of VAI the user needs to pay in past interest
+     */
     function getVAICalculateRepayAmount(address borrower, uint256 repayAmount) public view returns (uint, uint, uint) {
         MathError mErr;
         uint256 totalRepayAmount = getVAIRepayAmount(borrower);
@@ -577,14 +586,14 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             uint delta;
 
             (mErr, delta) = mulUInt(repayAmount, 1e18);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_PART_CALCULATION_FAILED");
 
             (mErr, delta) = divUInt(delta, totalRepayAmount);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_PART_CALCULATION_FAILED");
             
             uint totalMintedAmount;
             (mErr, totalMintedAmount) = subUInt(totalRepayAmount, currentInterest);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_MINTED_AMOUNT_CALCULATION_FAILED");
 
             (mErr, burn) = mulUInt(totalMintedAmount, delta);
             require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
@@ -593,16 +602,16 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
 
             (mErr, partOfCurrentInterest) = mulUInt(currentInterest, delta);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_CURRENT_INTEREST_AMOUNT_CALCULATION_FAILED");
 
             (mErr, partOfCurrentInterest) = divUInt(partOfCurrentInterest, 1e18);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_CURRENT_INTEREST_AMOUNT_CALCULATION_FAILED");
 
             (mErr, partOfPastInterest) = mulUInt(pastVAIInterest[borrower], delta);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_PAST_INTEREST_CALCULATION_FAILED");
 
             (mErr, partOfPastInterest) = divUInt(partOfPastInterest, 1e18);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_PAST_INTEREST_CALCULATION_FAILED");
         }
 
         return (burn, partOfCurrentInterest, partOfPastInterest);
@@ -628,10 +637,11 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         accrualBlockNumber = getBlockNumber();
     }
         
-    /**
-     * @dev Set VAI borrow base rate
+     /**
+     * @notice Set VAI borrow base rate
+     * @param newBaseRateMantissa the base rate multiplied by 10**18
      */
-    function _setBaseRate(uint newBaseRateMantissa) external {
+    function setBaseRate(uint newBaseRateMantissa) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
@@ -640,10 +650,11 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         emit NewVAIBaseRate(old, baseRateMantissa);
     }
 
-    /**
-     * @dev Set VAI borrow float rate
+     /**
+     * @notice Set VAI borrow float rate
+     * @param newFloatRateMantissa the VAI float rate multiplied by 10**18
      */
-    function _setFloatRate(uint newFloatRateMantissa) external {
+    function setFloatRate(uint newFloatRateMantissa) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 
@@ -652,12 +663,14 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         emit NewVAIFloatRate(old, floatRateMantissa);
     }
 
-    /**
-     * @dev Set VAI receiver address
+     /**
+     * @notice Set VAI stability fee receiver address
+     * @param newReceiver the address of the VAI fee receiver 
      */
-    function _setReceiver(address newReceiver) external {
+    function setReceiver(address newReceiver) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
+        require(newReceiver != address(0), "invalid receiver address");
 
         address old = receiver;
         receiver = newReceiver;
@@ -665,9 +678,10 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     /**
-     * @dev Set VAI mint cap
+     * @notice Set VAI mint cap
+     * @param _mintCap the amount of VAI that can be minted
      */
-    function _setMintCap(uint _mintCap) external {
+    function setMintCap(uint _mintCap) external {
         // Check caller is admin
         require(msg.sender == admin, "UNAUTHORIZED");
 

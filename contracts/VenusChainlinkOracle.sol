@@ -8,7 +8,6 @@ import "./AggregatorV2V3Interface.sol";
 
 contract VenusChainlinkOracle is PriceOracle {
     using SafeMath for uint;
-    uint public constant VAI_VALUE = 1e18;
     address public admin;
 
     uint public maxStalePeriod;
