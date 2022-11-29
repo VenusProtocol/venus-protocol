@@ -50,4 +50,4 @@ cache
 
 # Build
 dist
-docs
+docgen-docs
