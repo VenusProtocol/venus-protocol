@@ -38,9 +38,8 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     /**
       * @notice Used to initialize the contract during delegator contructor
       * @param xvsVault_ The address of the XvsVault
-      * @param proposalConfigs_ Governance confifgs for each GovernanceType
-      * @param timelocks Timelock addresses for each GovernanceType
-      * @param guardian_ address of governance guardian
+      * @param proposalConfigs_ Governance configs for each governance route
+      * @param timelocks Timelock addresses for each governance route
       */
     function initialize(
         address xvsVault_,
@@ -78,11 +77,12 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     }
 
     /**
-      * @notice Function used to propose a new proposal. Sender must have delegates above the proposal threshold
+      * @notice Function used to propose a new proposal. Sender must have delegates above the proposal threshold.
+      * targets, values, signatures, and calldatas must be of equal length
       * @dev NOTE: Proposals with duplicate set of actions can not be queued for execution. If the proposals consists 
       *  of duplicate actions, it's recommended to split those actions into separate proposals
       * @param targets Target addresses for proposal calls
-      * @param values Eth values for proposal calls
+      * @param values BNB values for proposal calls
       * @param signatures Function signatures for proposal calls
       * @param calldatas Calldatas for proposal calls
       * @param description String description of the proposal
