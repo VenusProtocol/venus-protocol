@@ -533,7 +533,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     /**
-     * @dev Get the VAI actual total amount of repayment by the user
+     * @notice Get the VAI actual total amount of repayment by the user
+     * @param account the address of the VAI borrower
+     * @return (uint) the total amount of VAI user needs to repay
      */
     function getVAIRepayAmount(address account) public view returns (uint) {
         MathError mErr;
@@ -556,6 +558,12 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         return amount;
     }
 
+    /**
+     * @notice Calculates how much VAI the user needs to repay
+     * @param borrower the address of the VAI borrower
+     * @param repayAmount the amount of VAI being returned
+     * @return (uint, uint, uint) amount of vai to be burned, amount of vai user is paying from current interest and amount of vai user is repaying from past interest
+     */
     function getVAICalculateRepayAmount(address borrower, uint256 repayAmount) public view returns (uint, uint, uint) {
         MathError mErr;
         uint256 totalRepayAmount = getVAIRepayAmount(borrower);
@@ -629,8 +637,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         accrualBlockNumber = getBlockNumber();
     }
         
-    /**
-     * @dev Set VAI borrow base rate
+     /**
+     * @notice Set VAI borrow base rate
+     * @param newBaseRateMantissa the base rate multiplied by 10**18
      */
     function setBaseRate(uint newBaseRateMantissa) external {
         // Check caller is admin
@@ -641,8 +650,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         emit NewVAIBaseRate(old, baseRateMantissa);
     }
 
-    /**
-     * @dev Set VAI borrow float rate
+     /**
+     * @notice Set VAI borrow float rate
+     * @param newFloatRateMantissa the VAI float rate multiplied by 10**18
      */
     function setFloatRate(uint newFloatRateMantissa) external {
         // Check caller is admin
@@ -653,8 +663,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         emit NewVAIFloatRate(old, floatRateMantissa);
     }
 
-    /**
-     * @dev Set VAI receiver address
+     /**
+     * @notice Set VAI stability fee receiver address
+     * @param newReceiver the address of the VAI fee receiver 
      */
     function setReceiver(address newReceiver) external {
         // Check caller is admin
@@ -667,7 +678,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     /**
-     * @dev Set VAI mint cap
+     * @notice Set VAI mint cap
+     * @param _mintCap the amount of VAI that can be minted
      */
     function setMintCap(uint _mintCap) external {
         // Check caller is admin
