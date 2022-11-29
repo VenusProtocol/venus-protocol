@@ -533,9 +533,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     /**
-     * @notice Get the VAI actual total amount of repayment by the user
-     * @param account the address of the VAI borrower
-     * @return (uint) the total amount of VAI user needs to repay
+     * @notice Get the current total VAI a user needs to repay
+     * @param account The address of the VAI borrower
+     * @return (uint) The total amount of VAI the user needs to repay
      */
     function getVAIRepayAmount(address account) public view returns (uint) {
         MathError mErr;
