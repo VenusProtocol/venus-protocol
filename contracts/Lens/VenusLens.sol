@@ -43,6 +43,75 @@ contract VenusLens is ExponentialNoError {
         uint dailyBorrowXvs;
     }
 
+    struct VTokenBalances {
+        address vToken;
+        uint balanceOf;
+        uint borrowBalanceCurrent;
+        uint balanceOfUnderlying;
+        uint tokenBalance;
+        uint tokenAllowance;
+    }
+
+    struct VTokenUnderlyingPrice {
+        address vToken;
+        uint underlyingPrice;
+    }
+
+    struct AccountLimits {
+        VToken[] markets;
+        uint liquidity;
+        uint shortfall;
+    }
+
+        struct GovReceipt {
+        uint proposalId;
+        bool hasVoted;
+        bool support;
+        uint96 votes;
+    }
+
+    struct GovProposal {
+        uint proposalId;
+        address proposer;
+        uint eta;
+        address[] targets;
+        uint[] values;
+        string[] signatures;
+        bytes[] calldatas;
+        uint startBlock;
+        uint endBlock;
+        uint forVotes;
+        uint againstVotes;
+        bool canceled;
+        bool executed;
+    }
+
+    struct XVSBalanceMetadata {
+        uint balance;
+        uint votes;
+        address delegate;
+    }
+
+    struct XVSBalanceMetadataExt {
+        uint balance;
+        uint votes;
+        address delegate;
+        uint allocated;
+    }
+
+    struct VenusVotes {
+        uint blockNumber;
+        uint votes;
+    }
+
+    struct ClaimVenusLocalVariables {
+        uint totalRewards;
+        uint224 borrowIndex;
+        uint32 borrowBlock;
+        uint224 supplyIndex;
+        uint32 supplyBlock;
+    }
+
     /**
     * @notice Query the metadata of a vToken by its address
     * @param vToken The address of the vToken to fetch VTokenMetadata
@@ -153,15 +222,6 @@ contract VenusLens is ExponentialNoError {
         return dailyXvsPerAccount;
     }
 
-    struct VTokenBalances {
-        address vToken;
-        uint balanceOf;
-        uint borrowBalanceCurrent;
-        uint balanceOfUnderlying;
-        uint tokenBalance;
-        uint tokenAllowance;
-    }
-
     /**
     * @notice Get the current vToken balance (outstanding borrows) for an account
     * @param vToken Address of the token to check the balance of
@@ -210,11 +270,6 @@ contract VenusLens is ExponentialNoError {
         return res;
     }
 
-    struct VTokenUnderlyingPrice {
-        address vToken;
-        uint underlyingPrice;
-    }
-
     /**
     * @notice Get the price for the underlying asset of a vToken
     * @param vToken address of the vToken
@@ -244,12 +299,6 @@ contract VenusLens is ExponentialNoError {
         return res;
     }
 
-    struct AccountLimits {
-        VToken[] markets;
-        uint liquidity;
-        uint shortfall;
-    }
-
     /**
     * @notice Query the account liquidity and shortfall of an account
     * @param comptroller Address of comptroller proxy
@@ -265,13 +314,6 @@ contract VenusLens is ExponentialNoError {
             liquidity: liquidity,
             shortfall: shortfall
         });
-    }
-
-    struct GovReceipt {
-        uint proposalId;
-        bool hasVoted;
-        bool support;
-        uint96 votes;
     }
 
     /**
@@ -294,22 +336,6 @@ contract VenusLens is ExponentialNoError {
             });
         }
         return res;
-    }
-
-    struct GovProposal {
-        uint proposalId;
-        address proposer;
-        uint eta;
-        address[] targets;
-        uint[] values;
-        string[] signatures;
-        bytes[] calldatas;
-        uint startBlock;
-        uint endBlock;
-        uint forVotes;
-        uint againstVotes;
-        bool canceled;
-        bool executed;
     }
 
     /**
@@ -376,12 +402,6 @@ contract VenusLens is ExponentialNoError {
         return res;
     }
 
-    struct XVSBalanceMetadata {
-        uint balance;
-        uint votes;
-        address delegate;
-    }
-
     /**
     * @notice Query the XVSBalance info of an account
     * @param xvs XVS contract address
@@ -394,13 +414,6 @@ contract VenusLens is ExponentialNoError {
             votes: uint256(xvs.getCurrentVotes(account)),
             delegate: xvs.delegates(account)
         });
-    }
-
-    struct XVSBalanceMetadataExt {
-        uint balance;
-        uint votes;
-        address delegate;
-        uint allocated;
     }
 
     /**
@@ -424,11 +437,6 @@ contract VenusLens is ExponentialNoError {
             delegate: xvs.delegates(account),
             allocated: allocated
         });
-    }
-
-    struct VenusVotes {
-        uint blockNumber;
-        uint votes;
     }
 
     /**
@@ -544,14 +552,6 @@ contract VenusLens is ExponentialNoError {
             return borrowerDelta;
         }
         return 0;
-    }
-
-    struct ClaimVenusLocalVariables {
-        uint totalRewards;
-        uint224 borrowIndex;
-        uint32 borrowBlock;
-        uint224 supplyIndex;
-        uint32 supplyBlock;
     }
 
     /**
