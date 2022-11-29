@@ -53,20 +53,20 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice Percent of seized amount that goes to treasury.
     uint256 public treasuryPercentMantissa;
 
-    /// @notice Whether the borrower can be liquidated by liquidator if liquidationRestricted[borrower] == true
-    mapping (address => mapping (address => bool)) public liquidationAllowed;
+    /// @notice Mapping of addresses allowed to liquidate an account if liquidationRestricted[borrower] == true
+    mapping (address => mapping (address => bool)) public allowedLiquidatorsByAccount;
+    
 
-    /// @notice Whether the liquidations are restricted to allowlisted addresses only
+    /// @notice Whether the liquidations are restricted to enabled allowedLiquidatorsByAccount addresses only
     mapping (address => bool) public liquidationRestricted;
 
 
     /* Events */
 
-    /// @notice Emitted when once changes the percent of the seized amount
-    ///         that goes to treasury.
+    /// @notice Emitted when the percent of the seized amount that goes to treasury changes.
     event NewLiquidationTreasuryPercent(uint256 oldPercent, uint256 newPercent);
 
-    /// @notice Event emitted when a borrow is liquidated
+    /// @notice Emitted when a borrow is liquidated
     event LiquidateBorrowedTokens(
         address indexed liquidator,
         address indexed borrower,
@@ -77,22 +77,22 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         uint256 seizeTokensForLiquidator
     );
 
-    /// @notice Emitted when the liquidation is restricted for a certain borrower
+    /// @notice Emitted when the liquidation is restricted for a borrower
     event LiquidationRestricted(address indexed borrower);
 
-    /// @notice Emitted when the liquidation restrictions are removed for a certain borrower
+    /// @notice Emitted when the liquidation restrictions are removed for a borrower
     event LiquidationRestrictionsDisabled(address indexed borrower);
 
-    /// @notice Emitted when a liquidator is added to the allowlist
+    /// @notice Emitted when a liquidator is added to the allowedLiquidatorsByAccount mapping
     event AllowlistEntryAdded(address indexed borrower, address indexed liquidator);
 
-    /// @notice Emitted when a liquidator is removed from the allowlist
+    /// @notice Emitted when a liquidator is removed from the allowedLiquidatorsByAccount mapping
     event AllowlistEntryRemoved(address indexed borrower, address indexed liquidator);
 
 
     /* Errors */
 
-    /// @notice Thrown if the liquidation is restricted and the liquidator is not in the allowlist
+    /// @notice Thrown if the liquidation is restricted and the liquidator is not in the allowedLiquidatorsByAccount mapping
     error LiquidationNotAllowed(address borrower, address liquidator);
 
     /// @notice Thrown if VToken transfer fails after the liquidation
@@ -107,17 +107,17 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice Thrown if trying to unrestrict liquidations for a borrower that is not restricted
     error NoRestrictionsExist(address borrower);
 
-    /// @notice Thrown if the liquidator is already in the allowlist
+    /// @notice Thrown if the liquidator is already in the allowedLiquidatorsByAccount mapping
     error AlreadyAllowed(address borrower, address liquidator);
 
-    /// @notice Thrown if trying to remove a liquidator that is not in the allowlist
+    /// @notice Thrown if trying to remove a liquidator that is not in the allowedLiquidatorsByAccount mapping
     error AllowlistEntryNotFound(address borrower, address liquidator);
 
     /// @notice Thrown if BNB amount sent with the transaction doesn't correspond to the
     ///         intended BNB repayment
     error WrongTransactionAmount(uint256 expected, uint256 actual);
 
-    /// @notice Thrown if the argument is a zero address, probably it is a mistake
+    /// @notice Thrown if the argument is a zero address because probably it is a mistake
     error UnexpectedZeroAddress();
 
     /// @notice Thrown if trying to set treasury percent larger than the liquidation profit
@@ -164,7 +164,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     }
 
     /// @notice An admin function to restrict liquidations to allowed addresses only.
-    /// @dev Use {addTo,removeFrom}Allowlist to configure the allowed addresses.
+    /// @dev Use {addTo,removeFrom}AllowList to configure the allowed addresses.
     /// @param borrower The address of the borrower
     function restrictLiquidation(address borrower) external onlyOwner {
         if (liquidationRestricted[borrower]) {
@@ -175,7 +175,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     }
 
     /// @notice An admin function to remove restrictions for liquidations.
-    /// @dev Does not impact the allowlist for the borrower, just turns off the check.
+    /// @dev Does not impact the allowedLiquidatorsByAccount mapping for the borrower, just turns off the check.
     /// @param borrower The address of the borrower
     function unrestrictLiquidation(address borrower) external onlyOwner {
         if (!liquidationRestricted[borrower]) {
@@ -185,36 +185,36 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         emit LiquidationRestrictionsDisabled(borrower);
     }
 
-    /// @notice An admin function to add the liquidator to the allowlist for a certain
+    /// @notice An admin function to add the liquidator to the allowedLiquidatorsByAccount mapping for a certain
     ///         borrower. If the liquidations are restricted, only liquidators from the
-    ///         allowlist can participate in liquidating the positions of this borrower.
+    ///         allowedLiquidatorsByAccount mapping can participate in liquidating the positions of this borrower.
     /// @param borrower The address of the borrower
     /// @param borrower The address of the liquidator
     function addToAllowlist(address borrower, address liquidator) external onlyOwner {
-        if (liquidationAllowed[borrower][liquidator]) {
+        if (allowedLiquidatorsByAccount[borrower][liquidator]) {
             revert AlreadyAllowed(borrower, liquidator);
         }
-        liquidationAllowed[borrower][liquidator] = true;
+        allowedLiquidatorsByAccount[borrower][liquidator] = true;
         emit AllowlistEntryAdded(borrower, liquidator);
     }
 
-    /// @notice An admin function to remove the liquidator from the allowlist of a certain
+    /// @notice An admin function to remove the liquidator from the allowedLiquidatorsByAccount mapping of a certain
     ///         borrower. If the liquidations are restricted, this liquidator will not be
     ///         able to liquidate the positions of this borrower.
     /// @param borrower The address of the borrower
     /// @param borrower The address of the liquidator
     function removeFromAllowlist(address borrower, address liquidator) external onlyOwner {
-        if (!liquidationAllowed[borrower][liquidator]) {
+        if (!allowedLiquidatorsByAccount[borrower][liquidator]) {
             revert AllowlistEntryNotFound(borrower, liquidator);
         }
-        liquidationAllowed[borrower][liquidator] = false;
+        allowedLiquidatorsByAccount[borrower][liquidator] = false;
         emit AllowlistEntryRemoved(borrower, liquidator);
     }
 
     /// @notice Liquidates a borrow and splits the seized amount between treasury and
     ///         liquidator. The liquidators should use this interface instead of calling
     ///         vToken.liquidateBorrow(...) directly.
-    /// @dev For BNB borrows msg.value should be equal to repayAmount; otherwise msg.value
+    /// @notice For BNB borrows msg.value should be equal to repayAmount; otherwise msg.value
     ///      should be zero.
     /// @param vToken Borrowed vToken
     /// @param borrower The address of the borrower
@@ -289,7 +289,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         );
     }
 
-    /// @dev Transfers BEP20 tokens to self, then approves vai to take these tokens.
+    /// @dev Transfers BEP20 tokens to self, then approves VAI to take these tokens.
     function _liquidateVAI(address borrower, uint256 repayAmount, IVToken vTokenCollateral)
         internal
     {
@@ -353,7 +353,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     }
 
     function checkRestrictions(address borrower, address liquidator) internal view {
-        if (liquidationRestricted[borrower] && !liquidationAllowed[borrower][liquidator]) {
+        if (liquidationRestricted[borrower] && !allowedLiquidatorsByAccount[borrower][liquidator]) {
             revert LiquidationNotAllowed(borrower, liquidator);
         }
     }
