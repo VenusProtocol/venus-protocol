@@ -63,7 +63,7 @@ contract VenusLens is ExponentialNoError {
         uint shortfall;
     }
 
-        struct GovReceipt {
+    struct GovReceipt {
         uint proposalId;
         bool hasVoted;
         bool support;

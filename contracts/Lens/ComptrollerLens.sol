@@ -10,7 +10,32 @@ import "../Comptroller.sol";
 import "../VAIControllerInterface.sol";
 
 contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, ExponentialNoError {
-    /** liquidate seize calculation **/
+    /**
+     * @dev Local vars for avoiding stack-depth limits in calculating account liquidity.
+     *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
+     *  whereas `borrowBalance` is the amount of underlying that the account has borrowed.
+     */
+    struct AccountLiquidityLocalVars {
+        uint sumCollateral;
+        uint sumBorrowPlusEffects;
+        uint vTokenBalance;
+        uint borrowBalance;
+        uint exchangeRateMantissa;
+        uint oraclePriceMantissa;
+        Exp collateralFactor;
+        Exp exchangeRate;
+        Exp oraclePrice;
+        Exp tokensToDenom;
+    }
+
+    /**
+     * @notice Computes the number of collateral tokens to be seized in a liquidation event
+     * @param comptroller Address of comptroller
+     * @param vTokenBorrowed Address of the borrowed vToken
+     * @param vTokenCollateral Address of collateral for the borrow
+     * @param actualRepayAmount Repayment amount i.e amount to be repaid of total borrowed amount
+     * @return A tuple of error code, and tokens to seize
+     */
     function liquidateCalculateSeizeTokens(
         address comptroller, 
         address vTokenBorrowed, 
@@ -45,7 +70,13 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         return (uint(Error.NO_ERROR), seizeTokens);
     }
 
-
+    /**
+     * @notice Computes the number of VAI tokens to be seized in a liquidation event
+     * @param comptroller Address of comptroller
+     * @param vTokenCollateral Address of collateral for vToken
+     * @param actualRepayAmount Repayment amount i.e amount to be repaid of the total borrowed amount
+     * @return A tuple of error code, and tokens to seize
+     */
     function liquidateVAICalculateSeizeTokens(
         address comptroller,
         address vTokenCollateral, 
@@ -79,25 +110,16 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         return (uint(Error.NO_ERROR), seizeTokens);
     }
 
-    /** liquidity calculation **/
-    /**
-     * @dev Local vars for avoiding stack-depth limits in calculating account liquidity.
-     *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
-     *  whereas `borrowBalance` is the amount of underlying that the account has borrowed.
+    /** 
+     * @notice Computes the hypothetical liquidity and shortfall of an account given a hypothetical borrow
+     *      A snapshot of the account is taken and the total borrow amount of the account is calculated
+     * @param comptroller Address of comptroller
+     * @param account Address of the borrowed vToken
+     * @param vTokenModify Address of collateral for vToken
+     * @param redeemTokens Number of vTokens being redeemed
+     * @param borrowAmount Amount borrowed
+     * @return Returns a tuple of error code, liquidity, and shortfall
      */
-    struct AccountLiquidityLocalVars {
-        uint sumCollateral;
-        uint sumBorrowPlusEffects;
-        uint vTokenBalance;
-        uint borrowBalance;
-        uint exchangeRateMantissa;
-        uint oraclePriceMantissa;
-        Exp collateralFactor;
-        Exp exchangeRate;
-        Exp oraclePrice;
-        Exp tokensToDenom;
-    }
-
     function getHypotheticalAccountLiquidity(
         address comptroller,
         address account,
