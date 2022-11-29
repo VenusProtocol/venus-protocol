@@ -586,14 +586,14 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             uint delta;
 
             (mErr, delta) = mulUInt(repayAmount, 1e18);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_PART_CALCULATION_FAILED");
 
             (mErr, delta) = divUInt(delta, totalRepayAmount);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_PART_CALCULATION_FAILED");
             
             uint totalMintedAmount;
             (mErr, totalMintedAmount) = subUInt(totalRepayAmount, currentInterest);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_MINTED_AMOUNT_CALCULATION_FAILED");
 
             (mErr, burn) = mulUInt(totalMintedAmount, delta);
             require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
@@ -602,16 +602,16 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
 
             (mErr, partOfCurrentInterest) = mulUInt(currentInterest, delta);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_CURRENT_INTEREST_AMOUNT_CALCULATION_FAILED");
 
             (mErr, partOfCurrentInterest) = divUInt(partOfCurrentInterest, 1e18);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_CURRENT_INTEREST_AMOUNT_CALCULATION_FAILED");
 
             (mErr, partOfPastInterest) = mulUInt(pastVAIInterest[borrower], delta);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_PAST_INTEREST_CALCULATION_FAILED");
 
             (mErr, partOfPastInterest) = divUInt(partOfPastInterest, 1e18);
-            require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+            require(mErr == MathError.NO_ERROR, "VAI_PAST_INTEREST_CALCULATION_FAILED");
         }
 
         return (burn, partOfCurrentInterest, partOfPastInterest);
