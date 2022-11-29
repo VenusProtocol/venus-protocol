@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.17;
 
-import "../Liquidator.sol";
+import "../Liquidator/Liquidator.sol";
 
 contract LiquidatorHarness is Liquidator {
 
