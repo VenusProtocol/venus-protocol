@@ -213,7 +213,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         (uint burn, uint partOfCurrentInterest, uint partOfPastInterest) = getVAICalculateRepayAmount(borrower, repayAmount);
 
         VAI(getVAIAddress()).burn(payer, burn);
-        VAI(getVAIAddress()).transferFrom(payer, receiver, partOfCurrentInterest);
+        bool success = VAI(getVAIAddress()).transferFrom(payer, receiver, partOfCurrentInterest);
+        require(success == true, "failed to transfer VAI fee");
 
         uint vaiBalanceBorrower = ComptrollerImplInterface(address(comptroller)).mintedVAIs(borrower);
         uint accountVAINew;
