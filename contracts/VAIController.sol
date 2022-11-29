@@ -559,10 +559,10 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     /**
-     * @notice Calculates how much VAI the user needs to repay
-     * @param borrower the address of the VAI borrower
-     * @param repayAmount the amount of VAI being returned
-     * @return (uint, uint, uint) amount of vai to be burned, amount of vai user is paying from current interest and amount of vai user is repaying from past interest
+     * @notice Calculate how much VAI the user needs to repay
+     * @param borrower The address of the VAI borrower
+     * @param repayAmount The amount of VAI being returned
+     * @return (uint, uint, uint) Amount of VAI to be burned, amount of VAI the user needs to pay in current interest and amount of VAI the user needs to pay in past interest
      */
     function getVAICalculateRepayAmount(address borrower, uint256 repayAmount) public view returns (uint, uint, uint) {
         MathError mErr;
