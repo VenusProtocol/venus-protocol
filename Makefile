@@ -80,25 +80,6 @@ spec/certora/Comptroller/%.cvl:
 	--verify \
 	 ComptrollerCertora:$@
 
-spec/certora/vDAI/%.cvl:
-	$(CERTORA_RUN) \
-	 spec/certora/contracts/VDaiDelegateCertora.sol \
-	 spec/certora/contracts/UnderlyingModelNonStandard.sol \
-	 spec/certora/contracts/mcd/dai.sol:Dai \
-	 spec/certora/contracts/mcd/pot.sol:Pot \
-	 spec/certora/contracts/mcd/vat.sol:Vat \
-	 spec/certora/contracts/mcd/join.sol:DaiJoin \
-	 tests/Contracts/BoolComptroller.sol \
-	--link \
-	 VDaiDelegateCertora:comptroller=BoolComptroller \
-	 VDaiDelegateCertora:underlying=Dai \
-	 VDaiDelegateCertora:potAddress=Pot \
-	 VDaiDelegateCertora:vatAddress=Vat \
-	 VDaiDelegateCertora:daiJoinAddress=DaiJoin \
-	--verify \
-	 VDaiDelegateCertora:$@ \
-	--settings -cache=certora-run-vdai
-
 spec/certora/VBep20/%.cvl:
 	$(CERTORA_RUN) \
 	 spec/certora/contracts/VBep20ImmutableCertora.sol \

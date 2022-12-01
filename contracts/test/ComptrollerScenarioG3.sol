@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../ComptrollerG3.sol";
+import "../Comptroller/ComptrollerG3.sol";
 
 contract ComptrollerScenarioG3 is ComptrollerG3 {
     uint public blockNumber;

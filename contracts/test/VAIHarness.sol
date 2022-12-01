@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../VAI/VAI.sol";
+import "../Tokens/VAI/VAI.sol";
 
 contract VAIScenario is VAI {
     uint blockNumber = 100000;

@@ -1,9 +1,8 @@
 pragma solidity ^0.5.16;
 
-import "../VBep20Immutable.sol";
-import "../VBep20Delegator.sol";
-import "../VBep20Delegate.sol";
-import "../VDaiDelegate.sol";
+import "../Tokens/VTokens/VBep20Immutable.sol";
+import "../Tokens/VTokens/VBep20Delegator.sol";
+import "../Tokens/VTokens/VBep20Delegate.sol";
 import "./ComptrollerScenario.sol";
 
 contract VBep20Harness is VBep20Immutable {
@@ -413,111 +412,4 @@ contract VBep20DelegateScenarioExtra is VBep20DelegateScenario {
     function babyYoda() public pure {
       revert("protect the baby");
     }
-}
-
-contract VDaiDelegateHarness is VDaiDelegate {
-    uint blockNumber = 100000;
-    uint harnessExchangeRate;
-    bool harnessExchangeRateStored;
-
-    function harnessFastForward(uint blocks) public {
-        blockNumber += blocks;
-    }
-
-    function harnessSetAccrualBlockNumber(uint _accrualblockNumber) public {
-        accrualBlockNumber = _accrualblockNumber;
-    }
-
-    function harnessSetBalance(address account, uint amount) external {
-        accountTokens[account] = amount;
-    }
-
-    function harnessSetBlockNumber(uint newBlockNumber) public {
-        blockNumber = newBlockNumber;
-    }
-
-    function harnessSetExchangeRate(uint exchangeRate) public {
-        harnessExchangeRate = exchangeRate;
-        harnessExchangeRateStored = true;
-    }
-
-    function harnessSetTotalSupply(uint totalSupply_) public {
-        totalSupply = totalSupply_;
-    }
-
-    function getBlockNumber() internal view returns (uint) {
-        return blockNumber;
-    }
-}
-
-contract VDaiDelegateScenario is VDaiDelegate {
-    function setTotalBorrows(uint totalBorrows_) public {
-        totalBorrows = totalBorrows_;
-    }
-
-    function setTotalReserves(uint totalReserves_) public {
-        totalReserves = totalReserves_;
-    }
-
-    function getBlockNumber() internal view returns (uint) {
-        ComptrollerScenario comptrollerScenario = ComptrollerScenario(address(comptroller));
-        return comptrollerScenario.blockNumber();
-    }
-}
-
-contract VDaiDelegateMakerHarness is PotLike, VatLike, GemLike, DaiJoinLike {
-    /* Pot */
-
-    // exchangeRate
-    function chi() external view returns (uint) { return 1; }
-
-    // totalSupply
-    function pie(address) external view returns (uint) { return 0; }
-
-    // accrueInterest -> new exchangeRate
-    function drip() external returns (uint) { return 0; }
-
-    // mint
-    function join(uint) external {}
-
-    // redeem
-    function exit(uint) external {}
-
-    /* Vat */
-
-    // internal dai balance
-    function dai(address) external view returns (uint) { return 0; }
-
-    // approve pot transfer
-    function hope(address) external {}
-
-    /* Gem (Dai) */
-
-    uint public totalSupply;
-    mapping (address => mapping (address => uint)) public allowance;
-    mapping (address => uint) public balanceOf;
-    function approve(address, uint) external {}
-    function transferFrom(address src, address dst, uint amount) external returns (bool) {
-        balanceOf[src] -= amount;
-        balanceOf[dst] += amount;
-        return true;
-    }
-
-    function harnessSetBalance(address account, uint amount) external {
-        balanceOf[account] = amount;
-    }
-
-    /* DaiJoin */
-
-    // vat contract
-    function vat() external returns (VatLike) { return this; }
-
-    // dai contract
-    function dai() external returns (GemLike) { return this; }
-
-    // dai -> internal dai
-    function join(address, uint) external payable {}
-
-    // internal dai transfer out
-    function exit(address, uint) external {}
 }

@@ -1,11 +1,11 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../VToken.sol";
-import "../SafeMath.sol";
-import "../Comptroller.sol";
-import "../EIP20Interface.sol";
-import "../VBep20.sol";
+import "../Tokens/VTokens/VToken.sol";
+import "../Utils/SafeMath.sol";
+import "../Comptroller/Comptroller.sol";
+import "../Tokens/EIP20Interface.sol";
+import "../Tokens/VTokens/VBep20.sol";
 
 contract SnapshotLens is ExponentialNoError {
     using SafeMath for uint256;

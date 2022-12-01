@@ -1,13 +1,13 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../VBep20.sol";
-import "../VToken.sol";
-import "../EIP20Interface.sol";
-import "../PriceOracle.sol";
-import "../ErrorReporter.sol";
-import "../Comptroller.sol";
-import "../VAIControllerInterface.sol";
+import "../Tokens/VTokens/VBep20.sol";
+import "../Tokens/VTokens/VToken.sol";
+import "../Tokens/EIP20Interface.sol";
+import "../Oracle/PriceOracle.sol";
+import "../Utils/ErrorReporter.sol";
+import "../Comptroller/Comptroller.sol";
+import "../Tokens/VAI/VAIControllerInterface.sol";
 
 contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, ExponentialNoError {
     /** liquidate seize calculation **/

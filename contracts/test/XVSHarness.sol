@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../Governance/XVS.sol";
+import "../Tokens/XVS/XVS.sol";
 
 contract XVSScenario is XVS {
     constructor(address account) XVS(account) public {}

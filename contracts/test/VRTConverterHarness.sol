@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/VRT/VRTConverter.sol";
+import "../../contracts/Tokens/VRT/VRTConverter.sol";
 
 contract VRTConverterHarness is VRTConverter {
     
