@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "@venusprotocol/oracle/contracts/PriceOracle.sol";
+import "../PriceOracle.sol";
 import "../Tokens/VTokens/VToken.sol";
 import "../ErrorReporter.sol";
 import "../Exponential.sol";
@@ -376,7 +376,7 @@ contract ComptrollerG2 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
             }
         }
 
-        if (oracle.getUnderlyingPrice(vToken) == 0) {
+        if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
             return uint(Error.PRICE_ERROR);
         }
 
@@ -739,7 +739,7 @@ contract ComptrollerG2 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
             vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(address(asset));
+            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(asset);
             if (vars.oraclePriceMantissa == 0) {
                 return (Error.PRICE_ERROR, 0, 0);
             }
@@ -806,8 +806,8 @@ contract ComptrollerG2 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
      */
     function liquidateCalculateSeizeTokens(address vTokenBorrowed, address vTokenCollateral, uint actualRepayAmount) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = oracle.getUnderlyingPrice(vTokenBorrowed);
-        uint priceCollateralMantissa = oracle.getUnderlyingPrice(vTokenCollateral);
+        uint priceBorrowedMantissa = oracle.getUnderlyingPrice(VToken(vTokenBorrowed));
+        uint priceCollateralMantissa = oracle.getUnderlyingPrice(VToken(vTokenCollateral));
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -931,7 +931,7 @@ contract ComptrollerG2 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
         }
 
         // If collateral factor != 0, fail if price == 0
-        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(address(vToken)) == 0) {
+        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(vToken) == 0) {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
 
@@ -1159,7 +1159,7 @@ contract ComptrollerG2 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
         for (i = 0; i < allMarkets.length; i++) {
             vToken = allMarkets[i];
             if (markets[address(vToken)].isVenus) {
-                Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(address(vToken))});
+                Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(vToken)});
                 Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
                 utilities[i] = utility;
                 totalUtility = add_(totalUtility, utility);

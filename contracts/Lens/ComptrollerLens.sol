@@ -1,10 +1,10 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "@venusprotocol/oracle/contracts/PriceOracle.sol";
 import "../Tokens/VTokens/VBep20.sol";
 import "../Tokens/VTokens/VToken.sol";
 import "../EIP20Interface.sol";
+import "../PriceOracle.sol";
 import "../ErrorReporter.sol";
 import "../Comptroller/Comptroller.sol";
 import "../Tokens/VAI/VAIControllerInterface.sol";
@@ -18,8 +18,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint actualRepayAmount
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(vTokenBorrowed);
-        uint priceCollateralMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(vTokenCollateral);
+        uint priceBorrowedMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(VToken(vTokenBorrowed));
+        uint priceCollateralMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(VToken(vTokenCollateral));
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -53,7 +53,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
         uint priceBorrowedMantissa = 1e18;  // Note: this is VAI
-        uint priceCollateralMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(vTokenCollateral);
+        uint priceCollateralMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(VToken(vTokenCollateral));
         if (priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -124,7 +124,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(address(asset));
+            vars.oraclePriceMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(asset);
             if (vars.oraclePriceMantissa == 0) {
                 return (uint(Error.PRICE_ERROR), 0, 0);
             }

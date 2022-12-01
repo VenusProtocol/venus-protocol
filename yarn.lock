@@ -470,10 +470,10 @@
   dependencies:
     "@ethersproject/logger" "^5.7.0"
 
-"@ethersproject/providers@5.7.2", "@ethersproject/providers@^5.6.8":
-  version "5.7.2"
-  resolved "https://registry.npmjs.org/@ethersproject/providers/-/providers-5.7.2.tgz#f8b1a4f275d7ce58cf0a2eec222269a08beb18cb"
-  integrity sha512-g34EWZ1WWAVgr4aptGlVBF8mhl3VWjv+8hoAnzStu8Ah22VHBsuGzP17eb6xDVRzw895G4W7vvx60lFFur/1Rg==
+"@ethersproject/providers@5.7.1", "@ethersproject/providers@^5.6.8":
+  version "5.7.1"
+  resolved "https://registry.npmjs.org/@ethersproject/providers/-/providers-5.7.1.tgz#b0799b616d5579cd1067a8ebf1fc1ec74c1e122c"
+  integrity sha512-vZveG/DLyo+wk4Ga1yx6jSEHrLPgmTt+dFv0dv8URpVCRf0jVhalps1jq/emN/oXnMRsC7cQgAF32DcXLL7BPQ==
   dependencies:
     "@ethersproject/abstract-provider" "^5.7.0"
     "@ethersproject/abstract-signer" "^5.7.0"
@@ -978,7 +978,12 @@
     table "^6.8.0"
     undici "^5.4.0"
 
-"@openzeppelin/contracts-upgradeable@^4.6.0", "@openzeppelin/contracts-upgradeable@^4.7.3", "@openzeppelin/contracts-upgradeable@^4.8.0":
+"@openzeppelin/contracts-upgradeable@^4.6.0":
+  version "4.7.3"
+  resolved "https://registry.npmjs.org/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.7.3.tgz#f1d606e2827d409053f3e908ba4eb8adb1dd6995"
+  integrity sha512-+wuegAMaLcZnLCJIvrVUDzA9z/Wp93f0Dla/4jJvIhijRrPabjQbZe6fWiECLaJyfn5ci9fqf9vTw3xpQOad2A==
+
+"@openzeppelin/contracts-upgradeable@^4.8.0":
   version "4.8.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.8.0.tgz#26688982f46969018e3ed3199e72a07c8d114275"
   integrity sha512-5GeFgqMiDlqGT8EdORadp1ntGF0qzWZLmEY7Wbp/yVhN7/B3NNzCxujuI77ktlyG81N3CUZP8cZe3ZAQ/cW10w==
@@ -1457,23 +1462,6 @@
     ethers "^5.7.0"
     hardhat-deploy "^0.11.14"
     sleep-promise "^9.1.0"
-
-"@venusprotocol/oracle@^1.2.0":
-  version "1.2.3"
-  resolved "https://registry.npmjs.org/@venusprotocol/oracle/-/oracle-1.2.3.tgz#25610b18546224f3926890183ade10ff62a39455"
-  integrity sha512-oCgHLVDQoMItks6OKb84uwJE1P7YQ4VPOrzAbCWCt5ep6LmO2sWI/HyFh+pwg3Ck0nBRqrhBgZ5pzPHU5ZQY8w==
-  dependencies:
-    "@openzeppelin/contracts" "^4.6.0"
-    "@openzeppelin/contracts-upgradeable" "^4.7.3"
-    "@venusprotocol/venus-protocol" "0.4.1"
-    module-alias "^2.2.2"
-
-"@venusprotocol/venus-protocol@0.4.1":
-  version "0.4.1"
-  resolved "https://registry.npmjs.org/@venusprotocol/venus-protocol/-/venus-protocol-0.4.1.tgz#b98546a9b3bee6a1356b3435b5a67dabf0933366"
-  integrity sha512-Fk1zcc9s8S4phX5cnZtJI3Z3EWwcZuBktE8G6prAfcXYlSegNjRxvgyX9p8gJrH3uZh36MI3Cbm4LSvENL4ezA==
-  dependencies:
-    dotenv "^16.0.1"
 
 "@vue/compiler-core@3.2.45":
   version "3.2.45"
@@ -3245,9 +3233,9 @@ ethers@^4.0.32, ethers@^4.0.40:
     xmlhttprequest "1.8.0"
 
 ethers@^5.5.3, ethers@^5.6.9, ethers@^5.7.0:
-  version "5.7.2"
-  resolved "https://registry.npmjs.org/ethers/-/ethers-5.7.2.tgz#3a7deeabbb8c030d4126b24f84e525466145872e"
-  integrity sha512-wswUsmWo1aOK8rR7DIKiWSw9DbLWe6x98Jrn8wcTflTVvaXhAMaB5zGAXy0GYQEQp9iO1iSHWVyARQm11zUtyg==
+  version "5.7.1"
+  resolved "https://registry.npmjs.org/ethers/-/ethers-5.7.1.tgz#48c83a44900b5f006eb2f65d3ba6277047fd4f33"
+  integrity sha512-5krze4dRLITX7FpU8J4WscXqADiKmyeNlylmmDLbS95DaZpBhDe2YSwRQwKXWNyXcox7a3gBgm/MkGXV1O1S/Q==
   dependencies:
     "@ethersproject/abi" "5.7.0"
     "@ethersproject/abstract-provider" "5.7.0"
@@ -3267,7 +3255,7 @@ ethers@^5.5.3, ethers@^5.6.9, ethers@^5.7.0:
     "@ethersproject/networks" "5.7.1"
     "@ethersproject/pbkdf2" "5.7.0"
     "@ethersproject/properties" "5.7.0"
-    "@ethersproject/providers" "5.7.2"
+    "@ethersproject/providers" "5.7.1"
     "@ethersproject/random" "5.7.0"
     "@ethersproject/rlp" "5.7.0"
     "@ethersproject/sha2" "5.7.0"
@@ -5046,11 +5034,6 @@ mock-fs@^4.1.0:
   version "4.14.0"
   resolved "https://registry.npmjs.org/mock-fs/-/mock-fs-4.14.0.tgz#ce5124d2c601421255985e6e94da80a7357b1b18"
   integrity sha512-qYvlv/exQ4+svI3UOvPUpLDF0OMX5euvUH0Ny4N5QyRyhNdgAgUrVH3iUINSzEPLvx0kbo/Bp28GJKIqvE7URw==
-
-module-alias@^2.2.2:
-  version "2.2.2"
-  resolved "https://registry.npmjs.org/module-alias/-/module-alias-2.2.2.tgz#151cdcecc24e25739ff0aa6e51e1c5716974c0e0"
-  integrity sha512-A/78XjoX2EmNvppVWEhM2oGk3x4lLxnkEA4jTbaK97QKSDjkIoOsKQlfylt/d3kKKi596Qy3NP5XrXJ6fZIC9Q==
 
 module-error@^1.0.1, module-error@^1.0.2:
   version "1.0.2"

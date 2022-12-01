@@ -1,9 +1,9 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "@venusprotocol/oracle/contracts/PriceOracle.sol";
 import "../Tokens/VTokens/VBep20.sol";
 import "../Tokens/VTokens/VToken.sol";
+import "../PriceOracle.sol";
 import "../EIP20Interface.sol";
 import "../Governance/GovernorAlpha.sol";
 import "../Tokens/XVS/XVS.sol";
@@ -226,7 +226,7 @@ contract VenusLens is ExponentialNoError {
 
         return VTokenUnderlyingPrice({
             vToken: address(vToken),
-            underlyingPrice: priceOracle.getUnderlyingPrice(address(vToken))
+            underlyingPrice: priceOracle.getUnderlyingPrice(vToken)
         });
     }
     

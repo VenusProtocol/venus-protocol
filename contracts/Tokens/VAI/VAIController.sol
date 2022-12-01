@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "@venusprotocol/oracle/contracts/PriceOracle.sol";
+import "../../PriceOracle.sol";
 import "../../ErrorReporter.sol";
 import "../../Exponential.sol";
 import "../../Comptroller/ComptrollerStorage.sol";
@@ -401,7 +401,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(address(enteredMarkets[i]));
+            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(enteredMarkets[i]);
             if (vars.oraclePriceMantissa == 0) {
                 return (uint(Error.PRICE_ERROR), 0);
             }
@@ -490,7 +490,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
         if (baseRateMantissa > 0) {
             if (floatRateMantissa > 0) {
-                uint oraclePrice = oracle.getUnderlyingPrice(getVAIAddress());
+                uint oraclePrice = oracle.getUnderlyingPrice(VToken(getVAIAddress()));
                 if (1e18 >= oraclePrice) {
                     uint delta;
                     uint rate;

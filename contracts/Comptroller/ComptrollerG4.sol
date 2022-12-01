@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "@venusprotocol/oracle/contracts/PriceOracle.sol";
+import "../PriceOracle.sol";
 import "../Tokens/VTokens/VToken.sol";
 import "../ErrorReporter.sol";
 import "../Tokens/XVS/XVS.sol";
@@ -376,7 +376,7 @@ contract ComptrollerG4 is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrol
             }
         }
 
-        if (oracle.getUnderlyingPrice(vToken) == 0) {
+        if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
             return uint(Error.PRICE_ERROR);
         }
 
@@ -750,7 +750,7 @@ contract ComptrollerG4 is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrol
             vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(address(asset));
+            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(asset);
             if (vars.oraclePriceMantissa == 0) {
                 return (Error.PRICE_ERROR, 0, 0);
             }
@@ -797,8 +797,8 @@ contract ComptrollerG4 is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrol
      */
     function liquidateCalculateSeizeTokens(address vTokenBorrowed, address vTokenCollateral, uint actualRepayAmount) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = oracle.getUnderlyingPrice(vTokenBorrowed);
-        uint priceCollateralMantissa = oracle.getUnderlyingPrice(vTokenCollateral);
+        uint priceBorrowedMantissa = oracle.getUnderlyingPrice(VToken(vTokenBorrowed));
+        uint priceCollateralMantissa = oracle.getUnderlyingPrice(VToken(vTokenCollateral));
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -834,7 +834,7 @@ contract ComptrollerG4 is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrol
     function liquidateVAICalculateSeizeTokens(address vTokenCollateral, uint actualRepayAmount) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
         uint priceBorrowedMantissa = 1e18;  // Note: this is VAI
-        uint priceCollateralMantissa = oracle.getUnderlyingPrice(vTokenCollateral);
+        uint priceCollateralMantissa = oracle.getUnderlyingPrice(VToken(vTokenCollateral));
         if (priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -930,7 +930,7 @@ contract ComptrollerG4 is ComptrollerV4Storage, ComptrollerInterfaceG2, Comptrol
         }
 
         // If collateral factor != 0, fail if price == 0
-        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(address(vToken)) == 0) {
+        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(vToken) == 0) {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
 
