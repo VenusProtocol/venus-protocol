@@ -10,7 +10,8 @@ contract XVSStakingLens {
     * @param account The address of the account to check
     * @param xvsAddress The address of the XVSToken
     * @param xvsVaultProxyAddress The address of the XVSVaultProxy
-    * @return The balance that user staked and pendingWithdrawalAmount of user.
+    * @return stakedAmount The balance that user staked
+    * @return pendingWithdrawalAmount pending withdrawal amount of user.
     */
     function getStakedData(address account, address xvsAddress, address xvsVaultProxyAddress) external view returns (uint256 stakedAmount, uint256 pendingWithdrawalAmount)
     {
