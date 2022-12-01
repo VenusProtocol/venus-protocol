@@ -1,8 +1,8 @@
 pragma solidity ^0.5.16;
 
-import "./Utils/IBEP20.sol";
-import "./Utils/SafeBEP20.sol";
-import "./Ownable.sol";
+import "../Utils/IBEP20.sol";
+import "../Utils/SafeBEP20.sol";
+import "../Utils/Ownable.sol";
 
 /**
  * @dev Contract for treasury all tokens as fee and transfer to governance

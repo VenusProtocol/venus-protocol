@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
 import "../../Comptroller/ComptrollerInterface.sol";
-import "../../InterestRateModel.sol";
+import "../../InterestRateModels/InterestRateModel.sol";
 
 contract VTokenStorage {
     /**

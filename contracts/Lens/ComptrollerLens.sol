@@ -3,9 +3,9 @@ pragma experimental ABIEncoderV2;
 
 import "../Tokens/VTokens/VBep20.sol";
 import "../Tokens/VTokens/VToken.sol";
-import "../EIP20Interface.sol";
-import "../PriceOracle.sol";
-import "../ErrorReporter.sol";
+import "../Tokens/EIP20Interface.sol";
+import "../Oracle/PriceOracle.sol";
+import "../Utils/ErrorReporter.sol";
 import "../Comptroller/Comptroller.sol";
 import "../Tokens/VAI/VAIControllerInterface.sol";
 

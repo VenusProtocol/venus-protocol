@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../PriceOracle.sol";
+import "../Oracle/PriceOracle.sol";
 import "../Tokens/VTokens/VBep20.sol";
 
 contract SimplePriceOracle is PriceOracle {

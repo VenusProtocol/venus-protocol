@@ -1,11 +1,11 @@
 pragma solidity ^0.5.16;
 
-import "../PriceOracle.sol";
+import "../Oracle/PriceOracle.sol";
 import "../Tokens/VTokens/VToken.sol";
-import "../ErrorReporter.sol";
+import "../Utils/ErrorReporter.sol";
 import "../Tokens/XVS/XVS.sol";
 import "../Tokens/VAI/VAI.sol";
-import "../IAccessControlManager.sol";
+import "../Governance/IAccessControlManager.sol";
 import "./ComptrollerLensInterface.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";

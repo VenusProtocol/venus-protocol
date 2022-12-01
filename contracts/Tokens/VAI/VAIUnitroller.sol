@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../ErrorReporter.sol";
+import "../../Utils/ErrorReporter.sol";
 import "./VAIControllerStorage.sol";
 
 contract VAIUnitroller is VAIUnitrollerAdminStorage, VAIControllerErrorReporter {

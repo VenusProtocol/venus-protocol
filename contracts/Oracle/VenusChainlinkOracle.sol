@@ -1,9 +1,9 @@
 pragma solidity ^0.5.16;
 
+import "../Tokens/VTokens/VBep20.sol";
+import "../Tokens/BEP20Interface.sol";
+import "../Utils/SafeMath.sol";
 import "./PriceOracle.sol";
-import "./Tokens/VTokens/VBep20.sol";
-import "./BEP20Interface.sol";
-import "./SafeMath.sol";
 import "./AggregatorV2V3Interface.sol";
 
 contract VenusChainlinkOracle is PriceOracle {

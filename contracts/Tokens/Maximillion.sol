@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "./Tokens/VTokens/VBNB.sol";
+import "./VTokens/VBNB.sol";
 
 /**
  * @title Venus's Maximillion Contract

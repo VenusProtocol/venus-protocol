@@ -1,8 +1,8 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../InterestRateModel.sol";
-import "../SafeMath.sol";
+import "../InterestRateModels/InterestRateModel.sol";
+import "../Utils/SafeMath.sol";
 
 contract InterestRateModelLens {
 

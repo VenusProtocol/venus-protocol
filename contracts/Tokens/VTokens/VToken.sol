@@ -1,11 +1,11 @@
 pragma solidity ^0.5.16;
 
 import "../../Comptroller/ComptrollerInterface.sol";
-import "../../ErrorReporter.sol";
-import "../../Exponential.sol";
-import "../../EIP20Interface.sol";
-import "../../EIP20NonStandardInterface.sol";
-import "../../InterestRateModel.sol";
+import "../../Utils/ErrorReporter.sol";
+import "../../Utils/Exponential.sol";
+import "../../Tokens/EIP20Interface.sol";
+import "../../Tokens/EIP20NonStandardInterface.sol";
+import "../../InterestRateModels/InterestRateModel.sol";
 import "./VTokenInterfaces.sol";
 
 /**

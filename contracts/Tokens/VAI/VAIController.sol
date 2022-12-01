@@ -1,8 +1,8 @@
 pragma solidity ^0.5.16;
 
-import "../../PriceOracle.sol";
-import "../../ErrorReporter.sol";
-import "../../Exponential.sol";
+import "../../Oracle/PriceOracle.sol";
+import "../../Utils/ErrorReporter.sol";
+import "../../Utils/Exponential.sol";
 import "../../Comptroller/ComptrollerStorage.sol";
 import "../../Comptroller/Comptroller.sol";
 import "../VTokens/VToken.sol";

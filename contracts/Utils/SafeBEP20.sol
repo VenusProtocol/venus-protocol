@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "./IBEP20.sol";
 import "./SafeMath.sol";
+import "./IBEP20.sol";
 import "./Address.sol";
 
 /**

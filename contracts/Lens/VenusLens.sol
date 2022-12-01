@@ -3,12 +3,12 @@ pragma experimental ABIEncoderV2;
 
 import "../Tokens/VTokens/VBep20.sol";
 import "../Tokens/VTokens/VToken.sol";
-import "../PriceOracle.sol";
-import "../EIP20Interface.sol";
+import "../Oracle/PriceOracle.sol";
+import "../Tokens/EIP20Interface.sol";
 import "../Governance/GovernorAlpha.sol";
 import "../Tokens/XVS/XVS.sol";
 import "../Comptroller/ComptrollerInterface.sol";
-import "../SafeMath.sol";
+import "../Utils/SafeMath.sol";
 
 contract VenusLens is ExponentialNoError {
 

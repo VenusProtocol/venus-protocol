@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
 import "../Tokens/VTokens/VToken.sol";
-import "../PriceOracle.sol";
+import "../Oracle/PriceOracle.sol";
 
 contract ComptrollerInterfaceG1 {
     /// @notice Indicator that this is a Comptroller contract (for inspection)

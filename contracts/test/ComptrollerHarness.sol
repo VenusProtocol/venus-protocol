@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
 import "../Comptroller/Comptroller.sol";
-import "../PriceOracle.sol";
+import "../Oracle/PriceOracle.sol";
 
 contract ComptrollerKovan is Comptroller {
   function getXVSAddress() public view returns (address) {

@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "./SafeMath.sol";
+import "../Utils/SafeMath.sol";
 
 contract Timelock {
     using SafeMath for uint;

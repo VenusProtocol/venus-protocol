@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
+import "../Utils/SafeMath.sol";
 import "./InterestRateModel.sol";
-import "./SafeMath.sol";
 
 /**
   * @title Venus's WhitePaperInterestRateModel Contract
