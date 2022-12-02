@@ -1247,7 +1247,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
     function setVenusSpeedInternal(VToken vToken, uint supplySpeed, uint borrowSpeed) internal {
         Market storage market = markets[address(vToken)];
-        require(market.isListed, "venus market is not listed");
+        require(market.isListed, "Comptroller:: setVenusSpeedInternal market not listed");
 
         if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
@@ -1583,14 +1583,16 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
     /**
      * @notice Set XVS speed for a single market
-     * @param vToken The market whose XVS speed to update
-     * @param venusSpeed New XVS speed for market
+     * @param vTokens The market whose XVS speed to update
+     * @param supplySpeeds New XVS speed for supply
+     * @param borrowSpeeds New XVS speed for borrow
      */
-    function _setVenusSpeeds(VToken[] memory vTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) external {
+    function _setVenusSpeeds(VToken[] memory vTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) public {
         ensureAdminOr(comptrollerImplementation);
 
         uint numTokens = vTokens.length;
-        require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "Comptroller::_setVenusSpeeds invalid input");
+        require(numTokens == supplySpeeds.length, "Comptroller::_setVenusSpeeds invalid supplySpeeds");
+        require(numTokens == borrowSpeeds.length, "Comptroller::_setVenusSpeeds invalid borrowSpeeds");
 
         for (uint i = 0; i < numTokens; ++i) {
             ensureNonzeroAddress(address(vTokens[i]));

@@ -231,6 +231,6 @@ contract ComptrollerV10Storage is ComptrollerV9Storage {
     /// @notice The rate at which venus is distributed to the corresponding borrow market (per block)
     mapping(address => uint) public venusBorrowSpeeds;
 
-    /// @notice The rate at whivenus is distributed to the corresponding supply market (per block)
+    /// @notice The rate at which venus is distributed to the corresponding supply market (per block)
     mapping(address => uint) public venusSupplySpeeds;
 }

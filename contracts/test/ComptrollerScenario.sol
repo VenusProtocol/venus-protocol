@@ -94,7 +94,7 @@ contract ComptrollerScenario is Comptroller {
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets[i];
             uint newSpeed = totalUtility.mantissa > 0 ? mul_(venusRate, div_(utilities[i], totalUtility)) : 0;
-            setVenusSpeedInternal(vToken, newSpeed);
+            setVenusSpeedInternal(vToken, newSpeed, newSpeed);
         }
     }
 }
