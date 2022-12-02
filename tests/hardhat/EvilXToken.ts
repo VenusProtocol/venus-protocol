@@ -8,14 +8,15 @@ import { VAIControllerHarness__factory, ComptrollerHarness__factory, IAccessCont
 const { expect } = chai;
 
 describe("Evil Token test", async () => {
-  let vToken1, vToken2, vToken3, unitroller;
-  it("Check the updated vToken states after transfer out", async () => {
+  let vToken1, vToken2, vToken3, unitroller, user;
+
+  beforeEach(async () => {
     const [root, account1] = await ethers.getSigners();
 
     const accessControlMock = await smock.fake<IAccessControlManager>("AccessControlManager");
     accessControlMock.isAllowedToCall.returns(true);
 
-    const user = account1;
+    user = account1;
     const cf1 = 0.5,
       cf2 = 0.666,
       cf3 = 0,
@@ -190,7 +191,9 @@ describe("Evil Token test", async () => {
     await underlying1.connect(user).approve(vToken1.address, convertToUnit(1, 10));
     await vToken1.connect(user).mint(convertToUnit(1, 4));
     await underlying3.harnessSetBalance(vToken3.address, convertToUnit(1, 8));
+  });
 
+  it("Check the updated vToken states after transfer out", async () => {
     let liquidity = 0;
 
     ({ 1: liquidity } = await unitroller.getAccountLiquidity(user.address));

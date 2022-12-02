@@ -40,6 +40,8 @@ contract VBep20Scenario is VBep20Immutable {
     }
 }
 
+// doTransferOut method of this token supposed to be compromised and contians malicious code which
+// can be used by attacker to compromise the protocol working.
 contract EvilXToken is VBep20Delegate {
     event Log(string x, address y);
     event Log(string x, uint y);
