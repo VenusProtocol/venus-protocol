@@ -224,6 +224,10 @@ describe("assetListTest", () => {
   });
 
   describe("entering from borrowAllowed", () => {
+    beforeEach(async () => {
+      await BAT.borrowIndex.returns(convertToUnit(1, 18));
+    });
+
     it("enters when called by a vtoken", async () => {
       await setBalance(await BAT.wallet.getAddress(), 10n ** 18n);
       await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, await customer.getAddress(), 1);
