@@ -1219,7 +1219,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
 
         // venusSpeeds -> venusBorrowSpeeds & venusSupplySpeeds t
-        for (uint i = 0; i < allMarkets.length; i ++) {
+        for (uint256 i; i < allMarkets.length; ++i) {
             venusBorrowSpeeds[address(allMarkets[i])] = venusSupplySpeeds[address(allMarkets[i])] = venusSpeeds[address(allMarkets[i])];
             delete venusSpeeds[address(allMarkets[i])];
 
