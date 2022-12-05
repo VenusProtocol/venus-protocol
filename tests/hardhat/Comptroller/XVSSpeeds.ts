@@ -49,7 +49,7 @@ describe("Comptroller", () => {
           [convertToUnit(1, 15)],
           [convertToUnit(1, 15), convertToUnit(1, 15)],
         ),
-      ).to.be.revertedWith("Comptroller::_setVenusSpeeds invalid supplySpeeds");
+      ).to.be.revertedWith("Comptroller::_setVenusSpeeds invalid input");
     });
 
     it("Revert on invalid borrowSpeeds input", async () => {
@@ -59,14 +59,14 @@ describe("Comptroller", () => {
           [convertToUnit(1, 15), convertToUnit(1, 15)],
           [convertToUnit(1, 15)],
         ),
-      ).to.be.revertedWith("Comptroller::_setVenusSpeeds invalid borrowSpeeds");
+      ).to.be.revertedWith("Comptroller::_setVenusSpeeds invalid input");
     });
 
     it("Revert for unlisted market", async () => {
       const [unListedMarket] = await ethers.getSigners();
       await expect(
         comptroller._setVenusSpeeds([unListedMarket.address], [convertToUnit(1, 16)], [convertToUnit(1, 15)]),
-      ).to.be.revertedWith("Comptroller:: setVenusSpeedInternal market not listed");
+      ).to.be.revertedWith("market not listed");
     });
 
     it("Revert on invalid borrowSpeeds input", async () => {

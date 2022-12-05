@@ -1247,7 +1247,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
     function setVenusSpeedInternal(VToken vToken, uint supplySpeed, uint borrowSpeed) internal {
         Market storage market = markets[address(vToken)];
-        require(market.isListed, "Comptroller:: setVenusSpeedInternal market not listed");
+        ensureListed(market);
 
         if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
@@ -1336,8 +1336,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
             releaseToVault();
         }
 
-        VenusMarketState memory supplyState = venusSupplyState[vToken];
-        uint supplyIndex = supplyState.index;
+        uint supplyIndex = venusSupplyState[vToken].index;
         uint supplierIndex = venusSupplierIndex[vToken][supplier];
 
         // Update supplier's index to the current index since we are distributing accrued XVS
@@ -1370,8 +1369,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
             releaseToVault();
         }
 
-        VenusMarketState memory borrowState = venusBorrowState[vToken];
-        uint borrowIndex = borrowState.index;
+        uint borrowIndex = venusBorrowState[vToken].index;
         uint borrowerIndex = venusBorrowerIndex[vToken][borrower];
 
         // Update borrowers's index to the current index since we are distributing accrued XVS
@@ -1575,12 +1573,11 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param supplySpeeds New XVS speed for supply
      * @param borrowSpeeds New XVS speed for borrow
      */
-    function _setVenusSpeeds(VToken[] memory vTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) public {
+    function _setVenusSpeeds(VToken[] calldata vTokens, uint[] calldata supplySpeeds, uint[] calldata borrowSpeeds) external {
         ensureAdminOr(comptrollerImplementation);
 
         uint numTokens = vTokens.length;
-        require(numTokens == supplySpeeds.length, "Comptroller::_setVenusSpeeds invalid supplySpeeds");
-        require(numTokens == borrowSpeeds.length, "Comptroller::_setVenusSpeeds invalid borrowSpeeds");
+        require(numTokens == supplySpeeds.length || numTokens == borrowSpeeds.length, "Comptroller::_setVenusSpeeds invalid input");
 
         for (uint i = 0; i < numTokens; ++i) {
             ensureNonzeroAddress(address(vTokens[i]));
@@ -1593,7 +1590,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @dev The automatic getter may be used to access an individual market.
      * @return The list of market addresses
      */
-    function getAllMarkets() public view returns (VToken[] memory) {
+    function getAllMarkets() external view returns (VToken[] memory) {
         return allMarkets;
     }
 
