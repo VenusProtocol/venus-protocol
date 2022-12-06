@@ -87,6 +87,14 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint accountMintableVAI;
     }
 
+    function initialize() external {
+        require(msg.sender == admin, "unauthorized");
+        require(vaiMintIndex == 0, "already initialized");
+
+        vaiMintIndex = 1e18;
+        accrualBlockNumber = getBlockNumber();
+        mintCap = uint256(-1);
+    }
 
     function mintVAI(uint mintVAIAmount) external nonReentrant returns (uint) {
         if(address(comptroller) != address(0)) {
@@ -349,15 +357,6 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         emit NewComptroller(oldComptroller, comptroller_);
 
         return uint(Error.NO_ERROR);
-    }
-
-    function _become(VAIUnitroller unitroller) external {
-        require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
-        require(unitroller._acceptImplementation() == 0, "change not authorized");
-
-        vaiMintIndex = 1e18;
-        accrualBlockNumber = getBlockNumber();
-        mintCap = uint(-1);
     }
 
     /**
