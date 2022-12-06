@@ -1,8 +1,8 @@
-import { convertToUnit } from "../../helpers/utils";
+import { smock } from "@defi-wonderland/smock";
 import chai from "chai";
 import { ethers } from "hardhat";
-import { smock } from "@defi-wonderland/smock";
 
+import { convertToUnit } from "../../helpers/utils";
 import { ComptrollerHarness__factory, IAccessControlManager } from "../../typechain";
 
 const { expect } = chai;

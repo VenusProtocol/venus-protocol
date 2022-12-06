@@ -181,7 +181,7 @@ async function makeVToken(opts = {}) {
       vToken = await saddle.getContractAt("VXvsLikeDelegate", vDelegator._address);
       break;
 
-    case 'vbep20':
+    case "vbep20":
     default:
       underlying = opts.underlying || (await makeToken(opts.underlyingOpts));
       vDelegatee = await deploy("VBep20DelegateHarness");
