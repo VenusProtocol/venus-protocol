@@ -1,7 +1,7 @@
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./interfaces/IPancakeSwapV2Router.sol";
 import "./interfaces/ISwapRouter.sol";
 import "./interfaces/IVtoken.sol";
@@ -13,8 +13,12 @@ import "./interfaces/IWBnb.sol";
  * @dev For all functions that do not swap native BNB, user must approve this contract with the amount, prior the calling the swap function.
  * @author 0xlucian
  */
+
+// interface IERCTest is IERC20UpgradeableUpgradeable {
+// 	function safeApprove(address spender, uint256 amount) external;
+// }
+
 contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
-    using SafeERC20 for IERC20;
 
     address private wBNBAddress;
     address private swapRouterAddress;
@@ -82,9 +86,9 @@ contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
         uint256 amountOutMin,
         address[] calldata path
     ) external override {
-        IERC20(path[0]).transferFrom(msg.sender, address(this), amountIn);
+        SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(path[0]),msg.sender, address(this), amountIn);
         uint256 receivedAmount = swap(amountIn, amountOutMin, path);
-        IERC20(path[1]).safeApprove(vTokenAddress, receivedAmount);
+        SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(path[1]), vTokenAddress, receivedAmount);
         uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, receivedAmount);
         if (response != 0) {
             revert SupplyError(msg.sender, vTokenAddress, response);
@@ -130,9 +134,9 @@ contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
         uint256 amountOutMin,
         address[] calldata path
     ) external override {
-        IERC20(path[0]).transferFrom(msg.sender, address(this), amountIn);
+        SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(path[0]),msg.sender, address(this), amountIn);
         uint256 receivedAmount = swap(amountIn, amountOutMin, path);
-        IERC20(path[1]).safeApprove(vTokenAddress, receivedAmount);
+        SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(path[1]), vTokenAddress, receivedAmount);
         uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, receivedAmount);
         if (response != 0) {
             revert RepayError(msg.sender, vTokenAddress, response);
@@ -172,7 +176,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
         uint256 amountOutMin,
         address[] calldata path
     ) internal returns (uint256 amountReceived) {
-        IERC20(path[0]).safeApprove(swapRouterAddress, amountIn);
+        SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(path[0]), swapRouterAddress, amountIn);
         uint256[] memory amounts = IPancakeSwapV2Router(swapRouterAddress).swapExactTokensForTokens(
             amountIn,
             amountOutMin,
