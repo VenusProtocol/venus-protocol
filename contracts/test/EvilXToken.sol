@@ -1,11 +1,10 @@
 pragma solidity ^0.5.16;
 
-import "../VBep20Immutable.sol";
-import "../VBep20Delegator.sol";
-import "../VBep20Delegate.sol";
-import "../VDaiDelegate.sol";
+import "../Tokens/VTokens/VBep20Immutable.sol";
+import "../Tokens/VTokens/VBep20Delegator.sol";
+import "../Tokens/VTokens/VBep20Delegate.sol";
 import "./ComptrollerScenario.sol";
-import "../ComptrollerInterface.sol";
+import "../Comptroller/ComptrollerInterface.sol";
 
 contract VBep20Scenario is VBep20Immutable {
     constructor(address underlying_,

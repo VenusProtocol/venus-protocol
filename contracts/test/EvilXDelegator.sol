@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../VTokenInterfaces.sol";
+import "../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
  * @title Venus's VBep20Delegator Contract

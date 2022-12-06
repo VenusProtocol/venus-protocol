@@ -3,7 +3,7 @@ import chai from "chai";
 import { ethers } from "hardhat";
 import { smock } from "@defi-wonderland/smock";
 
-import { VAIControllerHarness__factory, ComptrollerHarness__factory, IAccessControlManager } from "../../typechain";
+import { ComptrollerHarness__factory, IAccessControlManager } from "../../typechain";
 
 const { expect } = chai;
 
@@ -44,42 +44,21 @@ describe("Evil Token test", async () => {
     const xvs = await xvsFactory.deploy(root.address);
     await xvs.deployed();
 
-    const vaiFactory = await ethers.getContractFactory("VAIScenario");
-    const vai = await vaiFactory.deploy(97);
-    await vai.deployed();
-
     const venusRate = 1;
 
     await unitroller._setPendingImplementation(comptroller.address);
     await comptroller._become(unitroller.address);
 
-    const vaiUnitrollerFactory = await ethers.getContractFactory("VAIUnitroller");
-    let vaiUnitroller = await vaiUnitrollerFactory.deploy();
-    await vaiUnitroller.deployed();
-
-    const vaiControllerFactory = await ethers.getContractFactory("VAIControllerHarness");
-    const vaiController = await vaiControllerFactory.deploy();
-    await vaiController.deployed();
-
-    await vaiUnitroller._setPendingImplementation(vaiController.address);
-    await vaiController._become(vaiUnitroller.address);
-
     unitroller = ComptrollerHarness__factory.connect(unitroller.address, root);
-    await unitroller._setVAIController(vaiUnitroller.address);
 
     await unitroller._setAccessControl(accessControlMock.address);
 
-    vaiUnitroller = VAIControllerHarness__factory.connect(vaiUnitroller.address, root);
-    await vaiUnitroller._setComptroller(unitroller.address);
     await unitroller._setLiquidationIncentive(convertToUnit(1.1, 18));
     await unitroller._setCloseFactor(convertToUnit(0.8, 18));
     await unitroller._setPriceOracle(priceOracle.address);
     await unitroller._setComptrollerLens(comptrollerLens.address);
     await unitroller.setXVSAddress(xvs.address); // harness only
-    await vaiUnitroller.setVAIAddress(vai.address); // harness only
     await unitroller.harnessSetVenusRate(venusRate);
-    await vaiUnitroller.initialize();
-    await vai.rely(vaiUnitroller.address);
 
     await unitroller._setTreasuryData(account1.address, account1.address, 1e14);
 
