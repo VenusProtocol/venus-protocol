@@ -1,6 +1,6 @@
 pragma solidity 0.8.17;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IPancakeSwapV2Router.sol";
 import "./interfaces/ISwapRouter.sol";
@@ -13,7 +13,7 @@ import "./interfaces/IWBnb.sol";
  * @dev For all functions that do not swap native BNB, user must approve this contract with the amount, prior the calling the swap function.
  * @author 0xlucian
  */
-contract SwapRouter is OwnableUpgradeable, ISwapRouter {
+contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
     using SafeERC20 for IERC20;
 
     address private wBNBAddress;
@@ -42,14 +42,24 @@ contract SwapRouter is OwnableUpgradeable, ISwapRouter {
     ///@notice Error indicating wBNB address passed is not the expected one.
     error WrongAddress(address expectedAdddress, address passedAddress);
 
+    // *********************
+    // **** CONSTRUCTOR ****
+    // *********************
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        // Note that the contract is upgradeable. Use initialize() or reinitializers
+        // to set the state variables.
+        _disableInitializers();
+    }
 
     // *********************
-    // **** INITIALIZE  ****
+    // **** INITIALIZE *****
     // *********************
     function initialize(address wBNBAddress_, address swapRouterAddress_) public initializer {
         require(wBNBAddress_ != address(0), "Swap: wBNB address invalid");
         require(swapRouterAddress_ != address(0), "Swap: Pancake swap address invalid");
-        __Ownable_init();
+        __Ownable2Step_init();
         wBNBAddress = wBNBAddress_;
         swapRouterAddress = swapRouterAddress_;
     }
