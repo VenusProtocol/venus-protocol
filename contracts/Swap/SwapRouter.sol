@@ -17,14 +17,13 @@ contract SwapRouter is OwnableUpgradeable, ISwapRouter {
     using SafeERC20 for IERC20;
 
     address private wBNBAddress;
-    address private vBnbAddress;
     address private swapRouterAddress;
 
-    function initialize(address vBnbAddress_, address swapRouterAddress_) public initializer {
-        require(vBnbAddress_ != address(0), "Swap: vBNB address invalid");
+    function initialize(address wBNBAddress_, address swapRouterAddress_) public initializer {
+        require(wBNBAddress_ != address(0), "Swap: wBNB address invalid");
         require(swapRouterAddress_ != address(0), "Swap: Pancake swap address invalid");
         __Ownable_init();
-        vBnbAddress = vBnbAddress_;
+        wBNBAddress = wBNBAddress_;
         swapRouterAddress = swapRouterAddress_;
     }
 
