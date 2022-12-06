@@ -99,7 +99,6 @@ describe("Comptroller", async () => {
     await comptroller._setPriceOracle(priceOracle.address);
     comptroller.getXVSAddress.returns(xvs.address);
     await vaiController.setVAIAddress(vai.address);
-    await vaiController.initVenusVAIInterestState();
     await comptroller.setVariable("venusRate", venusRate);
     await vai.rely(vaiController.address);
     await comptroller._setTreasuryData(
