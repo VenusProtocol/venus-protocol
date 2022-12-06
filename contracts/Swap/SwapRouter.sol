@@ -19,14 +19,6 @@ contract SwapRouter is OwnableUpgradeable, ISwapRouter {
     address private wBNBAddress;
     address private swapRouterAddress;
 
-    function initialize(address wBNBAddress_, address swapRouterAddress_) public initializer {
-        require(wBNBAddress_ != address(0), "Swap: wBNB address invalid");
-        require(swapRouterAddress_ != address(0), "Swap: Pancake swap address invalid");
-        __Ownable_init();
-        wBNBAddress = wBNBAddress_;
-        swapRouterAddress = swapRouterAddress_;
-    }
-
     // **************
     // *** EVENTS ***
     // **************
@@ -49,6 +41,18 @@ contract SwapRouter is OwnableUpgradeable, ISwapRouter {
 
     ///@notice Error indicating wBNB address passed is not the expected one.
     error WrongAddress(address expectedAdddress, address passedAddress);
+
+
+    // *********************
+    // **** INITIALIZE  ****
+    // *********************
+    function initialize(address wBNBAddress_, address swapRouterAddress_) public initializer {
+        require(wBNBAddress_ != address(0), "Swap: wBNB address invalid");
+        require(swapRouterAddress_ != address(0), "Swap: Pancake swap address invalid");
+        __Ownable_init();
+        wBNBAddress = wBNBAddress_;
+        swapRouterAddress = swapRouterAddress_;
+    }
 
     // ****************************
     // **** EXTERNAL FUNCTIONS ****
