@@ -549,17 +549,23 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint delta;
 
         uint amount = ComptrollerImplInterface(address(comptroller)).mintedVAIs(account);
+        uint interest = pastVAIInterest[account];
+        uint totalMintedVAI;
+        uint newInterest;
 
-        (mErr, delta) = mulUInt(vaiMintIndex, 1e18);
+        (mErr, totalMintedVAI) = subUInt(amount, interest);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
-        (mErr, delta) = divUInt(delta, vaiMinterInterestIndex[account]);
+        (mErr, delta) = subUInt(vaiMintIndex, vaiMinterInterestIndex[account]);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
-        (mErr, amount) = mulUInt(amount, delta);
+        (mErr, newInterest) = mulUInt(delta, totalMintedVAI);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
-        (mErr, amount) = divUInt(amount, 1e18);
+        (mErr, newInterest) = divUInt(newInterest, 1e18);
+        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
+
+        (mErr, amount) = addUInt(amount, newInterest);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
         return amount;
