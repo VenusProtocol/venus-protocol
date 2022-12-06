@@ -28,34 +28,32 @@ contract SwapRouter is OwnableUpgradeable, ISwapRouter {
         swapRouterAddress = swapRouterAddress_;
     }
 
-	// **************
-	// *** EVENTS ***
-	// **************
+    // **************
+    // *** EVENTS ***
+    // **************
 
-	///@notice This event is emitted whenever a successful supply on behalf of the user occurs
-	event SupplyOnBehalf(address indexed supplier, address indexed vTokenAddress, uint256 indexed amount);
+    ///@notice This event is emitted whenever a successful supply on behalf of the user occurs
+    event SupplyOnBehalf(address indexed supplier, address indexed vTokenAddress, uint256 indexed amount);
 
-	///@notice This event is emitted whenever a successful repay on behalf of the user occurs
-	event RepayOnBehalf(address indexed repayer, address indexed vTokenAddress, uint256 indexed amount);
+    ///@notice This event is emitted whenever a successful repay on behalf of the user occurs
+    event RepayOnBehalf(address indexed repayer, address indexed vTokenAddress, uint256 indexed amount);
 
+    // **************
+    // *** ERRORS ***
+    // **************
 
-	// **************
-	// *** ERRORS ***
-	// **************
+    ///@notice Error indicating that suplying to a given market failed.
+    error SupplyError(address supplier, address vToken, uint256 errorCode);
 
-	///@notice Error indicating that suplying to a given market failed.
-	error SupplyError(address supplier, address vToken, uint256 errorCode);
+    ///@notice Error indicating that repaying to given market failed.
+    error RepayError(address repayer, address vToken, uint256 errorCode);
 
-	///@notice Error indicating that repaying to given market failed.
-	error RepayError(address repayer, address vToken, uint256 errorCode);
+    ///@notice Error indicating wBNB address passed is not the expected one.
+    error WrongAddress(address expectedAdddress, address passedAddress);
 
-	///@notice Error indicating wBNB address passed is not the expected one.
-	error WrongAddress(address expectedAdddress, address passedAddress);
-
-
-	// ****************************
-	// **** EXTERNAL FUNCTIONS ****
-	// ****************************
+    // ****************************
+    // **** EXTERNAL FUNCTIONS ****
+    // ****************************
 
     /**
      * @notice Swap token A for token B and supplies to a Venus Market
@@ -75,35 +73,34 @@ contract SwapRouter is OwnableUpgradeable, ISwapRouter {
         uint256 receivedAmount = swap(amountIn, amountOutMin, path);
         IERC20(path[1]).safeApprove(vTokenAddress, receivedAmount);
         uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, receivedAmount);
-		if (response != 0){
-			revert SupplyError(msg.sender, vTokenAddress, response);
-		}    
-	}
-
+        if (response != 0) {
+            revert SupplyError(msg.sender, vTokenAddress, response);
+        }
+    }
 
     /**
      * @notice Swap BNB for another token and supplies to a Venus Market
-	 * @dev The amount to be swapped is obtained from the msg.value, since we are swapping BNB
+     * @dev The amount to be swapped is obtained from the msg.value, since we are swapping BNB
      * @param vTokenAddress The address of the vToken contract to supply assets in.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
-	 * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
     function swapBnbAndSupply(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path
     ) external payable override {
-	  if(path[0] != wBNBAddress){
-			revert WrongAddress(wBNBAddress,path[0]);
-		}
+        if (path[0] != wBNBAddress) {
+            revert WrongAddress(wBNBAddress, path[0]);
+        }
         IWBnb(path[0]).deposit{ value: msg.value }();
         uint256 receivedAmount = swap(msg.value, amountOutMin, path);
         uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, receivedAmount);
-		if (response != 0){
-			revert SupplyError(msg.sender, vTokenAddress, response);
-		}
+        if (response != 0) {
+            revert SupplyError(msg.sender, vTokenAddress, response);
+        }
     }
 
     /**
@@ -124,15 +121,14 @@ contract SwapRouter is OwnableUpgradeable, ISwapRouter {
         uint256 receivedAmount = swap(amountIn, amountOutMin, path);
         IERC20(path[1]).safeApprove(vTokenAddress, receivedAmount);
         uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, receivedAmount);
-		if (response != 0){
-			revert RepayError(msg.sender, vTokenAddress, response);
-		}
+        if (response != 0) {
+            revert RepayError(msg.sender, vTokenAddress, response);
+        }
     }
-
 
     /**
      * @notice Swap BNB for another token and repays a borrow from a Venus Market
-	 * @dev The amount to be swapped is obtained from the msg.value, since we are swapping BNB
+     * @dev The amount to be swapped is obtained from the msg.value, since we are swapping BNB
      * @param vTokenAddress The address of the vToken contract to repay from.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
@@ -143,20 +139,20 @@ contract SwapRouter is OwnableUpgradeable, ISwapRouter {
         uint256 amountOutMin,
         address[] calldata path
     ) external payable override {
-		if(path[0] != wBNBAddress){
-			revert WrongAddress(wBNBAddress,path[0]);
-		}
+        if (path[0] != wBNBAddress) {
+            revert WrongAddress(wBNBAddress, path[0]);
+        }
         IWBnb(path[0]).deposit{ value: msg.value }();
         uint256 receivedAmount = swap(msg.value, amountOutMin, path);
         uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, receivedAmount);
-       	if (response != 0){
-			revert RepayError(msg.sender, vTokenAddress, response);
-		}
+        if (response != 0) {
+            revert RepayError(msg.sender, vTokenAddress, response);
+        }
     }
 
-	// ****************************
-	// **** INTERNAL FUNCTIONS ****
-	// ****************************
+    // ****************************
+    // **** INTERNAL FUNCTIONS ****
+    // ****************************
 
     function swap(
         uint256 amountIn,
