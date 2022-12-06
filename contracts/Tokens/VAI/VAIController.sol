@@ -628,13 +628,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         MathError mErr;
         uint delta;
 
-        (mErr, delta) = mulUInt(vaiMintIndex, getVAIRepayRatePerBlock());
-        require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
-
-        (mErr, delta) = divUInt(delta, 1e18);
-        require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
-
-        (mErr, delta) = mulUInt(delta, getBlockNumber() - accrualBlockNumber);
+        (mErr, delta) = mulUInt(getVAIRepayRatePerBlock(), getBlockNumber() - accrualBlockNumber);
         require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
 
         (mErr, delta) = addUInt(delta, vaiMintIndex);
