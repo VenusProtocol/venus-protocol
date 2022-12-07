@@ -10,6 +10,8 @@ import "./VAIControllerStorage.sol";
 import "./VAIUnitroller.sol";
 import "./VAI.sol";
 
+import "hardhat/console.sol";
+
 interface ComptrollerImplInterface {
     function protocolPaused() external view returns (bool);
     function mintedVAIs(address account) external view returns (uint);
