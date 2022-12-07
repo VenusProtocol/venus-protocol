@@ -418,8 +418,34 @@ describe("Comptroller", async () => {
       await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
       await vaiController.accrueVAIInterest();
 
-      expect((await vaiController.getVAIRepayAmount(user1.address))).to.eq(bigNumber18.mul(55));
+      expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(55));
       expect((await vaiController.getMintableVAI(user1.address))[1]).to.eq(bigNumber18.mul(45));
+    });
+  });
+
+  describe("#accrueVAIInterest", async () => {
+    beforeEach("mintVAI", async () => {
+      await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
+      expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
+      await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
+    });
+
+    it("success for called once", async () => {
+      await vaiController.setBaseRate(bigNumber17);
+      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+      await vaiController.accrueVAIInterest();
+
+      expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(110));
+    });
+
+    it("success for called twice", async () => {
+      await vaiController.setBaseRate(bigNumber17);
+      await vaiController.harnessFastForward(BLOCKS_PER_YEAR / 2);
+      await vaiController.accrueVAIInterest();
+      await vaiController.harnessFastForward(BLOCKS_PER_YEAR / 2);
+      await vaiController.accrueVAIInterest();
+
+      expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(110));
     });
   });
 });
