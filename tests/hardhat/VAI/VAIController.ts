@@ -383,4 +383,21 @@ describe("Comptroller", async () => {
       );
     });
   });
+
+  describe("#getMintableVAI", async () => {
+    beforeEach("mintVAI", async () => {
+      await vaiController.connect(user1).mintVAI(bigNumber18.mul(50));
+      expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(50));
+      await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
+    });
+
+    it("include current interest when calculating mintable VAI", async () => {
+      await vaiController.setBaseRate(bigNumber17);
+      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+      await vaiController.accrueVAIInterest();
+
+      expect((await vaiController.getVAIRepayAmount(user1.address))).to.eq(bigNumber18.mul(55));
+      expect((await vaiController.getMintableVAI(user1.address))[1]).to.eq(bigNumber18.mul(45));
+    });
+  });
 });
