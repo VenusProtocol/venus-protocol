@@ -186,7 +186,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         uint len = vTokens.length;
 
         uint[] memory results = new uint[](len);
-        for (uint i = 0; i < len; i++) {
+        for (uint i; i < len; ++i) {
             results[i] = uint(addToMarketInternal(VToken(vTokens[i]), msg.sender));
         }
 
@@ -264,7 +264,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         VToken[] storage userAssetList = accountAssets[msg.sender];
         uint len = userAssetList.length;
         uint i;
-        for (; i < len; i++) {
+        for (; i < len; ++i) {
             if (userAssetList[i] == vToken) {
                 userAssetList[i] = userAssetList[len - 1];
                 userAssetList.length--;
@@ -324,13 +324,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param actualMintAmount The amount of the underlying asset being minted
      * @param mintTokens The number of tokens being minted
      */
-    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {
-        // Shh - currently unused
-        vToken;
-        minter;
-        actualMintAmount;
-        mintTokens;
-    }
+    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {}
 
     /**
      * @notice Checks if the account should be allowed to redeem tokens in the given market
@@ -383,11 +377,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param redeemTokens The number of tokens being redeemed
      */
     function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external {
-        // Shh - currently unused
-        vToken;
-        redeemer;
-
-        // Require tokens is zero or amount is also zero
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
     }
 
@@ -450,17 +439,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param borrower The address borrowing the underlying
      * @param borrowAmount The amount of the underlying asset requested to borrow
      */
-    function borrowVerify(address vToken, address borrower, uint borrowAmount) external {
-        // Shh - currently unused
-        vToken;
-        borrower;
-        borrowAmount;
-
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
-    }
+    function borrowVerify(address vToken, address borrower, uint borrowAmount) external {}
 
     /**
      * @notice Checks if the account should be allowed to repay a borrow in the given market
@@ -511,19 +490,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         uint borrowerIndex
     )
         external
-    {
-        // Shh - currently unused
-        vToken;
-        payer;
-        borrower;
-        actualRepayAmount;
-        borrowerIndex;
-
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
-    }
+    {}
 
     /**
      * @notice Checks if the liquidation should be allowed to occur
@@ -574,8 +541,8 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
             borrowBalance = vaiController.getVAIRepayAmount(borrower);
             
         }
-        uint maxClose = mul_ScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance);
-        if (repayAmount > maxClose) {
+        // maxClose = multipy of closeFactorMantissa and borrowBalance
+        if (repayAmount > mul_ScalarTruncate(Exp({mantissa: closeFactorMantissa}), borrowBalance)) {
             return uint(Error.TOO_MUCH_REPAY);
         }
 
@@ -600,20 +567,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         uint seizeTokens
     )
         external
-    {
-        // Shh - currently unused
-        vTokenBorrowed;
-        vTokenCollateral;
-        liquidator;
-        borrower;
-        actualRepayAmount;
-        seizeTokens;
-
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
-    }
+    {}
 
     /**
      * @notice Checks if the seizing of assets should be allowed to occur
@@ -674,19 +628,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         uint seizeTokens
     )
         external
-    {
-        // Shh - currently unused
-        vTokenCollateral;
-        vTokenBorrowed;
-        liquidator;
-        borrower;
-        seizeTokens;
-
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
-    }
+    {}
 
     /**
      * @notice Checks if the account should be allowed to transfer tokens in the given market
@@ -723,18 +665,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param dst The account which receives the tokens
      * @param transferTokens The number of vTokens to transfer
      */
-    function transferVerify(address vToken, address src, address dst, uint transferTokens) external {
-        // Shh - currently unused
-        vToken;
-        src;
-        dst;
-        transferTokens;
-
-        // Shh - we don't ever want this hook to be marked pure
-        if (false) {
-            maxAssets = maxAssets;
-        }
-    }
+    function transferVerify(address vToken, address src, address dst, uint transferTokens) external {}
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
@@ -742,7 +673,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
                 account liquidity in excess of collateral requirements,
      *          account shortfall below collateral requirements)
      */
-    function getAccountLiquidity(address account) public view returns (uint, uint, uint) {
+    function getAccountLiquidity(address account) external view returns (uint, uint, uint) {
         (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(account, VToken(0), 0, 0);
 
         return (uint(err), liquidity, shortfall);
@@ -764,7 +695,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         uint redeemTokens,
         uint borrowAmount
     )
-        public
+        external
         view
         returns (uint, uint, uint)
     {
@@ -1015,7 +946,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     }
 
     function _addMarketInternal(VToken vToken) internal {
-        for (uint i = 0; i < allMarkets.length; i++) {
+        for (uint i; i < allMarkets.length; ++i) {
             require(allMarkets[i] != vToken, "market already added");
         }
         allMarkets.push(vToken);
@@ -1081,7 +1012,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
         require(numMarkets != 0 && numMarkets == numBorrowCaps, "invalid input");
 
-        for(uint i = 0; i < numMarkets; i++) {
+        for(uint i; i < numMarkets; ++i) {
             borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
             emit NewBorrowCap(vTokens[i], newBorrowCaps[i]);
         }
@@ -1213,7 +1144,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         Comptroller(address(unitroller))._upgradeSplitVenusRewards();
     }
 
-    function _upgradeSplitVenusRewards() public {
+    function _upgradeSplitVenusRewards() external {
         require(msg.sender == comptrollerImplementation, "only brains can become itself");
 
         uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
@@ -1351,10 +1282,13 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
         // Calculate change in the cumulative sum of the XVS per vToken accrued
         Double memory deltaIndex = Double({mantissa: sub_(supplyIndex, supplierIndex)});
-        uint supplierTokens = VToken(vToken).balanceOf(supplier);
-        uint supplierDelta = mul_(supplierTokens, deltaIndex);
-        uint supplierAccrued = add_(venusAccrued[supplier], supplierDelta);
-        venusAccrued[supplier] = supplierAccrued;
+
+        // Multiply of supplierTokens and supplierDelta
+        uint supplierDelta = mul_(VToken(vToken).balanceOf(supplier), deltaIndex);
+
+        // Addition of supplierAccrued and supplierDelta
+        venusAccrued[supplier] = add_(venusAccrued[supplier], supplierDelta);
+
         emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex);
     }
 
@@ -1385,13 +1319,11 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
         Double memory deltaIndex = Double({mantissa: sub_(borrowIndex, borrowerIndex)});
 
-        uint borrowerAmount = div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex);
+        // Calculate VENUS accrued: vTokenAmount * accruedPerBorrowedUnit
+        uint borrowerDelta = mul_(div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
 
-        // Calculate XVS accrued: vTokenAmount * accruedPerBorrowedUnit
-        uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
-
-        uint borrowerAccrued = add_(venusAccrued[borrower], borrowerDelta);
-        venusAccrued[borrower] = borrowerAccrued;
+        // Addition of borrowerAccrued and borrowerDelta
+        venusAccrued[borrower] = add_(venusAccrued[borrower], borrowerDelta);
 
         emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
     }
@@ -1437,25 +1369,26 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      */
     function claimVenus(address[] memory holders, VToken[] memory vTokens, bool borrowers, bool suppliers, bool collateral) public {
         uint j;
-        for (uint i = 0; i < vTokens.length; i++) {
+        uint256 holdersLength = holders.length;
+        for (uint i; i < vTokens.length; ++i) {
             VToken vToken = vTokens[i];
             ensureListed(markets[address(vToken)]);
             if (borrowers) {
                 Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
                 updateVenusBorrowIndex(address(vToken), borrowIndex);
-                for (j = 0; j < holders.length; j++) {
+                for (j = 0; j < holdersLength; j++) {
                     distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
                 }
             }
             if (suppliers) {
                 updateVenusSupplyIndex(address(vToken));
-                for (j = 0; j < holders.length; j++) {
+                for (j = 0; j < holdersLength; j++) {
                     distributeSupplierVenus(address(vToken), holders[j]);
                 }
             }
         }
 
-        for (j = 0; j < holders.length; j++) {
+        for (j = 0; j < holdersLength; j++) {
             address holder = holders[j];
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
@@ -1494,16 +1427,15 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         );
         
         XVS xvs = XVS(getXVSAddress());
-        uint venusRemaining = xvs.balanceOf(address(this));
-        bool bankrupt = shortfall > 0;
 
-        if (amount == 0 || amount > venusRemaining) {
+        // venusRemaining = xvs.balanceOf(address(this));
+        if (amount == 0 || amount > xvs.balanceOf(address(this))) {
             return amount;
         }
 
-        // If user's not bankrupt, user can get the reward,
+        // If user's not bankrupt(shortfall > 0), user can get the reward,
         // so the liquidators will have chances to liquidate bankrupt accounts
-        if (!bankrupt) {
+        if (!(shortfall > 0)) {
             xvs.transfer(user, amount);
             return 0;
         }
@@ -1577,9 +1509,10 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         ensureAdminOr(comptrollerImplementation);
 
         uint numTokens = vTokens.length;
-        require(numTokens == supplySpeeds.length || numTokens == borrowSpeeds.length, "Comptroller::_setVenusSpeeds invalid input");
+        // Length of Tokens, supplySpeed and borrowSpeed must be equal.
+        require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "Comptroller::_setVenusSpeeds invalid input");
 
-        for (uint i = 0; i < numTokens; ++i) {
+        for (uint i; i < numTokens; ++i) {
             ensureNonzeroAddress(address(vTokens[i]));
             setVenusSpeedInternal(vTokens[i], supplySpeeds[i], borrowSpeeds[i]);
         }
