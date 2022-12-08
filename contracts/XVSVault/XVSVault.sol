@@ -215,7 +215,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         _updatePool(_rewardToken, _pid);
         if (user.amount > 0) {
             uint256 pending =
-                user.amount.mul(pool.accRewardPerShare).div(1e12).sub(
+                user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
                     user.rewardDebt
                 );
             IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
@@ -226,7 +226,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             _amount
         );
         user.amount = user.amount.add(_amount);
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
         // Update Delegate Amount
         if (address(pool.token) == address(xvsAddress)) {
@@ -319,14 +319,10 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         uint256 _amount = popEligibleWithdrawalRequests(user, requests);
         require(_amount > 0, "nothing to withdraw");
 
-        _updatePool(_rewardToken, _pid);
-        uint256 pending =
-            user.amount.mul(pool.accRewardPerShare).div(1e12).sub(
-                user.rewardDebt
-            );
-        IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
         user.amount = user.amount.sub(_amount);
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+
+        totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].sub(_amount);
+
         pool.token.safeTransfer(address(msg.sender), _amount);
 
         emit ExecutedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
@@ -348,10 +344,20 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         require(user.amount >= user.pendingWithdrawals.add(_amount), "requested amount is invalid");
 
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+
+        _updatePool(_rewardToken, _pid);
+        uint256 pending =
+            user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
+                user.rewardDebt
+            );
+        IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
         uint lockedUntil = pool.lockPeriod.add(block.timestamp);
 
         pushWithdrawalRequest(user, requests, _amount, lockedUntil);
+        totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].add(_amount);
 
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {
@@ -464,6 +470,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             return;
         }
         uint256 supply = pool.token.balanceOf(address(this));
+        supply = supply.sub(totalPendingWithdrawals[_rewardToken][_pid]);
         if (supply == 0) {
             pool.lastRewardBlock = block.number;
             return;

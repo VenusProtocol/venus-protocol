@@ -106,4 +106,6 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
 
     /// @notice The number of checkpoints for each account
     mapping (address => uint32) public numCheckpoints;
+
+    mapping(address => mapping(uint256 => uint256)) totalPendingWithdrawals;
 }
