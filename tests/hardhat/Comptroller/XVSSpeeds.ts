@@ -1,6 +1,6 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import chai from "chai";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import { Comptroller, Comptroller__factory, IAccessControlManager, VToken } from "../../../typechain";
 import { convertToUnit } from "./../../../helpers/utils";
@@ -24,6 +24,7 @@ describe("Comptroller", () => {
     await accessControl.isAllowedToCall.returns(true);
     await vToken1.isVToken.returns(true);
     await vToken2.isVToken.returns(true);
+    await vToken1.borrowIndex.returns(convertToUnit(0.7, 18));
 
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._supportMarket(vToken1.address);
@@ -86,6 +87,37 @@ describe("Comptroller", () => {
 
       expect(token2SupplySpeed).equal(convertToUnit(1, 18));
       expect(token2BorrowSpeed).equal(convertToUnit(1, 22));
+    });
+
+    it("Updating non-zero speeds after setting it zero", async () => {
+      // Setting the initial speeds
+      await comptroller._setVenusSpeeds([vToken1.address], [convertToUnit(1, 16)], [convertToUnit(1, 20)]);
+
+      // Mining 1000 blocks
+      await network.provider.send("hardhat_mine", ["0x3e8", "0x3c"]);
+
+      // Updating the speeds to zero
+      await comptroller._setVenusSpeeds([vToken1.address], [0], [0]);
+
+      // latest Block
+      const blockNumber1 = await ethers.provider.getBlock("latest");
+      // Mining 1000 blocks
+      await network.provider.send("hardhat_mine", ["0x3e8", "0x3c"]);
+      // Getting the last block for the updated speeds
+      const supplySpeedBlock1 = await (await comptroller.venusSupplyState(vToken1.address)).toString().split(",")[1];
+      const borrowSpeedBlock1 = await (await comptroller.venusBorrowState(vToken1.address)).toString().split(",")[1];
+
+      // Updating the speeds to non-zero
+      await comptroller._setVenusSpeeds([vToken1.address], [convertToUnit(1, 16)], [convertToUnit(1, 20)]);
+
+      // Getting the last block for the updated speeds
+      const supplySpeedBlock2 = await (await comptroller.venusSupplyState(vToken1.address)).toString().split(",")[1];
+      const borrowSpeedBlock2 = await (await comptroller.venusBorrowState(vToken1.address)).toString().split(",")[1];
+      // latest Block
+      const blockNumber2 = await ethers.provider.getBlock("latest");
+
+      expect(blockNumber2.number - blockNumber1.number).equal(Number(supplySpeedBlock2) - Number(supplySpeedBlock1));
+      expect(blockNumber2.number - blockNumber1.number).equal(Number(borrowSpeedBlock2) - Number(borrowSpeedBlock1));
     });
   });
 });
