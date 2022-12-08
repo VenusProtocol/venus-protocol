@@ -294,21 +294,16 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.MINT);
-
-        // Shh - currently unused
-        mintAmount;
-
         ensureListed(markets[vToken]);
 
         uint256 supplyCap = supplyCaps[vToken];
 
-        // Supply cap of 0 corresponds to Minting notAllowed
-        require(supplyCap != 0, "market supply cap is 0");
-
         uint256 vTokenSupply = VToken(vToken).totalSupply();
         Exp memory exchangeRate = Exp({ mantissa: VToken(vToken).exchangeRateStored() });
         uint256 nextTotalSupply = mul_ScalarTruncateAddUInt(exchangeRate, vTokenSupply, mintAmount);
-        require(nextTotalSupply <= supplyCap, "market supply cap reached");
+
+        // Supply cap of 0 corresponds to Minting notAllowed or reached limit.
+        require(supplyCap != 0 && nextTotalSupply <= supplyCap, "market supply cap reached");
 
         // Keep the flywheel moving
         updateVenusSupplyIndex(vToken);
@@ -412,8 +407,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         uint borrowCap = borrowCaps[vToken];
         // Borrow cap of 0 corresponds to unlimited borrowing
         if (borrowCap != 0) {
-            uint totalBorrows = VToken(vToken).totalBorrows();
-            uint nextTotalBorrows = add_(totalBorrows, borrowAmount);
+            uint nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
             require(nextTotalBorrows < borrowCap, "market borrow cap reached");
         }
 
@@ -460,11 +454,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REPAY);
-        // Shh - currently unused
-        payer;
-        borrower;
-        repayAmount;
-
         ensureListed(markets[vToken]);
 
         // Keep the flywheel moving
@@ -590,9 +579,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vTokenCollateral, Action.SEIZE);
-
-        // Shh - currently unused
-        seizeTokens;
 
         // We've added VAIController as a borrowed token list check for seize
         ensureListed(markets[vTokenCollateral]);
@@ -1064,10 +1050,8 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     {
         ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
 
-        uint256 numMarkets = markets.length;
-        uint256 numActions = actions.length;
-        for (uint marketIdx; marketIdx < numMarkets; ++marketIdx) {
-            for (uint actionIdx; actionIdx < numActions; ++actionIdx) {
+        for (uint marketIdx; marketIdx < markets.length; ++marketIdx) {
+            for (uint actionIdx; actionIdx < actions.length; ++actionIdx) {
                 setActionPausedInternal(markets[marketIdx], actions[actionIdx], paused);
             }
         }
@@ -1177,8 +1161,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     /*** Venus Distribution ***/
 
     function setVenusSpeedInternal(VToken vToken, uint supplySpeed, uint borrowSpeed) internal {
-        Market storage market = markets[address(vToken)];
-        ensureListed(market);
+        ensureListed(markets[address(vToken)]);
 
         if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
