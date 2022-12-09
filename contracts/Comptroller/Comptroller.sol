@@ -297,13 +297,12 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         ensureListed(markets[vToken]);
 
         uint256 supplyCap = supplyCaps[vToken];
+        require(supplyCap != 0, "market supply cap is 0");
 
         uint256 vTokenSupply = VToken(vToken).totalSupply();
         Exp memory exchangeRate = Exp({ mantissa: VToken(vToken).exchangeRateStored() });
         uint256 nextTotalSupply = mul_ScalarTruncateAddUInt(exchangeRate, vTokenSupply, mintAmount);
-
-        // Supply cap of 0 corresponds to Minting notAllowed or reached limit.
-        require(supplyCap != 0 && nextTotalSupply <= supplyCap, "market supply cap reached");
+        require(nextTotalSupply <= supplyCap, "market supply cap reached");
 
         // Keep the flywheel moving
         updateVenusSupplyIndex(vToken);
@@ -1122,40 +1121,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     function _become(Unitroller unitroller) external {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
         require(unitroller._acceptImplementation() == 0, "not authorized");
-
-
-        // TODO: Remove this post upgrade
-        Comptroller(address(unitroller))._upgradeSplitVenusRewards();
-    }
-
-    function _upgradeSplitVenusRewards() external {
-        require(msg.sender == comptrollerImplementation, "only brains can become itself");
-
-        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
-
-        // venusSpeeds -> venusBorrowSpeeds & venusSupplySpeeds
-        for (uint256 i; i < allMarkets.length; ++i) {
-            venusBorrowSpeeds[address(allMarkets[i])] = venusSupplySpeeds[address(allMarkets[i])] = venusSpeeds[address(allMarkets[i])];
-            delete venusSpeeds[address(allMarkets[i])];
-
-            /*
-             * Ensure supply and borrow state indices are all set. If not set, update to default value
-             */
-            VenusMarketState storage supplyState = venusSupplyState[address(allMarkets[i])];
-            VenusMarketState storage borrowState = venusBorrowState[address(allMarkets[i])];
-
-            if (supplyState.index == 0) {
-                // Initialize supply state index with default value
-                supplyState.index = venusInitialIndex;
-                supplyState.block = blockNumber;
-            }
-
-            if (borrowState.index == 0) {
-                // Initialize borrow state index with default value
-                borrowState.index = venusInitialIndex;
-                borrowState.block = blockNumber;
-            }
-        }
     }
 
     /*** Venus Distribution ***/
@@ -1302,10 +1267,8 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
         Double memory deltaIndex = Double({mantissa: sub_(borrowIndex, borrowerIndex)});
 
-        // Calculate VENUS accrued: vTokenAmount * accruedPerBorrowedUnit
         uint borrowerDelta = mul_(div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
 
-        // Addition of borrowerAccrued and borrowerDelta
         venusAccrued[borrower] = add_(venusAccrued[borrower], borrowerDelta);
 
         emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
@@ -1359,19 +1322,19 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
             if (borrowers) {
                 Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
                 updateVenusBorrowIndex(address(vToken), borrowIndex);
-                for (j = 0; j < holdersLength; j++) {
+                for (j = 0; j < holdersLength; ++j) {
                     distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
                 }
             }
             if (suppliers) {
                 updateVenusSupplyIndex(address(vToken));
-                for (j = 0; j < holdersLength; j++) {
+                for (j = 0; j < holdersLength; ++j) {
                     distributeSupplierVenus(address(vToken), holders[j]);
                 }
             }
         }
 
-        for (j = 0; j < holdersLength; j++) {
+        for (j = 0; j < holdersLength; ++j) {
             address holder = holders[j];
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
@@ -1411,13 +1374,10 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         
         XVS xvs = XVS(getXVSAddress());
 
-        // venusRemaining = xvs.balanceOf(address(this));
         if (amount == 0 || amount > xvs.balanceOf(address(this))) {
             return amount;
         }
 
-        // If user's not bankrupt(shortfall > 0), user can get the reward,
-        // so the liquidators will have chances to liquidate bankrupt accounts
         if (!(shortfall > 0)) {
             xvs.transfer(user, amount);
             return 0;
@@ -1492,7 +1452,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         ensureAdminOr(comptrollerImplementation);
 
         uint numTokens = vTokens.length;
-        // Length of Tokens, supplySpeed and borrowSpeed must be equal.
         require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "Comptroller::_setVenusSpeeds invalid input");
 
         for (uint i; i < numTokens; ++i) {
