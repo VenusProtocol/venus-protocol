@@ -320,11 +320,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         require(_amount > 0, "nothing to withdraw");
 
         user.amount = user.amount.sub(_amount);
-
-        // we do this for backward compatibility 
-        if (totalPendingWithdrawals[_rewardToken][_pid] >= _amount)) {
-            totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].sub(_amount);
-        }
+        totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].sub(_amount);
 
         pool.token.safeTransfer(address(msg.sender), _amount);
 
