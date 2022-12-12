@@ -115,12 +115,12 @@ describe("XVSVault", async () => {
 
   it("handle pre-upgrade withdrawal requests", async () => {
     const depositAmount = bigNumber18.mul(100);
-    
+
     await xvs.approve(xvsVault.address, depositAmount);
     await xvsVault.deposit(xvs.address, poolId, depositAmount);
 
     let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
-    
+
     await mine(1000);
     await xvsVault.requestOldWithdrawal(xvs.address, poolId, depositAmount);
 
@@ -139,12 +139,12 @@ describe("XVSVault", async () => {
 
   it("handle pre-upgrade and post-upgrade withdrawal requests", async () => {
     const depositAmount = bigNumber18.mul(100);
-    
+
     await xvs.approve(xvsVault.address, depositAmount);
     await xvsVault.deposit(xvs.address, poolId, depositAmount);
 
     let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
-    
+
     await mine(1000);
     await xvsVault.requestOldWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
     await xvsVault.requestWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
