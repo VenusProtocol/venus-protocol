@@ -275,7 +275,9 @@ contract XVSVault is XVSVaultStorage, ECDSA {
      *   happen (or the transaction should be reverted).
      * @param _user The user struct storage pointer
      * @param _requests The user's requests array storage pointer
-     * @return withdrawalAmount The amount eligible for withdrawal (this amount should be
+     * @return beforeUpgradeWithdrawalAmount The amount eligible for withdrawal before upgrade (this amount should be
+     *   sent to the user, otherwise the state would be inconsistent).
+     * @return afterUpgradeWithdrawalAmount The amount eligible for withdrawal after upgrade (this amount should be
      *   sent to the user, otherwise the state would be inconsistent).
      */
     function popEligibleWithdrawalRequests(
