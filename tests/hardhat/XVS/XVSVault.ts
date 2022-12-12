@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { BigNumber, Wallet } from "ethers";
 import { ethers } from "hardhat";
 
-import { XVS, XVSStore, XVSVault } from "../../../typechain";
+import { XVS, XVSStore, XVSVaultScenario } from "../../../typechain";
 
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 const rewardPerBlock = bigNumber18.mul(1);
@@ -12,7 +12,7 @@ const allocPoint = 100;
 const poolId = 0;
 
 interface XVSVaultFixture {
-  xvsVault: XVSVault;
+  xvsVault: XVSVaultScenario;
   xvs: XVS;
   xvsStore: XVSStore;
 }
@@ -20,7 +20,7 @@ interface XVSVaultFixture {
 describe("XVSVault", async () => {
   let user1: Wallet;
   let xvs: XVS;
-  let xvsVault: XVSVault;
+  let xvsVault: XVSVaultScenario;
   let xvsStore: XVSStore;
 
   before("get signers", async () => {
@@ -34,8 +34,8 @@ describe("XVSVault", async () => {
     const xvsStoreFactory = await ethers.getContractFactory("XVSStore");
     xvsStore = (await xvsStoreFactory.deploy()) as XVSStore;
 
-    const xvsVaultFactory = await ethers.getContractFactory("XVSVault");
-    xvsVault = (await xvsVaultFactory.deploy()) as XVSVault;
+    const xvsVaultFactory = await ethers.getContractFactory("XVSVaultScenario");
+    xvsVault = (await xvsVaultFactory.deploy()) as XVSVaultScenario;
 
     return { xvsVault, xvs, xvsStore };
   }
@@ -111,5 +111,54 @@ describe("XVSVault", async () => {
     const currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
 
     expect(Number(previousXVSBalance) + 1).to.be.equal(Number(currentXVSBalance));
+  });
+
+  it("handle pre-upgrade withdrawal requests", async () => {
+    const depositAmount = bigNumber18.mul(100);
+    
+    await xvs.approve(xvsVault.address, depositAmount);
+    await xvsVault.deposit(xvs.address, poolId, depositAmount);
+
+    let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    
+    await mine(1000);
+    await xvsVault.requestOldWithdrawal(xvs.address, poolId, depositAmount);
+
+    let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+
+    expect(Number(previousXVSBalance)).to.be.equal(Number(currentXVSBalance));
+
+    previousXVSBalance = currentXVSBalance;
+
+    await mine(500);
+    await xvsVault.executeWithdrawal(xvs.address, poolId);
+
+    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
+  });
+
+  it("handle pre-upgrade and post-upgrade withdrawal requests", async () => {
+    const depositAmount = bigNumber18.mul(100);
+    
+    await xvs.approve(xvsVault.address, depositAmount);
+    await xvsVault.deposit(xvs.address, poolId, depositAmount);
+
+    let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    
+    await mine(1000);
+    await xvsVault.requestOldWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
+    await xvsVault.requestWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
+
+    let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+
+    expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
+
+    previousXVSBalance = currentXVSBalance;
+
+    await mine(500);
+    await xvsVault.executeWithdrawal(xvs.address, poolId);
+
+    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
   });
 });
