@@ -7,7 +7,7 @@ import "../Tokens/XVS/XVS.sol";
 import "../Tokens/VAI/VAI.sol";
 import "../Governance/IAccessControlManager.sol";
 import "./ComptrollerLensInterface.sol";
-import "./ComptrollerInterface.sol";
+import "./UpdatedComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
 
@@ -15,7 +15,7 @@ import "./Unitroller.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract Comptroller is ComptrollerV10Storage, UpdatedComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
