@@ -340,15 +340,45 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             user.amount = user.amount.sub(beforeUpgradeWithdrawalAmount);
             user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
             pool.token.safeTransfer(address(msg.sender), beforeUpgradeWithdrawalAmount);
-        }
-        
-        if (afterUpgradeWithdrawalAmount > 0) {
+        } else {
             user.amount = user.amount.sub(afterUpgradeWithdrawalAmount);
             totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].sub(afterUpgradeWithdrawalAmount);
             pool.token.safeTransfer(address(msg.sender), afterUpgradeWithdrawalAmount);
         }
         
         emit ExecutedWithdrawal(msg.sender, _rewardToken, _pid, beforeUpgradeWithdrawalAmount.add(afterUpgradeWithdrawalAmount));
+    }
+
+    /**
+     * @notice Pops the requests with unlock time < now from the requests
+     *   array and deducts the computed amount from the user's pending
+     *   withdrawals counter. Assumes that the requests array is sorted
+     *   by unclock time (descending).
+     * @dev This function **removes** the eligible requests from the requests
+     *   array. If this function is called, the withdrawal should actually
+     *   happen (or the transaction should be reverted).
+     * @param _user The user struct storage pointer
+     * @param _requests The user's requests array storage pointer
+     * @return beforeUpgradeWithdrawalAmount The amount eligible for withdrawal before upgrade (this amount should be
+     *   sent to the user, otherwise the state would be inconsistent).
+     * @return afterUpgradeWithdrawalAmount The amount eligible for withdrawal after upgrade (this amount should be
+     *   sent to the user, otherwise the state would be inconsistent).
+     */
+    function getRequestedWithdrawalAmount(
+        UserInfo storage _user,
+        WithdrawalRequest[] storage _requests
+    )
+        internal
+        returns (uint beforeUpgradeWithdrawalAmount, uint afterUpgradeWithdrawalAmount)
+    {
+        for (uint i = _requests.length; i > 0; --i) {
+            if (_requests[i - 1].afterUpgrade == true) {
+                afterUpgradeWithdrawalAmount = afterUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
+            } else {
+                beforeUpgradeWithdrawalAmount = beforeUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
+            }
+        }
+        return (beforeUpgradeWithdrawalAmount, afterUpgradeWithdrawalAmount);
     }
 
     /**
@@ -367,6 +397,13 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         require(user.amount >= user.pendingWithdrawals.add(_amount), "requested amount is invalid");
 
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
+
+        uint beforeUpgradeWithdrawalAmount;
+        uint afterUpgradeWithdrawalAmount;
+
+        (beforeUpgradeWithdrawalAmount,) = getRequestedWithdrawalAmount(user, requests);
+        require(beforeUpgradeWithdrawalAmount == 0, "execute existing withdrawal before requesting new withdrawal");
 
         _updatePool(_rewardToken, _pid);
         uint256 pending =
@@ -374,13 +411,12 @@ contract XVSVault is XVSVaultStorage, ECDSA {
                 user.rewardDebt
             );
         IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
-        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
-        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
         uint lockedUntil = pool.lockPeriod.add(block.timestamp);
 
         pushWithdrawalRequest(user, requests, _amount, lockedUntil);
         totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].add(_amount);
+        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {

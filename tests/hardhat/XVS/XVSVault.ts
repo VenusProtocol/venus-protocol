@@ -147,13 +147,22 @@ describe("XVSVault", async () => {
 
     await mine(1000);
     await xvsVault.requestOldWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
-    await xvsVault.requestWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
+    await expect(xvsVault.requestWithdrawal(xvs.address, poolId, bigNumber18.mul(50))).to.be.revertedWith(
+      "execute existing withdrawal before requesting new withdrawal",
+    );
 
+    await mine(500);
+    await xvsVault.executeWithdrawal(xvs.address, poolId);
     let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
 
     expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
 
     previousXVSBalance = currentXVSBalance;
+
+    await mine(500);
+    xvsVault.requestWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
+
+    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
 
     await mine(500);
     await xvsVault.executeWithdrawal(xvs.address, poolId);
