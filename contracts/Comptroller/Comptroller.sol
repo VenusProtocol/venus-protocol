@@ -49,10 +49,10 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
 
-    /// @notice Emitted when a new borrow-side VENUS speed is calculated for a market
+    /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
     event VenusBorrowSpeedUpdated(VToken indexed vToken, uint newSpeed);
 
-    /// @notice Emitted when a new supply-side VENUS speed is calculated for a market
+    /// @notice Emitted when a new supply-side XVS speed is calculated for a market
     event VenusSupplySpeedUpdated(VToken indexed vToken, uint newSpeed); 
 
     /// @notice Emitted when XVS is distributed to a supplier
@@ -1251,8 +1251,8 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
         if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
-            //  1. VENUS accrued properly for the old speed, and
-            //  2. VENUS accrued at the new speed starts after this block.
+            //  1. XVS accrued properly for the old speed, and
+            //  2. XVS accrued at the new speed starts after this block.
 
             updateVenusSupplyIndex(address(vToken));
              // Update speed and emit event
@@ -1262,8 +1262,8 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
         if (venusBorrowSpeeds[address(vToken)] != borrowSpeed) {
             // Borrow speed updated so let's update borrow state to ensure that
-            //  1. VENUS accrued properly for the old speed, and
-            //  2. VENUS accrued at the new speed starts after this block.
+            //  1. XVS accrued properly for the old speed, and
+            //  2. XVS accrued at the new speed starts after this block.
             Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
             updateVenusBorrowIndex(address(vToken), borrowIndex);
 
