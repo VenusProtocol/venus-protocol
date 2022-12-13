@@ -350,19 +350,11 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     }
 
     /**
-     * @notice Pops the requests with unlock time < now from the requests
-     *   array and deducts the computed amount from the user's pending
-     *   withdrawals counter. Assumes that the requests array is sorted
-     *   by unclock time (descending).
-     * @dev This function **removes** the eligible requests from the requests
-     *   array. If this function is called, the withdrawal should actually
-     *   happen (or the transaction should be reverted).
+     * @notice Returns before and after upgrade pending withdrawal amount
      * @param _user The user struct storage pointer
      * @param _requests The user's requests array storage pointer
-     * @return beforeUpgradeWithdrawalAmount The amount eligible for withdrawal before upgrade (this amount should be
-     *   sent to the user, otherwise the state would be inconsistent).
-     * @return afterUpgradeWithdrawalAmount The amount eligible for withdrawal after upgrade (this amount should be
-     *   sent to the user, otherwise the state would be inconsistent).
+     * @return beforeUpgradeWithdrawalAmount The amount eligible for withdrawal before upgrade 
+     * @return afterUpgradeWithdrawalAmount The amount eligible for withdrawal after upgrade 
      */
     function getRequestedWithdrawalAmount(
         UserInfo storage _user,
