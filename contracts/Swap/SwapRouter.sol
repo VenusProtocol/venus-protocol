@@ -1,11 +1,11 @@
-pragma solidity 0.8.17;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./interfaces/IPancakeSwapV2Router.sol";
-import "./interfaces/ISwapRouter.sol";
 import "./interfaces/IVtoken.sol";
-import "./interfaces/IWBnb.sol";
+import "./interfaces/IWBNB.sol";
+import "./lib/TransferHelper.sol";
+import "./lib/PancakeLibrary.sol";
 
 /**
  * @title Venus's Pancake Swap Integration Contract
@@ -14,14 +14,20 @@ import "./interfaces/IWBnb.sol";
  * @author 0xlucian
  */
 
-// interface IERCTest is IERC20UpgradeableUpgradeable {
-// 	function safeApprove(address spender, uint256 amount) external;
-// }
+contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
+    address public WBNB;
+    address public factory;
 
-contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
+    // ***************
+    // ** MODIFIERS **
+    // ***************
 
-    address private wBNBAddress;
-    address private swapRouterAddress;
+    modifier ensure(uint256 deadline) {
+        if (deadline < block.timestamp) {
+            revert SwapDeadlineExpire(deadline, block.timestamp);
+        }
+        _;
+    }
 
     // **************
     // *** EVENTS ***
@@ -46,6 +52,9 @@ contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
     ///@notice Error indicating wBNB address passed is not the expected one.
     error WrongAddress(address expectedAdddress, address passedAddress);
 
+    ///@notice Error thrown when deadline for swap has expired
+    error SwapDeadlineExpire(uint256 deadline, uint256 currentBlock);
+
     // *********************
     // **** CONSTRUCTOR ****
     // *********************
@@ -60,12 +69,12 @@ contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
     // *********************
     // **** INITIALIZE *****
     // *********************
-    function initialize(address wBNBAddress_, address swapRouterAddress_) public initializer {
-        require(wBNBAddress_ != address(0), "Swap: wBNB address invalid");
-        require(swapRouterAddress_ != address(0), "Swap: Pancake swap address invalid");
+    function initialize(address WBNB_, address factory_) public initializer {
+        require(WBNB != address(0), "Swap: wBNB address invalid");
+        require(factory != address(0), "Swap: Pancake swap address invalid");
         __Ownable2Step_init();
-        wBNBAddress = wBNBAddress_;
-        swapRouterAddress = swapRouterAddress_;
+        WBNB = WBNB_;
+        factory = factory_;
     }
 
     // ****************************
@@ -84,14 +93,17 @@ contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
-        address[] calldata path
-    ) external override {
-        SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(path[0]),msg.sender, address(this), amountIn);
-        uint256 receivedAmount = swap(amountIn, amountOutMin, path);
-        SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(path[1]), vTokenAddress, receivedAmount);
-        uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, receivedAmount);
+        address[] calldata path,
+        uint256 deadline
+    ) external override ensure(deadline) {
+        uint256[] memory swapAmounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, msg.sender);
+        TransferHelper.safeApprove(path[1], vTokenAddress, 0);
+        TransferHelper.safeApprove(path[1], vTokenAddress, swapAmounts[1]);
+        uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, swapAmounts[1]);
         if (response != 0) {
             revert SupplyError(msg.sender, vTokenAddress, response);
+        } else {
+            emit SupplyOnBehalf(msg.sender, vTokenAddress, swapAmounts[1]);
         }
     }
 
@@ -107,16 +119,17 @@ contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
     function swapBnbAndSupply(
         address vTokenAddress,
         uint256 amountOutMin,
-        address[] calldata path
-    ) external payable override {
-        if (path[0] != wBNBAddress) {
-            revert WrongAddress(wBNBAddress, path[0]);
-        }
-        IWBnb(path[0]).deposit{ value: msg.value }();
-        uint256 receivedAmount = swap(msg.value, amountOutMin, path);
-        uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, receivedAmount);
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override ensure(deadline) {
+        uint256[] memory swapAmounts = _swapExactETHForTokens(amountOutMin, path, msg.sender);
+        TransferHelper.safeApprove(path[1], vTokenAddress, 0);
+        TransferHelper.safeApprove(path[1], vTokenAddress, swapAmounts[1]);
+        uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, swapAmounts[1]);
         if (response != 0) {
             revert SupplyError(msg.sender, vTokenAddress, response);
+        } else {
+            emit SupplyOnBehalf(msg.sender, vTokenAddress, swapAmounts[1]);
         }
     }
 
@@ -132,14 +145,17 @@ contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
-        address[] calldata path
-    ) external override {
-        SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(path[0]),msg.sender, address(this), amountIn);
-        uint256 receivedAmount = swap(amountIn, amountOutMin, path);
-        SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(path[1]), vTokenAddress, receivedAmount);
-        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, receivedAmount);
+        address[] calldata path,
+        uint256 deadline
+    ) external override ensure(deadline) {
+        uint256[] memory swapAmounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, msg.sender);
+        TransferHelper.safeApprove(path[1], vTokenAddress, 0);
+        TransferHelper.safeApprove(path[1], vTokenAddress, swapAmounts[1]);
+        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmounts[1]);
         if (response != 0) {
             revert RepayError(msg.sender, vTokenAddress, response);
+        } else {
+            emit RepayOnBehalf(msg.sender, vTokenAddress, swapAmounts[1]);
         }
     }
 
@@ -154,37 +170,136 @@ contract SwapRouter is Ownable2StepUpgradeable, ISwapRouter {
     function swapBnbAndRepay(
         address vTokenAddress,
         uint256 amountOutMin,
-        address[] calldata path
-    ) external payable override {
-        if (path[0] != wBNBAddress) {
-            revert WrongAddress(wBNBAddress, path[0]);
-        }
-        IWBnb(path[0]).deposit{ value: msg.value }();
-        uint256 receivedAmount = swap(msg.value, amountOutMin, path);
-        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, receivedAmount);
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override ensure(deadline) {
+        uint256[] memory swapAmounts = _swapExactETHForTokens(amountOutMin, path, msg.sender);
+        TransferHelper.safeApprove(path[1], vTokenAddress, 0);
+        TransferHelper.safeApprove(path[1], vTokenAddress, swapAmounts[1]);
+        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmounts[1]);
         if (response != 0) {
             revert RepayError(msg.sender, vTokenAddress, response);
+        } else {
+            emit RepayOnBehalf(msg.sender, vTokenAddress, swapAmounts[1]);
         }
+    }
+
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
+        amounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, to);
+    }
+
+    function swapExactETHForTokens(
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
+        amounts = _swapExactETHForTokens(amountOutMin, path, to);
+    }
+
+    // **** LIBRARY FUNCTIONS ****
+    function quote(
+        uint256 amountA,
+        uint256 reserveA,
+        uint256 reserveB
+    ) public pure virtual override returns (uint256 amountB) {
+        return PancakeLibrary.quote(amountA, reserveA, reserveB);
+    }
+
+    function getAmountOut(
+        uint256 amountIn,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) public pure virtual override returns (uint256 amountOut) {
+        return PancakeLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
+    }
+
+    function getAmountIn(
+        uint256 amountOut,
+        uint256 reserveIn,
+        uint256 reserveOut
+    ) public pure virtual override returns (uint256 amountIn) {
+        return PancakeLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
+    }
+
+    function getAmountsOut(uint256 amountIn, address[] memory path)
+        public
+        view
+        virtual
+        override
+        returns (uint256[] memory amounts)
+    {
+        return PancakeLibrary.getAmountsOut(factory, amountIn, path);
+    }
+
+    function getAmountsIn(uint256 amountOut, address[] memory path)
+        public
+        view
+        virtual
+        override
+        returns (uint256[] memory amounts)
+    {
+        return PancakeLibrary.getAmountsIn(factory, amountOut, path);
     }
 
     // ****************************
     // **** INTERNAL FUNCTIONS ****
     // ****************************
 
-    function swap(
+    // requires the initial amount to have already been sent to the first pair
+    function _swap(
+        uint256[] memory amounts,
+        address[] memory path,
+        address _to
+    ) internal virtual {
+        for (uint256 i; i < path.length - 1; i++) {
+            (address input, address output) = (path[i], path[i + 1]);
+            (address token0, ) = PancakeLibrary.sortTokens(input, output);
+            uint256 amountOut = amounts[i + 1];
+            (uint256 amount0Out, uint256 amount1Out) = input == token0
+                ? (uint256(0), amountOut)
+                : (amountOut, uint256(0));
+            address to = i < path.length - 2 ? PancakeLibrary.pairFor(factory, output, path[i + 2]) : _to;
+            IPancakePair(PancakeLibrary.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
+        }
+    }
+
+    function _swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
-        address[] calldata path
-    ) internal returns (uint256 amountReceived) {
-        SafeERC20Upgradeable.safeApprove(IERC20Upgradeable(path[0]), swapRouterAddress, amountIn);
-        uint256[] memory amounts = IPancakeSwapV2Router(swapRouterAddress).swapExactTokensForTokens(
-            amountIn,
-            amountOutMin,
-            path,
-            address(this),
-            block.timestamp
+        address[] calldata path,
+        address to
+    ) internal returns (uint256[] memory amounts) {
+        amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, "PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT");
+        TransferHelper.safeTransferFrom(
+            path[0],
+            msg.sender,
+            PancakeLibrary.pairFor(factory, path[0], path[1]),
+            amounts[0]
         );
+        _swap(amounts, path, to);
+    }
 
-        amountReceived = amounts[1];
+    function _swapExactETHForTokens(
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to
+    ) internal returns (uint256[] memory amounts) {
+        address wBNBAddress = WBNB;
+        if (path[0] != wBNBAddress) {
+            revert WrongAddress(wBNBAddress, path[0]);
+        }
+        amounts = PancakeLibrary.getAmountsOut(factory, msg.value, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, "PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT");
+        IWBNB(wBNBAddress).deposit{ value: amounts[0] }();
+        assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        _swap(amounts, path, to);
     }
 }

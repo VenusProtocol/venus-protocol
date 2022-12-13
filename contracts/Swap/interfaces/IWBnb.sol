@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.8.17;
+pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-interface IWBnb is IERC20 {
+interface IWBNB {
     function deposit() external payable;
-    function withdraw(uint wad) external;
+    function transfer(address to, uint value) external returns (bool);
+    function withdraw(uint) external;
 }
