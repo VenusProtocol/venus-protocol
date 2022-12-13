@@ -8,8 +8,6 @@ import "./XVSVaultProxy.sol";
 import "./XVSVaultStorage.sol";
 import "./XVSVaultErrorReporter.sol";
 
-import "hardhat/console.sol";
-
 interface IXVSStore {
     function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
     function setRewardToken(address _tokenAddress, bool status) external;
