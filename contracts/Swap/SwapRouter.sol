@@ -6,6 +6,8 @@ import "./interfaces/IVtoken.sol";
 import "./interfaces/IWBNB.sol";
 import "./lib/TransferHelper.sol";
 import "./lib/PancakeLibrary.sol";
+import "./interfaces/CustomErrors.sol";
+
 
 /**
  * @title Venus's Pancake Swap Integration Contract
@@ -39,22 +41,6 @@ contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
     ///@notice This event is emitted whenever a successful repay on behalf of the user occurs
     event RepayOnBehalf(address indexed repayer, address indexed vTokenAddress, uint256 indexed amount);
 
-    // **************
-    // *** ERRORS ***
-    // **************
-
-    ///@notice Error indicating that suplying to a given market failed.
-    error SupplyError(address supplier, address vToken, uint256 errorCode);
-
-    ///@notice Error indicating that repaying to given market failed.
-    error RepayError(address repayer, address vToken, uint256 errorCode);
-
-    ///@notice Error indicating wBNB address passed is not the expected one.
-    error WrongAddress(address expectedAdddress, address passedAddress);
-
-    ///@notice Error thrown when deadline for swap has expired
-    error SwapDeadlineExpire(uint256 deadline, uint256 currentBlock);
-
     // *********************
     // **** CONSTRUCTOR ****
     // *********************
@@ -70,8 +56,9 @@ contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
     // **** INITIALIZE *****
     // *********************
     function initialize(address WBNB_, address factory_) public initializer {
-        require(WBNB != address(0), "Swap: wBNB address invalid");
-        require(factory != address(0), "Swap: Pancake swap address invalid");
+        if (WBNB == address(0) || factory == address(0)) {
+            revert ZeroAddress();
+        }
         __Ownable2Step_init();
         WBNB = WBNB_;
         factory = factory_;
@@ -277,7 +264,9 @@ contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
         address to
     ) internal returns (uint256[] memory amounts) {
         amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, "PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT");
+        if (amounts[amounts.length - 1] < amountOutMin) {
+            revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
+        }
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
@@ -297,7 +286,9 @@ contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
             revert WrongAddress(wBNBAddress, path[0]);
         }
         amounts = PancakeLibrary.getAmountsOut(factory, msg.value, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, "PancakeRouter: INSUFFICIENT_OUTPUT_AMOUNT");
+        if (amounts[amounts.length - 1] < amountOutMin) {
+            revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
+        }
         IWBNB(wBNBAddress).deposit{ value: amounts[0] }();
         assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
