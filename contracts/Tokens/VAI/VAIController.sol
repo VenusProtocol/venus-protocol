@@ -98,6 +98,11 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         _notEntered = true;
     }
 
+    function _become(VAIUnitroller unitroller) external {
+        require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
+        require(unitroller._acceptImplementation() == 0, "change not authorized");
+    }
+
     function mintVAI(uint mintVAIAmount) external nonReentrant returns (uint) {
         if(address(comptroller) != address(0)) {
             require(mintVAIAmount > 0, "mintVAIAmount cannt be zero");
