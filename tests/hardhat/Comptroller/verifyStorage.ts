@@ -11,7 +11,6 @@ const zeroAddr = "0x0000000000000000000000000000000000000000";
 const prevComp = "0xae8ba50ee0a0e55ec21bf4ffe2c48d2fdf52d3e6";
 const BUSD = "0x95c78222B3D6e262426483D42CfA53685A67Ab9D";
 
-
 let owner,
   comptrollerV1,
   comptrollerV2,
@@ -19,21 +18,18 @@ let owner,
   maxAssets,
   closeFactorMantissa,
   liquidationIncentiveMantissa,
-  allMarkets,
-  markets,
   venusRate,
   venusSupplyState,
   venusBorrowState,
   venusAccrued,
   vaiMintRate,
   supplyCaps,
-  venusSpeeds,
-  ;
+  venusSpeeds;
 
 describe("Verify Storage Collison", () => {
   before("Get Deployed Contract", async () => {
     /*
-     *  Forking mainnet 
+     *  Forking mainnet
      * */
     await helpers.impersonateAccount(Owner);
     owner = await ethers.getSigner(Owner);
@@ -77,17 +73,15 @@ describe("Verify Storage Collison", () => {
       maxAssets = await compBySigner.maxAssets();
       closeFactorMantissa = await compBySigner.closeFactorMantissa();
       liquidationIncentiveMantissa = await compBySigner.liquidationIncentiveMantissa();
-      allMarkets = await compBySigner.allMarkets(0);
-      markets = await compBySigner.markets(BUSD);
-      venusRate = await compBySigner.venusRate(); 
-      venusSpeeds = await compBySigner.venusSpeeds(BUSD);     
+      await compBySigner.allMarkets(0);
+      await compBySigner.markets(BUSD);
+      venusRate = await compBySigner.venusRate();
+      venusSpeeds = await compBySigner.venusSpeeds(BUSD);
       venusSupplyState = await compBySigner.venusSupplyState(BUSD);
       venusBorrowState = await compBySigner.venusBorrowState(BUSD);
       venusAccrued = await compBySigner.venusAccrued(BUSD);
       vaiMintRate = await compBySigner.vaiMintRate();
       supplyCaps = await compBySigner.supplyCaps(BUSD);
-
-
     });
   });
   describe("deploy updatedComprtroller and verify previous states", async () => {
@@ -114,7 +108,7 @@ describe("Verify Storage Collison", () => {
       const venusAccruedV1 = await compBySigner.venusAccrued(BUSD);
       const vaiMintRateV1 = await compBySigner.vaiMintRate();
       const supplyCapsV1 = await compBySigner.supplyCaps(BUSD);
-      const venusSupplySpeedsV1 = await compBySigner.venusSupplySpeeds(BUSD)
+      const venusSupplySpeedsV1 = await compBySigner.venusSupplySpeeds(BUSD);
 
       expect(maxAssets).to.equal(maxAssetsV1);
       expect(liquidationIncentiveMantissa).to.equal(liquidationIncentiveMantissaV1);
@@ -155,7 +149,7 @@ describe("Verify Storage Collison", () => {
       const venusAccruedV2 = await compBySigner.venusAccrued(BUSD);
       const vaiMintRateV2 = await compBySigner.vaiMintRate();
       const supplyCapsV2 = await compBySigner.supplyCaps(BUSD);
-      const venusSupplySpeedsV2 = await compBySigner.venusSupplySpeeds(BUSD)
+      const venusSupplySpeedsV2 = await compBySigner.venusSupplySpeeds(BUSD);
 
       expect(maxAssets).to.equal(maxAssetsV2);
       expect(liquidationIncentiveMantissa).to.equal(liquidationIncentiveMantissaV2);
