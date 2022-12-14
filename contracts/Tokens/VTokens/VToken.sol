@@ -708,8 +708,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* exchangeRate = invoke Exchange Rate Stored() */
         (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
         if (vars.mathErr != MathError.NO_ERROR) {
-            failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_EXCHANGE_RATE_READ_FAILED, uint(vars.mathErr));
-            revert();
+            revert("math error");
         }
 
         /* If redeemTokensIn > 0: */
@@ -723,8 +722,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
             (vars.mathErr, vars.redeemAmount) = mulScalarTruncate(Exp({mantissa: vars.exchangeRateMantissa}), redeemTokensIn);
             if (vars.mathErr != MathError.NO_ERROR) {
-                failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_EXCHANGE_TOKENS_CALCULATION_FAILED, uint(vars.mathErr));
-                revert();
+                revert("math error");
             }
         } else {
             /*
@@ -735,8 +733,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
             (vars.mathErr, vars.redeemTokens) = divScalarByExpTruncate(redeemAmountIn, Exp({mantissa: vars.exchangeRateMantissa}));
             if (vars.mathErr != MathError.NO_ERROR) {
-                failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_EXCHANGE_AMOUNT_CALCULATION_FAILED, uint(vars.mathErr));
-                revert();
+                revert("math error");
             }
 
             vars.redeemAmount = redeemAmountIn;
@@ -745,14 +742,12 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Fail if redeem not allowed */
         uint allowed = comptroller.redeemAllowed(address(this), redeemer, vars.redeemTokens);
         if (allowed != 0) {
-            failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.REDEEM_COMPTROLLER_REJECTION, allowed);
-            revert();
+            revert("math error");
         }
 
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != getBlockNumber()) {
-            fail(Error.MARKET_NOT_FRESH, FailureInfo.REDEEM_FRESHNESS_CHECK);
-            revert();
+            revert("math error");
         }
 
         /*
@@ -762,20 +757,17 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          */
         (vars.mathErr, vars.totalSupplyNew) = subUInt(totalSupply, vars.redeemTokens);
         if (vars.mathErr != MathError.NO_ERROR) {
-            failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_NEW_TOTAL_SUPPLY_CALCULATION_FAILED, uint(vars.mathErr));
-            revert();
+            revert("math error");
         }
 
         (vars.mathErr, vars.accountTokensNew) = subUInt(accountTokens[redeemer], vars.redeemTokens);
         if (vars.mathErr != MathError.NO_ERROR) {
-            failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED, uint(vars.mathErr));
-            revert();
+            revert("math error");
         }
 
         /* Fail gracefully if protocol has insufficient cash */
         if (getCashPrior() < vars.redeemAmount) {
-            fail(Error.TOKEN_INSUFFICIENT_CASH, FailureInfo.REDEEM_TRANSFER_OUT_NOT_POSSIBLE);
-            revert();
+            revert("math error");
         }
 
         /////////////////////////
@@ -798,20 +790,17 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         if (IComptroller(address(comptroller)).treasuryPercent() != 0) {
             (vars.mathErr, feeAmount) = mulUInt(vars.redeemAmount, IComptroller(address(comptroller)).treasuryPercent());
             if (vars.mathErr != MathError.NO_ERROR) {
-                failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-                revert();
+                revert("math error");
             }
 
             (vars.mathErr, feeAmount) = divUInt(feeAmount, 1e18);
             if (vars.mathErr != MathError.NO_ERROR) {
-                failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-                revert();
+                revert("math error");
             }
 
             (vars.mathErr, remainedAmount) = subUInt(vars.redeemAmount, feeAmount);
             if (vars.mathErr != MathError.NO_ERROR) {
-                failOpaque(Error.MATH_ERROR, FailureInfo.REDEEM_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-                revert();
+                revert("math error");
             }
 
             doTransferOut(address(uint160(IComptroller(address(comptroller)).treasuryAddress())), feeAmount);
@@ -864,20 +853,17 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Fail if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
-            failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.BORROW_COMPTROLLER_REJECTION, allowed);
-            revert();
+            revert("math error");
         }
 
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != getBlockNumber()) {
-            fail(Error.MARKET_NOT_FRESH, FailureInfo.BORROW_FRESHNESS_CHECK);
-            revert();
+            revert("math error");
         }
 
         /* Fail gracefully if protocol has insufficient underlying cash */
         if (getCashPrior() < borrowAmount) {
-            fail(Error.TOKEN_INSUFFICIENT_CASH, FailureInfo.BORROW_CASH_NOT_AVAILABLE);
-            revert();
+            revert("math error");
         }
 
         BorrowLocalVars memory vars;
@@ -889,20 +875,17 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          */
         (vars.mathErr, vars.accountBorrows) = borrowBalanceStoredInternal(borrower);
         if (vars.mathErr != MathError.NO_ERROR) {
-            failOpaque(Error.MATH_ERROR, FailureInfo.BORROW_ACCUMULATED_BALANCE_CALCULATION_FAILED, uint(vars.mathErr));
-            revert();
+            revert("math error");
         }
 
         (vars.mathErr, vars.accountBorrowsNew) = addUInt(vars.accountBorrows, borrowAmount);
         if (vars.mathErr != MathError.NO_ERROR) {
-            failOpaque(Error.MATH_ERROR, FailureInfo.BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED, uint(vars.mathErr));
-            revert();
+            revert("math error");
         }
 
         (vars.mathErr, vars.totalBorrowsNew) = addUInt(totalBorrows, borrowAmount);
         if (vars.mathErr != MathError.NO_ERROR) {
-            failOpaque(Error.MATH_ERROR, FailureInfo.BORROW_NEW_TOTAL_BALANCE_CALCULATION_FAILED, uint(vars.mathErr));
-            revert();
+            revert("math error");
         }
 
         /////////////////////////
