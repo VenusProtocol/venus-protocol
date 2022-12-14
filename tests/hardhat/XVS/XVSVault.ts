@@ -18,18 +18,19 @@ interface XVSVaultFixture {
 }
 
 describe("XVSVault", async () => {
-  let user1: Wallet;
+  let deployer: Wallet;
+  let user: Wallet;
   let xvs: XVS;
   let xvsVault: XVSVaultScenario;
   let xvsStore: XVSStore;
 
   before("get signers", async () => {
-    [user1] = await (ethers as any).getSigners();
+    [deployer, user] = await (ethers as any).getSigners();
   });
 
   async function deployXVSVaultFixture(): Promise<XVSVaultFixture> {
     const xvsFactory = await ethers.getContractFactory("XVS");
-    xvs = (await xvsFactory.deploy(user1.address)) as XVS;
+    xvs = (await xvsFactory.deploy(deployer.address)) as XVS;
 
     const xvsStoreFactory = await ethers.getContractFactory("XVSStore");
     xvsStore = (await xvsStoreFactory.deploy()) as XVSStore;
@@ -45,7 +46,8 @@ describe("XVSVault", async () => {
 
     await xvsStore.setNewOwner(xvsVault.address);
     await xvsVault.setXvsStore(xvs.address, xvsStore.address);
-    await xvs.transfer(xvsStore.address, bigNumber18.mul(1000));
+    await xvs.connect(deployer).transfer(xvsStore.address, bigNumber18.mul(1000));
+    await xvs.connect(deployer).transfer(user.address, bigNumber18.mul(1000));
 
     await xvsStore.setRewardToken(xvs.address, true);
 
@@ -72,18 +74,18 @@ describe("XVSVault", async () => {
 
     expect(await xvs.balanceOf(xvsVault.address)).to.eq(depositAmount);
 
-    const userInfo = await xvsVault.getUserInfo(xvs.address, poolId, user1.address);
+    const userInfo = await xvsVault.getUserInfo(xvs.address, poolId, deployer.address);
 
     expect(userInfo.amount).to.eq(depositAmount);
     expect(userInfo.rewardDebt).to.eq(0);
 
     await mine(1000);
 
-    let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
 
     await xvsVault.requestWithdrawal(xvs.address, poolId, depositAmount);
 
-    let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
 
     expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
 
@@ -93,7 +95,7 @@ describe("XVSVault", async () => {
 
     await xvsVault.executeWithdrawal(xvs.address, poolId);
 
-    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
 
     expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
   });
@@ -104,11 +106,11 @@ describe("XVSVault", async () => {
     await xvs.approve(xvsVault.address, depositAmount);
     await xvsVault.deposit(xvs.address, poolId, depositAmount);
 
-    const previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    const previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
 
     await xvsVault.requestWithdrawal(xvs.address, poolId, depositAmount);
 
-    const currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    const currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
 
     expect(Number(previousXVSBalance) + 1).to.be.equal(Number(currentXVSBalance));
   });
@@ -119,12 +121,12 @@ describe("XVSVault", async () => {
     await xvs.approve(xvsVault.address, depositAmount);
     await xvsVault.deposit(xvs.address, poolId, depositAmount);
 
-    let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
 
     await mine(1000);
     await xvsVault.requestOldWithdrawal(xvs.address, poolId, depositAmount);
 
-    let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
 
     expect(Number(previousXVSBalance)).to.be.equal(Number(currentXVSBalance));
 
@@ -133,7 +135,7 @@ describe("XVSVault", async () => {
     await mine(500);
     await xvsVault.executeWithdrawal(xvs.address, poolId);
 
-    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
     expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
   });
 
@@ -143,7 +145,7 @@ describe("XVSVault", async () => {
     await xvs.approve(xvsVault.address, depositAmount);
     await xvsVault.deposit(xvs.address, poolId, depositAmount);
 
-    let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
 
     await mine(1000);
     await xvsVault.requestOldWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
@@ -153,7 +155,7 @@ describe("XVSVault", async () => {
 
     await mine(500);
     await xvsVault.executeWithdrawal(xvs.address, poolId);
-    let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
 
     expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
 
@@ -162,12 +164,12 @@ describe("XVSVault", async () => {
     await mine(500);
     xvsVault.requestWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
 
-    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
 
     await mine(500);
     await xvsVault.executeWithdrawal(xvs.address, poolId);
 
-    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(user1.address)).toString());
+    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
     expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
   });
 });
