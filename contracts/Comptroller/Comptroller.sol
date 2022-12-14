@@ -1494,18 +1494,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
             && user != 0x24e77E5b74B30b026E9996e4bc3329c881e24968,
             "Blacklisted"
         );
-
-        for (uint i = 0; i < allMarkets.length; ++i) {
-            address market = address(allMarkets[i]);
-
-            bool noOriginalSpeed = venusBorrowSpeeds[market] == 0;
-            bool invalidSupply = noOriginalSpeed && venusSupplierIndex[market][user] > 0;
-            bool invalidBorrow = noOriginalSpeed && venusBorrowerIndex[market][user] > 0;
-
-            if (invalidSupply || invalidBorrow) {
-                return amount;
-            }
-        }
         
         XVS xvs = XVS(getXVSAddress());
         uint venusRemaining = xvs.balanceOf(address(this));
