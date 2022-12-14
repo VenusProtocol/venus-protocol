@@ -1049,8 +1049,10 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     {
         ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
 
-        for (uint marketIdx; marketIdx < markets.length; ++marketIdx) {
-            for (uint actionIdx; actionIdx < actions.length; ++actionIdx) {
+        uint256 numMarkets = markets.length;
+        uint256 numActions = actions.length;
+        for (uint marketIdx; marketIdx < numMarkets; ++marketIdx) {
+            for (uint actionIdx; actionIdx < numActions; ++actionIdx) {
                 setActionPausedInternal(markets[marketIdx], actions[actionIdx], paused);
             }
         }
@@ -1378,7 +1380,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
             return amount;
         }
 
-        if (!(shortfall > 0)) {
+        if (shortfall == 0) {
             xvs.transfer(user, amount);
             return 0;
         }
