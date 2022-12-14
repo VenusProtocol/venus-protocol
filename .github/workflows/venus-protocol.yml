@@ -13,17 +13,21 @@ on:
 
 jobs:
   test:
-    name: Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
+    name: Test
     runs-on: self-hosted
 
     steps:
       - uses: actions/checkout@v2
+
       - name: Clear
-        run: docker container prune -f && docker image prune -f
+        run: docker system prune -f -a --volumes
+
       - name: Build docker
         run: docker build -t venus:${GITHUB_SHA::7} .
-      - name: Run compound tests
+
+      - name: Run tests
         run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} test
+
       - name: Clear
         run: docker rm ${GITHUB_SHA::7}
 
