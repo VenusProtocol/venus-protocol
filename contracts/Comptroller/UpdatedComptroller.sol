@@ -13,9 +13,13 @@ import "./Unitroller.sol";
 
 /**
  * @title Venus's Comptroller Contract
+ * @dev Name of this comptorller is updated to UpdatedComptroller as tests were failing
+ * due to the two contracts name by Comptorller. At the time of deployment of this
+ * contract to mainnet it should be nammed as Comptorller
  * @author Venus
  */
-contract Comptroller is ComptrollerV10Storage, UpdatedComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+// 
+contract UpdatedComptroller is ComptrollerV10Storage, UpdatedComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -1033,7 +1037,8 @@ contract Comptroller is ComptrollerV10Storage, UpdatedComptrollerInterfaceG2, Co
         require(unitroller._acceptImplementation() == 0, "not authorized");
 
         // TODO: Remove this post upgrade
-        Comptroller(address(unitroller))._upgradeSplitVenusRewards();
+        // Should have to change UpdatedComptroller to Comptroller
+        UpdatedComptroller(address(unitroller))._upgradeSplitVenusRewards();
     }
 
     function _upgradeSplitVenusRewards() external {
@@ -1314,18 +1319,6 @@ contract Comptroller is ComptrollerV10Storage, UpdatedComptrollerInterfaceG2, Co
             && user != 0x24e77E5b74B30b026E9996e4bc3329c881e24968,
             "Blacklisted"
         );
-
-        for (uint i; i < allMarkets.length; ++i) {
-            address market = address(allMarkets[i]);
-
-            bool noOriginalSpeed = venusBorrowSpeeds[market] == 0;
-
-            if (noOriginalSpeed && venusSupplierIndex[market][user] > 0
-                || noOriginalSpeed && venusBorrowerIndex[market][user] > 0
-            ) {
-                return amount;
-            }
-        }
         
         XVS xvs = XVS(getXVSAddress());
 

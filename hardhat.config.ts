@@ -45,6 +45,32 @@ task("run-script", "Runs a hardhard script by name")
     }
   });
 
+function isFork() {
+  if (process.env.BSC_ARCHIVE_NODE) {
+    return {
+      chainId: 56,
+      forking: {
+        url: process.env.BSC_ARCHIVE_NODE || "",
+      },
+    };
+  }
+  if (process.env.FORK_MAINNET === "true") {
+    return {
+      allowUnlimitedContractSize: false,
+      loggingEnabled: false,
+      forking: {
+        url: `https://white-ultra-silence.bsc.discover.quiknode.pro/${process.env.QUICK_NODE_KEY}/`,
+      },
+      live: false,
+    };
+  }
+  return {
+    allowUnlimitedContractSize: true,
+    loggingEnabled: false,
+    live: false,
+  };
+}
+
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   solidity: {
@@ -88,19 +114,7 @@ const config: HardhatUserConfig = {
       gasMultiplier: 10,
       timeout: 12000000,
     },
-    hardhat: (() => {
-      if (process.env.BSC_ARCHIVE_NODE) {
-        return {
-          chainId: 56,
-          forking: {
-            url: process.env.BSC_ARCHIVE_NODE || "",
-          },
-        };
-      }
-      return {
-        allowUnlimitedContractSize: true,
-      };
-    })(),
+    hardhat: isFork(),
     // currently not used, we are still using saddle to deploy contracts
     bscmainnet: {
       url: `https://bsc-dataseed.binance.org/`,
@@ -117,7 +131,7 @@ const config: HardhatUserConfig = {
     artifacts: "./artifacts",
   },
   mocha: {
-    timeout: 20000,
+    timeout: 200000000,
   },
   typechain: {
     outDir: "typechain",
