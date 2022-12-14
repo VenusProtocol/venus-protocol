@@ -98,7 +98,7 @@ const config: HardhatUserConfig = {
         };
       }
       return {
-        allowUnlimitedContractSize: true
+        allowUnlimitedContractSize: true,
       };
     })(),
     // currently not used, we are still using saddle to deploy contracts
