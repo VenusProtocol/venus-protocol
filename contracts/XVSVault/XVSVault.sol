@@ -215,7 +215,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         _updatePool(_rewardToken, _pid);
         if (user.amount > 0) {
             uint256 pending =
-                user.amount.mul(pool.accRewardPerShare).div(1e12).sub(
+                user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
                     user.rewardDebt
                 );
             IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
@@ -226,7 +226,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             _amount
         );
         user.amount = user.amount.add(_amount);
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
         // Update Delegate Amount
         if (address(pool.token) == address(xvsAddress)) {
@@ -254,12 +254,12 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         internal
     {
         uint i = _requests.length;
-        _requests.push(WithdrawalRequest(0, 0));
+        _requests.push(WithdrawalRequest(0, 0, true));
         // Keep it sorted so that the first to get unlocked request is always at the end
         for (; i > 0 && _requests[i - 1].lockedUntil <= _lockedUntil; --i) {
             _requests[i] = _requests[i - 1];
         }
-        _requests[i] = WithdrawalRequest(_amount, _lockedUntil);
+        _requests[i] = WithdrawalRequest(_amount, _lockedUntil, true);
         _user.pendingWithdrawals = _user.pendingWithdrawals.add(_amount);
     }
 
@@ -273,7 +273,9 @@ contract XVSVault is XVSVaultStorage, ECDSA {
      *   happen (or the transaction should be reverted).
      * @param _user The user struct storage pointer
      * @param _requests The user's requests array storage pointer
-     * @return withdrawalAmount The amount eligible for withdrawal (this amount should be
+     * @return beforeUpgradeWithdrawalAmount The amount eligible for withdrawal before upgrade (this amount should be
+     *   sent to the user, otherwise the state would be inconsistent).
+     * @return afterUpgradeWithdrawalAmount The amount eligible for withdrawal after upgrade (this amount should be
      *   sent to the user, otherwise the state would be inconsistent).
      */
     function popEligibleWithdrawalRequests(
@@ -281,16 +283,21 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         WithdrawalRequest[] storage _requests
     )
         internal
-        returns (uint withdrawalAmount)
+        returns (uint beforeUpgradeWithdrawalAmount, uint afterUpgradeWithdrawalAmount)
     {
         // Since the requests are sorted by their unlock time, we can just
         // pop them from the array and stop at the first not-yet-eligible one
         for (uint i = _requests.length; i > 0 && isUnlocked(_requests[i - 1]); --i) {
-            withdrawalAmount = withdrawalAmount.add(_requests[i - 1].amount);
+            if (_requests[i - 1].afterUpgrade == true) {
+                afterUpgradeWithdrawalAmount = afterUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
+            } else {
+                beforeUpgradeWithdrawalAmount = beforeUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
+            }
+            
             _requests.pop();
         }
-        _user.pendingWithdrawals = _user.pendingWithdrawals.sub(withdrawalAmount);
-        return withdrawalAmount;
+        _user.pendingWithdrawals = _user.pendingWithdrawals.sub(afterUpgradeWithdrawalAmount.add(beforeUpgradeWithdrawalAmount));
+        return (beforeUpgradeWithdrawalAmount, afterUpgradeWithdrawalAmount);
     }
 
     /**
@@ -316,20 +323,52 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
 
-        uint256 _amount = popEligibleWithdrawalRequests(user, requests);
-        require(_amount > 0, "nothing to withdraw");
+        uint256 beforeUpgradeWithdrawalAmount;
+        uint256 afterUpgradeWithdrawalAmount;
 
-        _updatePool(_rewardToken, _pid);
-        uint256 pending =
-            user.amount.mul(pool.accRewardPerShare).div(1e12).sub(
+        (beforeUpgradeWithdrawalAmount, afterUpgradeWithdrawalAmount) = popEligibleWithdrawalRequests(user, requests);
+        require(beforeUpgradeWithdrawalAmount > 0 || afterUpgradeWithdrawalAmount > 0, "nothing to withdraw");
+
+        if (beforeUpgradeWithdrawalAmount > 0) {
+            _updatePool(_rewardToken, _pid);
+            uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(
                 user.rewardDebt
             );
-        IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
-        user.amount = user.amount.sub(_amount);
-        user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
-        pool.token.safeTransfer(address(msg.sender), _amount);
+            IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+            user.amount = user.amount.sub(beforeUpgradeWithdrawalAmount);
+            user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+            pool.token.safeTransfer(address(msg.sender), beforeUpgradeWithdrawalAmount);
+        } else {
+            user.amount = user.amount.sub(afterUpgradeWithdrawalAmount);
+            totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].sub(afterUpgradeWithdrawalAmount);
+            pool.token.safeTransfer(address(msg.sender), afterUpgradeWithdrawalAmount);
+        }
+        
+        emit ExecutedWithdrawal(msg.sender, _rewardToken, _pid, beforeUpgradeWithdrawalAmount.add(afterUpgradeWithdrawalAmount));
+    }
 
-        emit ExecutedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
+    /**
+     * @notice Returns before and after upgrade pending withdrawal amount
+     * @param _user The user struct storage pointer
+     * @param _requests The user's requests array storage pointer
+     * @return beforeUpgradeWithdrawalAmount The amount eligible for withdrawal before upgrade 
+     * @return afterUpgradeWithdrawalAmount The amount eligible for withdrawal after upgrade 
+     */
+    function getRequestedWithdrawalAmount(
+        UserInfo storage _user,
+        WithdrawalRequest[] storage _requests
+    )
+        internal
+        returns (uint beforeUpgradeWithdrawalAmount, uint afterUpgradeWithdrawalAmount)
+    {
+        for (uint i = _requests.length; i > 0; --i) {
+            if (_requests[i - 1].afterUpgrade == true) {
+                afterUpgradeWithdrawalAmount = afterUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
+            } else {
+                beforeUpgradeWithdrawalAmount = beforeUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
+            }
+        }
+        return (beforeUpgradeWithdrawalAmount, afterUpgradeWithdrawalAmount);
     }
 
     /**
@@ -349,9 +388,25 @@ contract XVSVault is XVSVaultStorage, ECDSA {
 
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
+
+        uint beforeUpgradeWithdrawalAmount;
+        uint afterUpgradeWithdrawalAmount;
+
+        (beforeUpgradeWithdrawalAmount,) = getRequestedWithdrawalAmount(user, requests);
+        require(beforeUpgradeWithdrawalAmount == 0, "execute existing withdrawal before requesting new withdrawal");
+
+        _updatePool(_rewardToken, _pid);
+        uint256 pending =
+            user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
+                user.rewardDebt
+            );
+        IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+
         uint lockedUntil = pool.lockPeriod.add(block.timestamp);
 
         pushWithdrawalRequest(user, requests, _amount, lockedUntil);
+        totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].add(_amount);
+        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {
@@ -464,6 +519,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             return;
         }
         uint256 supply = pool.token.balanceOf(address(this));
+        supply = supply.sub(totalPendingWithdrawals[_rewardToken][_pid]);
         if (supply == 0) {
             pool.lastRewardBlock = block.number;
             return;
