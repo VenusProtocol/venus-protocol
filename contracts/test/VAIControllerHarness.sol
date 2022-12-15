@@ -3,7 +3,7 @@ pragma solidity ^0.5.16;
 import "../Tokens/VAI/VAIController.sol";
 
 contract VAIControllerHarness is VAIController {
-    address vaiAddress;
+    address internal vaiAddress;
     uint public blockNumber;
     uint public blocksPerYear;
 

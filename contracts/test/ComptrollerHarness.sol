@@ -16,8 +16,8 @@ contract ComptrollerRopsten is Comptroller {
 }
 
 contract ComptrollerHarness is Comptroller {
-    address xvsAddress;
-    address vXVSAddress;
+    address internal xvsAddress;
+    address internal vXVSAddress;
     uint public blockNumber;
 
     constructor() public Comptroller() {}
@@ -193,33 +193,33 @@ contract ComptrollerBorked {
 }
 
 contract BoolComptroller is ComptrollerInterface {
-    bool allowMint = true;
-    bool allowRedeem = true;
-    bool allowBorrow = true;
-    bool allowRepayBorrow = true;
-    bool allowLiquidateBorrow = true;
-    bool allowSeize = true;
-    bool allowTransfer = true;
+    bool internal allowMint = true;
+    bool internal allowRedeem = true;
+    bool internal allowBorrow = true;
+    bool internal allowRepayBorrow = true;
+    bool internal allowLiquidateBorrow = true;
+    bool internal allowSeize = true;
+    bool internal allowTransfer = true;
 
-    bool verifyMint = true;
-    bool verifyRedeem = true;
-    bool verifyBorrow = true;
-    bool verifyRepayBorrow = true;
-    bool verifyLiquidateBorrow = true;
-    bool verifySeize = true;
-    bool verifyTransfer = true;
+    bool internal verifyMint = true;
+    bool internal verifyRedeem = true;
+    bool internal verifyBorrow = true;
+    bool internal verifyRepayBorrow = true;
+    bool internal verifyLiquidateBorrow = true;
+    bool internal verifySeize = true;
+    bool internal verifyTransfer = true;
     uint public liquidationIncentiveMantissa = 11e17;
-    bool failCalculateSeizeTokens;
-    uint calculatedSeizeTokens;
+    bool internal failCalculateSeizeTokens;
+    uint internal calculatedSeizeTokens;
 
     bool public protocolPaused = false;
 
     mapping(address => uint) public mintedVAIs;
-    bool vaiFailCalculateSeizeTokens;
-    uint vaiCalculatedSeizeTokens;
+    bool internal vaiFailCalculateSeizeTokens;
+    uint internal vaiCalculatedSeizeTokens;
 
-    uint noError = 0;
-    uint opaqueError = noError + 11; // an arbitrary, opaque error code
+    uint internal noError = 0;
+    uint internal opaqueError = noError + 11; // an arbitrary, opaque error code
 
     address public treasuryGuardian;
     address public treasuryAddress;

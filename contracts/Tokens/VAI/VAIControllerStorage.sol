@@ -75,17 +75,17 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
     /**
      * @notice Accumulator of the total earned interest rate since the opening of the market. For example: 0.6 (60%)
      */
-    uint vaiMintIndex;
+    uint internal vaiMintIndex;
 
     // @notice Block number that interest was last accrued at
-    uint accrualBlockNumber;
+    uint internal accrualBlockNumber;
 
     // @notice Global vaiMintIndex as of the most recent balance-changing action for user
-    mapping(address => uint) vaiMinterInterestIndex;
+    mapping(address => uint) internal vaiMinterInterestIndex;
 
     // @notice tracks the amount of mintedVAI of a user that represents the accrued interest
     mapping(address => uint) public pastVAIInterest;
 
     // @notice VAI mint cap
-    uint mintCap;
+    uint internal mintCap;
 }

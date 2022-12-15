@@ -4,7 +4,7 @@ import "../Tokens/VTokens/VBNB.sol";
 import "./ComptrollerScenario.sol";
 
 contract VBNBHarness is VBNB {
-    uint harnessExchangeRate;
+    uint internal harnessExchangeRate;
     uint public blockNumber = 100000;
 
     mapping(address => bool) public failTransferToAddresses;
@@ -164,7 +164,7 @@ contract VBNBHarness is VBNB {
 }
 
 contract VBNBScenario is VBNB {
-    uint reserveFactor;
+    uint internal reserveFactor;
 
     constructor(
         string memory name_,

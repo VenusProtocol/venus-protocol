@@ -6,9 +6,9 @@ import "../Tokens/VTokens/VBep20Delegate.sol";
 import "./ComptrollerScenario.sol";
 
 contract VBep20Harness is VBep20Immutable {
-    uint blockNumber = 100000;
-    uint harnessExchangeRate;
-    bool harnessExchangeRateStored;
+    uint internal blockNumber = 100000;
+    uint internal harnessExchangeRate;
+    bool internal harnessExchangeRateStored;
 
     mapping(address => bool) public failTransferToAddresses;
 
@@ -277,9 +277,9 @@ contract VBep20DelegateHarness is VBep20Delegate {
     event Log(string x, address y);
     event Log(string x, uint y);
 
-    uint blockNumber = 100000;
-    uint harnessExchangeRate;
-    bool harnessExchangeRateStored;
+    uint internal blockNumber = 100000;
+    uint internal harnessExchangeRate;
+    bool internal harnessExchangeRateStored;
 
     mapping(address => bool) public failTransferToAddresses;
 

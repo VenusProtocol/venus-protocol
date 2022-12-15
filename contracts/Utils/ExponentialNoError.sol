@@ -8,10 +8,10 @@ pragma solidity ^0.5.16;
  *         `Exp({mantissa: 5100000000000000000})`.
  */
 contract ExponentialNoError {
-    uint constant expScale = 1e18;
-    uint constant doubleScale = 1e36;
-    uint constant halfExpScale = expScale / 2;
-    uint constant mantissaOne = expScale;
+    uint constant internal expScale = 1e18;
+    uint constant internal doubleScale = 1e36;
+    uint constant internal halfExpScale = expScale / 2;
+    uint constant internal mantissaOne = expScale;
 
     struct Exp {
         uint mantissa;

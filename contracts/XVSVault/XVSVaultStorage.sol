@@ -61,7 +61,7 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
     }
 
     // Info of each user that stakes tokens.
-    mapping(address => mapping(uint256 => mapping(address => UserInfo))) userInfos;
+    mapping(address => mapping(uint256 => mapping(address => UserInfo))) internal userInfos;
 
     // Info of each pool.
     mapping(address => PoolInfo[]) public poolInfos;
@@ -70,7 +70,7 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
     mapping(address => uint256) public totalAllocPoints;
 
     // Info of requested but not yet executed withdrawals
-    mapping(address => mapping(uint256 => mapping(address => WithdrawalRequest[]))) withdrawalRequests;
+    mapping(address => mapping(uint256 => mapping(address => WithdrawalRequest[]))) internal withdrawalRequests;
 
     /// @notice DEPRECATED A record of each accounts delegate (before the voting power fix)
     mapping(address => address) private __oldDelegatesSlot;
@@ -110,5 +110,5 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
     mapping(address => uint32) public numCheckpoints;
 
     /// @notice Tracks pending withdrawals for all users for a particular reward token and pool id
-    mapping(address => mapping(uint256 => uint256)) totalPendingWithdrawals;
+    mapping(address => mapping(uint256 => uint256)) internal totalPendingWithdrawals;
 }

@@ -9,7 +9,7 @@ import "../Tokens/VTokens/VToken.sol";
  */
 contract VBep20MockDelegate is VToken, VBep20Interface {
     address public implementation;
-    uint blockNumber = 100000;
+    uint internal blockNumber = 100000;
 
     /**
      * @notice Initialize the new money market

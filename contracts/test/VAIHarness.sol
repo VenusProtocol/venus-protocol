@@ -3,7 +3,7 @@ pragma solidity ^0.5.16;
 import "../Tokens/VAI/VAI.sol";
 
 contract VAIScenario is VAI {
-    uint blockNumber = 100000;
+    uint internal blockNumber = 100000;
 
     constructor(uint chainId) public VAI(chainId) {}
 

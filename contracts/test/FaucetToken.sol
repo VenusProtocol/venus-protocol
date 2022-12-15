@@ -56,9 +56,9 @@ contract FaucetTokenReEntrantHarness {
     string public name;
     string public symbol;
     uint8 public decimals;
-    uint256 totalSupply_;
-    mapping(address => mapping(address => uint256)) allowance_;
-    mapping(address => uint256) balanceOf_;
+    uint256 internal totalSupply_;
+    mapping(address => mapping(address => uint256)) internal allowance_;
+    mapping(address => uint256) internal balanceOf_;
 
     bytes public reEntryCallData;
     string public reEntryFun;

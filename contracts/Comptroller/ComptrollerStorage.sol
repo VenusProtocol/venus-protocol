@@ -203,7 +203,7 @@ contract ComptrollerV8Storage is ComptrollerV7Storage {
 
 contract ComptrollerV9Storage is ComptrollerV8Storage {
     /// @notice AccessControlManager address
-    address accessControl;
+    address internal accessControl;
 
     enum Action {
         MINT,

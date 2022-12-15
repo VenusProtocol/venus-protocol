@@ -51,9 +51,9 @@ contract EvilXToken is VBep20Delegate {
     event Log(string x, uint y);
     event LogLiquidity(uint liquidity);
 
-    uint blockNumber = 100000;
-    uint harnessExchangeRate;
-    bool harnessExchangeRateStored;
+    uint internal blockNumber = 100000;
+    uint internal harnessExchangeRate;
+    bool internal harnessExchangeRateStored;
 
     address public comptrollerAddress;
 
