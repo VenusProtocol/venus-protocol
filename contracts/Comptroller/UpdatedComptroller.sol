@@ -53,10 +53,10 @@ contract UpdatedComptroller is ComptrollerV10Storage, UpdatedComptrollerInterfac
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
 
-    /// @notice Emitted when a new borrow-side VENUS speed is calculated for a market
+    /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
     event VenusBorrowSpeedUpdated(VToken indexed vToken, uint newSpeed);
 
-    /// @notice Emitted when a new supply-side VENUS speed is calculated for a market
+    /// @notice Emitted when a new supply-side XVS speed is calculated for a market
     event VenusSupplySpeedUpdated(VToken indexed vToken, uint newSpeed); 
 
     /// @notice Emitted when XVS is distributed to a supplier
@@ -1078,8 +1078,8 @@ contract UpdatedComptroller is ComptrollerV10Storage, UpdatedComptrollerInterfac
 
         if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
-            //  1. VENUS accrued properly for the old speed, and
-            //  2. VENUS accrued at the new speed starts after this block.
+            //  1. XVS accrued properly for the old speed, and
+            //  2. XVS accrued at the new speed starts after this block.
 
             updateVenusSupplyIndex(address(vToken));
              // Update speed and emit event
@@ -1089,8 +1089,8 @@ contract UpdatedComptroller is ComptrollerV10Storage, UpdatedComptrollerInterfac
 
         if (venusBorrowSpeeds[address(vToken)] != borrowSpeed) {
             // Borrow speed updated so let's update borrow state to ensure that
-            //  1. VENUS accrued properly for the old speed, and
-            //  2. VENUS accrued at the new speed starts after this block.
+            //  1. XVS accrued properly for the old speed, and
+            //  2. XVS accrued at the new speed starts after this block.
             Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
             updateVenusBorrowIndex(address(vToken), borrowIndex);
 
@@ -1166,17 +1166,17 @@ contract UpdatedComptroller is ComptrollerV10Storage, UpdatedComptrollerInterfac
         uint supplyIndex = venusSupplyState[vToken].index;
         uint supplierIndex = venusSupplierIndex[vToken][supplier];
 
-        // Update supplier's index to the current index since we are distributing accrued VENUS
+        // Update supplier's index to the current index since we are distributing accrued XVS
         venusSupplierIndex[vToken][supplier] = supplyIndex;
 
         if (supplierIndex == 0 && supplyIndex >= venusInitialIndex) {
             // Covers the case where users supplied tokens before the market's supply state index was set.
-            // Rewards the user with VENUS accrued from the start of when supplier rewards were first
+            // Rewards the user with XVS accrued from the start of when supplier rewards were first
             // set for the market.
             supplierIndex = venusInitialIndex;
         }
 
-        // Calculate change in the cumulative sum of the VENUS per vToken accrued
+        // Calculate change in the cumulative sum of the XVS per vToken accrued
         Double memory deltaIndex = Double({mantissa: sub_(supplyIndex, supplierIndex)});
 
         // Multiply of supplierTokens and supplierDelta
@@ -1202,17 +1202,17 @@ contract UpdatedComptroller is ComptrollerV10Storage, UpdatedComptrollerInterfac
         uint borrowIndex = venusBorrowState[vToken].index;
         uint borrowerIndex = venusBorrowerIndex[vToken][borrower];
 
-        // Update borrowers's index to the current index since we are distributing accrued VENUS
+        // Update borrowers's index to the current index since we are distributing accrued XVS
         venusBorrowerIndex[vToken][borrower] = borrowIndex;
 
         if (borrowerIndex == 0 && borrowIndex >= venusInitialIndex) {
             // Covers the case where users borrowed tokens before the market's borrow state index was set.
-            // Rewards the user with VENUS accrued from the start of when borrower rewards were first
+            // Rewards the user with XVS accrued from the start of when borrower rewards were first
             // set for the market.
             borrowerIndex = venusInitialIndex;
         }
 
-        // Calculate change in the cumulative sum of the VENUS per borrowed unit accrued
+        // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
         Double memory deltaIndex = Double({mantissa: sub_(borrowIndex, borrowerIndex)});
 
         uint borrowerDelta = mul_(div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);

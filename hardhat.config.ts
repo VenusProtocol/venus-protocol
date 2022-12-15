@@ -59,7 +59,7 @@ function isFork() {
       allowUnlimitedContractSize: false,
       loggingEnabled: false,
       forking: {
-        url: `https://white-ultra-silence.bsc.discover.quiknode.pro/${process.env.QUICK_NODE_KEY}/`,
+        url: `${process.env.FORK_MAINNET_RPC}`,
       },
       live: false,
     };

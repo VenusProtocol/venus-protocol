@@ -72,14 +72,3 @@ contract UpdatedComptrollerInterface is UpdatedComptrollerInterfaceG2 {
     function venusBorrowState(address) external view returns (uint224, uint32);
     function venusSupplyState(address) external view returns (uint224, uint32);
 }
-
-// interface IVAIVault {
-//     function updatePendingRewards() external;
-// }
-
-// interface IComptroller {
-//     function liquidationIncentiveMantissa() external view returns (uint);
-//     /*** Treasury Data ***/
-//     function treasuryAddress() external view returns (address);
-//     function treasuryPercent() external view returns (uint);
-// }
