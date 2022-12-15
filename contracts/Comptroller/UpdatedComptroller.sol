@@ -438,9 +438,9 @@ contract UpdatedComptroller is
      */
     function repayBorrowAllowed(
         address vToken,
-        address payer,
+        address payer, // solhint-disable-line no-unused-vars
         address borrower,
-        uint repayAmount
+        uint repayAmount // solhint-disable-line no-unused-vars
     ) external returns (uint) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REPAY);
@@ -520,7 +520,7 @@ contract UpdatedComptroller is
         address vTokenBorrowed,
         address liquidator,
         address borrower,
-        uint seizeTokens
+        uint seizeTokens // solhint-disable-line no-unused-vars
     ) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();

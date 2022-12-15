@@ -216,8 +216,6 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
             require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
 
-            address payer = msg.sender;
-
             return repayVAIFresh(msg.sender, msg.sender, repayVAIAmount);
         }
     }

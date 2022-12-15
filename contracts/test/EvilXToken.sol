@@ -75,6 +75,7 @@ contract EvilXToken is VBep20Delegate {
         super.doTransferOut(to, amount);
 
         // Checking the Liquidity of the user after the tranfer.
+        // solhint-disable-next-line no-unused-vars
         (uint errorCode, uint liquidity, uint shortfall) = ComptrollerInterface(comptrollerAddress).getAccountLiquidity(
             msg.sender
         );

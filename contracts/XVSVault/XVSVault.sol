@@ -299,13 +299,11 @@ contract XVSVault is XVSVaultStorage, ECDSA {
 
     /**
      * @notice Returns before and after upgrade pending withdrawal amount
-     * @param _user The user struct storage pointer
      * @param _requests The user's requests array storage pointer
      * @return beforeUpgradeWithdrawalAmount The amount eligible for withdrawal before upgrade
      * @return afterUpgradeWithdrawalAmount The amount eligible for withdrawal after upgrade
      */
     function getRequestedWithdrawalAmount(
-        UserInfo storage _user,
         WithdrawalRequest[] storage _requests
     ) internal returns (uint beforeUpgradeWithdrawalAmount, uint afterUpgradeWithdrawalAmount) {
         for (uint i = _requests.length; i > 0; --i) {
@@ -334,9 +332,8 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
 
         uint beforeUpgradeWithdrawalAmount;
-        uint afterUpgradeWithdrawalAmount;
 
-        (beforeUpgradeWithdrawalAmount, ) = getRequestedWithdrawalAmount(user, requests);
+        (beforeUpgradeWithdrawalAmount, ) = getRequestedWithdrawalAmount(requests);
         require(beforeUpgradeWithdrawalAmount == 0, "execute existing withdrawal before requesting new withdrawal");
 
         _updatePool(_rewardToken, _pid);

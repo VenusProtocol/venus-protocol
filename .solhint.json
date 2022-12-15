@@ -8,6 +8,7 @@
     "func-visibility": ["error", { "ignoreConstructors": true }],
     "max-line-length": ["error", 175],
     "not-rely-on-time": "off",
-    "reason-string": ["warn", { "maxLength": 64 }]
+    "reason-string": ["warn", { "maxLength": 64 }],
+    "no-unused-vars": "error"
   }
 }

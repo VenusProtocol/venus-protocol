@@ -1346,7 +1346,7 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
      * @dev VAI minters will not begin to accrue until after the first interaction with the protocol.
      * @param vaiMinter The address of the VAI minter to distribute XVS to
      */
-    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) public {
+    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) public { // solhint-disable-line no-unused-vars
         if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }

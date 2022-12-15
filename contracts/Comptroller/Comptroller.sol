@@ -378,7 +378,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param redeemAmount The amount of the underlying asset being redeemed
      * @param redeemTokens The number of tokens being redeemed
      */
-    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external {
+    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external { // solhint-disable-line no-unused-vars
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
     }
 
@@ -457,8 +457,10 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      */
     function repayBorrowAllowed(
         address vToken,
+        // solhint-disable-next-line no-unused-vars
         address payer,
         address borrower,
+        // solhint-disable-next-line no-unused-vars
         uint repayAmount
     ) external returns (uint) {
         checkProtocolPauseState();
@@ -572,7 +574,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         address vTokenBorrowed,
         address liquidator,
         address borrower,
-        uint seizeTokens
+        uint seizeTokens // solhint-disable-line no-unused-vars
     ) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();

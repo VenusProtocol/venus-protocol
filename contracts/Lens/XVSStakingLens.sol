@@ -23,6 +23,7 @@ contract XVSStakingLens {
         for (uint256 pid = 0; pid < poolLength; ++pid) {
             (IBEP20 token, , , , ) = xvsVaultInstance.poolInfos(xvsAddress, pid);
             if (address(token) == address(xvsAddress)) {
+                  // solhint-disable-next-line no-unused-vars
                 (uint256 userAmount, uint256 userRewardDebt, uint256 userPendingWithdrawals) = xvsVaultInstance
                     .getUserInfo(xvsAddress, pid, account);
                 stakedAmount = userAmount;
