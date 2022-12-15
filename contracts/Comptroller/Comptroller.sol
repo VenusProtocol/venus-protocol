@@ -378,7 +378,8 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param redeemAmount The amount of the underlying asset being redeemed
      * @param redeemTokens The number of tokens being redeemed
      */
-    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external { // solhint-disable-line no-unused-vars
+    // solhint-disable-next-line no-unused-vars
+    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
     }
 

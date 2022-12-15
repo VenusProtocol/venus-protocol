@@ -775,7 +775,8 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
                 hypothetical account liquidity in excess of collateral requirements,
      *          hypothetical account shortfall below collateral requirements)
      */
-    function getHypotheticalAccountLiquidityInternal( // solhint-disable-line code-complexity
+    // solhint-disable-next-line code-complexity
+    function getHypotheticalAccountLiquidityInternal(
         address account,
         VToken vTokenModify,
         uint redeemTokens,
@@ -1346,7 +1347,8 @@ contract ComptrollerG3 is ComptrollerV3Storage, ComptrollerInterfaceG1, Comptrol
      * @dev VAI minters will not begin to accrue until after the first interaction with the protocol.
      * @param vaiMinter The address of the VAI minter to distribute XVS to
      */
-    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) public { // solhint-disable-line no-unused-vars
+    // solhint-disable-next-line no-unused-vars
+    function distributeVAIMinterVenus(address vaiMinter, bool distributeAll) public {
         if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }

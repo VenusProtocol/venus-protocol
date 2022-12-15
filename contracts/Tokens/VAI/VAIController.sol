@@ -113,7 +113,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         require(unitroller._acceptImplementation() == 0, "change not authorized");
     }
 
-    function mintVAI(uint mintVAIAmount) external nonReentrant returns (uint) { // solhint-disable-line code-complexity
+    // solhint-disable-next-line code-complexity
+    function mintVAI(uint mintVAIAmount) external nonReentrant returns (uint) {
         if (address(comptroller) != address(0)) {
             require(mintVAIAmount > 0, "mintVAIAmount cannt be zero");
             require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
@@ -423,7 +424,8 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         Exp tokensToDenom;
     }
 
-    function getMintableVAI(address minter) public view returns (uint, uint) { // solhint-disable-line code-complexity
+    // solhint-disable-next-line code-complexity
+    function getMintableVAI(address minter) public view returns (uint, uint) {
         PriceOracle oracle = ComptrollerImplInterface(address(comptroller)).oracle();
         VToken[] memory enteredMarkets = ComptrollerImplInterface(address(comptroller)).getAssetsIn(minter);
 

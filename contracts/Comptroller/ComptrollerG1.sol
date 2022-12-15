@@ -760,7 +760,8 @@ contract ComptrollerG1 is ComptrollerV1Storage, ComptrollerInterfaceG1, Comptrol
                 hypothetical account liquidity in excess of collateral requirements,
      *          hypothetical account shortfall below collateral requirements)
      */
-    function getHypotheticalAccountLiquidityInternal( // solhint-disable-line code-complexity
+    // solhint-disable-next-line code-complexity
+    function getHypotheticalAccountLiquidityInternal(
         address account,
         VToken vTokenModify,
         uint redeemTokens,
