@@ -87,6 +87,21 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint accountMintableVAI;
     }
 
+    function initialize() onlyAdmin external {
+        require(vaiMintIndex == 0, "already initialized");
+
+        vaiMintIndex = 1e18;
+        accrualBlockNumber = getBlockNumber();
+        mintCap = uint256(-1);
+
+        // The counter starts true to prevent changing it from zero to non-zero (i.e. smaller cost/refund)
+        _notEntered = true;
+    }
+
+    function _become(VAIUnitroller unitroller) external {
+        require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
+        require(unitroller._acceptImplementation() == 0, "change not authorized");
+    }
 
     function mintVAI(uint mintVAIAmount) external nonReentrant returns (uint) {
         if(address(comptroller) != address(0)) {
@@ -351,15 +366,6 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         return uint(Error.NO_ERROR);
     }
 
-    function _become(VAIUnitroller unitroller) external {
-        require(msg.sender == unitroller.admin(), "only unitroller admin can change brains");
-        require(unitroller._acceptImplementation() == 0, "change not authorized");
-
-        vaiMintIndex = 1e18;
-        accrualBlockNumber = getBlockNumber();
-        mintCap = uint(-1);
-    }
-
     /**
      * @dev Local vars for avoiding stack-depth limits in calculating account total supply balance.
      *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
@@ -441,7 +447,14 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             }
         }
 
-        (vars.mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, ComptrollerImplInterface(address(comptroller)).mintedVAIs(minter));
+        uint totalMintedVAI = ComptrollerImplInterface(address(comptroller)).mintedVAIs(minter);
+        uint256 repayAmount = 0;
+
+        if (totalMintedVAI > 0) {
+            repayAmount = getVAIRepayAmount(minter);
+        }
+
+        (vars.mErr, vars.sumBorrowPlusEffects) = addUInt(vars.sumBorrowPlusEffects, repayAmount);
         if (vars.mErr != MathError.NO_ERROR) {
             return (uint(Error.MATH_ERROR), 0);
         }
@@ -491,7 +504,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         if (baseRateMantissa > 0) {
             if (floatRateMantissa > 0) {
                 uint oraclePrice = oracle.getUnderlyingPrice(VToken(getVAIAddress()));
-                if (1e18 >= oraclePrice) {
+                if (1e18 > oraclePrice) {
                     uint delta;
                     uint rate;
 
@@ -541,17 +554,23 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint delta;
 
         uint amount = ComptrollerImplInterface(address(comptroller)).mintedVAIs(account);
+        uint interest = pastVAIInterest[account];
+        uint totalMintedVAI;
+        uint newInterest;
 
-        (mErr, delta) = mulUInt(vaiMintIndex, 1e18);
-        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
-        
-        (mErr, delta) = divUInt(delta, vaiMinterInterestIndex[account]);
-        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
-
-        (mErr, amount) = mulUInt(amount, delta);
+        (mErr, totalMintedVAI) = subUInt(amount, interest);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
-        (mErr, amount) = divUInt(amount, 1e18);
+        (mErr, delta) = subUInt(vaiMintIndex, vaiMinterInterestIndex[account]);
+        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
+
+        (mErr, newInterest) = mulUInt(delta, totalMintedVAI);
+        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
+
+        (mErr, newInterest) = divUInt(newInterest, 1e18);
+        require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
+
+        (mErr, amount) = addUInt(amount, newInterest);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
         return amount;
@@ -620,13 +639,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         MathError mErr;
         uint delta;
 
-        (mErr, delta) = mulUInt(vaiMintIndex, getVAIRepayRatePerBlock());
-        require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
-
-        (mErr, delta) = divUInt(delta, 1e18);
-        require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
-
-        (mErr, delta) = mulUInt(delta, getBlockNumber() - accrualBlockNumber);
+        (mErr, delta) = mulUInt(getVAIRepayRatePerBlock(), getBlockNumber() - accrualBlockNumber);
         require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
 
         (mErr, delta) = addUInt(delta, vaiMintIndex);
@@ -703,11 +716,6 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      */
     function getVAIAddress() public view returns (address) {
         return 0x4BD17003473389A42DAF6a0a729f6Fdb328BbBd7;
-    }
-
-    function initialize() onlyAdmin public {
-        // The counter starts true to prevent changing it from zero to non-zero (i.e. smaller cost/refund)
-        _notEntered = true;
     }
 
     modifier onlyAdmin() {
