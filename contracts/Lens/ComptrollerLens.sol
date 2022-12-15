@@ -37,9 +37,9 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @return A tuple of error code, and tokens to seize
      */
     function liquidateCalculateSeizeTokens(
-        address comptroller, 
-        address vTokenBorrowed, 
-        address vTokenCollateral, 
+        address comptroller,
+        address vTokenBorrowed,
+        address vTokenCollateral,
         uint actualRepayAmount
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
@@ -61,8 +61,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         Exp memory denominator;
         Exp memory ratio;
 
-        numerator = mul_(Exp({mantissa: Comptroller(comptroller).liquidationIncentiveMantissa()}), Exp({mantissa: priceBorrowedMantissa}));
-        denominator = mul_(Exp({mantissa: priceCollateralMantissa}), Exp({mantissa: exchangeRateMantissa}));
+        numerator = mul_(
+            Exp({ mantissa: Comptroller(comptroller).liquidationIncentiveMantissa() }),
+            Exp({ mantissa: priceBorrowedMantissa })
+        );
+        denominator = mul_(Exp({ mantissa: priceCollateralMantissa }), Exp({ mantissa: exchangeRateMantissa }));
         ratio = div_(numerator, denominator);
 
         seizeTokens = mul_ScalarTruncate(ratio, actualRepayAmount);
@@ -79,11 +82,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      */
     function liquidateVAICalculateSeizeTokens(
         address comptroller,
-        address vTokenCollateral, 
+        address vTokenCollateral,
         uint actualRepayAmount
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = 1e18;  // Note: this is VAI
+        uint priceBorrowedMantissa = 1e18; // Note: this is VAI
         uint priceCollateralMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(VToken(vTokenCollateral));
         if (priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
@@ -101,8 +104,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         Exp memory denominator;
         Exp memory ratio;
 
-        numerator = mul_(Exp({mantissa: Comptroller(comptroller).liquidationIncentiveMantissa()}), Exp({mantissa: priceBorrowedMantissa}));
-        denominator = mul_(Exp({mantissa: priceCollateralMantissa}), Exp({mantissa: exchangeRateMantissa}));
+        numerator = mul_(
+            Exp({ mantissa: Comptroller(comptroller).liquidationIncentiveMantissa() }),
+            Exp({ mantissa: priceBorrowedMantissa })
+        );
+        denominator = mul_(Exp({ mantissa: priceCollateralMantissa }), Exp({ mantissa: exchangeRateMantissa }));
         ratio = div_(numerator, denominator);
 
         seizeTokens = mul_ScalarTruncate(ratio, actualRepayAmount);
@@ -110,7 +116,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         return (uint(Error.NO_ERROR), seizeTokens);
     }
 
-    /** 
+    /**
      * @notice Computes the hypothetical liquidity and shortfall of an account given a hypothetical borrow
      *      A snapshot of the account is taken and the total borrow amount of the account is calculated
      * @param comptroller Address of comptroller
@@ -125,8 +131,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         address account,
         VToken vTokenModify,
         uint redeemTokens,
-        uint borrowAmount) external view returns (uint, uint, uint) {
-
+        uint borrowAmount
+    ) external view returns (uint, uint, uint) {
         AccountLiquidityLocalVars memory vars; // Holds all our calculation results
         uint oErr;
 
@@ -137,20 +143,23 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             VToken asset = assets[i];
 
             // Read the balances and exchange rate from the vToken
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(account);
-            if (oErr != 0) { // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
+            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
+                account
+            );
+            if (oErr != 0) {
+                // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (uint(Error.SNAPSHOT_ERROR), 0, 0);
             }
-            (, uint collateralFactorMantissa,) = Comptroller(comptroller).markets(address(asset));
-            vars.collateralFactor = Exp({mantissa: collateralFactorMantissa});
-            vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
+            (, uint collateralFactorMantissa, ) = Comptroller(comptroller).markets(address(asset));
+            vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
+            vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
             // Get the normalized price of the asset
             vars.oraclePriceMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(asset);
             if (vars.oraclePriceMantissa == 0) {
                 return (uint(Error.PRICE_ERROR), 0, 0);
             }
-            vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
+            vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
 
             // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
             vars.tokensToDenom = mul_(mul_(vars.collateralFactor, vars.exchangeRate), vars.oraclePrice);
@@ -159,17 +168,29 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumCollateral);
 
             // sumBorrowPlusEffects += oraclePrice * borrowBalance
-            vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.oraclePrice, vars.borrowBalance, vars.sumBorrowPlusEffects);
+            vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+                vars.oraclePrice,
+                vars.borrowBalance,
+                vars.sumBorrowPlusEffects
+            );
 
             // Calculate effects of interacting with vTokenModify
             if (asset == vTokenModify) {
                 // redeem effect
                 // sumBorrowPlusEffects += tokensToDenom * redeemTokens
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.tokensToDenom, redeemTokens, vars.sumBorrowPlusEffects);
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+                    vars.tokensToDenom,
+                    redeemTokens,
+                    vars.sumBorrowPlusEffects
+                );
 
                 // borrow effect
                 // sumBorrowPlusEffects += oraclePrice * borrowAmount
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(vars.oraclePrice, borrowAmount, vars.sumBorrowPlusEffects);
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+                    vars.oraclePrice,
+                    borrowAmount,
+                    vars.sumBorrowPlusEffects
+                );
             }
         }
 
@@ -186,6 +207,4 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             return (uint(Error.NO_ERROR), 0, vars.sumBorrowPlusEffects - vars.sumCollateral);
         }
     }
-
 }
-

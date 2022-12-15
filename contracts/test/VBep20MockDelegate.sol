@@ -1,13 +1,13 @@
 pragma solidity ^0.5.16;
 
 import "../Tokens/VTokens/VToken.sol";
+
 /**
  * @title Venus's VBep20 Contract
  * @notice VTokens which wrap an EIP-20 underlying
  * @author Venus
  */
 contract VBep20MockDelegate is VToken, VBep20Interface {
-
     address public implementation;
     uint blockNumber = 100000;
 
@@ -21,13 +21,15 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @param symbol_ BEP-20 symbol of this token
      * @param decimals_ BEP-20 decimal precision of this token
      */
-    function initialize(address underlying_,
-                        ComptrollerInterface comptroller_,
-                        InterestRateModel interestRateModel_,
-                        uint initialExchangeRateMantissa_,
-                        string memory name_,
-                        string memory symbol_,
-                        uint8 decimals_) public {
+    function initialize(
+        address underlying_,
+        ComptrollerInterface comptroller_,
+        InterestRateModel interestRateModel_,
+        uint initialExchangeRateMantissa_,
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_
+    ) public {
         // VToken initialize does the bulk of the work
         super.initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
 
@@ -36,7 +38,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
         EIP20Interface(underlying).totalSupply();
     }
 
-        /**
+    /**
      * @notice Called by the delegator on a delegate to initialize it for duty
      * @param data The encoded bytes data for any initialization
      */
@@ -77,7 +79,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function mint(uint mintAmount) external returns (uint) {
-        (uint err,) = mintInternal(mintAmount);
+        (uint err, ) = mintInternal(mintAmount);
         return err;
     }
 
@@ -89,7 +91,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function mintBehalf(address receiver, uint mintAmount) external returns (uint) {
-        (uint err,) = mintBehalfInternal(receiver, mintAmount);
+        (uint err, ) = mintBehalfInternal(receiver, mintAmount);
         return err;
     }
 
@@ -114,10 +116,10 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
     }
 
     /**
-      * @notice Sender borrows assets from the protocol to their own address
-      * @param borrowAmount The amount of the underlying asset to borrow
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice Sender borrows assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function borrow(uint borrowAmount) external returns (uint) {
         return borrowInternal(borrowAmount);
     }
@@ -128,7 +130,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function repayBorrow(uint repayAmount) external returns (uint) {
-        (uint err,) = repayBorrowInternal(repayAmount);
+        (uint err, ) = repayBorrowInternal(repayAmount);
         return err;
     }
 
@@ -139,7 +141,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint) {
-        (uint err,) = repayBorrowBehalfInternal(borrower, repayAmount);
+        (uint err, ) = repayBorrowBehalfInternal(borrower, repayAmount);
         return err;
     }
 
@@ -151,8 +153,12 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function liquidateBorrow(address borrower, uint repayAmount, VTokenInterface vTokenCollateral) external returns (uint) {
-        (uint err,) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
+    function liquidateBorrow(
+        address borrower,
+        uint repayAmount,
+        VTokenInterface vTokenCollateral
+    ) external returns (uint) {
+        (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;
     }
 
@@ -194,23 +200,26 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
         bool success;
         assembly {
             switch returndatasize()
-                case 0 {                       // This is a non-standard BEP-20
-                    success := not(0)          // set success to true
-                }
-                case 32 {                      // This is a compliant BEP-20
-                    returndatacopy(0, 0, 32)
-                    success := mload(0)        // Set `success = returndata` of external call
-                }
-                default {                      // This is an excessively non-compliant BEP-20, revert.
-                    revert(0, 0)
-                }
+            case 0 {
+                // This is a non-standard BEP-20
+                success := not(0) // set success to true
+            }
+            case 32 {
+                // This is a compliant BEP-20
+                returndatacopy(0, 0, 32)
+                success := mload(0) // Set `success = returndata` of external call
+            }
+            default {
+                // This is an excessively non-compliant BEP-20, revert.
+                revert(0, 0)
+            }
         }
         require(success, "TOKEN_TRANSFER_IN_FAILED");
 
         // Calculate the amount that was *actually* transferred
         uint balanceAfter = EIP20Interface(underlying).balanceOf(address(this));
         require(balanceAfter >= balanceBefore, "TOKEN_TRANSFER_IN_OVERFLOW");
-        return balanceAfter - balanceBefore;   // underflow already checked above, just subtract
+        return balanceAfter - balanceBefore; // underflow already checked above, just subtract
     }
 
     /**
@@ -229,16 +238,19 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
         bool success;
         assembly {
             switch returndatasize()
-                case 0 {                      // This is a non-standard BEP-20
-                    success := not(0)          // set success to true
-                }
-                case 32 {                     // This is a complaint BEP-20
-                    returndatacopy(0, 0, 32)
-                    success := mload(0)        // Set `success = returndata` of external call
-                }
-                default {                     // This is an excessively non-compliant BEP-20, revert.
-                    revert(0, 0)
-                }
+            case 0 {
+                // This is a non-standard BEP-20
+                success := not(0) // set success to true
+            }
+            case 32 {
+                // This is a complaint BEP-20
+                returndatacopy(0, 0, 32)
+                success := mload(0) // Set `success = returndata` of external call
+            }
+            default {
+                // This is an excessively non-compliant BEP-20, revert.
+                revert(0, 0)
+            }
         }
         require(success, "TOKEN_TRANSFER_OUT_FAILED");
     }

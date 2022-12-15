@@ -51,14 +51,14 @@ contract ComptrollerErrorReporter {
     }
 
     /**
-      * @dev `error` corresponds to enum Error; `info` corresponds to enum FailureInfo, and `detail` is an arbitrary
-      * contract-specific code that enables us to report opaque error codes from upgradeable contracts.
-      **/
+     * @dev `error` corresponds to enum Error; `info` corresponds to enum FailureInfo, and `detail` is an arbitrary
+     * contract-specific code that enables us to report opaque error codes from upgradeable contracts.
+     **/
     event Failure(uint error, uint info, uint detail);
 
     /**
-      * @dev use this when reporting a known error from the money market or a non-upgradeable collaborator
-      */
+     * @dev use this when reporting a known error from the money market or a non-upgradeable collaborator
+     */
     function fail(Error err, FailureInfo info) internal returns (uint) {
         emit Failure(uint(err), uint(info), 0);
 
@@ -66,8 +66,8 @@ contract ComptrollerErrorReporter {
     }
 
     /**
-      * @dev use this when reporting an opaque error from an upgradeable collaborator contract
-      */
+     * @dev use this when reporting an opaque error from an upgradeable collaborator contract
+     */
     function failOpaque(Error err, FailureInfo info, uint opaqueError) internal returns (uint) {
         emit Failure(uint(err), uint(info), opaqueError);
 
@@ -194,14 +194,14 @@ contract TokenErrorReporter {
     }
 
     /**
-      * @dev `error` corresponds to enum Error; `info` corresponds to enum FailureInfo, and `detail` is an arbitrary
-      * contract-specific code that enables us to report opaque error codes from upgradeable contracts.
-      **/
+     * @dev `error` corresponds to enum Error; `info` corresponds to enum FailureInfo, and `detail` is an arbitrary
+     * contract-specific code that enables us to report opaque error codes from upgradeable contracts.
+     **/
     event Failure(uint error, uint info, uint detail);
 
     /**
-      * @dev use this when reporting a known error from the money market or a non-upgradeable collaborator
-      */
+     * @dev use this when reporting a known error from the money market or a non-upgradeable collaborator
+     */
     function fail(Error err, FailureInfo info) internal returns (uint) {
         emit Failure(uint(err), uint(info), 0);
 
@@ -209,8 +209,8 @@ contract TokenErrorReporter {
     }
 
     /**
-      * @dev use this when reporting an opaque error from an upgradeable collaborator contract
-      */
+     * @dev use this when reporting an opaque error from an upgradeable collaborator contract
+     */
     function failOpaque(Error err, FailureInfo info, uint opaqueError) internal returns (uint) {
         emit Failure(uint(err), uint(info), opaqueError);
 
@@ -257,14 +257,14 @@ contract VAIControllerErrorReporter {
     }
 
     /**
-      * @dev `error` corresponds to enum Error; `info` corresponds to enum FailureInfo, and `detail` is an arbitrary
-      * contract-specific code that enables us to report opaque error codes from upgradeable contracts.
-      **/
+     * @dev `error` corresponds to enum Error; `info` corresponds to enum FailureInfo, and `detail` is an arbitrary
+     * contract-specific code that enables us to report opaque error codes from upgradeable contracts.
+     **/
     event Failure(uint error, uint info, uint detail);
 
     /**
-      * @dev use this when reporting a known error from the money market or a non-upgradeable collaborator
-      */
+     * @dev use this when reporting a known error from the money market or a non-upgradeable collaborator
+     */
     function fail(Error err, FailureInfo info) internal returns (uint) {
         emit Failure(uint(err), uint(info), 0);
 
@@ -272,8 +272,8 @@ contract VAIControllerErrorReporter {
     }
 
     /**
-      * @dev use this when reporting an opaque error from an upgradeable collaborator contract
-      */
+     * @dev use this when reporting an opaque error from an upgradeable collaborator contract
+     */
     function failOpaque(Error err, FailureInfo info, uint opaqueError) internal returns (uint) {
         emit Failure(uint(err), uint(info), opaqueError);
 

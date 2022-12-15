@@ -7,11 +7,7 @@ import "../Tokens/VTokens/VTokenInterfaces.sol";
  * @notice VTokens which wrap an EIP-20 underlying and delegate to an implementation
  * @author Venus
  */
-contract EvilXDelegator is
-    VTokenInterface,
-    VBep20Interface,
-    VDelegatorInterface
-{
+contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface {
     /**
      * @notice Construct a new money market
      * @param underlying_ The address of the underlying asset
@@ -73,26 +69,16 @@ contract EvilXDelegator is
         bool allowResign,
         bytes memory becomeImplementationData
     ) public {
-        require(
-            msg.sender == admin,
-            "VBep20Delegator::_setImplementation: Caller must be admin"
-        );
+        require(msg.sender == admin, "VBep20Delegator::_setImplementation: Caller must be admin");
 
         if (allowResign) {
-            delegateToImplementation(
-                abi.encodeWithSignature("_resignImplementation()")
-            );
+            delegateToImplementation(abi.encodeWithSignature("_resignImplementation()"));
         }
 
         address oldImplementation = implementation;
         implementation = implementation_;
 
-        delegateToImplementation(
-            abi.encodeWithSignature(
-                "_becomeImplementation(bytes)",
-                becomeImplementationData
-            )
-        );
+        delegateToImplementation(abi.encodeWithSignature("_becomeImplementation(bytes)", becomeImplementationData));
 
         emit NewImplementation(oldImplementation, implementation);
     }
@@ -104,9 +90,7 @@ contract EvilXDelegator is
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function mint(uint256 mintAmount) external returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("mint(uint256)", mintAmount)
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("mint(uint256)", mintAmount));
         return abi.decode(data, (uint256));
     }
 
@@ -116,16 +100,9 @@ contract EvilXDelegator is
      * @param mintAmount The amount of the underlying asset to supply
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function mintBehalf(address receiver, uint256 mintAmount)
-        external
-        returns (uint256)
-    {
+    function mintBehalf(address receiver, uint256 mintAmount) external returns (uint256) {
         bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature(
-                "mintBehalf(address,uint256)",
-                receiver,
-                mintAmount
-            )
+            abi.encodeWithSignature("mintBehalf(address,uint256)", receiver, mintAmount)
         );
         return abi.decode(data, (uint256));
     }
@@ -137,9 +114,7 @@ contract EvilXDelegator is
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function redeem(uint256 redeemTokens) external returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("redeem(uint256)", redeemTokens)
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("redeem(uint256)", redeemTokens));
         return abi.decode(data, (uint256));
     }
 
@@ -162,9 +137,7 @@ contract EvilXDelegator is
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function borrow(uint256 borrowAmount) external returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("borrow(uint256)", borrowAmount)
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("borrow(uint256)", borrowAmount));
         return abi.decode(data, (uint256));
     }
 
@@ -174,9 +147,7 @@ contract EvilXDelegator is
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function repayBorrow(uint256 repayAmount) external returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("repayBorrow(uint256)", repayAmount)
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("repayBorrow(uint256)", repayAmount));
         return abi.decode(data, (uint256));
     }
 
@@ -186,16 +157,9 @@ contract EvilXDelegator is
      * @param repayAmount The amount to repay
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function repayBorrowBehalf(address borrower, uint256 repayAmount)
-        external
-        returns (uint256)
-    {
+    function repayBorrowBehalf(address borrower, uint256 repayAmount) external returns (uint256) {
         bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature(
-                "repayBorrowBehalf(address,uint256)",
-                borrower,
-                repayAmount
-            )
+            abi.encodeWithSignature("repayBorrowBehalf(address,uint256)", borrower, repayAmount)
         );
         return abi.decode(data, (uint256));
     }
@@ -214,12 +178,7 @@ contract EvilXDelegator is
         VTokenInterface vTokenCollateral
     ) external returns (uint256) {
         bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature(
-                "liquidateBorrow(address,uint256,address)",
-                borrower,
-                repayAmount,
-                vTokenCollateral
-            )
+            abi.encodeWithSignature("liquidateBorrow(address,uint256,address)", borrower, repayAmount, vTokenCollateral)
         );
         return abi.decode(data, (uint256));
     }
@@ -231,9 +190,7 @@ contract EvilXDelegator is
      * @return Whether or not the transfer succeeded
      */
     function transfer(address dst, uint256 amount) external returns (bool) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("transfer(address,uint256)", dst, amount)
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("transfer(address,uint256)", dst, amount));
         return abi.decode(data, (bool));
     }
 
@@ -244,18 +201,9 @@ contract EvilXDelegator is
      * @param amount The number of tokens to transfer
      * @return Whether or not the transfer succeeded
      */
-    function transferFrom(
-        address src,
-        address dst,
-        uint256 amount
-    ) external returns (bool) {
+    function transferFrom(address src, address dst, uint256 amount) external returns (bool) {
         bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature(
-                "transferFrom(address,address,uint256)",
-                src,
-                dst,
-                amount
-            )
+            abi.encodeWithSignature("transferFrom(address,address,uint256)", src, dst, amount)
         );
         return abi.decode(data, (bool));
     }
@@ -281,17 +229,9 @@ contract EvilXDelegator is
      * @param spender The address of the account which may transfer tokens
      * @return The number of tokens allowed to be spent (-1 means infinite)
      */
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256)
-    {
+    function allowance(address owner, address spender) external view returns (uint256) {
         bytes memory data = delegateToViewImplementation(
-            abi.encodeWithSignature(
-                "allowance(address,address)",
-                owner,
-                spender
-            )
+            abi.encodeWithSignature("allowance(address,address)", owner, spender)
         );
         return abi.decode(data, (uint256));
     }
@@ -302,9 +242,7 @@ contract EvilXDelegator is
      * @return The number of tokens owned by `owner`
      */
     function balanceOf(address owner) external view returns (uint256) {
-        bytes memory data = delegateToViewImplementation(
-            abi.encodeWithSignature("balanceOf(address)", owner)
-        );
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("balanceOf(address)", owner));
         return abi.decode(data, (uint256));
     }
 
@@ -315,9 +253,7 @@ contract EvilXDelegator is
      * @return The amount of underlying owned by `owner`
      */
     function balanceOfUnderlying(address owner) external returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("balanceOfUnderlying(address)", owner)
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("balanceOfUnderlying(address)", owner));
         return abi.decode(data, (uint256));
     }
 
@@ -327,16 +263,7 @@ contract EvilXDelegator is
      * @param account Address of the account to snapshot
      * @return (possible error, token balance, borrow balance, exchange rate mantissa)
      */
-    function getAccountSnapshot(address account)
-        external
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    function getAccountSnapshot(address account) external view returns (uint256, uint256, uint256, uint256) {
         bytes memory data = delegateToViewImplementation(
             abi.encodeWithSignature("getAccountSnapshot(address)", account)
         );
@@ -348,9 +275,7 @@ contract EvilXDelegator is
      * @return The borrow interest rate per block, scaled by 1e18
      */
     function borrowRatePerBlock() external view returns (uint256) {
-        bytes memory data = delegateToViewImplementation(
-            abi.encodeWithSignature("borrowRatePerBlock()")
-        );
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("borrowRatePerBlock()"));
         return abi.decode(data, (uint256));
     }
 
@@ -359,9 +284,7 @@ contract EvilXDelegator is
      * @return The supply interest rate per block, scaled by 1e18
      */
     function supplyRatePerBlock() external view returns (uint256) {
-        bytes memory data = delegateToViewImplementation(
-            abi.encodeWithSignature("supplyRatePerBlock()")
-        );
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("supplyRatePerBlock()"));
         return abi.decode(data, (uint256));
     }
 
@@ -370,9 +293,7 @@ contract EvilXDelegator is
      * @return The total borrows with interest
      */
     function totalBorrowsCurrent() external returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("totalBorrowsCurrent()")
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("totalBorrowsCurrent()"));
         return abi.decode(data, (uint256));
     }
 
@@ -382,9 +303,7 @@ contract EvilXDelegator is
      * @return The calculated balance
      */
     function borrowBalanceCurrent(address account) external returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("borrowBalanceCurrent(address)", account)
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("borrowBalanceCurrent(address)", account));
         return abi.decode(data, (uint256));
     }
 
@@ -393,11 +312,7 @@ contract EvilXDelegator is
      * @param account The address whose balance should be calculated
      * @return The calculated balance
      */
-    function borrowBalanceStored(address account)
-        public
-        view
-        returns (uint256)
-    {
+    function borrowBalanceStored(address account) public view returns (uint256) {
         bytes memory data = delegateToViewImplementation(
             abi.encodeWithSignature("borrowBalanceStored(address)", account)
         );
@@ -409,9 +324,7 @@ contract EvilXDelegator is
      * @return Calculated exchange rate scaled by 1e18
      */
     function exchangeRateCurrent() public returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("exchangeRateCurrent()")
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("exchangeRateCurrent()"));
         return abi.decode(data, (uint256));
     }
 
@@ -421,9 +334,7 @@ contract EvilXDelegator is
      * @return Calculated exchange rate scaled by 1e18
      */
     function exchangeRateStored() public view returns (uint256) {
-        bytes memory data = delegateToViewImplementation(
-            abi.encodeWithSignature("exchangeRateStored()")
-        );
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("exchangeRateStored()"));
         return abi.decode(data, (uint256));
     }
 
@@ -432,9 +343,7 @@ contract EvilXDelegator is
      * @return The quantity of underlying asset owned by this contract
      */
     function getCash() external view returns (uint256) {
-        bytes memory data = delegateToViewImplementation(
-            abi.encodeWithSignature("getCash()")
-        );
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("getCash()"));
         return abi.decode(data, (uint256));
     }
 
@@ -444,9 +353,7 @@ contract EvilXDelegator is
      *      up to the current block and writes new checkpoint to storage.
      */
     function accrueInterest() public returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("accrueInterest()")
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("accrueInterest()"));
         return abi.decode(data, (uint256));
     }
 
@@ -459,18 +366,9 @@ contract EvilXDelegator is
      * @param seizeTokens The number of vTokens to seize
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function seize(
-        address liquidator,
-        address borrower,
-        uint256 seizeTokens
-    ) external returns (uint256) {
+    function seize(address liquidator, address borrower, uint256 seizeTokens) external returns (uint256) {
         bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature(
-                "seize(address,address,uint256)",
-                liquidator,
-                borrower,
-                seizeTokens
-            )
+            abi.encodeWithSignature("seize(address,address,uint256)", liquidator, borrower, seizeTokens)
         );
         return abi.decode(data, (uint256));
     }
@@ -483,15 +381,9 @@ contract EvilXDelegator is
      * @param newPendingAdmin New pending admin.
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setPendingAdmin(address payable newPendingAdmin)
-        external
-        returns (uint256)
-    {
+    function _setPendingAdmin(address payable newPendingAdmin) external returns (uint256) {
         bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature(
-                "_setPendingAdmin(address)",
-                newPendingAdmin
-            )
+            abi.encodeWithSignature("_setPendingAdmin(address)", newPendingAdmin)
         );
         return abi.decode(data, (uint256));
     }
@@ -501,10 +393,7 @@ contract EvilXDelegator is
      * @dev Admin function to set a new comptroller
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setComptroller(ComptrollerInterface newComptroller)
-        public
-        returns (uint256)
-    {
+    function _setComptroller(ComptrollerInterface newComptroller) public returns (uint256) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("_setComptroller(address)", newComptroller)
         );
@@ -516,15 +405,9 @@ contract EvilXDelegator is
      * @dev Admin function to accrue interest and set a new reserve factor
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setReserveFactor(uint256 newReserveFactorMantissa)
-        external
-        returns (uint256)
-    {
+    function _setReserveFactor(uint256 newReserveFactorMantissa) external returns (uint256) {
         bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature(
-                "_setReserveFactor(uint256)",
-                newReserveFactorMantissa
-            )
+            abi.encodeWithSignature("_setReserveFactor(uint256)", newReserveFactorMantissa)
         );
         return abi.decode(data, (uint256));
     }
@@ -535,9 +418,7 @@ contract EvilXDelegator is
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _acceptAdmin() external returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("_acceptAdmin()")
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("_acceptAdmin()"));
         return abi.decode(data, (uint256));
     }
 
@@ -547,9 +428,7 @@ contract EvilXDelegator is
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _addReserves(uint256 addAmount) external returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("_addReserves(uint256)", addAmount)
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("_addReserves(uint256)", addAmount));
         return abi.decode(data, (uint256));
     }
 
@@ -559,9 +438,7 @@ contract EvilXDelegator is
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _reduceReserves(uint256 reduceAmount) external returns (uint256) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("_reduceReserves(uint256)", reduceAmount)
-        );
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("_reduceReserves(uint256)", reduceAmount));
         return abi.decode(data, (uint256));
     }
 
@@ -571,15 +448,9 @@ contract EvilXDelegator is
      * @param newInterestRateModel the new interest rate model to use
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setInterestRateModel(InterestRateModel newInterestRateModel)
-        public
-        returns (uint256)
-    {
+    function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint256) {
         bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature(
-                "_setInterestRateModel(address)",
-                newInterestRateModel
-            )
+            abi.encodeWithSignature("_setInterestRateModel(address)", newInterestRateModel)
         );
         return abi.decode(data, (uint256));
     }
@@ -591,10 +462,7 @@ contract EvilXDelegator is
      * @param data The raw data to delegatecall
      * @return The returned bytes from the delegatecall
      */
-    function delegateTo(address callee, bytes memory data)
-        internal
-        returns (bytes memory)
-    {
+    function delegateTo(address callee, bytes memory data) internal returns (bytes memory) {
         (bool success, bytes memory returnData) = callee.delegatecall(data);
         assembly {
             if eq(success, 0) {
@@ -610,10 +478,7 @@ contract EvilXDelegator is
      * @param data The raw data to delegatecall
      * @return The returned bytes from the delegatecall
      */
-    function delegateToImplementation(bytes memory data)
-        public
-        returns (bytes memory)
-    {
+    function delegateToImplementation(bytes memory data) public returns (bytes memory) {
         return delegateTo(implementation, data);
     }
 
@@ -624,11 +489,7 @@ contract EvilXDelegator is
      * @param data The raw data to delegatecall
      * @return The returned bytes from the delegatecall
      */
-    function delegateToViewImplementation(bytes memory data)
-        public
-        view
-        returns (bytes memory)
-    {
+    function delegateToViewImplementation(bytes memory data) public view returns (bytes memory) {
         (bool success, bytes memory returnData) = address(this).staticcall(
             abi.encodeWithSignature("delegateToImplementation(bytes)", data)
         );
@@ -645,10 +506,7 @@ contract EvilXDelegator is
      * @dev It returns to the external caller whatever the implementation returns or forwards reverts
      */
     function() external payable {
-        require(
-            msg.value == 0,
-            "VBep20Delegator:fallback: cannot send value to fallback"
-        );
+        require(msg.value == 0, "VBep20Delegator:fallback: cannot send value to fallback");
 
         // delegate all other functions to current implementation
         (bool success, ) = implementation.delegatecall(msg.data);

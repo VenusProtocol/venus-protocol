@@ -4,28 +4,27 @@ import "../Utils/IBEP20.sol";
 
 contract VRTVaultAdminStorage {
     /**
-    * @notice Administrator for this contract
-    */
+     * @notice Administrator for this contract
+     */
     address public admin;
 
     /**
-    * @notice Pending administrator for this contract
-    */
+     * @notice Pending administrator for this contract
+     */
     address public pendingAdmin;
 
     /**
-    * @notice Active brains of VRT Vault
-    */
+     * @notice Active brains of VRT Vault
+     */
     address public implementation;
 
     /**
-    * @notice Pending brains of VAI Vault
-    */
+     * @notice Pending brains of VAI Vault
+     */
     address public pendingImplementation;
 }
 
 contract VRTVaultStorage is VRTVaultAdminStorage {
-
     /// @notice Guard variable for re-entrancy checks
     bool public _notEntered;
 

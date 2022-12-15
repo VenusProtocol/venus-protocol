@@ -8,7 +8,7 @@ contract VAIControllerScenario is VAIController {
     address public xvsAddress;
     address public vaiAddress;
 
-    constructor() VAIController() public {}
+    constructor() public VAIController() {}
 
     function setVAIAddress(address vaiAddress_) public {
         vaiAddress = vaiAddress_;

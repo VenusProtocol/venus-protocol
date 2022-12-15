@@ -3,25 +3,24 @@ pragma solidity ^0.5.16;
 import "./VRTVaultStorage.sol";
 
 contract VRTVaultProxy is VRTVaultAdminStorage {
-
     /**
-      * @notice Emitted when pendingImplementation is changed
-      */
+     * @notice Emitted when pendingImplementation is changed
+     */
     event NewPendingImplementation(address oldPendingImplementation, address newPendingImplementation);
 
     /**
-      * @notice Emitted when pendingImplementation is accepted, which means VRT Vault implementation is updated
-      */
+     * @notice Emitted when pendingImplementation is accepted, which means VRT Vault implementation is updated
+     */
     event NewImplementation(address oldImplementation, address newImplementation);
 
     /**
-      * @notice Emitted when pendingAdmin is changed
-      */
+     * @notice Emitted when pendingAdmin is changed
+     */
     event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 
     /**
-      * @notice Emitted when pendingAdmin is accepted, which means admin is updated
-      */
+     * @notice Emitted when pendingAdmin is accepted, which means admin is updated
+     */
     event NewAdmin(address oldAdmin, address newAdmin);
 
     constructor(address implementation_, address vrtAddress_, uint256 interestRatePerBlock_) public {
@@ -32,12 +31,13 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
         _setImplementation(implementation_);
 
         // First delegate gets to initialize the delegator (i.e. storage contract)
-        delegateTo(implementation_, abi.encodeWithSignature("initialize(address,uint256)",
-                                                            vrtAddress_,
-                                                            interestRatePerBlock_));
+        delegateTo(
+            implementation_,
+            abi.encodeWithSignature("initialize(address,uint256)", vrtAddress_, interestRatePerBlock_)
+        );
     }
 
-    	/**
+    /**
      * @notice Called by the admin to update the implementation of the delegator
      * @param implementation_ The address of the new implementation for delegation
      */
@@ -52,11 +52,11 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
     }
 
     /**
-      * @notice Internal method to delegate execution to another contract
-      * @dev It returns to the external caller whatever the implementation returns or forwards reverts
-      * @param callee The contract to delegatecall
-      * @param data The raw data to delegatecall
-      * @return The returned bytes from the delegatecall
+     * @notice Internal method to delegate execution to another contract
+     * @dev It returns to the external caller whatever the implementation returns or forwards reverts
+     * @param callee The contract to delegatecall
+     * @param data The raw data to delegatecall
+     * @return The returned bytes from the delegatecall
      */
     function delegateTo(address callee, bytes memory data) internal returns (bytes memory) {
         (bool success, bytes memory returnData) = callee.delegatecall(data);
@@ -70,7 +70,6 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
 
     /*** Admin Functions ***/
     function _setPendingImplementation(address newPendingImplementation) public {
-
         require(msg.sender == admin, "Only admin can set Pending Implementation");
 
         address oldPendingImplementation = pendingImplementation;
@@ -81,12 +80,15 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
     }
 
     /**
-    * @notice Accepts new implementation of VRT Vault. msg.sender must be pendingImplementation
-    * @dev Admin function for new implementation to accept it's role as implementation
-    */
+     * @notice Accepts new implementation of VRT Vault. msg.sender must be pendingImplementation
+     * @dev Admin function for new implementation to accept it's role as implementation
+     */
     function _acceptImplementation() public {
         // Check caller is pendingImplementation
-        require(msg.sender == pendingImplementation, "only address marked as pendingImplementation can accept Implementation");
+        require(
+            msg.sender == pendingImplementation,
+            "only address marked as pendingImplementation can accept Implementation"
+        );
 
         // Save current values for inclusion in log
         address oldImplementation = implementation;
@@ -100,12 +102,11 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
         emit NewPendingImplementation(oldPendingImplementation, pendingImplementation);
     }
 
-
     /**
-      * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
-      * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
-      * @param newPendingAdmin New pending admin.
-      */
+     * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
+     * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
+     * @param newPendingAdmin New pending admin.
+     */
     function _setPendingAdmin(address newPendingAdmin) public {
         // Check caller = admin
         require(msg.sender == admin, "only admin can set pending admin");
@@ -121,14 +122,14 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
     }
 
     /**
-      * @notice Accepts transfer of admin rights. msg.sender must be pendingAdmin
-      * @dev Admin function for pending admin to accept role and update admin
-      * @dev return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice Accepts transfer of admin rights. msg.sender must be pendingAdmin
+     * @dev Admin function for pending admin to accept role and update admin
+     * @dev return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function _acceptAdmin() public {
         // Check caller is pendingAdmin
         require(msg.sender == pendingAdmin, "only address marked as pendingAdmin can accept as Admin");
-        
+
         // Save current values for inclusion in log
         address oldAdmin = admin;
         address oldPendingAdmin = pendingAdmin;
@@ -148,17 +149,21 @@ contract VRTVaultProxy is VRTVaultAdminStorage {
      * It returns to the external caller whatever the implementation returns
      * or forwards reverts.
      */
-    function () external payable {
+    function() external payable {
         // delegate all other functions to current implementation
         (bool success, ) = implementation.delegatecall(msg.data);
 
         assembly {
-              let free_mem_ptr := mload(0x40)
-              returndatacopy(free_mem_ptr, 0, returndatasize)
+            let free_mem_ptr := mload(0x40)
+            returndatacopy(free_mem_ptr, 0, returndatasize)
 
-              switch success
-              case 0 { revert(free_mem_ptr, returndatasize) }
-              default { return(free_mem_ptr, returndatasize) }
+            switch success
+            case 0 {
+                revert(free_mem_ptr, returndatasize)
+            }
+            default {
+                return(free_mem_ptr, returndatasize)
+            }
         }
     }
 }

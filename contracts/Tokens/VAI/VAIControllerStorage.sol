@@ -4,23 +4,23 @@ import "../../Comptroller/ComptrollerInterface.sol";
 
 contract VAIUnitrollerAdminStorage {
     /**
-    * @notice Administrator for this contract
-    */
+     * @notice Administrator for this contract
+     */
     address public admin;
 
     /**
-    * @notice Pending administrator for this contract
-    */
+     * @notice Pending administrator for this contract
+     */
     address public pendingAdmin;
 
     /**
-    * @notice Active brains of Unitroller
-    */
+     * @notice Active brains of Unitroller
+     */
     address public vaiControllerImplementation;
 
     /**
-    * @notice Pending brains of Unitroller
-    */
+     * @notice Pending brains of Unitroller
+     */
     address public pendingVAIControllerImplementation;
 }
 
@@ -30,7 +30,6 @@ contract VAIControllerStorageG1 is VAIUnitrollerAdminStorage {
     struct VenusVAIState {
         /// @notice The last updated venusVAIMintIndex
         uint224 index;
-
         /// @notice The block number the index was last updated at
         uint32 block;
     }
@@ -82,7 +81,7 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
     uint accrualBlockNumber;
 
     // @notice Global vaiMintIndex as of the most recent balance-changing action for user
-    mapping (address => uint) vaiMinterInterestIndex;
+    mapping(address => uint) vaiMinterInterestIndex;
 
     // @notice tracks the amount of mintedVAI of a user that represents the accrued interest
     mapping(address => uint) public pastVAIInterest;

@@ -23,10 +23,21 @@ contract VRTConverter is VRTConverterStorage {
     uint256 public constant xvsDecimalsMultiplier = 1e18;
 
     /// @notice Emitted when an admin set conversion info
-    event ConversionInfoSet(uint256 conversionRatio, uint256 conversionStartTime, uint256 conversionPeriod, uint256 conversionEndTime);
+    event ConversionInfoSet(
+        uint256 conversionRatio,
+        uint256 conversionStartTime,
+        uint256 conversionPeriod,
+        uint256 conversionEndTime
+    );
 
     /// @notice Emitted when token conversion is done
-    event TokenConverted(address reedeemer, address vrtAddress, uint256 vrtAmount, address xvsAddress, uint256 xvsAmount);
+    event TokenConverted(
+        address reedeemer,
+        address vrtAddress,
+        uint256 vrtAmount,
+        address xvsAddress,
+        uint256 xvsAmount
+    );
 
     /// @notice Emitted when an admin withdraw converted token
     event TokenWithdraw(address token, address to, uint256 amount);
@@ -36,20 +47,22 @@ contract VRTConverter is VRTConverterStorage {
 
     constructor() public {}
 
-    function initialize(address _vrtAddress,
-                address _xvsAddress,
-                uint256 _conversionRatio,
-                uint256 _conversionStartTime,
-                uint256 _conversionPeriod) public {
+    function initialize(
+        address _vrtAddress,
+        address _xvsAddress,
+        uint256 _conversionRatio,
+        uint256 _conversionStartTime,
+        uint256 _conversionPeriod
+    ) public {
         require(msg.sender == admin, "only admin may initialize the VRTConverter");
         require(initialized == false, "VRTConverter is already initialized");
 
         require(_vrtAddress != address(0), "vrtAddress cannot be Zero");
         vrt = IBEP20(_vrtAddress);
-        
+
         require(_xvsAddress != address(0), "xvsAddress cannot be Zero");
         xvs = IBEP20(_xvsAddress);
-        
+
         require(_conversionRatio > 0, "conversionRatio cannot be Zero");
         conversionRatio = _conversionRatio;
 
@@ -60,7 +73,7 @@ contract VRTConverter is VRTConverterStorage {
         conversionPeriod = _conversionPeriod;
         conversionEndTime = conversionStartTime.add(conversionPeriod);
         emit ConversionInfoSet(conversionRatio, conversionStartTime, conversionPeriod, conversionEndTime);
-        
+
         totalVrtConverted = 0;
         _notEntered = true;
         initialized = true;
@@ -93,15 +106,15 @@ contract VRTConverter is VRTConverterStorage {
         _;
     }
 
-    function isConversionActive() public view returns(bool) {
+    function isConversionActive() public view returns (bool) {
         uint256 currentTime = block.timestamp;
-        if(currentTime >= conversionStartTime && currentTime <= conversionEndTime){
+        if (currentTime >= conversionStartTime && currentTime <= conversionEndTime) {
             return true;
         }
         return false;
     }
 
-    modifier checkForActiveConversionPeriod(){
+    modifier checkForActiveConversionPeriod() {
         uint256 currentTime = block.timestamp;
         require(currentTime >= conversionStartTime, "Conversion did not start yet");
         require(currentTime <= conversionEndTime, "Conversion Period Ended");
@@ -123,17 +136,17 @@ contract VRTConverter is VRTConverterStorage {
      * @dev Note: If there is not enough XVS, we do not perform the conversion.
      * @param vrtAmount The amount of VRT
      */
-    function convert(uint256 vrtAmount) external isInitialized checkForActiveConversionPeriod nonReentrant
-    {
-        require(address(xvsVesting) != address(0) && address(xvsVesting) != DEAD_ADDRESS, "XVS-Vesting Address is not set");
+    function convert(uint256 vrtAmount) external isInitialized checkForActiveConversionPeriod nonReentrant {
+        require(
+            address(xvsVesting) != address(0) && address(xvsVesting) != DEAD_ADDRESS,
+            "XVS-Vesting Address is not set"
+        );
         require(vrtAmount > 0, "VRT amount must be non-zero");
         totalVrtConverted = totalVrtConverted.add(vrtAmount);
 
-        uint256 redeemAmount = vrtAmount
-            .mul(conversionRatio)
-            .mul(xvsDecimalsMultiplier)
-            .div(1e18)
-            .div(vrtDecimalsMultiplier);
+        uint256 redeemAmount = vrtAmount.mul(conversionRatio).mul(xvsDecimalsMultiplier).div(1e18).div(
+            vrtDecimalsMultiplier
+        );
 
         emit TokenConverted(msg.sender, address(vrt), vrtAmount, address(xvs), redeemAmount);
         vrt.safeTransferFrom(msg.sender, DEAD_ADDRESS, vrtAmount);

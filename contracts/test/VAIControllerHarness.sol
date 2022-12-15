@@ -7,7 +7,7 @@ contract VAIControllerHarness is VAIController {
     uint public blockNumber;
     uint public blocksPerYear;
 
-    constructor() VAIController() public {
+    constructor() public VAIController() {
         admin = msg.sender;
     }
 
@@ -15,7 +15,7 @@ contract VAIControllerHarness is VAIController {
         venusVAIState.index = index;
         venusVAIState.block = blockNumber_;
     }
-    
+
     function setVAIAddress(address vaiAddress_) public {
         vaiAddress = vaiAddress_;
     }
@@ -25,12 +25,17 @@ contract VAIControllerHarness is VAIController {
     }
 
     function harnessRepayVAIFresh(address payer, address account, uint repayAmount) public returns (uint) {
-       (uint err,) = repayVAIFresh(payer, account, repayAmount);
-       return err;
+        (uint err, ) = repayVAIFresh(payer, account, repayAmount);
+        return err;
     }
 
-    function harnessLiquidateVAIFresh(address liquidator, address borrower, uint repayAmount, VToken vTokenCollateral) public returns (uint) {
-        (uint err,) = liquidateVAIFresh(liquidator, borrower, repayAmount, vTokenCollateral);
+    function harnessLiquidateVAIFresh(
+        address liquidator,
+        address borrower,
+        uint repayAmount,
+        VToken vTokenCollateral
+    ) public returns (uint) {
+        (uint err, ) = liquidateVAIFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
     }
 

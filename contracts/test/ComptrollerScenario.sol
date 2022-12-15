@@ -7,7 +7,7 @@ contract ComptrollerScenario is Comptroller {
     address public xvsAddress;
     address public vaiAddress;
 
-    constructor() Comptroller() public {}
+    constructor() public Comptroller() {}
 
     function setXVSAddress(address xvsAddress_) public {
         xvsAddress = xvsAddress_;
@@ -74,17 +74,17 @@ contract ComptrollerScenario is Comptroller {
 
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets_[i];
-            Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
+            Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });
             updateVenusSupplyIndex(address(vToken));
             updateVenusBorrowIndex(address(vToken), borrowIndex);
         }
 
-        Exp memory totalUtility = Exp({mantissa: 0});
+        Exp memory totalUtility = Exp({ mantissa: 0 });
         Exp[] memory utilities = new Exp[](allMarkets_.length);
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets_[i];
             if (venusSpeeds[address(vToken)] > 0) {
-                Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(vToken)});
+                Exp memory assetPrice = Exp({ mantissa: oracle.getUnderlyingPrice(vToken) });
                 Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
                 utilities[i] = utility;
                 totalUtility = add_(totalUtility, utility);

@@ -19,15 +19,15 @@ contract Exponential is CarefulMath, ExponentialNoError {
     function getExp(uint num, uint denom) internal pure returns (MathError, Exp memory) {
         (MathError err0, uint scaledNumerator) = mulUInt(num, expScale);
         if (err0 != MathError.NO_ERROR) {
-            return (err0, Exp({mantissa: 0}));
+            return (err0, Exp({ mantissa: 0 }));
         }
 
         (MathError err1, uint rational) = divUInt(scaledNumerator, denom);
         if (err1 != MathError.NO_ERROR) {
-            return (err1, Exp({mantissa: 0}));
+            return (err1, Exp({ mantissa: 0 }));
         }
 
-        return (MathError.NO_ERROR, Exp({mantissa: rational}));
+        return (MathError.NO_ERROR, Exp({ mantissa: rational }));
     }
 
     /**
@@ -36,7 +36,7 @@ contract Exponential is CarefulMath, ExponentialNoError {
     function addExp(Exp memory a, Exp memory b) internal pure returns (MathError, Exp memory) {
         (MathError error, uint result) = addUInt(a.mantissa, b.mantissa);
 
-        return (error, Exp({mantissa: result}));
+        return (error, Exp({ mantissa: result }));
     }
 
     /**
@@ -45,7 +45,7 @@ contract Exponential is CarefulMath, ExponentialNoError {
     function subExp(Exp memory a, Exp memory b) internal pure returns (MathError, Exp memory) {
         (MathError error, uint result) = subUInt(a.mantissa, b.mantissa);
 
-        return (error, Exp({mantissa: result}));
+        return (error, Exp({ mantissa: result }));
     }
 
     /**
@@ -54,10 +54,10 @@ contract Exponential is CarefulMath, ExponentialNoError {
     function mulScalar(Exp memory a, uint scalar) internal pure returns (MathError, Exp memory) {
         (MathError err0, uint scaledMantissa) = mulUInt(a.mantissa, scalar);
         if (err0 != MathError.NO_ERROR) {
-            return (err0, Exp({mantissa: 0}));
+            return (err0, Exp({ mantissa: 0 }));
         }
 
-        return (MathError.NO_ERROR, Exp({mantissa: scaledMantissa}));
+        return (MathError.NO_ERROR, Exp({ mantissa: scaledMantissa }));
     }
 
     /**
@@ -90,10 +90,10 @@ contract Exponential is CarefulMath, ExponentialNoError {
     function divScalar(Exp memory a, uint scalar) internal pure returns (MathError, Exp memory) {
         (MathError err0, uint descaledMantissa) = divUInt(a.mantissa, scalar);
         if (err0 != MathError.NO_ERROR) {
-            return (err0, Exp({mantissa: 0}));
+            return (err0, Exp({ mantissa: 0 }));
         }
 
-        return (MathError.NO_ERROR, Exp({mantissa: descaledMantissa}));
+        return (MathError.NO_ERROR, Exp({ mantissa: descaledMantissa }));
     }
 
     /**
@@ -111,7 +111,7 @@ contract Exponential is CarefulMath, ExponentialNoError {
         */
         (MathError err0, uint numerator) = mulUInt(expScale, scalar);
         if (err0 != MathError.NO_ERROR) {
-            return (err0, Exp({mantissa: 0}));
+            return (err0, Exp({ mantissa: 0 }));
         }
         return getExp(numerator, divisor.mantissa);
     }
@@ -132,10 +132,9 @@ contract Exponential is CarefulMath, ExponentialNoError {
      * @dev Multiplies two exponentials, returning a new exponential.
      */
     function mulExp(Exp memory a, Exp memory b) internal pure returns (MathError, Exp memory) {
-
         (MathError err0, uint doubleScaledProduct) = mulUInt(a.mantissa, b.mantissa);
         if (err0 != MathError.NO_ERROR) {
-            return (err0, Exp({mantissa: 0}));
+            return (err0, Exp({ mantissa: 0 }));
         }
 
         // We add half the scale before dividing so that we get rounding instead of truncation.
@@ -143,21 +142,21 @@ contract Exponential is CarefulMath, ExponentialNoError {
         // Without this change, a result like 6.6...e-19 will be truncated to 0 instead of being rounded to 1e-18.
         (MathError err1, uint doubleScaledProductWithHalfScale) = addUInt(halfExpScale, doubleScaledProduct);
         if (err1 != MathError.NO_ERROR) {
-            return (err1, Exp({mantissa: 0}));
+            return (err1, Exp({ mantissa: 0 }));
         }
 
         (MathError err2, uint product) = divUInt(doubleScaledProductWithHalfScale, expScale);
         // The only error `div` can return is MathError.DIVISION_BY_ZERO but we control `expScale` and it is not zero.
         assert(err2 == MathError.NO_ERROR);
 
-        return (MathError.NO_ERROR, Exp({mantissa: product}));
+        return (MathError.NO_ERROR, Exp({ mantissa: product }));
     }
 
     /**
      * @dev Multiplies two exponentials given their mantissas, returning a new exponential.
      */
     function mulExp(uint a, uint b) internal pure returns (MathError, Exp memory) {
-        return mulExp(Exp({mantissa: a}), Exp({mantissa: b}));
+        return mulExp(Exp({ mantissa: a }), Exp({ mantissa: b }));
     }
 
     /**

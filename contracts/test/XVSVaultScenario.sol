@@ -9,9 +9,7 @@ contract XVSVaultScenario is XVSVault {
         WithdrawalRequest[] storage _requests,
         uint _amount,
         uint _lockedUntil
-    )
-        internal
-    {
+    ) internal {
         uint i = _requests.length;
         _requests.push(WithdrawalRequest(0, 0, false));
         // Keep it sorted so that the first to get unlocked request is always at the end
@@ -22,10 +20,7 @@ contract XVSVaultScenario is XVSVault {
         _user.pendingWithdrawals = _user.pendingWithdrawals.add(_amount);
     }
 
-  function requestOldWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount)
-        external
-        nonReentrant
-    {
+    function requestOldWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount) external nonReentrant {
         _ensureValidPool(_rewardToken, _pid);
         require(_amount > 0, "requested amount cannot be zero");
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];

@@ -53,21 +53,20 @@ contract SnapshotLens is ExponentialNoError {
     function getAccountSnapshot(
         address payable account,
         address comptrollerAddress
-    )  public returns (AccountSnapshot[] memory) {
-
+    ) public returns (AccountSnapshot[] memory) {
         // For each asset the account is in
         VToken[] memory assets = Comptroller(comptrollerAddress).getAllMarkets();
         AccountSnapshot[] memory accountSnapshots = new AccountSnapshot[](assets.length);
-        for (uint256 i = 0; i < assets.length; ++i){
+        for (uint256 i = 0; i < assets.length; ++i) {
             accountSnapshots[i] = getAccountSnapshot(account, comptrollerAddress, assets[i]);
         }
         return accountSnapshots;
     }
 
-    function isACollateral(address account, address asset, address comptrollerAddress) public view returns (bool){
+    function isACollateral(address account, address asset, address comptrollerAddress) public view returns (bool) {
         VToken[] memory assetsAsCollateral = Comptroller(comptrollerAddress).getAssetsIn(account);
-        for(uint256 j = 0; j < assetsAsCollateral.length ; ++j){
-            if(address(assetsAsCollateral[j]) == asset){
+        for (uint256 j = 0; j < assetsAsCollateral.length; ++j) {
+            if (address(assetsAsCollateral[j]) == asset) {
                 return true;
             }
         }
@@ -80,23 +79,22 @@ contract SnapshotLens is ExponentialNoError {
         address comptrollerAddress,
         VToken vToken
     ) public returns (AccountSnapshot memory) {
-
         AccountSnapshotLocalVars memory vars; // Holds all our calculation results
         uint oErr;
 
         // Read the balances and exchange rate from the vToken
         (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = vToken.getAccountSnapshot(account);
         require(oErr == 0, "Snapshot Error");
-        vars.exchangeRate = Exp({mantissa: vars.exchangeRateMantissa});
+        vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
         Comptroller comptrollerInstance = Comptroller(comptrollerAddress);
 
-        (, uint collateralFactorMantissa,) = comptrollerInstance.markets(address(vToken));
-        vars.collateralFactor = Exp({mantissa: collateralFactorMantissa});
+        (, uint collateralFactorMantissa, ) = comptrollerInstance.markets(address(vToken));
+        vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
 
         // Get the normalized price of the asset
         vars.oraclePriceMantissa = comptrollerInstance.oracle().getUnderlyingPrice(vToken);
-        vars.oraclePrice = Exp({mantissa: vars.oraclePriceMantissa});
+        vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
 
         // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
         vars.tokensToDenom = mul_(mul_(vars.collateralFactor, vars.exchangeRate), vars.oraclePrice);
@@ -123,23 +121,24 @@ contract SnapshotLens is ExponentialNoError {
 
         vars.isACollateral = isACollateral(account, address(vToken), comptrollerAddress);
 
-        return AccountSnapshot({
-            account: account,
-            assetName: vToken.name(),
-            vTokenAddress: address(vToken),
-            underlyingAssetAddress: underlyingAssetAddress,
-            supply: vars.balanceOfUnderlying,
-            supplyInUsd: vars.supplyInUsd,
-            collateral: vars.collateral,
-            borrows: vars.borrowBalance,
-            borrowsInUsd: vars.borrowsInUsd,
-            assetPrice: vars.oraclePriceMantissa,
-            accruedInterest: vToken.borrowIndex(),
-            vTokenDecimals: vToken.decimals(),
-            underlyingDecimals: underlyingDecimals,
-            exchangeRate: vToken.exchangeRateCurrent(),
-            isACollateral: vars.isACollateral
-        });
+        return
+            AccountSnapshot({
+                account: account,
+                assetName: vToken.name(),
+                vTokenAddress: address(vToken),
+                underlyingAssetAddress: underlyingAssetAddress,
+                supply: vars.balanceOfUnderlying,
+                supplyInUsd: vars.supplyInUsd,
+                collateral: vars.collateral,
+                borrows: vars.borrowBalance,
+                borrowsInUsd: vars.borrowsInUsd,
+                assetPrice: vars.oraclePriceMantissa,
+                accruedInterest: vToken.borrowIndex(),
+                vTokenDecimals: vToken.decimals(),
+                underlyingDecimals: underlyingDecimals,
+                exchangeRate: vToken.exchangeRateCurrent(),
+                isACollateral: vars.isACollateral
+            });
     }
 
     // utilities

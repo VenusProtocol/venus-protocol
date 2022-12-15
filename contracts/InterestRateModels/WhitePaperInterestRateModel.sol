@@ -4,10 +4,10 @@ import "../Utils/SafeMath.sol";
 import "./InterestRateModel.sol";
 
 /**
-  * @title Venus's WhitePaperInterestRateModel Contract
-  * @author Venus
-  * @notice The parameterized model described in section 2.4 of the original Venus Protocol whitepaper
-  */
+ * @title Venus's WhitePaperInterestRateModel Contract
+ * @author Venus
+ * @notice The parameterized model described in section 2.4 of the original Venus Protocol whitepaper
+ */
 contract WhitePaperInterestRateModel is InterestRateModel {
     using SafeMath for uint;
 
@@ -16,7 +16,7 @@ contract WhitePaperInterestRateModel is InterestRateModel {
     /**
      * @notice The approximate number of blocks per year that is assumed by the interest rate model
      */
-    uint public constant blocksPerYear = 60 * 60 * 24 * 365 / 3; // (assuming 3s blocks)
+    uint public constant blocksPerYear = (60 * 60 * 24 * 365) / 3; // (assuming 3s blocks)
 
     /**
      * @notice The multiplier of utilization rate that gives the slope of the interest rate
@@ -76,7 +76,12 @@ contract WhitePaperInterestRateModel is InterestRateModel {
      * @param reserveFactorMantissa The current reserve factor for the market
      * @return The supply rate percentage per block as a mantissa (scaled by 1e18)
      */
-    function getSupplyRate(uint cash, uint borrows, uint reserves, uint reserveFactorMantissa) public view returns (uint) {
+    function getSupplyRate(
+        uint cash,
+        uint borrows,
+        uint reserves,
+        uint reserveFactorMantissa
+    ) public view returns (uint) {
         uint oneMinusReserveFactor = uint(1e18).sub(reserveFactorMantissa);
         uint borrowRate = getBorrowRate(cash, borrows, reserves);
         uint rateToPool = borrowRate.mul(oneMinusReserveFactor).div(1e18);

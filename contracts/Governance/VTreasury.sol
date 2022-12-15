@@ -20,18 +20,18 @@ contract VTreasury is Ownable {
     /**
      * @notice To receive BNB
      */
-    function () external payable {}
+    function() external payable {}
 
     /**
-    * @notice Withdraw Treasury BEP20 Tokens, Only owner call it
-    * @param tokenAddress The address of treasury token
-    * @param withdrawAmount The withdraw amount to owner
-    * @param withdrawAddress The withdraw address
-    */
+     * @notice Withdraw Treasury BEP20 Tokens, Only owner call it
+     * @param tokenAddress The address of treasury token
+     * @param withdrawAmount The withdraw amount to owner
+     * @param withdrawAddress The withdraw address
+     */
     function withdrawTreasuryBEP20(
-      address tokenAddress,
-      uint256 withdrawAmount,
-      address withdrawAddress
+        address tokenAddress,
+        uint256 withdrawAmount,
+        address withdrawAddress
     ) external onlyOwner {
         uint256 actualWithdrawAmount = withdrawAmount;
         // Get Treasury Token Balance
@@ -50,14 +50,11 @@ contract VTreasury is Ownable {
     }
 
     /**
-    * @notice Withdraw Treasury BNB, Only owner call it
-    * @param withdrawAmount The withdraw amount to owner
-    * @param withdrawAddress The withdraw address
-    */
-    function withdrawTreasuryBNB(
-      uint256 withdrawAmount,
-      address payable withdrawAddress
-    ) external payable onlyOwner {
+     * @notice Withdraw Treasury BNB, Only owner call it
+     * @param withdrawAmount The withdraw amount to owner
+     * @param withdrawAddress The withdraw address
+     */
+    function withdrawTreasuryBNB(uint256 withdrawAmount, address payable withdrawAddress) external payable onlyOwner {
         uint256 actualWithdrawAmount = withdrawAmount;
         // Get Treasury BNB Balance
         uint256 bnbBalance = address(this).balance;

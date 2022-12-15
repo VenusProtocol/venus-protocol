@@ -5,7 +5,7 @@ import "../Comptroller/ComptrollerG3.sol";
 contract ComptrollerScenarioG3 is ComptrollerG3 {
     uint public blockNumber;
 
-    constructor() ComptrollerG3() public {}
+    constructor() public ComptrollerG3() {}
 
     function fastForward(uint blocks) public returns (uint) {
         blockNumber += blocks;

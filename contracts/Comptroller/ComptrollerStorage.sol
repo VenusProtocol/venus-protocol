@@ -7,28 +7,27 @@ import "./ComptrollerLensInterface.sol";
 
 contract UnitrollerAdminStorage {
     /**
-    * @notice Administrator for this contract
-    */
+     * @notice Administrator for this contract
+     */
     address public admin;
 
     /**
-    * @notice Pending administrator for this contract
-    */
+     * @notice Pending administrator for this contract
+     */
     address public pendingAdmin;
 
     /**
-    * @notice Active brains of Unitroller
-    */
+     * @notice Active brains of Unitroller
+     */
     address public comptrollerImplementation;
 
     /**
-    * @notice Pending brains of Unitroller
-    */
+     * @notice Pending brains of Unitroller
+     */
     address public pendingComptrollerImplementation;
 }
 
 contract ComptrollerV1Storage is UnitrollerAdminStorage {
-
     /**
      * @notice Oracle which gives the price of any given asset
      */
@@ -57,17 +56,14 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     struct Market {
         /// @notice Whether or not this market is listed
         bool isListed;
-
         /**
          * @notice Multiplier representing the most one can borrow against their collateral in this market.
          *  For instance, 0.9 to allow borrowing 90% of collateral value.
          *  Must be between 0 and 1, and stored as a mantissa.
          */
         uint collateralFactorMantissa;
-
         /// @notice Per-market mapping of "accounts in this asset"
         mapping(address => bool) accountMembership;
-
         /// @notice Whether or not this market receives XVS
         bool isVenus;
     }
@@ -99,7 +95,6 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     struct VenusMarketState {
         /// @notice The market's last updated venusBorrowIndex or venusSupplyIndex
         uint224 index;
-
         /// @notice The block number the index was last updated at
         uint32 block;
     }
@@ -202,11 +197,10 @@ contract ComptrollerV7Storage is ComptrollerV6Storage {
 }
 
 contract ComptrollerV8Storage is ComptrollerV7Storage {
-    
     /// @notice Supply caps enforced by mintAllowed for each vToken address. Defaults to zero which corresponds to minting notAllowed
     mapping(address => uint256) public supplyCaps;
 }
-    
+
 contract ComptrollerV9Storage is ComptrollerV8Storage {
     /// @notice AccessControlManager address
     address accessControl;
@@ -224,7 +218,7 @@ contract ComptrollerV9Storage is ComptrollerV8Storage {
     }
 
     /// @notice True if a certain action is paused on a certain market
-    mapping (address => mapping(uint => bool)) internal _actionPaused;
+    mapping(address => mapping(uint => bool)) internal _actionPaused;
 }
 
 contract ComptrollerV10Storage is ComptrollerV9Storage {

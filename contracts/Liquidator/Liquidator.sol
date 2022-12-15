@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 interface IComptroller {
     function liquidationIncentiveMantissa() external view returns (uint256);
+
     function vaiController() external view returns (IVAIController);
 }
 
@@ -14,9 +15,12 @@ interface IVToken is IERC20Upgradeable {}
 
 interface IVBep20 is IVToken {
     function underlying() external view returns (address);
-    function liquidateBorrow(address borrower, uint256 repayAmount, IVToken vTokenCollateral)
-        external
-        returns (uint256);
+
+    function liquidateBorrow(
+        address borrower,
+        uint256 repayAmount,
+        IVToken vTokenCollateral
+    ) external returns (uint256);
 }
 
 interface IVBNB is IVToken {
@@ -24,9 +28,12 @@ interface IVBNB is IVToken {
 }
 
 interface IVAIController {
-    function liquidateVAI(address borrower, uint256 repayAmount, IVToken vTokenCollateral)
-        external
-        returns (uint256, uint256);
+    function liquidateVAI(
+        address borrower,
+        uint256 repayAmount,
+        IVToken vTokenCollateral
+    ) external returns (uint256, uint256);
+
     function getVAIAddress() external view returns (address);
 }
 
@@ -47,19 +54,16 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable treasury;
 
-
     /* State */
 
     /// @notice Percent of seized amount that goes to treasury.
     uint256 public treasuryPercentMantissa;
 
     /// @notice Mapping of addresses allowed to liquidate an account if liquidationRestricted[borrower] == true
-    mapping (address => mapping (address => bool)) public allowedLiquidatorsByAccount;
-    
+    mapping(address => mapping(address => bool)) public allowedLiquidatorsByAccount;
 
     /// @notice Whether the liquidations are restricted to enabled allowedLiquidatorsByAccount addresses only
-    mapping (address => bool) public liquidationRestricted;
-
+    mapping(address => bool) public liquidationRestricted;
 
     /* Events */
 
@@ -88,7 +92,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
 
     /// @notice Emitted when a liquidator is removed from the allowedLiquidatorsByAccount mapping
     event AllowlistEntryRemoved(address indexed borrower, address indexed liquidator);
-
 
     /* Errors */
 
@@ -122,7 +125,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
 
     /// @notice Thrown if trying to set treasury percent larger than the liquidation profit
     error TreasuryPercentTooHigh(uint256 maxTreasuryPercentMantissa, uint256 treasuryPercentMantissa_);
-
 
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -225,11 +227,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         address borrower,
         uint256 repayAmount,
         IVToken vTokenCollateral
-    )
-        external
-        payable
-        nonReentrant
-    {
+    ) external payable nonReentrant {
         ensureNonzeroAddress(borrower);
         checkRestrictions(borrower, msg.sender);
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
@@ -237,7 +235,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
             if (repayAmount != msg.value) {
                 revert WrongTransactionAmount(repayAmount, msg.value);
             }
-            vBnb.liquidateBorrow{value: msg.value}(borrower, vTokenCollateral);
+            vBnb.liquidateBorrow{ value: msg.value }(borrower, vTokenCollateral);
         } else {
             if (msg.value != 0) {
                 revert WrongTransactionAmount(0, msg.value);
@@ -272,40 +270,30 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     }
 
     /// @dev Transfers BEP20 tokens to self, then approves vToken to take these tokens.
-    function _liquidateBep20(
-        IVBep20 vToken,
-        address borrower,
-        uint256 repayAmount,
-        IVToken vTokenCollateral
-    )
-        internal
-    {
+    function _liquidateBep20(IVBep20 vToken, address borrower, uint256 repayAmount, IVToken vTokenCollateral) internal {
         IERC20Upgradeable borrowedToken = IERC20Upgradeable(vToken.underlying());
         uint256 actualRepayAmount = _transferBep20(borrowedToken, msg.sender, address(this), repayAmount);
         borrowedToken.safeApprove(address(vToken), 0);
         borrowedToken.safeApprove(address(vToken), actualRepayAmount);
-        requireNoError(
-            vToken.liquidateBorrow(borrower, actualRepayAmount, vTokenCollateral)
-        );
+        requireNoError(vToken.liquidateBorrow(borrower, actualRepayAmount, vTokenCollateral));
     }
 
     /// @dev Transfers BEP20 tokens to self, then approves VAI to take these tokens.
-    function _liquidateVAI(address borrower, uint256 repayAmount, IVToken vTokenCollateral)
-        internal
-    {
+    function _liquidateVAI(address borrower, uint256 repayAmount, IVToken vTokenCollateral) internal {
         IERC20Upgradeable vai = IERC20Upgradeable(vaiController.getVAIAddress());
         vai.safeTransferFrom(msg.sender, address(this), repayAmount);
         vai.safeApprove(address(vaiController), 0);
         vai.safeApprove(address(vaiController), repayAmount);
 
-        (uint err,) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
+        (uint err, ) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
         requireNoError(err);
     }
 
     /// @dev Splits the received vTokens between the liquidator and treasury.
-    function _distributeLiquidationIncentive(IVToken vTokenCollateral, uint256 siezedAmount)
-        internal returns (uint256 ours, uint256 theirs)
-    {
+    function _distributeLiquidationIncentive(
+        IVToken vTokenCollateral,
+        uint256 siezedAmount
+    ) internal returns (uint256 ours, uint256 theirs) {
         (ours, theirs) = _splitLiquidationIncentive(siezedAmount);
         if (!vTokenCollateral.transfer(msg.sender, theirs)) {
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
@@ -317,23 +305,21 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     }
 
     /// @dev Transfers tokens and returns the actual transfer amount
-    function _transferBep20(IERC20Upgradeable token, address from, address to, uint256 amount)
-        internal
-        returns (uint256 actualAmount)
-    {
+    function _transferBep20(
+        IERC20Upgradeable token,
+        address from,
+        address to,
+        uint256 amount
+    ) internal returns (uint256 actualAmount) {
         uint256 prevBalance = token.balanceOf(to);
         token.safeTransferFrom(from, to, amount);
         return token.balanceOf(to) - prevBalance;
     }
 
     /// @dev Computes the amounts that would go to treasury and to the liquidator.
-    function _splitLiquidationIncentive(uint256 seizedAmount)
-        internal
-        view
-        returns (uint256 ours, uint256 theirs)
-    {
+    function _splitLiquidationIncentive(uint256 seizedAmount) internal view returns (uint256 ours, uint256 theirs) {
         uint256 totalIncentive = comptroller.liquidationIncentiveMantissa();
-        ours = seizedAmount * treasuryPercentMantissa / totalIncentive;
+        ours = (seizedAmount * treasuryPercentMantissa) / totalIncentive;
         theirs = seizedAmount - ours;
         return (ours, theirs);
     }

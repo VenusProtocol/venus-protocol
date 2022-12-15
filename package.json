@@ -15,6 +15,8 @@
     "publish:dist": "yarn build && cd dist && yarn publish --access public",
     "lint": "yarn lint:ts && yarn prettier:check",
     "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts .",
+    "lint:sol": "solhint \"contracts/**/*.sol\" --quiet",
+    "lint:sol:fix": "prettier --write \"contracts/**/*.sol\"",
     "prettier": "prettier --config ./.prettierrc.yaml --write \"**/*.{js,json,md,ts,yaml,yml}\"",
     "prettier:check": "prettier --check --config ./.prettierrc.yaml \"**/*.{js,json,md,ts,yaml,yml}\"",
     "docgen": "hardhat docgen"
@@ -61,6 +63,7 @@
     "hardhat-gas-reporter": "^1.0.8",
     "prettier": "^2.7.1",
     "prettier-plugin-solidity": "^1.0.0-beta.24",
+    "solhint": "^3.3.7",
     "solidity-coverage": "^0.7.21",
     "solidity-docgen": "^0.6.0-beta.30",
     "ts-node": "^10.9.1",

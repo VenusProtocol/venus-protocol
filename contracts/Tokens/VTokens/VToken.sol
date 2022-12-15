@@ -23,12 +23,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param symbol_ EIP-20 symbol of this token
      * @param decimals_ EIP-20 decimal precision of this token
      */
-    function initialize(ComptrollerInterface comptroller_,
-                        InterestRateModel interestRateModel_,
-                        uint initialExchangeRateMantissa_,
-                        string memory name_,
-                        string memory symbol_,
-                        uint8 decimals_) public {
+    function initialize(
+        ComptrollerInterface comptroller_,
+        InterestRateModel interestRateModel_,
+        uint initialExchangeRateMantissa_,
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_
+    ) public {
         require(msg.sender == admin, "only admin may initialize the market");
         require(accrualBlockNumber == 0 && borrowIndex == 0, "market may only be initialized once");
 
@@ -188,7 +190,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return The amount of underlying owned by `owner`
      */
     function balanceOfUnderlying(address owner) external returns (uint) {
-        Exp memory exchangeRate = Exp({mantissa: exchangeRateCurrent()});
+        Exp memory exchangeRate = Exp({ mantissa: exchangeRateCurrent() });
         (MathError mErr, uint balance) = mulScalarTruncate(exchangeRate, accountTokens[owner]);
         require(mErr == MathError.NO_ERROR, "balance could not be calculated");
         return balance;
@@ -420,29 +422,58 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint totalReservesNew;
         uint borrowIndexNew;
 
-        (mathErr, simpleInterestFactor) = mulScalar(Exp({mantissa: borrowRateMantissa}), blockDelta);
+        (mathErr, simpleInterestFactor) = mulScalar(Exp({ mantissa: borrowRateMantissa }), blockDelta);
         if (mathErr != MathError.NO_ERROR) {
-            return failOpaque(Error.MATH_ERROR, FailureInfo.ACCRUE_INTEREST_SIMPLE_INTEREST_FACTOR_CALCULATION_FAILED, uint(mathErr));
+            return
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.ACCRUE_INTEREST_SIMPLE_INTEREST_FACTOR_CALCULATION_FAILED,
+                    uint(mathErr)
+                );
         }
 
         (mathErr, interestAccumulated) = mulScalarTruncate(simpleInterestFactor, borrowsPrior);
         if (mathErr != MathError.NO_ERROR) {
-            return failOpaque(Error.MATH_ERROR, FailureInfo.ACCRUE_INTEREST_ACCUMULATED_INTEREST_CALCULATION_FAILED, uint(mathErr));
+            return
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.ACCRUE_INTEREST_ACCUMULATED_INTEREST_CALCULATION_FAILED,
+                    uint(mathErr)
+                );
         }
 
         (mathErr, totalBorrowsNew) = addUInt(interestAccumulated, borrowsPrior);
         if (mathErr != MathError.NO_ERROR) {
-            return failOpaque(Error.MATH_ERROR, FailureInfo.ACCRUE_INTEREST_NEW_TOTAL_BORROWS_CALCULATION_FAILED, uint(mathErr));
+            return
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.ACCRUE_INTEREST_NEW_TOTAL_BORROWS_CALCULATION_FAILED,
+                    uint(mathErr)
+                );
         }
 
-        (mathErr, totalReservesNew) = mulScalarTruncateAddUInt(Exp({mantissa: reserveFactorMantissa}), interestAccumulated, reservesPrior);
+        (mathErr, totalReservesNew) = mulScalarTruncateAddUInt(
+            Exp({ mantissa: reserveFactorMantissa }),
+            interestAccumulated,
+            reservesPrior
+        );
         if (mathErr != MathError.NO_ERROR) {
-            return failOpaque(Error.MATH_ERROR, FailureInfo.ACCRUE_INTEREST_NEW_TOTAL_RESERVES_CALCULATION_FAILED, uint(mathErr));
+            return
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.ACCRUE_INTEREST_NEW_TOTAL_RESERVES_CALCULATION_FAILED,
+                    uint(mathErr)
+                );
         }
 
         (mathErr, borrowIndexNew) = mulScalarTruncateAddUInt(simpleInterestFactor, borrowIndexPrior, borrowIndexPrior);
         if (mathErr != MathError.NO_ERROR) {
-            return failOpaque(Error.MATH_ERROR, FailureInfo.ACCRUE_INTEREST_NEW_BORROW_INDEX_CALCULATION_FAILED, uint(mathErr));
+            return
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.ACCRUE_INTEREST_NEW_BORROW_INDEX_CALCULATION_FAILED,
+                    uint(mathErr)
+                );
         }
 
         /////////////////////////
@@ -531,7 +562,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  mintTokens = actualMintAmount / exchangeRate
          */
 
-        (vars.mathErr, vars.mintTokens) = divScalarByExpTruncate(vars.actualMintAmount, Exp({mantissa: vars.exchangeRateMantissa}));
+        (vars.mathErr, vars.mintTokens) = divScalarByExpTruncate(
+            vars.actualMintAmount,
+            Exp({ mantissa: vars.exchangeRateMantissa })
+        );
         require(vars.mathErr == MathError.NO_ERROR, "MINT_EXCHANGE_CALCULATION_FAILED");
 
         /*
@@ -623,7 +657,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  mintTokens = actualMintAmount / exchangeRate
          */
 
-        (vars.mathErr, vars.mintTokens) = divScalarByExpTruncate(vars.actualMintAmount, Exp({mantissa: vars.exchangeRateMantissa}));
+        (vars.mathErr, vars.mintTokens) = divScalarByExpTruncate(
+            vars.actualMintAmount,
+            Exp({ mantissa: vars.exchangeRateMantissa })
+        );
         require(vars.mathErr == MathError.NO_ERROR, "MINT_EXCHANGE_CALCULATION_FAILED");
 
         /*
@@ -720,7 +757,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
              */
             vars.redeemTokens = redeemTokensIn;
 
-            (vars.mathErr, vars.redeemAmount) = mulScalarTruncate(Exp({mantissa: vars.exchangeRateMantissa}), redeemTokensIn);
+            (vars.mathErr, vars.redeemAmount) = mulScalarTruncate(
+                Exp({ mantissa: vars.exchangeRateMantissa }),
+                redeemTokensIn
+            );
             if (vars.mathErr != MathError.NO_ERROR) {
                 revert("math error");
             }
@@ -731,7 +771,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
              *  redeemAmount = redeemAmountIn
              */
 
-            (vars.mathErr, vars.redeemTokens) = divScalarByExpTruncate(redeemAmountIn, Exp({mantissa: vars.exchangeRateMantissa}));
+            (vars.mathErr, vars.redeemTokens) = divScalarByExpTruncate(
+                redeemAmountIn,
+                Exp({ mantissa: vars.exchangeRateMantissa })
+            );
             if (vars.mathErr != MathError.NO_ERROR) {
                 revert("math error");
             }
@@ -788,7 +831,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint feeAmount;
         uint remainedAmount;
         if (IComptroller(address(comptroller)).treasuryPercent() != 0) {
-            (vars.mathErr, feeAmount) = mulUInt(vars.redeemAmount, IComptroller(address(comptroller)).treasuryPercent());
+            (vars.mathErr, feeAmount) = mulUInt(
+                vars.redeemAmount,
+                IComptroller(address(comptroller)).treasuryPercent()
+            );
             if (vars.mathErr != MathError.NO_ERROR) {
                 revert("math error");
             }
@@ -823,10 +869,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-      * @notice Sender borrows assets from the protocol to their own address
-      * @param borrowAmount The amount of the underlying asset to borrow
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice Sender borrows assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function borrowInternal(uint borrowAmount) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -845,10 +891,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-      * @notice Users borrow assets from the protocol to their own address
-      * @param borrowAmount The amount of the underlying asset to borrow
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice Users borrow assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function borrowFresh(address payable borrower, uint borrowAmount) internal returns (uint) {
         /* Fail if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
@@ -891,7 +937,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /////////////////////////
         // EFFECTS & INTERACTIONS
         // (No safe failures beyond this point)
-
 
         /* We write the previously calculated values into storage */
         accountBorrows[borrower].principal = vars.accountBorrowsNew;
@@ -968,7 +1013,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Fail if repayBorrow not allowed */
         uint allowed = comptroller.repayBorrowAllowed(address(this), payer, borrower, repayAmount);
         if (allowed != 0) {
-            return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.REPAY_BORROW_COMPTROLLER_REJECTION, allowed), 0);
+            return (
+                failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.REPAY_BORROW_COMPTROLLER_REJECTION, allowed),
+                0
+            );
         }
 
         /* Verify market's block number equals current block number */
@@ -984,7 +1032,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* We fetch the amount the borrower owes, with accumulated interest */
         (vars.mathErr, vars.accountBorrows) = borrowBalanceStoredInternal(borrower);
         if (vars.mathErr != MathError.NO_ERROR) {
-            return (failOpaque(Error.MATH_ERROR, FailureInfo.REPAY_BORROW_ACCUMULATED_BALANCE_CALCULATION_FAILED, uint(vars.mathErr)), 0);
+            return (
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.REPAY_BORROW_ACCUMULATED_BALANCE_CALCULATION_FAILED,
+                    uint(vars.mathErr)
+                ),
+                0
+            );
         }
 
         /* If repayAmount == -1, repayAmount = accountBorrows */
@@ -1040,7 +1095,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param repayAmount The amount of the underlying borrowed asset to repay
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
-    function liquidateBorrowInternal(address borrower, uint repayAmount, VTokenInterface vTokenCollateral) internal nonReentrant returns (uint, uint) {
+    function liquidateBorrowInternal(
+        address borrower,
+        uint repayAmount,
+        VTokenInterface vTokenCollateral
+    ) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
@@ -1066,9 +1125,20 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param repayAmount The amount of the underlying borrowed asset to repay
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
-    function liquidateBorrowFresh(address liquidator, address borrower, uint repayAmount, VTokenInterface vTokenCollateral) internal returns (uint, uint) {
+    function liquidateBorrowFresh(
+        address liquidator,
+        address borrower,
+        uint repayAmount,
+        VTokenInterface vTokenCollateral
+    ) internal returns (uint, uint) {
         /* Fail if liquidate not allowed */
-        uint allowed = comptroller.liquidateBorrowAllowed(address(this), address(vTokenCollateral), liquidator, borrower, repayAmount);
+        uint allowed = comptroller.liquidateBorrowAllowed(
+            address(this),
+            address(vTokenCollateral),
+            liquidator,
+            borrower,
+            repayAmount
+        );
         if (allowed != 0) {
             return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.LIQUIDATE_COMPTROLLER_REJECTION, allowed), 0);
         }
@@ -1098,7 +1168,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
         }
 
-
         /* Fail if repayBorrow fails */
         (uint repayBorrowError, uint actualRepayAmount) = repayBorrowFresh(liquidator, borrower, repayAmount);
         if (repayBorrowError != uint(Error.NO_ERROR)) {
@@ -1110,7 +1179,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // (No safe failures beyond this point)
 
         /* We calculate the number of collateral tokens that will be seized */
-        (uint amountSeizeError, uint seizeTokens) = comptroller.liquidateCalculateSeizeTokens(address(this), address(vTokenCollateral), actualRepayAmount);
+        (uint amountSeizeError, uint seizeTokens) = comptroller.liquidateCalculateSeizeTokens(
+            address(this),
+            address(vTokenCollateral),
+            actualRepayAmount
+        );
         require(amountSeizeError == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
 
         /* Revert if borrower collateral token balance < seizeTokens */
@@ -1131,7 +1204,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         emit LiquidateBorrow(liquidator, borrower, actualRepayAmount, address(vTokenCollateral), seizeTokens);
 
         /* We call the defense hook */
-        comptroller.liquidateBorrowVerify(address(this), address(vTokenCollateral), liquidator, borrower, actualRepayAmount, seizeTokens);
+        comptroller.liquidateBorrowVerify(
+            address(this),
+            address(vTokenCollateral),
+            liquidator,
+            borrower,
+            actualRepayAmount,
+            seizeTokens
+        );
 
         return (uint(Error.NO_ERROR), actualRepayAmount);
     }
@@ -1159,7 +1239,12 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param seizeTokens The number of vTokens to seize
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function seizeInternal(address seizerToken, address liquidator, address borrower, uint seizeTokens) internal returns (uint) {
+    function seizeInternal(
+        address seizerToken,
+        address liquidator,
+        address borrower,
+        uint seizeTokens
+    ) internal returns (uint) {
         /* Fail if seize not allowed */
         uint allowed = comptroller.seizeAllowed(address(this), seizerToken, liquidator, borrower, seizeTokens);
         if (allowed != 0) {
@@ -1207,15 +1292,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         return uint(Error.NO_ERROR);
     }
 
-
     /*** Admin Functions ***/
 
     /**
-      * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
-      * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
-      * @param newPendingAdmin New pending admin.
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
+     * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
+     * @param newPendingAdmin New pending admin.
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function _setPendingAdmin(address payable newPendingAdmin) external returns (uint) {
         // Check caller = admin
         if (msg.sender != admin) {
@@ -1235,10 +1319,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-      * @notice Accepts transfer of admin rights. msg.sender must be pendingAdmin
-      * @dev Admin function for pending admin to accept role and update admin
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice Accepts transfer of admin rights. msg.sender must be pendingAdmin
+     * @dev Admin function for pending admin to accept role and update admin
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function _acceptAdmin() external returns (uint) {
         // Check caller is pendingAdmin
         if (msg.sender != pendingAdmin) {
@@ -1262,10 +1346,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-      * @notice Sets a new comptroller for the market
-      * @dev Admin function to set a new comptroller
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice Sets a new comptroller for the market
+     * @dev Admin function to set a new comptroller
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function _setComptroller(ComptrollerInterface newComptroller) public returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
@@ -1286,10 +1370,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-      * @notice accrues interest and sets a new reserve factor for the protocol using _setReserveFactorFresh
-      * @dev Admin function to accrue interest and set a new reserve factor
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice accrues interest and sets a new reserve factor for the protocol using _setReserveFactorFresh
+     * @dev Admin function to accrue interest and set a new reserve factor
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function _setReserveFactor(uint newReserveFactorMantissa) external nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -1301,10 +1385,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-      * @notice Sets a new reserve factor for the protocol (*requires fresh interest accrual)
-      * @dev Admin function to set a new reserve factor
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice Sets a new reserve factor for the protocol (*requires fresh interest accrual)
+     * @dev Admin function to set a new reserve factor
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function _setReserveFactorFresh(uint newReserveFactorMantissa) internal returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
@@ -1391,7 +1475,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         return (uint(Error.NO_ERROR), actualAddAmount);
     }
 
-
     /**
      * @notice Accrues interest and reduces reserves by transferring to admin
      * @param reduceAmount Amount of reduction to reserves
@@ -1477,7 +1560,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setInterestRateModelFresh(InterestRateModel newInterestRateModel) internal returns (uint) {
-
         // Used to store old model for use in the event that is emitted on success
         InterestRateModel oldInterestRateModel;
 
@@ -1527,7 +1609,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *  If caller has checked protocol's balance, and verified it is >= amount, this should not revert in normal conditions.
      */
     function doTransferOut(address payable to, uint amount) internal;
-
 
     /*** Reentrancy Guard ***/
 

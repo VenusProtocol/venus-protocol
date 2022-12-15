@@ -4,23 +4,23 @@ import "../Utils/IBEP20.sol";
 
 contract XVSVaultAdminStorage {
     /**
-    * @notice Administrator for this contract
-    */
+     * @notice Administrator for this contract
+     */
     address public admin;
 
     /**
-    * @notice Pending administrator for this contract
-    */
+     * @notice Pending administrator for this contract
+     */
     address public pendingAdmin;
 
     /**
-    * @notice Active brains of XVS Vault
-    */
+     * @notice Active brains of XVS Vault
+     */
     address public implementation;
 
     /**
-    * @notice Pending brains of XVS Vault
-    */
+     * @notice Pending brains of XVS Vault
+     */
     address public pendingXVSVaultImplementation;
 }
 
@@ -46,11 +46,11 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
 
     // Info of each pool.
     struct PoolInfo {
-        IBEP20 token;               // Address of token contract to stake.
-        uint256 allocPoint;         // How many allocation points assigned to this pool.
-        uint256 lastRewardBlock;    // Last block number that reward tokens distribution occurs.
-        uint256 accRewardPerShare;  // Accumulated per share, times 1e12. See below.
-        uint256 lockPeriod;         // Min time between withdrawal request and its execution.
+        IBEP20 token; // Address of token contract to stake.
+        uint256 allocPoint; // How many allocation points assigned to this pool.
+        uint256 lastRewardBlock; // Last block number that reward tokens distribution occurs.
+        uint256 accRewardPerShare; // Accumulated per share, times 1e12. See below.
+        uint256 lockPeriod; // Min time between withdrawal request and its execution.
     }
 
     // Infomation about a withdrawal request
@@ -73,7 +73,7 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
     mapping(address => mapping(uint256 => mapping(address => WithdrawalRequest[]))) withdrawalRequests;
 
     /// @notice DEPRECATED A record of each accounts delegate (before the voting power fix)
-    mapping (address => address) private __oldDelegatesSlot;
+    mapping(address => address) private __oldDelegatesSlot;
 
     /// @notice A checkpoint for marking number of votes from a given block
     struct Checkpoint {
@@ -82,31 +82,32 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
     }
 
     /// @notice DEPRECATED A record of votes checkpoints for each account, by index (before the voting power fix)
-    mapping (address => mapping (uint32 => Checkpoint)) private __oldCheckpointsSlot;
+    mapping(address => mapping(uint32 => Checkpoint)) private __oldCheckpointsSlot;
 
     /// @notice DEPRECATED The number of checkpoints for each account (before the voting power fix)
-    mapping (address => uint32) private __oldNumCheckpointsSlot;
+    mapping(address => uint32) private __oldNumCheckpointsSlot;
 
     /// @notice A record of states for signing / validating signatures
-    mapping (address => uint) public nonces;
+    mapping(address => uint) public nonces;
 
     /// @notice The EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
+    bytes32 public constant DOMAIN_TYPEHASH =
+        keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
     /// @notice The EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
-
+    bytes32 public constant DELEGATION_TYPEHASH =
+        keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 }
 
 contract XVSVaultStorage is XVSVaultStorageV1 {
     /// @notice A record of each accounts delegate
-    mapping (address => address) public delegates;
+    mapping(address => address) public delegates;
 
     /// @notice A record of votes checkpoints for each account, by index
-    mapping (address => mapping (uint32 => Checkpoint)) public checkpoints;
+    mapping(address => mapping(uint32 => Checkpoint)) public checkpoints;
 
     /// @notice The number of checkpoints for each account
-    mapping (address => uint32) public numCheckpoints;
+    mapping(address => uint32) public numCheckpoints;
 
     /// @notice Tracks pending withdrawals for all users for a particular reward token and pool id
     mapping(address => mapping(uint256 => uint256)) totalPendingWithdrawals;

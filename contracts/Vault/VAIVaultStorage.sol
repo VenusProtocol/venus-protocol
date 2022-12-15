@@ -4,23 +4,23 @@ import "../Utils/IBEP20.sol";
 
 contract VAIVaultAdminStorage {
     /**
-    * @notice Administrator for this contract
-    */
+     * @notice Administrator for this contract
+     */
     address public admin;
 
     /**
-    * @notice Pending administrator for this contract
-    */
+     * @notice Pending administrator for this contract
+     */
     address public pendingAdmin;
 
     /**
-    * @notice Active brains of VAI Vault
-    */
+     * @notice Active brains of VAI Vault
+     */
     address public vaiVaultImplementation;
 
     /**
-    * @notice Pending brains of VAI Vault
-    */
+     * @notice Pending brains of VAI Vault
+     */
     address public pendingVAIVaultImplementation;
 }
 

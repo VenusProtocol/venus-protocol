@@ -5,7 +5,7 @@ import "../Tokens/VAI/VAI.sol";
 contract VAIScenario is VAI {
     uint blockNumber = 100000;
 
-    constructor(uint chainId) VAI(chainId) public {}
+    constructor(uint chainId) public VAI(chainId) {}
 
     function harnessFastForward(uint blocks) public {
         blockNumber += blocks;
@@ -28,5 +28,4 @@ contract VAIScenario is VAI {
         totalSupply += value;
         emit Transfer(address(this), _owner, value);
     }
-
 }

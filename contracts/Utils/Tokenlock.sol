@@ -9,7 +9,7 @@ contract Tokenlock is Owned {
     event Freezed();
     event UnFreezed();
 
-    modifier validLock {
+    modifier validLock() {
         require(isLocked == 0, "Token is locked");
         _;
     }

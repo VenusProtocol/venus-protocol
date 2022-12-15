@@ -8,9 +8,12 @@ import "./BEP20.sol";
  * @notice A simple test token that lets anyone get more of it.
  */
 contract FaucetToken is StandardToken {
-    constructor(uint256 _initialAmount, string memory _tokenName, uint8 _decimalUnits, string memory _tokenSymbol) public
-        StandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {
-    }
+    constructor(
+        uint256 _initialAmount,
+        string memory _tokenName,
+        uint8 _decimalUnits,
+        string memory _tokenSymbol
+    ) public StandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {}
 
     function allocateTo(address _owner, uint256 value) public {
         balanceOf[_owner] += value;
@@ -25,9 +28,12 @@ contract FaucetToken is StandardToken {
  * @notice A simple test token that lets anyone get more of it.
  */
 contract FaucetNonStandardToken is NonStandardToken {
-    constructor(uint256 _initialAmount, string memory _tokenName, uint8 _decimalUnits, string memory _tokenSymbol) public
-        NonStandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {
-    }
+    constructor(
+        uint256 _initialAmount,
+        string memory _tokenName,
+        uint8 _decimalUnits,
+        string memory _tokenSymbol
+    ) public NonStandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {}
 
     function allocateTo(address _owner, uint256 value) public {
         balanceOf[_owner] += value;
@@ -51,13 +57,20 @@ contract FaucetTokenReEntrantHarness {
     string public symbol;
     uint8 public decimals;
     uint256 totalSupply_;
-    mapping (address => mapping (address => uint256)) allowance_;
-    mapping (address => uint256) balanceOf_;
+    mapping(address => mapping(address => uint256)) allowance_;
+    mapping(address => uint256) balanceOf_;
 
     bytes public reEntryCallData;
     string public reEntryFun;
 
-    constructor(uint256 _initialAmount, string memory _tokenName, uint8 _decimalUnits, string memory _tokenSymbol, bytes memory _reEntryCallData, string memory _reEntryFun) public {
+    constructor(
+        uint256 _initialAmount,
+        string memory _tokenName,
+        uint8 _decimalUnits,
+        string memory _tokenSymbol,
+        bytes memory _reEntryCallData,
+        string memory _reEntryFun
+    ) public {
         totalSupply_ = _initialAmount;
         balanceOf_[msg.sender] = _initialAmount;
         name = _tokenName;
@@ -114,7 +127,11 @@ contract FaucetTokenReEntrantHarness {
         return true;
     }
 
-    function transferFrom(address src, address dst, uint256 amount) public reEnter("transferFrom") returns (bool success) {
+    function transferFrom(
+        address src,
+        address dst,
+        uint256 amount
+    ) public reEnter("transferFrom") returns (bool success) {
         _transfer(src, dst, amount);
         _approve(src, msg.sender, allowance_[src][msg.sender].sub(amount));
         return true;

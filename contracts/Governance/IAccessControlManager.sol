@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
 interface IAccessControlManager {
-   /**
+    /**
      * @notice Verifies if the given account can call a praticular contract's function
      * @dev Since the contract is calling itself this function, we can get contracts address with msg.sender
      * @param account address (eoa or contract) for which call permissions will be checked
@@ -27,5 +27,9 @@ interface IAccessControlManager {
      * @param contractAddress address of contract for which call permissions will be revoked
      * @param functionSig signature e.g. "functionName(uint,bool)"
      */
-    function revokeCallPermission(address contractAddress, string calldata functionSig, address accountToRevoke) external;
+    function revokeCallPermission(
+        address contractAddress,
+        string calldata functionSig,
+        address accountToRevoke
+    ) external;
 }

@@ -25,7 +25,7 @@ contract VenusChainlinkOracle is PriceOracle {
         maxStalePeriod = maxStalePeriod_;
     }
 
-    function setMaxStalePeriod(uint newMaxStalePeriod) external onlyAdmin() {
+    function setMaxStalePeriod(uint newMaxStalePeriod) external onlyAdmin {
         require(newMaxStalePeriod > 0, "stale period can't be zero");
         uint oldMaxStalePeriod = maxStalePeriod;
         maxStalePeriod = newMaxStalePeriod;
@@ -57,7 +57,7 @@ contract VenusChainlinkOracle is PriceOracle {
         uint decimalDelta = uint(18).sub(uint(token.decimals()));
         // Ensure that we don't multiply the result by 0
         if (decimalDelta > 0) {
-            return price.mul(10**decimalDelta);
+            return price.mul(10 ** decimalDelta);
         } else {
             return price;
         }
@@ -67,31 +67,31 @@ contract VenusChainlinkOracle is PriceOracle {
         // Chainlink USD-denominated feeds store answers at 8 decimals
         uint decimalDelta = uint(18).sub(feed.decimals());
 
-        (, int256 answer,, uint256 updatedAt,) = feed.latestRoundData();
+        (, int256 answer, , uint256 updatedAt, ) = feed.latestRoundData();
         // Ensure that we don't multiply the result by 0
         if (block.timestamp.sub(updatedAt) > maxStalePeriod) {
             return 0;
         }
 
         if (decimalDelta > 0) {
-            return uint(answer).mul(10**decimalDelta);
+            return uint(answer).mul(10 ** decimalDelta);
         } else {
             return uint(answer);
         }
     }
 
-    function setUnderlyingPrice(VToken vToken, uint underlyingPriceMantissa) external onlyAdmin() {
+    function setUnderlyingPrice(VToken vToken, uint underlyingPriceMantissa) external onlyAdmin {
         address asset = address(VBep20(address(vToken)).underlying());
         emit PricePosted(asset, prices[asset], underlyingPriceMantissa, underlyingPriceMantissa);
         prices[asset] = underlyingPriceMantissa;
     }
 
-    function setDirectPrice(address asset, uint price) external onlyAdmin() {
+    function setDirectPrice(address asset, uint price) external onlyAdmin {
         emit PricePosted(asset, prices[asset], price, price);
         prices[asset] = price;
     }
 
-    function setFeed(string calldata symbol, address feed) external onlyAdmin() {
+    function setFeed(string calldata symbol, address feed) external onlyAdmin {
         require(feed != address(0) && feed != address(this), "invalid feed address");
         emit FeedSet(feed, symbol);
         feeds[keccak256(abi.encodePacked(symbol))] = AggregatorV2V3Interface(feed);
@@ -109,7 +109,7 @@ contract VenusChainlinkOracle is PriceOracle {
         return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
     }
 
-    function setAdmin(address newAdmin) external onlyAdmin() {
+    function setAdmin(address newAdmin) external onlyAdmin {
         address oldAdmin = admin;
         admin = newAdmin;
 
@@ -117,7 +117,7 @@ contract VenusChainlinkOracle is PriceOracle {
     }
 
     modifier onlyAdmin() {
-      require(msg.sender == admin, "only admin may call");
-      _;
+        require(msg.sender == admin, "only admin may call");
+        _;
     }
 }
