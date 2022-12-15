@@ -7,15 +7,19 @@ import "../Tokens/XVS/XVS.sol";
 import "../Tokens/VAI/VAI.sol";
 import "../Governance/IAccessControlManager.sol";
 import "./ComptrollerLensInterface.sol";
-import "./ComptrollerInterface.sol";
+import "./UpdatedComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
 
 /**
  * @title Venus's Comptroller Contract
+ * @dev Name of this comptorller is updated to UpdatedComptroller as tests were failing
+ * due to the two contracts name by Comptorller. At the time of deployment of this
+ * contract to mainnet it should be nammed as Comptorller
  * @author Venus
  */
-contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+// 
+contract UpdatedComptroller is ComptrollerV10Storage, UpdatedComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -312,15 +316,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     }
 
     /**
-     * @notice Validates mint and reverts on rejection. May emit logs.
-     * @param vToken Asset being minted
-     * @param minter The address minting the tokens
-     * @param actualMintAmount The amount of the underlying asset being minted
-     * @param mintTokens The number of tokens being minted
-     */
-    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {}
-
-    /**
      * @notice Checks if the account should be allowed to redeem tokens in the given market
      * @param vToken The market to verify the redeem against
      * @param redeemer The account which would redeem the tokens
@@ -361,17 +356,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         }
 
         return uint(Error.NO_ERROR);
-    }
-
-    /**
-     * @notice Validates redeem and reverts on rejection. May emit logs.
-     * @param vToken Asset being redeemed
-     * @param redeemer The address redeeming the tokens
-     * @param redeemAmount The amount of the underlying asset being redeemed
-     * @param redeemTokens The number of tokens being redeemed
-     */
-    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external {
-        require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
     }
 
     /**
@@ -427,14 +411,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     }
 
     /**
-     * @notice Validates borrow and reverts on rejection. May emit logs.
-     * @param vToken Asset whose underlying is being borrowed
-     * @param borrower The address borrowing the underlying
-     * @param borrowAmount The amount of the underlying asset requested to borrow
-     */
-    function borrowVerify(address vToken, address borrower, uint borrowAmount) external {}
-
-    /**
      * @notice Checks if the account should be allowed to repay a borrow in the given market
      * @param vToken The market to verify the repay against
      * @param payer The account which would repay the asset
@@ -462,23 +438,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
         return uint(Error.NO_ERROR);
     }
-
-    /**
-     * @notice Validates repayBorrow and reverts on rejection. May emit logs.
-     * @param vToken Asset being repaid
-     * @param payer The address repaying the borrow
-     * @param borrower The address of the borrower
-     * @param actualRepayAmount The amount of underlying being repaid
-     */
-    function repayBorrowVerify(
-        address vToken,
-        address payer,
-        address borrower,
-        uint actualRepayAmount,
-        uint borrowerIndex
-    )
-        external
-    {}
 
     /**
      * @notice Checks if the liquidation should be allowed to occur
@@ -538,26 +497,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     }
 
     /**
-     * @notice Validates liquidateBorrow and reverts on rejection. May emit logs.
-     * @param vTokenBorrowed Asset which was borrowed by the borrower
-     * @param vTokenCollateral Asset which was used as collateral and will be seized
-     * @param liquidator The address repaying the borrow and seizing the collateral
-     * @param borrower The address of the borrower
-     * @param actualRepayAmount The amount of underlying being repaid
-     * @param seizeTokens The amount of collateral token that will be seized
-     */
-    function liquidateBorrowVerify(
-        address vTokenBorrowed,
-        address vTokenCollateral,
-        address liquidator,
-        address borrower,
-        uint actualRepayAmount,
-        uint seizeTokens
-    )
-        external
-    {}
-
-    /**
      * @notice Checks if the seizing of assets should be allowed to occur
      * @param vTokenCollateral Asset which was used as collateral and will be seized
      * @param vTokenBorrowed Asset which was borrowed by the borrower
@@ -598,24 +537,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     }
 
     /**
-     * @notice Validates seize and reverts on rejection. May emit logs.
-     * @param vTokenCollateral Asset which was used as collateral and will be seized
-     * @param vTokenBorrowed Asset which was borrowed by the borrower
-     * @param liquidator The address repaying the borrow and seizing the collateral
-     * @param borrower The address of the borrower
-     * @param seizeTokens The number of collateral tokens to seize
-     */
-    function seizeVerify(
-        address vTokenCollateral,
-        address vTokenBorrowed,
-        address liquidator,
-        address borrower,
-        uint seizeTokens
-    )
-        external
-    {}
-
-    /**
      * @notice Checks if the account should be allowed to transfer tokens in the given market
      * @param vToken The market to verify the transfer against
      * @param src The account which sources the tokens
@@ -642,15 +563,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
         return uint(Error.NO_ERROR);
     }
-
-    /**
-     * @notice Validates transfer and reverts on rejection. May emit logs.
-     * @param vToken Asset being transferred
-     * @param src The account which sources the tokens
-     * @param dst The account which receives the tokens
-     * @param transferTokens The number of vTokens to transfer
-     */
-    function transferVerify(address vToken, address src, address dst, uint transferTokens) external {}
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
@@ -1123,6 +1035,40 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     function _become(Unitroller unitroller) external {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
         require(unitroller._acceptImplementation() == 0, "not authorized");
+
+        // TODO: Remove this post upgrade
+        // Should have to change UpdatedComptroller to Comptroller
+        UpdatedComptroller(address(unitroller))._upgradeSplitVenusRewards();
+    }
+
+    function _upgradeSplitVenusRewards() external {
+        require(msg.sender == comptrollerImplementation, "only brains can become itself");
+
+        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
+
+        // venusSpeeds -> venusBorrowSpeeds & venusSupplySpeeds t
+        for (uint256 i; i < allMarkets.length; ++i) {
+            venusBorrowSpeeds[address(allMarkets[i])] = venusSupplySpeeds[address(allMarkets[i])] = venusSpeeds[address(allMarkets[i])];
+            delete venusSpeeds[address(allMarkets[i])];
+
+            /*
+             * Ensure supply and borrow state indices are all set. If not set, update to default value
+             */
+            VenusMarketState storage supplyState = venusSupplyState[address(allMarkets[i])];
+            VenusMarketState storage borrowState = venusBorrowState[address(allMarkets[i])];
+
+            if (supplyState.index == 0) {
+                // Initialize supply state index with default value
+                supplyState.index = venusInitialIndex;
+                supplyState.block = blockNumber;
+            }
+
+            if (borrowState.index == 0) {
+                // Initialize borrow state index with default value
+                borrowState.index = venusInitialIndex;
+                borrowState.block = blockNumber;
+            }
+        }
     }
 
     /*** Venus Distribution ***/

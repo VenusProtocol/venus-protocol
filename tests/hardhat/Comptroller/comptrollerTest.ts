@@ -119,7 +119,7 @@ describe("Comptroller", () => {
     testZeroAddress("_setTreasuryData", [constants.AddressZero, constants.AddressZero, 0]);
     testZeroAddress("_setComptrollerLens", [constants.AddressZero]);
     testZeroAddress("_setVAIVaultInfo", [constants.AddressZero, 0, 0]);
-    testZeroAddress("_setVenusSpeed", [constants.AddressZero, 0]);
+    testZeroAddress("_setVenusSpeeds", [[constants.AddressZero], [0], [0]]);
   });
 
   describe("_setPriceOracle", () => {
