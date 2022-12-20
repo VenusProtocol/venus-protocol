@@ -18,13 +18,15 @@ contract VBNB is VToken {
      * @param decimals_ BEP-20 decimal precision of this token
      * @param admin_ Address of the administrator of this token
      */
-    constructor(ComptrollerInterface comptroller_,
-                InterestRateModel interestRateModel_,
-                uint initialExchangeRateMantissa_,
-                string memory name_,
-                string memory symbol_,
-                uint8 decimals_,
-                address payable admin_) public {
+    constructor(
+        ComptrollerInterface comptroller_,
+        InterestRateModel interestRateModel_,
+        uint initialExchangeRateMantissa_,
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_,
+        address payable admin_
+    ) public {
         // Creator of the contract is admin during initialization
         admin = msg.sender;
 
@@ -34,7 +36,6 @@ contract VBNB is VToken {
         admin = admin_;
     }
 
-
     /*** User Interface ***/
 
     /**
@@ -42,7 +43,7 @@ contract VBNB is VToken {
      * @dev Reverts upon any failure
      */
     function mint() external payable {
-        (uint err,) = mintInternal(msg.value);
+        (uint err, ) = mintInternal(msg.value);
         requireNoError(err, "mint failed");
     }
 
@@ -67,10 +68,10 @@ contract VBNB is VToken {
     }
 
     /**
-      * @notice Sender borrows assets from the protocol to their own address
-      * @param borrowAmount The amount of the underlying asset to borrow
-      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-      */
+     * @notice Sender borrows assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function borrow(uint borrowAmount) external returns (uint) {
         return borrowInternal(borrowAmount);
     }
@@ -80,7 +81,7 @@ contract VBNB is VToken {
      * @dev Reverts upon any failure
      */
     function repayBorrow() external payable {
-        (uint err,) = repayBorrowInternal(msg.value);
+        (uint err, ) = repayBorrowInternal(msg.value);
         requireNoError(err, "repayBorrow failed");
     }
 
@@ -90,7 +91,7 @@ contract VBNB is VToken {
      * @param borrower the account with the debt being payed off
      */
     function repayBorrowBehalf(address borrower) external payable {
-        (uint err,) = repayBorrowBehalfInternal(borrower, msg.value);
+        (uint err, ) = repayBorrowBehalfInternal(borrower, msg.value);
         requireNoError(err, "repayBorrowBehalf failed");
     }
 
@@ -102,15 +103,15 @@ contract VBNB is VToken {
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      */
     function liquidateBorrow(address borrower, VToken vTokenCollateral) external payable {
-        (uint err,) = liquidateBorrowInternal(borrower, msg.value, vTokenCollateral);
+        (uint err, ) = liquidateBorrowInternal(borrower, msg.value, vTokenCollateral);
         requireNoError(err, "liquidateBorrow failed");
     }
 
     /**
      * @notice Send BNB to VBNB to mint
      */
-    function () external payable {
-        (uint err,) = mintInternal(msg.value);
+    function() external payable {
+        (uint err, ) = mintInternal(msg.value);
         requireNoError(err, "mint failed");
     }
 
@@ -157,11 +158,11 @@ contract VBNB is VToken {
             fullMessage[i] = bytes(message)[i];
         }
 
-        fullMessage[i+0] = byte(uint8(32));
-        fullMessage[i+1] = byte(uint8(40));
-        fullMessage[i+2] = byte(uint8(48 + ( errCode / 10 )));
-        fullMessage[i+3] = byte(uint8(48 + ( errCode % 10 )));
-        fullMessage[i+4] = byte(uint8(41));
+        fullMessage[i + 0] = bytes1(uint8(32));
+        fullMessage[i + 1] = bytes1(uint8(40));
+        fullMessage[i + 2] = bytes1(uint8(48 + (errCode / 10)));
+        fullMessage[i + 3] = bytes1(uint8(48 + (errCode % 10)));
+        fullMessage[i + 4] = bytes1(uint8(41));
 
         require(errCode == uint(Error.NO_ERROR), string(fullMessage));
     }

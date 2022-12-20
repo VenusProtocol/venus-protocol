@@ -4,11 +4,11 @@ import "../Tokens/VAI/VAIController.sol";
 import "./ComptrollerScenario.sol";
 
 contract VAIControllerScenario is VAIController {
-    uint blockNumber;
+    uint internal blockNumber;
     address public xvsAddress;
     address public vaiAddress;
 
-    constructor() VAIController() public {}
+    constructor() public VAIController() {}
 
     function setVAIAddress(address vaiAddress_) public {
         vaiAddress = vaiAddress_;

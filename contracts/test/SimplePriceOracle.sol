@@ -4,7 +4,7 @@ import "../Oracle/PriceOracle.sol";
 import "../Tokens/VTokens/VBep20.sol";
 
 contract SimplePriceOracle is PriceOracle {
-    mapping(address => uint) prices;
+    mapping(address => uint) internal prices;
     event PricePosted(address asset, uint previousPriceMantissa, uint requestedPriceMantissa, uint newPriceMantissa);
 
     function getUnderlyingPrice(VToken vToken) public view returns (uint) {

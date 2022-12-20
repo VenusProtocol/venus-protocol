@@ -4,26 +4,20 @@ import "../Tokens/VTokens/VBNB.sol";
 import "./ComptrollerScenario.sol";
 
 contract VBNBHarness is VBNB {
-    uint harnessExchangeRate;
+    uint internal harnessExchangeRate;
     uint public blockNumber = 100000;
 
-    mapping (address => bool) public failTransferToAddresses;
+    mapping(address => bool) public failTransferToAddresses;
 
-    constructor(ComptrollerInterface comptroller_,
-                InterestRateModel interestRateModel_,
-                uint initialExchangeRateMantissa,
-                string memory name_,
-                string memory symbol_,
-                uint8 decimals_,
-                address payable admin_)
-    VBNB(
-    comptroller_,
-    interestRateModel_,
-    initialExchangeRateMantissa,
-    name_,
-    symbol_,
-    decimals_,
-    admin_) public {}
+    constructor(
+        ComptrollerInterface comptroller_,
+        InterestRateModel interestRateModel_,
+        uint initialExchangeRateMantissa,
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_,
+        address payable admin_
+    ) public VBNB(comptroller_, interestRateModel_, initialExchangeRateMantissa, name_, symbol_, decimals_, admin_) {}
 
     function doTransferOut(address payable to, uint amount) internal {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
@@ -84,11 +78,15 @@ contract VBNBHarness is VBNB {
     }
 
     function harnessMintFresh(address account, uint mintAmount) public returns (uint) {
-        (uint err,) = super.mintFresh(account, mintAmount);
+        (uint err, ) = super.mintFresh(account, mintAmount);
         return err;
     }
 
-    function harnessRedeemFresh(address payable account, uint vTokenAmount, uint underlyingAmount) public returns (uint) {
+    function harnessRedeemFresh(
+        address payable account,
+        uint vTokenAmount,
+        uint underlyingAmount
+    ) public returns (uint) {
         return super.redeemFresh(account, vTokenAmount, underlyingAmount);
     }
 
@@ -98,7 +96,7 @@ contract VBNBHarness is VBNB {
     }
 
     function harnessSetAccountBorrows(address account, uint principal, uint interestIndex) public {
-        accountBorrows[account] = BorrowSnapshot({principal: principal, interestIndex: interestIndex});
+        accountBorrows[account] = BorrowSnapshot({ principal: principal, interestIndex: interestIndex });
     }
 
     function harnessSetBorrowIndex(uint borrowIndex_) public {
@@ -109,13 +107,22 @@ contract VBNBHarness is VBNB {
         return borrowFresh(account, borrowAmount);
     }
 
-    function harnessRepayBorrowFresh(address payer, address account, uint repayBorrowAmount) public payable returns (uint) {
-        (uint err,) = repayBorrowFresh(payer, account, repayBorrowAmount);
+    function harnessRepayBorrowFresh(
+        address payer,
+        address account,
+        uint repayBorrowAmount
+    ) public payable returns (uint) {
+        (uint err, ) = repayBorrowFresh(payer, account, repayBorrowAmount);
         return err;
     }
 
-    function harnessLiquidateBorrowFresh(address liquidator, address borrower, uint repayAmount, VToken vTokenCollateral) public returns (uint) {
-        (uint err,) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
+    function harnessLiquidateBorrowFresh(
+        address liquidator,
+        address borrower,
+        uint repayAmount,
+        VToken vTokenCollateral
+    ) public returns (uint) {
+        (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
     }
 
@@ -157,23 +164,17 @@ contract VBNBHarness is VBNB {
 }
 
 contract VBNBScenario is VBNB {
-    uint reserveFactor;
+    uint internal reserveFactor;
 
-    constructor(string memory name_,
-                string memory symbol_,
-                uint8 decimals_,
-                address payable admin_,
-                ComptrollerInterface comptroller_,
-                InterestRateModel interestRateModel_,
-                uint initialExchangeRateMantissa)
-        VBNB(comptroller_,
-               interestRateModel_,
-               initialExchangeRateMantissa,
-               name_,
-               symbol_,
-               decimals_,
-               admin_) public {
-    }
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_,
+        address payable admin_,
+        ComptrollerInterface comptroller_,
+        InterestRateModel interestRateModel_,
+        uint initialExchangeRateMantissa
+    ) public VBNB(comptroller_, interestRateModel_, initialExchangeRateMantissa, name_, symbol_, decimals_, admin_) {}
 
     function setTotalBorrows(uint totalBorrows_) public {
         totalBorrows = totalBorrows_;

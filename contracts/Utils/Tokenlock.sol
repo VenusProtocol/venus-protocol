@@ -4,12 +4,12 @@ import "./Owned.sol";
 
 contract Tokenlock is Owned {
     /// @notice Indicates if token is locked
-    uint8 isLocked = 0;
+    uint8 internal isLocked = 0;
 
     event Freezed();
     event UnFreezed();
 
-    modifier validLock {
+    modifier validLock() {
         require(isLocked == 0, "Token is locked");
         _;
     }

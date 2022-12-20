@@ -7,23 +7,28 @@ import "./ComptrollerScenario.sol";
 import "../Comptroller/ComptrollerInterface.sol";
 
 contract VBep20Scenario is VBep20Immutable {
-    constructor(address underlying_,
-                ComptrollerInterface comptroller_,
-                InterestRateModel interestRateModel_,
-                uint initialExchangeRateMantissa_,
-                string memory name_,
-                string memory symbol_,
-                uint8 decimals_,
-                address payable admin_)
-    VBep20Immutable(
-    underlying_,
-    comptroller_,
-    interestRateModel_,
-    initialExchangeRateMantissa_,
-    name_,
-    symbol_,
-    decimals_,
-    admin_) public {}
+    constructor(
+        address underlying_,
+        ComptrollerInterface comptroller_,
+        InterestRateModel interestRateModel_,
+        uint initialExchangeRateMantissa_,
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_,
+        address payable admin_
+    )
+        public
+        VBep20Immutable(
+            underlying_,
+            comptroller_,
+            interestRateModel_,
+            initialExchangeRateMantissa_,
+            name_,
+            symbol_,
+            decimals_,
+            admin_
+        )
+    {}
 
     function setTotalBorrows(uint totalBorrows_) public {
         totalBorrows = totalBorrows_;
@@ -46,13 +51,13 @@ contract EvilXToken is VBep20Delegate {
     event Log(string x, uint y);
     event LogLiquidity(uint liquidity);
 
-    uint blockNumber = 100000;
-    uint harnessExchangeRate;
-    bool harnessExchangeRateStored;
+    uint internal blockNumber = 100000;
+    uint internal harnessExchangeRate;
+    bool internal harnessExchangeRateStored;
 
     address public comptrollerAddress;
 
-    mapping (address => bool) public failTransferToAddresses;
+    mapping(address => bool) public failTransferToAddresses;
 
     function setComptrollerAddress(address _comptrollerAddress) external {
         comptrollerAddress = _comptrollerAddress;
@@ -70,7 +75,10 @@ contract EvilXToken is VBep20Delegate {
         super.doTransferOut(to, amount);
 
         // Checking the Liquidity of the user after the tranfer.
-        (uint errorCode, uint liquidity, uint shortfall) = ComptrollerInterface(comptrollerAddress).getAccountLiquidity(msg.sender);
+        // solhint-disable-next-line no-unused-vars
+        (uint errorCode, uint liquidity, uint shortfall) = ComptrollerInterface(comptrollerAddress).getAccountLiquidity(
+            msg.sender
+        );
         emit LogLiquidity(liquidity);
         return;
     }
@@ -131,16 +139,20 @@ contract EvilXToken is VBep20Delegate {
     }
 
     function harnessMintFresh(address account, uint mintAmount) public returns (uint) {
-        (uint err,) = super.mintFresh(account, mintAmount);
+        (uint err, ) = super.mintFresh(account, mintAmount);
         return err;
     }
 
     function harnessMintBehalfFresh(address payer, address receiver, uint mintAmount) public returns (uint) {
-        (uint err,) = super.mintBehalfFresh(payer, receiver, mintAmount);
+        (uint err, ) = super.mintBehalfFresh(payer, receiver, mintAmount);
         return err;
     }
 
-    function harnessRedeemFresh(address payable account, uint vTokenAmount, uint underlyingAmount) public returns (uint) {
+    function harnessRedeemFresh(
+        address payable account,
+        uint vTokenAmount,
+        uint underlyingAmount
+    ) public returns (uint) {
         return super.redeemFresh(account, vTokenAmount, underlyingAmount);
     }
 
@@ -150,7 +162,7 @@ contract EvilXToken is VBep20Delegate {
     }
 
     function harnessSetAccountBorrows(address account, uint principal, uint interestIndex) public {
-        accountBorrows[account] = BorrowSnapshot({principal: principal, interestIndex: interestIndex});
+        accountBorrows[account] = BorrowSnapshot({ principal: principal, interestIndex: interestIndex });
     }
 
     function harnessSetBorrowIndex(uint borrowIndex_) public {
@@ -162,12 +174,17 @@ contract EvilXToken is VBep20Delegate {
     }
 
     function harnessRepayBorrowFresh(address payer, address account, uint repayAmount) public returns (uint) {
-        (uint err,) = repayBorrowFresh(payer, account, repayAmount);
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount);
         return err;
     }
 
-    function harnessLiquidateBorrowFresh(address liquidator, address borrower, uint repayAmount, VToken vTokenCollateral) public returns (uint) {
-        (uint err,) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
+    function harnessLiquidateBorrowFresh(
+        address liquidator,
+        address borrower,
+        uint repayAmount,
+        VToken vTokenCollateral
+    ) public returns (uint) {
+        (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
     }
 

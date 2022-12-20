@@ -5,28 +5,27 @@ import "../../Utils/IBEP20.sol";
 
 contract XVSVestingAdminStorage {
     /**
-    * @notice Administrator for this contract
-    */
+     * @notice Administrator for this contract
+     */
     address public admin;
 
     /**
-    * @notice Pending administrator for this contract
-    */
+     * @notice Pending administrator for this contract
+     */
     address public pendingAdmin;
 
     /**
-    * @notice Active brains of XVSVesting
-    */
+     * @notice Active brains of XVSVesting
+     */
     address public implementation;
 
     /**
-    * @notice Pending brains of XVSVesting
-    */
+     * @notice Pending brains of XVSVesting
+     */
     address public pendingImplementation;
 }
 
 contract XVSVestingStorage is XVSVestingAdminStorage {
-
     struct VestingRecord {
         address recipient;
         uint256 startTime;

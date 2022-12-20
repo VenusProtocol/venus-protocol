@@ -3,10 +3,9 @@ pragma solidity ^0.5.16;
 import "../../contracts/VRTVault/VRTVault.sol";
 
 contract VRTVaultHarness is VRTVault {
-
     uint public blockNumber;
 
-    constructor() VRTVault() public {}
+    constructor() public VRTVault() {}
 
     function overrideInterestRatePerBlock(uint256 _interestRatePerBlock) public {
         interestRatePerBlock = _interestRatePerBlock;
