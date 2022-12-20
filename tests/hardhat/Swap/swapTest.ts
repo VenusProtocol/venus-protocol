@@ -12,7 +12,7 @@ import {
   SwapRouter__factory,
   VBep20Immutable,
 } from "../../../typechain";
-import { IWBnb } from "../../../typechain/contracts/Swap";
+import { IWBnb } from "../../../typechain/contracts/Swap/interfaces/IWBNB";
 import { IPancakePair } from "../../../typechain/contracts/Swap/interfaces/IPancakePair";
 import { IPancakeSwapV2Factory } from "../../../typechain/contracts/Swap/interfaces/IPancakeSwapV2Factory";
 
