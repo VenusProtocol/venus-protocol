@@ -4,6 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { getAddress, keccak256, parseUnits, solidityPack } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
+
 import {
   FaucetToken,
   FaucetToken__factory,
