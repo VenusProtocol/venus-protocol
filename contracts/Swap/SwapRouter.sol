@@ -1,13 +1,13 @@
 pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./interfaces/IPancakeSwapV2Router.sol";
 import "./interfaces/IVtoken.sol";
 import "./interfaces/IWBNB.sol";
 import "./lib/TransferHelper.sol";
 import "./lib/PancakeLibrary.sol";
 import "./interfaces/CustomErrors.sol";
-
 
 /**
  * @title Venus's Pancake Swap Integration Contract
@@ -16,9 +16,14 @@ import "./interfaces/CustomErrors.sol";
  * @author 0xlucian
  */
 
-contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
-    address public WBNB;
-    address public factory;
+contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPancakeSwapV2Router {
+    /// @notice Address of WBNB contract.
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address immutable public WBNB;
+    
+    /// @notice Address of pancake swap factory contract.
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address immutable public factory;
 
     // ***************
     // ** MODIFIERS **
@@ -35,6 +40,12 @@ contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
     // *** EVENTS ***
     // **************
 
+    ///@notice This event is emitted whenever a successful swap (tokenA -> tokenB) occurs
+    event SwapTokensForTokens(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
+
+    ///@notice This event is emitted whenever a successful swap (BNB -> token) occurs
+    event SwapBnbForTokens(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
+
     ///@notice This event is emitted whenever a successful supply on behalf of the user occurs
     event SupplyOnBehalf(address indexed supplier, address indexed vTokenAddress, uint256 indexed amount);
 
@@ -45,8 +56,14 @@ contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
     // **** CONSTRUCTOR ****
     // *********************
 
+    /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor(address WBNB_, address factory_) {
+          if (WBNB_ == address(0) || factory_ == address(0)) {
+            revert ZeroAddress();
+        }
+        WBNB = WBNB_;
+        factory = factory_;
         // Note that the contract is upgradeable. Use initialize() or reinitializers
         // to set the state variables.
         _disableInitializers();
@@ -55,13 +72,9 @@ contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
     // *********************
     // **** INITIALIZE *****
     // *********************
-    function initialize(address WBNB_, address factory_) public initializer {
-        if (WBNB == address(0) || factory == address(0)) {
-            revert ZeroAddress();
-        }
+    function initialize() external initializer {
         __Ownable2Step_init();
-        WBNB = WBNB_;
-        factory = factory_;
+        __ReentrancyGuard_init();
     }
 
     // ****************************
@@ -267,13 +280,15 @@ contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
         if (amounts[amounts.length - 1] < amountOutMin) {
             revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
         }
+        address pairAddress = PancakeLibrary.pairFor(factory, path[0], path[1]);
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
-            PancakeLibrary.pairFor(factory, path[0], path[1]),
+            pairAddress,
             amounts[0]
         );
         _swap(amounts, path, to);
+        emit SwapTokensForTokens(msg.sender,path,amounts);
     }
 
     function _swapExactETHForTokens(
@@ -292,5 +307,6 @@ contract SwapRouter is Ownable2StepUpgradeable, IPancakeSwapV2Router {
         IWBNB(wBNBAddress).deposit{ value: amounts[0] }();
         assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
+        emit SwapBnbForTokens(msg.sender,path,amounts);
     }
 }

@@ -46,8 +46,8 @@ library PancakeLibrary {
         address tokenB
     ) internal view returns (uint256 reserveA, uint256 reserveB) {
         (address token0, ) = sortTokens(tokenA, tokenB);
-        pairFor(factory, tokenA, tokenB);
-        (uint256 reserve0, uint256 reserve1, ) = IPancakePair(pairFor(factory, tokenA, tokenB)).getReserves();
+        address pairAddress = pairFor(factory, tokenA, tokenB);
+        (uint256 reserve0, uint256 reserve1, ) = IPancakePair(pairAddress).getReserves();
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
