@@ -5,6 +5,7 @@ import "../../Utils/ErrorReporter.sol";
 import "../../Utils/Exponential.sol";
 import "../../Comptroller/ComptrollerStorage.sol";
 import "../../Comptroller/Comptroller.sol";
+import "../../Governance/IAccessControlManager.sol";
 import "../VTokens/VToken.sol";
 import "./VAIControllerStorage.sol";
 import "./VAIUnitroller.sol";
@@ -87,6 +88,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
     /// @notice Emiitted when VAI mint cap is changed
     event NewVAIMintCap(uint oldMintCap, uint newMintCap);
+
+    /// @notice Emitted when access control address is changed by admin
+    event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
 
     /*** Main Actions ***/
     struct MintLocalVars {
@@ -704,12 +708,24 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     /**
+     * @notice Sets the address of the access control of this contract
+     * @dev Admin function to set the access control address
+     * @param newAccessControlAddress New address for the access control
+     */
+    function setAccessControl(address newAccessControlAddress) external onlyAdmin {
+        _ensureNonzeroAddress(newAccessControlAddress);
+
+        address oldAccessControlAddress = accessControl;
+        accessControl = newAccessControlAddress;
+        emit NewAccessControl(oldAccessControlAddress, accessControl);
+    }
+
+    /**
      * @notice Set VAI borrow base rate
      * @param newBaseRateMantissa the base rate multiplied by 10**18
      */
     function setBaseRate(uint newBaseRateMantissa) external {
-        // Check caller is admin
-        require(msg.sender == admin, "UNAUTHORIZED");
+        _ensureAllowed("setBaseRate(uint256)");
 
         uint old = baseRateMantissa;
         baseRateMantissa = newBaseRateMantissa;
@@ -721,8 +737,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      * @param newFloatRateMantissa the VAI float rate multiplied by 10**18
      */
     function setFloatRate(uint newFloatRateMantissa) external {
-        // Check caller is admin
-        require(msg.sender == admin, "UNAUTHORIZED");
+        _ensureAllowed("setFloatRate(uint256)");
 
         uint old = floatRateMantissa;
         floatRateMantissa = newFloatRateMantissa;
@@ -733,9 +748,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      * @notice Set VAI stability fee receiver address
      * @param newReceiver the address of the VAI fee receiver
      */
-    function setReceiver(address newReceiver) external {
-        // Check caller is admin
-        require(msg.sender == admin, "UNAUTHORIZED");
+    function setReceiver(address newReceiver) external onlyAdmin {
         require(newReceiver != address(0), "invalid receiver address");
 
         address old = receiver;
@@ -748,8 +761,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      * @param _mintCap the amount of VAI that can be minted
      */
     function setMintCap(uint _mintCap) external {
-        // Check caller is admin
-        require(msg.sender == admin, "UNAUTHORIZED");
+        _ensureAllowed("setMintCap(uint256)");
 
         uint old = mintCap;
         mintCap = _mintCap;
@@ -787,5 +799,14 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         _notEntered = false;
         _;
         _notEntered = true; // get a gas-refund post-Istanbul
+    }
+
+    function _ensureAllowed(string memory functionSig) private view {
+        require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+    }
+
+    /// @notice Reverts if the passed address is zero
+    function _ensureNonzeroAddress(address someone) private pure {
+        require(someone != address(0), "can't be zero address");
     }
 }

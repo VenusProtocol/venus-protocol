@@ -1,7 +1,7 @@
-import { MockContract, smock } from "@defi-wonderland/smock";
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { BigNumber, Wallet } from "ethers";
+import { BigNumber, Wallet, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import {
@@ -30,6 +30,7 @@ const BLOCKS_PER_YEAR = 1000;
 
 interface ComptrollerFixture {
   usdt: BEP20Harness;
+  accessControl: FakeContract<IAccessControlManager>;
   comptroller: MockContract<Comptroller>;
   priceOracle: SimplePriceOracle;
   vai: VAIScenario;
@@ -37,12 +38,13 @@ interface ComptrollerFixture {
   vusdt: VBep20Harness;
 }
 
-describe("Comptroller", async () => {
+describe("VAIController", async () => {
   let user1: Wallet;
   let user2: Wallet;
   let wallet: Wallet;
   let treasuryGuardian: Wallet;
   let treasuryAddress: Wallet;
+  let accessControl: FakeContract<IAccessControlManager>;
   let comptroller: MockContract<Comptroller>;
   let priceOracle: SimplePriceOracle;
   let vai: VAIScenario;
@@ -81,8 +83,6 @@ describe("Comptroller", async () => {
     const vaiFactory = await ethers.getContractFactory("VAIScenario");
     const vai = (await vaiFactory.deploy(BigNumber.from(97))) as VAIScenario;
 
-    const venusRate = bigNumber18;
-
     const vaiControllerFactory = await smock.mock<VAIControllerHarness__factory>("VAIControllerHarness");
     const vaiController = await vaiControllerFactory.deploy();
 
@@ -93,13 +93,13 @@ describe("Comptroller", async () => {
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setVAIController(vaiController.address);
     await vaiController._setComptroller(comptroller.address);
+    await vaiController.setAccessControl(accessControl.address);
     await vaiController.setBlocksPerYear(BLOCKS_PER_YEAR);
     await comptroller._setLiquidationIncentive(liquidationIncentive);
     await comptroller._setCloseFactor(closeFactor);
     await comptroller._setPriceOracle(priceOracle.address);
     comptroller.getXVSAddress.returns(xvs.address);
     await vaiController.setVAIAddress(vai.address);
-    await comptroller.setVariable("venusRate", venusRate);
     await vai.rely(vaiController.address);
     await comptroller._setTreasuryData(
       treasuryGuardian.address,
@@ -131,11 +131,15 @@ describe("Comptroller", async () => {
     await comptroller._supportMarket(vusdt.address);
     await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(5));
 
-    return { usdt, comptroller, priceOracle, vai, vaiController, vusdt };
+    return { usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt };
   }
 
   beforeEach("deploy Comptroller", async () => {
-    ({ usdt, comptroller, priceOracle, vai, vaiController, vusdt } = await loadFixture(comptrollerFixture));
+    ({ usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt } = await loadFixture(
+      comptrollerFixture,
+    ));
+    accessControl.isAllowedToCall.reset();
+    accessControl.isAllowedToCall.returns(true);
     await vusdt.harnessSetBalance(user1.address, bigNumber18.mul(200));
     await comptroller.connect(user1).enterMarkets([vusdt.address]);
   });
@@ -446,6 +450,101 @@ describe("Comptroller", async () => {
       await vaiController.accrueVAIInterest();
 
       expect(await vaiController.getVAIRepayAmount(user1.address)).to.eq(bigNumber18.mul(110));
+    });
+  });
+
+  describe("#setBaseRate", async () => {
+    it("fails if access control does not allow the call", async () => {
+      accessControl.isAllowedToCall.whenCalledWith(user1.address, "setBaseRate(uint256)").returns(false);
+      expect(vaiController.setBaseRate(42)).to.be.revertedWith("access denied");
+    });
+
+    it("emits NewVAIBaseRate event", async () => {
+      const tx = await vaiController.setBaseRate(42);
+      await expect(tx).to.emit(vaiController, "NewVAIBaseRate").withArgs(0, 42);
+    });
+
+    it("sets new base rate in storage", async () => {
+      await vaiController.setBaseRate(42);
+      expect(await vaiController.getVariable("baseRateMantissa")).to.equal(42);
+    });
+  });
+
+  describe("#setFloatRate", async () => {
+    it("fails if access control does not allow the call", async () => {
+      accessControl.isAllowedToCall.whenCalledWith(user1.address, "setFloatRate(uint256)").returns(false);
+      expect(vaiController.setFloatRate(42)).to.be.revertedWith("access denied");
+    });
+
+    it("emits NewVAIFloatRate event", async () => {
+      const tx = await vaiController.setFloatRate(42);
+      await expect(tx).to.emit(vaiController, "NewVAIFloatRate").withArgs(0, 42);
+    });
+
+    it("sets new float rate in storage", async () => {
+      await vaiController.setFloatRate(42);
+      expect(await vaiController.getVariable("floatRateMantissa")).to.equal(42);
+    });
+  });
+
+  describe("#setMintCap", async () => {
+    it("fails if access control does not allow the call", async () => {
+      accessControl.isAllowedToCall.whenCalledWith(user1.address, "setMintCap(uint256)").returns(false);
+      expect(vaiController.setMintCap(42)).to.be.revertedWith("access denied");
+    });
+
+    it("emits NewVAIMintCap event", async () => {
+      const tx = await vaiController.setMintCap(42);
+      await expect(tx).to.emit(vaiController, "NewVAIMintCap").withArgs(constants.MaxUint256, 42);
+    });
+
+    it("sets new mint cap in storage", async () => {
+      await vaiController.setMintCap(42);
+      expect(await vaiController.getVariable("mintCap")).to.equal(42);
+    });
+  });
+
+  describe("#setReceiver", async () => {
+    it("fails if called by a non-admin", async () => {
+      expect(vaiController.connect(user1).setReceiver(user1.address)).to.be.revertedWith("only admin can");
+    });
+
+    it("reverts if the receiver is zero address", async () => {
+      expect(vaiController.setReceiver(constants.AddressZero)).to.be.revertedWith("invalid receiver address");
+    });
+
+    it("emits NewVAIReceiver event", async () => {
+      const tx = await vaiController.setReceiver(user1.address);
+      await expect(tx).to.emit(vaiController, "NewVAIReceiver").withArgs(treasuryAddress.address, user1.address);
+    });
+
+    it("sets VAI receiver address in storage", async () => {
+      await vaiController.setReceiver(user1.address);
+      expect(await vaiController.getVariable("receiver")).to.equal(user1.address);
+    });
+  });
+
+  describe("#setAccessControl", async () => {
+    it("reverts if called by non-admin", async () => {
+      expect(vaiController.connect(user1).setAccessControl(accessControl.address)).to.be.revertedWith("only admin can");
+    });
+
+    it("reverts if ACM is zero address", async () => {
+      expect(vaiController.setAccessControl(constants.AddressZero)).to.be.revertedWith("can't be zero address");
+    });
+
+    it("emits NewAccessControl event", async () => {
+      const newAccessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+      const tx = await vaiController.setAccessControl(newAccessControl.address);
+      await expect(tx)
+        .to.emit(vaiController, "NewAccessControl")
+        .withArgs(accessControl.address, newAccessControl.address);
+    });
+
+    it("sets ACM address in storage", async () => {
+      const newAccessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+      await vaiController.setAccessControl(newAccessControl.address);
+      expect(await vaiController.getVariable("accessControl")).to.equal(newAccessControl.address);
     });
   });
 });
