@@ -77,15 +77,18 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
      */
     uint internal vaiMintIndex;
 
-    // @notice Block number that interest was last accrued at
+    /// @notice Block number that interest was last accrued at
     uint internal accrualBlockNumber;
 
-    // @notice Global vaiMintIndex as of the most recent balance-changing action for user
+    /// @notice Global vaiMintIndex as of the most recent balance-changing action for user
     mapping(address => uint) internal vaiMinterInterestIndex;
 
-    // @notice tracks the amount of mintedVAI of a user that represents the accrued interest
+    /// @notice Tracks the amount of mintedVAI of a user that represents the accrued interest
     mapping(address => uint) public pastVAIInterest;
 
-    // @notice VAI mint cap
+    /// @notice VAI mint cap
     uint internal mintCap;
+
+    /// @notice Access control manager address
+    address public accessControl;
 }
