@@ -114,7 +114,6 @@ const config: HardhatUserConfig = {
       gasMultiplier: 10,
       timeout: 12000000,
     },
-    hardhat: isFork(),
     // currently not used, we are still using saddle to deploy contracts
     bscmainnet: {
       url: `https://bsc-dataseed.binance.org/`,
