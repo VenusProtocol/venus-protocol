@@ -161,7 +161,7 @@ describe("Governcance v4", () => {
         );
       });
       it("should be queued sucessfully", async () => {
-        await mineUpTo(await ethers.provider.getBlockNumber() + PROPOSAL_TYPE_CONFIGS[0].votingPeriod);
+        await mineUpTo((await ethers.provider.getBlockNumber()) + PROPOSAL_TYPE_CONFIGS[0].votingPeriod);
         const tx = await governorProxy.connect(proposer).queue(proposalId);
         await tx.wait();
       });
@@ -173,7 +173,7 @@ describe("Governcance v4", () => {
         );
       });
       it("should be executed successfully", async () => {
-        await mineUpTo(await ethers.provider.getBlockNumber() + TIMELOCK_DELAYS_MAINNET.NORMAL);
+        await mineUpTo((await ethers.provider.getBlockNumber()) + TIMELOCK_DELAYS_MAINNET.NORMAL);
         const tx = await governorProxy.connect(proposer).execute(proposalId);
         await tx.wait();
       });
@@ -231,7 +231,7 @@ describe("Governcance v4", () => {
         );
       });
       it("should be queued sucessfully", async () => {
-        await mineUpTo(await ethers.provider.getBlockNumber() + PROPOSAL_TYPE_CONFIGS[1].votingPeriod);
+        await mineUpTo((await ethers.provider.getBlockNumber()) + PROPOSAL_TYPE_CONFIGS[1].votingPeriod);
         const tx = await governorProxy.connect(proposer).queue(proposalId);
         await tx.wait();
       });
@@ -243,7 +243,7 @@ describe("Governcance v4", () => {
         );
       });
       it("should be executed successfully", async () => {
-        await mineUpTo(await ethers.provider.getBlockNumber() + TIMELOCK_DELAYS_MAINNET.FAST_TRACK);
+        await mineUpTo((await ethers.provider.getBlockNumber()) + TIMELOCK_DELAYS_MAINNET.FAST_TRACK);
         const tx = await governorProxy.connect(proposer).execute(proposalId);
         await tx.wait();
       });
@@ -307,7 +307,7 @@ describe("Governcance v4", () => {
           );
         });
         it("should be queued sucessfully", async () => {
-          await mineUpTo(await ethers.provider.getBlockNumber() + PROPOSAL_TYPE_CONFIGS[2].votingPeriod);
+          await mineUpTo((await ethers.provider.getBlockNumber()) + PROPOSAL_TYPE_CONFIGS[2].votingPeriod);
           const tx = await governorProxy.connect(proposer).queue(proposalId);
           await tx.wait();
         });
@@ -319,7 +319,7 @@ describe("Governcance v4", () => {
           );
         });
         it("should be executed successfully", async () => {
-          await mineUpTo(await ethers.provider.getBlockNumber() + TIMELOCK_DELAYS_MAINNET.CRITICAL);
+          await mineUpTo((await ethers.provider.getBlockNumber()) + TIMELOCK_DELAYS_MAINNET.CRITICAL);
           const tx = await governorProxy.connect(proposer).execute(proposalId);
           await tx.wait();
         });
