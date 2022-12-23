@@ -133,7 +133,8 @@ contract VenusLens is ExponentialNoError {
             underlyingDecimals = EIP20Interface(vBep20.underlying()).decimals();
         }
 
-        uint venusSpeedPerBlock = comptroller.venusSpeeds(address(vToken));
+        uint venusSupplySpeedPerBlock = comptroller.venusSupplySpeeds(address(vToken));
+        uint venusBorrowSpeedPerBlock = comptroller.venusBorrowSpeeds(address(vToken));
 
         return
             VTokenMetadata({
@@ -151,10 +152,10 @@ contract VenusLens is ExponentialNoError {
                 underlyingAssetAddress: underlyingAssetAddress,
                 vTokenDecimals: vToken.decimals(),
                 underlyingDecimals: underlyingDecimals,
-                venusSupplySpeed: venusSpeedPerBlock,
-                venusBorrowSpeed: venusSpeedPerBlock,
-                dailySupplyXvs: venusSpeedPerBlock.mul(BLOCKS_PER_DAY),
-                dailyBorrowXvs: venusSpeedPerBlock.mul(BLOCKS_PER_DAY)
+                venusSupplySpeed: venusSupplySpeedPerBlock,
+                venusBorrowSpeed: venusBorrowSpeedPerBlock,
+                dailySupplyXvs: venusSupplySpeedPerBlock.mul(BLOCKS_PER_DAY),
+                dailyBorrowXvs: venusBorrowSpeedPerBlock.mul(BLOCKS_PER_DAY)
             });
     }
 
@@ -487,7 +488,7 @@ contract VenusLens is ExponentialNoError {
         address vToken,
         ComptrollerInterface comptroller
     ) internal view {
-        uint supplySpeed = comptroller.venusSpeeds(vToken);
+        uint supplySpeed = comptroller.venusSupplySpeeds(vToken);
         uint blockNumber = block.number;
         uint deltaBlocks = sub_(blockNumber, uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
@@ -514,7 +515,7 @@ contract VenusLens is ExponentialNoError {
         Exp memory marketBorrowIndex,
         ComptrollerInterface comptroller
     ) internal view {
-        uint borrowSpeed = comptroller.venusSpeeds(vToken);
+        uint borrowSpeed = comptroller.venusBorrowSpeeds(vToken);
         uint blockNumber = block.number;
         uint deltaBlocks = sub_(blockNumber, uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
