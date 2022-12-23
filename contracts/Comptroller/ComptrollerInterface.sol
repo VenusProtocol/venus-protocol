@@ -110,7 +110,9 @@ contract ComptrollerInterface is ComptrollerInterfaceG2 {
 
     function venusAccrued(address) external view returns (uint);
 
-    function venusSpeeds(address) external view returns (uint);
+    function venusSupplySpeeds(address) external view returns (uint);
+
+    function venusBorrowSpeeds(address) external view returns (uint);
 
     function getAllMarkets() external view returns (VToken[] memory);
 
