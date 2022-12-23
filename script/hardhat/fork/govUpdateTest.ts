@@ -1,13 +1,10 @@
-import { FakeContract, smock } from "@defi-wonderland/smock";
 import { impersonateAccount, loadFixture, mine, mineUpTo, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { providers } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
-import { ethers, network, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 
-import { convertToUnit } from "../../../helpers/utils";
-import { Comptroller, GovernorBravoDelegate, GovernorBravoDelegator, IAccessControlManager } from "../../../typechain";
+import { Comptroller, GovernorBravoDelegate, IAccessControlManager } from "../../../typechain";
 import { TimelockInterface } from "../../../typechain/contracts/Governance/GovernorAlpha2.sol";
 import { getCalldatas, setForkBlock } from "./utils";
 
@@ -54,7 +51,7 @@ const PROPOSAL_TYPES = {
 };
 
 let comptrollerProxy: Comptroller;
-let accessControl: Contract;
+let accessControl: IAccessControlManager;
 let governorProxy: GovernorBravoDelegate;
 let proposer: SignerWithAddress;
 let supporter: SignerWithAddress;
