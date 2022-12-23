@@ -111,7 +111,7 @@ const governanceFixture = async (): Promise<void> => {
   await tx.wait();
 };
 
-describe("Governcance v4", () => {
+describe("Governance v4", () => {
   const NEW_LIQ_INCENTIVE = parseUnits("2", 18);
   describe("NORMAL VIP", () => {
     const proposal = {
