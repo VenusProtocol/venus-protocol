@@ -80,7 +80,7 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
-    hardhat:{
+    hardhat: {
       allowUnlimitedContractSize: true,
       loggingEnabled: false,
       live: false,

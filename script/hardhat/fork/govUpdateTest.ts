@@ -268,14 +268,7 @@ describe("Governance v4", () => {
       it("should revert if below votingThreshold", async () => {
         const { targets, signatures, values } = proposal;
         await expect(
-          governorProxy.propose(
-            targets,
-            values,
-            signatures,
-            getCalldatas(proposal),
-            "VIP 3",
-            PROPOSAL_TYPES.CRITICAL,
-          ),
+          governorProxy.propose(targets, values, signatures, getCalldatas(proposal), "VIP 3", PROPOSAL_TYPES.CRITICAL),
         ).to.be.revertedWith("GovernorBravo::propose: proposer votes below proposal threshold");
       });
       it("should pass", async () => {
