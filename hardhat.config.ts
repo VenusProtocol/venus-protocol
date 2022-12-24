@@ -80,6 +80,11 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
+    hardhat:{
+      allowUnlimitedContractSize: true,
+      loggingEnabled: false,
+      live: false,
+    },
     bsctestnet: {
       url: process.env.BSC_TESTNET_NODE || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
