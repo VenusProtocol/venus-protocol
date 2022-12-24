@@ -45,32 +45,6 @@ task("run-script", "Runs a hardhard script by name")
     }
   });
 
-function isFork() {
-  if (process.env.BSC_ARCHIVE_NODE) {
-    return {
-      chainId: 56,
-      forking: {
-        url: process.env.BSC_ARCHIVE_NODE || "",
-      },
-    };
-  }
-  if (process.env.FORK_MAINNET === "true") {
-    return {
-      allowUnlimitedContractSize: false,
-      loggingEnabled: false,
-      forking: {
-        url: `${process.env.FORK_MAINNET_RPC}`,
-      },
-      live: false,
-    };
-  }
-  return {
-    allowUnlimitedContractSize: true,
-    loggingEnabled: false,
-    live: false,
-  };
-}
-
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   solidity: {
