@@ -34,8 +34,8 @@ contract Timelock {
     );
 
     uint public constant GRACE_PERIOD = 14 days;
-    uint public constant MINIMUM_DELAY = 800; // About 1 hour, 3 secs per block (20 * 60)
-    uint public constant MAXIMUM_DELAY = 28800; // About 24 hours, 3 secs per block (20 * 60 * 24)
+    uint public constant MINIMUM_DELAY = 1 hours;
+    uint public constant MAXIMUM_DELAY = 30 days;
 
     address public admin;
     address public pendingAdmin;
