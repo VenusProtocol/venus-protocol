@@ -6,7 +6,7 @@ import { ethers } from "hardhat";
 
 import { Comptroller, GovernorBravoDelegate, IAccessControlManager } from "../../../typechain";
 import { TimelockInterface } from "../../../typechain/contracts/Governance/GovernorAlpha2.sol";
-import { getCalldatas, setForkBlock } from "./utils";
+import { getCalldatas, setForkBlock } from "./vip-framework/utils";
 
 const ONE_HOUR_IN_BLOCKS = 800;
 const SIX_HOURS_IN_BLOCKS = 6 * ONE_HOUR_IN_BLOCKS;
