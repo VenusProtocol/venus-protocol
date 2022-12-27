@@ -30,25 +30,19 @@ interface ComptrollerImplInterface {
  * @author Venus
  */
 contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Exponential {
+    /// @notice Initial index used in interest computations
+    uint public constant INITIAL_VAI_MINT_INDEX = 1e18;
+
     /// @notice Emitted when Comptroller is changed
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
 
-    /**
-     * @notice Event emitted when VAI is minted
-     */
+    /// @notice Event emitted when VAI is minted
     event MintVAI(address minter, uint mintVAIAmount);
 
-    /**
-     * @notice Event emitted when VAI is repaid
-     */
+    /// @notice Event emitted when VAI is repaid
     event RepayVAI(address payer, address borrower, uint repayVAIAmount);
 
-    /// @notice The initial Venus index for a market
-    uint224 public constant venusInitialIndex = 1e36;
-
-    /**
-     * @notice Event emitted when a borrow is liquidated
-     */
+    /// @notice Event emitted when a borrow is liquidated
     event LiquidateVAI(
         address liquidator,
         address borrower,
@@ -57,24 +51,16 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         uint seizeTokens
     );
 
-    /**
-     * @notice Emitted when treasury guardian is changed
-     */
+    /// @notice Emitted when treasury guardian is changed
     event NewTreasuryGuardian(address oldTreasuryGuardian, address newTreasuryGuardian);
 
-    /**
-     * @notice Emitted when treasury address is changed
-     */
+    /// @notice Emitted when treasury address is changed
     event NewTreasuryAddress(address oldTreasuryAddress, address newTreasuryAddress);
 
-    /**
-     * @notice Emitted when treasury percent is changed
-     */
+    /// @notice Emitted when treasury percent is changed
     event NewTreasuryPercent(uint oldTreasuryPercent, uint newTreasuryPercent);
 
-    /**
-     * @notice Event emitted when VAIs are minted and fee are transferred
-     */
+    /// @notice Event emitted when VAIs are minted and fee are transferred
     event MintFee(address minter, uint feeAmount);
 
     /// @notice Emiitted when VAI base rate is changed
@@ -104,7 +90,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     function initialize() external onlyAdmin {
         require(vaiMintIndex == 0, "already initialized");
 
-        vaiMintIndex = 1e18;
+        vaiMintIndex = INITIAL_VAI_MINT_INDEX;
         accrualBlockNumber = getBlockNumber();
         mintCap = uint256(-1);
 
@@ -120,7 +106,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     // solhint-disable-next-line code-complexity
     function mintVAI(uint mintVAIAmount) external nonReentrant returns (uint) {
         if (address(comptroller) != address(0)) {
-            require(mintVAIAmount > 0, "mintVAIAmount cannt be zero");
+            require(mintVAIAmount > 0, "mintVAIAmount cannot be zero");
             require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
 
             accrueVAIInterest();
@@ -599,6 +585,16 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         return rate;
     }
 
+    function getVAIMinterInterestIndex(address minter) public view returns (uint) {
+        uint storedIndex = vaiMinterInterestIndex[minter];
+        // If the user minted VAI before the stability fee was introduced, accrue
+        // starting from stability fee launch
+        if (storedIndex == 0) {
+            return INITIAL_VAI_MINT_INDEX;
+        }
+        return storedIndex;
+    }
+
     /**
      * @notice Get the current total VAI a user needs to repay
      * @param account The address of the VAI borrower
@@ -616,7 +612,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         (mErr, totalMintedVAI) = subUInt(amount, interest);
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
-        (mErr, delta) = subUInt(vaiMintIndex, vaiMinterInterestIndex[account]);
+        (mErr, delta) = subUInt(vaiMintIndex, getVAIMinterInterestIndex(account));
         require(mErr == MathError.NO_ERROR, "VAI_TOTAL_REPAY_AMOUNT_CALCULATION_FAILED");
 
         (mErr, newInterest) = mulUInt(delta, totalMintedVAI);
