@@ -6,9 +6,12 @@ import "./PrimeStorage.sol";
 contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     event Mint (
-        uint256 id,
         address owner,
         Token metadata
+    );
+
+    event Burn (
+        address owner
     );
 
     constructor() {} 
@@ -30,11 +33,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         Tier tier,
         address owner
     ) internal {
-        require(_owners[owner] == 0, "user already owns a prime token");
+        require(_tokens[owner].tier == Tier.ZERO, "user already owns a prime token");
 
         Token memory token = Token(isIrrevocable, tier);
-        _owners[owner] = _nextTokenId;
-        _tokens[_nextTokenId] = token;
+        _tokens[owner] = token;
 
         if (isIrrevocable == true) {
             _totalIrrevocable++;
@@ -48,8 +50,22 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             "exceeds token mint limit"
         );
 
-        emit Mint(_nextTokenId, owner, token);
+        emit Mint(owner, token);
+    }
 
-        _nextTokenId++;
+    function _burn(
+        address owner
+    ) internal {
+        require(_tokens[owner].tier != Tier.ZERO, "user doesn't own an prime token");
+
+        if (_tokens[owner].isIrrevocable == true) {
+            _totalIrrevocable--;
+        } else {
+            _totalRevocable--;
+        }
+
+        _tokens[owner].tier = Tier.ZERO;
+
+        emit Burn(owner);
     }
 }
