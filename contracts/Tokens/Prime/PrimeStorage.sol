@@ -22,21 +22,35 @@ contract PrimeStorageV1 {
         uint256 borrowTVLCap;
     }
 
-    // Mapping owner token id to token metadata
+    struct Stake {
+        Tier tier;
+        uint stakedAt;
+    }
+
+    /// @notice constant variable to find highest tier
+    Tier constant MAX_TIER = Tier.FIVE;
+
+    /// @notice number of days user need to stake to claim prime token 
+    uint256 constant STAKING_PERIOD = 90 * 24 * 60 * 60;
+    
+    /// @notice Mapping owner token id to token metadata
     mapping(address => Token) internal _tokens;
 
-    // Tracks total irrevocable tokens minted
+    /// @notice  Tracks total irrevocable tokens minted
     uint256 internal _totalIrrevocable;
 
-    // Tracks total revocable tokens minted
+    /// @notice  Tracks total revocable tokens minted
     uint256 internal _totalRevocable;
 
-    // Indicates maximum revocable tokens that can be minted
+    /// @notice  Indicates maximum revocable tokens that can be minted
     uint256 internal _revocableLimit;
 
-    // Indicates maximum irrevocable tokens that can be minted
+    /// @notice  Indicates maximum irrevocable tokens that can be minted
     uint256 internal _irrevocableLimit;
 
-     // Mapping owner tier to metadata
+    /// @notice  Mapping owner tier to metadata
     mapping (Tier => Cap) internal _tiers;
+
+    /// @notice Tracks when prime token eligible users started staking for claiming prime token
+    mapping (address => Stake) internal _stakes;
 }

@@ -5,6 +5,9 @@ import "./PrimeStorage.sol";
 
 contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
+    /// @notice address of XVS vault
+    address immutable internal xvsVault;
+
     event Mint (
         address owner,
         Token metadata
@@ -14,7 +17,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         address owner
     );
 
-    constructor() {} 
+    constructor(
+        address _xvsVault
+    ) {
+        xvsVault = _xvsVault;
+    } 
 
     function initialize() external virtual initializer {
         __Ownable2Step_init();
@@ -37,9 +44,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256[] memory borrowTVLCaps        
     ) onlyOwner external {
         require(
-            thresholds.length == 5 &&
-            supplyTVLCaps.length == 5 &&
-            borrowTVLCaps.length == 5, 
+            thresholds.length == uint(MAX_TIER) &&
+            supplyTVLCaps.length == uint(MAX_TIER) &&
+            borrowTVLCaps.length == uint(MAX_TIER), 
             "you need to set caps for all tiers"
         );
 
@@ -73,6 +80,48 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         for (uint i = 0; i < owners.length; i++) {
             _mint(true, Tier.FIVE, owners[i]);
         }
+    }
+
+    function staked(
+        address owner,
+        uint256 totalStaked
+    ) external onlyXVSVault {
+        Tier eligibleTier;
+
+        for(uint i = 0; i < uint(MAX_TIER); i++) {
+            if(totalStaked >= _tiers[Tier(i + 1)].threshold) {
+                eligibleTier = Tier(i + 1);
+            } else {
+                break;
+            }
+        }
+
+        if (
+            eligibleTier > _tokens[owner].tier &&
+            _stakes[owner].tier != eligibleTier
+        ) {
+            _stakes[owner] = Stake(eligibleTier, block.timestamp);
+        }
+    }
+
+    function claim() external {
+        require(_tokens[msg.sender].tier == Tier.ZERO, "you already own prime token");
+        require(_stakes[msg.sender].tier > Tier.ZERO, "you are not eligible to claim prime token");
+        require(block.timestamp - _stakes[msg.sender].stakedAt >= STAKING_PERIOD, "you need to wait more time for claiming prime token");
+
+        _mint(false, _stakes[msg.sender].tier, msg.sender);
+
+        delete _stakes[msg.sender];
+    }
+
+    function upgrade() external {
+    }
+
+    function unstaked(
+        address owner,
+        uint256 totalStaked
+    ) external onlyXVSVault {
+
     }
 
     function _mint(
@@ -114,5 +163,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _tokens[owner].tier = Tier.ZERO;
 
         emit Burn(owner);
+    }
+
+    modifier onlyXVSVault() {
+        require(msg.sender == xvsVault, "only XVS vault can call this function");
+        _;
     }
 }
