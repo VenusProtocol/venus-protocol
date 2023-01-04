@@ -86,15 +86,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         address owner,
         uint256 totalStaked
     ) external onlyXVSVault {
-        Tier eligibleTier;
-
-        for(uint i = 0; i < uint(MAX_TIER); i++) {
-            if(totalStaked >= _tiers[Tier(i + 1)].threshold) {
-                eligibleTier = Tier(i + 1);
-            } else {
-                break;
-            }
-        }
+        Tier eligibleTier = getEligibleTier(totalStaked);
 
         if (
             eligibleTier > _tokens[owner].tier &&
@@ -163,6 +155,20 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _tokens[owner].tier = Tier.ZERO;
 
         emit Burn(owner);
+    }
+
+    function getEligibleTier(
+        uint256 amount
+    ) internal returns (Tier eligibleTier) {
+        for(uint i = 0; i < uint(MAX_TIER); i++) {
+            if(amount >= _tiers[Tier(i + 1)].threshold) {
+                eligibleTier = Tier(i + 1);
+            } else {
+                break;
+            }
+        }
+
+        return eligibleTier;
     }
 
     modifier onlyXVSVault() {
