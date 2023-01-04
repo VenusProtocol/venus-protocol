@@ -89,6 +89,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         Tier eligibleTier = getEligibleTier(totalStaked);
 
         if (
+            _tokens[owner].isIrrevocable == false &&
             eligibleTier > _tokens[owner].tier &&
             _stakes[owner].tier != eligibleTier
         ) {
@@ -102,18 +103,36 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         require(block.timestamp - _stakes[msg.sender].stakedAt >= STAKING_PERIOD, "you need to wait more time for claiming prime token");
 
         _mint(false, _stakes[msg.sender].tier, msg.sender);
-
         delete _stakes[msg.sender];
     }
 
     function upgrade() external {
+        require(_tokens[msg.sender].tier != Tier.ZERO, "you don't own prime token");
+        require(_tokens[msg.sender].isIrrevocable == false, "you can only upgrade revocable token");
+        require(_stakes[msg.sender].tier > _tokens[msg.sender].tier, "you token is already upgraded");
+        require(block.timestamp - _stakes[msg.sender].stakedAt >= STAKING_PERIOD, "you need to wait more time for upgrading prime token");
+
+        _tokens[msg.sender].tier = _stakes[msg.sender].tier;
+        delete _stakes[msg.sender];
     }
 
     function unstaked(
         address owner,
         uint256 totalStaked
     ) external onlyXVSVault {
+        Tier eligibleTier = getEligibleTier(totalStaked);
 
+        if (
+            _tokens[owner].tier > Tier.ZERO &&
+            eligibleTier < _tokens[owner].tier &&
+            _tokens[owner].isIrrevocable == false
+        ) {
+            _tokens[owner].tier = eligibleTier;
+        }
+
+        if (_stakes[msg.sender].tier != Tier.ZERO && _stakes[msg.sender].tier != eligibleTier) {
+            delete _stakes[msg.sender];
+        }
     }
 
     function _mint(
