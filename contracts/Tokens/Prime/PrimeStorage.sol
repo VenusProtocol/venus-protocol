@@ -28,10 +28,10 @@ contract PrimeStorageV1 {
     }
 
     /// @notice constant variable to find highest tier
-    Tier constant MAX_TIER = Tier.FIVE;
+    Tier constant internal MAX_TIER = Tier.FIVE;
 
     /// @notice number of days user need to stake to claim prime token 
-    uint256 constant STAKING_PERIOD = 90 * 24 * 60 * 60;
+    uint256 constant internal STAKING_PERIOD = 90 * 24 * 60 * 60;
     
     /// @notice Mapping owner token id to token metadata
     mapping(address => Token) internal _tokens;
