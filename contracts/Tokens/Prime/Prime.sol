@@ -128,6 +128,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             _tokens[owner].isIrrevocable == false
         ) {
             _tokens[owner].tier = eligibleTier;
+
+            if (eligibleTier == Tier.ZERO) {
+                _burn(msg.sender);
+            }
         }
 
         if (_stakes[msg.sender].tier != Tier.ZERO && _stakes[msg.sender].tier != eligibleTier) {
