@@ -178,7 +178,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     function getEligibleTier(
         uint256 amount
-    ) internal returns (Tier eligibleTier) {
+    ) view internal returns (Tier eligibleTier) {
         for(uint i = 0; i < uint(MAX_TIER); i++) {
             if(amount >= _tiers[Tier(i + 1)].threshold) {
                 eligibleTier = Tier(i + 1);

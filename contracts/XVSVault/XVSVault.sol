@@ -7,6 +7,7 @@ import "../Utils/IBEP20.sol";
 import "./XVSVaultProxy.sol";
 import "./XVSVaultStorage.sol";
 import "./XVSVaultErrorReporter.sol";
+import "../Tokens/Prime/IPrime.sol";
 
 interface IXVSStore {
     function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
@@ -184,6 +185,10 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             _moveDelegates(address(0), delegates[msg.sender], uint96(_amount));
         }
 
+        if (_primeRewardToken == _rewardToken && _pid == _primePoolId) {
+            _primeToken.staked(msg.sender, user.amount.sub(user.pendingWithdrawals));
+        }
+
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
     }
 
@@ -351,6 +356,10 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {
             _moveDelegates(delegates[msg.sender], address(0), uint96(_amount));
+        }
+
+        if (_primeRewardToken == _rewardToken && _pid == _primePoolId) {
+            _primeToken.unstaked(msg.sender, user.amount.sub(user.pendingWithdrawals));
         }
 
         emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
@@ -675,5 +684,18 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         _notEntered = true;
 
         emit StoreUpdated(oldXvsContract, oldStore, _xvs, _xvsStore);
+    }
+
+    function setPrimeToken(
+        IPrime primeToken,
+        address primeRewardToken,
+        uint256 primePoolId
+    ) external onlyAdmin {
+        require(address(primeToken) != address(0), "prime token cannot be zero address");
+        require(primeRewardToken != address(0), "reward cannot be zero address");
+
+        _primeToken = primeToken;
+        _primeRewardToken = primeRewardToken;
+        _primePoolId = primePoolId;
     }
 }
