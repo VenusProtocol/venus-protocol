@@ -18,8 +18,10 @@ contract PrimeStorageV1 {
 
     struct Cap {
         uint256 threshold;
-        uint256 supplyTVLCap;
-        uint256 borrowTVLCap;
+        uint256 stableCoinSupplyTVLCap;
+        uint256 stableCoinBorrowTVLCap;
+        uint256 nonStableCoinSupplyTVLCap;
+        uint256 nonStableCoinBorrowTVLCap;
     }
 
     struct Stake {

@@ -40,36 +40,48 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     function setCaps(
         uint256[] memory thresholds,
-        uint256[] memory supplyTVLCaps,
-        uint256[] memory borrowTVLCaps        
+        uint256[] memory stableCoinSupplyTVLCaps,
+        uint256[] memory stableCoinBorrowTVLCaps,
+        uint256[] memory nonStableCoinSupplyTVLCaps,
+        uint256[] memory nonStableCoinBorrowTVLCaps        
     ) onlyOwner external {
         require(
             thresholds.length == uint(MAX_TIER) &&
-            supplyTVLCaps.length == uint(MAX_TIER) &&
-            borrowTVLCaps.length == uint(MAX_TIER), 
+            stableCoinSupplyTVLCaps.length == uint(MAX_TIER) &&
+            stableCoinBorrowTVLCaps.length == uint(MAX_TIER) && 
+            nonStableCoinSupplyTVLCaps.length == uint(MAX_TIER) &&
+            nonStableCoinBorrowTVLCaps.length == uint(MAX_TIER), 
             "you need to set caps for all tiers"
         );
 
         uint256 threshold;
-        uint256 borrowTVLCap;
-        uint256 supplyTVLCap;
+        uint256 stableCoinSupplyTVLCap;
+        uint256 stableCoinBorrowTVLCap;
+        uint256 nonStableCoinSupplyTVLCap;
+        uint256 nonStableCoinBorrowTVLCap;
 
         for(uint i = 0; i < thresholds.length; i++) {
             require(
                 thresholds[i] > threshold &&
-                borrowTVLCaps[i] > borrowTVLCap &&
-                supplyTVLCaps[i] > supplyTVLCap, 
+                stableCoinSupplyTVLCaps[i] > stableCoinSupplyTVLCap &&
+                stableCoinBorrowTVLCaps[i] > stableCoinBorrowTVLCap &&
+                nonStableCoinSupplyTVLCaps[i] > nonStableCoinSupplyTVLCap &&
+                nonStableCoinBorrowTVLCaps[i] > nonStableCoinBorrowTVLCap, 
                 "higher tier should have higher cap"
             );
 
             threshold = thresholds[i];
-            borrowTVLCap = borrowTVLCaps[i];
-            supplyTVLCap = supplyTVLCaps[i];
+            stableCoinSupplyTVLCap = stableCoinSupplyTVLCaps[i];
+            stableCoinBorrowTVLCap = stableCoinBorrowTVLCaps[i];
+            nonStableCoinSupplyTVLCap = nonStableCoinSupplyTVLCaps[i];
+            nonStableCoinBorrowTVLCap = nonStableCoinBorrowTVLCaps[i];
 
             _tiers[Tier(i+1)] = Cap(
                 thresholds[i],
-                supplyTVLCaps[i],
-                borrowTVLCaps[i]
+                stableCoinSupplyTVLCaps[i],
+                stableCoinBorrowTVLCaps[i],
+                nonStableCoinSupplyTVLCaps[i],
+                nonStableCoinBorrowTVLCaps[i]
             );
         }
     }
