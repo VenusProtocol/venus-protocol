@@ -29,11 +29,28 @@ contract PrimeStorageV1 {
         uint stakedAt;
     }
 
+    struct Market {
+        uint256 rate;
+        bool isStableCoin;
+        uint256 index;
+    }
+
+    struct Boost {
+        uint256 accrued;
+        uint256 index;
+    }
+
     /// @notice constant variable to find highest tier
     Tier constant internal MAX_TIER = Tier.FIVE;
 
     /// @notice number of days user need to stake to claim prime token 
     uint256 constant internal STAKING_PERIOD = 90 * 24 * 60 * 60;
+
+    /// @notice initial market index
+    uint256 constant internal INITIAL_INDEX = 1e18;
+
+    /// @notice number of seconds in a year
+    uint256 constant internal SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
     
     /// @notice Mapping owner token id to token metadata
     mapping(address => Token) internal _tokens;
@@ -55,4 +72,10 @@ contract PrimeStorageV1 {
 
     /// @notice Tracks when prime token eligible users started staking for claiming prime token
     mapping (address => Stake) internal _stakes;
+
+    /// @notice vToken to market configuration
+    mapping (address => Market) internal _markets;
+
+    /// @notice vToken to user to user index
+    mapping (address => mapping (address => Boost)) boosts;
 }

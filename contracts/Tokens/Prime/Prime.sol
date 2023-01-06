@@ -8,6 +8,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     /// @notice address of XVS vault
     address immutable internal xvsVault;
 
+    /// @notice address of comptroller vault
+    address immutable internal comptroller;
+
     /// @notice Emitted when prime token is minted
     event Mint (
         address owner,
@@ -20,9 +23,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     );
 
     constructor(
-        address _xvsVault
+        address _xvsVault,
+        address _comptroller
     ) {
         xvsVault = _xvsVault;
+        comptroller = _comptroller;
     } 
 
     function initialize() external virtual initializer {
@@ -252,8 +257,45 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         return eligibleTier;
     }
 
+    /**
+     * @notice Add or update market rate and configuration
+     * @param vToken vToken address of the market
+     * @param rate prime boost yield for the market. For example: 5.66% is set as (5.66 * 10**18)
+     */
+    function addMarket(
+        address vToken,
+        uint256 rate,
+        bool isStableCoin
+    ) onlyOwner external {
+        _markets[vToken].rate = rate;
+        _markets[vToken].isStableCoin = isStableCoin;
+
+        if (_markets[vToken].index == 0) {
+            _markets[vToken].index = INITIAL_INDEX;
+        }
+    }
+
+    function executeBoost(
+        address vToken,
+        uint256 borrowBalance,
+        uint256 supplyBalance
+    ) external onlyComptroller {
+
+    }
+
+    function ratePerSecond(
+        address vToken
+    ) returns (uint) {
+        return _markets[vToken].rate / SECONDS_PER_YEAR;
+    }
+
     modifier onlyXVSVault() {
         require(msg.sender == xvsVault, "only XVS vault can call this function");
+        _;
+    }
+
+    modifier onlyComptroller() {
+        require(address(comptroller) == msg.sender, "only comptroller can call this function");
         _;
     }
 }
