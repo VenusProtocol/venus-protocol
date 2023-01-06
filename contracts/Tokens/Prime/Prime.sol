@@ -87,10 +87,19 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     function issue(
-        address[] memory owners
+        bool isIrrevocable,
+        address[] memory owners,
+        Tier[] memory tiers
     ) onlyOwner external {
-        for (uint i = 0; i < owners.length; i++) {
-            _mint(true, Tier.FIVE, owners[i]);
+        if (isIrrevocable == true) {
+            for (uint i = 0; i < owners.length; i++) {
+                _mint(true, Tier.FIVE, owners[i]);
+            }   
+        } else {
+            for (uint i = 0; i < owners.length; i++) {
+                _mint(false, tiers[i], owners[i]);
+                delete _stakes[owner];
+            } 
         }
     }
 
