@@ -8,11 +8,13 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     /// @notice address of XVS vault
     address immutable internal xvsVault;
 
+    /// @notice Emitted when prime token is minted
     event Mint (
         address owner,
         Token metadata
     );
 
+    /// @notice Emitted when prime token is burned
     event Burn (
         address owner
     );
@@ -27,6 +29,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         __Ownable2Step_init();
     }
 
+    /**
+     * @notice Set limits for total tokens that can be mined
+     * @param irrevocableLimit total number of irrevocable tokens that can be minted
+     * @param revocableLimit total number of revocable tokens that can be minted
+     */
     function setLimit(
         uint256 irrevocableLimit,
         uint256 revocableLimit
@@ -38,6 +45,14 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _irrevocableLimit = irrevocableLimit;
     }
 
+    /**
+     * @notice Sets QVL for all the tiers
+     * @param thresholds XVS thresholds for each tier
+     * @param stableCoinSupplyTVLCaps supply TVL cap for stablecoin markets
+     * @param stableCoinBorrowTVLCaps borrow TVL cap for stablecoin markets
+     * @param nonStableCoinSupplyTVLCaps supply TVL cap for non-stablecoin markets
+     * @param nonStableCoinBorrowTVLCaps borrow TVL cap for non-stablecoin markets
+     */
     function setCaps(
         uint256[] memory thresholds,
         uint256[] memory stableCoinSupplyTVLCaps,
@@ -86,6 +101,12 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
     }
 
+    /**
+     * @notice Directly issue prime tokens to users
+     * @param isIrrevocable is the tokens being issued is irrevocable
+     * @param owners list of address to issue tokens to 
+     * @param tiers tier for each of the issued tokens
+     */
     function issue(
         bool isIrrevocable,
         address[] memory owners,
@@ -98,11 +119,16 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         } else {
             for (uint i = 0; i < owners.length; i++) {
                 _mint(false, tiers[i], owners[i]);
-                delete _stakes[owner];
+                delete _stakes[owners[i]];
             } 
         }
     }
 
+    /**
+     * @notice Called by XVS vault when someone deposits XVS. Used to start staking period if eligible
+     * @param owner the address of the user who staked XVS
+     * @param totalStaked the total staked XVS balance of user
+     */
     function staked(
         address owner,
         uint256 totalStaked
@@ -118,6 +144,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
     }
 
+    /**
+     * @notice For claiming prime token when staking period is completed
+     */
     function claim() external {
         require(_tokens[msg.sender].tier == Tier.ZERO, "you already own prime token");
         require(_stakes[msg.sender].tier > Tier.ZERO, "you are not eligible to claim prime token");
@@ -127,6 +156,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         delete _stakes[msg.sender];
     }
 
+    /**
+     * @notice For upgrading tier for a claimed prime token
+     */
     function upgrade() external {
         require(_tokens[msg.sender].tier != Tier.ZERO, "you don't own prime token");
         require(_tokens[msg.sender].isIrrevocable == false, "you can only upgrade revocable token");
@@ -137,6 +169,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         delete _stakes[msg.sender];
     }
 
+    /**
+     * @notice Called by XVS vault when someone withdraws XVS. Used to downgrade user tier or burn the prime token
+     * @param owner the address of the user who withdrew XVS
+     * @param totalStaked the total staked XVS balance of user
+     */
     function unstaked(
         address owner,
         uint256 totalStaked
