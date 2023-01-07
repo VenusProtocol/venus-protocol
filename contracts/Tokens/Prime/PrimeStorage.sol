@@ -33,6 +33,7 @@ contract PrimeStorageV1 {
         uint256 rate;
         bool isStableCoin;
         uint256 index;
+        uint256 lastUpdated;
     }
 
     struct Boost {

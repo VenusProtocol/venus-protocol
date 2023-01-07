@@ -272,6 +272,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         if (_markets[vToken].index == 0) {
             _markets[vToken].index = INITIAL_INDEX;
+            _markets[vToken].lastUpdated = block.timestamp;
         }
     }
 
@@ -285,7 +286,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     function ratePerSecond(
         address vToken
-    ) returns (uint) {
+    ) view returns (uint) {
         return _markets[vToken].rate / SECONDS_PER_YEAR;
     }
 
