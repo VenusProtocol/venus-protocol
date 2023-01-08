@@ -272,7 +272,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         if (_markets[vToken].index == 0) {
             _markets[vToken].index = INITIAL_INDEX;
-            _markets[vToken].lastUpdated = block.timestamp;
+            _markets[vToken].lastUpdated = block.number;
         }
     }
 
@@ -282,24 +282,31 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256 supplyBalance
     ) external onlyComptroller {
         accrueInterest(vToken);
+
+
     }
 
     function accrueInterest(
         address vToken
     ) public returns (uint) {
-        uint256 delta = (block.timestamp - _markets[vToken].lastUpdated) * ratePerSecond();
+        uint256 delta = (block.number - _markets[vToken].lastUpdated) * ratePerBlock(vToken);
         _markets[vToken].index = _markets[vToken].index + delta;
-        _markets[vToken].lastUpdated = block.timestamp;
+        _markets[vToken].lastUpdated = block.number;
     } 
 
-    function interestPerBlock() {
-
+    function interestPerBlock() internal {
+        //Supply * rate + supply QVL * boost - (Borrow * (Boost minus rate))
+        //1,200,000 * 0.01 + 1,200,000 * 0.45 - (260,000 * (0.045 - 0.031)) = $69,640
     }
 
-    function ratePerSecond(
+    function ratePerBlock(
         address vToken
-    ) view returns (uint) {
-        return _markets[vToken].rate / SECONDS_PER_YEAR;
+    ) internal view returns (uint) {
+        return _markets[vToken].rate / getBlocksPerYear();
+    }
+
+    function getBlocksPerYear() public view returns (uint) {
+        return 10512000; //(24 * 60 * 60 * 365) / 3;
     }
 
     modifier onlyXVSVault() {

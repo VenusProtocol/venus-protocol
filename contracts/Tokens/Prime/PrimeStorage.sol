@@ -51,7 +51,7 @@ contract PrimeStorageV1 {
     uint256 constant internal INITIAL_INDEX = 1e18;
 
     /// @notice number of seconds in a year
-    uint256 constant internal SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
+    uint256 constant internal BLOCKS_PER_YEAR = 365 * 24 * 60 * 60;
     
     /// @notice Mapping owner token id to token metadata
     mapping(address => Token) internal _tokens;
