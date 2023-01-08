@@ -36,7 +36,7 @@ contract PrimeStorageV1 {
         uint256 lastUpdated;
     }
 
-    struct Boost {
+    struct Interest {
         uint256 accrued;
         uint256 index;
     }
@@ -78,5 +78,5 @@ contract PrimeStorageV1 {
     mapping (address => Market) internal _markets;
 
     /// @notice vToken to user to user index
-    mapping (address => mapping (address => Boost)) boosts;
+    mapping (address => mapping (address => Interest)) interests;
 }

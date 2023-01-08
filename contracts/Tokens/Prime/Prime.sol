@@ -276,11 +276,23 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
     }
 
-    function executeBoost(
+    function executeInterest(
         address vToken,
         uint256 borrowBalance,
         uint256 supplyBalance
     ) external onlyComptroller {
+        accrueInterest(vToken);
+    }
+
+    function accrueInterest(
+        address vToken
+    ) public returns (uint) {
+        uint256 delta = (block.timestamp - _markets[vToken].lastUpdated) * ratePerSecond();
+        _markets[vToken].index = _markets[vToken].index + delta;
+        _markets[vToken].lastUpdated = block.timestamp;
+    } 
+
+    function interestPerBlock() {
 
     }
 
