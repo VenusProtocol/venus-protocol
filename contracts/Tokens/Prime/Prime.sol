@@ -283,7 +283,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     ) external onlyComptroller {
         accrueInterest(vToken);
 
+    }
 
+    function interestPerBlock() internal {
+        //Supply * rate + supply QVL * boost - (Borrow * (Boost minus rate))
+        //1,200,000 * 0.01 + 1,200,000 * 0.45 - (260,000 * (0.045 - 0.031)) = $69,640
     }
 
     function accrueInterest(
@@ -293,11 +297,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _markets[vToken].index = _markets[vToken].index + delta;
         _markets[vToken].lastUpdated = block.number;
     } 
-
-    function interestPerBlock() internal {
-        //Supply * rate + supply QVL * boost - (Borrow * (Boost minus rate))
-        //1,200,000 * 0.01 + 1,200,000 * 0.45 - (260,000 * (0.045 - 0.031)) = $69,640
-    }
 
     function ratePerBlock(
         address vToken
