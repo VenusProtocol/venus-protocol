@@ -102,7 +102,6 @@ describe("Swap Contract", () => {
   let swapRouter: MockContract<SwapRouter>;
   let tokenA: FakeContract<IERC20>;
   let tokenB: FakeContract<IERC20>;
-  let pancakePair: FakeContract<IPancakePair>;
 
   beforeEach(async () => {
     [, user] = await ethers.getSigners();
