@@ -110,7 +110,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     /**
      * @notice Swap BNB for another token and supplies to a Venus Market
      * @dev The amount to be swapped is obtained from the msg.value, since we are swapping BNB
-     * @param vTokenAddress The address of the vToken contract to supply assets in.
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
