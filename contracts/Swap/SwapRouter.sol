@@ -83,7 +83,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
 
     /**
      * @notice Swap token A for token B and supply to a Venus market
-     * @param vTokenAddress The address of the vToken contract to supply assets in.
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
