@@ -2,6 +2,7 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
+import { BigNumber } from "ethers";
 import { getAddress, keccak256, parseUnits, solidityPack } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
@@ -77,7 +78,7 @@ async function configure(fixture: SwapFixture, user: SignerWithAddress) {
 }
 
 function getCreate2Address(factoryAddress: string, [tokenA, tokenB]: [string, string]): string {
-  const [token0, token1] = tokenA < tokenB ? [tokenA, tokenB] : [tokenB, tokenA];
+  const [token0, token1] = BigNumber.from(tokenA) < BigNumber.from(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA];
   const create2Inputs = [
     "0xff",
     factoryAddress,
