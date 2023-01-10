@@ -183,7 +183,18 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
             emit RepayOnBehalf(msg.sender, vTokenAddress, swapAmounts[1]);
         }
     }
-
+     /**
+     * @notice Swaps an exact amount of input tokens for as many output tokens as possible,
+     *         along the route determined by the path. The first element of path is the input token,
+     *         the last is the output token, and any intermediate elements represent intermediate 
+     *         pairs to trade through (if, for example, a direct pair does not exist).
+     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
+     * @param amountIn The address of the vToken contract to repay.
+     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     */
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -194,6 +205,18 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         amounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, to);
     }
 
+
+    /**
+     * @notice Swaps an exact amount of ETH for as many output tokens as possible,
+     *         along the route determined by the path. The first element of path must be WBNB, 
+     *         the last is the output token, and any intermediate elements represent 
+     *         intermediate pairs to trade through (if, for example, a direct pair does not exist).
+     * @dev amountIn is passed through the msg.value of the transaction
+     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     */
     function swapExactETHForTokens(
         uint256 amountOutMin,
         address[] calldata path,
