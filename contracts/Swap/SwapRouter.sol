@@ -160,7 +160,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     }
 
     /**
-     * @notice Swap BNB for another token and repays a borrow from a Venus Market
+     * @notice Swap BNB for another token and repay a borrow from a Venus market
      * @dev The amount to be swapped is obtained from the msg.value, since we are swapping BNB
      * @param vTokenAddress The address of the vToken contract to repay.
      * @param amountOutMin Minimum amount of tokens to receive.
