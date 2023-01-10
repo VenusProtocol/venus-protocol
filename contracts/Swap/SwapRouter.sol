@@ -49,7 +49,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     ///@notice This event is emitted whenever a successful supply on behalf of the user occurs
     event SupplyOnBehalf(address indexed supplier, address indexed vTokenAddress, uint256 indexed amount);
 
-    ///@notice This event is emitted whenever a successful repay on behalf of the user occurs
+    /// @notice This event is emitted whenever a successful repay on behalf of the user occurs
     event RepayOnBehalf(address indexed repayer, address indexed vTokenAddress, uint256 indexed amount);
 
     // *********************
