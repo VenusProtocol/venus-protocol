@@ -43,7 +43,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     /// @notice This event is emitted whenever a successful swap (tokenA -> tokenB) occurs
     event SwapTokensForTokens(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
 
-    ///@notice This event is emitted whenever a successful swap (BNB -> token) occurs
+    /// @notice This event is emitted whenever a successful swap (BNB -> token) occurs
     event SwapBnbForTokens(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
 
     ///@notice This event is emitted whenever a successful supply on behalf of the user occurs
