@@ -19,11 +19,11 @@ import "./interfaces/CustomErrors.sol";
 contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPancakeSwapV2Router {
     /// @notice Address of WBNB contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address immutable public WBNB;
-    
+    address public immutable WBNB;
+
     /// @notice Address of pancake swap factory contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address immutable public factory;
+    address public immutable factory;
 
     // ***************
     // ** MODIFIERS **
@@ -59,7 +59,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address WBNB_, address factory_) {
-          if (WBNB_ == address(0) || factory_ == address(0)) {
+        if (WBNB_ == address(0) || factory_ == address(0)) {
             revert ZeroAddress();
         }
         WBNB = WBNB_;
@@ -183,10 +183,11 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
             emit RepayOnBehalf(msg.sender, vTokenAddress, swapAmounts[1]);
         }
     }
-     /**
+
+    /**
      * @notice Swaps an exact amount of input tokens for as many output tokens as possible,
      *         along the route determined by the path. The first element of path is the input token,
-     *         the last is the output token, and any intermediate elements represent intermediate 
+     *         the last is the output token, and any intermediate elements represent intermediate
      *         pairs to trade through (if, for example, a direct pair does not exist).
      * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
      * @param amountIn The address of the vToken contract to repay.
@@ -205,11 +206,10 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         amounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, to);
     }
 
-
     /**
      * @notice Swaps an exact amount of ETH for as many output tokens as possible,
-     *         along the route determined by the path. The first element of path must be WBNB, 
-     *         the last is the output token, and any intermediate elements represent 
+     *         along the route determined by the path. The first element of path must be WBNB,
+     *         the last is the output token, and any intermediate elements represent
      *         intermediate pairs to trade through (if, for example, a direct pair does not exist).
      * @dev amountIn is passed through the msg.value of the transaction
      * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
@@ -251,23 +251,17 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         return PancakeLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
-    function getAmountsOut(uint256 amountIn, address[] memory path)
-        public
-        view
-        virtual
-        override
-        returns (uint256[] memory amounts)
-    {
+    function getAmountsOut(
+        uint256 amountIn,
+        address[] memory path
+    ) public view virtual override returns (uint256[] memory amounts) {
         return PancakeLibrary.getAmountsOut(factory, amountIn, path);
     }
 
-    function getAmountsIn(uint256 amountOut, address[] memory path)
-        public
-        view
-        virtual
-        override
-        returns (uint256[] memory amounts)
-    {
+    function getAmountsIn(
+        uint256 amountOut,
+        address[] memory path
+    ) public view virtual override returns (uint256[] memory amounts) {
         return PancakeLibrary.getAmountsIn(factory, amountOut, path);
     }
 
@@ -276,11 +270,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     // ****************************
 
     // requires the initial amount to have already been sent to the first pair
-    function _swap(
-        uint256[] memory amounts,
-        address[] memory path,
-        address _to
-    ) internal virtual {
+    function _swap(uint256[] memory amounts, address[] memory path, address _to) internal virtual {
         for (uint256 i; i < path.length - 1; ++i) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0, ) = PancakeLibrary.sortTokens(input, output);
@@ -304,14 +294,9 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
             revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
         }
         address pairAddress = PancakeLibrary.pairFor(factory, path[0], path[1]);
-        TransferHelper.safeTransferFrom(
-            path[0],
-            msg.sender,
-            pairAddress,
-            amounts[0]
-        );
+        TransferHelper.safeTransferFrom(path[0], msg.sender, pairAddress, amounts[0]);
         _swap(amounts, path, to);
-        emit SwapTokensForTokens(msg.sender,path,amounts);
+        emit SwapTokensForTokens(msg.sender, path, amounts);
     }
 
     function _swapExactETHForTokens(
@@ -330,6 +315,6 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         IWBNB(wBNBAddress).deposit{ value: amounts[0] }();
         assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
-        emit SwapBnbForTokens(msg.sender,path,amounts);
+        emit SwapBnbForTokens(msg.sender, path, amounts);
     }
 }

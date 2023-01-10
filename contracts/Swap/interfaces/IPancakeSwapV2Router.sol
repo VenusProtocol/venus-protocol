@@ -50,11 +50,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external payable;
 
-    function quote(
-        uint256 amountA,
-        uint256 reserveA,
-        uint256 reserveB
-    ) external pure returns (uint256 amountB);
+    function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) external pure returns (uint256 amountB);
 
     function getAmountOut(
         uint256 amountIn,

@@ -4,24 +4,19 @@ import "../interfaces/IPancakePair.sol";
 import "../interfaces/CustomErrors.sol";
 
 library PancakeLibrary {
-    
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
-        if(tokenA == tokenB) {
+        if (tokenA == tokenB) {
             revert IdenticalAddresses();
         }
         (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        if(token0 == address(0)){
+        if (token0 == address(0)) {
             revert ZeroAddress();
         }
     }
 
     // calculates the CREATE2 address for a pair without making any external calls
-    function pairFor(
-        address factory,
-        address tokenA,
-        address tokenB
-    ) internal pure returns (address pair) {
+    function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
         pair = address(
             uint160(
@@ -52,14 +47,10 @@ library PancakeLibrary {
     }
 
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
-    function quote(
-        uint256 amountA,
-        uint256 reserveA,
-        uint256 reserveB
-    ) internal pure returns (uint256 amountB) {
-        if(amountA == 0) {
+    function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
+        if (amountA == 0) {
             revert InsufficientInputAmount();
-        } else if (reserveA == 0 && reserveB == 0 ) {
+        } else if (reserveA == 0 && reserveB == 0) {
             revert InsufficientLiquidity();
         }
         require(reserveA > 0 && reserveB > 0, "PancakeLibrary: INSUFFICIENT_LIQUIDITY");
@@ -72,9 +63,9 @@ library PancakeLibrary {
         uint256 reserveIn,
         uint256 reserveOut
     ) internal pure returns (uint256 amountOut) {
-        if(amountIn == 0) {
+        if (amountIn == 0) {
             revert InsufficientInputAmount();
-        } else if (reserveIn == 0 && reserveOut == 0 ){
+        } else if (reserveIn == 0 && reserveOut == 0) {
             revert InsufficientLiquidity();
         }
         uint256 amountInWithFee = amountIn * 998;
@@ -89,9 +80,9 @@ library PancakeLibrary {
         uint256 reserveIn,
         uint256 reserveOut
     ) internal pure returns (uint256 amountIn) {
-        if(amountOut == 0) {
+        if (amountOut == 0) {
             revert InsufficientOutputAmount();
-        } else if (reserveIn == 0 && reserveOut == 0 ) {
+        } else if (reserveIn == 0 && reserveOut == 0) {
             revert InsufficientLiquidity();
         }
         uint256 numerator = reserveIn * amountOut * 1000;
@@ -105,7 +96,7 @@ library PancakeLibrary {
         uint256 amountIn,
         address[] memory path
     ) internal view returns (uint256[] memory amounts) {
-        if(path.length <= 1){
+        if (path.length <= 1) {
             revert InvalidPath();
         }
         amounts = new uint256[](path.length);
@@ -122,7 +113,7 @@ library PancakeLibrary {
         uint256 amountOut,
         address[] memory path
     ) internal view returns (uint256[] memory amounts) {
-        if(path.length <= 1){
+        if (path.length <= 1) {
             revert InvalidPath();
         }
         amounts = new uint256[](path.length);
