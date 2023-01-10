@@ -165,7 +165,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
      * @param vTokenAddress The address of the vToken contract to repay.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
-     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev Addresses of underlying assets should be ordered so the swap path tokens are listed first and last asset is the token we receive
      */
     function swapBnbAndRepay(
         address vTokenAddress,
