@@ -107,7 +107,7 @@ describe("Swap Contract", () => {
     [, user] = await ethers.getSigners();
     const contracts = await loadFixture(deploySwapContract);
     await configure(contracts, user);
-    ({ vToken, wBNB, swapRouter, tokenA, tokenB, pancakePair } = contracts);
+    ({ vToken, wBNB, swapRouter, tokenA, tokenB } = contracts);
   });
 
   describe("Swap", () => {
