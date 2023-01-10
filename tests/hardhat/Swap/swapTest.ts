@@ -78,7 +78,7 @@ async function configure(fixture: SwapFixture, user: SignerWithAddress) {
 }
 
 function getCreate2Address(factoryAddress: string, [tokenA, tokenB]: [string, string]): string {
-  const [token0, token1] = BigNumber.from(tokenA) < BigNumber.from(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA];
+  const [token0, token1] = BigNumber.from(tokenA).lt(BigNumber.from(tokenB)) ? [tokenA, tokenB] : [tokenB, tokenA];
   const create2Inputs = [
     "0xff",
     factoryAddress,
