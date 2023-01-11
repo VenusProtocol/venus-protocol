@@ -4,9 +4,16 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { GovernorBravoDelegate } from "../typechain/contracts/Governance/";
 
-const GOVERNOR_PROXY_TESTNET = "0x5573422A1a59385C247ec3a66B93B7C08eC2f8f2";
-const NORMAL_VIP_TIMELOCK_ADDRESS = "0xce10739590001705F7FF231611ba4A48B2820327";
-const XVS_VAULT_TESTNET = "0x9ab56bad2d7631b2a857ccf36d998232a8b82280";
+//TESTNET DEPLOYED CONTRACTS
+import {Contracts} from "../networks/testnet.json"
+
+const GOVERNOR_PROXY_TESTNET = Contracts.GovernorBravoDelegator;
+const NORMAL_VIP_TIMELOCK_ADDRESS = Contracts.Timelock;
+const XVS_VAULT_TESTNET = Contracts.XVSVaultProxy;
+
+console.log(Contracts.GovernorBravoDelegator);
+console.log(Contracts.Timelock);
+console.log(Contracts.XVSVaultProxy);
 
 const PROPOSAL_CONFIGS = [
   // ProposalType.NORMAL
