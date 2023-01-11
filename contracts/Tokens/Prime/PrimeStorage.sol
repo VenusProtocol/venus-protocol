@@ -17,7 +17,6 @@ contract PrimeStorageV1 {
     }
 
     struct Cap {
-        uint256 threshold;
         uint256 stableCoinSupplyTVLCap;
         uint256 stableCoinBorrowTVLCap;
         uint256 nonStableCoinSupplyTVLCap;
@@ -34,6 +33,7 @@ contract PrimeStorageV1 {
         bool isStableCoin;
         uint256 index;
         uint256 lastUpdated;
+        mapping (Tier => Cap) caps;
     }
 
     struct Interest {
@@ -68,9 +68,6 @@ contract PrimeStorageV1 {
     /// @notice  Indicates maximum irrevocable tokens that can be minted
     uint256 internal _irrevocableLimit;
 
-    /// @notice  Mapping owner tier to metadata
-    mapping (Tier => Cap) internal _tiers;
-
     /// @notice Tracks when prime token eligible users started staking for claiming prime token
     mapping (address => Stake) internal _stakes;
 
@@ -79,4 +76,7 @@ contract PrimeStorageV1 {
 
     /// @notice vToken to user to user index
     mapping (address => mapping (address => Interest)) interests;
+
+    /// @notice Tier to XVS threshold
+    mapping (Tier => uint256) _thresholds;
 }

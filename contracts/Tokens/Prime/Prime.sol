@@ -51,22 +51,47 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
-     * @notice Sets QVL for all the tiers
+     * @notice Sets threshold for all the tiers
      * @param thresholds XVS thresholds for each tier
+     */
+    function setThresholds(
+        uint256[] memory thresholds
+    ) onlyOwner external {
+        require(
+            thresholds.length == uint(MAX_TIER),
+            "you need to set thresholds for all tiers"
+        );
+
+        uint256 threshold;
+
+        for(uint i = 0; i < thresholds.length; i++) {
+            require(
+                thresholds[i] > threshold,
+                "higher tier should have higher threshold"
+            );
+
+            threshold = thresholds[i];
+
+            _thresholds[Tier(i+1)] = thresholds[i];
+        }
+    }
+
+    /**
+     * @notice Sets QVL for all the tiers
      * @param stableCoinSupplyTVLCaps supply TVL cap for stablecoin markets
      * @param stableCoinBorrowTVLCaps borrow TVL cap for stablecoin markets
      * @param nonStableCoinSupplyTVLCaps supply TVL cap for non-stablecoin markets
      * @param nonStableCoinBorrowTVLCaps borrow TVL cap for non-stablecoin markets
      */
     function setCaps(
-        uint256[] memory thresholds,
+        address vToken,
         uint256[] memory stableCoinSupplyTVLCaps,
         uint256[] memory stableCoinBorrowTVLCaps,
         uint256[] memory nonStableCoinSupplyTVLCaps,
         uint256[] memory nonStableCoinBorrowTVLCaps        
     ) onlyOwner external {
+        require(_markets[vToken].index != 0, "market doesn't exist");
         require(
-            thresholds.length == uint(MAX_TIER) &&
             stableCoinSupplyTVLCaps.length == uint(MAX_TIER) &&
             stableCoinBorrowTVLCaps.length == uint(MAX_TIER) && 
             nonStableCoinSupplyTVLCaps.length == uint(MAX_TIER) &&
@@ -74,15 +99,13 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             "you need to set caps for all tiers"
         );
 
-        uint256 threshold;
         uint256 stableCoinSupplyTVLCap;
         uint256 stableCoinBorrowTVLCap;
         uint256 nonStableCoinSupplyTVLCap;
         uint256 nonStableCoinBorrowTVLCap;
 
-        for(uint i = 0; i < thresholds.length; i++) {
+        for(uint i = 0; i < stableCoinSupplyTVLCaps.length; i++) {
             require(
-                thresholds[i] > threshold &&
                 stableCoinSupplyTVLCaps[i] > stableCoinSupplyTVLCap &&
                 stableCoinBorrowTVLCaps[i] > stableCoinBorrowTVLCap &&
                 nonStableCoinSupplyTVLCaps[i] > nonStableCoinSupplyTVLCap &&
@@ -90,14 +113,12 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
                 "higher tier should have higher cap"
             );
 
-            threshold = thresholds[i];
             stableCoinSupplyTVLCap = stableCoinSupplyTVLCaps[i];
             stableCoinBorrowTVLCap = stableCoinBorrowTVLCaps[i];
             nonStableCoinSupplyTVLCap = nonStableCoinSupplyTVLCaps[i];
             nonStableCoinBorrowTVLCap = nonStableCoinBorrowTVLCaps[i];
 
-            _tiers[Tier(i+1)] = Cap(
-                thresholds[i],
+            _markets[vToken].caps[Tier(i+1)] = Cap(
                 stableCoinSupplyTVLCaps[i],
                 stableCoinBorrowTVLCaps[i],
                 nonStableCoinSupplyTVLCaps[i],
@@ -247,7 +268,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256 amount
     ) view internal returns (Tier eligibleTier) {
         for(uint i = 0; i < uint(MAX_TIER); i++) {
-            if(amount >= _tiers[Tier(i + 1)].threshold) {
+            if(amount >= _thresholds[Tier(i + 1)]) {
                 eligibleTier = Tier(i + 1);
             } else {
                 break;
