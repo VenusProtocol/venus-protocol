@@ -2,18 +2,13 @@ import { parseUnits } from "ethers/lib/utils";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { GovernorBravoDelegate } from "../typechain/contracts/Governance/";
-
 //TESTNET DEPLOYED CONTRACTS
-import {Contracts} from "../networks/testnet.json"
+import { Contracts } from "../networks/testnet.json";
+import { GovernorBravoDelegate } from "../typechain/contracts/Governance/";
 
 const GOVERNOR_PROXY_TESTNET = Contracts.GovernorBravoDelegator;
 const NORMAL_VIP_TIMELOCK_ADDRESS = Contracts.Timelock;
 const XVS_VAULT_TESTNET = Contracts.XVSVaultProxy;
-
-console.log(Contracts.GovernorBravoDelegator);
-console.log(Contracts.Timelock);
-console.log(Contracts.XVSVaultProxy);
 
 const PROPOSAL_CONFIGS = [
   // ProposalType.NORMAL
