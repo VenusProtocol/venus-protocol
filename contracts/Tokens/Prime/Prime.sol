@@ -3,6 +3,11 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "./PrimeStorage.sol";
 
+interface IVToken {
+    function borrowRatePerBlock() external view returns (uint);
+    function supplyRatePerBlock() external view returns (uint);
+}
+
 contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     /// @notice address of XVS vault
@@ -90,7 +95,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256[] memory nonStableCoinSupplyTVLCaps,
         uint256[] memory nonStableCoinBorrowTVLCaps        
     ) onlyOwner external {
-        require(_markets[vToken].index != 0, "market doesn't exist");
+        require(_markets[vToken].boostRateIndex != 0, "market doesn't exist");
         require(
             stableCoinSupplyTVLCaps.length == uint(MAX_TIER) &&
             stableCoinBorrowTVLCaps.length == uint(MAX_TIER) && 
@@ -291,8 +296,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _markets[vToken].rate = rate;
         _markets[vToken].isStableCoin = isStableCoin;
 
-        if (_markets[vToken].index == 0) {
-            _markets[vToken].index = INITIAL_INDEX;
+        if (_markets[vToken].boostRateIndex == 0) {
+            _markets[vToken].boostRateIndex = INITIAL_INDEX;
+            _markets[vToken].borrowRateIndex = INITIAL_INDEX;
+            _markets[vToken].supplyRateIndex = INITIAL_INDEX;
             _markets[vToken].lastUpdated = block.number;
         }
     }
@@ -314,12 +321,17 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     function accrueInterest(
         address vToken
     ) public returns (uint) {
-        uint256 delta = (block.number - _markets[vToken].lastUpdated) * ratePerBlock(vToken);
-        _markets[vToken].index = _markets[vToken].index + delta;
+        uint256 pastBlocks = (block.number - _markets[vToken].lastUpdated);
+
+        _markets[vToken].boostRateIndex = _markets[vToken].boostRateIndex + (pastBlocks * boostRatePerBlock(vToken));
+
+        _markets[vToken].borrowRateIndex = _markets[vToken].borrowRateIndex + (IVToken(vToken).borrowRatePerBlock() * pastBlocks);
+        _markets[vToken].supplyRateIndex =  _markets[vToken].supplyRateIndex + (IVToken(vToken).supplyRatePerBlock() * pastBlocks);
+
         _markets[vToken].lastUpdated = block.number;
     } 
 
-    function ratePerBlock(
+    function boostRatePerBlock(
         address vToken
     ) internal view returns (uint) {
         return _markets[vToken].rate / getBlocksPerYear();
