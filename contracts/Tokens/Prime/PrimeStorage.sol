@@ -17,10 +17,8 @@ contract PrimeStorageV1 {
     }
 
     struct Cap {
-        uint256 stableCoinSupplyTVLCap;
-        uint256 stableCoinBorrowTVLCap;
-        uint256 nonStableCoinSupplyTVLCap;
-        uint256 nonStableCoinBorrowTVLCap;
+        uint256 supplyTVLCap;
+        uint256 borrowTVLCap;
     }
 
     struct Stake {
@@ -30,7 +28,6 @@ contract PrimeStorageV1 {
 
     struct Market {
         uint256 rate;
-        bool isStableCoin;
         uint256 boostRateIndex;
         uint256 borrowRateIndex;
         uint256 supplyRateIndex;
@@ -79,7 +76,7 @@ contract PrimeStorageV1 {
     mapping (address => Market) internal _markets;
 
     /// @notice vToken to user to user index
-    mapping (address => mapping (address => Interest)) interests;
+    mapping (address => mapping (address => Interest)) internal _interests;
 
     /// @notice Tier to XVS threshold
     mapping (Tier => uint256) _thresholds;

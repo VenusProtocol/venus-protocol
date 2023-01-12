@@ -4,8 +4,10 @@ import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "./PrimeStorage.sol";
 
 interface IVToken {
-    function borrowRatePerBlock() external view returns (uint);
-    function supplyRatePerBlock() external view returns (uint);
+    function borrowIndex() external view returns (uint);
+    function supplyIndex() external view returns (uint);
+    function borrowBalanceCurrent(address account) external returns (uint);
+    function balanceOfUnderlying(address owner) external returns (uint);
 }
 
 contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
@@ -83,51 +85,37 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     /**
      * @notice Sets QVL for all the tiers
-     * @param stableCoinSupplyTVLCaps supply TVL cap for stablecoin markets
-     * @param stableCoinBorrowTVLCaps borrow TVL cap for stablecoin markets
-     * @param nonStableCoinSupplyTVLCaps supply TVL cap for non-stablecoin markets
-     * @param nonStableCoinBorrowTVLCaps borrow TVL cap for non-stablecoin markets
+     * @param supplyTVLCaps supply TVL cap for stablecoin markets
+     * @param borrowTVLCaps borrow TVL cap for stablecoin markets
      */
     function setCaps(
         address vToken,
-        uint256[] memory stableCoinSupplyTVLCaps,
-        uint256[] memory stableCoinBorrowTVLCaps,
-        uint256[] memory nonStableCoinSupplyTVLCaps,
-        uint256[] memory nonStableCoinBorrowTVLCaps        
+        uint256[] memory supplyTVLCaps,
+        uint256[] memory borrowTVLCaps
     ) onlyOwner external {
         require(_markets[vToken].boostRateIndex != 0, "market doesn't exist");
         require(
-            stableCoinSupplyTVLCaps.length == uint(MAX_TIER) &&
-            stableCoinBorrowTVLCaps.length == uint(MAX_TIER) && 
-            nonStableCoinSupplyTVLCaps.length == uint(MAX_TIER) &&
-            nonStableCoinBorrowTVLCaps.length == uint(MAX_TIER), 
+            supplyTVLCaps.length == uint(MAX_TIER) &&
+            borrowTVLCaps.length == uint(MAX_TIER), 
             "you need to set caps for all tiers"
         );
 
-        uint256 stableCoinSupplyTVLCap;
-        uint256 stableCoinBorrowTVLCap;
-        uint256 nonStableCoinSupplyTVLCap;
-        uint256 nonStableCoinBorrowTVLCap;
+        uint256 supplyTVLCap;
+        uint256 borrowTVLCap;
 
-        for(uint i = 0; i < stableCoinSupplyTVLCaps.length; i++) {
+        for(uint i = 0; i < supplyTVLCaps.length; i++) {
             require(
-                stableCoinSupplyTVLCaps[i] > stableCoinSupplyTVLCap &&
-                stableCoinBorrowTVLCaps[i] > stableCoinBorrowTVLCap &&
-                nonStableCoinSupplyTVLCaps[i] > nonStableCoinSupplyTVLCap &&
-                nonStableCoinBorrowTVLCaps[i] > nonStableCoinBorrowTVLCap, 
+                supplyTVLCaps[i] > supplyTVLCap &&
+                borrowTVLCaps[i] > borrowTVLCap,
                 "higher tier should have higher cap"
             );
 
-            stableCoinSupplyTVLCap = stableCoinSupplyTVLCaps[i];
-            stableCoinBorrowTVLCap = stableCoinBorrowTVLCaps[i];
-            nonStableCoinSupplyTVLCap = nonStableCoinSupplyTVLCaps[i];
-            nonStableCoinBorrowTVLCap = nonStableCoinBorrowTVLCaps[i];
+            supplyTVLCap = supplyTVLCaps[i];
+            borrowTVLCap = borrowTVLCaps[i];
 
             _markets[vToken].caps[Tier(i+1)] = Cap(
-                stableCoinSupplyTVLCaps[i],
-                stableCoinBorrowTVLCaps[i],
-                nonStableCoinSupplyTVLCaps[i],
-                nonStableCoinBorrowTVLCaps[i]
+                supplyTVLCaps[i],
+                borrowTVLCaps[i]
             );
         }
     }
@@ -290,44 +278,96 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      */
     function addMarket(
         address vToken,
-        uint256 rate,
-        bool isStableCoin
+        uint256 rate
     ) onlyOwner external {
-        _markets[vToken].rate = rate;
-        _markets[vToken].isStableCoin = isStableCoin;
+        require(_markets[vToken].lastUpdated == 0, "market is already added");
 
-        if (_markets[vToken].boostRateIndex == 0) {
-            _markets[vToken].boostRateIndex = INITIAL_INDEX;
-            _markets[vToken].borrowRateIndex = INITIAL_INDEX;
-            _markets[vToken].supplyRateIndex = INITIAL_INDEX;
-            _markets[vToken].lastUpdated = block.number;
-        }
+        _markets[vToken].rate = rate;
+        _markets[vToken].boostRateIndex = INITIAL_INDEX;
+        _markets[vToken].supplyRateIndex = IVToken(vToken).supplyIndex();
+        _markets[vToken].borrowRateIndex = IVToken(vToken).borrowIndex();
+        _markets[vToken].lastUpdated = block.number;
     }
 
-    function executeInterest(
+    //call this after interest accrued and before supply/borrow is executed
+    function executeBoost(
+        address user,
+        address vToken
+    ) external {
+        if (_markets[vToken].lastUpdated == 0) {
+            return;
+        }
+
+        if (_tokens[user].tier == Tier.ZERO) {
+            return;
+        }
+
+        accrueInterest(vToken);
+
+        IVToken market = IVToken(vToken);
+        uint256 borrowBalance = market.borrowBalanceCurrent(user);
+        uint256 supplyBalance = market.balanceOfUnderlying(user);
+
+        uint supplyRate;
+        uint marketSupplyIndex = IVToken(vToken).supplyIndex();
+        if (_interests[vToken][user].supplyRateIndex == 0) {
+            supplyRate = marketSupplyIndex - _markets[vToken].supplyRateIndex;
+        } else {
+            supplyRate = marketSupplyIndex - _interests[vToken][user].supplyRateIndex;
+        }
+
+        _interests[vToken][user].supplyRateIndex = marketSupplyIndex;
+
+        uint borrowRate;
+        uint marketBorrowIndex = IVToken(vToken).borrowIndex();
+        if (_interests[vToken][user].borrowRateIndex == 0) {
+            borrowRate = marketBorrowIndex - _markets[vToken].borrowRateIndex;
+        } else {
+            borrowRate = marketBorrowIndex - _interests[vToken][user].borrowRateIndex;
+        }
+
+        _interests[vToken][user].borrowRateIndex = marketBorrowIndex;
+
+        uint boostRate =  _markets[vToken].boostRateIndex - _interests[vToken][user].boostRateIndex;
+
+        // Calculate total interest accrued by the user:
+        // (Supply * supplyRate - Borrow * borrowRate) + ((supplyQVL  + borrowQVL) * boost)
+        (uint borrowQVL, uint supplyQVL) = getQVL(user, vToken, borrowBalance, supplyBalance);
+        uint delta = (((supplyBalance * supplyRate) / 1e18) - ((borrowBalance * borrowRate) / 1e18)) + (((borrowQVL + supplyQVL) * boostRate) / 1e18);
+        _interests[vToken][user].accrued = _interests[vToken][user].accrued + delta;
+    }
+
+    function getQVL(
+        address user,
         address vToken,
         uint256 borrowBalance,
         uint256 supplyBalance
-    ) external onlyComptroller {
-        accrueInterest(vToken);
+    ) internal returns (uint, uint) {
+        uint borrowQVL;
+        uint supplyQVL;
+        uint tier = uint(_tokens[user].tier);
 
+        for (uint i = 0; i <= tier; i++) {
+            borrowQVL = borrowQVL +  _markets[vToken].caps[Tier(i)].borrowTVLCap;
+            supplyQVL = supplyQVL +  _markets[vToken].caps[Tier(i)].supplyTVLCap;
+        }
+
+        if (borrowBalance < borrowQVL) {
+            borrowQVL = borrowBalance;
+        }
+
+        if (supplyBalance < supplyQVL) {
+            supplyQVL = supplyBalance;
+        }
+
+        return (borrowQVL, supplyQVL);
     }
-
-    function interestPerBlock() internal {
-        //Supply * rate + supply QVL * boost - (Borrow * (Boost minus rate))
-        //1,200,000 * 0.01 + 1,200,000 * 0.45 - (260,000 * (0.045 - 0.031)) = $69,640
-    }
-
+    
     function accrueInterest(
         address vToken
-    ) public returns (uint) {
+    ) public {
         uint256 pastBlocks = (block.number - _markets[vToken].lastUpdated);
-
         _markets[vToken].boostRateIndex = _markets[vToken].boostRateIndex + (pastBlocks * boostRatePerBlock(vToken));
-
-        _markets[vToken].borrowRateIndex = _markets[vToken].borrowRateIndex + (IVToken(vToken).borrowRatePerBlock() * pastBlocks);
-        _markets[vToken].supplyRateIndex =  _markets[vToken].supplyRateIndex + (IVToken(vToken).supplyRatePerBlock() * pastBlocks);
-
         _markets[vToken].lastUpdated = block.number;
     } 
 
