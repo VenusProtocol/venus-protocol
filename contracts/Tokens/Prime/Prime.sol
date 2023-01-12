@@ -6,6 +6,7 @@ import "./PrimeStorage.sol";
 interface IVToken {
     function borrowIndex() external view returns (uint);
     function supplyIndex() external view returns (uint);
+    function accrueInterest() external returns (uint);
     function borrowBalanceCurrent(address account) external returns (uint);
     function balanceOfUnderlying(address owner) external returns (uint);
 }
@@ -134,10 +135,12 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         if (isIrrevocable == true) {
             for (uint i = 0; i < owners.length; i++) {
                 _mint(true, Tier.FIVE, owners[i]);
+                _initializeMarkets(owners[i]);
             }   
         } else {
             for (uint i = 0; i < owners.length; i++) {
                 _mint(false, tiers[i], owners[i]);
+                _initializeMarkets(owners[i]);
                 delete _stakes[owners[i]];
             } 
         }
@@ -172,6 +175,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         require(block.timestamp - _stakes[msg.sender].stakedAt >= STAKING_PERIOD, "you need to wait more time for claiming prime token");
 
         _mint(false, _stakes[msg.sender].tier, msg.sender);
+        _initializeMarkets(msg.sender);
         delete _stakes[msg.sender];
     }
 
@@ -183,6 +187,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         require(_tokens[msg.sender].isIrrevocable == false, "you can only upgrade revocable token");
         require(_stakes[msg.sender].tier > _tokens[msg.sender].tier, "you token is already upgraded");
         require(block.timestamp - _stakes[msg.sender].stakedAt >= STAKING_PERIOD, "you need to wait more time for upgrading prime token");
+
+        for (uint i = 0; i < allMarkets.length; i++) {
+            executeBoost(msg.sender, allMarkets[i]);
+        }
 
         _tokens[msg.sender].tier = _stakes[msg.sender].tier;
         delete _stakes[msg.sender];
@@ -213,6 +221,20 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         if (_stakes[msg.sender].tier != Tier.ZERO && _stakes[msg.sender].tier != eligibleTier) {
             delete _stakes[msg.sender];
+        }
+    }
+
+    function _initializeMarkets(address account) internal {
+        for (uint i = 0; i < allMarkets.length; i++) {
+            address market = allMarkets[i];
+            IVToken vToken = IVToken(allMarkets[i]);
+
+            accrueInterest(market);
+            vToken.accrueInterest();
+
+            _interests[market][account].supplyRateIndex = IVToken(vToken).supplyIndex();
+            _interests[market][account].borrowRateIndex = IVToken(vToken).borrowIndex();
+            _interests[market][account].boostRateIndex = _markets[market].boostRateIndex;
         }
     }
 
@@ -287,65 +309,73 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _markets[vToken].supplyRateIndex = IVToken(vToken).supplyIndex();
         _markets[vToken].borrowRateIndex = IVToken(vToken).borrowIndex();
         _markets[vToken].lastUpdated = block.number;
+
+        allMarkets.push(vToken);
     }
 
-    //call this after interest accrued and before supply/borrow is executed
+    //execute before supply/borrow is executed
     function executeBoost(
-        address user,
+        address account,
         address vToken
-    ) external {
+    ) public {
         if (_markets[vToken].lastUpdated == 0) {
             return;
         }
 
-        if (_tokens[user].tier == Tier.ZERO) {
+        if (_tokens[account].tier == Tier.ZERO) {
             return;
         }
 
         accrueInterest(vToken);
+        IVToken(vToken).accrueInterest();
 
         IVToken market = IVToken(vToken);
-        uint256 borrowBalance = market.borrowBalanceCurrent(user);
-        uint256 supplyBalance = market.balanceOfUnderlying(user);
+        uint256 borrowBalance = market.borrowBalanceCurrent(account);
+        uint256 supplyBalance = market.balanceOfUnderlying(account);
 
         uint supplyRate;
         uint marketSupplyIndex = IVToken(vToken).supplyIndex();
-        if (_interests[vToken][user].supplyRateIndex == 0) {
+        if (_interests[vToken][account].supplyRateIndex == 0) {
             supplyRate = marketSupplyIndex - _markets[vToken].supplyRateIndex;
         } else {
-            supplyRate = marketSupplyIndex - _interests[vToken][user].supplyRateIndex;
+            supplyRate = marketSupplyIndex - _interests[vToken][account].supplyRateIndex;
         }
 
-        _interests[vToken][user].supplyRateIndex = marketSupplyIndex;
+        _interests[vToken][account].supplyRateIndex = marketSupplyIndex;
 
         uint borrowRate;
         uint marketBorrowIndex = IVToken(vToken).borrowIndex();
-        if (_interests[vToken][user].borrowRateIndex == 0) {
+        if (_interests[vToken][account].borrowRateIndex == 0) {
             borrowRate = marketBorrowIndex - _markets[vToken].borrowRateIndex;
         } else {
-            borrowRate = marketBorrowIndex - _interests[vToken][user].borrowRateIndex;
+            borrowRate = marketBorrowIndex - _interests[vToken][account].borrowRateIndex;
         }
 
-        _interests[vToken][user].borrowRateIndex = marketBorrowIndex;
+        _interests[vToken][account].borrowRateIndex = marketBorrowIndex;
 
-        uint boostRate =  _markets[vToken].boostRateIndex - _interests[vToken][user].boostRateIndex;
+        if (_interests[vToken][account].boostRateIndex == _markets[vToken].boostRateIndex) {
+            return;
+        }
+
+        uint boostRate =  _markets[vToken].boostRateIndex - _interests[vToken][account].boostRateIndex;
 
         // Calculate total interest accrued by the user:
         // (Supply * supplyRate - Borrow * borrowRate) + ((supplyQVL  + borrowQVL) * boost)
-        (uint borrowQVL, uint supplyQVL) = getQVL(user, vToken, borrowBalance, supplyBalance);
+        (uint borrowQVL, uint supplyQVL) = getQVL(account, vToken, borrowBalance, supplyBalance);
         uint delta = (((supplyBalance * supplyRate) / 1e18) - ((borrowBalance * borrowRate) / 1e18)) + (((borrowQVL + supplyQVL) * boostRate) / 1e18);
-        _interests[vToken][user].accrued = _interests[vToken][user].accrued + delta;
+        _interests[vToken][account].accrued = _interests[vToken][account].accrued + delta;
+        _interests[vToken][account].boostRateIndex = _markets[vToken].boostRateIndex;
     }
 
     function getQVL(
-        address user,
+        address account,
         address vToken,
         uint256 borrowBalance,
         uint256 supplyBalance
     ) internal returns (uint, uint) {
         uint borrowQVL;
         uint supplyQVL;
-        uint tier = uint(_tokens[user].tier);
+        uint tier = uint(_tokens[account].tier);
 
         for (uint i = 0; i <= tier; i++) {
             borrowQVL = borrowQVL +  _markets[vToken].caps[Tier(i)].borrowTVLCap;

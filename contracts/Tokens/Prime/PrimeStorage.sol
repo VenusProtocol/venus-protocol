@@ -51,9 +51,6 @@ contract PrimeStorageV1 {
     /// @notice initial market index
     uint256 constant internal INITIAL_INDEX = 1e18;
 
-    /// @notice number of blocks in a year
-    uint256 constant internal BLOCKS_PER_YEAR = 365 * 24 * 60 * 60 / 3;
-    
     /// @notice Mapping owner token id to token metadata
     mapping(address => Token) internal _tokens;
 
@@ -80,4 +77,7 @@ contract PrimeStorageV1 {
 
     /// @notice Tier to XVS threshold
     mapping (Tier => uint256) _thresholds;
+
+    /// @notice A list of boosted markets
+    address[] public allMarkets; 
 }
