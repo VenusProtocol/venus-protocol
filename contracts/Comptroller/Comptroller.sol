@@ -1590,8 +1590,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     }
 
     /**
-     * @notice Sets a new price oracle for the comptroller
-     * @dev Admin function to set a new price oracle
+     * @notice Sets the prime token contract for the comptroller
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setPrimeToken(IPrime _prime) external returns (uint) {
