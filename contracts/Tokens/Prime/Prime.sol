@@ -323,7 +323,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _markets[vToken].rate = rate;
     }
 
-    //execute before supply/borrow is executed
     function executeBoost(
         address account,
         address vToken
@@ -337,14 +336,15 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
 
         accrueInterest(vToken);
-        IVToken(vToken).accrueInterest();
 
         IVToken market = IVToken(vToken);
+        market.accrueInterest();
+
         uint256 borrowBalance = market.borrowBalanceCurrent(account);
         uint256 supplyBalance = market.balanceOfUnderlying(account);
 
         uint supplyRate;
-        uint marketSupplyIndex = IVToken(vToken).supplyIndex();
+        uint marketSupplyIndex = market.supplyIndex();
         if (_interests[vToken][account].supplyRateIndex == 0) {
             supplyRate = marketSupplyIndex - _markets[vToken].supplyRateIndex;
         } else {
@@ -354,7 +354,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _interests[vToken][account].supplyRateIndex = marketSupplyIndex;
 
         uint borrowRate;
-        uint marketBorrowIndex = IVToken(vToken).borrowIndex();
+        uint marketBorrowIndex = market.borrowIndex();
         if (_interests[vToken][account].borrowRateIndex == 0) {
             borrowRate = marketBorrowIndex - _markets[vToken].borrowRateIndex;
         } else {
