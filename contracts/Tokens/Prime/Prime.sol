@@ -313,6 +313,16 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         allMarkets.push(vToken);
     }
 
+    function updateRate(
+        address vToken,
+        uint256 rate
+    ) onlyOwner external {
+        require(_markets[vToken].lastUpdated != 0, "market is not added");
+
+        accrueInterest(vToken);
+        _markets[vToken].rate = rate;
+    }
+
     //execute before supply/borrow is executed
     function executeBoost(
         address account,
