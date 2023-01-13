@@ -4,6 +4,7 @@ import "../Tokens/VTokens/VToken.sol";
 import "../Oracle/PriceOracle.sol";
 import "../Tokens/VAI/VAIControllerInterface.sol";
 import "./ComptrollerLensInterface.sol";
+import "../Tokens/Prime/IPrime.sol";
 
 contract UnitrollerAdminStorage {
     /**
@@ -227,4 +228,7 @@ contract ComptrollerV10Storage is ComptrollerV9Storage {
 
     /// @notice The rate at which venus is distributed to the corresponding supply market (per block)
     mapping(address => uint) public venusSupplySpeeds;
+
+    /// @notice Prime token address
+    IPrime prime; 
 }

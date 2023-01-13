@@ -10,6 +10,7 @@ import "./ComptrollerLensInterface.sol";
 import "./ComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
+import "../Tokens/Prime/IPrime.sol";
 
 /**
  * @title Venus's Comptroller Contract
@@ -36,6 +37,9 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
     /// @notice Emitted when price oracle is changed
     event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
+
+    /// @notice Emitted when prime token contract address is changed
+    event NewPrimeToken(IPrime oldPrimeToken, IPrime newPrimeToken);
 
     /// @notice Emitted when VAI Vault info is changed
     event NewVAIVaultInfo(address vault_, uint releaseStartBlock_, uint releaseInterval_);
@@ -311,6 +315,10 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         updateVenusSupplyIndex(vToken);
         distributeSupplierVenus(vToken, minter);
 
+        if (address(prime) != address(0)) {
+            prime.executeBoost(minter, vToken);
+        }
+
         return uint(Error.NO_ERROR);
     }
 
@@ -342,6 +350,10 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         // Keep the flywheel moving
         updateVenusSupplyIndex(vToken);
         distributeSupplierVenus(vToken, redeemer);
+
+        if (address(prime) != address(0)) {
+            prime.executeBoost(redeemer, vToken);
+        }
 
         return uint(Error.NO_ERROR);
     }
@@ -437,6 +449,10 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         updateVenusBorrowIndex(vToken, borrowIndex);
         distributeBorrowerVenus(vToken, borrower, borrowIndex);
 
+        if (address(prime) != address(0)) {
+            prime.executeBoost(borrower, vToken);
+        }
+
         return uint(Error.NO_ERROR);
     }
 
@@ -472,6 +488,10 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         Exp memory borrowIndex = Exp({ mantissa: VToken(vToken).borrowIndex() });
         updateVenusBorrowIndex(vToken, borrowIndex);
         distributeBorrowerVenus(vToken, borrower, borrowIndex);
+
+        if (address(prime) != address(0)) {
+            prime.executeBoost(borrower, vToken);
+        }
 
         return uint(Error.NO_ERROR);
     }
@@ -596,6 +616,11 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         distributeSupplierVenus(vTokenCollateral, borrower);
         distributeSupplierVenus(vTokenCollateral, liquidator);
 
+        if (address(prime) != address(0)) {
+            prime.executeBoost(borrower, vTokenCollateral);
+            prime.executeBoost(liquidator, vTokenCollateral);
+        }
+
         return uint(Error.NO_ERROR);
     }
 
@@ -639,6 +664,11 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         updateVenusSupplyIndex(vToken);
         distributeSupplierVenus(vToken, src);
         distributeSupplierVenus(vToken, dst);
+
+        if (address(prime) != address(0)) {
+            prime.executeBoost(src, vToken);
+            prime.executeBoost(dst, vToken);
+        }
 
         return uint(Error.NO_ERROR);
     }
@@ -1557,5 +1587,27 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         emit DistributedVAIVaultVenus(actualAmount);
 
         IVAIVault(vaiVaultAddress).updatePendingRewards();
+    }
+
+    /**
+     * @notice Sets a new price oracle for the comptroller
+     * @dev Admin function to set a new price oracle
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function _setPrimeToken(IPrime _prime) external returns (uint) {
+        // Check caller is admin
+        ensureAdmin();
+        ensureNonzeroAddress(address(_prime));
+
+        // Track the old prime token for the comptroller
+        IPrime oldPrime = prime;
+
+        // Set comptroller's prime token to new prime token
+        prime = _prime;
+
+        // Emit NewPrimeToken(oldPrime, newPrime)
+        emit NewPrimeToken(oldPrime, prime);
+
+        return uint(Error.NO_ERROR);
     }
 }

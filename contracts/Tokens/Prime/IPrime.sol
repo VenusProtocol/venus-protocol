@@ -10,4 +10,9 @@ interface IPrime {
         address owner,
         uint256 totalStaked
     ) external;
+
+    function executeBoost(
+        address account,
+        address vToken
+    ) external; 
 }
