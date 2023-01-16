@@ -1,5 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { Signer, BigNumber } from "ethers";
 import { ethers } from "hardhat";
@@ -31,9 +31,14 @@ type SetupProtocolFixture = {
   vusdt: VBep20Harness;
   eth: BEP20Harness;
   veth: VBep20Harness;
+  xvsVault: XVSVaultScenario;
+  xvs: XVS;
+  xvsStore: XVSStore;
 };
 
 async function deployProtocol(): Promise<SetupProtocolFixture> {
+  const [wallet, ...accounts] = await ethers.getSigners();
+
   const oracle = await smock.fake<PriceOracle>("PriceOracle");
   const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
   accessControl.isAllowedToCall.returns(true);
@@ -45,8 +50,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
   await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
-
-  const [wallet,  ...accounts] = await ethers.getSigners();
 
   const tokenFactory = await ethers.getContractFactory("BEP20Harness");
   const usdt = (await tokenFactory.deploy(
@@ -123,13 +126,47 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     bigNumber18.mul(100)
   ])
 
-  await eth.approve(veth.address, bigNumber18.mul(90));
-  await veth.mint(bigNumber18.mul(90));
+  await eth.connect(accounts[0]).approve(veth.address, bigNumber18.mul(90));
+  await veth.connect(accounts[0]).mint(bigNumber18.mul(90));
 
-  await usdt.approve(veth.address, bigNumber18.mul(90));
-  await vusdt.mint(bigNumber18.mul(90));
+  await usdt.connect(accounts[1]).approve(vusdt.address, bigNumber18.mul(9000));
+  await vusdt.connect(accounts[1]).mint(bigNumber18.mul(9000));
 
-  await 
+  await comptroller.connect(accounts[0]).enterMarkets([
+    vusdt.address,
+    veth.address
+  ])
+
+  await comptroller.connect(accounts[1]).enterMarkets([
+    vusdt.address,
+    veth.address
+  ])
+
+  await vusdt.connect(accounts[0]).borrow(bigNumber18.mul(5))
+  await veth.connect(accounts[1]).borrow(bigNumber18.mul(1))
+
+  const xvsFactory = await ethers.getContractFactory("XVS");
+  const xvs: XVS = (await xvsFactory.deploy(wallet.address)) as XVS;
+
+  const xvsStoreFactory = await ethers.getContractFactory("XVSStore");
+  const xvsStore: XVSStore = (await xvsStoreFactory.deploy()) as XVSStore;
+
+  const xvsVaultFactory = await ethers.getContractFactory("XVSVaultScenario");
+  const xvsVault: XVSVaultScenario = (await xvsVaultFactory.deploy()) as XVSVaultScenario;
+
+  await xvsStore.setNewOwner(xvsVault.address);
+  await xvsVault.setXvsStore(xvs.address, xvsStore.address);
+
+  await xvs.transfer(xvsStore.address, bigNumber18.mul(1000));
+  await xvs.transfer(accounts[0].address, bigNumber18.mul(1000000));
+  await xvs.transfer(accounts[1].address, bigNumber18.mul(1000000));
+
+  await xvsStore.setRewardToken(xvs.address, true);
+
+  const lockPeriod = 300;
+  const allocPoint = 100;
+  const rewardPerBlock = bigNumber18.mul(1);
+  await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
 
   return { 
     oracle, 
@@ -139,7 +176,10 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     usdt,
     vusdt,
     eth,
-    veth
+    veth,
+    xvsVault,
+    xvs,
+    xvsStore
   };
 }
 
@@ -155,16 +195,21 @@ describe("Prime Token", () => {
     let comptroller: MockContract<Comptroller>;
     let vusdt: VBep20Harness;
     let veth: VBep20Harness;
+    let usdt: BEP20Harness;
+    let eth: BEP20Harness;
 
     beforeEach(async () => {
-      ({comptroller, vusdt, veth} = await loadFixture(deployProtocol));
+      ({comptroller, vusdt, veth, usdt, eth} = await loadFixture(deployProtocol));
     });
 
     it("markets added", async () => {
       expect((await comptroller.allMarkets(0))).to.be.equal(vusdt.address)
       expect((await comptroller.allMarkets(1))).to.be.equal(veth.address)
+    })
 
-      // console.log(await (await veth.supplyRatePerBlock()).toString())
+    it("borrow balance", async () => {
+      expect((await usdt.balanceOf(accounts[0].getAddress()))).to.be.gt(0)
+      expect((await eth.balanceOf(accounts[1].getAddress()))).to.be.gt(0)
     })
   })
 });
