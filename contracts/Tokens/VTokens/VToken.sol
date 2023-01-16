@@ -9,8 +9,8 @@ import "../../InterestRateModels/InterestRateModel.sol";
 import "./VTokenInterfaces.sol";
 
 /**
- * @title Venus's VToken Contract
- * @notice Abstract base for VTokens
+ * @title Venus's vToken Contract
+ * @notice Abstract base for vTokens
  * @author Venus
  */
 contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
@@ -68,6 +68,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param amount The number of tokens to transfer
      * @return Whether or not the transfer succeeded
      */
+    // @custom:event Emits Transfer event
     function transfer(address dst, uint256 amount) external nonReentrant returns (bool) {
         return transferTokens(msg.sender, msg.sender, dst, amount) == uint(Error.NO_ERROR);
     }
@@ -79,6 +80,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param amount The number of tokens to transfer
      * @return Whether or not the transfer succeeded
      */
+    // @custom:event Emits Transfer event
     function transferFrom(address src, address dst, uint256 amount) external nonReentrant returns (bool) {
         return transferTokens(msg.sender, src, dst, amount) == uint(Error.NO_ERROR);
     }
@@ -91,6 +93,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param amount The number of tokens that are approved (-1 means infinite)
      * @return Whether or not the approval succeeded
      */
+    // @custom:event Emits Approval event on successful approve
     function approve(address spender, uint256 amount) external returns (bool) {
         address src = msg.sender;
         transferAllowances[src][spender] = amount;
@@ -137,8 +140,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param liquidator The account receiving seized collateral
      * @param borrower The account having collateral seized
      * @param seizeTokens The number of vTokens to seize
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits Transfer event
     function seize(address liquidator, address borrower, uint seizeTokens) external nonReentrant returns (uint) {
         return seizeInternal(msg.sender, liquidator, borrower, seizeTokens);
     }
@@ -147,8 +151,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
      * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.
      * @param newPendingAdmin New pending admin.
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits NewPendingAdmin event with old and new admin addresses
     function _setPendingAdmin(address payable newPendingAdmin) external returns (uint) {
         // Check caller = admin
         if (msg.sender != admin) {
@@ -170,8 +175,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     /**
      * @notice Accepts transfer of admin rights. msg.sender must be pendingAdmin
      * @dev Admin function for pending admin to accept role and update admin
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits NewAdmin event on successful acceptance
+    // @custom:event Emits NewPendingAdmin event with null new pending admin
     function _acceptAdmin() external returns (uint) {
         // Check caller is pendingAdmin
         if (msg.sender != pendingAdmin) {
@@ -195,10 +202,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice accrues interest and sets a new reserve factor for the protocol using _setReserveFactorFresh
+     * @notice accrues interest and sets a new reserve factor for the protocol using `_setReserveFactorFresh`
      * @dev Admin function to accrue interest and set a new reserve factor
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits NewReserveFactor event
     function _setReserveFactor(uint newReserveFactorMantissa) external nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -212,8 +220,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     /**
      * @notice Accrues interest and reduces reserves by transferring to admin
      * @param reduceAmount Amount of reduction to reserves
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits ReservesReduced event
     function _reduceReserves(uint reduceAmount) external nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -351,6 +360,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @dev This calculates interest accrued from the last checkpointed block
      *   up to the current block and writes new checkpoint to storage.
      */
+    // @custom:event Emits AccrueInterest event
     function accrueInterest() public returns (uint) {
         /* Remember the initial block number */
         uint currentBlockNumber = getBlockNumber();
@@ -463,8 +473,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     /**
      * @notice Sets a new comptroller for the market
      * @dev Admin function to set a new comptroller
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits NewComptroller event
     function _setComptroller(ComptrollerInterface newComptroller) public returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
@@ -485,10 +496,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice accrues interest and updates the interest rate model using _setInterestRateModelFresh
+     * @notice Accrues interest and updates the interest rate model using _setInterestRateModelFresh
      * @dev Admin function to accrue interest and update the interest rate model
-     * @param newInterestRateModel the new interest rate model to use
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @param newInterestRateModel The new interest rate model to use
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint) {
         uint error = accrueInterest();
@@ -523,7 +534,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Transfer `tokens` tokens from `src` to `dst` by `spender`
+     * @notice Transfers `tokens` tokens from `src` to `dst` by `spender`
      * @dev Called by both `transfer` and `transferFrom` internally
      * @param spender The address of the account performing the transfer
      * @param src The address of the source account
@@ -783,7 +794,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Sender redeems vTokens in exchange for the underlying asset
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
      * @param redeemTokens The number of vTokens to redeem into underlying
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function redeemInternal(uint redeemTokens) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
@@ -799,7 +810,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Sender redeems vTokens in exchange for a specified amount of underlying asset
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
      * @param redeemAmount The amount of underlying to receive from redeeming vTokens
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function redeemUnderlyingInternal(uint redeemAmount) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
@@ -817,7 +828,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param redeemer The address of the account which is redeeming the tokens
      * @param redeemTokensIn The number of vTokens to redeem into underlying (only one of redeemTokensIn or redeemAmountIn may be non-zero)
      * @param redeemAmountIn The number of underlying tokens to receive from redeeming vTokens (only one of redeemTokensIn or redeemAmountIn may be non-zero)
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // solhint-disable-next-line code-complexity
     function redeemFresh(address payable redeemer, uint redeemTokensIn, uint redeemAmountIn) internal returns (uint) {
@@ -954,7 +965,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     /**
      * @notice Sender borrows assets from the protocol to their own address
      * @param borrowAmount The amount of the underlying asset to borrow
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function borrowInternal(uint borrowAmount) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
@@ -969,7 +980,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     /**
      * @notice Users borrow assets from the protocol to their own address
      * @param borrowAmount The amount of the underlying asset to borrow
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function borrowFresh(address payable borrower, uint borrowAmount) internal returns (uint) {
         /* Fail if borrow not allowed */
@@ -1052,8 +1063,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Sender repays a borrow belonging to borrower
-     * @param borrower the account with the debt being payed off
+     * @notice Sender repays a borrow belonging to another borrowing account
+     * @param borrower The account with the debt being payed off
      * @param repayAmount The amount to repay
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
@@ -1069,9 +1080,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Borrows are repaid by another user (possibly the borrower).
-     * @param payer the account paying off the borrow
-     * @param borrower the account with the debt being payed off
-     * @param repayAmount the amount of undelrying tokens being returned
+     * @param payer The account paying off the borrow
+     * @param borrower The account with the debt being payed off
+     * @param repayAmount The amount of undelrying tokens being returned
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     function repayBorrowFresh(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
@@ -1284,13 +1295,13 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Transfers collateral tokens (this market) to the liquidator.
-     * @dev Called only during an in-kind liquidation, or by liquidateBorrow during the liquidation of another VToken.
+     * @dev Called only during an in-kind liquidation, or by liquidateBorrow during the liquidation of another vToken.
      *  Its absolutely critical to use msg.sender as the seizer vToken and not a parameter.
      * @param seizerToken The contract seizing the collateral (i.e. borrowed vToken)
      * @param liquidator The account receiving seized collateral
      * @param borrower The account having collateral seized
      * @param seizeTokens The number of vTokens to seize
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function seizeInternal(
         address seizerToken,
@@ -1346,9 +1357,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Sets a new reserve factor for the protocol (*requires fresh interest accrual)
+     * @notice Sets a new reserve factor for the protocol (requires fresh interest accrual)
      * @dev Admin function to set a new reserve factor
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setReserveFactorFresh(uint newReserveFactorMantissa) internal returns (uint) {
         // Check caller is admin
@@ -1375,9 +1386,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Accrues interest and adds reserves by transferring from msg.sender
+     * @notice Accrues interest and adds reserves by transferring from `msg.sender`
      * @param addAmount Amount of addition to reserves
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _addReservesInternal(uint addAmount) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
@@ -1440,7 +1451,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Reduces reserves by transferring to admin
      * @dev Requires fresh interest accrual
      * @param reduceAmount Amount of reduction to reserves
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _reduceReservesFresh(uint reduceAmount) internal returns (uint) {
         // totalReserves - reduceAmount
@@ -1484,10 +1495,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice updates the interest rate model (*requires fresh interest accrual)
+     * @notice updates the interest rate model (requires fresh interest accrual)
      * @dev Admin function to update the interest rate model
      * @param newInterestRateModel the new interest rate model to use
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setInterestRateModelFresh(InterestRateModel newInterestRateModel) internal returns (uint) {
         // Used to store old model for use in the event that is emitted on success
@@ -1527,7 +1538,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function doTransferIn(address from, uint amount) internal returns (uint);
 
     /**
-     * @dev Performs a transfer out, ideally returning an explanatory error code upon failure tather than reverting.
+     * @dev Performs a transfer out, ideally returning an explanatory error code upon failure rather than reverting.
      *  If caller has not called checked protocol's balance, may revert due to insufficient cash held in the contract.
      *  If caller has checked protocol's balance, and verified it is >= amount, this should not revert in normal conditions.
      */
@@ -1544,7 +1555,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     /**
      * @notice Return the borrow balance of account based on stored data
      * @param account The address whose balance should be calculated
-     * @return (error code, the calculated balance or 0 if error code is non-zero)
+     * @return Tuple of error code and the calculated balance or 0 if error code is non-zero
      */
     function borrowBalanceStoredInternal(address account) internal view returns (MathError, uint) {
         /* Note: we do not assert that the market is up to date */
@@ -1579,9 +1590,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Calculates the exchange rate from the underlying to the VToken
+     * @notice Calculates the exchange rate from the underlying to the vToken
      * @dev This function does not accrue interest before calculating the exchange rate
-     * @return (error code, calculated exchange rate scaled by 1e18)
+     * @return Tuple of error code and calculated exchange rate scaled by 1e18
      */
     function exchangeRateStoredInternal() internal view returns (MathError, uint) {
         uint _totalSupply = totalSupply;

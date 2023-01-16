@@ -118,7 +118,7 @@ contract VTokenStorage {
 
 contract VTokenInterface is VTokenStorage {
     /**
-     * @notice Indicator that this is a VToken contract (for inspection)
+     * @notice Indicator that this is a vToken contract (for inspection)
      */
     bool public constant isVToken = true;
 
@@ -145,7 +145,7 @@ contract VTokenInterface is VTokenStorage {
     event Redeem(address redeemer, uint redeemAmount, uint redeemTokens);
 
     /**
-     * @notice Event emitted when tokens are redeemed and fee are transferred
+     * @notice Event emitted when tokens are redeemed and fee is transferred
      */
     event RedeemFee(address redeemer, uint feeAmount, uint redeemTokens);
 
@@ -178,7 +178,7 @@ contract VTokenInterface is VTokenStorage {
     event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 
     /**
-     * @notice Event emitted when pendingAdmin is accepted, which means admin is updated
+     * @notice Event emitted when pendingAdmin is accepted, which means admin has been updated
      */
     event NewAdmin(address oldAdmin, address newAdmin);
 

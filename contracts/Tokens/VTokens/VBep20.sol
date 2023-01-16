@@ -4,7 +4,7 @@ import "./VToken.sol";
 
 /**
  * @title Venus's VBep20 Contract
- * @notice VTokens which wrap an EIP-20 underlying
+ * @notice vTokens which wrap an EIP-20 underlying
  * @author Venus
  */
 contract VBep20 is VToken, VBep20Interface {
@@ -14,8 +14,10 @@ contract VBep20 is VToken, VBep20Interface {
      * @notice Sender supplies assets into the market and receives vTokens in exchange
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
      * @param mintAmount The amount of the underlying asset to supply
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits Transfer event
+    // @custom:event Emits Mint event
     function mint(uint mintAmount) external returns (uint) {
         (uint err, ) = mintInternal(mintAmount);
         return err;
@@ -24,10 +26,12 @@ contract VBep20 is VToken, VBep20Interface {
     /**
      * @notice Sender supplies assets into the market and receiver receives vTokens in exchange
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
-     * @param receiver the account which is receiving the vTokens
+     * @param receiver The account which is receiving the vTokens
      * @param mintAmount The amount of the underlying asset to supply
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits Transfer event
+    // @custom:event Emits MintBehalf event
     function mintBehalf(address receiver, uint mintAmount) external returns (uint) {
         (uint err, ) = mintBehalfInternal(receiver, mintAmount);
         return err;
@@ -37,8 +41,11 @@ contract VBep20 is VToken, VBep20Interface {
      * @notice Sender redeems vTokens in exchange for the underlying asset
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
      * @param redeemTokens The number of vTokens to redeem into underlying
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits Redeem event on success
+    // @custom:event Emits Transfer event on success
+    // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeem(uint redeemTokens) external returns (uint) {
         return redeemInternal(redeemTokens);
     }
@@ -47,8 +54,11 @@ contract VBep20 is VToken, VBep20Interface {
      * @notice Sender redeems vTokens in exchange for a specified amount of underlying asset
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
      * @param redeemAmount The amount of underlying to redeem
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits Redeem event on success
+    // @custom:event Emits Transfer event on success
+    // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeemUnderlying(uint redeemAmount) external returns (uint) {
         return redeemUnderlyingInternal(redeemAmount);
     }
@@ -56,8 +66,9 @@ contract VBep20 is VToken, VBep20Interface {
     /**
      * @notice Sender borrows assets from the protocol to their own address
      * @param borrowAmount The amount of the underlying asset to borrow
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits Borrow event on success
     function borrow(uint borrowAmount) external returns (uint) {
         return borrowInternal(borrowAmount);
     }
@@ -65,19 +76,21 @@ contract VBep20 is VToken, VBep20Interface {
     /**
      * @notice Sender repays their own borrow
      * @param repayAmount The amount to repay
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits RepayBorrow event on success
     function repayBorrow(uint repayAmount) external returns (uint) {
         (uint err, ) = repayBorrowInternal(repayAmount);
         return err;
     }
 
     /**
-     * @notice Sender repays a borrow belonging to borrower
-     * @param borrower the account with the debt being payed off
+     * @notice Sender repays a borrow belonging to another borrowing account
+     * @param borrower The account with the debt being payed off
      * @param repayAmount The amount to repay
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits RepayBorrow event on success
     function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint) {
         (uint err, ) = repayBorrowBehalfInternal(borrower, repayAmount);
         return err;
@@ -89,8 +102,9 @@ contract VBep20 is VToken, VBep20Interface {
      * @param borrower The borrower of this vToken to be liquidated
      * @param repayAmount The amount of the underlying borrowed asset to repay
      * @param vTokenCollateral The market in which to seize collateral from the borrower
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emit LiquidateBorrow event on success
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
@@ -102,9 +116,10 @@ contract VBep20 is VToken, VBep20Interface {
 
     /**
      * @notice The sender adds to reserves.
-     * @param addAmount The amount fo underlying token to add as reserves
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @param addAmount The amount of underlying tokens to add as reserves
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
+    // @custom:event Emits ReservesAdded event
     function _addReserves(uint addAmount) external returns (uint) {
         return _addReservesInternal(addAmount);
     }
