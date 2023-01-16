@@ -4,11 +4,11 @@ import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "./PrimeStorage.sol";
 
 interface IVToken {
-    function borrowIndex() external view returns (uint);
-    function supplyIndex() external view returns (uint);
+    function borrowRatePerBlock() external view returns (uint);
+    function supplyRatePerBlock() external view returns (uint);
     function accrueInterest() external returns (uint);
     function borrowBalanceCurrent(address account) external returns (uint);
-    function balanceOfUnderlying(address owner) external returns (uint);
+    function balanceOfUnderlying(address account) external returns (uint);
 }
 
 contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
@@ -230,10 +230,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             IVToken vToken = IVToken(allMarkets[i]);
 
             accrueInterest(market);
-            vToken.accrueInterest();
 
-            _interests[market][account].supplyRateIndex = IVToken(vToken).supplyIndex();
-            _interests[market][account].borrowRateIndex = IVToken(vToken).borrowIndex();
+            _interests[market][account].supplyRateIndex = _markets[market].supplyRateIndex;
+            _interests[market][account].borrowRateIndex = _markets[market].borrowRateIndex;
             _interests[market][account].boostRateIndex = _markets[market].boostRateIndex;
         }
     }
@@ -294,7 +293,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
-     * @notice Add or update market rate and configuration
+     * @notice Add boosted market
      * @param vToken vToken address of the market
      * @param rate prime boost yield for the market. For example: 5.66% is set as (5.66 * 10**18)
      */
@@ -306,8 +305,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         _markets[vToken].rate = rate;
         _markets[vToken].boostRateIndex = INITIAL_INDEX;
-        _markets[vToken].supplyRateIndex = IVToken(vToken).supplyIndex();
-        _markets[vToken].borrowRateIndex = IVToken(vToken).borrowIndex();
+        _markets[vToken].supplyRateIndex = INITIAL_INDEX;
+        _markets[vToken].borrowRateIndex = INITIAL_INDEX;
         _markets[vToken].lastUpdated = block.number;
 
         allMarkets.push(vToken);
@@ -338,36 +337,16 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         accrueInterest(vToken);
 
         IVToken market = IVToken(vToken);
-        market.accrueInterest();
-
         uint256 borrowBalance = market.borrowBalanceCurrent(account);
         uint256 supplyBalance = market.balanceOfUnderlying(account);
-
-        uint supplyRate;
-        uint marketSupplyIndex = market.supplyIndex();
-        if (_interests[vToken][account].supplyRateIndex == 0) {
-            supplyRate = marketSupplyIndex - _markets[vToken].supplyRateIndex;
-        } else {
-            supplyRate = marketSupplyIndex - _interests[vToken][account].supplyRateIndex;
-        }
-
-        _interests[vToken][account].supplyRateIndex = marketSupplyIndex;
-
-        uint borrowRate;
-        uint marketBorrowIndex = market.borrowIndex();
-        if (_interests[vToken][account].borrowRateIndex == 0) {
-            borrowRate = marketBorrowIndex - _markets[vToken].borrowRateIndex;
-        } else {
-            borrowRate = marketBorrowIndex - _interests[vToken][account].borrowRateIndex;
-        }
-
-        _interests[vToken][account].borrowRateIndex = marketBorrowIndex;
 
         if (_interests[vToken][account].boostRateIndex == _markets[vToken].boostRateIndex) {
             return;
         }
 
         uint boostRate =  _markets[vToken].boostRateIndex - _interests[vToken][account].boostRateIndex;
+        uint supplyRate =  _markets[vToken].supplyRateIndex - _interests[vToken][account].supplyRateIndex;
+        uint borrowRate =  _markets[vToken].borrowRateIndex - _interests[vToken][account].borrowRateIndex;
 
         // Calculate total interest accrued by the user:
         // (Supply * supplyRate - Borrow * borrowRate) + ((supplyQVL  + borrowQVL) * boost)
@@ -406,8 +385,13 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     function accrueInterest(
         address vToken
     ) public {
+        require(_markets[vToken].lastUpdated != 0, "market is supported");
+        IVToken market = IVToken(vToken);
         uint256 pastBlocks = (block.number - _markets[vToken].lastUpdated);
+
         _markets[vToken].boostRateIndex = _markets[vToken].boostRateIndex + (pastBlocks * boostRatePerBlock(vToken));
+        _markets[vToken].borrowRateIndex = _markets[vToken].borrowRateIndex + (pastBlocks * market.borrowRatePerBlock());
+        _markets[vToken].supplyRateIndex = _markets[vToken].supplyRateIndex + (pastBlocks * market.supplyRatePerBlock());
         _markets[vToken].lastUpdated = block.number;
     } 
 

@@ -11,14 +11,11 @@ import {
   ComptrollerLens,
   ComptrollerLens__factory,
   Comptroller__factory,
-  EIP20Interface,
   IAccessControlManager,
   InterestRateModelHarness,
   PriceOracle,
   VBep20Harness,
-  VToken,
 } from "../../../typechain";
-import { ComptrollerErrorReporter } from "../util/Errors";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -49,7 +46,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._setPriceOracle(oracle.address);
   await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
 
-  const [wallet] = await ethers.getSigners();
+  const [wallet,  ...accounts] = await ethers.getSigners();
 
   const tokenFactory = await ethers.getContractFactory("BEP20Harness");
   const usdt = (await tokenFactory.deploy(
@@ -57,6 +54,13 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     "usdt",
     BigNumber.from(18),
     "BEP20 usdt",
+  )) as BEP20Harness;
+
+  const eth = (await tokenFactory.deploy(
+    bigNumber18.mul(100000000),
+    "eth",
+    BigNumber.from(18),
+    "BEP20 eth",
   )) as BEP20Harness;
 
   const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
@@ -75,14 +79,69 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     BigNumber.from(18),
     wallet.address,
   )) as VBep20Harness;
+  const veth = (await vTokenFactory.deploy(
+    eth.address,
+    comptroller.address,
+    InterestRateModelHarness.address,
+    bigNumber18,
+    "VToken eth",
+    "veth",
+    BigNumber.from(18),
+    wallet.address,
+  )) as VBep20Harness;
 
-  return { oracle, comptroller, comptrollerLens, accessControl };
+  oracle.getUnderlyingPrice.returns((vToken: string) => {
+    if (vToken == vusdt.address) {
+      return convertToUnit(1, 18);
+    } else if (vToken == veth.address) {
+      return convertToUnit(1200, 18)
+    }
+  });
+
+  const half = convertToUnit("0.5", 18);
+  await comptroller._supportMarket(vusdt.address);
+  await comptroller._setCollateralFactor(vusdt.address, half)
+  await comptroller._supportMarket(veth.address);
+  await comptroller._setCollateralFactor(veth.address, half)
+
+  eth.transfer(accounts[0].address, bigNumber18.mul(100))
+  usdt.transfer(accounts[1].address, bigNumber18.mul(10000))
+  
+  await comptroller._setMarketSupplyCaps([
+    vusdt.address,
+    veth.address
+  ], [
+    bigNumber18.mul(10000),
+    bigNumber18.mul(100)
+  ])
+
+  await comptroller._setMarketBorrowCaps([
+    vusdt.address,
+    veth.address
+  ], [
+    bigNumber18.mul(10000),
+    bigNumber18.mul(100)
+  ])
+
+  await eth.approve(veth.address, bigNumber18.mul(90));
+  await veth.mint(bigNumber18.mul(90));
+
+  await usdt.approve(veth.address, bigNumber18.mul(90));
+  await vusdt.mint(bigNumber18.mul(90));
+
+  await 
+
+  return { 
+    oracle, 
+    comptroller, 
+    comptrollerLens, 
+    accessControl,
+    usdt,
+    vusdt,
+    eth,
+    veth
+  };
 }
-
-function configureOracle(oracle: FakeContract<PriceOracle>) {
-  oracle.getUnderlyingPrice.returns(convertToUnit(1, 18));
-}
-
 
 describe("Prime Token", () => {
   let root: Signer;
@@ -92,7 +151,20 @@ describe("Prime Token", () => {
     [root, ...accounts] = await ethers.getSigners();
   });
 
-  describe("", () => {
+  describe("protocol and xvs setup", () => {
+    let comptroller: MockContract<Comptroller>;
+    let vusdt: VBep20Harness;
+    let veth: VBep20Harness;
 
+    beforeEach(async () => {
+      ({comptroller, vusdt, veth} = await loadFixture(deployProtocol));
+    });
+
+    it("markets added", async () => {
+      expect((await comptroller.allMarkets(0))).to.be.equal(vusdt.address)
+      expect((await comptroller.allMarkets(1))).to.be.equal(veth.address)
+
+      // console.log(await (await veth.supplyRatePerBlock()).toString())
+    })
   })
 });
