@@ -3,6 +3,8 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "./PrimeStorage.sol";
 
+import "hardhat/console.sol";
+
 interface IVToken {
     function borrowRatePerBlock() external view returns (uint);
     function supplyRatePerBlock() external view returns (uint);
@@ -16,9 +18,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     /// @notice address of XVS vault
     address immutable internal xvsVault;
 
-    /// @notice address of comptroller vault
-    address immutable internal comptroller;
-
     /// @notice Emitted when prime token is minted
     event Mint (
         address owner,
@@ -31,11 +30,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     );
 
     constructor(
-        address _xvsVault,
-        address _comptroller
+        address _xvsVault
     ) {
         xvsVault = _xvsVault;
-        comptroller = _comptroller;
     } 
 
     function initialize() external virtual initializer {
@@ -51,8 +48,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256 irrevocableLimit,
         uint256 revocableLimit
     ) onlyOwner external {
-        require(_totalRevocable >= _revocableLimit, "limit is lower than total minted tokens");
-        require(_totalIrrevocable >= irrevocableLimit, "limit is lower than total minted tokens");
+        require(_totalRevocable <= revocableLimit, "limit is lower than total minted tokens");
+        require(_totalIrrevocable <= irrevocableLimit, "limit is lower than total minted tokens");
 
         _revocableLimit = revocableLimit;
         _irrevocableLimit = irrevocableLimit;
@@ -85,6 +82,36 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
+     * @notice Add boosted market
+     * @param vToken vToken address of the market
+     * @param rate prime boost yield for the market. For example: 5.66% is set as (5.66 * 10**18)
+     */
+    function addMarket(
+        address vToken,
+        uint256 rate
+    ) onlyOwner external {
+        require(_markets[vToken].lastUpdated == 0, "market is already added");
+
+        _markets[vToken].rate = rate;
+        _markets[vToken].boostRateIndex = INITIAL_INDEX;
+        _markets[vToken].supplyRateIndex = INITIAL_INDEX;
+        _markets[vToken].borrowRateIndex = INITIAL_INDEX;
+        _markets[vToken].lastUpdated = block.number;
+
+        allMarkets.push(vToken);
+    }
+
+    function updateRate(
+        address vToken,
+        uint256 rate
+    ) onlyOwner external {
+        require(_markets[vToken].lastUpdated != 0, "market is not added");
+
+        accrueInterest(vToken);
+        _markets[vToken].rate = rate;
+    }
+
+    /**
      * @notice Sets QVL for all the tiers
      * @param supplyTVLCaps supply TVL cap for stablecoin markets
      * @param borrowTVLCaps borrow TVL cap for stablecoin markets
@@ -94,7 +121,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256[] memory supplyTVLCaps,
         uint256[] memory borrowTVLCaps
     ) onlyOwner external {
-        require(_markets[vToken].boostRateIndex != 0, "market doesn't exist");
+        require(_markets[vToken].lastUpdated != 0, "market doesn't exist");
         require(
             supplyTVLCaps.length == uint(MAX_TIER) &&
             borrowTVLCaps.length == uint(MAX_TIER), 
@@ -292,36 +319,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         return eligibleTier;
     }
 
-    /**
-     * @notice Add boosted market
-     * @param vToken vToken address of the market
-     * @param rate prime boost yield for the market. For example: 5.66% is set as (5.66 * 10**18)
-     */
-    function addMarket(
-        address vToken,
-        uint256 rate
-    ) onlyOwner external {
-        require(_markets[vToken].lastUpdated == 0, "market is already added");
-
-        _markets[vToken].rate = rate;
-        _markets[vToken].boostRateIndex = INITIAL_INDEX;
-        _markets[vToken].supplyRateIndex = INITIAL_INDEX;
-        _markets[vToken].borrowRateIndex = INITIAL_INDEX;
-        _markets[vToken].lastUpdated = block.number;
-
-        allMarkets.push(vToken);
-    }
-
-    function updateRate(
-        address vToken,
-        uint256 rate
-    ) onlyOwner external {
-        require(_markets[vToken].lastUpdated != 0, "market is not added");
-
-        accrueInterest(vToken);
-        _markets[vToken].rate = rate;
-    }
-
     function executeBoost(
         address account,
         address vToken
@@ -407,11 +404,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     modifier onlyXVSVault() {
         require(msg.sender == xvsVault, "only XVS vault can call this function");
-        _;
-    }
-
-    modifier onlyComptroller() {
-        require(address(comptroller) == msg.sender, "only comptroller can call this function");
         _;
     }
 }

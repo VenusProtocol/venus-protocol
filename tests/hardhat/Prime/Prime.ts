@@ -14,7 +14,12 @@ import {
   IAccessControlManager,
   InterestRateModelHarness,
   PriceOracle,
+  Prime,
   VBep20Harness,
+  XVS,
+  XVSStore,
+  XVSVault,
+  XVSVaultScenario,
 } from "../../../typechain";
 
 const { expect } = chai;
@@ -34,6 +39,7 @@ type SetupProtocolFixture = {
   xvsVault: XVSVaultScenario;
   xvs: XVS;
   xvsStore: XVSStore;
+  prime: Prime
 };
 
 async function deployProtocol(): Promise<SetupProtocolFixture> {
@@ -165,8 +171,82 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const lockPeriod = 300;
   const allocPoint = 100;
+  const poolId = 0;
   const rewardPerBlock = bigNumber18.mul(1);
   await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
+  
+  const primeFactory = await ethers.getContractFactory("Prime");
+  const prime: Prime = (await primeFactory.deploy(
+    xvsVault.address
+  )) as Prime;
+  prime.initialize()
+
+  await xvsVault.setPrimeToken(
+    prime.address,
+    xvs.address,
+    poolId
+  )
+
+  await prime.setLimit(
+    1000,
+    1000
+  )
+
+  await prime.setThresholds(
+    [
+      bigNumber18.mul(1000),
+      bigNumber18.mul(5000),
+      bigNumber18.mul(10000),
+      bigNumber18.mul(50000),
+      bigNumber18.mul(100000),
+    ]
+  )
+
+  await prime.addMarket(
+    vusdt.address,
+    bigNumber18.mul(5)
+  )
+
+  await prime.addMarket(
+    veth.address,
+    bigNumber18.mul(5)
+  )
+
+  await prime.setCaps(
+    vusdt.address,
+    [
+      bigNumber18.mul("50000"),
+      bigNumber18.mul("250000"),
+      bigNumber18.mul("1000000"),
+      bigNumber18.mul("5000000"),
+      bigNumber18.mul("10000000"),
+    ],
+    [
+      bigNumber18.mul("100000"),
+      bigNumber18.mul("500000"),
+      bigNumber18.mul("2000000"),
+      bigNumber18.mul("10000000"),
+      bigNumber18.mul("20000000"),
+    ]
+  )
+
+  await prime.setCaps(
+    veth.address,
+    [
+      bigNumber18.mul("5"),
+      bigNumber18.mul("25"),
+      bigNumber18.mul("100"),
+      bigNumber18.mul("500"),
+      bigNumber18.mul("1000"),
+    ],
+    [
+      bigNumber18.mul("10"),
+      bigNumber18.mul("50"),
+      bigNumber18.mul("200"),
+      bigNumber18.mul("1000"),
+      bigNumber18.mul("2000"),
+    ]
+  )
 
   return { 
     oracle, 
@@ -179,7 +259,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     veth,
     xvsVault,
     xvs,
-    xvsStore
+    xvsStore,
+    prime
   };
 }
 
@@ -211,5 +292,20 @@ describe("Prime Token", () => {
       expect((await usdt.balanceOf(accounts[0].getAddress()))).to.be.gt(0)
       expect((await eth.balanceOf(accounts[1].getAddress()))).to.be.gt(0)
     })
+  })
+
+  describe("mint and burn", () => {
+    let comptroller: MockContract<Comptroller>;
+    let prime: Prime
+    let xvsVault: XVSVault
+    let xvs: XVS
+
+    beforeEach(async () => {
+      ({comptroller, prime, xvsVault, xvs} = await loadFixture(deployProtocol));
+    });
+
+    // it("stake and mint", async () => {
+    //   await xvsVault.deposit(xvs.address, 0, bigNumber18.mul())
+    // })
   })
 });
