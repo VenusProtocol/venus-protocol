@@ -5,6 +5,16 @@ import "../../InterestRateModels/InterestRateModel.sol";
 
 contract VTokenStorage {
     /**
+     * @notice Container for borrow balance information
+     * @member principal Total balance (with accrued interest), after applying the most recent balance-changing action
+     * @member interestIndex Global borrowIndex as of the most recent balance-changing action
+     */
+    struct BorrowSnapshot {
+        uint principal;
+        uint interestIndex;
+    }
+
+    /**
      * @dev Guard variable for re-entrancy checks
      */
     bool internal _notEntered;
@@ -99,16 +109,6 @@ contract VTokenStorage {
      * @notice Approved token transfer amounts on behalf of others
      */
     mapping(address => mapping(address => uint)) internal transferAllowances;
-
-    /**
-     * @notice Container for borrow balance information
-     * @member principal Total balance (with accrued interest), after applying the most recent balance-changing action
-     * @member interestIndex Global borrowIndex as of the most recent balance-changing action
-     */
-    struct BorrowSnapshot {
-        uint principal;
-        uint interestIndex;
-    }
 
     /**
      * @notice Mapping of account addresses to outstanding borrow balances
@@ -230,11 +230,29 @@ contract VTokenInterface is VTokenStorage {
 
     function approve(address spender, uint amount) external returns (bool);
 
-    function allowance(address owner, address spender) external view returns (uint);
+    function balanceOfUnderlying(address owner) external returns (uint);
+
+    function totalBorrowsCurrent() external returns (uint);
+
+    function borrowBalanceCurrent(address account) external returns (uint);
+
+    function seize(address liquidator, address borrower, uint seizeTokens) external returns (uint);
+
+    /*** Admin Function ***/
+    function _setPendingAdmin(address payable newPendingAdmin) external returns (uint);
+
+    /*** Admin Function ***/
+    function _acceptAdmin() external returns (uint);
+
+    /*** Admin Function ***/
+    function _setReserveFactor(uint newReserveFactorMantissa) external returns (uint);
+
+    /*** Admin Function ***/
+    function _reduceReserves(uint reduceAmount) external returns (uint);
 
     function balanceOf(address owner) external view returns (uint);
 
-    function balanceOfUnderlying(address owner) external returns (uint);
+    function allowance(address owner, address spender) external view returns (uint);
 
     function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint);
 
@@ -242,35 +260,21 @@ contract VTokenInterface is VTokenStorage {
 
     function supplyRatePerBlock() external view returns (uint);
 
-    function totalBorrowsCurrent() external returns (uint);
-
-    function borrowBalanceCurrent(address account) external returns (uint);
-
-    function borrowBalanceStored(address account) public view returns (uint);
+    function getCash() external view returns (uint);
 
     function exchangeRateCurrent() public returns (uint);
 
-    function exchangeRateStored() public view returns (uint);
-
-    function getCash() external view returns (uint);
-
     function accrueInterest() public returns (uint);
 
-    function seize(address liquidator, address borrower, uint seizeTokens) external returns (uint);
-
-    /*** Admin Functions ***/
-
-    function _setPendingAdmin(address payable newPendingAdmin) external returns (uint);
-
-    function _acceptAdmin() external returns (uint);
-
+    /*** Admin Function ***/
     function _setComptroller(ComptrollerInterface newComptroller) public returns (uint);
 
-    function _setReserveFactor(uint newReserveFactorMantissa) external returns (uint);
-
-    function _reduceReserves(uint reduceAmount) external returns (uint);
-
+    /*** Admin Function ***/
     function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint);
+
+    function borrowBalanceStored(address account) public view returns (uint);
+
+    function exchangeRateStored() public view returns (uint);
 }
 
 contract VBep20Storage {

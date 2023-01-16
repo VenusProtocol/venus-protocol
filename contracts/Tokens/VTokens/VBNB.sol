@@ -36,6 +36,14 @@ contract VBNB is VToken {
         admin = admin_;
     }
 
+    /**
+     * @notice Send BNB to VBNB to mint
+     */
+    function() external payable {
+        (uint err, ) = mintInternal(msg.value);
+        requireNoError(err, "mint failed");
+    }
+
     /*** User Interface ***/
 
     /**
@@ -107,26 +115,7 @@ contract VBNB is VToken {
         requireNoError(err, "liquidateBorrow failed");
     }
 
-    /**
-     * @notice Send BNB to VBNB to mint
-     */
-    function() external payable {
-        (uint err, ) = mintInternal(msg.value);
-        requireNoError(err, "mint failed");
-    }
-
     /*** Safe Token ***/
-
-    /**
-     * @notice Gets balance of this contract in terms of BNB, before this message
-     * @dev This excludes the value of the current message, if any
-     * @return The quantity of BNB owned by this contract
-     */
-    function getCashPrior() internal view returns (uint) {
-        (MathError err, uint startingBalance) = subUInt(address(this).balance, msg.value);
-        require(err == MathError.NO_ERROR, "cash prior math error");
-        return startingBalance;
-    }
 
     /**
      * @notice Perform the actual transfer in, which is a no-op
@@ -144,6 +133,17 @@ contract VBNB is VToken {
     function doTransferOut(address payable to, uint amount) internal {
         /* Send the BNB, with minimal gas and revert on failure */
         to.transfer(amount);
+    }
+
+    /**
+     * @notice Gets balance of this contract in terms of BNB, before this message
+     * @dev This excludes the value of the current message, if any
+     * @return The quantity of BNB owned by this contract
+     */
+    function getCashPrior() internal view returns (uint) {
+        (MathError err, uint startingBalance) = subUInt(address(this).balance, msg.value);
+        require(err == MathError.NO_ERROR, "cash prior math error");
+        return startingBalance;
     }
 
     function requireNoError(uint errCode, string memory message) internal pure {

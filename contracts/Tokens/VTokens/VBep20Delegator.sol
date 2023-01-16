@@ -59,28 +59,27 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
     }
 
     /**
-     * @notice Called by the admin to update the implementation of the delegator
-     * @param implementation_ The address of the new implementation for delegation
-     * @param allowResign Flag to indicate whether to call _resignImplementation on the old implementation
-     * @param becomeImplementationData The encoded bytes data to be passed to _becomeImplementation
+     * @notice Delegates execution to an implementation contract
+     * @dev It returns to the external caller whatever the implementation returns or forwards reverts
      */
-    function _setImplementation(
-        address implementation_,
-        bool allowResign,
-        bytes memory becomeImplementationData
-    ) public {
-        require(msg.sender == admin, "VBep20Delegator::_setImplementation: Caller must be admin");
+    function() external payable {
+        require(msg.value == 0, "VBep20Delegator:fallback: cannot send value to fallback");
 
-        if (allowResign) {
-            delegateToImplementation(abi.encodeWithSignature("_resignImplementation()"));
+        // delegate all other functions to current implementation
+        (bool success, ) = implementation.delegatecall(msg.data);
+
+        assembly {
+            let free_mem_ptr := mload(0x40)
+            returndatacopy(free_mem_ptr, 0, returndatasize)
+
+            switch success
+            case 0 {
+                revert(free_mem_ptr, returndatasize)
+            }
+            default {
+                return(free_mem_ptr, returndatasize)
+            }
         }
-
-        address oldImplementation = implementation;
-        implementation = implementation_;
-
-        delegateToImplementation(abi.encodeWithSignature("_becomeImplementation(bytes)", becomeImplementationData));
-
-        emit NewImplementation(oldImplementation, implementation);
     }
 
     /**
@@ -224,29 +223,6 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
     }
 
     /**
-     * @notice Get the current allowance from `owner` for `spender`
-     * @param owner The address of the account which owns the tokens to be spent
-     * @param spender The address of the account which may transfer tokens
-     * @return The number of tokens allowed to be spent (-1 means infinite)
-     */
-    function allowance(address owner, address spender) external view returns (uint) {
-        bytes memory data = delegateToViewImplementation(
-            abi.encodeWithSignature("allowance(address,address)", owner, spender)
-        );
-        return abi.decode(data, (uint));
-    }
-
-    /**
-     * @notice Get the token balance of the `owner`
-     * @param owner The address of the account to query
-     * @return The number of tokens owned by `owner`
-     */
-    function balanceOf(address owner) external view returns (uint) {
-        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("balanceOf(address)", owner));
-        return abi.decode(data, (uint));
-    }
-
-    /**
      * @notice Get the underlying balance of the `owner`
      * @dev This also accrues interest in a transaction
      * @param owner The address of the account to query
@@ -254,37 +230,6 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      */
     function balanceOfUnderlying(address owner) external returns (uint) {
         bytes memory data = delegateToImplementation(abi.encodeWithSignature("balanceOfUnderlying(address)", owner));
-        return abi.decode(data, (uint));
-    }
-
-    /**
-     * @notice Get a snapshot of the account's balances, and the cached exchange rate
-     * @dev This is used by comptroller to more efficiently perform liquidity checks.
-     * @param account Address of the account to snapshot
-     * @return (possible error, token balance, borrow balance, exchange rate mantissa)
-     */
-    function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint) {
-        bytes memory data = delegateToViewImplementation(
-            abi.encodeWithSignature("getAccountSnapshot(address)", account)
-        );
-        return abi.decode(data, (uint, uint, uint, uint));
-    }
-
-    /**
-     * @notice Returns the current per-block borrow interest rate for this vToken
-     * @return The borrow interest rate per block, scaled by 1e18
-     */
-    function borrowRatePerBlock() external view returns (uint) {
-        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("borrowRatePerBlock()"));
-        return abi.decode(data, (uint));
-    }
-
-    /**
-     * @notice Returns the current per-block supply interest rate for this vToken
-     * @return The supply interest rate per block, scaled by 1e18
-     */
-    function supplyRatePerBlock() external view returns (uint) {
-        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("supplyRatePerBlock()"));
         return abi.decode(data, (uint));
     }
 
@@ -304,56 +249,6 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      */
     function borrowBalanceCurrent(address account) external returns (uint) {
         bytes memory data = delegateToImplementation(abi.encodeWithSignature("borrowBalanceCurrent(address)", account));
-        return abi.decode(data, (uint));
-    }
-
-    /**
-     * @notice Return the borrow balance of account based on stored data
-     * @param account The address whose balance should be calculated
-     * @return The calculated balance
-     */
-    function borrowBalanceStored(address account) public view returns (uint) {
-        bytes memory data = delegateToViewImplementation(
-            abi.encodeWithSignature("borrowBalanceStored(address)", account)
-        );
-        return abi.decode(data, (uint));
-    }
-
-    /**
-     * @notice Accrue interest then return the up-to-date exchange rate
-     * @return Calculated exchange rate scaled by 1e18
-     */
-    function exchangeRateCurrent() public returns (uint) {
-        bytes memory data = delegateToImplementation(abi.encodeWithSignature("exchangeRateCurrent()"));
-        return abi.decode(data, (uint));
-    }
-
-    /**
-     * @notice Calculates the exchange rate from the underlying to the VToken
-     * @dev This function does not accrue interest before calculating the exchange rate
-     * @return Calculated exchange rate scaled by 1e18
-     */
-    function exchangeRateStored() public view returns (uint) {
-        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("exchangeRateStored()"));
-        return abi.decode(data, (uint));
-    }
-
-    /**
-     * @notice Get cash balance of this vToken in the underlying asset
-     * @return The quantity of underlying asset owned by this contract
-     */
-    function getCash() external view returns (uint) {
-        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("getCash()"));
-        return abi.decode(data, (uint));
-    }
-
-    /**
-     * @notice Applies accrued interest to total borrows and reserves.
-     * @dev This calculates interest accrued from the last checkpointed block
-     *      up to the current block and writes new checkpoint to storage.
-     */
-    function accrueInterest() public returns (uint) {
-        bytes memory data = delegateToImplementation(abi.encodeWithSignature("accrueInterest()"));
         return abi.decode(data, (uint));
     }
 
@@ -384,18 +279,6 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
     function _setPendingAdmin(address payable newPendingAdmin) external returns (uint) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("_setPendingAdmin(address)", newPendingAdmin)
-        );
-        return abi.decode(data, (uint));
-    }
-
-    /**
-     * @notice Sets a new comptroller for the market
-     * @dev Admin function to set a new comptroller
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-     */
-    function _setComptroller(ComptrollerInterface newComptroller) public returns (uint) {
-        bytes memory data = delegateToImplementation(
-            abi.encodeWithSignature("_setComptroller(address)", newComptroller)
         );
         return abi.decode(data, (uint));
     }
@@ -443,6 +326,125 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
     }
 
     /**
+     * @notice Get cash balance of this vToken in the underlying asset
+     * @return The quantity of underlying asset owned by this contract
+     */
+    function getCash() external view returns (uint) {
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("getCash()"));
+        return abi.decode(data, (uint));
+    }
+
+    /**
+     * @notice Get the current allowance from `owner` for `spender`
+     * @param owner The address of the account which owns the tokens to be spent
+     * @param spender The address of the account which may transfer tokens
+     * @return The number of tokens allowed to be spent (-1 means infinite)
+     */
+    function allowance(address owner, address spender) external view returns (uint) {
+        bytes memory data = delegateToViewImplementation(
+            abi.encodeWithSignature("allowance(address,address)", owner, spender)
+        );
+        return abi.decode(data, (uint));
+    }
+
+    /**
+     * @notice Get the token balance of the `owner`
+     * @param owner The address of the account to query
+     * @return The number of tokens owned by `owner`
+     */
+    function balanceOf(address owner) external view returns (uint) {
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("balanceOf(address)", owner));
+        return abi.decode(data, (uint));
+    }
+
+    /**
+     * @notice Get a snapshot of the account's balances, and the cached exchange rate
+     * @dev This is used by comptroller to more efficiently perform liquidity checks.
+     * @param account Address of the account to snapshot
+     * @return (possible error, token balance, borrow balance, exchange rate mantissa)
+     */
+    function getAccountSnapshot(address account) external view returns (uint, uint, uint, uint) {
+        bytes memory data = delegateToViewImplementation(
+            abi.encodeWithSignature("getAccountSnapshot(address)", account)
+        );
+        return abi.decode(data, (uint, uint, uint, uint));
+    }
+
+    /**
+     * @notice Returns the current per-block borrow interest rate for this vToken
+     * @return The borrow interest rate per block, scaled by 1e18
+     */
+    function borrowRatePerBlock() external view returns (uint) {
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("borrowRatePerBlock()"));
+        return abi.decode(data, (uint));
+    }
+
+    /**
+     * @notice Returns the current per-block supply interest rate for this vToken
+     * @return The supply interest rate per block, scaled by 1e18
+     */
+    function supplyRatePerBlock() external view returns (uint) {
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("supplyRatePerBlock()"));
+        return abi.decode(data, (uint));
+    }
+
+    /**
+     * @notice Called by the admin to update the implementation of the delegator
+     * @param implementation_ The address of the new implementation for delegation
+     * @param allowResign Flag to indicate whether to call _resignImplementation on the old implementation
+     * @param becomeImplementationData The encoded bytes data to be passed to _becomeImplementation
+     */
+    function _setImplementation(
+        address implementation_,
+        bool allowResign,
+        bytes memory becomeImplementationData
+    ) public {
+        require(msg.sender == admin, "VBep20Delegator::_setImplementation: Caller must be admin");
+
+        if (allowResign) {
+            delegateToImplementation(abi.encodeWithSignature("_resignImplementation()"));
+        }
+
+        address oldImplementation = implementation;
+        implementation = implementation_;
+
+        delegateToImplementation(abi.encodeWithSignature("_becomeImplementation(bytes)", becomeImplementationData));
+
+        emit NewImplementation(oldImplementation, implementation);
+    }
+
+    /**
+     * @notice Accrue interest then return the up-to-date exchange rate
+     * @return Calculated exchange rate scaled by 1e18
+     */
+    function exchangeRateCurrent() public returns (uint) {
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("exchangeRateCurrent()"));
+        return abi.decode(data, (uint));
+    }
+
+    /**
+     * @notice Applies accrued interest to total borrows and reserves.
+     * @dev This calculates interest accrued from the last checkpointed block
+     *      up to the current block and writes new checkpoint to storage.
+     */
+    function accrueInterest() public returns (uint) {
+        bytes memory data = delegateToImplementation(abi.encodeWithSignature("accrueInterest()"));
+        return abi.decode(data, (uint));
+    }
+
+    /**
+     * @notice Sets a new comptroller for the market
+     * @dev Admin function to set a new comptroller
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function _setComptroller(ComptrollerInterface newComptroller) public returns (uint) {
+        bytes memory data = delegateToImplementation(
+            abi.encodeWithSignature("_setComptroller(address)", newComptroller)
+        );
+        return abi.decode(data, (uint));
+    }
+
+    /**
      * @notice Accrues interest and updates the interest rate model using _setInterestRateModelFresh
      * @dev Admin function to accrue interest and update the interest rate model
      * @param newInterestRateModel the new interest rate model to use
@@ -453,23 +455,6 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
             abi.encodeWithSignature("_setInterestRateModel(address)", newInterestRateModel)
         );
         return abi.decode(data, (uint));
-    }
-
-    /**
-     * @notice Internal method to delegate execution to another contract
-     * @dev It returns to the external caller whatever the implementation returns or forwards reverts
-     * @param callee The contract to delegatecall
-     * @param data The raw data to delegatecall
-     * @return The returned bytes from the delegatecall
-     */
-    function delegateTo(address callee, bytes memory data) internal returns (bytes memory) {
-        (bool success, bytes memory returnData) = callee.delegatecall(data);
-        assembly {
-            if eq(success, 0) {
-                revert(add(returnData, 0x20), returndatasize)
-            }
-        }
-        return returnData;
     }
 
     /**
@@ -502,26 +487,41 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
     }
 
     /**
-     * @notice Delegates execution to an implementation contract
-     * @dev It returns to the external caller whatever the implementation returns or forwards reverts
+     * @notice Return the borrow balance of account based on stored data
+     * @param account The address whose balance should be calculated
+     * @return The calculated balance
      */
-    function() external payable {
-        require(msg.value == 0, "VBep20Delegator:fallback: cannot send value to fallback");
+    function borrowBalanceStored(address account) public view returns (uint) {
+        bytes memory data = delegateToViewImplementation(
+            abi.encodeWithSignature("borrowBalanceStored(address)", account)
+        );
+        return abi.decode(data, (uint));
+    }
 
-        // delegate all other functions to current implementation
-        (bool success, ) = implementation.delegatecall(msg.data);
+    /**
+     * @notice Calculates the exchange rate from the underlying to the VToken
+     * @dev This function does not accrue interest before calculating the exchange rate
+     * @return Calculated exchange rate scaled by 1e18
+     */
+    function exchangeRateStored() public view returns (uint) {
+        bytes memory data = delegateToViewImplementation(abi.encodeWithSignature("exchangeRateStored()"));
+        return abi.decode(data, (uint));
+    }
 
+    /**
+     * @notice Internal method to delegate execution to another contract
+     * @dev It returns to the external caller whatever the implementation returns or forwards reverts
+     * @param callee The contract to delegatecall
+     * @param data The raw data to delegatecall
+     * @return The returned bytes from the delegatecall
+     */
+    function delegateTo(address callee, bytes memory data) internal returns (bytes memory) {
+        (bool success, bytes memory returnData) = callee.delegatecall(data);
         assembly {
-            let free_mem_ptr := mload(0x40)
-            returndatacopy(free_mem_ptr, 0, returndatasize)
-
-            switch success
-            case 0 {
-                revert(free_mem_ptr, returndatasize)
-            }
-            default {
-                return(free_mem_ptr, returndatasize)
+            if eq(success, 0) {
+                revert(add(returnData, 0x20), returndatasize)
             }
         }
+        return returnData;
     }
 }

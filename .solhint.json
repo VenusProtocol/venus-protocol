@@ -10,6 +10,7 @@
     "not-rely-on-time": "off",
     "reason-string": ["warn", { "maxLength": 64 }],
     "no-unused-vars": "error",
-    "state-visibility": "error"
+    "state-visibility": "error",
+    "ordering": "warn"
   }
 }

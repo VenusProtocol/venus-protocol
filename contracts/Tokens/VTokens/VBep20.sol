@@ -8,33 +8,6 @@ import "./VToken.sol";
  * @author Venus
  */
 contract VBep20 is VToken, VBep20Interface {
-    /**
-     * @notice Initialize the new money market
-     * @param underlying_ The address of the underlying asset
-     * @param comptroller_ The address of the Comptroller
-     * @param interestRateModel_ The address of the interest rate model
-     * @param initialExchangeRateMantissa_ The initial exchange rate, scaled by 1e18
-     * @param name_ BEP-20 name of this token
-     * @param symbol_ BEP-20 symbol of this token
-     * @param decimals_ BEP-20 decimal precision of this token
-     */
-    function initialize(
-        address underlying_,
-        ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
-        uint initialExchangeRateMantissa_,
-        string memory name_,
-        string memory symbol_,
-        uint8 decimals_
-    ) public {
-        // VToken initialize does the bulk of the work
-        super.initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
-
-        // Set underlying and sanity check it
-        underlying = underlying_;
-        EIP20Interface(underlying).totalSupply();
-    }
-
     /*** User Interface ***/
 
     /**
@@ -136,17 +109,34 @@ contract VBep20 is VToken, VBep20Interface {
         return _addReservesInternal(addAmount);
     }
 
-    /*** Safe Token ***/
-
     /**
-     * @notice Gets balance of this contract in terms of the underlying
-     * @dev This excludes the value of the current message, if any
-     * @return The quantity of underlying tokens owned by this contract
+     * @notice Initialize the new money market
+     * @param underlying_ The address of the underlying asset
+     * @param comptroller_ The address of the Comptroller
+     * @param interestRateModel_ The address of the interest rate model
+     * @param initialExchangeRateMantissa_ The initial exchange rate, scaled by 1e18
+     * @param name_ BEP-20 name of this token
+     * @param symbol_ BEP-20 symbol of this token
+     * @param decimals_ BEP-20 decimal precision of this token
      */
-    function getCashPrior() internal view returns (uint) {
-        EIP20Interface token = EIP20Interface(underlying);
-        return token.balanceOf(address(this));
+    function initialize(
+        address underlying_,
+        ComptrollerInterface comptroller_,
+        InterestRateModel interestRateModel_,
+        uint initialExchangeRateMantissa_,
+        string memory name_,
+        string memory symbol_,
+        uint8 decimals_
+    ) public {
+        // VToken initialize does the bulk of the work
+        super.initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
+
+        // Set underlying and sanity check it
+        underlying = underlying_;
+        EIP20Interface(underlying).totalSupply();
     }
+
+    /*** Safe Token ***/
 
     /**
      * @dev Similar to EIP20 transfer, except it handles a False result from `transferFrom` and reverts in that case.
@@ -218,5 +208,15 @@ contract VBep20 is VToken, VBep20Interface {
             }
         }
         require(success, "TOKEN_TRANSFER_OUT_FAILED");
+    }
+
+    /**
+     * @notice Gets balance of this contract in terms of the underlying
+     * @dev This excludes the value of the current message, if any
+     * @return The quantity of underlying tokens owned by this contract
+     */
+    function getCashPrior() internal view returns (uint) {
+        EIP20Interface token = EIP20Interface(underlying);
+        return token.balanceOf(address(this));
     }
 }
