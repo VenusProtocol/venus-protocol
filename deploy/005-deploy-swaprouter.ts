@@ -4,11 +4,11 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 const ADDRESSES = {
   bsctestnet: {
     WBNBAddress: "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
-    pancakeFactory: "0x182859893230dC89b114d6e2D547BFFE30474a21"
+    pancakeFactory: "0x182859893230dC89b114d6e2D547BFFE30474a21",
   },
   bscmainnet: {
     WBNBAddress: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-    pancakeFactory: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"
+    pancakeFactory: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
   },
 };
 
