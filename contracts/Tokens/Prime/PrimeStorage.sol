@@ -52,7 +52,7 @@ contract PrimeStorageV1 {
     uint256 constant internal INITIAL_INDEX = 1e18;
 
     /// @notice Mapping owner token id to token metadata
-    mapping(address => Token) internal _tokens;
+    mapping(address => Token) public _tokens;
 
     /// @notice  Tracks total irrevocable tokens minted
     uint256 internal _totalIrrevocable;
@@ -67,7 +67,7 @@ contract PrimeStorageV1 {
     uint256 internal _irrevocableLimit;
 
     /// @notice Tracks when prime token eligible users started staking for claiming prime token
-    mapping (address => Stake) internal _stakes;
+    mapping (address => Stake) public _stakes;
 
     /// @notice vToken to market configuration
     mapping (address => Market) internal _markets;

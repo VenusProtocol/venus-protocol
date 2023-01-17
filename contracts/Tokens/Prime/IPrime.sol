@@ -15,4 +15,8 @@ interface IPrime {
         address account,
         address vToken
     ) external; 
+
+    function accrueInterest(
+        address vToken
+    ) external;
 }

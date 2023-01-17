@@ -239,15 +239,15 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             eligibleTier < _tokens[owner].tier &&
             _tokens[owner].isIrrevocable == false
         ) {
-            _tokens[owner].tier = eligibleTier;
-
             if (eligibleTier == Tier.ZERO) {
-                _burn(msg.sender);
+                _burn(owner);
+            } else {
+                _tokens[owner].tier = eligibleTier;
             }
         }
 
-        if (_stakes[msg.sender].tier != Tier.ZERO && _stakes[msg.sender].tier != eligibleTier) {
-            delete _stakes[msg.sender];
+        if (_stakes[owner].tier != Tier.ZERO && _stakes[owner].tier != eligibleTier) {
+            delete _stakes[owner];
         }
     }
 
@@ -292,7 +292,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     function _burn(
         address owner
     ) internal {
-        require(_tokens[owner].tier != Tier.ZERO, "user doesn't own an prime token");
+        require(uint(_tokens[owner].tier) != uint(Tier.ZERO), "user doesn't own an prime token");
 
         if (_tokens[owner].isIrrevocable == true) {
             _totalIrrevocable--;
@@ -348,6 +348,14 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         // Calculate total interest accrued by the user:
         // (Supply * supplyRate - Borrow * borrowRate) + ((supplyQVL  + borrowQVL) * boost)
         (uint borrowQVL, uint supplyQVL) = getQVL(account, vToken, borrowBalance, supplyBalance);
+        console.log("start");
+        console.log(supplyBalance);
+        console.log(supplyRate);
+        console.log(borrowBalance);
+        console.log(borrowRate);
+        console.log(borrowQVL);
+        console.log(supplyQVL);
+        console.log(boostRate);
         uint delta = (((supplyBalance * supplyRate) / 1e18) - ((borrowBalance * borrowRate) / 1e18)) + (((borrowQVL + supplyQVL) * boostRate) / 1e18);
         _interests[vToken][account].accrued = _interests[vToken][account].accrued + delta;
         _interests[vToken][account].boostRateIndex = _markets[vToken].boostRateIndex;

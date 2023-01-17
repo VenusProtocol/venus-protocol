@@ -248,6 +248,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     ]
   )
 
+  await vusdt._setPrimeToken(prime.address);
+  await veth._setPrimeToken(prime.address);
+
   return { 
     oracle, 
     comptroller, 
@@ -272,7 +275,7 @@ describe("Prime Token", () => {
     [root, ...accounts] = await ethers.getSigners();
   });
 
-  describe("protocol and xvs setup", () => {
+  describe("protocol setup", () => {
     let comptroller: MockContract<Comptroller>;
     let vusdt: VBep20Harness;
     let veth: VBep20Harness;
@@ -304,8 +307,88 @@ describe("Prime Token", () => {
       ({comptroller, prime, xvsVault, xvs} = await loadFixture(deployProtocol));
     });
 
-    // it("stake and mint", async () => {
-    //   await xvsVault.deposit(xvs.address, 0, bigNumber18.mul())
-    // })
+    it("stake and mint", async () => {
+      const user = accounts[0]
+
+      await expect(prime.connect(user).claim()).to.be.revertedWith("you are not eligible to claim prime token");
+
+      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
+      
+      let stake = await prime._stakes(user.getAddress());
+      expect(stake.tier).be.equal(3);
+
+      await expect(prime.connect(user).claim()).to.be.revertedWith("you need to wait more time for claiming prime token");
+
+      await mine(90* 24 * 60 * 60);
+      await expect(prime.connect(user).claim()).to.be.not.reverted;
+
+      stake = await prime._stakes(user.getAddress());
+      expect(stake.tier).be.equal(0);
+
+      let token = await  prime._tokens(user.getAddress())
+      expect(token.isIrrevocable).to.be.equal(false)
+      expect(token.tier).to.be.equal(3)
+    })
+
+    it("stake and unstake", async () => {
+      const user = accounts[0]
+
+      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
+      
+      let stake = await prime._stakes(user.getAddress());
+      expect(stake.tier).be.equal(3);
+
+      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(1))
+      stake = await prime._stakes(user.getAddress());
+      expect(stake.tier).be.equal(0);
+    })
+
+    it("downgrade and burn", async () => {
+      const user = accounts[0]
+
+      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000))
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
+      await mine(90* 24 * 60 * 60);
+      await prime.connect(user).claim()
+
+      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000))
+      
+      let token = await prime._tokens(user.getAddress())
+      expect(token.tier).to.be.equal(2)
+
+      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000))
+      token = await prime._tokens(user.getAddress())
+      expect(token.tier).to.be.equal(0)
+    })
+
+    it("claim and upgrade", async () => {
+      const user = accounts[0]
+
+      await expect(prime.connect(user).claim()).to.be.revertedWith("you are not eligible to claim prime token");
+
+      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
+      
+      await mine(90* 24 * 60 * 60);
+      await prime.connect(user).claim()
+
+      let token = await  prime._tokens(user.getAddress())
+      expect(token.isIrrevocable).to.be.equal(false)
+      expect(token.tier).to.be.equal(3)
+
+      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(40000));
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(40000))
+
+      await mine(90* 24 * 60 * 60);
+      await prime.connect(user).upgrade()
+
+      // await  prime._tokens(user.getAddress())
+      // expect(token.isIrrevocable).to.be.equal(false)
+      // expect(token.tier).to.be.equal(4)
+    })
+
+    it("issue", async () => {})
   })
 });

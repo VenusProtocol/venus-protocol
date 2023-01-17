@@ -2,6 +2,7 @@ pragma solidity ^0.5.16;
 
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
+import "../Prime/IPrime.sol";
 
 contract VTokenStorage {
     /**
@@ -114,6 +115,11 @@ contract VTokenStorage {
      * @notice Mapping of account addresses to outstanding borrow balances
      */
     mapping(address => BorrowSnapshot) internal accountBorrows;
+
+    /**
+     * @notice Prime token contract address
+     */
+    IPrime prime;
 }
 
 contract VTokenInterface is VTokenStorage {
@@ -186,6 +192,11 @@ contract VTokenInterface is VTokenStorage {
      * @notice Event emitted when comptroller is changed
      */
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
+
+    /**
+     * @notice Event emitted when prime token contract is changed
+     */
+    event NewPrime(IPrime oldPrime, IPrime newPrime);
 
     /**
      * @notice Event emitted when interestRateModel is changed
