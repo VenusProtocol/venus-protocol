@@ -1,11 +1,4 @@
-import {
-  impersonateAccount,
-  loadFixture,
-  mine,
-  mineUpTo,
-  setBalance,
-  stopImpersonatingAccount,
-} from "@nomicfoundation/hardhat-network-helpers";
+import { impersonateAccount, loadFixture, mine, mineUpTo, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
@@ -119,11 +112,9 @@ const governanceFixture = async (): Promise<void> => {
 };
 
 describe("Governance v4", () => {
-
   const NEW_LIQ_INCENTIVE = parseUnits("2", 18);
 
   describe("NORMAL VIP", () => {
-
     const proposal = {
       signatures: ["_setLiquidationIncentive(uint256)"],
       targets: [COMPTROLLER_PROXY_MAINNET],
@@ -137,7 +128,6 @@ describe("Governance v4", () => {
     });
 
     describe("Propose:", () => {
-
       it("should revert if below votingThreshold", async () => {
         const { targets, signatures, values } = proposal;
         await expect(
@@ -158,7 +148,6 @@ describe("Governance v4", () => {
     });
 
     describe("Cast Vote:", () => {
-    
       it("should cast votes", async () => {
         await mine();
         await expect(governorProxy.connect(proposer).castVote(proposalId, 1))
@@ -172,7 +161,6 @@ describe("Governance v4", () => {
     });
 
     describe("Queue Proposal:", () => {
-
       it("should revert if voting period is not passed", async () => {
         await expect(governorProxy.connect(proposer).queue(proposalId)).to.be.revertedWith(
           "GovernorBravo::queue: proposal can only be queued if it is succeeded",
@@ -187,7 +175,6 @@ describe("Governance v4", () => {
     });
 
     describe("Execute Proposal:", () => {
-
       it("should revert if timelock period has not passed", async () => {
         await expect(governorProxy.connect(proposer).execute(proposalId)).to.be.revertedWith(
           "Timelock::executeTransaction: Transaction hasn't surpassed time lock.",
@@ -206,8 +193,7 @@ describe("Governance v4", () => {
       });
     });
   });
-  describe("FAST_TRACK VIP", () => {
-
+  describe("FAST TRACK VIP", () => {
     const proposal = {
       signatures: ["_setLiquidationIncentive(uint256)"],
       targets: [COMPTROLLER_PROXY_MAINNET],
@@ -221,7 +207,6 @@ describe("Governance v4", () => {
     });
 
     describe("Propose:", () => {
-
       it("should revert if below votingThreshold", async () => {
         const { targets, signatures, values } = proposal;
         await expect(
@@ -249,7 +234,6 @@ describe("Governance v4", () => {
     });
 
     describe("Cast Vote:", () => {
-
       it("should cast votes", async () => {
         await mine();
 
@@ -262,9 +246,8 @@ describe("Governance v4", () => {
           .withArgs(await supporter.getAddress(), proposalId, 1, 846441499442385723656125n, "");
       });
     });
-    
-    describe("Queue Proposal", () => {
 
+    describe("Queue Proposal:", () => {
       it("should revert if voting period is not passed", async () => {
         await expect(governorProxy.connect(proposer).queue(proposalId)).to.be.revertedWith(
           "GovernorBravo::queue: proposal can only be queued if it is succeeded",
@@ -279,7 +262,6 @@ describe("Governance v4", () => {
     });
 
     describe("Execute Proposal:", () => {
-
       it("should revert if timelock period has not passed", async () => {
         await expect(governorProxy.connect(proposer).execute(proposalId)).to.be.revertedWith(
           "Timelock::executeTransaction: Transaction hasn't surpassed time lock.",
@@ -300,7 +282,6 @@ describe("Governance v4", () => {
   });
 
   describe("CRITICAL VIP", () => {
-
     const proposal = {
       signatures: ["_setLiquidationIncentive(uint256)"],
       targets: [COMPTROLLER_PROXY_MAINNET],
@@ -314,7 +295,6 @@ describe("Governance v4", () => {
     });
 
     describe("Propose:", () => {
-
       it("should revert if below votingThreshold", async () => {
         const { targets, signatures, values } = proposal;
         await expect(
@@ -335,7 +315,6 @@ describe("Governance v4", () => {
     });
 
     describe("Cast Vote:", () => {
-
       it("should cast votes", async () => {
         await mine();
         await expect(governorProxy.connect(proposer).castVote(proposalId, 1))
@@ -349,7 +328,6 @@ describe("Governance v4", () => {
     });
 
     describe("Queue Proposal:", () => {
-
       it("should revert if voting period is not passed", async () => {
         await expect(governorProxy.connect(proposer).queue(proposalId)).to.be.revertedWith(
           "GovernorBravo::queue: proposal can only be queued if it is succeeded",
@@ -364,7 +342,6 @@ describe("Governance v4", () => {
     });
 
     describe("Execute Proposal:", () => {
-
       it("should revert if timelock period has not passed", async () => {
         await expect(governorProxy.connect(proposer).execute(proposalId)).to.be.revertedWith(
           "Timelock::executeTransaction: Transaction hasn't surpassed time lock.",
@@ -382,6 +359,5 @@ describe("Governance v4", () => {
         expect(liquidationIncentive).to.equal(NEW_LIQ_INCENTIVE);
       });
     });
-
   });
 });
