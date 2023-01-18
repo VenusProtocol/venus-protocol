@@ -1,4 +1,11 @@
-import { impersonateAccount, loadFixture, mine, mineUpTo, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import {
+  impersonateAccount,
+  loadFixture,
+  mine,
+  mineUpTo,
+  setBalance,
+  stopImpersonatingAccount,
+} from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
@@ -46,7 +53,7 @@ const TIMELOCK_DELAYS_MAINNET = {
 
 const PROPOSAL_TYPES = {
   NORMAL: 0,
-  FASTTRACK: 1,
+  FAST_TRACK: 1,
   CRITICAL: 2,
 };
 
@@ -112,8 +119,11 @@ const governanceFixture = async (): Promise<void> => {
 };
 
 describe("Governance v4", () => {
+
   const NEW_LIQ_INCENTIVE = parseUnits("2", 18);
+
   describe("NORMAL VIP", () => {
+
     const proposal = {
       signatures: ["_setLiquidationIncentive(uint256)"],
       targets: [COMPTROLLER_PROXY_MAINNET],
@@ -121,16 +131,20 @@ describe("Governance v4", () => {
       params: [[NEW_LIQ_INCENTIVE]],
     };
     let proposalId;
+
     before(async () => {
       await loadFixture(governanceFixture);
     });
+
     describe("Propose:", () => {
+
       it("should revert if below votingThreshold", async () => {
         const { targets, signatures, values } = proposal;
         await expect(
           governorProxy.propose(targets, values, signatures, getCalldatas(proposal), "VIP 1", PROPOSAL_TYPES.NORMAL),
         ).to.be.revertedWith("GovernorBravo::propose: proposer votes below proposal threshold");
       });
+
       it("should pass", async () => {
         const { targets, signatures, values } = proposal;
         const proposalIdBefore = await governorProxy.callStatic.proposalCount();
@@ -142,7 +156,9 @@ describe("Governance v4", () => {
         expect(proposalIdBefore.add(1)).to.equal(proposalId);
       });
     });
+
     describe("Cast Vote:", () => {
+    
       it("should cast votes", async () => {
         await mine();
         await expect(governorProxy.connect(proposer).castVote(proposalId, 1))
@@ -154,29 +170,36 @@ describe("Governance v4", () => {
           .withArgs(await supporter.getAddress(), proposalId, 1, 846441499442385723656125n, "");
       });
     });
+
     describe("Queue Proposal:", () => {
+
       it("should revert if voting period is not passed", async () => {
         await expect(governorProxy.connect(proposer).queue(proposalId)).to.be.revertedWith(
           "GovernorBravo::queue: proposal can only be queued if it is succeeded",
         );
       });
+
       it("should be queued sucessfully", async () => {
         await mineUpTo((await ethers.provider.getBlockNumber()) + PROPOSAL_TYPE_CONFIGS[0].votingPeriod);
         const tx = await governorProxy.connect(proposer).queue(proposalId);
         await tx.wait();
       });
     });
+
     describe("Execute Proposal:", () => {
+
       it("should revert if timelock period has not passed", async () => {
         await expect(governorProxy.connect(proposer).execute(proposalId)).to.be.revertedWith(
           "Timelock::executeTransaction: Transaction hasn't surpassed time lock.",
         );
       });
+
       it("should be executed successfully", async () => {
         await mineUpTo((await ethers.provider.getBlockNumber()) + TIMELOCK_DELAYS_MAINNET.NORMAL);
         const tx = await governorProxy.connect(proposer).execute(proposalId);
         await tx.wait();
       });
+
       it("correct value should be set after execution", async () => {
         const liquidationIncentive = await comptrollerProxy.liquidationIncentiveMantissa();
         expect(liquidationIncentive).to.equal(NEW_LIQ_INCENTIVE);
@@ -184,6 +207,7 @@ describe("Governance v4", () => {
     });
   });
   describe("FASTTRACK VIP", () => {
+
     const proposal = {
       signatures: ["_setLiquidationIncentive(uint256)"],
       targets: [COMPTROLLER_PROXY_MAINNET],
@@ -191,30 +215,44 @@ describe("Governance v4", () => {
       params: [[NEW_LIQ_INCENTIVE]],
     };
     let proposalId;
+
     before(async () => {
       await loadFixture(governanceFixture);
     });
+
     describe("Propose:", () => {
+
       it("should revert if below votingThreshold", async () => {
         const { targets, signatures, values } = proposal;
         await expect(
-          governorProxy.propose(targets, values, signatures, getCalldatas(proposal), "VIP 2", PROPOSAL_TYPES.FASTTRACK),
+          governorProxy.propose(
+            targets,
+            values,
+            signatures,
+            getCalldatas(proposal),
+            "VIP 2",
+            PROPOSAL_TYPES.FAST_TRACK,
+          ),
         ).to.be.revertedWith("GovernorBravo::propose: proposer votes below proposal threshold");
       });
+
       it("should pass", async () => {
         const { targets, signatures, values } = proposal;
         const proposalIdBefore = await governorProxy.callStatic.proposalCount();
         const tx = await governorProxy
           .connect(proposer)
-          .propose(targets, values, signatures, getCalldatas(proposal), "VIP 2", PROPOSAL_TYPES.FASTTRACK);
+          .propose(targets, values, signatures, getCalldatas(proposal), "VIP 2", PROPOSAL_TYPES.FAST_TRACK);
         await tx.wait();
         proposalId = await governorProxy.callStatic.proposalCount();
         expect(proposalIdBefore.add(1)).to.equal(proposalId);
       });
     });
+
     describe("Cast Vote:", () => {
+
       it("should cast votes", async () => {
         await mine();
+
         await expect(governorProxy.connect(proposer).castVote(proposalId, 1))
           .to.emit(governorProxy, "VoteCast")
           .withArgs(await proposer.getAddress(), proposalId, 1, 335338539326609831760663n, "");
@@ -224,36 +262,45 @@ describe("Governance v4", () => {
           .withArgs(await supporter.getAddress(), proposalId, 1, 846441499442385723656125n, "");
       });
     });
+    
     describe("Queue Proposal:", () => {
+
       it("should revert if voting period is not passed", async () => {
         await expect(governorProxy.connect(proposer).queue(proposalId)).to.be.revertedWith(
           "GovernorBravo::queue: proposal can only be queued if it is succeeded",
         );
       });
+
       it("should be queued sucessfully", async () => {
         await mineUpTo((await ethers.provider.getBlockNumber()) + PROPOSAL_TYPE_CONFIGS[1].votingPeriod);
         const tx = await governorProxy.connect(proposer).queue(proposalId);
         await tx.wait();
       });
     });
+
     describe("Execute Proposal:", () => {
+
       it("should revert if timelock period has not passed", async () => {
         await expect(governorProxy.connect(proposer).execute(proposalId)).to.be.revertedWith(
           "Timelock::executeTransaction: Transaction hasn't surpassed time lock.",
         );
       });
+
       it("should be executed successfully", async () => {
         await mineUpTo((await ethers.provider.getBlockNumber()) + TIMELOCK_DELAYS_MAINNET.FAST_TRACK);
         const tx = await governorProxy.connect(proposer).execute(proposalId);
         await tx.wait();
       });
+
       it("correct value should be set after execution", async () => {
         const liquidationIncentive = await comptrollerProxy.liquidationIncentiveMantissa();
         expect(liquidationIncentive).to.equal(NEW_LIQ_INCENTIVE);
       });
     });
   });
+
   describe("CRITICAL VIP", () => {
+
     const proposal = {
       signatures: ["_setLiquidationIncentive(uint256)"],
       targets: [COMPTROLLER_PROXY_MAINNET],
@@ -261,16 +308,20 @@ describe("Governance v4", () => {
       params: [[NEW_LIQ_INCENTIVE]],
     };
     let proposalId;
+
     before(async () => {
       await loadFixture(governanceFixture);
     });
+
     describe("Propose:", () => {
+
       it("should revert if below votingThreshold", async () => {
         const { targets, signatures, values } = proposal;
         await expect(
           governorProxy.propose(targets, values, signatures, getCalldatas(proposal), "VIP 3", PROPOSAL_TYPES.CRITICAL),
         ).to.be.revertedWith("GovernorBravo::propose: proposer votes below proposal threshold");
       });
+
       it("should pass", async () => {
         const { targets, signatures, values } = proposal;
         const proposalIdBefore = await governorProxy.callStatic.proposalCount();
@@ -282,7 +333,9 @@ describe("Governance v4", () => {
         expect(proposalIdBefore.add(1)).to.equal(proposalId);
       });
     });
+
     describe("Cast Vote:", () => {
+
       it("should cast votes", async () => {
         await mine();
         await expect(governorProxy.connect(proposer).castVote(proposalId, 1))
@@ -294,33 +347,41 @@ describe("Governance v4", () => {
           .withArgs(await supporter.getAddress(), proposalId, 1, 846441499442385723656125n, "");
       });
     });
+
     describe("Queue Proposal:", () => {
+
       it("should revert if voting period is not passed", async () => {
         await expect(governorProxy.connect(proposer).queue(proposalId)).to.be.revertedWith(
           "GovernorBravo::queue: proposal can only be queued if it is succeeded",
         );
       });
+
       it("should be queued sucessfully", async () => {
         await mineUpTo((await ethers.provider.getBlockNumber()) + PROPOSAL_TYPE_CONFIGS[2].votingPeriod);
         const tx = await governorProxy.connect(proposer).queue(proposalId);
         await tx.wait();
       });
     });
+
     describe("Execute Proposal:", () => {
+
       it("should revert if timelock period has not passed", async () => {
         await expect(governorProxy.connect(proposer).execute(proposalId)).to.be.revertedWith(
           "Timelock::executeTransaction: Transaction hasn't surpassed time lock.",
         );
       });
+
       it("should be executed successfully", async () => {
         await mineUpTo((await ethers.provider.getBlockNumber()) + TIMELOCK_DELAYS_MAINNET.CRITICAL);
         const tx = await governorProxy.connect(proposer).execute(proposalId);
         await tx.wait();
       });
+
       it("correct value should be set after execution", async () => {
         const liquidationIncentive = await comptrollerProxy.liquidationIncentiveMantissa();
         expect(liquidationIncentive).to.equal(NEW_LIQ_INCENTIVE);
       });
     });
+
   });
 });
