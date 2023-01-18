@@ -206,7 +206,7 @@ describe("Governance v4", () => {
       });
     });
   });
-  describe("FASTTRACK VIP", () => {
+  describe("FAST_TRACK VIP", () => {
 
     const proposal = {
       signatures: ["_setLiquidationIncentive(uint256)"],
