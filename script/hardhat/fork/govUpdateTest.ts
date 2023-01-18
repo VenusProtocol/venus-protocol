@@ -263,7 +263,7 @@ describe("Governance v4", () => {
       });
     });
     
-    describe("Queue Proposal:", () => {
+    describe("Queue Proposal", () => {
 
       it("should revert if voting period is not passed", async () => {
         await expect(governorProxy.connect(proposer).queue(proposalId)).to.be.revertedWith(
