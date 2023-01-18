@@ -1,7 +1,7 @@
 const { defaultAbiCoder } = require("@ethersproject/abi");
 const { network } = require("hardhat");
 
-async function setForkBlock(blockNumber) {
+export async function setForkBlock(blockNumber) {
   await network.provider.request({
     method: "hardhat_reset",
     params: [
@@ -15,7 +15,7 @@ async function setForkBlock(blockNumber) {
   });
 }
 
-function getCalldatas({ signatures, params }) {
+export function getCalldatas({ signatures, params }) {
   return params.map((args, i) => {
     const types = getArgs(signatures[i]);
     return defaultAbiCoder.encode(types, args);
@@ -37,9 +37,4 @@ const getArgs = func => {
       // Ensure no undefined values are added.
       return arg;
     });
-};
-
-module.exports = {
-  setForkBlock,
-  getCalldatas,
 };
