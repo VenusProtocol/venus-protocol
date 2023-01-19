@@ -45,32 +45,6 @@ task("run-script", "Runs a hardhard script by name")
     }
   });
 
-function isFork() {
-  if (process.env.BSC_ARCHIVE_NODE) {
-    return {
-      chainId: 56,
-      forking: {
-        url: process.env.BSC_ARCHIVE_NODE || "",
-      },
-    };
-  }
-  if (process.env.FORK_MAINNET === "true") {
-    return {
-      allowUnlimitedContractSize: false,
-      loggingEnabled: false,
-      forking: {
-        url: `${process.env.FORK_MAINNET_RPC}`,
-      },
-      live: false,
-    };
-  }
-  return {
-    allowUnlimitedContractSize: true,
-    loggingEnabled: false,
-    live: false,
-  };
-}
-
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   solidity: {
@@ -106,6 +80,11 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true,
+      loggingEnabled: false,
+      live: false,
+    },
     bsctestnet: {
       url: process.env.BSC_TESTNET_NODE || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
@@ -114,7 +93,6 @@ const config: HardhatUserConfig = {
       gasMultiplier: 10,
       timeout: 12000000,
     },
-    hardhat: isFork(),
     // currently not used, we are still using saddle to deploy contracts
     bscmainnet: {
       url: `https://bsc-dataseed.binance.org/`,
