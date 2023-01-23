@@ -34,7 +34,7 @@ export const testVip = (description: string, proposal: Proposal, governorAbi: Co
     supporter = await initMainnetUser(SUPPORTER_ADDRESS, ethers.utils.parseEther("1.0"));
     impersonatedTimelock = await initMainnetUser(NORMAL_TIMELOCK, ethers.utils.parseEther("1.0"));
 
-    // Iniitalize impl via Proxy
+    // Initialize impl via Proxy
     governorProxy = await ethers.getContractAt(governorAbi ? governorAbi : "GovernorBravoDelegate", GOVERNOR_PROXY);
   };
 
