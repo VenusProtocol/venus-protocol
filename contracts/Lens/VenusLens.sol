@@ -584,14 +584,34 @@ contract VenusLens is ExponentialNoError {
     }
 
     /**
-     * @notice Calculate the total XVS tokens pending or accrued by a user account
+     * @dev Struct for Pending Rewards for per market
+     */
+    struct PendingReward {
+        address vTokenAddress;
+        uint256 amount;
+    }
+
+    /**
+     * @dev Struct for Reward of a single reward token.
+     */
+    struct Reward {
+        address rewardTokenAddress;
+        uint256 totalRewards;
+        PendingReward[] pendingRewards;
+    }
+
+    /**
+     * @notice Calculate the total XVS tokens pending and accrued by a user account
      * @param holder Account to query pending XVS
      * @param comptroller Address of the comptroller
-     * @return Total number of accrued XVS that can be claimed
+     * @return Reward object contraining the totalRewards and pending rewards for each market
      */
-    function pendingVenus(address holder, ComptrollerInterface comptroller) external view returns (uint) {
+    function pendingVenus(address holder, ComptrollerInterface comptroller) external view returns (Reward memory) {
         VToken[] memory vTokens = comptroller.getAllMarkets();
         ClaimVenusLocalVariables memory vars;
+        Reward memory pendingRewards;
+        pendingRewards.rewardTokenAddress = comptroller.getXVSAddress();
+        pendingRewards.totalRewards = comptroller.venusAccrued(holder);
         for (uint i = 0; i < vTokens.length; i++) {
             (vars.borrowIndex, vars.borrowBlock) = comptroller.venusBorrowState(address(vTokens[i]));
             VenusMarketState memory borrowState = VenusMarketState({
@@ -606,15 +626,26 @@ contract VenusLens is ExponentialNoError {
             });
 
             Exp memory borrowIndex = Exp({ mantissa: vTokens[i].borrowIndex() });
+
+            PendingReward memory marketReward;
+            marketReward.vTokenAddress = address(vTokens[i]);
+
             updateVenusBorrowIndex(borrowState, address(vTokens[i]), borrowIndex, comptroller);
-            uint reward = distributeBorrowerVenus(borrowState, address(vTokens[i]), holder, borrowIndex, comptroller);
-            vars.totalRewards = add_(vars.totalRewards, reward);
+            uint256 borrowReward = distributeBorrowerVenus(
+                borrowState,
+                address(vTokens[i]),
+                holder,
+                borrowIndex,
+                comptroller
+            );
 
             updateVenusSupplyIndex(supplyState, address(vTokens[i]), comptroller);
-            reward = distributeSupplierVenus(supplyState, address(vTokens[i]), holder, comptroller);
-            vars.totalRewards = add_(vars.totalRewards, reward);
+            uint256 supplyReward = distributeSupplierVenus(supplyState, address(vTokens[i]), holder, comptroller);
+
+            marketReward.amount = add_(borrowReward, supplyReward);
+            pendingRewards.pendingRewards[i] = marketReward;
         }
-        return add_(comptroller.venusAccrued(holder), vars.totalRewards);
+        return pendingRewards;
     }
 
     // utilities
