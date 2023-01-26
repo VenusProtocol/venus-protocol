@@ -73,10 +73,10 @@ contract PrimeStorageV1 {
     mapping (address => Stake) public _stakes;
 
     /// @notice vToken to market configuration
-    mapping (address => Market) internal _markets;
+    mapping (address => Market) public _markets;
 
     /// @notice vToken to user to user index
-    mapping (address => mapping (address => Interest)) internal _interests;
+    mapping (address => mapping (address => Interest)) public _interests;
 
     /// @notice Tier to XVS threshold
     mapping (Tier => uint256) _thresholds;

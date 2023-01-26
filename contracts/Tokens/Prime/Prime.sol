@@ -14,8 +14,13 @@ interface IVToken {
 
     function borrowBalanceCurrent(address account) external returns (uint);
     function balanceOfUnderlying(address account) external returns (uint);
+
+    function underlying() external returns (address);
 }
 
+interface EIP20Interface {
+    function decimals() external view returns (uint8);
+}
 
 contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
@@ -347,6 +352,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256 borrowBalance = market.borrowBalanceCurrent(account);
         uint256 supplyBalance = market.balanceOfUnderlying(account);
 
+        // console.log(_interests[vToken][account].index, _markets[vToken].index);
+
         if (_interests[vToken][account].index == _markets[vToken].index) {
             return;
         }
@@ -354,7 +361,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint accountTotalQVL = getQVL(account, vToken, borrowBalance, supplyBalance);
        
         uint delta = _markets[vToken].index  - _interests[vToken][account].index;
-        _interests[vToken][account].accrued = _interests[vToken][account].accrued + ((accountTotalQVL * delta) / 1e18);
+        _interests[vToken][account].accrued = _interests[vToken][account].accrued + ((accountTotalQVL * delta) / getMarketDecimals(vToken));
         _interests[vToken][account].index = _markets[vToken].index;
     }
 
@@ -424,19 +431,29 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256 distributionPerQVL = 0;
 
         if (_markets[vToken].totalQVL > 0) {
-            distributionPerQVL = ((distributionIncome * 1e18) / _markets[vToken].totalQVL) / 1e18;
+            distributionPerQVL = ((distributionIncome * getMarketDecimals(vToken)) / _markets[vToken].totalQVL);
         }
 
         _markets[vToken].index = _markets[vToken].index + distributionPerQVL;
         _markets[vToken].lastUpdated = block.number;
     } 
 
-    function getBlocksPerYear() public view returns (uint) {
-        return 10512000; //(24 * 60 * 60 * 365) / 3;
+    function getMarketDecimals(address vToken) internal returns (uint256) {
+        IVToken market = IVToken(vToken);
+        address underlying;
+
+        try market.underlying() returns (address _underlying) {
+            underlying = _underlying;
+        } catch (bytes memory) {
+            return 10**18; // vBNB
+        }
+
+        return (10 ** EIP20Interface(underlying).decimals());
     }
 
     modifier onlyXVSVault() {
         require(msg.sender == xvsVault, "only XVS vault can call this function");
         _;
     }
+
 }

@@ -424,4 +424,69 @@ describe("Prime Token", () => {
       expect(token.tier).to.be.equal(4)
     })
   })
+
+  describe("boosted yield", () => {
+    let comptroller: MockContract<Comptroller>;
+    let prime: Prime
+    let xvsVault: XVSVault
+    let xvs: XVS
+    let vusdt: VBep20Harness;
+    let veth: VBep20Harness;
+    let usdt: BEP20Harness;
+    let eth: BEP20Harness;
+
+    beforeEach(async () => {
+      ({comptroller, prime, xvsVault, xvs, vusdt, veth, usdt, eth} = await loadFixture(deployProtocol));
+
+      await eth.connect(accounts[0]).approve(veth.address, bigNumber18.mul(90));
+      await veth.connect(accounts[0]).mint(bigNumber18.mul(90));
+
+      await usdt.connect(accounts[1]).approve(vusdt.address, bigNumber18.mul(9000));
+      await vusdt.connect(accounts[1]).mint(bigNumber18.mul(9000));
+
+      await comptroller.connect(accounts[0]).enterMarkets([
+        vusdt.address,
+        veth.address
+      ])
+
+      await comptroller.connect(accounts[1]).enterMarkets([
+        vusdt.address,
+        veth.address
+      ])
+
+      await vusdt.connect(accounts[0]).borrow(bigNumber18.mul(5))
+      await veth.connect(accounts[1]).borrow(bigNumber18.mul(1))
+    });
+
+    it("user supplied/borrowed, prime market is added and accrue interest after minting ", async () => {
+      const [user1, user2] = accounts
+      
+      await prime.executeBoost(user1.getAddress(), vusdt.address)
+      
+      let interest = await prime._interests(vusdt.address, user1.getAddress())
+      expect(interest.totalQVL).to.be.equal(0)
+
+      await prime.issue(true, [
+        user1.getAddress(), user2.getAddress()
+      ], [1, 1])
+
+      interest = await prime._interests(vusdt.address, user1.getAddress())
+      expect(interest.totalQVL).to.be.equal(bigNumber18.mul(5))
+      expect(interest.index).to.be.gt(0)
+      expect(interest.accrued).to.be.equal(0)
+
+      interest = await prime._interests(veth.address, user1.getAddress())
+      expect(interest.totalQVL).to.be.equal(bigNumber18.mul(90))
+
+      let market = await prime._markets(vusdt.address)
+      expect(market.totalQVL).to.be.equal(bigNumber18.mul(9005))
+
+      await mine(24 * 60 * 20);
+      await prime.executeBoost(user1.getAddress(), vusdt.address)
+
+      interest = await prime._interests(vusdt.address, user1.getAddress())
+      expect(interest.index).to.be.gt(0)
+      expect(interest.accrued).to.be.gt(0)
+    })
+  })
 });
