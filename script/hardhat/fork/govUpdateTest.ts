@@ -6,13 +6,14 @@ import { ethers } from "hardhat";
 
 import { Comptroller, GovernorBravoDelegate, IAccessControlManager } from "../../../typechain";
 import { TimelockInterface } from "../../../typechain/contracts/Governance/GovernorAlpha2.sol";
-import { getCalldatas, setForkBlock } from "./utils";
+import { getCalldatas, setForkBlock } from "./vip-framework/utils";
 
-const ONE_HOUR = 800; // About 1 hour, 3 secs per block (20 * 60)
-const SIX_HOURS = 7200; // About 6 hours, 3 secs per block (20 * 60 * 6)
-const ONE_DAY = 28800; // About 24 hours, 3 secs per block (20 * 60 * 24)
+const ONE_HOUR_IN_BLOCKS = 800;
+const SIX_HOURS_IN_BLOCKS = 6 * ONE_HOUR_IN_BLOCKS;
+const ONE_DAY_IN_BLOCKS = 24 * ONE_HOUR_IN_BLOCKS;
+const ONE_HOUR_IN_SECONDS = 3600;
+const SIX_HOURS_IN_SECONDS = 6 * ONE_HOUR_IN_SECONDS;
 
-const ACL_MAINNET = "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555";
 const COMPTROLLER_PROXY_MAINNET = "0xfD36E2c2a6789Db23113685031d7F16329158384";
 const XVS_VAULT_MAINNET = "0x051100480289e704d20e9db4804837068f3f9204";
 const NORMAL_VIP_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
@@ -21,27 +22,27 @@ const PROPOSAL_TYPE_CONFIGS = [
   // ProposalType.NORMAL
   {
     votingDelay: 1,
-    votingPeriod: ONE_DAY,
+    votingPeriod: ONE_DAY_IN_BLOCKS,
     proposalThreshold: parseUnits("300000", 18),
   },
   // ProposalType.FASTTRACK
   {
     votingDelay: 1,
-    votingPeriod: ONE_DAY,
+    votingPeriod: ONE_DAY_IN_BLOCKS,
     proposalThreshold: parseUnits("300000", 18),
   },
   // ProposalType.CRITICAL
   {
     votingDelay: 1,
-    votingPeriod: SIX_HOURS,
+    votingPeriod: SIX_HOURS_IN_BLOCKS,
     proposalThreshold: parseUnits("300000", 18),
   },
 ];
 
 const TIMELOCK_DELAYS_MAINNET = {
   NORMAL: 172800,
-  FAST_TRACK: SIX_HOURS,
-  CRITICAL: ONE_HOUR,
+  FAST_TRACK: SIX_HOURS_IN_SECONDS,
+  CRITICAL: ONE_HOUR_IN_SECONDS,
 };
 
 const PROPOSAL_TYPES = {
@@ -66,7 +67,7 @@ const initMainnetUser = async (user: string, balance: number) => {
   return ethers.getSigner(user);
 };
 const governanceFixture = async (): Promise<void> => {
-  //Mandatory when creating forked tests. One must specify form which block the fork should be
+  // Mandatory when creating forked tests. One must specify form which block the fork should be
   await setForkBlock(22629546);
   proposer = await initMainnetUser("0x55A9f5374Af30E3045FB491f1da3C2E8a74d168D", ethers.utils.parseEther("1.0"));
   supporter = await initMainnetUser("0xc444949e0054a23c44fc45789738bdf64aed2391", ethers.utils.parseEther("1.0"));
