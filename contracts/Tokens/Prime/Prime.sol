@@ -7,13 +7,15 @@ import "hardhat/console.sol";
 
 interface IVToken {
     function borrowRatePerBlock() external view returns (uint);
-    function supplyRatePerBlock() external view returns (uint);
+    function reserveFactorMantissa() external returns (uint);
+    function totalBorrowsCurrent() external returns (uint);
+
     function accrueInterest() external returns (uint);
+
     function borrowBalanceCurrent(address account) external returns (uint);
     function balanceOfUnderlying(address account) external returns (uint);
-    function totalBorrowsCurrent() external returns (uint);
-    function totalSupply() external returns (uint);
 }
+
 
 contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
@@ -228,6 +230,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
 
         _tokens[msg.sender].tier = _stakes[msg.sender].tier;
+
         for (uint i = 0; i < allMarkets.length; i++) {
             updateQVL(msg.sender, allMarkets[i]);
         }
@@ -415,13 +418,16 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         IVToken market = IVToken(vToken);
 
         uint256 pastBlocks = (block.number - _markets[vToken].lastUpdated);
-        console.log(market.totalBorrowsCurrent(), market.borrowRatePerBlock(), market.totalSupply(), market.supplyRatePerBlock());
-        uint256 protocolIncomePerBlock = ((market.totalBorrowsCurrent() * market.borrowRatePerBlock()) / 1e18) - ((market.totalSupply() * market.supplyRatePerBlock()) / 1e18);
+        uint256 protocolIncomePerBlock = (((market.totalBorrowsCurrent() * market.borrowRatePerBlock()) / 1e18) * market.reserveFactorMantissa()) / 1e18;
         uint256 accumulatedIncome = protocolIncomePerBlock * pastBlocks;
-        uint256 distributionIncome = accumulatedIncome * INCOME_DISTRIBUTION_BPS / MAXIMUM_BPS;
-        uint256 distributionPerQVL = ((distributionIncome * 1e18) / _markets[vToken].totalQVL) / 1e18;
+        uint256 distributionIncome = (accumulatedIncome * INCOME_DISTRIBUTION_BPS) / MAXIMUM_BPS;
+        uint256 distributionPerQVL = 0;
 
-        _markets[vToken].index = _markets[vToken].index + distributionPerQVL; 
+        if (_markets[vToken].totalQVL > 0) {
+            distributionPerQVL = ((distributionIncome * 1e18) / _markets[vToken].totalQVL) / 1e18;
+        }
+
+        _markets[vToken].index = _markets[vToken].index + distributionPerQVL;
         _markets[vToken].lastUpdated = block.number;
     } 
 
