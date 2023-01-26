@@ -27,19 +27,15 @@ contract PrimeStorageV1 {
     }
 
     struct Market {
-        uint256 rate;
-        uint256 boostRateIndex;
-        uint256 borrowRateIndex;
-        uint256 supplyRateIndex;
+        uint256 index;
         uint256 lastUpdated;
+        uint256 totalQVL;
         mapping (Tier => Cap) caps;
     }
 
     struct Interest {
         uint256 accrued;
-        uint256 boostRateIndex;
-        uint256 borrowRateIndex;
-        uint256 supplyRateIndex;
+        uint256 index;
     }
 
     /// @notice constant variable to find highest tier
@@ -50,6 +46,12 @@ contract PrimeStorageV1 {
 
     /// @notice initial market index
     uint256 constant internal INITIAL_INDEX = 1e18;
+
+    /// @notice maxmimum BPS
+    uint256 constant internal MAXIMUM_BPS = 10000;    
+
+    /// @notice protocol income distribution BPS. 
+    uint256 constant internal INCOME_DISTRIBUTION_BPS = 2000;
 
     /// @notice Mapping owner token id to token metadata
     mapping(address => Token) public _tokens;

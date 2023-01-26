@@ -11,6 +11,8 @@ interface IVToken {
     function accrueInterest() external returns (uint);
     function borrowBalanceCurrent(address account) external returns (uint);
     function balanceOfUnderlying(address account) external returns (uint);
+    function totalBorrowsCurrent() external returns (uint);
+    function totalSupply() external returns (uint);
 }
 
 contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
@@ -84,37 +86,26 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     /**
      * @notice Add boosted market
      * @param vToken vToken address of the market
-     * @param rate prime boost yield for the market. For example: 5.66% is set as (5.66 * 10**18)
+     * @param totalQVL aggregated QVL of all prime token holders for this market. 
+                       This is needed to be set when we are adding a market with some borrow/supply after prime token distribution.
      */
     function addMarket(
         address vToken,
-        uint256 rate
+        uint256 totalQVL
     ) onlyOwner external {
         require(_markets[vToken].lastUpdated == 0, "market is already added");
 
-        _markets[vToken].rate = rate;
-        _markets[vToken].boostRateIndex = INITIAL_INDEX;
-        _markets[vToken].supplyRateIndex = INITIAL_INDEX;
-        _markets[vToken].borrowRateIndex = INITIAL_INDEX;
+        _markets[vToken].index = INITIAL_INDEX;
         _markets[vToken].lastUpdated = block.number;
+        _markets[vToken].totalQVL = totalQVL;
 
         allMarkets.push(vToken);
     }
 
-    function updateRate(
-        address vToken,
-        uint256 rate
-    ) onlyOwner external {
-        require(_markets[vToken].lastUpdated != 0, "market is not added");
-
-        accrueInterest(vToken);
-        _markets[vToken].rate = rate;
-    }
-
     /**
      * @notice Sets QVL for all the tiers
-     * @param supplyTVLCaps supply TVL cap for stablecoin markets
-     * @param borrowTVLCaps borrow TVL cap for stablecoin markets
+     * @param supplyTVLCaps supply TVL cap 
+     * @param borrowTVLCaps borrow TVL cap 
      */
     function setCaps(
         address vToken,
@@ -206,6 +197,22 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         delete _stakes[msg.sender];
     }
 
+    function _initializeMarkets(address account) internal {
+        for (uint i = 0; i < allMarkets.length; i++) {
+            address market = allMarkets[i];
+            IVToken vToken = IVToken(allMarkets[i]);
+            uint256 borrowBalance = vToken.borrowBalanceCurrent(account);
+            uint256 supplyBalance = vToken.balanceOfUnderlying(account);
+
+            accrueInterest(market);
+
+            _interests[market][account].index = _markets[market].index;
+
+            (uint borrowQVL, uint supplyQVL) = getQVL(account, vToken, borrowBalance, supplyBalance);
+            _markets[market].totalQVL = _markets[market].totalQVL + borrowQVL + supplyQVL;
+        }
+    }
+
     /**
      * @notice For upgrading tier for a claimed prime token
      */
@@ -248,19 +255,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         if (_stakes[owner].tier != Tier.ZERO && _stakes[owner].tier != eligibleTier) {
             delete _stakes[owner];
-        }
-    }
-
-    function _initializeMarkets(address account) internal {
-        for (uint i = 0; i < allMarkets.length; i++) {
-            address market = allMarkets[i];
-            IVToken vToken = IVToken(allMarkets[i]);
-
-            accrueInterest(market);
-
-            _interests[market][account].supplyRateIndex = _markets[market].supplyRateIndex;
-            _interests[market][account].borrowRateIndex = _markets[market].borrowRateIndex;
-            _interests[market][account].boostRateIndex = _markets[market].boostRateIndex;
         }
     }
 
@@ -337,28 +331,19 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256 borrowBalance = market.borrowBalanceCurrent(account);
         uint256 supplyBalance = market.balanceOfUnderlying(account);
 
-        if (_interests[vToken][account].boostRateIndex == _markets[vToken].boostRateIndex) {
+        if (_interests[vToken][account].index == _markets[vToken].index) {
             return;
         }
 
-        uint boostRate =  _markets[vToken].boostRateIndex - _interests[vToken][account].boostRateIndex;
-        uint supplyRate =  _markets[vToken].supplyRateIndex - _interests[vToken][account].supplyRateIndex;
-        uint borrowRate =  _markets[vToken].borrowRateIndex - _interests[vToken][account].borrowRateIndex;
-
-        // Calculate total interest accrued by the user:
-        // (Supply * supplyRate - Borrow * borrowRate) + ((supplyQVL  + borrowQVL) * boost)
         (uint borrowQVL, uint supplyQVL) = getQVL(account, vToken, borrowBalance, supplyBalance);
-        console.log("start");
-        console.log(supplyBalance);
-        console.log(supplyRate);
-        console.log(borrowBalance);
-        console.log(borrowRate);
-        console.log(borrowQVL);
-        console.log(supplyQVL);
-        console.log(boostRate);
-        uint delta = (((supplyBalance * supplyRate) / 1e18) - ((borrowBalance * borrowRate) / 1e18)) + (((borrowQVL + supplyQVL) * boostRate) / 1e18);
-        _interests[vToken][account].accrued = _interests[vToken][account].accrued + delta;
-        _interests[vToken][account].boostRateIndex = _markets[vToken].boostRateIndex;
+       
+        uint delta = _markets[vToken].index  - _interests[vToken][account].index; 
+        _interests[vToken][account].accrued = ((borrowQVL + supplyQL) * delta) / 1e18;
+        _interests[vToken][account].index = _markets[vToken].index;
+    }
+
+    function updateQVL() {
+        
     }
 
     function getQVL(
@@ -386,25 +371,50 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         return (borrowQVL, supplyQVL);
     }
+
+    function getQVLForTier(
+        address account,
+        address vToken,
+        uint256 borrowBalance,
+        uint256 supplyBalance,
+        uint256 _tier
+    ) internal returns (uint, uint) {
+        uint borrowQVL;
+        uint supplyQVL;
+        uint tier = uint(_tier);
+
+        for (uint i = 0; i <= tier; i++) {
+            borrowQVL = borrowQVL +  _markets[vToken].caps[Tier(i)].borrowTVLCap;
+            supplyQVL = supplyQVL +  _markets[vToken].caps[Tier(i)].supplyTVLCap;
+        }
+
+        if (borrowBalance < borrowQVL) {
+            borrowQVL = borrowBalance;
+        }
+
+        if (supplyBalance < supplyQVL) {
+            supplyQVL = supplyBalance;
+        }
+
+        return (borrowQVL, supplyQVL);
+    }
     
     function accrueInterest(
         address vToken
     ) public {
         require(_markets[vToken].lastUpdated != 0, "market is supported");
+    
         IVToken market = IVToken(vToken);
+    
         uint256 pastBlocks = (block.number - _markets[vToken].lastUpdated);
+        uint256 protocolIncomePerBlock = ((market.totalBorrowsCurrent() * market.borrowRatePerBlock()) / 1e18) - ((market.totalSupply() * market.supplyRatePerBlock()) / 1e18);
+        uint256 accumulatedIncome = protocolIncomePerBlock * pastBlocks;
+        uint256 distributionIncome = accumulatedIncome * INCOME_DISTRIBUTION_BPS / MAXIMUM_BPS;
+        uint256 distributionPerQVL = ((distributionIncome * 1e18) / _markets[vToken].totalQVL) / 1e18;
 
-        _markets[vToken].boostRateIndex = _markets[vToken].boostRateIndex + (pastBlocks * boostRatePerBlock(vToken));
-        _markets[vToken].borrowRateIndex = _markets[vToken].borrowRateIndex + (pastBlocks * market.borrowRatePerBlock());
-        _markets[vToken].supplyRateIndex = _markets[vToken].supplyRateIndex + (pastBlocks * market.supplyRatePerBlock());
+        _markets[vToken].index = _markets[vToken].index + distributionPerQVL; 
         _markets[vToken].lastUpdated = block.number;
     } 
-
-    function boostRatePerBlock(
-        address vToken
-    ) internal view returns (uint) {
-        return _markets[vToken].rate / getBlocksPerYear();
-    }
 
     function getBlocksPerYear() public view returns (uint) {
         return 10512000; //(24 * 60 * 60 * 365) / 3;
