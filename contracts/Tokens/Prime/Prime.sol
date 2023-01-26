@@ -208,8 +208,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
             _interests[market][account].index = _markets[market].index;
 
-            (uint borrowQVL, uint supplyQVL) = getQVL(account, vToken, borrowBalance, supplyBalance);
-            _markets[market].totalQVL = _markets[market].totalQVL + borrowQVL + supplyQVL;
+            uint accountTotalQVL = getQVL(account, market, borrowBalance, supplyBalance);
+            _markets[market].totalQVL = _markets[market].totalQVL + accountTotalQVL;
+            _interests[market][account].totalQVL = accountTotalQVL;
         }
     }
 
@@ -227,6 +228,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
 
         _tokens[msg.sender].tier = _stakes[msg.sender].tier;
+        for (uint i = 0; i < allMarkets.length; i++) {
+            updateQVL(msg.sender, allMarkets[i]);
+        }
+
         delete _stakes[msg.sender];
     }
 
@@ -246,10 +251,18 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             eligibleTier < _tokens[owner].tier &&
             _tokens[owner].isIrrevocable == false
         ) {
+            for (uint i = 0; i < allMarkets.length; i++) {
+                executeBoost(msg.sender, allMarkets[i]);
+            }
+            
             if (eligibleTier == Tier.ZERO) {
                 _burn(owner);
             } else {
                 _tokens[owner].tier = eligibleTier;
+            }
+
+            for (uint i = 0; i < allMarkets.length; i++) {
+                updateQVL(msg.sender, allMarkets[i]);
             }
         }
 
@@ -335,23 +348,45 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             return;
         }
 
-        (uint borrowQVL, uint supplyQVL) = getQVL(account, vToken, borrowBalance, supplyBalance);
+        uint accountTotalQVL = getQVL(account, vToken, borrowBalance, supplyBalance);
        
-        uint delta = _markets[vToken].index  - _interests[vToken][account].index; 
-        _interests[vToken][account].accrued = ((borrowQVL + supplyQL) * delta) / 1e18;
+        uint delta = _markets[vToken].index  - _interests[vToken][account].index;
+        _interests[vToken][account].accrued = _interests[vToken][account].accrued + ((accountTotalQVL * delta) / 1e18);
         _interests[vToken][account].index = _markets[vToken].index;
     }
 
-    function updateQVL() {
+    function updateQVL(
+        address account, 
+        address vToken
+    ) public {
+        if (_markets[vToken].lastUpdated == 0) {
+            return;
+        }
+
+        if (_tokens[account].tier == Tier.ZERO) {
+            return;
+        }
         
+        accrueInterest(vToken);
+        
+        IVToken market = IVToken(vToken);
+        uint256 borrowBalance = market.borrowBalanceCurrent(account);
+        uint256 supplyBalance = market.balanceOfUnderlying(account);
+
+        uint accountTotalQVL = getQVL(account, vToken, borrowBalance, supplyBalance);
+
+        _markets[vToken].totalQVL =  _markets[vToken].totalQVL - _interests[vToken][account].totalQVL;
+        _markets[vToken].totalQVL = _markets[vToken].totalQVL + accountTotalQVL;
+        _interests[vToken][account].totalQVL = accountTotalQVL;
     }
+
 
     function getQVL(
         address account,
         address vToken,
         uint256 borrowBalance,
         uint256 supplyBalance
-    ) internal returns (uint, uint) {
+    ) internal returns (uint) {
         uint borrowQVL;
         uint supplyQVL;
         uint tier = uint(_tokens[account].tier);
@@ -369,34 +404,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             supplyQVL = supplyBalance;
         }
 
-        return (borrowQVL, supplyQVL);
-    }
-
-    function getQVLForTier(
-        address account,
-        address vToken,
-        uint256 borrowBalance,
-        uint256 supplyBalance,
-        uint256 _tier
-    ) internal returns (uint, uint) {
-        uint borrowQVL;
-        uint supplyQVL;
-        uint tier = uint(_tier);
-
-        for (uint i = 0; i <= tier; i++) {
-            borrowQVL = borrowQVL +  _markets[vToken].caps[Tier(i)].borrowTVLCap;
-            supplyQVL = supplyQVL +  _markets[vToken].caps[Tier(i)].supplyTVLCap;
-        }
-
-        if (borrowBalance < borrowQVL) {
-            borrowQVL = borrowBalance;
-        }
-
-        if (supplyBalance < supplyQVL) {
-            supplyQVL = supplyBalance;
-        }
-
-        return (borrowQVL, supplyQVL);
+        return (borrowQVL + supplyQVL);
     }
     
     function accrueInterest(
@@ -405,8 +413,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         require(_markets[vToken].lastUpdated != 0, "market is supported");
     
         IVToken market = IVToken(vToken);
-    
+
         uint256 pastBlocks = (block.number - _markets[vToken].lastUpdated);
+        console.log(market.totalBorrowsCurrent(), market.borrowRatePerBlock(), market.totalSupply(), market.supplyRatePerBlock());
         uint256 protocolIncomePerBlock = ((market.totalBorrowsCurrent() * market.borrowRatePerBlock()) / 1e18) - ((market.totalSupply() * market.supplyRatePerBlock()) / 1e18);
         uint256 accumulatedIncome = protocolIncomePerBlock * pastBlocks;
         uint256 distributionIncome = accumulatedIncome * INCOME_DISTRIBUTION_BPS / MAXIMUM_BPS;

@@ -329,7 +329,12 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param actualMintAmount The amount of the underlying asset being minted
      * @param mintTokens The number of tokens being minted
      */
-    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {}
+    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {
+        if (address(prime) != address(0)) {
+            prime.updateQVL(minter, vToken);
+        }
+        
+    }
 
     /**
      * @notice Checks if the account should be allowed to redeem tokens in the given market
@@ -393,6 +398,9 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     // solhint-disable-next-line no-unused-vars
     function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
+        if (address(prime) != address(0)) {
+            prime.updateQVL(redeemer, vToken);
+        }
     }
 
     /**
@@ -462,7 +470,12 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param borrower The address borrowing the underlying
      * @param borrowAmount The amount of the underlying asset requested to borrow
      */
-    function borrowVerify(address vToken, address borrower, uint borrowAmount) external {}
+    function borrowVerify(address vToken, address borrower, uint borrowAmount) external {
+        if (address(prime) != address(0)) {
+            prime.updateQVL(borrower, vToken);
+        }
+        
+    }
 
     /**
      * @notice Checks if the account should be allowed to repay a borrow in the given market
@@ -509,7 +522,12 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         address borrower,
         uint actualRepayAmount,
         uint borrowerIndex
-    ) external {}
+    ) external {
+        if (address(prime) != address(0)) {
+            prime.updateQVL(borrower, vToken);
+        }
+        
+    }
 
     /**
      * @notice Checks if the liquidation should be allowed to occur
@@ -638,7 +656,13 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         address liquidator,
         address borrower,
         uint seizeTokens
-    ) external {}
+    ) external {
+        if (address(prime) != address(0)) {
+            prime.updateQVL(borrower, vTokenCollateral);
+            prime.updateQVL(liquidator, vTokenCollateral);
+        }
+        
+    }
 
     /**
      * @notice Checks if the account should be allowed to transfer tokens in the given market
@@ -680,7 +704,12 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param dst The account which receives the tokens
      * @param transferTokens The number of vTokens to transfer
      */
-    function transferVerify(address vToken, address src, address dst, uint transferTokens) external {}
+    function transferVerify(address vToken, address src, address dst, uint transferTokens) external {
+        if (address(prime) != address(0)) {
+            prime.updateQVL(src, vToken);
+            prime.updateQVL(dst, vToken);
+        }
+    }
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements

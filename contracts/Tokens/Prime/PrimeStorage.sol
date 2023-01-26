@@ -36,6 +36,7 @@ contract PrimeStorageV1 {
     struct Interest {
         uint256 accrued;
         uint256 index;
+        uint totalQVL;
     }
 
     /// @notice constant variable to find highest tier

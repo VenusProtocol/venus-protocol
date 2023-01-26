@@ -19,4 +19,9 @@ interface IPrime {
     function accrueInterest(
         address vToken
     ) external;
+
+    function updateQVL(
+        address account, 
+        address vToken
+    ) external;
 }

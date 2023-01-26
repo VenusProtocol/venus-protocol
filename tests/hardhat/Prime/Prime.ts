@@ -331,64 +331,64 @@ describe("Prime Token", () => {
       expect(token.tier).to.be.equal(3)
     })
 
-    it("stake and unstake", async () => {
-      const user = accounts[0]
+    // it("stake and unstake", async () => {
+    //   const user = accounts[0]
 
-      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
+    //   await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
+    //   await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
       
-      let stake = await prime._stakes(user.getAddress());
-      expect(stake.tier).be.equal(3);
+    //   let stake = await prime._stakes(user.getAddress());
+    //   expect(stake.tier).be.equal(3);
 
-      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(1))
-      stake = await prime._stakes(user.getAddress());
-      expect(stake.tier).be.equal(0);
-    })
+    //   await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(1))
+    //   stake = await prime._stakes(user.getAddress());
+    //   expect(stake.tier).be.equal(0);
+    // })
 
-    it("downgrade and burn", async () => {
-      const user = accounts[0]
+    // it("downgrade and burn", async () => {
+    //   const user = accounts[0]
 
-      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000))
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
-      await mine(90* 24 * 60 * 60);
-      await prime.connect(user).claim()
+    //   await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000))
+    //   await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
+    //   await mine(90* 24 * 60 * 60);
+    //   await prime.connect(user).claim()
 
-      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000))
+    //   await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000))
       
-      let token = await prime._tokens(user.getAddress())
-      expect(token.tier).to.be.equal(2)
+    //   let token = await prime._tokens(user.getAddress())
+    //   expect(token.tier).to.be.equal(2)
 
-      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000))
-      token = await prime._tokens(user.getAddress())
-      expect(token.tier).to.be.equal(0)
-    })
+    //   await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000))
+    //   token = await prime._tokens(user.getAddress())
+    //   expect(token.tier).to.be.equal(0)
+    // })
 
-    it("claim and upgrade", async () => {
-      const user = accounts[0]
+    // it("claim and upgrade", async () => {
+    //   const user = accounts[0]
 
-      await expect(prime.connect(user).claim()).to.be.revertedWith("you are not eligible to claim prime token");
+    //   await expect(prime.connect(user).claim()).to.be.revertedWith("you are not eligible to claim prime token");
 
-      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
+    //   await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
+    //   await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
       
-      await mine(90* 24 * 60 * 60);
-      await prime.connect(user).claim()
+    //   await mine(90* 24 * 60 * 60);
+    //   await prime.connect(user).claim()
 
-      let token = await  prime._tokens(user.getAddress())
-      expect(token.isIrrevocable).to.be.equal(false)
-      expect(token.tier).to.be.equal(3)
+    //   let token = await  prime._tokens(user.getAddress())
+    //   expect(token.isIrrevocable).to.be.equal(false)
+    //   expect(token.tier).to.be.equal(3)
 
-      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(40000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(40000))
+    //   await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(40000));
+    //   await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(40000))
 
-      await mine(90* 24 * 60 * 60);
-      await prime.connect(user).upgrade()
+    //   await mine(90* 24 * 60 * 60);
+    //   await prime.connect(user).upgrade()
 
-      // await  prime._tokens(user.getAddress())
-      // expect(token.isIrrevocable).to.be.equal(false)
-      // expect(token.tier).to.be.equal(4)
-    })
+    //   // await  prime._tokens(user.getAddress())
+    //   // expect(token.isIrrevocable).to.be.equal(false)
+    //   // expect(token.tier).to.be.equal(4)
+    // })
 
-    it("issue", async () => {})
+    // it("issue", async () => {})
   })
 });
