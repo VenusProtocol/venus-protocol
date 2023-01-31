@@ -1,7 +1,7 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { Signer } from "ethers";
+import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
@@ -83,7 +83,7 @@ describe("VenusLens: Rewards Summary", () => {
     await mine(11);
 
     const accountAddress = await account.getAddress();
-    await venusLens.pendingRewards(accountAddress, comptroller.address);
+    const pendingRewards = await venusLens.pendingRewards(accountAddress, comptroller.address);
 
     expect(comptroller.getAllMarkets).to.have.been.calledOnce;
     expect(comptroller.getXVSAddress).to.have.been.calledOnce;
@@ -121,5 +121,16 @@ describe("VenusLens: Rewards Summary", () => {
 
     expect(vBUSD.borrowIndex).to.have.been.calledOnce;
     expect(vWBTC.borrowIndex).to.have.been.calledOnce;
+
+    const EXPECTED_OUTPUT = [
+      XVS.address,
+      BigNumber.from(convertToUnit(10, 18)),
+      [
+        [vBUSD.address, BigNumber.from(convertToUnit(0.11, 18))],
+        [vWBTC.address, BigNumber.from(convertToUnit(0.0000000011, 18))],
+      ],
+    ];
+
+    expect(pendingRewards).to.have.deep.members(EXPECTED_OUTPUT);
   });
 });
