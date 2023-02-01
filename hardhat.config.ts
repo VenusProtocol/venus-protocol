@@ -16,6 +16,16 @@ require("dotenv").config();
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
 
+// This is a sample Hardhat task. To learn how to create your own go to
+// https://hardhat.org/guides/create-task.html
+task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
+  const accounts = await hre.ethers.getSigners();
+
+  for (const account of accounts) {
+    console.log(account.address);
+  }
+});
+
 task("run-script", "Runs a hardhard script by name")
   .addParam("path", "Path within script/hardhat to script")
   .setAction(async (taskArgs: { path: string }) => {
