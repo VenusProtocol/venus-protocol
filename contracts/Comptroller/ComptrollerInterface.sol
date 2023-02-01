@@ -97,7 +97,18 @@ contract ComptrollerInterfaceG2 is ComptrollerInterfaceG1 {
     ) external view returns (uint, uint);
 }
 
-contract ComptrollerInterface is ComptrollerInterfaceG2 {
+contract ComptrollerInterfaceG3 is ComptrollerInterfaceG2 {
+    function liquidateVAICalculateSeizeTokens(
+        address vTokenCollateral,
+        uint repayAmount
+    ) external view returns (uint, uint);
+}
+
+contract ComptrollerInterfaceG4 is ComptrollerInterfaceG3 {
+    function getXVSAddress() public view returns (address);
+}
+
+contract ComptrollerInterface is ComptrollerInterfaceG4 {
     function markets(address) external view returns (bool, uint);
 
     function oracle() external view returns (PriceOracle);
