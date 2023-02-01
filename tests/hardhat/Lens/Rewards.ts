@@ -123,6 +123,7 @@ describe("VenusLens: Rewards Summary", () => {
     expect(vWBTC.borrowIndex).to.have.been.calledOnce;
 
     const EXPECTED_OUTPUT = [
+      comptroller.address,
       XVS.address,
       BigNumber.from(convertToUnit(10, 18)),
       [

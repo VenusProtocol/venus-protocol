@@ -595,6 +595,7 @@ contract VenusLens is ExponentialNoError {
      * @dev Struct for Reward of a single reward token.
      */
     struct RewardSummary {
+        address distributorAddress;
         address rewardTokenAddress;
         uint256 totalRewards;
         PendingReward[] pendingRewards;
@@ -613,10 +614,11 @@ contract VenusLens is ExponentialNoError {
         VToken[] memory vTokens = comptroller.getAllMarkets();
         ClaimVenusLocalVariables memory vars;
         RewardSummary memory rewardSummary;
+        rewardSummary.distributorAddress = address(comptroller);
         rewardSummary.rewardTokenAddress = comptroller.getXVSAddress();
         rewardSummary.totalRewards = comptroller.venusAccrued(holder);
         rewardSummary.pendingRewards = new PendingReward[](vTokens.length);
-        for (uint i = 0; i < vTokens.length; i++) {
+        for (uint i; i < vTokens.length; ++i) {
             (vars.borrowIndex, vars.borrowBlock) = comptroller.venusBorrowState(address(vTokens[i]));
             VenusMarketState memory borrowState = VenusMarketState({
                 index: vars.borrowIndex,
