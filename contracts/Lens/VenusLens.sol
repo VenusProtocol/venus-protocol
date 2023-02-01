@@ -112,6 +112,25 @@ contract VenusLens is ExponentialNoError {
     }
 
     /**
+     * @dev Struct for Pending Rewards for per market
+     */
+    struct PendingReward {
+        address vTokenAddress;
+        uint256 amount;
+    }
+
+    /**
+     * @dev Struct for Reward of a single reward token.
+     */
+    struct RewardSummary {
+        address distributorAddress;
+        address rewardTokenAddress;
+        uint256 totalRewards;
+        PendingReward[] pendingRewards;
+    }
+
+
+    /**
      * @notice Query the metadata of a vToken by its address
      * @param vToken The address of the vToken to fetch VTokenMetadata
      * @return VTokenMetadata struct with vToken supply and borrow information.
@@ -581,24 +600,6 @@ contract VenusLens is ExponentialNoError {
             return borrowerDelta;
         }
         return 0;
-    }
-
-    /**
-     * @dev Struct for Pending Rewards for per market
-     */
-    struct PendingReward {
-        address vTokenAddress;
-        uint256 amount;
-    }
-
-    /**
-     * @dev Struct for Reward of a single reward token.
-     */
-    struct RewardSummary {
-        address distributorAddress;
-        address rewardTokenAddress;
-        uint256 totalRewards;
-        PendingReward[] pendingRewards;
     }
 
     /**
