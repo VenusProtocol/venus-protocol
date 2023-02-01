@@ -129,7 +129,6 @@ contract VenusLens is ExponentialNoError {
         PendingReward[] pendingRewards;
     }
 
-
     /**
      * @notice Query the metadata of a vToken by its address
      * @param vToken The address of the vToken to fetch VTokenMetadata
