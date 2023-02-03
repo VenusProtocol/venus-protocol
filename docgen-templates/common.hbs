@@ -1,6 +1,8 @@
-{{#if (or natspec.notice natspec.dev)}}
+{{#if (and visible natspec.notice) }}
 
 {{h}} {{name}}
+
+{{{natspec.notice}}}
 
 {{#if signature}}
 ```solidity
@@ -8,17 +10,8 @@
 ```
 {{/if}}
 
-{{{natspec.notice}}}
-
-{{#if natspec.dev}}
-{% hint style="info" %}
-{{{natspec.dev}}}
-{% endhint %}
-{{/if}}
-
 {{#if natspec.params}}
 {{h 2}} Parameters
-
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 {{#each params}}
@@ -28,11 +21,28 @@
 
 {{#if natspec.returns}}
 {{h 2}} Return Values
-
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 {{#each returns}}
 | {{#if name}}{{name}}{{else}}[{{@index}}]{{/if}} | {{type}} | {{{joinLines natspec}}} |
 {{/each}}
 {{/if}}
+
+{{#if natspec.custom.event}}
+{{h 2}} 📅 Events
+{{{ bullet natspec.custom.event }}}
+{{/if}}
+
+{{#if natspec.custom.access}}
+{{h 2}} ⛔️ Access Requirements
+{{{ bullet natspec.custom.access }}}
+{{/if}}
+
+{{#if natspec.custom.error}}
+{{h 2}} ❌ Errors
+{{{ bullet natspec.custom.error }}}
+{{/if}}
+
+- - -
+
 {{/if}}
