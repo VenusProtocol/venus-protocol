@@ -123,23 +123,6 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     }
 
     /**
-     * @notice supply token to a Venus market
-     * @param path the addresses of the underlying token
-     * @param vTokenAddress The address of the vToken contract for supplying assets.
-     * @param swapAmount the amount of tokens supply to Venus Market.
-     */
-    function _supplyInternal(address path, address vTokenAddress, uint256 swapAmount) internal {
-        TransferHelper.safeApprove(path, vTokenAddress, 0);
-        TransferHelper.safeApprove(path, vTokenAddress, swapAmount);
-        uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, swapAmount);
-        if (response != 0) {
-            revert SupplyError(msg.sender, vTokenAddress, response);
-        } else {
-            emit SupplyOnBehalf(msg.sender, vTokenAddress, swapAmount);
-        }
-    }
-
-    /**
      * @notice Swap token A for token B and repay a borrow from a Venus market
      * @param vTokenAddress The address of the vToken contract to repay.
      * @param amountIn The amount of tokens to swap.
@@ -176,23 +159,6 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         uint256[] memory swapAmounts = _swapExactETHForTokens(amountOutMin, path, address(this));
         uint256 swapAmount = swapAmounts[swapAmounts.length - 1];
         _repayInternal(path[1], vTokenAddress, swapAmount);
-    }
-
-    /**
-     * @notice repay a borrow from Venus market
-     * @param path the addresses of the underlying token
-     * @param vTokenAddress The address of the vToken contract for supplying assets.
-     * @param swapAmount the amount of tokens repay to Venus Market.
-     */
-    function _repayInternal(address path, address vTokenAddress, uint256 swapAmount) internal {
-        TransferHelper.safeApprove(path, vTokenAddress, 0);
-        TransferHelper.safeApprove(path, vTokenAddress, swapAmount);
-        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmount);
-        if (response != 0) {
-            revert RepayError(msg.sender, vTokenAddress, response);
-        } else {
-            emit RepayOnBehalf(msg.sender, vTokenAddress, swapAmount);
-        }
     }
 
     /**
@@ -279,6 +245,40 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     // ****************************
     // **** INTERNAL FUNCTIONS ****
     // ****************************
+    
+    /**
+     * @notice supply token to a Venus market
+     * @param path the addresses of the underlying token
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param swapAmount the amount of tokens supply to Venus Market.
+     */
+    function _supplyInternal(address path, address vTokenAddress, uint256 swapAmount) internal {
+        TransferHelper.safeApprove(path, vTokenAddress, 0);
+        TransferHelper.safeApprove(path, vTokenAddress, swapAmount);
+        uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, swapAmount);
+        if (response != 0) {
+            revert SupplyError(msg.sender, vTokenAddress, response);
+        } else {
+            emit SupplyOnBehalf(msg.sender, vTokenAddress, swapAmount);
+        }
+    }
+
+    /**
+     * @notice repay a borrow from Venus market
+     * @param path the addresses of the underlying token
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param swapAmount the amount of tokens repay to Venus Market.
+     */
+    function _repayInternal(address path, address vTokenAddress, uint256 swapAmount) internal {
+        TransferHelper.safeApprove(path, vTokenAddress, 0);
+        TransferHelper.safeApprove(path, vTokenAddress, swapAmount);
+        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmount);
+        if (response != 0) {
+            revert RepayError(msg.sender, vTokenAddress, response);
+        } else {
+            emit RepayOnBehalf(msg.sender, vTokenAddress, swapAmount);
+        }
+    }
 
     // **** SWAP (supporting fee-on-transfer tokens) ****
     // requires the initial amount to have already been sent to the first pair
@@ -300,7 +300,6 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
                 (uint reserve0, uint reserve1, ) = pair.getReserves();
                 (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
                 uint balance = IERC20(input).balanceOf(address(pair));
-                require(balance <= reserveInput, "subtraction overflow");
                 amountInput = balance - reserveInput;
                 amountOutput = PancakeLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
                 amounts[i + 1] = amountOutput;
