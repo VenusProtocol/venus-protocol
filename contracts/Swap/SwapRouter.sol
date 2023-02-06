@@ -99,7 +99,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     ) external override ensure(deadline) {
         uint256[] memory swapAmounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this));
         uint256 swapAmount = swapAmounts[swapAmounts.length - 1];
-        _supplyInternal(path[1], vTokenAddress, swapAmount);
+        _supply(path[1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -119,7 +119,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     ) external payable override ensure(deadline) {
         uint256[] memory swapAmounts = _swapExactETHForTokens(amountOutMin, path, address(this));
         uint256 swapAmount = swapAmounts[swapAmounts.length - 1];
-        _supplyInternal(path[1], vTokenAddress, swapAmount);
+        _supply(path[1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -139,7 +139,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     ) external override ensure(deadline) {
         uint256[] memory swapAmounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this));
         uint256 swapAmount = swapAmounts[swapAmounts.length - 1];
-        _repayInternal(path[1], vTokenAddress, swapAmount);
+        _repay(path[1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -158,7 +158,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     ) external payable override ensure(deadline) {
         uint256[] memory swapAmounts = _swapExactETHForTokens(amountOutMin, path, address(this));
         uint256 swapAmount = swapAmounts[swapAmounts.length - 1];
-        _repayInternal(path[1], vTokenAddress, swapAmount);
+        _repay(path[1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -245,14 +245,29 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     // ****************************
     // **** INTERNAL FUNCTIONS ****
     // ****************************
-    
+
+    // **** SWAP ****
+    // requires the initial amount to have already been sent to the first pair
+    function _swap(uint256[] memory amounts, address[] memory path, address _to) internal virtual {
+        for (uint256 i; i < path.length - 1; ++i) {
+            (address input, address output) = (path[i], path[i + 1]);
+            (address token0, ) = PancakeLibrary.sortTokens(input, output);
+            uint256 amountOut = amounts[i + 1];
+            (uint256 amount0Out, uint256 amount1Out) = input == token0
+                ? (uint256(0), amountOut)
+                : (amountOut, uint256(0));
+            address to = i < path.length - 2 ? PancakeLibrary.pairFor(factory, output, path[i + 2]) : _to;
+            IPancakePair(PancakeLibrary.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
+        }
+    }
+
     /**
      * @notice supply token to a Venus market
      * @param path the addresses of the underlying token
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param swapAmount the amount of tokens supply to Venus Market.
      */
-    function _supplyInternal(address path, address vTokenAddress, uint256 swapAmount) internal {
+    function _supply(address path, address vTokenAddress, uint256 swapAmount) internal {
         TransferHelper.safeApprove(path, vTokenAddress, 0);
         TransferHelper.safeApprove(path, vTokenAddress, swapAmount);
         uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, swapAmount);
@@ -269,7 +284,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param swapAmount the amount of tokens repay to Venus Market.
      */
-    function _repayInternal(address path, address vTokenAddress, uint256 swapAmount) internal {
+    function _repay(address path, address vTokenAddress, uint256 swapAmount) internal {
         TransferHelper.safeApprove(path, vTokenAddress, 0);
         TransferHelper.safeApprove(path, vTokenAddress, swapAmount);
         uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmount);
@@ -280,48 +295,19 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         }
     }
 
-    // **** SWAP (supporting fee-on-transfer tokens) ****
-    // requires the initial amount to have already been sent to the first pair
-    function _swapSupportingFeeOnTransferTokens(
-        uint amountIn,
-        address[] memory path,
-        address _to
-    ) internal virtual returns (uint256[] memory amounts) {
-        amounts = new uint256[](path.length);
-        amounts[0] = amountIn;
-        for (uint i; i < path.length - 1; i++) {
-            (address input, address output) = (path[i], path[i + 1]);
-            (address token0, ) = PancakeLibrary.sortTokens(input, output);
-            IPancakePair pair = IPancakePair(PancakeLibrary.pairFor(factory, input, output));
-            uint amountInput;
-            uint amountOutput;
-            {
-                // scope to avoid stack too deep errors
-                (uint reserve0, uint reserve1, ) = pair.getReserves();
-                (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
-                uint balance = IERC20(input).balanceOf(address(pair));
-                amountInput = balance - reserveInput;
-                amountOutput = PancakeLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
-                amounts[i + 1] = amountOutput;
-            }
-            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
-            address to = i < path.length - 2 ? PancakeLibrary.pairFor(factory, output, path[i + 2]) : _to;
-            pair.swap(amount0Out, amount1Out, to, new bytes(0));
-        }
-    }
-
     function _swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
         address to
     ) internal returns (uint256[] memory amounts) {
-        address pairAddress = PancakeLibrary.pairFor(factory, path[0], path[1]);
-        TransferHelper.safeTransferFrom(path[0], msg.sender, pairAddress, amountIn);
-        amounts = _swapSupportingFeeOnTransferTokens(amountIn, path, to);
+        amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
         if (amounts[amounts.length - 1] < amountOutMin) {
             revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
         }
+        address pairAddress = PancakeLibrary.pairFor(factory, path[0], path[1]);
+        TransferHelper.safeTransferFrom(path[0], msg.sender, pairAddress, amounts[0]);
+        _swap(amounts, path, to);
         emit SwapTokensForTokens(msg.sender, path, amounts);
     }
 
@@ -334,13 +320,13 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         if (path[0] != wBNBAddress) {
             revert WrongAddress(wBNBAddress, path[0]);
         }
-        uint amountIn = msg.value;
-        IWBNB(wBNBAddress).deposit{ value: amountIn }();
-        assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amountIn));
-        amounts = _swapSupportingFeeOnTransferTokens(amountIn, path, to);
+        amounts = PancakeLibrary.getAmountsOut(factory, msg.value, path);
         if (amounts[amounts.length - 1] < amountOutMin) {
             revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
         }
+        IWBNB(wBNBAddress).deposit{ value: amounts[0] }();
+        assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        _swap(amounts, path, to);
         emit SwapBnbForTokens(msg.sender, path, amounts);
     }
 }
