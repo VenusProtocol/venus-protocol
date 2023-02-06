@@ -88,11 +88,7 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
-    hardhat: {
-      allowUnlimitedContractSize: true,
-      loggingEnabled: false,
-      live: false,
-    },
+    hardhat: isFork(),
     bsctestnet: {
       url: process.env.BSC_TESTNET_NODE || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
@@ -144,5 +140,26 @@ const config: HardhatUserConfig = {
     templates: "docgen-templates",
   },
 };
+
+function isFork() {
+  return process.env.FORK_MAINNET === "true"
+    ? {
+        allowUnlimitedContractSize: false,
+        loggingEnabled: false,
+        forking: {
+          url: `https://wild-blissful-dawn.bsc.discover.quiknode.pro/${process.env.QUICK_NODE_KEY}/`,
+          blockNumber: 21068448,
+        },
+        accounts: {
+          accountsBalance: "1000000000000000000",
+        },
+        live: false,
+      }
+    : {
+        allowUnlimitedContractSize: true,
+        loggingEnabled: false,
+        live: false,
+      };
+}
 
 export default config;
