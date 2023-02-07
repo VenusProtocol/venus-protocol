@@ -83,7 +83,7 @@ function getCreate2Address(factoryAddress: string, [tokenA, tokenB]: [string, st
     "0xff",
     factoryAddress,
     keccak256(solidityPack(["address", "address"], [token0, token1])),
-    "0xd0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66", //IPairBytecode Hash
+    "0x00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5", //IPairBytecode Hash
   ];
   const sanitizedInputs = `0x${create2Inputs.map(i => i.slice(2)).join("")}`;
   return getAddress(`0x${keccak256(sanitizedInputs).slice(-40)}`);
