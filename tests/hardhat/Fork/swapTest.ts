@@ -1,15 +1,24 @@
-import { smock } from "@defi-wonderland/smock";
-import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
+import { impersonateAccount, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
 import {
+  Comptroller,
+  ComptrollerLens,
+  ComptrollerLens__factory,
+  Comptroller__factory,
   FaucetToken,
   FaucetToken__factory,
+  IAccessControlManager,
   IPancakeSwapV2Factory__factory,
   IWBNB,
   IWBNB__factory,
+  PriceOracle,
   SwapRouter,
+  VBep20Immutable,
 } from "../../../typechain";
 
 const { expect } = chai;
@@ -21,9 +30,17 @@ let swapRouter: SwapRouter;
 let wBNB: IWBNB;
 let busdUser: any;
 let usdtUser: any;
+let vBUSD: VBep20Immutable;
+let vUSDT: VBep20Immutable;
+let admin: SignerWithAddress;
+let oracle: FakeContract<PriceOracle>;
+let accessControl: FakeContract<IAccessControlManager>;
+let comptrollerLens: MockContract<ComptrollerLens>;
+let comptroller: MockContract<Comptroller>;
 
 const SWAP_AMOUNT = 100;
 const MIN_AMOUNT_OUT = 90;
+const BORROW_AMOUNT = 30;
 
 const SWAP_BNB_AMOUNT = 1;
 const MIN_AMOUNT_OUT_BUSD = 250;
@@ -33,8 +50,47 @@ const initMainnetUser = async (user: string) => {
   return ethers.getSigner(user);
 };
 
-const swapRouterFixture = async (): Promise<void> => {
-  const [admin] = await ethers.getSigners();
+async function deploySimpleComptroller() {
+  oracle = await smock.fake<PriceOracle>("PriceOracle");
+  accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+  accessControl.isAllowedToCall.returns(true);
+  const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
+  const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+  comptroller = await ComptrollerFactory.deploy();
+  comptrollerLens = await ComptrollerLensFactory.deploy();
+  await comptroller._setAccessControl(accessControl.address);
+  await comptroller._setComptrollerLens(comptrollerLens.address);
+  await comptroller._setPriceOracle(oracle.address);
+  await comptroller._setLiquidationIncentive(parseUnits("1", 18));
+  return { oracle, comptroller, comptrollerLens, accessControl };
+}
+
+function configureOracle(oracle: FakeContract<PriceOracle>) {
+  oracle.getUnderlyingPrice.returns(parseUnits("1", 18));
+}
+
+async function configureVtoken(underlyingToken: FaucetToken, name: string, symbol: string) {
+  const InterstRateModel = await ethers.getContractFactory("InterestRateModelHarness");
+  const interestRateModel = await InterstRateModel.deploy(parseUnits("1", 12));
+  await interestRateModel.deployed();
+
+  const vTokenFactory = await ethers.getContractFactory("VBep20Immutable");
+  const vToken = await vTokenFactory.deploy(
+    underlyingToken.address,
+    comptroller.address,
+    interestRateModel.address,
+    parseUnits("1", 18),
+    name,
+    symbol,
+    18,
+    admin.address,
+  );
+  await vToken.deployed();
+  return vToken;
+}
+
+const swapRouterConfigure = async (): Promise<void> => {
+  [admin] = await ethers.getSigners();
   // MAINNET USER WITH BALANCE
   busdUser = await initMainnetUser("0xf977814e90da44bfa03b6295a0616a897441acec");
   usdtUser = await initMainnetUser("0xf977814e90da44bfa03b6295a0616a897441acec");
@@ -68,7 +124,19 @@ async function getValidDeadline(): Promise<number> {
 describe("Swap Contract", () => {
   if (process.env.FORK_MAINNET === "true") {
     beforeEach(async () => {
-      await swapRouterFixture();
+      await loadFixture(swapRouterConfigure);
+      await deploySimpleComptroller();
+      configureOracle(oracle);
+      vBUSD = await configureVtoken(BUSD, "vToken BUSD", "vBUSD");
+      vUSDT = await configureVtoken(USDT, "vToken USDT", "vUSDT");
+
+      await comptroller._supportMarket(vBUSD.address);
+      await comptroller._supportMarket(vUSDT.address);
+      await comptroller._setPriceOracle(oracle.address);
+      await expect(comptroller.connect(usdtUser).enterMarkets([vBUSD.address])).to.emit(comptroller, "MarketEntered");
+      await comptroller._setMarketSupplyCaps([vBUSD.address], [parseUnits("100000", 18)]);
+      await comptroller._setCollateralFactor(vBUSD.address, parseUnits("0.7", 18));
+      await comptroller._setCollateralFactor(vUSDT.address, parseUnits("0.5", 18));
     });
 
     it("revert if deadline has passed", async () => {
@@ -102,6 +170,7 @@ describe("Swap Contract", () => {
     });
 
     it("should swap BNB -> token", async () => {
+      const prevBalance = await BUSD.balanceOf(usdtUser.address);
       const deadline = await getValidDeadline();
       await expect(
         swapRouter
@@ -110,6 +179,91 @@ describe("Swap Contract", () => {
             value: SWAP_BNB_AMOUNT,
           }),
       ).to.emit(swapRouter, "SwapBnbForTokens");
+      const currBalance = await BUSD.balanceOf(usdtUser.address);
+      expect(currBalance).greaterThan(prevBalance);
+    });
+
+    it("swap tokenA -> tokenB --> supply tokenB", async () => {
+      const prevBalance = await vBUSD.balanceOf(usdtUser.address);
+      const deadline = await getValidDeadline();
+      await expect(
+        swapRouter
+          .connect(usdtUser)
+          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline),
+      ).to.emit(swapRouter, "SupplyOnBehalf");
+      const currBalance = await vBUSD.balanceOf(usdtUser.address);
+      expect(currBalance).greaterThan(prevBalance);
+    });
+
+    it("swap BNB -> token --> supply token", async () => {
+      const prevBalance = await vBUSD.balanceOf(usdtUser.address);
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(usdtUser)
+          .swapBnbAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
+            value: SWAP_BNB_AMOUNT,
+          }),
+      ).to.emit(swapRouter, "SupplyOnBehalf");
+      const currBalance = await vBUSD.balanceOf(usdtUser.address);
+      expect(currBalance).greaterThan(prevBalance);
+    });
+
+    it("Borrow--> swap TokenA -> TokenB --> repay token", async () => {
+      await USDT.connect(usdtUser).transfer(vUSDT.address, 1000);
+      const deadline = await getValidDeadline();
+      await expect(
+        swapRouter
+          .connect(busdUser)
+          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline),
+      ).to.emit(swapRouter, "SupplyOnBehalf");
+      await expect(vUSDT.connect(busdUser).borrow(BORROW_AMOUNT)).to.emit(vUSDT, "Borrow");
+      let borrowBalance;
+      [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
+      expect(borrowBalance).equal(BORROW_AMOUNT);
+      await expect(
+        swapRouter
+          .connect(busdUser)
+          .swapAndRepay(vUSDT.address, BORROW_AMOUNT + 1, BORROW_AMOUNT, [BUSD.address, USDT.address], deadline),
+      ).to.emit(swapRouter, "RepayOnBehalf");
+      [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
+      expect(borrowBalance).equal(0);
+    });
+
+    it("Borrow--> swap BNB -> TokenB --> repay token", async () => {
+      await USDT.connect(usdtUser).transfer(vUSDT.address, 1000);
+      let deadline = await getValidDeadline();
+      await expect(
+        swapRouter
+          .connect(usdtUser)
+          .swapBnbAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
+            value: SWAP_BNB_AMOUNT,
+          }),
+      ).to.emit(swapRouter, "SupplyOnBehalf");
+
+      deadline = await getValidDeadline();
+      await expect(
+        swapRouter
+          .connect(usdtUser)
+          .swapBnbAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
+            value: SWAP_BNB_AMOUNT,
+          }),
+      ).to.emit(swapRouter, "SupplyOnBehalf");
+
+      await expect(vUSDT.connect(busdUser).borrow(274)).to.emit(vUSDT, "Borrow");
+      let borrowBalance;
+      [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
+      expect(borrowBalance).equal(274);
+      await expect(
+        swapRouter
+          .connect(busdUser)
+          .swapBnbAndRepay(vUSDT.address, MIN_AMOUNT_OUT, [wBNB.address, USDT.address], deadline, {
+            value: 1,
+          }),
+      ).to.emit(swapRouter, "RepayOnBehalf");
+      [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
+      expect(borrowBalance).equal(0);
     });
   }
 });
