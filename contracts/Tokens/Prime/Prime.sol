@@ -27,6 +27,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     /// @notice address of XVS vault
     address immutable internal xvsVault;
 
+    /// @notice address of comptroller
+    address immutable internal comptroller;
+
     /// @notice Emitted when prime token is minted
     event Mint (
         address owner,
@@ -39,9 +42,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     );
 
     constructor(
-        address _xvsVault
+        address _xvsVault,
+        address _comptroller
     ) {
         xvsVault = _xvsVault;
+        comptroller = _comptroller;
     } 
 
     function initialize() external virtual initializer {
@@ -231,13 +236,13 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         require(block.timestamp - _stakes[msg.sender].stakedAt >= STAKING_PERIOD, "you need to wait more time for upgrading prime token");
 
         for (uint i = 0; i < allMarkets.length; i++) {
-            executeBoost(msg.sender, allMarkets[i]);
+            _executeBoost(msg.sender, allMarkets[i]);
         }
 
         _tokens[msg.sender].tier = _stakes[msg.sender].tier;
 
         for (uint i = 0; i < allMarkets.length; i++) {
-            updateQVL(msg.sender, allMarkets[i]);
+            _updateQVL(msg.sender, allMarkets[i]);
         }
 
         delete _stakes[msg.sender];
@@ -260,7 +265,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             _tokens[owner].isIrrevocable == false
         ) {
             for (uint i = 0; i < allMarkets.length; i++) {
-                executeBoost(msg.sender, allMarkets[i]);
+                _executeBoost(msg.sender, allMarkets[i]);
             }
             
             if (eligibleTier == Tier.ZERO) {
@@ -270,7 +275,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             }
 
             for (uint i = 0; i < allMarkets.length; i++) {
-                updateQVL(msg.sender, allMarkets[i]);
+                _updateQVL(msg.sender, allMarkets[i]);
             }
         }
 
@@ -353,10 +358,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param account account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
      */
-    function executeBoost(
+    function _executeBoost(
         address account,
         address vToken
-    ) public {
+    ) internal  {
         if (_markets[vToken].lastUpdated == 0) {
             return;
         }
@@ -371,8 +376,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256 borrowBalance = market.borrowBalanceCurrent(account);
         uint256 supplyBalance = market.balanceOfUnderlying(account);
 
-        // console.log(_interests[vToken][account].index, _markets[vToken].index);
-
         if (_interests[vToken][account].index == _markets[vToken].index) {
             return;
         }
@@ -385,14 +388,38 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
-     * @notice Update total QVL of user and market. Must be called after changing account's borrow or supply balance.
-     * @param account account for which we need to update QVL
-     * @param vToken the market for which we need to QVL
+     * @notice Can be called only by comptroller or owner.
+     * Owner can call this to accrue boost of all users before updating QVL caps or adding an existing market to prime token program
+     * Comptroller can call this before supply or borrow change
+     */
+    function executeBoost(
+        address account,
+        address vToken
+    ) external onlyComptrollerOrOwner {
+        _executeBoost(account, vToken);
+    }
+
+    /**
+     * @notice Can be called only by comptroller or owner.
+     * Owner can call this to update QVL of all users after updating QVL caps or adding an existing market to prime token program
+     * Comptroller can call this after supply or borrow change
      */
     function updateQVL(
         address account, 
         address vToken
-    ) public {
+    ) external onlyComptrollerOrOwner {
+       _updateQVL(account, vToken);
+    }
+
+    /**
+     * @notice Update total QVL of user and market. Must be called after changing account's borrow or supply balance.
+     * @param account account for which we need to update QVL
+     * @param vToken the market for which we need to QVL
+     */
+    function _updateQVL(
+        address account, 
+        address vToken
+    ) internal {
         if (_markets[vToken].lastUpdated == 0) {
             return;
         }
@@ -400,8 +427,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         if (_tokens[account].tier == Tier.ZERO) {
             return;
         }
-        
-        accrueInterest(vToken);
         
         IVToken market = IVToken(vToken);
         uint256 borrowBalance = market.borrowBalanceCurrent(account);
@@ -488,4 +513,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _;
     }
 
+    modifier onlyComptrollerOrOwner() {
+        require(msg.sender == comptroller || msg.sender == owner(), "only comptroller can call this function");
+        _;
+    }
 }
