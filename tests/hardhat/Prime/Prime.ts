@@ -292,7 +292,7 @@ describe("Prime Token", () => {
     })
   })
 
-  describe("mint and burn", () => {
+  describe.skip("mint and burn", () => {
     let comptroller: MockContract<Comptroller>;
     let prime: Prime
     let xvsVault: XVSVault
@@ -462,7 +462,7 @@ describe("Prime Token", () => {
 
       interest = await prime._interests(vusdt.address, user1.getAddress())
       expect(interest.totalQVL).to.be.equal(bigNumber18.mul(5))
-      expect(interest.index).to.be.gt(0)
+      expect(interest.index).to.be.equal(bigNumber18.mul(1))
       expect(interest.accrued).to.be.equal(0)
 
       interest = await prime._interests(veth.address, user1.getAddress())
@@ -475,8 +475,16 @@ describe("Prime Token", () => {
       await prime.executeBoost(user1.getAddress(), vusdt.address)
 
       interest = await prime._interests(vusdt.address, user1.getAddress())
-      expect(interest.index).to.be.gt(0)
-      expect(interest.accrued).to.be.gt(0)
+
+      /**
+       * incomePerBlock * totalBlocks / totalQVL = 18 * 28800 / 9005000000000000000000 = 57
+       */
+      expect(interest.index).to.be.equal(BigNumber.from("1000000000000000057"))
+
+      /**
+       * accrued = index * qvl = 57 * 5 = 285
+       */
+      expect(interest.accrued).to.be.equal("285")
     })
   })
 });

@@ -450,6 +450,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             distributionPerQVL = ((distributionIncome * getMarketDecimals(vToken)) / _markets[vToken].totalQVL);
         }
 
+        // console.log(distributionIncome, _markets[vToken].totalQVL, distributionPerQVL);
+
         _markets[vToken].index = _markets[vToken].index + distributionPerQVL;
         _markets[vToken].lastUpdated = block.number;
     } 
