@@ -98,33 +98,21 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     /**
      * @notice Add boosted market
      * @param vToken vToken address of the market
-     * @param totalQVL aggregated QVL of all prime token holders for this market. 
-                       This is needed to be set when we are adding a market with some borrow/supply after prime token distribution.
+     * @param supplyTVLCaps supply TVL cap 
+     * @param borrowTVLCaps borrow TVL cap 
      */
     function addMarket(
         address vToken,
-        uint256 totalQVL
+        uint256[] memory supplyTVLCaps,
+        uint256[] memory borrowTVLCaps
     ) onlyOwner external {
         require(_markets[vToken].lastUpdated == 0, "market is already added");
 
         _markets[vToken].index = INITIAL_INDEX;
         _markets[vToken].lastUpdated = block.number;
-        _markets[vToken].totalQVL = totalQVL;
 
         allMarkets.push(vToken);
-    }
 
-    /**
-     * @notice Update QVL for all the tiers. 
-     * @param supplyTVLCaps supply TVL cap 
-     * @param borrowTVLCaps borrow TVL cap 
-     */
-    function updateCaps(
-        address vToken,
-        uint256[] memory supplyTVLCaps,
-        uint256[] memory borrowTVLCaps
-    ) onlyOwner external {
-        require(_markets[vToken].lastUpdated != 0, "market doesn't exist");
         require(
             supplyTVLCaps.length == uint(MAX_TIER) &&
             borrowTVLCaps.length == uint(MAX_TIER), 
