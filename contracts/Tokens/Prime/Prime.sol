@@ -395,7 +395,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     function executeBoost(
         address account,
         address vToken
-    ) external onlyComptrollerOrOwner {
+    ) external onlyComptroller {
         _executeBoost(account, vToken);
     }
 
@@ -407,7 +407,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     function updateQVL(
         address account, 
         address vToken
-    ) external onlyComptrollerOrOwner {
+    ) external onlyComptroller {
        _updateQVL(account, vToken);
     }
 
@@ -513,8 +513,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _;
     }
 
-    modifier onlyComptrollerOrOwner() {
-        require(msg.sender == comptroller || msg.sender == owner(), "only comptroller can call this function");
+    modifier onlyComptroller() {
+        require(msg.sender == comptroller, "only comptroller can call this function");
         _;
     }
 }
