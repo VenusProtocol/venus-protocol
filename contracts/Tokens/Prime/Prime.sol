@@ -450,8 +450,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             distributionPerQVL = ((distributionIncome * getMarketDecimals(vToken)) / _markets[vToken].totalQVL);
         }
 
-        // console.log(distributionIncome, _markets[vToken].totalQVL, distributionPerQVL);
-
         _markets[vToken].index = _markets[vToken].index + distributionPerQVL;
         _markets[vToken].lastUpdated = block.number;
     } 
@@ -467,6 +465,18 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
 
         return (10 ** EIP20Interface(underlying).decimals());
+    }
+
+    /**
+     * @notice Returns boosted interest accrued for a user
+     * @param vToken the market for which to fetch the accrued interest
+     * @param account the account for which to get the accrued interest
+     */
+    function getInterestAccrued(address vToken, address account) external returns(uint256) {
+        accrueInterest(vToken);
+
+        uint delta = _markets[vToken].index  - _interests[vToken][account].index;
+        return _interests[vToken][account].accrued + (( _interests[vToken][account].totalQVL * delta) / getMarketDecimals(vToken));
     }
 
     modifier onlyXVSVault() {

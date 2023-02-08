@@ -418,8 +418,6 @@ describe("Prime Token", () => {
   describe("boosted yield", () => {
     let comptroller: MockContract<Comptroller>;
     let prime: Prime
-    let xvsVault: XVSVault
-    let xvs: XVS
     let vusdt: VBep20Harness;
     let veth: VBep20Harness;
     let usdt: BEP20Harness;
@@ -485,6 +483,8 @@ describe("Prime Token", () => {
        * accrued = index * qvl = 57 * 5 = 285
        */
       expect(interest.accrued).to.be.equal("285")
+
+      expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal("285")
     })
   })
 });
