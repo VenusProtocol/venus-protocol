@@ -198,7 +198,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     0
   )
 
-  await prime.setCaps(
+  await prime.updateCaps(
     vusdt.address,
     [
       bigNumber18.mul("50000"),
@@ -216,7 +216,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     ]
   )
 
-  await prime.setCaps(
+  await prime.updateCaps(
     veth.address,
     [
       bigNumber18.mul("5"),
