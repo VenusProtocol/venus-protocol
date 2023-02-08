@@ -424,4 +424,8 @@ describe("Prime Token", () => {
       expect(token.tier).to.be.equal(4)
     })
   })
+
+  describe("mint and burn", () => {
+    
+  })
 });

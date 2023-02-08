@@ -105,11 +105,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
-     * @notice Sets QVL for all the tiers
+     * @notice Update QVL for all the tiers. 
      * @param supplyTVLCaps supply TVL cap 
      * @param borrowTVLCaps borrow TVL cap 
      */
-    function setCaps(
+    function updateCaps(
         address vToken,
         uint256[] memory supplyTVLCaps,
         uint256[] memory borrowTVLCaps
@@ -274,6 +274,12 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
     }
 
+    /**
+     * @notice Used to mint a new prime token
+     * @param isIrrevocable is the tokens being issued is irrevocable
+     * @param tier tier of the minted token
+     * @param owner token owner
+     */
     function _mint(
         bool isIrrevocable,
         Tier tier,
@@ -299,6 +305,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         emit Mint(owner, token);
     }
 
+    /**
+     * @notice Used to burn a new prime token
+     * @param owner owner whose prime token to burn
+     */
     function _burn(
         address owner
     ) internal {
@@ -315,6 +325,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         emit Burn(owner);
     }
 
+    /**
+     * @notice Used to get the eligible tier associated with XVS amount
+     * @param amount amount of XVS
+     */
     function getEligibleTier(
         uint256 amount
     ) view internal returns (Tier eligibleTier) {
@@ -329,6 +343,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         return eligibleTier;
     }
 
+    /**
+     * @notice Accrue rewards for the user. Must be called before changing account's borrow or supply balance.
+     * @param account account for which we need to accrue rewards
+     * @param vToken the market for which we need to accrue rewards
+     */
     function executeBoost(
         address account,
         address vToken
@@ -358,6 +377,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _interests[vToken][account].index = _markets[vToken].index;
     }
 
+    /**
+     * @notice Update total QVL of user and market. Must be called after changing account's borrow or supply balance.
+     * @param account account for which we need to update QVL
+     * @param vToken the market for which we need to QVL
+     */
     function updateQVL(
         address account, 
         address vToken
@@ -383,7 +407,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _interests[vToken][account].totalQVL = accountTotalQVL;
     }
 
-
+    /**
+     * @notice Update total QVL of user and market. Must be called after changing account's borrow or supply balance.
+     * @param account account for which we need to update QVL
+     * @param vToken the market for which we need to QVL
+     */
     function getQVL(
         address account,
         address vToken,
@@ -409,7 +437,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         return (borrowQVL + supplyQVL);
     }
-    
+
+    /**
+     * @notice Distributes income from market since last distribution 
+     * @param vToken the market for which to distribute the income
+     */
     function accrueInterest(
         address vToken
     ) public {
@@ -417,7 +449,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     
         IVToken market = IVToken(vToken);
 
-        uint256 pastBlocks = (block.number - _markets[vToken].lastUpdated);
+        uint256 pastBlocks = block.number - _markets[vToken].lastUpdated;
         uint256 protocolIncomePerBlock = (((market.totalBorrowsCurrent() * market.borrowRatePerBlock()) / 1e18) * market.reserveFactorMantissa()) / 1e18;
         uint256 accumulatedIncome = protocolIncomePerBlock * pastBlocks;
         uint256 distributionIncome = (accumulatedIncome * INCOME_DISTRIBUTION_BPS) / MAXIMUM_BPS;
