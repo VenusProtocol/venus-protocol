@@ -406,14 +406,68 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         amounts = _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
     }
 
+    /**
+     * @notice Swaps an as many amount of input tokens for as exact amount of tokens as output,
+     *         along the route determined by the path. The first element of path is the input token,
+     *         the last is the output token, and any intermediate elements represent intermediate
+     *         pairs to trade through (if, for example, a direct pair does not exist).
+     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
+     * @param amountOut The amount of the tokens taken for swap.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     **/
     function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external override ensure(deadline) returns (uint256[] memory amounts) {
+    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
         amounts = _swapTokensForExactTokens(amountOut, amountInMax, path, to);
+    }
+
+    /**
+     * @notice Swaps an as ETH as input tokens for as exact amount of tokens as output,
+     *         along the route determined by the path. The first element of path is the input WBNB,
+     *         the last is the output as token, and any intermediate elements represent intermediate
+     *         pairs to trade through (if, for example, a direct pair does not exist).
+     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
+     * @param amountOut The amount of the tokens taken for swap.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     **/
+    function swapETHForExactTokens(
+        uint256 amountOut,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
+        amounts = _swapETHForExactTokens(amountOut, path, to);
+    }
+
+    /**
+     * @notice Swaps an as many amount of input tokens for as exact amount of ETH as output,
+     *         along the route determined by the path. The first element of path is the input token,
+     *         the last is the output as ETH, and any intermediate elements represent intermediate
+     *         pairs to trade through (if, for example, a direct pair does not exist).
+     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
+     * @param amountOut The amount of the tokens taken for swap.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     **/
+    function swapTokensForExactETH(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
+        amounts = _swapTokensForExactETH(amountOut, amountInMax, path, to);
     }
 
     // **** LIBRARY FUNCTIONS ****
@@ -441,23 +495,17 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         return PancakeLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
-    function getAmountsOut(uint256 amountIn, address[] memory path)
-        public
-        view
-        virtual
-        override
-        returns (uint256[] memory amounts)
-    {
+    function getAmountsOut(
+        uint256 amountIn,
+        address[] memory path
+    ) public view virtual override returns (uint256[] memory amounts) {
         return PancakeLibrary.getAmountsOut(factory, amountIn, path);
     }
 
-    function getAmountsIn(uint256 amountOut, address[] memory path)
-        public
-        view
-        virtual
-        override
-        returns (uint256[] memory amounts)
-    {
+    function getAmountsIn(
+        uint256 amountOut,
+        address[] memory path
+    ) public view virtual override returns (uint256[] memory amounts) {
         return PancakeLibrary.getAmountsIn(factory, amountOut, path);
     }
 
@@ -467,11 +515,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
 
     // **** SWAP ****
     // requires the initial amount to have already been sent to the first pair
-    function _swap(
-        uint256[] memory amounts,
-        address[] memory path,
-        address _to
-    ) internal virtual {
+    function _swap(uint256[] memory amounts, address[] memory path, address _to) internal virtual {
         for (uint256 i; i < path.length - 1; ++i) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0, ) = PancakeLibrary.sortTokens(input, output);
@@ -525,11 +569,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param swapAmount the amount of tokens supply to Venus Market.
      */
-    function _supply(
-        address path,
-        address vTokenAddress,
-        uint256 swapAmount
-    ) internal {
+    function _supply(address path, address vTokenAddress, uint256 swapAmount) internal {
         TransferHelper.safeApprove(path, vTokenAddress, 0);
         TransferHelper.safeApprove(path, vTokenAddress, swapAmount);
         uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, swapAmount);
@@ -546,11 +586,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param swapAmount the amount of tokens repay to Venus Market.
      */
-    function _repay(
-        address path,
-        address vTokenAddress,
-        uint256 swapAmount
-    ) internal {
+    function _repay(address path, address vTokenAddress, uint256 swapAmount) internal {
         TransferHelper.safeApprove(path, vTokenAddress, 0);
         TransferHelper.safeApprove(path, vTokenAddress, swapAmount);
         uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmount);
@@ -652,5 +688,48 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
             amounts[0]
         );
         _swap(amounts, path, to);
+    }
+
+    function _swapETHForExactTokens(
+        uint256 amountOut,
+        address[] calldata path,
+        address to
+    ) internal returns (uint256[] memory amounts) {
+        if (path[0] != WBNB) {
+            revert WrongAddress(WBNB, path[0]);
+        }
+        amounts = PancakeLibrary.getAmountsIn(factory, amountOut, path);
+        if (amounts[0] > msg.value) {
+            revert ExcessiveInputAmount(amounts[0], msg.value);
+        }
+        IWBNB(WBNB).deposit{ value: amounts[0] }();
+        assert(IWBNB(WBNB).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        _swap(amounts, path, to);
+        // refund dust eth, if any
+        if (msg.value > amounts[0]) TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);
+    }
+
+    function _swapTokensForExactETH(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to
+    ) internal returns (uint256[] memory amounts) {
+        if (path[path.length - 1] != WBNB) {
+            revert WrongAddress(WBNB, path[path.length - 1]);
+        }
+        amounts = PancakeLibrary.getAmountsIn(factory, amountOut, path);
+        if (amounts[0] > amountInMax) {
+            revert InputAmountAboveMaximum(amounts[amounts.length - 1], amountInMax);
+        }
+        TransferHelper.safeTransferFrom(
+            path[0],
+            msg.sender,
+            PancakeLibrary.pairFor(factory, path[0], path[1]),
+            amounts[0]
+        );
+        _swap(amounts, path, address(this));
+        IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
+        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
     }
 }
