@@ -172,24 +172,48 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         if (
             _tokens[owner].isIrrevocable == false &&
-            eligibleTier > _tokens[owner].tier &&
-            _stakes[owner].tier != eligibleTier
+            eligibleTier > _tokens[owner].tier
         ) {
-            _stakes[owner] = Stake(eligibleTier, block.timestamp);
+            if (_stakes[owner].length > 0) {
+                if(_stakes[owner][_stakes[owner].length].tier >= eligibleTier) {
+                    return;
+                }
+            }
+
+            _stakes[owner].push(Stake(eligibleTier, block.timestamp));
         }
     }
 
     /**
      * @notice For claiming prime token when staking period is completed
      */
-    function claim() external {
+    function claim(Tier tier) external {
         require(_tokens[msg.sender].tier == Tier.ZERO, "you already own prime token");
-        require(_stakes[msg.sender].tier > Tier.ZERO, "you are not eligible to claim prime token");
-        require(block.timestamp - _stakes[msg.sender].stakedAt >= STAKING_PERIOD, "you need to wait more time for claiming prime token");
 
-        _mint(false, _stakes[msg.sender].tier, msg.sender);
-        _initializeMarkets(msg.sender);
-        delete _stakes[msg.sender];
+        Stake[] storage stakes = _stakes[msg.sender];
+        uint256 originalLength = stakes.length;
+        for (uint256 i = 0; i < stakes.length; i++) {
+            if(stakes[i].tier == tier) {
+                require(block.timestamp - stakes[i].stakedAt >= STAKING_PERIOD, "you need to wait more time for claiming prime token");
+                 _mint(false, stakes[i].tier, msg.sender);
+                _initializeMarkets(msg.sender);
+
+                uint j = i;
+
+                for(uint k = 0; k < stakes.length; k++) {
+                    if(j + 1 < stakes.length) {
+                        stakes[k] = stakes[j + 1];
+                        j++;
+                    } else {
+                        stakes.pop();
+                    }
+                }
+
+                break;
+            }
+        }
+
+        revert("you are not eligible to claim prime token");
     }
 
     function _initializeMarkets(address account) internal {
@@ -213,22 +237,22 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @notice For upgrading tier for a claimed prime token
      */
     function upgrade() external {
-        require(_tokens[msg.sender].tier != Tier.ZERO, "you don't own prime token");
-        require(_tokens[msg.sender].isIrrevocable == false, "you can only upgrade revocable token");
-        require(_stakes[msg.sender].tier > _tokens[msg.sender].tier, "you token is already upgraded");
-        require(block.timestamp - _stakes[msg.sender].stakedAt >= STAKING_PERIOD, "you need to wait more time for upgrading prime token");
+        // require(_tokens[msg.sender].tier != Tier.ZERO, "you don't own prime token");
+        // require(_tokens[msg.sender].isIrrevocable == false, "you can only upgrade revocable token");
+        // require(_stakes[msg.sender].tier > _tokens[msg.sender].tier, "you token is already upgraded");
+        // require(block.timestamp - _stakes[msg.sender].stakedAt >= STAKING_PERIOD, "you need to wait more time for upgrading prime token");
 
-        for (uint i = 0; i < allMarkets.length; i++) {
-            executeBoost(msg.sender, allMarkets[i]);
-        }
+        // for (uint i = 0; i < allMarkets.length; i++) {
+        //     executeBoost(msg.sender, allMarkets[i]);
+        // }
 
-        _tokens[msg.sender].tier = _stakes[msg.sender].tier;
+        // _tokens[msg.sender].tier = _stakes[msg.sender].tier;
 
-        for (uint i = 0; i < allMarkets.length; i++) {
-            updateQVL(msg.sender, allMarkets[i]);
-        }
+        // for (uint i = 0; i < allMarkets.length; i++) {
+        //     updateQVL(msg.sender, allMarkets[i]);
+        // }
 
-        delete _stakes[msg.sender];
+        // delete _stakes[msg.sender];
     }
 
     /**
@@ -240,31 +264,31 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         address owner,
         uint256 totalStaked
     ) external onlyXVSVault {
-        Tier eligibleTier = getEligibleTier(totalStaked);
+        // Tier eligibleTier = getEligibleTier(totalStaked);
 
-        if (
-            _tokens[owner].tier > Tier.ZERO &&
-            eligibleTier < _tokens[owner].tier &&
-            _tokens[owner].isIrrevocable == false
-        ) {
-            for (uint i = 0; i < allMarkets.length; i++) {
-                executeBoost(msg.sender, allMarkets[i]);
-            }
+        // if (
+        //     _tokens[owner].tier > Tier.ZERO &&
+        //     eligibleTier < _tokens[owner].tier &&
+        //     _tokens[owner].isIrrevocable == false
+        // ) {
+        //     for (uint i = 0; i < allMarkets.length; i++) {
+        //         executeBoost(msg.sender, allMarkets[i]);
+        //     }
             
-            if (eligibleTier == Tier.ZERO) {
-                _burn(owner);
-            } else {
-                _tokens[owner].tier = eligibleTier;
-            }
+        //     if (eligibleTier == Tier.ZERO) {
+        //         _burn(owner);
+        //     } else {
+        //         _tokens[owner].tier = eligibleTier;
+        //     }
 
-            for (uint i = 0; i < allMarkets.length; i++) {
-                updateQVL(msg.sender, allMarkets[i]);
-            }
-        }
+        //     for (uint i = 0; i < allMarkets.length; i++) {
+        //         updateQVL(msg.sender, allMarkets[i]);
+        //     }
+        // }
 
-        if (_stakes[owner].tier != Tier.ZERO && _stakes[owner].tier != eligibleTier) {
-            delete _stakes[owner];
-        }
+        // if (_stakes[owner].tier != Tier.ZERO && _stakes[owner].tier != eligibleTier) {
+        //     delete _stakes[owner];
+        // }
     }
 
     /**

@@ -70,7 +70,7 @@ contract PrimeStorageV1 {
     uint256 internal _irrevocableLimit;
 
     /// @notice Tracks when prime token eligible users started staking for claiming prime token
-    mapping (address => Stake) public _stakes;
+    mapping (address => Stake[]) public _stakes;
 
     /// @notice vToken to market configuration
     mapping (address => Market) public _markets;
