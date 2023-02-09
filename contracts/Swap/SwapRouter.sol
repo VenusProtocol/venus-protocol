@@ -444,7 +444,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
+    ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
         amounts = _swapETHForExactTokens(amountOut, path, to);
     }
 
@@ -678,8 +678,8 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address to
     ) internal returns (uint256[] memory amounts) {
         amounts = PancakeLibrary.getAmountsIn(factory, amountOut, path);
-        if (amounts[amounts.length - 1] > amountInMax) {
-            revert InputAmountAboveMaximum(amounts[amounts.length - 1], amountInMax);
+        if (amounts[0] > amountInMax) {
+            revert InputAmountAboveMaximum(amounts[0], amountInMax);
         }
         TransferHelper.safeTransferFrom(
             path[0],

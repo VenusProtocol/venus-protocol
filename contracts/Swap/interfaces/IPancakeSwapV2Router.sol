@@ -64,7 +64,7 @@ interface IPancakeSwapV2Router {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external returns (uint256[] memory amounts);
+    ) external payable returns (uint256[] memory amounts);
 
     function swapTokensForExactETH(
         uint256 amountOut,
