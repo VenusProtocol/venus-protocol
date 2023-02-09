@@ -58,16 +58,16 @@ contract PrimeStorageV1 {
     mapping(address => Token) public _tokens;
 
     /// @notice  Tracks total irrevocable tokens minted
-    uint256 internal _totalIrrevocable;
+    uint256 public _totalIrrevocable;
 
     /// @notice  Tracks total revocable tokens minted
-    uint256 internal _totalRevocable;
+    uint256 public _totalRevocable;
 
     /// @notice  Indicates maximum revocable tokens that can be minted
-    uint256 internal _revocableLimit;
+    uint256 public _revocableLimit;
 
     /// @notice  Indicates maximum irrevocable tokens that can be minted
-    uint256 internal _irrevocableLimit;
+    uint256 public _irrevocableLimit;
 
     /// @notice Tracks when prime token eligible users started staking for claiming prime token
     mapping (address => Stake[]) public _stakes;
@@ -79,7 +79,7 @@ contract PrimeStorageV1 {
     mapping (address => mapping (address => Interest)) public _interests;
 
     /// @notice Tier to XVS threshold
-    mapping (Tier => uint256) _thresholds;
+    mapping (Tier => uint256) public _thresholds;
 
     /// @notice A list of boosted markets
     address[] public allMarkets; 
