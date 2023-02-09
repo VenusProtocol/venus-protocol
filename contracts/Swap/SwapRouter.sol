@@ -406,6 +406,16 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         amounts = _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
     }
 
+    function swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external override ensure(deadline) returns (uint256[] memory amounts) {
+        amounts = _swapTokensForExactTokens(amountOut, amountInMax, path, to);
+    }
+
     // **** LIBRARY FUNCTIONS ****
     function quote(
         uint256 amountA,
@@ -623,5 +633,24 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         }
         IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+    }
+
+    function _swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to
+    ) internal returns (uint256[] memory amounts) {
+        amounts = PancakeLibrary.getAmountsIn(factory, amountOut, path);
+        if (amounts[amounts.length - 1] > amountInMax) {
+            revert InputAmountAboveMaximum(amounts[amounts.length - 1], amountInMax);
+        }
+        TransferHelper.safeTransferFrom(
+            path[0],
+            msg.sender,
+            PancakeLibrary.pairFor(factory, path[0], path[1]),
+            amounts[0]
+        );
+        _swap(amounts, path, to);
     }
 }
