@@ -118,8 +118,8 @@ const swapRouterConfigure = async (): Promise<void> => {
   });
 
   await swapRouter.deployed();
-  await USDT.connect(usdtUser).approve(swapRouter.address, SWAP_AMOUNT);
-  await BUSD.connect(busdUser).approve(swapRouter.address, SWAP_AMOUNT);
+  await USDT.connect(usdtUser).approve(swapRouter.address, parseUnits("1"));
+  await BUSD.connect(busdUser).approve(swapRouter.address, parseUnits("1"));
 };
 
 const swapRouterDeflationaryConfigure = async (): Promise<void> => {
@@ -216,6 +216,31 @@ describe("Swap Contract", () => {
         expect(currBalance).greaterThan(prevBalance);
       });
 
+      it("should swap BNB -> Exact token", async () => {
+        const prevBalance = await BUSD.balanceOf(usdtUser.address);
+        const deadline = await getValidDeadline();
+        const amountOut = await swapRouter.getAmountsOut(1, [wBNB.address, BUSD.address]);
+        await swapRouter
+          .connect(usdtUser)
+          .swapETHForExactTokens(amountOut[0], [wBNB.address, BUSD.address], usdtUser.address, deadline, {
+            value: SWAP_BNB_AMOUNT,
+          });
+        const currBalance = await BUSD.balanceOf(usdtUser.address);
+        expect(currBalance).greaterThan(prevBalance);
+      });
+
+      it("should revert when swap BNB -> Exact token and input is not sufficient", async () => {
+        const deadline = await getValidDeadline();
+        const amountOut = await swapRouter.getAmountsOut(1, [wBNB.address, BUSD.address]);
+        await expect(
+          swapRouter
+            .connect(usdtUser)
+            .swapETHForExactTokens(amountOut[0].add(274), [wBNB.address, BUSD.address], usdtUser.address, deadline, {
+              value: SWAP_BNB_AMOUNT,
+            }),
+        ).to.be.revertedWithCustomError(swapRouter, "ExcessiveInputAmount");
+      });
+
       it("swap tokenA -> tokenB --> supply tokenB", async () => {
         const prevBalance = await vBUSD.balanceOf(usdtUser.address);
         const deadline = await getValidDeadline();
@@ -296,6 +321,84 @@ describe("Swap Contract", () => {
         ).to.emit(swapRouter, "RepayOnBehalf");
         [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
         expect(borrowBalance).equal(0);
+      });
+
+      it("should revert USDT -> EXACT BUSD if input is more then required", async () => {
+        const deadline = await getValidDeadline();
+        const amountRequired = await swapRouter.getAmountsOut(100, [USDT.address, BUSD.address]);
+
+        await expect(
+          swapRouter
+            .connect(usdtUser)
+            .swapTokensForExactTokens(
+              MIN_AMOUNT_OUT + 10,
+              amountRequired[1],
+              [USDT.address, BUSD.address],
+              usdtUser.address,
+              deadline,
+            ),
+        ).to.be.revertedWithCustomError(swapRouter, "InputAmountAboveMaximum");
+      });
+
+      it("should swap USDT -> EXACT BUSD", async () => {
+        const deadline = await getValidDeadline();
+        const prevBalance = await BUSD.balanceOf(usdtUser.address);
+        await swapRouter
+          .connect(usdtUser)
+          .swapTokensForExactTokens(
+            MIN_AMOUNT_OUT,
+            SWAP_AMOUNT,
+            [USDT.address, BUSD.address],
+            usdtUser.address,
+            deadline,
+          );
+        const currBalance = await BUSD.balanceOf(usdtUser.address);
+        expect(currBalance).greaterThan(prevBalance);
+      });
+
+      it("should swap Exact token -> BNB", async () => {
+        const prevBalance = await wBNB.balanceOf(usdtUser.address);
+        const amountOutput = await swapRouter.getAmountsIn(SWAP_BNB_AMOUNT, [BUSD.address, wBNB.address]);
+        console.log(amountOutput[0].toString(), amountOutput[1].toString());
+
+        const deadline = await getValidDeadline();
+        await swapRouter
+          .connect(busdUser)
+          .swapExactTokensForETH(
+            amountOutput[0],
+            SWAP_BNB_AMOUNT,
+            [BUSD.address, wBNB.address],
+            busdUser.address,
+            deadline,
+          );
+        const balanceAfter = await wBNB.balanceOf(usdtUser.address);
+        expect(balanceAfter).greaterThan(prevBalance);
+      });
+
+      it("should swap token -> Exact BNB", async () => {
+        const prevBalance = await wBNB.balanceOf(usdtUser.address);
+        const deadline = await getValidDeadline();
+        await swapRouter
+          .connect(busdUser)
+          .swapTokensForExactETH(6, 10000, [BUSD.address, wBNB.address], busdUser.address, deadline);
+        const balanceAfter = await wBNB.balanceOf(usdtUser.address);
+        expect(balanceAfter).greaterThan(prevBalance);
+      });
+
+      it("should revert when swap token -> BNB and required token amount is less then expected", async () => {
+        const deadline = await getValidDeadline();
+        const amountInput = await swapRouter.getAmountsIn(SWAP_BNB_AMOUNT, [BUSD.address, wBNB.address]);
+        await expect(
+          swapRouter
+            .connect(busdUser)
+            .swapExactTokensForETH(
+              amountInput[0].sub(100),
+              SWAP_BNB_AMOUNT,
+              [BUSD.address, wBNB.address],
+              busdUser.address,
+              deadline,
+            ),
+        ).to.be.revertedWithCustomError(swapRouter, "OutputAmountBelowMinimum");
       });
     });
 
