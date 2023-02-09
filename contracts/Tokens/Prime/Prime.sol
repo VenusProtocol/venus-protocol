@@ -175,7 +175,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             eligibleTier > _tokens[owner].tier
         ) {
             if (_stakes[owner].length > 0) {
-                if(_stakes[owner][_stakes[owner].length].tier >= eligibleTier) {
+                if(_stakes[owner][_stakes[owner].length - 1].tier >= eligibleTier) {
                     return;
                 }
             }
@@ -200,8 +200,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
                 uint j = i;
 
-                for(uint k = 0; k < stakes.length; k++) {
-                    if(j + 1 < stakes.length) {
+                uint256 stakesLength = stakes.length;
+                for(uint k = 0; k < stakesLength; k++) {
+                    if(j + 1 < stakesLength) {
                         stakes[k] = stakes[j + 1];
                         j++;
                     } else {
@@ -209,7 +210,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
                     }
                 }
 
-                break;
+                return;
             }
         }
 
