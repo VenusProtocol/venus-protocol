@@ -42,6 +42,10 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         _;
     }
 
+    receive() external payable {
+        assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
+    }
+
     // **************
     // *** EVENTS ***
     // **************
@@ -102,15 +106,11 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         uint256 deadline
     ) external override ensure(deadline) {
-        uint256[] memory swapAmounts = _swapExactTokensForTokens(
-            amountIn,
-            amountOutMin,
-            path,
-            address(this),
-            TypesOfTokens.NON_SUPPORTING_FEE
-        );
-        uint256 swapAmount = swapAmounts[swapAmounts.length - 1];
-        _supply(path[1], vTokenAddress, swapAmount);
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _supply(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -128,11 +128,11 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         uint256 deadline
     ) external override ensure(deadline) {
-        uint256 balanceBefore = IERC20(path[1]).balanceOf(address(this));
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 balanceAfter = IERC20(path[1]).balanceOf(address(this));
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
         uint256 swapAmount = balanceAfter - balanceBefore;
-        _supply(path[1], vTokenAddress, swapAmount);
+        _supply(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -150,14 +150,11 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) {
-        uint256[] memory swapAmounts = _swapExactETHForTokens(
-            amountOutMin,
-            path,
-            address(this),
-            TypesOfTokens.NON_SUPPORTING_FEE
-        );
-        uint256 swapAmount = swapAmounts[swapAmounts.length - 1];
-        _supply(path[1], vTokenAddress, swapAmount);
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _supply(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -175,11 +172,11 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) {
-        uint256 balanceBefore = IERC20(path[1]).balanceOf(address(this));
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 balanceAfter = IERC20(path[1]).balanceOf(address(this));
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
         uint256 swapAmount = balanceAfter - balanceBefore;
-        _supply(path[1], vTokenAddress, swapAmount);
+        _supply(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -197,15 +194,11 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         uint256 deadline
     ) external override ensure(deadline) {
-        uint256[] memory swapAmounts = _swapExactTokensForTokens(
-            amountIn,
-            amountOutMin,
-            path,
-            address(this),
-            TypesOfTokens.NON_SUPPORTING_FEE
-        );
-        uint256 swapAmount = swapAmounts[swapAmounts.length - 1];
-        _repay(path[1], vTokenAddress, swapAmount);
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _repay(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -223,11 +216,11 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         uint256 deadline
     ) external override ensure(deadline) {
-        uint256 balanceBefore = IERC20(path[1]).balanceOf(address(this));
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 balanceAfter = IERC20(path[1]).balanceOf(address(this));
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
         uint256 swapAmount = balanceAfter - balanceBefore;
-        _repay(path[1], vTokenAddress, swapAmount);
+        _repay(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -244,14 +237,11 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) {
-        uint256[] memory swapAmounts = _swapExactETHForTokens(
-            amountOutMin,
-            path,
-            address(this),
-            TypesOfTokens.NON_SUPPORTING_FEE
-        );
-        uint256 swapAmount = swapAmounts[swapAmounts.length - 1];
-        _repay(path[1], vTokenAddress, swapAmount);
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _repay(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -268,11 +258,11 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) {
-        uint256 balanceBefore = IERC20(path[1]).balanceOf(address(this));
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 balanceAfter = IERC20(path[1]).balanceOf(address(this));
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
         uint256 swapAmount = balanceAfter - balanceBefore;
-        _repay(path[1], vTokenAddress, swapAmount);
+        _repay(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
     /**
@@ -444,7 +434,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
+    ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
         amounts = _swapETHForExactTokens(amountOut, path, to);
     }
 
@@ -663,9 +653,9 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
             amounts[0]
         );
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
-            _swap(amounts, path, to);
+            _swap(amounts, path, address(this));
         } else {
-            _swapSupportingFeeOnTransferTokens(amounts[0], path, to);
+            _swapSupportingFeeOnTransferTokens(amounts[0], path, address(this));
         }
         IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
@@ -678,8 +668,8 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address to
     ) internal returns (uint256[] memory amounts) {
         amounts = PancakeLibrary.getAmountsIn(factory, amountOut, path);
-        if (amounts[amounts.length - 1] > amountInMax) {
-            revert InputAmountAboveMaximum(amounts[amounts.length - 1], amountInMax);
+        if (amounts[0] > amountInMax) {
+            revert InputAmountAboveMaximum(amounts[0], amountInMax);
         }
         TransferHelper.safeTransferFrom(
             path[0],
