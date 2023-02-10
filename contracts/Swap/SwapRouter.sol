@@ -42,6 +42,10 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         _;
     }
 
+    receive() external payable {
+        assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
+    }
+
     // **************
     // *** EVENTS ***
     // **************
@@ -663,9 +667,9 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
             amounts[0]
         );
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
-            _swap(amounts, path, to);
+            _swap(amounts, path, address(this));
         } else {
-            _swapSupportingFeeOnTransferTokens(amounts[0], path, to);
+            _swapSupportingFeeOnTransferTokens(amounts[0], path, address(this));
         }
         IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
