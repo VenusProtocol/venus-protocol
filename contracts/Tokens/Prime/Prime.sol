@@ -369,7 +369,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     function executeBoost(
         address account,
         address vToken
-    ) public  {
+    ) marketNotPaused(vToken) public  {
         if (_markets[vToken].lastUpdated == 0) {
             return;
         }
@@ -400,7 +400,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     function updateQVL(
         address account, 
         address vToken
-    ) public {
+    )  public {
         if (_markets[vToken].lastUpdated == 0) {
             return;
         }
@@ -457,7 +457,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      */
     function accrueInterest(
         address vToken
-    ) public {
+    ) marketNotPaused(vToken) public {
         require(_markets[vToken].lastUpdated != 0, "market is not supported");
     
         IVToken market = IVToken(vToken);
@@ -505,7 +505,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
      */
-    function claimInterest(address vToken) external {
+    function claimInterest(address vToken) marketNotPaused(vToken) external {
         accrueInterest(vToken);
 
         uint256 amount = getInterestAccrued(vToken, msg.sender);
@@ -514,6 +514,26 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         IERC20Upgradeable asset = IERC20Upgradeable(IVToken(vToken).underlying());
         asset.safeTransfer(msg.sender, amount);
+    }
+
+    /**
+     * @notice Pauses all vToken and Prime operations for a market
+     * @dev We need to pause markets before upddating QVL caps or adding existing markets to prime program
+     * @param vToken the market which to pause
+     */
+    function toggleMarketPause(address vToken) onlyOwner external {
+        isMarketPaused[vToken] = !isMarketPaused[vToken];
+    }
+
+    function updateQVLs(address[] memory accounts, address vToken) onlyOwner external {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            updateQVL(accounts[i], vToken);
+        }
+    }
+
+    modifier marketNotPaused(address vToken) {
+        require(isMarketPaused[vToken] == false, "market is temporarily paused for configuring prime token");
+        _;
     }
 
     modifier onlyXVSVault() {

@@ -83,4 +83,6 @@ contract PrimeStorageV1 {
 
     /// @notice A list of boosted markets
     address[] public allMarkets; 
+
+    mapping (address => bool) public isMarketPaused;
 }
