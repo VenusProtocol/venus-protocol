@@ -11,7 +11,7 @@ contract VBep20Immutable is VBep20 {
     /**
      * @notice Construct a new money market
      * @param underlying_ The address of the underlying asset
-     * @param comptroller_ The address of the Comptroller
+     * @param comptroller_ The address of the comptroller
      * @param interestRateModel_ The address of the interest rate model
      * @param initialExchangeRateMantissa_ The initial exchange rate, scaled by 1e18
      * @param name_ BEP-20 name of this token

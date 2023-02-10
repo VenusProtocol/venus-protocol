@@ -16,6 +16,14 @@ require("dotenv").config();
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
 
+task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
+  const accounts = await hre.ethers.getSigners();
+
+  for (const account of accounts) {
+    console.log(account.address);
+  }
+});
+
 task("run-script", "Runs a hardhard script by name")
   .addParam("path", "Path within script/hardhat to script")
   .setAction(async (taskArgs: { path: string }) => {
@@ -45,32 +53,6 @@ task("run-script", "Runs a hardhard script by name")
     }
   });
 
-function isFork() {
-  if (process.env.BSC_ARCHIVE_NODE) {
-    return {
-      chainId: 56,
-      forking: {
-        url: process.env.BSC_ARCHIVE_NODE || "",
-      },
-    };
-  }
-  if (process.env.FORK_MAINNET === "true") {
-    return {
-      allowUnlimitedContractSize: false,
-      loggingEnabled: false,
-      forking: {
-        url: `${process.env.FORK_MAINNET_RPC}`,
-      },
-      live: false,
-    };
-  }
-  return {
-    allowUnlimitedContractSize: true,
-    loggingEnabled: false,
-    live: false,
-  };
-}
-
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   solidity: {
@@ -90,7 +72,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.8.17",
+        version: "0.8.13",
         settings: {
           optimizer: {
             enabled: true,
@@ -106,15 +88,21 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true,
+      loggingEnabled: false,
+      live: false,
+    },
     bsctestnet: {
       url: process.env.BSC_TESTNET_NODE || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
-      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+      accounts: {
+        mnemonic: process.env.MNEMONIC || "",
+      },
       gasPrice: ethers.utils.parseUnits("10", "gwei").toNumber(),
       gasMultiplier: 10,
       timeout: 12000000,
     },
-    hardhat: isFork(),
     // currently not used, we are still using saddle to deploy contracts
     bscmainnet: {
       url: `https://bsc-dataseed.binance.org/`,
