@@ -104,22 +104,6 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external payable;
 
-    function swapExactTokensForETHAndSupply(
-        address vTokenAddress,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        uint256 deadline
-    ) external;
-
-    function swapExactTokensForETHAndSupplyAtSupportingFee(
-        address vTokenAddress,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        uint256 deadline
-    ) external;
-
     function swapTokensForExactTokensAndSupply(
         address vTokenAddress,
         uint256 amountOut,
@@ -134,14 +118,6 @@ interface IPancakeSwapV2Router {
         address[] calldata path,
         uint256 deadline
     ) external payable;
-
-    function swapTokensForExactETHAndSupply(
-        address vTokenAddress,
-        uint256 amountOut,
-        uint256 amountInMax,
-        address[] calldata path,
-        uint256 deadline
-    ) external;
 
     function swapAndRepay(
         address vTokenAddress,
@@ -173,22 +149,6 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external payable;
 
-    function swapExactTokensForETHAndRepay(
-        address vTokenAddress,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        uint256 deadline
-    ) external;
-
-    function swapExactTokensForETHAndRepayAtSupportingFee(
-        address vTokenAddress,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        uint256 deadline
-    ) external;
-
     function swapTokensForExactTokensAndRepay(
         address vTokenAddress,
         uint256 amountOut,
@@ -203,14 +163,6 @@ interface IPancakeSwapV2Router {
         address[] calldata path,
         uint256 deadline
     ) external payable;
-
-    function swapTokensForExactETHAndRepay(
-        address vTokenAddress,
-        uint256 amountOut,
-        uint256 amountInMax,
-        address[] calldata path,
-        uint256 deadline
-    ) external;
 
     function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) external pure returns (uint256 amountB);
 
