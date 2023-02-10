@@ -551,5 +551,29 @@ describe("Prime Token", () => {
 
       expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal("285")
     })
+
+    it("claim interest", async () => {
+      const [user1, user2] = accounts
+
+      await prime.issue(true, [
+        user1.getAddress(), user2.getAddress()
+      ], [1, 1])
+
+      await mine(24 * 60 * 20);
+      await prime.executeBoost(user1.getAddress(), vusdt.address)
+
+      await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.reverted
+
+      const interest = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
+      await usdt.transfer(prime.address, interest)
+
+      const previousBalance = await usdt.balanceOf(user1.getAddress());
+
+      await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.not.reverted
+
+      const newBalance =  await usdt.balanceOf(user1.getAddress());
+
+      expect(newBalance).to.be.equal(previousBalance.add(interest))
+    })
   })
 });

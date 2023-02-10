@@ -1,6 +1,7 @@
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./PrimeStorage.sol";
 
 import "hardhat/console.sol";
@@ -37,6 +38,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     event Burn (
         address owner
     );
+
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     constructor(
         address _xvsVault
@@ -385,10 +388,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             return;
         }
 
-        uint accountTotalQVL = getQVL(account, vToken, borrowBalance, supplyBalance);
-       
-        uint delta = _markets[vToken].index  - _interests[vToken][account].index;
-        _interests[vToken][account].accrued = _interests[vToken][account].accrued + ((accountTotalQVL * delta) / getMarketDecimals(vToken));
+        _interests[vToken][account].accrued = getInterestAccrued(vToken, account); 
         _interests[vToken][account].index = _markets[vToken].index;
     }
 
@@ -458,7 +458,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     function accrueInterest(
         address vToken
     ) public {
-        require(_markets[vToken].lastUpdated != 0, "market is supported");
+        require(_markets[vToken].lastUpdated != 0, "market is not supported");
     
         IVToken market = IVToken(vToken);
 
@@ -494,11 +494,26 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param vToken the market for which to fetch the accrued interest
      * @param account the account for which to get the accrued interest
      */
-    function getInterestAccrued(address vToken, address account) external returns(uint256) {
+    function getInterestAccrued(address vToken, address account) public returns(uint256) {
         accrueInterest(vToken);
 
         uint delta = _markets[vToken].index  - _interests[vToken][account].index;
         return _interests[vToken][account].accrued + (( _interests[vToken][account].totalQVL * delta) / getMarketDecimals(vToken));
+    }
+
+    /**
+     * @notice For user to claim boosted yield
+     * @param vToken the market for which claim the accrued interest
+     */
+    function claimInterest(address vToken) external {
+        accrueInterest(vToken);
+
+        uint256 amount = getInterestAccrued(vToken, msg.sender);
+        _interests[vToken][msg.sender].index = _markets[vToken].index;
+        _interests[vToken][msg.sender].accrued = 0;
+
+        IERC20Upgradeable asset = IERC20Upgradeable(IVToken(vToken).underlying());
+        asset.safeTransfer(msg.sender, amount);
     }
 
     modifier onlyXVSVault() {
