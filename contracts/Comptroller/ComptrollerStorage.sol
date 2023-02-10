@@ -230,5 +230,5 @@ contract ComptrollerV10Storage is ComptrollerV9Storage {
     mapping(address => uint) public venusSupplySpeeds;
 
     /// @notice Prime token address
-    IPrime prime; 
+    IPrime prime;
 }

@@ -333,7 +333,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         if (address(prime) != address(0)) {
             prime.updateQVL(minter, vToken);
         }
-        
     }
 
     /**
@@ -474,7 +473,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         if (address(prime) != address(0)) {
             prime.updateQVL(borrower, vToken);
         }
-        
     }
 
     /**
@@ -526,7 +524,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         if (address(prime) != address(0)) {
             prime.updateQVL(borrower, vToken);
         }
-        
     }
 
     /**
@@ -661,7 +658,6 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
             prime.updateQVL(borrower, vTokenCollateral);
             prime.updateQVL(liquidator, vTokenCollateral);
         }
-        
     }
 
     /**

@@ -686,11 +686,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         emit StoreUpdated(oldXvsContract, oldStore, _xvs, _xvsStore);
     }
 
-    function setPrimeToken(
-        IPrime primeToken,
-        address primeRewardToken,
-        uint256 primePoolId
-    ) external onlyAdmin {
+    function setPrimeToken(IPrime primeToken, address primeRewardToken, uint256 primePoolId) external onlyAdmin {
         require(address(primeToken) != address(0), "prime token cannot be zero address");
         require(primeRewardToken != address(0), "reward cannot be zero address");
 

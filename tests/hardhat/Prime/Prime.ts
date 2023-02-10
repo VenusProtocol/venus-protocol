@@ -1,7 +1,7 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
-import { Signer, BigNumber } from "ethers";
+import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
@@ -40,7 +40,7 @@ type SetupProtocolFixture = {
   xvsVault: XVSVaultScenario;
   xvs: XVS;
   xvsStore: XVSStore;
-  prime: Prime
+  prime: Prime;
 };
 
 async function deployProtocol(): Promise<SetupProtocolFixture> {
@@ -99,43 +99,31 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     BigNumber.from(18),
     wallet.address,
   )) as VBep20Harness;
-    
+
   //0.2 reserve factor
-  await veth._setReserveFactor(bigNumber16.mul(20))
-  await vusdt._setReserveFactor(bigNumber16.mul(20))
+  await veth._setReserveFactor(bigNumber16.mul(20));
+  await vusdt._setReserveFactor(bigNumber16.mul(20));
 
   oracle.getUnderlyingPrice.returns((vToken: string) => {
     if (vToken == vusdt.address) {
       return convertToUnit(1, 18);
     } else if (vToken == veth.address) {
-      return convertToUnit(1200, 18)
+      return convertToUnit(1200, 18);
     }
   });
 
   const half = convertToUnit("0.5", 18);
   await comptroller._supportMarket(vusdt.address);
-  await comptroller._setCollateralFactor(vusdt.address, half)
+  await comptroller._setCollateralFactor(vusdt.address, half);
   await comptroller._supportMarket(veth.address);
-  await comptroller._setCollateralFactor(veth.address, half)
+  await comptroller._setCollateralFactor(veth.address, half);
 
-  eth.transfer(accounts[0].address, bigNumber18.mul(100))
-  usdt.transfer(accounts[1].address, bigNumber18.mul(10000))
-  
-  await comptroller._setMarketSupplyCaps([
-    vusdt.address,
-    veth.address
-  ], [
-    bigNumber18.mul(10000),
-    bigNumber18.mul(100)
-  ])
+  eth.transfer(accounts[0].address, bigNumber18.mul(100));
+  usdt.transfer(accounts[1].address, bigNumber18.mul(10000));
 
-  await comptroller._setMarketBorrowCaps([
-    vusdt.address,
-    veth.address
-  ], [
-    bigNumber18.mul(10000),
-    bigNumber18.mul(100)
-  ])
+  await comptroller._setMarketSupplyCaps([vusdt.address, veth.address], [bigNumber18.mul(10000), bigNumber18.mul(100)]);
+
+  await comptroller._setMarketBorrowCaps([vusdt.address, veth.address], [bigNumber18.mul(10000), bigNumber18.mul(100)]);
 
   const xvsFactory = await ethers.getContractFactory("XVS");
   const xvs: XVS = (await xvsFactory.deploy(wallet.address)) as XVS;
@@ -160,33 +148,22 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const poolId = 0;
   const rewardPerBlock = bigNumber18.mul(1);
   await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
-  
+
   const primeFactory = await ethers.getContractFactory("Prime");
-  const prime: Prime = (await primeFactory.deploy(
-    xvsVault.address
-  )) as Prime;
-  prime.initialize()
+  const prime: Prime = (await primeFactory.deploy(xvsVault.address)) as Prime;
+  prime.initialize();
 
-  await xvsVault.setPrimeToken(
-    prime.address,
-    xvs.address,
-    poolId
-  )
+  await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 
-  await prime.setLimit(
-    1000,
-    1000
-  )
+  await prime.setLimit(1000, 1000);
 
-  await prime.setThresholds(
-    [
-      bigNumber18.mul(1000),
-      bigNumber18.mul(5000),
-      bigNumber18.mul(10000),
-      bigNumber18.mul(50000),
-      bigNumber18.mul(100000),
-    ]
-  )
+  await prime.setThresholds([
+    bigNumber18.mul(1000),
+    bigNumber18.mul(5000),
+    bigNumber18.mul(10000),
+    bigNumber18.mul(50000),
+    bigNumber18.mul(100000),
+  ]);
 
   await prime.addMarket(
     vusdt.address,
@@ -203,8 +180,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       bigNumber18.mul("2000000"),
       bigNumber18.mul("10000000"),
       bigNumber18.mul("20000000"),
-    ]
-  )
+    ],
+  );
 
   await prime.addMarket(
     veth.address,
@@ -221,16 +198,16 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       bigNumber18.mul("200"),
       bigNumber18.mul("1000"),
       bigNumber18.mul("2000"),
-    ]
-  )
+    ],
+  );
 
   await vusdt._setPrimeToken(prime.address);
   await veth._setPrimeToken(prime.address);
 
-  return { 
-    oracle, 
-    comptroller, 
-    comptrollerLens, 
+  return {
+    oracle,
+    comptroller,
+    comptrollerLens,
     accessControl,
     usdt,
     vusdt,
@@ -239,16 +216,15 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     xvsVault,
     xvs,
     xvsStore,
-    prime
+    prime,
   };
 }
 
 describe("Prime Token", () => {
-  let root: Signer;
   let accounts: Signer[];
 
   before(async () => {
-    [root, ...accounts] = await ethers.getSigners();
+    [, ...accounts] = await ethers.getSigners();
   });
 
   describe("protocol setup", () => {
@@ -259,7 +235,7 @@ describe("Prime Token", () => {
     let eth: BEP20Harness;
 
     beforeEach(async () => {
-      ({comptroller, vusdt, veth, usdt, eth} = await loadFixture(deployProtocol));
+      ({ comptroller, vusdt, veth, usdt, eth } = await loadFixture(deployProtocol));
 
       await eth.connect(accounts[0]).approve(veth.address, bigNumber18.mul(90));
       await veth.connect(accounts[0]).mint(bigNumber18.mul(90));
@@ -267,229 +243,230 @@ describe("Prime Token", () => {
       await usdt.connect(accounts[1]).approve(vusdt.address, bigNumber18.mul(9000));
       await vusdt.connect(accounts[1]).mint(bigNumber18.mul(9000));
 
-      await comptroller.connect(accounts[0]).enterMarkets([
-        vusdt.address,
-        veth.address
-      ])
+      await comptroller.connect(accounts[0]).enterMarkets([vusdt.address, veth.address]);
 
-      await comptroller.connect(accounts[1]).enterMarkets([
-        vusdt.address,
-        veth.address
-      ])
+      await comptroller.connect(accounts[1]).enterMarkets([vusdt.address, veth.address]);
 
-      await vusdt.connect(accounts[0]).borrow(bigNumber18.mul(5))
-      await veth.connect(accounts[1]).borrow(bigNumber18.mul(1))
+      await vusdt.connect(accounts[0]).borrow(bigNumber18.mul(5));
+      await veth.connect(accounts[1]).borrow(bigNumber18.mul(1));
     });
 
     it("markets added", async () => {
-      expect((await comptroller.allMarkets(0))).to.be.equal(vusdt.address)
-      expect((await comptroller.allMarkets(1))).to.be.equal(veth.address)
-    })
+      expect(await comptroller.allMarkets(0)).to.be.equal(vusdt.address);
+      expect(await comptroller.allMarkets(1)).to.be.equal(veth.address);
+    });
 
     it("borrow balance", async () => {
-      expect((await usdt.balanceOf(accounts[0].getAddress()))).to.be.gt(0)
-      expect((await eth.balanceOf(accounts[1].getAddress()))).to.be.gt(0)
-    })
-  })
+      expect(await usdt.balanceOf(accounts[0].getAddress())).to.be.gt(0);
+      expect(await eth.balanceOf(accounts[1].getAddress())).to.be.gt(0);
+    });
+  });
 
   describe("mint and burn", () => {
-    let comptroller: MockContract<Comptroller>;
-    let prime: Prime
-    let xvsVault: XVSVault
-    let xvs: XVS
+    let prime: Prime;
+    let xvsVault: XVSVault;
+    let xvs: XVS;
 
     beforeEach(async () => {
-      ({comptroller, prime, xvsVault, xvs} = await loadFixture(deployProtocol));
+      ({ comptroller, prime, xvsVault, xvs } = await loadFixture(deployProtocol));
     });
 
     it("stake and mint", async () => {
-      const user = accounts[0]
+      const user = accounts[0];
 
       await expect(prime.connect(user).claim(1)).to.be.revertedWith("you are not eligible to claim prime token");
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
-      
-      let stake = await prime._stakes(user.getAddress(), 0);
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
+
+      const stake = await prime._stakes(user.getAddress(), 0);
       expect(stake.tier).be.equal(3);
 
-      await expect(prime.connect(user).claim(3)).to.be.revertedWith("you need to wait more time for claiming prime token");
+      await expect(prime.connect(user).claim(3)).to.be.revertedWith(
+        "you need to wait more time for claiming prime token",
+      );
 
-      await mine(90* 24 * 60 * 60);
+      await mine(90 * 24 * 60 * 60);
       await expect(prime.connect(user).claim(3)).to.be.not.reverted;
 
-      await expect(prime._stakes(user.getAddress(), 0)).to.be.reverted
+      await expect(prime._stakes(user.getAddress(), 0)).to.be.reverted;
 
-      let token = await  prime._tokens(user.getAddress())
-      expect(token.isIrrevocable).to.be.equal(false)
-      expect(token.tier).to.be.equal(3)
-    })
+      const token = await prime._tokens(user.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.tier).to.be.equal(3);
+    });
 
     it("stake multiple tiers and mint highest tier", async () => {
-      const user = accounts[0]
+      const user = accounts[0];
 
       await expect(prime.connect(user).claim(1)).to.be.revertedWith("you are not eligible to claim prime token");
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(50000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(50000))
-      
-      let stake = await prime._stakes(user.getAddress(), 0);
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(50000));
+
+      const stake = await prime._stakes(user.getAddress(), 0);
       expect(stake.tier).be.equal(3);
 
       stake = await prime._stakes(user.getAddress(), 1);
       expect(stake.tier).be.equal(4);
 
-      await expect(prime.connect(user).claim(3)).to.be.revertedWith("you need to wait more time for claiming prime token");
-      await expect(prime.connect(user).claim(4)).to.be.revertedWith("you need to wait more time for claiming prime token");
+      await expect(prime.connect(user).claim(3)).to.be.revertedWith(
+        "you need to wait more time for claiming prime token",
+      );
+      await expect(prime.connect(user).claim(4)).to.be.revertedWith(
+        "you need to wait more time for claiming prime token",
+      );
 
-      await mine(90* 24 * 60 * 60);
+      await mine(90 * 24 * 60 * 60);
       await expect(prime.connect(user).claim(4)).to.be.not.reverted;
 
-      await expect(prime._stakes(user.getAddress(), 0)).to.be.reverted
-      await expect(prime._stakes(user.getAddress(), 1)).to.be.reverted
+      await expect(prime._stakes(user.getAddress(), 0)).to.be.reverted;
+      await expect(prime._stakes(user.getAddress(), 1)).to.be.reverted;
 
-      let token = await  prime._tokens(user.getAddress())
-      expect(token.isIrrevocable).to.be.equal(false)
-      expect(token.tier).to.be.equal(4)
-    })
+      const token = await prime._tokens(user.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.tier).to.be.equal(4);
+    });
 
     it("stake multiple tiers and mint lowest tier", async () => {
-      const user = accounts[0]
+      const user = accounts[0];
 
       await expect(prime.connect(user).claim(1)).to.be.revertedWith("you are not eligible to claim prime token");
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(50000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(50000))
-      
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(50000));
+
       let stake = await prime._stakes(user.getAddress(), 0);
       expect(stake.tier).be.equal(3);
 
       stake = await prime._stakes(user.getAddress(), 1);
       expect(stake.tier).be.equal(4);
 
-      await expect(prime.connect(user).claim(3)).to.be.revertedWith("you need to wait more time for claiming prime token");
-      await expect(prime.connect(user).claim(4)).to.be.revertedWith("you need to wait more time for claiming prime token");
+      await expect(prime.connect(user).claim(3)).to.be.revertedWith(
+        "you need to wait more time for claiming prime token",
+      );
+      await expect(prime.connect(user).claim(4)).to.be.revertedWith(
+        "you need to wait more time for claiming prime token",
+      );
 
-      await mine(90* 24 * 60 * 60);
+      await mine(90 * 24 * 60 * 60);
       await expect(prime.connect(user).claim(3)).to.be.not.reverted;
 
-      await expect(prime._stakes(user.getAddress(), 0)).to.be.not.reverted
-      await expect(prime._stakes(user.getAddress(), 1)).to.be.reverted
+      await expect(prime._stakes(user.getAddress(), 0)).to.be.not.reverted;
+      await expect(prime._stakes(user.getAddress(), 1)).to.be.reverted;
 
-      let token = await  prime._tokens(user.getAddress())
-      expect(token.isIrrevocable).to.be.equal(false)
-      expect(token.tier).to.be.equal(3)
-    })
+      const token = await prime._tokens(user.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.tier).to.be.equal(3);
+    });
 
     it("stake and unstake", async () => {
-      const user = accounts[0]
+      const user = accounts[0];
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
-      
-      let stake = await prime._stakes(user.getAddress(), 0);
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
+
+      const stake = await prime._stakes(user.getAddress(), 0);
       expect(stake.tier).be.equal(3);
 
-      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(1))
+      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(1));
 
       await expect(prime._stakes(user.getAddress(), 0)).to.be.not.reverted;
-    })
+    });
 
     it("downgrade and burn", async () => {
-      const user = accounts[0]
+      const user = accounts[0];
 
-      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000))
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
-      await mine(90* 24 * 60 * 60);
-      await prime.connect(user).claim(3)
+      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
+      await mine(90 * 24 * 60 * 60);
+      await prime.connect(user).claim(3);
 
-      expect((await prime._totalRevocable())).to.be.equal(1);
+      expect(await prime._totalRevocable()).to.be.equal(1);
 
-      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000))
-      
-      let token = await prime._tokens(user.getAddress())
-      expect(token.tier).to.be.equal(2)
+      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000));
 
-      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000))
-      token = await prime._tokens(user.getAddress())
-      expect(token.tier).to.be.equal(0)
+      let token = await prime._tokens(user.getAddress());
+      expect(token.tier).to.be.equal(2);
 
-      expect((await prime._totalRevocable())).to.be.equal(0);
-    })
+      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000));
+      token = await prime._tokens(user.getAddress());
+      expect(token.tier).to.be.equal(0);
+
+      expect(await prime._totalRevocable()).to.be.equal(0);
+    });
 
     it("claim and upgrade", async () => {
-      const user = accounts[0]
+      const user = accounts[0];
 
       await expect(prime.connect(user).claim(3)).to.be.revertedWith("you are not eligible to claim prime token");
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000))
-      
-      await mine(90* 24 * 60 * 60);
-      await prime.connect(user).claim(3)
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
 
-      let token = await  prime._tokens(user.getAddress())
-      expect(token.isIrrevocable).to.be.equal(false)
-      expect(token.tier).to.be.equal(3)
+      await mine(90 * 24 * 60 * 60);
+      await prime.connect(user).claim(3);
+
+      let token = await prime._tokens(user.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.tier).to.be.equal(3);
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(40000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(40000))
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(40000));
 
-      await mine(90* 24 * 60 * 60);
-      await prime.connect(user).claim(4)
+      await mine(90 * 24 * 60 * 60);
+      await prime.connect(user).claim(4);
 
-      token = await prime._tokens(user.getAddress())
-      expect(token.isIrrevocable).to.be.equal(false)
-      expect(token.tier).to.be.equal(4)
-    })
+      token = await prime._tokens(user.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.tier).to.be.equal(4);
+    });
 
     it("issue", async () => {
-      const [user1, user2, user3, user4] = accounts
+      const [user1, user2, user3, user4] = accounts;
 
-      await expect(prime.connect(user1).issue(false, [user1.getAddress()], [2])).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(prime.connect(user1).issue(false, [user1.getAddress()], [2])).to.be.revertedWith(
+        "Ownable: caller is not the owner",
+      );
 
-      await prime.issue(true, [
-        user1.getAddress(), user2.getAddress()
-      ], [3, 4])
+      await prime.issue(true, [user1.getAddress(), user2.getAddress()], [3, 4]);
 
-      let token = await  prime._tokens(user1.getAddress())
-      expect(token.isIrrevocable).to.be.equal(true)
-      expect(token.tier).to.be.equal(5)
+      let token = await prime._tokens(user1.getAddress());
+      expect(token.isIrrevocable).to.be.equal(true);
+      expect(token.tier).to.be.equal(5);
 
-      token = await  prime._tokens(user2.getAddress())
-      expect(token.isIrrevocable).to.be.equal(true)
-      expect(token.tier).to.be.equal(5)
+      token = await prime._tokens(user2.getAddress());
+      expect(token.isIrrevocable).to.be.equal(true);
+      expect(token.tier).to.be.equal(5);
 
-      await prime.issue(false, [
-        user3.getAddress(), user4.getAddress()
-      ], [3, 4])
+      await prime.issue(false, [user3.getAddress(), user4.getAddress()], [3, 4]);
 
-      token = await  prime._tokens(user3.getAddress())
-      expect(token.isIrrevocable).to.be.equal(false)
-      expect(token.tier).to.be.equal(3)
+      token = await prime._tokens(user3.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.tier).to.be.equal(3);
 
-      token = await  prime._tokens(user4.getAddress())
-      expect(token.isIrrevocable).to.be.equal(false)
-      expect(token.tier).to.be.equal(4)
-    })
-  })
+      token = await prime._tokens(user4.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.tier).to.be.equal(4);
+    });
+  });
 
   describe("boosted yield", () => {
     let comptroller: MockContract<Comptroller>;
-    let prime: Prime
+    let prime: Prime;
     let vusdt: VBep20Harness;
     let veth: VBep20Harness;
     let usdt: BEP20Harness;
     let eth: BEP20Harness;
 
     beforeEach(async () => {
-      ({comptroller, prime, vusdt, veth, usdt, eth} = await loadFixture(deployProtocol));
+      ({ comptroller, prime, vusdt, veth, usdt, eth } = await loadFixture(deployProtocol));
 
       await eth.connect(accounts[0]).approve(veth.address, bigNumber18.mul(90));
       await veth.connect(accounts[0]).mint(bigNumber18.mul(90));
@@ -497,83 +474,73 @@ describe("Prime Token", () => {
       await usdt.connect(accounts[1]).approve(vusdt.address, bigNumber18.mul(9000));
       await vusdt.connect(accounts[1]).mint(bigNumber18.mul(9000));
 
-      await comptroller.connect(accounts[0]).enterMarkets([
-        vusdt.address,
-        veth.address
-      ])
+      await comptroller.connect(accounts[0]).enterMarkets([vusdt.address, veth.address]);
 
-      await comptroller.connect(accounts[1]).enterMarkets([
-        vusdt.address,
-        veth.address
-      ])
+      await comptroller.connect(accounts[1]).enterMarkets([vusdt.address, veth.address]);
 
-      await vusdt.connect(accounts[0]).borrow(bigNumber18.mul(5))
-      await veth.connect(accounts[1]).borrow(bigNumber18.mul(1))
+      await vusdt.connect(accounts[0]).borrow(bigNumber18.mul(5));
+      await veth.connect(accounts[1]).borrow(bigNumber18.mul(1));
     });
 
     it("user supplied/borrowed, prime market is added and accrue interest after minting ", async () => {
-      const [user1, user2] = accounts
-      
-      await prime.executeBoost(user1.getAddress(), vusdt.address)
-      
-      let interest = await prime._interests(vusdt.address, user1.getAddress())
-      expect(interest.totalQVL).to.be.equal(0)
+      const [user1, user2] = accounts;
 
-      await prime.issue(true, [
-        user1.getAddress(), user2.getAddress()
-      ], [1, 1])
+      await prime.executeBoost(user1.getAddress(), vusdt.address);
 
-      interest = await prime._interests(vusdt.address, user1.getAddress())
-      expect(interest.totalQVL).to.be.equal(bigNumber18.mul(5))
-      expect(interest.index).to.be.equal(bigNumber18.mul(1))
-      expect(interest.accrued).to.be.equal(0)
+      let interest = await prime._interests(vusdt.address, user1.getAddress());
+      expect(interest.totalQVL).to.be.equal(0);
 
-      interest = await prime._interests(veth.address, user1.getAddress())
-      expect(interest.totalQVL).to.be.equal(bigNumber18.mul(90))
+      await prime.issue(true, [user1.getAddress(), user2.getAddress()], [1, 1]);
 
-      let market = await prime._markets(vusdt.address)
-      expect(market.totalQVL).to.be.equal(bigNumber18.mul(9005))
+      interest = await prime._interests(vusdt.address, user1.getAddress());
+      expect(interest.totalQVL).to.be.equal(bigNumber18.mul(5));
+      expect(interest.index).to.be.equal(bigNumber18.mul(1));
+      expect(interest.accrued).to.be.equal(0);
+
+      interest = await prime._interests(veth.address, user1.getAddress());
+      expect(interest.totalQVL).to.be.equal(bigNumber18.mul(90));
+
+      const market = await prime._markets(vusdt.address);
+      expect(market.totalQVL).to.be.equal(bigNumber18.mul(9005));
 
       await mine(24 * 60 * 20);
-      await prime.executeBoost(user1.getAddress(), vusdt.address)
+      await prime.executeBoost(user1.getAddress(), vusdt.address);
 
-      interest = await prime._interests(vusdt.address, user1.getAddress())
+      interest = await prime._interests(vusdt.address, user1.getAddress());
 
       /**
        * incomePerBlock * totalBlocks / totalQVL = 18 * 28800 / 9005000000000000000000 = 57
        */
-      expect(interest.index).to.be.equal(BigNumber.from("1000000000000000057"))
+      expect(interest.index).to.be.equal(BigNumber.from("1000000000000000057"));
 
       /**
        * accrued = index * qvl = 57 * 5 = 285
        */
-      expect(interest.accrued).to.be.equal("285")
+      expect(interest.accrued).to.be.equal("285");
 
-      expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal("285")
-    })
+      expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal("285");
+    });
 
     it("claim interest", async () => {
-      const [user1, user2] = accounts
+      const [user1, user2] = accounts;
 
-      await prime.issue(true, [
-        user1.getAddress(), user2.getAddress()
-      ], [1, 1])
+      await prime.issue(true, [user1.getAddress(), user2.getAddress()], [1, 1]);
 
       await mine(24 * 60 * 20);
-      await prime.executeBoost(user1.getAddress(), vusdt.address)
+      await prime.executeBoost(user1.getAddress(), vusdt.address);
 
-      await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.reverted
+      await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.reverted;
 
       const interest = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
-      await usdt.transfer(prime.address, interest)
+      await usdt.transfer(prime.address, interest);
 
       const previousBalance = await usdt.balanceOf(user1.getAddress());
 
-      await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.not.reverted
+      await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.not.reverted;
 
-      const newBalance =  await usdt.balanceOf(user1.getAddress());
+      const newBalance = await usdt.balanceOf(user1.getAddress());
 
-      expect(newBalance).to.be.equal(previousBalance.add(interest))
-    })
-  })
+      expect(newBalance).to.be.equal(previousBalance.add(interest));
+    });
+  });
 });

@@ -119,7 +119,7 @@ contract VTokenStorage {
     /**
      * @notice Prime token contract address
      */
-    IPrime prime;
+    IPrime public prime;
 }
 
 contract VTokenInterface is VTokenStorage {

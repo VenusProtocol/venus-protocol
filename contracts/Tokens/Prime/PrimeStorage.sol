@@ -1,8 +1,7 @@
 pragma solidity 0.8.13;
 
 contract PrimeStorageV1 {
-
-    enum Tier { 
+    enum Tier {
         ZERO,
         ONE,
         TWO,
@@ -30,7 +29,7 @@ contract PrimeStorageV1 {
         uint256 index;
         uint256 lastUpdated;
         uint256 totalQVL;
-        mapping (Tier => Cap) caps;
+        mapping(Tier => Cap) caps;
     }
 
     struct Interest {
@@ -40,19 +39,19 @@ contract PrimeStorageV1 {
     }
 
     /// @notice constant variable to find highest tier
-    Tier constant internal MAX_TIER = Tier.FIVE;
+    Tier internal constant MAX_TIER = Tier.FIVE;
 
-    /// @notice number of days user need to stake to claim prime token 
-    uint256 constant internal STAKING_PERIOD = 90 * 24 * 60 * 60;
+    /// @notice number of days user need to stake to claim prime token
+    uint256 internal constant STAKING_PERIOD = 90 * 24 * 60 * 60;
 
     /// @notice initial market index
-    uint256 constant internal INITIAL_INDEX = 1e18;
+    uint256 internal constant INITIAL_INDEX = 1e18;
 
     /// @notice maxmimum BPS
-    uint256 constant internal MAXIMUM_BPS = 10000;    
+    uint256 internal constant MAXIMUM_BPS = 10000;
 
-    /// @notice protocol income distribution BPS. 
-    uint256 constant internal INCOME_DISTRIBUTION_BPS = 2000;
+    /// @notice protocol income distribution BPS.
+    uint256 internal constant INCOME_DISTRIBUTION_BPS = 2000;
 
     /// @notice Mapping owner token id to token metadata
     mapping(address => Token) public _tokens;
@@ -70,19 +69,19 @@ contract PrimeStorageV1 {
     uint256 public _irrevocableLimit;
 
     /// @notice Tracks when prime token eligible users started staking for claiming prime token
-    mapping (address => Stake[]) public _stakes;
+    mapping(address => Stake[]) public _stakes;
 
     /// @notice vToken to market configuration
-    mapping (address => Market) public _markets;
+    mapping(address => Market) public _markets;
 
     /// @notice vToken to user to user index
-    mapping (address => mapping (address => Interest)) public _interests;
+    mapping(address => mapping(address => Interest)) public _interests;
 
     /// @notice Tier to XVS threshold
-    mapping (Tier => uint256) public _thresholds;
+    mapping(Tier => uint256) public _thresholds;
 
     /// @notice A list of boosted markets
-    address[] public allMarkets; 
+    address[] public allMarkets;
 
-    mapping (address => bool) public isMarketPaused;
+    mapping(address => bool) public isMarketPaused;
 }

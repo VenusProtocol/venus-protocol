@@ -8,12 +8,15 @@ import "hardhat/console.sol";
 
 interface IVToken {
     function borrowRatePerBlock() external view returns (uint);
+
     function reserveFactorMantissa() external returns (uint);
+
     function totalBorrowsCurrent() external returns (uint);
 
     function accrueInterest() external returns (uint);
 
     function borrowBalanceCurrent(address account) external returns (uint);
+
     function balanceOfUnderlying(address account) external returns (uint);
 
     function underlying() external returns (address);
@@ -24,28 +27,20 @@ interface EIP20Interface {
 }
 
 contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
-
     /// @notice address of XVS vault
-    address immutable internal xvsVault;
+    address internal immutable xvsVault;
 
     /// @notice Emitted when prime token is minted
-    event Mint (
-        address owner,
-        Token metadata
-    );
+    event Mint(address owner, Token metadata);
 
     /// @notice Emitted when prime token is burned
-    event Burn (
-        address owner
-    );
+    event Burn(address owner);
 
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    constructor(
-        address _xvsVault
-    ) {
+    constructor(address _xvsVault) {
         xvsVault = _xvsVault;
-    } 
+    }
 
     function initialize() external virtual initializer {
         __Ownable2Step_init();
@@ -56,10 +51,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param irrevocableLimit total number of irrevocable tokens that can be minted
      * @param revocableLimit total number of revocable tokens that can be minted
      */
-    function setLimit(
-        uint256 irrevocableLimit,
-        uint256 revocableLimit
-    ) onlyOwner external {
+    function setLimit(uint256 irrevocableLimit, uint256 revocableLimit) external onlyOwner {
         require(_totalRevocable <= revocableLimit, "limit is lower than total minted tokens");
         require(_totalIrrevocable <= irrevocableLimit, "limit is lower than total minted tokens");
 
@@ -71,39 +63,31 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @notice Sets threshold for all the tiers
      * @param thresholds XVS thresholds for each tier
      */
-    function setThresholds(
-        uint256[] memory thresholds
-    ) onlyOwner external {
-        require(
-            thresholds.length == uint(MAX_TIER),
-            "you need to set thresholds for all tiers"
-        );
+    function setThresholds(uint256[] memory thresholds) external onlyOwner {
+        require(thresholds.length == uint(MAX_TIER), "you need to set thresholds for all tiers");
 
         uint256 threshold;
 
-        for(uint i = 0; i < thresholds.length; i++) {
-            require(
-                thresholds[i] > threshold,
-                "higher tier should have higher threshold"
-            );
+        for (uint i = 0; i < thresholds.length; i++) {
+            require(thresholds[i] > threshold, "higher tier should have higher threshold");
 
             threshold = thresholds[i];
 
-            _thresholds[Tier(i+1)] = thresholds[i];
+            _thresholds[Tier(i + 1)] = thresholds[i];
         }
     }
 
     /**
      * @notice Add boosted market
      * @param vToken vToken address of the market
-     * @param supplyTVLCaps supply TVL cap 
-     * @param borrowTVLCaps borrow TVL cap 
+     * @param supplyTVLCaps supply TVL cap
+     * @param borrowTVLCaps borrow TVL cap
      */
     function addMarket(
         address vToken,
         uint256[] memory supplyTVLCaps,
         uint256[] memory borrowTVLCaps
-    ) onlyOwner external {
+    ) external onlyOwner {
         require(_markets[vToken].lastUpdated == 0, "market is already added");
 
         _markets[vToken].index = INITIAL_INDEX;
@@ -112,53 +96,44 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         allMarkets.push(vToken);
 
         require(
-            supplyTVLCaps.length == uint(MAX_TIER) &&
-            borrowTVLCaps.length == uint(MAX_TIER), 
+            supplyTVLCaps.length == uint(MAX_TIER) && borrowTVLCaps.length == uint(MAX_TIER),
             "you need to set caps for all tiers"
         );
 
         uint256 supplyTVLCap;
         uint256 borrowTVLCap;
 
-        for(uint i = 0; i < supplyTVLCaps.length; i++) {
+        for (uint i = 0; i < supplyTVLCaps.length; i++) {
             require(
-                supplyTVLCaps[i] > supplyTVLCap &&
-                borrowTVLCaps[i] > borrowTVLCap,
+                supplyTVLCaps[i] > supplyTVLCap && borrowTVLCaps[i] > borrowTVLCap,
                 "higher tier should have higher cap"
             );
 
             supplyTVLCap = supplyTVLCaps[i];
             borrowTVLCap = borrowTVLCaps[i];
 
-            _markets[vToken].caps[Tier(i+1)] = Cap(
-                supplyTVLCaps[i],
-                borrowTVLCaps[i]
-            );
+            _markets[vToken].caps[Tier(i + 1)] = Cap(supplyTVLCaps[i], borrowTVLCaps[i]);
         }
     }
 
     /**
      * @notice Directly issue prime tokens to users
      * @param isIrrevocable is the tokens being issued is irrevocable
-     * @param owners list of address to issue tokens to 
+     * @param owners list of address to issue tokens to
      * @param tiers tier for each of the issued tokens
      */
-    function issue(
-        bool isIrrevocable,
-        address[] memory owners,
-        Tier[] memory tiers
-    ) onlyOwner external {
+    function issue(bool isIrrevocable, address[] memory owners, Tier[] memory tiers) external onlyOwner {
         if (isIrrevocable == true) {
             for (uint i = 0; i < owners.length; i++) {
                 _mint(true, Tier.FIVE, owners[i]);
                 _initializeMarkets(owners[i]);
-            }   
+            }
         } else {
             for (uint i = 0; i < owners.length; i++) {
                 _mint(false, tiers[i], owners[i]);
                 _initializeMarkets(owners[i]);
                 delete _stakes[owners[i]];
-            } 
+            }
         }
     }
 
@@ -167,18 +142,12 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param owner the address of the user who staked XVS
      * @param totalStaked the total staked XVS balance of user
      */
-    function staked(
-        address owner,
-        uint256 totalStaked
-    ) external onlyXVSVault {
+    function staked(address owner, uint256 totalStaked) external onlyXVSVault {
         Tier eligibleTier = getEligibleTier(totalStaked);
 
-        if (
-            _tokens[owner].isIrrevocable == false &&
-            eligibleTier > _tokens[owner].tier
-        ) {
+        if (_tokens[owner].isIrrevocable == false && eligibleTier > _tokens[owner].tier) {
             if (_stakes[owner].length > 0) {
-                if(_stakes[owner][_stakes[owner].length - 1].tier >= eligibleTier) {
+                if (_stakes[owner][_stakes[owner].length - 1].tier >= eligibleTier) {
                     return;
                 }
             }
@@ -192,12 +161,14 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      */
     function claim(Tier tier) external {
         Stake[] storage stakes = _stakes[msg.sender];
-        uint256 originalLength = stakes.length;
         for (uint256 i = 0; i < stakes.length; i++) {
-            if(stakes[i].tier == tier && tier > _tokens[msg.sender].tier) {
-                require(block.timestamp - stakes[i].stakedAt >= STAKING_PERIOD, "you need to wait more time for claiming prime token");
-                
-                if(_tokens[msg.sender].tier == Tier.ZERO) {
+            if (stakes[i].tier == tier && tier > _tokens[msg.sender].tier) {
+                require(
+                    block.timestamp - stakes[i].stakedAt >= STAKING_PERIOD,
+                    "you need to wait more time for claiming prime token"
+                );
+
+                if (_tokens[msg.sender].tier == Tier.ZERO) {
                     _mint(false, stakes[i].tier, msg.sender);
                     _initializeMarkets(msg.sender);
                 } else {
@@ -211,12 +182,12 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
                         updateQVL(msg.sender, allMarkets[i]);
                     }
                 }
-                
+
                 uint j = i;
 
                 uint256 stakesLength = stakes.length;
-                for(uint k = 0; k < stakesLength; k++) {
-                    if(j + 1 < stakesLength) {
+                for (uint k = 0; k < stakesLength; k++) {
+                    if (j + 1 < stakesLength) {
                         stakes[k] = stakes[j + 1];
                         j++;
                     } else {
@@ -253,17 +224,14 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param owner the address of the user who withdrew XVS
      * @param totalStaked the total staked XVS balance of user
      */
-    function unstaked(
-        address owner,
-        uint256 totalStaked
-    ) external onlyXVSVault {
+    function unstaked(address owner, uint256 totalStaked) external onlyXVSVault {
         Tier eligibleTier = getEligibleTier(totalStaked);
 
         Stake[] storage stakes = _stakes[msg.sender];
         uint256 originalLength = stakes.length;
-        if(originalLength > 0) {
-            for(uint256 i = originalLength - 1; i >= 0; i--) {
-                if(stakes[i].tier > eligibleTier) {
+        if (originalLength > 0) {
+            for (uint256 i = originalLength - 1; i >= 0; i--) {
+                if (stakes[i].tier > eligibleTier) {
                     _stakes[msg.sender].pop();
                 } else {
                     break;
@@ -279,7 +247,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             for (uint i = 0; i < allMarkets.length; i++) {
                 executeBoost(msg.sender, allMarkets[i]);
             }
-            
+
             if (eligibleTier == Tier.ZERO) {
                 _burn(owner);
             } else {
@@ -298,11 +266,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param tier tier of the minted token
      * @param owner token owner
      */
-    function _mint(
-        bool isIrrevocable,
-        Tier tier,
-        address owner
-    ) internal {
+    function _mint(bool isIrrevocable, Tier tier, address owner) internal {
         require(_tokens[owner].tier == Tier.ZERO, "user already owns a prime token");
 
         Token memory token = Token(isIrrevocable, tier);
@@ -315,8 +279,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
 
         require(
-            _totalIrrevocable <= _irrevocableLimit &&
-            _totalRevocable <= _revocableLimit,
+            _totalIrrevocable <= _irrevocableLimit && _totalRevocable <= _revocableLimit,
             "exceeds token mint limit"
         );
 
@@ -327,9 +290,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @notice Used to burn a new prime token
      * @param owner owner whose prime token to burn
      */
-    function _burn(
-        address owner
-    ) internal {
+    function _burn(address owner) internal {
         require(uint(_tokens[owner].tier) != uint(Tier.ZERO), "user doesn't own an prime token");
 
         if (_tokens[owner].isIrrevocable == true) {
@@ -347,11 +308,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @notice Used to get the eligible tier associated with XVS amount
      * @param amount amount of XVS
      */
-    function getEligibleTier(
-        uint256 amount
-    ) view internal returns (Tier eligibleTier) {
-        for(uint i = 0; i < uint(MAX_TIER); i++) {
-            if(amount >= _thresholds[Tier(i + 1)]) {
+    function getEligibleTier(uint256 amount) internal view returns (Tier eligibleTier) {
+        for (uint i = 0; i < uint(MAX_TIER); i++) {
+            if (amount >= _thresholds[Tier(i + 1)]) {
                 eligibleTier = Tier(i + 1);
             } else {
                 break;
@@ -366,10 +325,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param account account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
      */
-    function executeBoost(
-        address account,
-        address vToken
-    ) marketNotPaused(vToken) public  {
+    function executeBoost(address account, address vToken) public marketNotPaused(vToken) {
         if (_markets[vToken].lastUpdated == 0) {
             return;
         }
@@ -380,15 +336,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         accrueInterest(vToken);
 
-        IVToken market = IVToken(vToken);
-        uint256 borrowBalance = market.borrowBalanceCurrent(account);
-        uint256 supplyBalance = market.balanceOfUnderlying(account);
-
         if (_interests[vToken][account].index == _markets[vToken].index) {
             return;
         }
 
-        _interests[vToken][account].accrued = getInterestAccrued(vToken, account); 
+        _interests[vToken][account].accrued = getInterestAccrued(vToken, account);
         _interests[vToken][account].index = _markets[vToken].index;
     }
 
@@ -397,10 +349,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param account account for which we need to update QVL
      * @param vToken the market for which we need to QVL
      */
-    function updateQVL(
-        address account, 
-        address vToken
-    )  public {
+    function updateQVL(address account, address vToken) public {
         if (_markets[vToken].lastUpdated == 0) {
             return;
         }
@@ -408,14 +357,14 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         if (_tokens[account].tier == Tier.ZERO) {
             return;
         }
-        
+
         IVToken market = IVToken(vToken);
         uint256 borrowBalance = market.borrowBalanceCurrent(account);
         uint256 supplyBalance = market.balanceOfUnderlying(account);
 
         uint accountTotalQVL = getQVL(account, vToken, borrowBalance, supplyBalance);
 
-        _markets[vToken].totalQVL =  _markets[vToken].totalQVL - _interests[vToken][account].totalQVL;
+        _markets[vToken].totalQVL = _markets[vToken].totalQVL - _interests[vToken][account].totalQVL;
         _markets[vToken].totalQVL = _markets[vToken].totalQVL + accountTotalQVL;
         _interests[vToken][account].totalQVL = accountTotalQVL;
     }
@@ -436,8 +385,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint tier = uint(_tokens[account].tier);
 
         for (uint i = 0; i <= tier; i++) {
-            borrowQVL = borrowQVL +  _markets[vToken].caps[Tier(i)].borrowTVLCap;
-            supplyQVL = supplyQVL +  _markets[vToken].caps[Tier(i)].supplyTVLCap;
+            borrowQVL = borrowQVL + _markets[vToken].caps[Tier(i)].borrowTVLCap;
+            supplyQVL = supplyQVL + _markets[vToken].caps[Tier(i)].supplyTVLCap;
         }
 
         if (borrowBalance < borrowQVL) {
@@ -452,18 +401,17 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
-     * @notice Distributes income from market since last distribution 
+     * @notice Distributes income from market since last distribution
      * @param vToken the market for which to distribute the income
      */
-    function accrueInterest(
-        address vToken
-    ) marketNotPaused(vToken) public {
+    function accrueInterest(address vToken) public marketNotPaused(vToken) {
         require(_markets[vToken].lastUpdated != 0, "market is not supported");
-    
+
         IVToken market = IVToken(vToken);
 
         uint256 pastBlocks = block.number - _markets[vToken].lastUpdated;
-        uint256 protocolIncomePerBlock = (((market.totalBorrowsCurrent() * market.borrowRatePerBlock()) / 1e18) * market.reserveFactorMantissa()) / 1e18;
+        uint256 protocolIncomePerBlock = (((market.totalBorrowsCurrent() * market.borrowRatePerBlock()) / 1e18) *
+            market.reserveFactorMantissa()) / 1e18;
         uint256 accumulatedIncome = protocolIncomePerBlock * pastBlocks;
         uint256 distributionIncome = (accumulatedIncome * INCOME_DISTRIBUTION_BPS) / MAXIMUM_BPS;
         uint256 distributionPerQVL = 0;
@@ -474,7 +422,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         _markets[vToken].index = _markets[vToken].index + distributionPerQVL;
         _markets[vToken].lastUpdated = block.number;
-    } 
+    }
 
     function getMarketDecimals(address vToken) internal returns (uint256) {
         IVToken market = IVToken(vToken);
@@ -483,7 +431,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         try market.underlying() returns (address _underlying) {
             underlying = _underlying;
         } catch (bytes memory) {
-            return 10**18; // vBNB
+            return 10 ** 18; // vBNB
         }
 
         return (10 ** EIP20Interface(underlying).decimals());
@@ -494,18 +442,20 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param vToken the market for which to fetch the accrued interest
      * @param account the account for which to get the accrued interest
      */
-    function getInterestAccrued(address vToken, address account) public returns(uint256) {
+    function getInterestAccrued(address vToken, address account) public returns (uint256) {
         accrueInterest(vToken);
 
-        uint delta = _markets[vToken].index  - _interests[vToken][account].index;
-        return _interests[vToken][account].accrued + (( _interests[vToken][account].totalQVL * delta) / getMarketDecimals(vToken));
+        uint delta = _markets[vToken].index - _interests[vToken][account].index;
+        return
+            _interests[vToken][account].accrued +
+            ((_interests[vToken][account].totalQVL * delta) / getMarketDecimals(vToken));
     }
 
     /**
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
      */
-    function claimInterest(address vToken) marketNotPaused(vToken) external {
+    function claimInterest(address vToken) external marketNotPaused(vToken) {
         accrueInterest(vToken);
 
         uint256 amount = getInterestAccrued(vToken, msg.sender);
@@ -521,11 +471,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @dev We need to pause markets before upddating QVL caps or adding existing markets to prime program
      * @param vToken the market which to pause
      */
-    function toggleMarketPause(address vToken) onlyOwner external {
+    function toggleMarketPause(address vToken) external onlyOwner {
         isMarketPaused[vToken] = !isMarketPaused[vToken];
     }
 
-    function updateQVLs(address[] memory accounts, address vToken) onlyOwner external {
+    function updateQVLs(address[] memory accounts, address vToken) external onlyOwner {
         for (uint256 i = 0; i < accounts.length; i++) {
             updateQVL(accounts[i], vToken);
         }
