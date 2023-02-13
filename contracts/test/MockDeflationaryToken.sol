@@ -1,7 +1,6 @@
 pragma solidity ^0.5.16;
 
 import "../Utils/SafeMath.sol";
-import "hardhat/console.sol";
 
 contract DeflatingERC20 {
     using SafeMath for uint;
@@ -56,15 +55,11 @@ contract DeflatingERC20 {
     }
 
     function _transfer(address from, address to, uint value) private {
-        console.log("--------------114");
         uint burnAmount = value / 100;
         _burn(from, burnAmount);
-        console.log("--------------115");
         uint transferAmount = value.sub(burnAmount);
-        console.log("--------------116", balanceOf[from], transferAmount);
         balanceOf[from] = balanceOf[from].sub(transferAmount);
         balanceOf[to] = balanceOf[to].add(transferAmount);
-        console.log("--------------117");
         emit Transfer(from, to, transferAmount);
     }
 
@@ -79,13 +74,10 @@ contract DeflatingERC20 {
     }
 
     function transferFrom(address from, address to, uint value) external returns (bool) {
-        console.log("--------------111");
         if (allowance[from][msg.sender] != uint(-1)) {
-        console.log("--------------112");
 
             allowance[from][msg.sender] = allowance[from][msg.sender].sub(value);
         }
-        console.log("--------------113");
         _transfer(from, to, value);
         return true;
     }
