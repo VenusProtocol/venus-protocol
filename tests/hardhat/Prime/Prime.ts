@@ -27,6 +27,7 @@ chai.use(smock.matchers);
 
 export const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 export const bigNumber16 = BigNumber.from("10000000000000000"); // 1e16
+export const bigNumber8 = BigNumber.from("10000000"); // 1e8
 
 type SetupProtocolFixture = {
   oracle: FakeContract<PriceOracle>;
@@ -266,6 +267,7 @@ describe("Prime Token", () => {
     let prime: Prime;
     let xvsVault: XVSVault;
     let xvs: XVS;
+    let comptroller = MockContract<Comptroller>;
 
     beforeEach(async () => {
       ({ comptroller, prime, xvsVault, xvs } = await loadFixture(deployProtocol));
@@ -307,7 +309,7 @@ describe("Prime Token", () => {
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(50000));
       await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(50000));
 
-      const stake = await prime._stakes(user.getAddress(), 0);
+      let stake = await prime._stakes(user.getAddress(), 0);
       expect(stake.tier).be.equal(3);
 
       stake = await prime._stakes(user.getAddress(), 1);
@@ -464,9 +466,10 @@ describe("Prime Token", () => {
     let veth: VBep20Harness;
     let usdt: BEP20Harness;
     let eth: BEP20Harness;
+    let oracle: FakeContract<PriceOracle>;
 
     beforeEach(async () => {
-      ({ comptroller, prime, vusdt, veth, usdt, eth } = await loadFixture(deployProtocol));
+      ({ comptroller, prime, vusdt, veth, usdt, eth, oracle } = await loadFixture(deployProtocol));
 
       await eth.connect(accounts[0]).approve(veth.address, bigNumber18.mul(90));
       await veth.connect(accounts[0]).mint(bigNumber18.mul(90));
@@ -542,5 +545,131 @@ describe("Prime Token", () => {
 
       expect(newBalance).to.be.equal(previousBalance.add(interest));
     });
+
+    describe("update QVL", () => {
+      let vbtc: VBep20Harness;
+      let btc: BEP20Harness;
+
+      beforeEach(async () => {
+        const [wallet, ...accounts] = await ethers.getSigners();
+
+        const tokenFactory = await ethers.getContractFactory("BEP20Harness");
+        btc = (await tokenFactory.deploy(
+          bigNumber18.mul(100000000),
+          "btc",
+          BigNumber.from(8),
+          "BEP20 btc",
+        )) as BEP20Harness;
+ 
+        const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
+        const InterestRateModelHarness = (await interestRateModelHarnessFactory.deploy(
+          BigNumber.from(18).mul(5),
+        )) as InterestRateModelHarness;
+
+        const vTokenFactory = await ethers.getContractFactory("VBep20Harness");
+        vbtc = (await vTokenFactory.deploy(
+          btc.address,
+          comptroller.address,
+          InterestRateModelHarness.address,
+          bigNumber18,
+          "VToken btc",
+          "vbtc",
+          BigNumber.from(8),
+          wallet.address,
+        )) as VBep20Harness;
+
+        await vbtc._setReserveFactor(bigNumber16.mul(20));
+
+        oracle.getUnderlyingPrice.returns((vToken: string) => {
+          if (vToken == vusdt.address) {
+            return convertToUnit(1, 18);
+          } else if (vToken == veth.address) {
+            return convertToUnit(1200, 18);
+          } else if (vToken == vbtc.address) {
+            return convertToUnit(20000, 30);
+          }
+        });
+
+        const half = convertToUnit("0.5", 8);
+        await comptroller._supportMarket(vbtc.address);
+        await comptroller._setCollateralFactor(vbtc.address, half);
+
+        btc.transfer(accounts[0].address, bigNumber8.mul(10000));
+
+        await comptroller._setMarketSupplyCaps([vbtc.address], [bigNumber18.mul(10000)]);
+        await comptroller._setMarketBorrowCaps([vbtc.address], [bigNumber18.mul(10000)]);
+
+        await btc.connect(accounts[0]).approve(vbtc.address, bigNumber8.mul(90));
+        await vbtc.connect(accounts[0]).mint(bigNumber8.mul(90));
+
+        await vbtc.connect(accounts[1]).borrow(100000)
+
+        await prime.issue(true, [accounts[0].getAddress(), accounts[1].getAddress()], [1, 1]);
+
+        await comptroller._setPrimeToken(prime.address);
+        await vbtc._setPrimeToken(prime.address);
+        // console.log((await vbtc.borrowRatePerBlock()).toString(), ( await vbtc.reserveFactorMantissa()).toString())
+      })
+
+      it("add existing market after issuing prime tokens", async () => {
+        const [user1, user2] = accounts;
+
+        await mine(24 * 60 * 20);
+        await prime.executeBoost(user1.getAddress(), vusdt.address);
+
+        let interest = await prime._interests(vusdt.address, user1.getAddress());
+        expect(interest.index).to.be.equal(BigNumber.from("1000000000000000057"));
+
+        interest = await prime._interests(vbtc.address, user1.getAddress())
+        expect(interest.index).to.be.equal(0);
+
+        let status = await prime.isMarketPaused(vbtc.address)
+        expect(status).to.be.equal(false);
+
+        await prime.toggleMarketPause(vbtc.address);
+        status = await prime.isMarketPaused(vbtc.address)
+        expect(status).to.be.equal(true);
+
+        await expect(prime.accrueInterest(vbtc.address)).to.be.revertedWith("market is temporarily paused for configuring prime token")
+
+        await prime.addMarket(
+          vbtc.address, 
+          [
+            bigNumber18.mul("50000"),
+            bigNumber18.mul("250000"),
+            bigNumber18.mul("1000000"),
+            bigNumber18.mul("5000000"),
+            bigNumber18.mul("10000000"),
+          ],
+          [
+            bigNumber18.mul("100000"),
+            bigNumber18.mul("500000"),
+            bigNumber18.mul("2000000"),
+            bigNumber18.mul("10000000"),
+            bigNumber18.mul("20000000"),
+          ],
+        )
+
+        await expect(vbtc.connect(accounts[0]).mint(bigNumber8.mul(90))).to.be.reverted;
+
+        await prime.updateQVLs(
+          [accounts[0].getAddress()],
+          vbtc.address
+        )
+
+        await prime.toggleMarketPause(vbtc.address);
+        status = await prime.isMarketPaused(vbtc.address)
+        expect(status).to.be.equal(false);
+
+        await mine(24 * 60 * 20);
+        
+        let accruedInterest = await prime.callStatic.getInterestAccrued(vbtc.address, accounts[0].getAddress());
+        expect(accruedInterest).to.be.gt(0);
+      })
+  
+      it("update QVL of existing market", async () => {
+        
+      })
+    })
   });
 });
