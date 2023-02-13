@@ -473,7 +473,9 @@ describe("Swap Contract", () => {
       });
 
       it("should swap tokenA -> tokenB  at supporting fee", async () => {
+        const prevBalance = await vBabyDoge.balanceOf(SFMUser.address);
         const deadline = await getValidDeadline();
+
         await expect(
           swapRouter
             .connect(SFMUser)
@@ -485,10 +487,15 @@ describe("Swap Contract", () => {
               deadline,
             ),
         ).to.emit(swapRouter, "SwapTokensForTokens");
+
+        const currBalance = await BabyDoge.balanceOf(SFMUser.address);
+        expect(currBalance).greaterThan(prevBalance);
       });
 
       it("should swap BNB -> token  at supporting fee", async () => {
+        const prevBalance = await vBabyDoge.balanceOf(wBNBUser.address);
         const deadline = await getValidDeadline();
+
         await expect(
           swapRouter
             .connect(wBNBUser)
@@ -502,6 +509,9 @@ describe("Swap Contract", () => {
               },
             ),
         ).to.emit(swapRouter, "SwapBnbForTokens");
+
+        const currBalance = await SFM.balanceOf(wBNBUser.address);
+        expect(currBalance).greaterThan(prevBalance);
       });
 
       it("swap tokenA -> tokenB --> supply tokenB at supporting fee", async () => {
