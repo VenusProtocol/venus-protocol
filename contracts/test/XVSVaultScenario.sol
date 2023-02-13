@@ -11,12 +11,12 @@ contract XVSVaultScenario is XVSVault {
         uint _lockedUntil
     ) internal {
         uint i = _requests.length;
-        _requests.push(WithdrawalRequest(0, 0, false));
+        _requests.push(WithdrawalRequest(0, 0, 0));
         // Keep it sorted so that the first to get unlocked request is always at the end
         for (; i > 0 && _requests[i - 1].lockedUntil <= _lockedUntil; --i) {
             _requests[i] = _requests[i - 1];
         }
-        _requests[i] = WithdrawalRequest(_amount, _lockedUntil, false);
+        _requests[i] = WithdrawalRequest(_amount, uint128(_lockedUntil), 0);
         _user.pendingWithdrawals = _user.pendingWithdrawals.add(_amount);
     }
 
