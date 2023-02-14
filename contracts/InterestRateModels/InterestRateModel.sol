@@ -31,4 +31,6 @@ contract InterestRateModel {
         uint reserves,
         uint reserveFactorMantissa
     ) external view returns (uint);
+
+    function utilizationRate(uint256 cash, uint256 borrows, uint256 reserves) external pure returns (uint256);
 }
