@@ -112,7 +112,7 @@ contract VBNBHarness is VBNB {
         address account,
         uint repayBorrowAmount
     ) public payable returns (uint) {
-        (uint err, ) = repayBorrowFresh(payer, account, repayBorrowAmount);
+        (uint err, ) = repayBorrowFresh(payer, account, repayBorrowAmount, InterestRateMode.VARIABLE);
         return err;
     }
 
