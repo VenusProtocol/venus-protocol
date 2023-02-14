@@ -2,6 +2,7 @@ pragma solidity ^0.5.16;
 
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
+import "../../InterestRate/StableRateModel.sol";
 
 contract VTokenStorage {
     /**
@@ -12,6 +13,22 @@ contract VTokenStorage {
     struct BorrowSnapshot {
         uint principal;
         uint interestIndex;
+    }
+
+    struct StableBorrowSnapshot {
+        uint256 principal;
+        uint256 stableRateMantissa;
+        uint256 interestIndex;
+        uint256 lastBlockAccrued;
+    }
+
+    /**
+     * @notice Types of the Interest rate model
+     */
+    enum InterestRateMode {
+        NONE,
+        STABLE,
+        VARIABLE
     }
 
     /**
@@ -114,6 +131,32 @@ contract VTokenStorage {
      * @notice Mapping of account addresses to outstanding borrow balances
      */
     mapping(address => BorrowSnapshot) internal accountBorrows;
+
+    /**
+     * @notice Model which tells what the current stable interest rate should be
+     */
+    StableRateModel public stableRateModel;
+
+    /**
+     * @notice Total amount of outstanding stable borrows of the underlying in this market
+     */
+    uint256 public stableBorrows;
+
+    /**
+     * @notice Accumulator of the total earned stable interest rate since the opening of the market
+     */
+    uint256 public stableBorrowIndex;
+
+    /**
+     * @notice Average of all of the stable borrows
+     */
+    uint256 public averageStableBorrowRate;
+
+    // Maximum stable borrow rate that can ever be applied (.0005% / block)
+    uint256 internal constant stableBorrowRateMaxMantissa = 0.0005e16;
+
+    // Mapping of account addresses to outstanding stable borrow balances
+    mapping(address => StableBorrowSnapshot) internal accountStableBorrows;
 }
 
 contract VTokenInterface is VTokenStorage {
@@ -127,7 +170,13 @@ contract VTokenInterface is VTokenStorage {
     /**
      * @notice Event emitted when interest is accrued
      */
-    event AccrueInterest(uint cashPrior, uint interestAccumulated, uint borrowIndex, uint totalBorrows);
+    event AccrueInterest(
+        uint cashPrior,
+        uint interestAccumulated,
+        uint borrowIndex,
+        uint totalBorrows,
+        uint stableBorrowIndex
+    );
 
     /**
      * @notice Event emitted when tokens are minted
@@ -222,6 +271,21 @@ contract VTokenInterface is VTokenStorage {
      */
     event Failure(uint error, uint info, uint detail);
 
+    /**
+     * @notice Event emitted after updating stable borrow balance for borrower
+     */
+    event UpdatedUserStableBorrowBalance(address borrower, uint256 updatedPrincipal);
+
+    /**
+     * @notice Event emitted when a borrow rate mode is swapped for account
+     */
+    event SwapBorrowRateMode(address account, uint256 swappedBorrowMode);
+
+    /**
+     * @notice Event emitted when stableInterestRateModel is changed
+     */
+    event NewMarketStableInterestRateModel(StableRateModel oldInterestRateModel, StableRateModel newInterestRateModel);
+
     /*** User Interface ***/
 
     function transfer(address dst, uint amount) external returns (bool);
@@ -271,6 +335,8 @@ contract VTokenInterface is VTokenStorage {
 
     /*** Admin Function ***/
     function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint);
+
+    function setStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256);
 
     function borrowBalanceStored(address account) public view returns (uint);
 
