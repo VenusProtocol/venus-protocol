@@ -90,6 +90,16 @@ contract VBep20 is VToken, VBep20Interface {
     }
 
     /**
+     * @notice Sender borrows assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     */
+    // @custom:event Emits Borrow event on success
+    function borrowStable(uint borrowAmount) external returns (uint) {
+        return borrowStableInternal(borrowAmount);
+    }
+
+    /**
      * @notice Sender repays their own borrow
      * @param repayAmount The amount to repay
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
