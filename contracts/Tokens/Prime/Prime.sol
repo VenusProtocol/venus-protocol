@@ -367,6 +367,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _markets[vToken].totalQVL = _markets[vToken].totalQVL - _interests[vToken][account].totalQVL;
         _markets[vToken].totalQVL = _markets[vToken].totalQVL + accountTotalQVL;
         _interests[vToken][account].totalQVL = accountTotalQVL;
+
+        // when existing market is added to prime program we need to initiaze the market for the user
+        if (_interests[vToken][account].index == 0) {
+            _interests[vToken][account].index = _markets[vToken].index;
+        }
     }
 
     /**
