@@ -39,7 +39,7 @@ contract StableRateModel {
         uint256 stableRatePremium_,
         uint256 optimalStableLoanRatio_,
         address owner_
-    ) {
+    ) public {
         owner = owner_;
 
         updateStableRateModelInternal(baseRatePerYear_, stableRatePremium_, optimalStableLoanRatio_);
