@@ -170,7 +170,11 @@ contract EvilXToken is VBep20Delegate {
     }
 
     function harnessBorrowFresh(address payable account, uint borrowAmount) public returns (uint) {
-        return borrowFresh(account, borrowAmount);
+        borrowFresh(account, borrowAmount, InterestRateMode.VARIABLE);
+    }
+
+    function harnessBorrowStableFresh(address payable account, uint borrowAmount) public returns (uint) {
+        borrowFresh(account, borrowAmount, InterestRateMode.STABLE);
     }
 
     function harnessRepayBorrowFresh(address payer, address account, uint repayAmount) public returns (uint) {
