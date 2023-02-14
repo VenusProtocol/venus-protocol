@@ -178,7 +178,12 @@ contract EvilXToken is VBep20Delegate {
     }
 
     function harnessRepayBorrowFresh(address payer, address account, uint repayAmount) public returns (uint) {
-        (uint err, ) = repayBorrowFresh(payer, account, repayAmount);
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount, InterestRateMode.VARIABLE);
+        return err;
+    }
+
+    function harnessRepayBorrowStableFresh(address payer, address account, uint repayAmount) public returns (uint) {
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount, InterestRateMode.STABLE);
         return err;
     }
 

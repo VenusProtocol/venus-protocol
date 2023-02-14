@@ -192,7 +192,12 @@ contract VBep20Harness is VBep20Immutable {
     }
 
     function harnessRepayBorrowFresh(address payer, address account, uint repayAmount) public returns (uint) {
-        (uint err, ) = repayBorrowFresh(payer, account, repayAmount);
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount, InterestRateMode.VARIABLE);
+        return err;
+    }
+
+    function harnessRepayBorrowStableFresh(address payer, address account, uint repayAmount) public returns (uint) {
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount, InterestRateMode.STABLE);
         return err;
     }
 
@@ -464,7 +469,12 @@ contract VBep20DelegateHarness is VBep20Delegate {
     }
 
     function harnessRepayBorrowFresh(address payer, address account, uint repayAmount) public returns (uint) {
-        (uint err, ) = repayBorrowFresh(payer, account, repayAmount);
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount, InterestRateMode.VARIABLE);
+        return err;
+    }
+
+    function harnessRepayBorrowStableFresh(address payer, address account, uint repayAmount) public returns (uint) {
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount, InterestRateMode.STABLE);
         return err;
     }
 

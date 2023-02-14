@@ -94,6 +94,10 @@ contract VBep20 is VToken, VBep20Interface {
         return err;
     }
 
+    function repayStableBorrow(uint repayAmount) external returns (uint) {
+        return repayBorrowStable(repayAmount);
+    }
+
     /**
      * @notice Sender repays a borrow belonging to another borrowing account
      * @param borrower The account with the debt being payed off
@@ -104,6 +108,10 @@ contract VBep20 is VToken, VBep20Interface {
     function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint) {
         (uint err, ) = repayBorrowBehalfInternal(borrower, repayAmount);
         return err;
+    }
+
+    function repayStableBorrowBehalf(address borrower, uint repayAmount) external returns (uint) {
+        return repayBorrowStableBehalf(borrower, repayAmount);
     }
 
     /**

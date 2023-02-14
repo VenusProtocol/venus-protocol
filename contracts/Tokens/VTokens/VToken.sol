@@ -1219,7 +1219,21 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return (fail(Error(error), FailureInfo.REPAY_BORROW_ACCRUE_INTEREST_FAILED), 0);
         }
         // repayBorrowFresh emits repay-borrow-specific logs on errors, so we don't need to
-        return repayBorrowFresh(msg.sender, msg.sender, repayAmount);
+        return repayBorrowFresh(msg.sender, msg.sender, repayAmount, InterestRateMode.VARIABLE);
+    }
+
+    /**
+     * @notice Sender repays their own borrow
+     * @param repayAmount The amount to repay, or -1 for the full outstanding amount
+     * @return error Always NO_ERROR for compatilibily with Venus core tooling
+     * custom:events Emits RepayBorrow event; may emit AccrueInterest
+     * custom:access Not restricted
+     */
+    function repayBorrowStable(uint256 repayAmount) internal nonReentrant returns (uint256) {
+        accrueInterest();
+        // _repayBorrowFresh emits repay-borrow-specific logs on errors, so we don't need to
+        repayBorrowFresh(msg.sender, msg.sender, repayAmount, InterestRateMode.STABLE);
+        return uint256(MathError.NO_ERROR);
     }
 
     /**
@@ -1235,7 +1249,22 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return (fail(Error(error), FailureInfo.REPAY_BEHALF_ACCRUE_INTEREST_FAILED), 0);
         }
         // repayBorrowFresh emits repay-borrow-specific logs on errors, so we don't need to
-        return repayBorrowFresh(msg.sender, borrower, repayAmount);
+        return repayBorrowFresh(msg.sender, borrower, repayAmount, InterestRateMode.VARIABLE);
+    }
+
+    /**
+     * @notice Sender repays a borrow belonging to borrower
+     * @param borrower the account with the debt being payed off
+     * @param repayAmount The amount to repay, or -1 for the full outstanding amount
+     * @return error Always NO_ERROR for compatilibily with Venus core tooling
+     * custom:events Emits RepayBorrow event; may emit AccrueInterest
+     * custom:access Not restricted
+     */
+    function repayBorrowStableBehalf(address borrower, uint repayAmount) internal nonReentrant returns (uint) {
+        accrueInterest();
+        // _repayBorrowFresh emits repay-borrow-specific logs on errors, so we don't need to
+        repayBorrowFresh(msg.sender, borrower, repayAmount, InterestRateMode.STABLE);
+        return uint(MathError.NO_ERROR);
     }
 
     /**
@@ -1243,9 +1272,15 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param payer The account paying off the borrow
      * @param borrower The account with the debt being payed off
      * @param repayAmount The amount of undelrying tokens being returned
+     * @param interestRateMode The interest rate mode of the debt the user wants to repay: 1 for Stable, 2 for Variable
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
-    function repayBorrowFresh(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
+    function repayBorrowFresh(
+        address payer,
+        address borrower,
+        uint repayAmount,
+        InterestRateMode interestRateMode
+    ) internal returns (uint, uint) {
         /* Fail if repayBorrow not allowed */
         uint allowed = comptroller.repayBorrowAllowed(address(this), payer, borrower, repayAmount);
         if (allowed != 0) {
@@ -1260,30 +1295,20 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.REPAY_BORROW_FRESHNESS_CHECK), 0);
         }
 
-        RepayBorrowLocalVars memory vars;
+        uint256 accountBorrowsPrev;
+        if (InterestRateMode(interestRateMode) == InterestRateMode.STABLE) {
+            accountBorrowsPrev = _updateUserStableBorrowBalance(borrower);
+        } else {
+            /* We fetch the amount the borrower owes, with accumulated interest */
+            accountBorrowsPrev = borrowBalanceStored(borrower);
+        }
 
-        /* We remember the original borrowerIndex for verification purposes */
-        vars.borrowerIndex = accountBorrows[borrower].interestIndex;
-
-        /* We fetch the amount the borrower owes, with accumulated interest */
-        (vars.mathErr, vars.accountBorrows) = borrowBalanceStoredInternal(borrower);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            return (
-                failOpaque(
-                    Error.MATH_ERROR,
-                    FailureInfo.REPAY_BORROW_ACCUMULATED_BALANCE_CALCULATION_FAILED,
-                    uint(vars.mathErr)
-                ),
-                0
-            );
+        if (accountBorrowsPrev == 0) {
+            return (uint(Error.NO_ERROR), 0);
         }
 
         /* If repayAmount == -1, repayAmount = accountBorrows */
-        if (repayAmount == uint(-1)) {
-            vars.repayAmount = vars.accountBorrows;
-        } else {
-            vars.repayAmount = repayAmount;
-        }
+        uint256 repayAmountFinal = repayAmount > accountBorrowsPrev ? accountBorrowsPrev : repayAmount;
 
         /////////////////////////
         // EFFECTS & INTERACTIONS
@@ -1296,31 +1321,47 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  doTransferIn reverts if anything goes wrong, since we can't be sure if side effects occurred.
          *   it returns the amount actually transferred, in case of a fee.
          */
-        vars.actualRepayAmount = doTransferIn(payer, vars.repayAmount);
+        uint256 actualRepayAmount = doTransferIn(payer, repayAmountFinal);
 
         /*
          * We calculate the new borrower and total borrow balances, failing on underflow:
          *  accountBorrowsNew = accountBorrows - actualRepayAmount
          *  totalBorrowsNew = totalBorrows - actualRepayAmount
          */
-        (vars.mathErr, vars.accountBorrowsNew) = subUInt(vars.accountBorrows, vars.actualRepayAmount);
-        require(vars.mathErr == MathError.NO_ERROR, "REPAY_BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED");
+        uint256 accountBorrowsNew = accountBorrowsPrev - actualRepayAmount;
+        uint256 totalBorrowsNew = totalBorrows - actualRepayAmount;
 
-        (vars.mathErr, vars.totalBorrowsNew) = subUInt(totalBorrows, vars.actualRepayAmount);
-        require(vars.mathErr == MathError.NO_ERROR, "REPAY_BORROW_NEW_TOTAL_BALANCE_CALCULATION_FAILED");
+        if (InterestRateMode(interestRateMode) == InterestRateMode.STABLE) {
+            uint256 stableBorrowsNew = stableBorrows - actualRepayAmount;
 
-        /* We write the previously calculated values into storage */
-        accountBorrows[borrower].principal = vars.accountBorrowsNew;
-        accountBorrows[borrower].interestIndex = borrowIndex;
-        totalBorrows = vars.totalBorrowsNew;
+            uint256 averageStableBorrowRateNew;
+            if (stableBorrowsNew == 0) {
+                averageStableBorrowRateNew = 0;
+            } else {
+                uint256 stableRateMantissa = accountStableBorrows[borrower].stableRateMantissa;
+                averageStableBorrowRateNew =
+                    ((stableBorrows * averageStableBorrowRate) - (actualRepayAmount * stableRateMantissa)) /
+                    stableBorrowsNew;
+            }
+
+            accountStableBorrows[borrower].principal = accountBorrowsNew;
+            accountStableBorrows[borrower].interestIndex = stableBorrowIndex;
+
+            stableBorrows = stableBorrowsNew;
+            averageStableBorrowRate = averageStableBorrowRateNew;
+        } else {
+            accountBorrows[borrower].principal = accountBorrowsNew;
+            accountBorrows[borrower].interestIndex = borrowIndex;
+        }
+        totalBorrows = totalBorrowsNew;
 
         /* We emit a RepayBorrow event */
-        emit RepayBorrow(payer, borrower, vars.actualRepayAmount, vars.accountBorrowsNew, vars.totalBorrowsNew);
+        emit RepayBorrow(payer, borrower, actualRepayAmount, accountBorrowsNew, totalBorrowsNew);
 
         /* We call the defense hook */
-        comptroller.repayBorrowVerify(address(this), payer, borrower, vars.actualRepayAmount, vars.borrowerIndex);
+        comptroller.repayBorrowVerify(address(this), payer, borrower, actualRepayAmount, borrowIndex);
 
-        return (uint(Error.NO_ERROR), vars.actualRepayAmount);
+        return (uint(Error.NO_ERROR), actualRepayAmount);
     }
 
     /**
@@ -1406,10 +1447,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Fail if repayBorrow fails */
-        (uint repayBorrowError, uint actualRepayAmount) = repayBorrowFresh(liquidator, borrower, repayAmount);
-        if (repayBorrowError != uint(Error.NO_ERROR)) {
-            return (fail(Error(repayBorrowError), FailureInfo.LIQUIDATE_REPAY_BORROW_FRESH_FAILED), 0);
-        }
+        (, uint actualRepayAmount) = repayBorrowFresh(liquidator, borrower, repayAmount, InterestRateMode.VARIABLE);
+        (, uint actualRepayAmountStable) = repayBorrowFresh(liquidator, borrower, repayAmount, InterestRateMode.STABLE);
+
+        actualRepayAmount += actualRepayAmountStable;
 
         /////////////////////////
         // EFFECTS & INTERACTIONS
