@@ -659,10 +659,13 @@ describe("Prime Token", () => {
         status = await prime.isMarketPaused(vbnb.address)
         expect(status).to.be.equal(false);
 
+        let accruedInterest = await prime.callStatic.getInterestAccrued(vbnb.address, accounts[0].getAddress());
+        expect(accruedInterest).to.be.equal(0);
+
         await mine(24 * 60 * 20);
         
-        let accruedInterest = await prime.callStatic.getInterestAccrued(vbnb.address, accounts[0].getAddress());
-        expect(accruedInterest).to.be.gt(0);
+        accruedInterest = await prime.callStatic.getInterestAccrued(vbnb.address, accounts[0].getAddress());
+        expect(accruedInterest).to.be.equal("103680");
       })
   
       it("update QVL of existing market", async () => {
