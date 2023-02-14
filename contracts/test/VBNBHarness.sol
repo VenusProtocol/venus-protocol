@@ -104,7 +104,7 @@ contract VBNBHarness is VBNB {
     }
 
     function harnessBorrowFresh(address payable account, uint borrowAmount) public returns (uint) {
-        return borrowFresh(account, borrowAmount);
+        return borrowFresh(account, borrowAmount, InterestRateMode.VARIABLE);
     }
 
     function harnessRepayBorrowFresh(
