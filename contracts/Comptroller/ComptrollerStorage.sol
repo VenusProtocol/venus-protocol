@@ -214,7 +214,8 @@ contract ComptrollerV9Storage is ComptrollerV8Storage {
         LIQUIDATE,
         TRANSFER,
         ENTER_MARKET,
-        EXIT_MARKET
+        EXIT_MARKET,
+        SWAP_RATE_MODE
     }
 
     /// @notice True if a certain action is paused on a certain market
