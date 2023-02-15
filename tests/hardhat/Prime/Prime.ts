@@ -484,7 +484,7 @@ describe("Prime Token", () => {
       await veth.connect(accounts[1]).borrow(bigNumber18.mul(1));
     });
 
-    it("user supplied/borrowed, prime market is added and accrue interest after minting ", async () => {
+    it("accrue interest", async () => {
       const [user1, user2] = accounts;
 
       await prime.executeBoost(user1.getAddress(), vusdt.address);
@@ -603,7 +603,7 @@ describe("Prime Token", () => {
 
         await vbnb.connect(accounts[1]).borrow(bigNumber18.mul(1));
 
-        await prime.issue(true, [accounts[0].getAddress(), accounts[1].getAddress()], [1, 1]);
+        await prime.issue(false, [accounts[0].getAddress(), accounts[1].getAddress()], [1, 1]);
 
         await comptroller._setPrimeToken(prime.address);
         await vbnb._setPrimeToken(prime.address);
@@ -660,16 +660,59 @@ describe("Prime Token", () => {
         expect(status).to.be.equal(false);
 
         let accruedInterest = await prime.callStatic.getInterestAccrued(vbnb.address, accounts[0].getAddress());
-        expect(accruedInterest).to.be.equal(0);
+        expect(accruedInterest).to.be.equal(10);
 
         await mine(24 * 60 * 20);
         
         accruedInterest = await prime.callStatic.getInterestAccrued(vbnb.address, accounts[0].getAddress());
-        expect(accruedInterest).to.be.equal("103680");
+        expect(accruedInterest).to.be.equal("103690");
       })
   
       it("update QVL of existing market", async () => {
-        
+        const [user1] = accounts;
+
+        let interest = await prime._interests(vusdt.address, user1.getAddress());
+        expect(interest.totalQVL).to.be.equal(bigNumber18.mul(5));
+        expect(interest.index).to.be.equal(bigNumber18.mul(1));
+        expect(interest.accrued).to.be.equal(0);
+
+        await mine(24 * 60 * 20);
+
+        await prime.toggleMarketPause(vusdt.address);
+        await prime.accrueInterestForUsers([user1.getAddress()], vusdt.address)
+        await prime.updateQVLCaps(
+          vusdt.address,
+          [
+            bigNumber18.mul("1"),
+            bigNumber18.mul("4"),
+            bigNumber18.mul("5"),
+            bigNumber18.mul("6"),
+            bigNumber18.mul("7"),
+          ],
+          [
+            bigNumber18.mul("1"),
+            bigNumber18.mul("4"),
+            bigNumber18.mul("5"),
+            bigNumber18.mul("6"),
+            bigNumber18.mul("7"),
+          ]
+        )
+        await prime.updateQVLs([user1.getAddress()], vusdt.address);
+        await prime.toggleMarketPause(vusdt.address);
+
+        interest = await prime._interests(vusdt.address, user1.getAddress());
+        expect(interest.totalQVL).to.be.equal(bigNumber18.mul(1));
+        expect(interest.accrued).to.be.equal(285);
+
+        let reward = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())
+        expect(reward).to.be.equal(285)
+
+        await usdt.transfer(prime.address, reward);
+        await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.not.reverted;
+
+        await mine(24 * 60 * 20);
+        reward = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())
+        expect(reward).to.be.equal(57)
       })
     })
   });

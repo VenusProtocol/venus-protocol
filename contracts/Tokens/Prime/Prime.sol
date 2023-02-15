@@ -116,6 +116,34 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
     }
 
+    function updateQVLCaps(
+        address vToken,
+        uint256[] memory supplyTVLCaps,
+        uint256[] memory borrowTVLCaps
+    ) external onlyOwner {
+        require(_markets[vToken].lastUpdated != 0, "market is not added");
+
+        require(
+            supplyTVLCaps.length == uint(MAX_TIER) && borrowTVLCaps.length == uint(MAX_TIER),
+            "you need to set caps for all tiers"
+        );
+
+        uint256 supplyTVLCap;
+        uint256 borrowTVLCap;
+
+        for (uint i = 0; i < supplyTVLCaps.length; i++) {
+            require(
+                supplyTVLCaps[i] > supplyTVLCap && borrowTVLCaps[i] > borrowTVLCap,
+                "higher tier should have higher cap"
+            );
+
+            supplyTVLCap = supplyTVLCaps[i];
+            borrowTVLCap = borrowTVLCaps[i];
+
+            _markets[vToken].caps[Tier(i + 1)] = Cap(supplyTVLCaps[i], borrowTVLCaps[i]);
+        }
+    }
+
     /**
      * @notice Directly issue prime tokens to users
      * @param isIrrevocable is the tokens being issued is irrevocable
@@ -335,12 +363,15 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
 
         accrueInterest(vToken);
+        _executeBoost(account, vToken);
+    }
 
+    function _executeBoost(address account, address vToken) internal {
         if (_interests[vToken][account].index == _markets[vToken].index) {
             return;
         }
 
-        _interests[vToken][account].accrued = getInterestAccrued(vToken, account);
+        _interests[vToken][account].accrued = _interestAccrued(vToken, account);
         _interests[vToken][account].index = _markets[vToken].index;
     }
 
@@ -450,6 +481,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     function getInterestAccrued(address vToken, address account) public returns (uint256) {
         accrueInterest(vToken);
 
+        return _interestAccrued(vToken, account);
+    }
+
+    function _interestAccrued(address vToken, address account) internal returns (uint256) {
         uint delta = _markets[vToken].index - _interests[vToken][account].index;
         return
             _interests[vToken][account].accrued +
@@ -471,21 +506,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         asset.safeTransfer(msg.sender, amount);
     }
 
-    /**
-     * @notice Pauses all vToken and Prime operations for a market
-     * @dev We need to pause markets before upddating QVL caps or adding existing markets to prime program
-     * @param vToken the market which to pause
-     */
-    function toggleMarketPause(address vToken) external onlyOwner {
-        isMarketPaused[vToken] = !isMarketPaused[vToken];
-    }
-
-    function updateQVLs(address[] memory accounts, address vToken) external onlyOwner {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            updateQVL(accounts[i], vToken);
-        }
-    }
-
     modifier marketNotPaused(address vToken) {
         require(isMarketPaused[vToken] == false, "market is temporarily paused for configuring prime token");
         _;
@@ -494,5 +514,46 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     modifier onlyXVSVault() {
         require(msg.sender == xvsVault, "only XVS vault can call this function");
         _;
+    }
+
+    //////////////////////////////////////////////
+    ////////// ADD MARKET OR UPDATE QVL //////////
+    //////////////////////////////////////////////
+
+
+    /**
+     * @notice Pauses all vToken and Prime operations for a market
+     * @dev We need to pause markets before updating QVL caps or adding existing markets to prime program
+     * @param vToken the market which to pause
+     */
+    function toggleMarketPause(address vToken) external onlyOwner {
+        if(isMarketPaused[vToken] == false && _markets[vToken].lastUpdated != 0) {
+            accrueInterest(vToken);
+        }
+
+        isMarketPaused[vToken] = !isMarketPaused[vToken];
+    }
+
+    /**
+     * @notice To update the QVL of existing markets we need to first accrue interest for all the prime token holders
+     * @param accounts accounts of prime token holders
+     * @param vToken the market which to accrue interest
+     */
+    function accrueInterestForUsers(address[] memory accounts, address vToken) external onlyOwner {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            _executeBoost(accounts[i], vToken);
+        }
+    }
+
+    /**
+     * @notice To add an existing market to prime token program or update QVL of existing market we need to call this to update the QVL of all users.
+     * @dev When updating QVL of existing market we need to call this after accrueInterestForUsers. 
+     * @param accounts accounts of prime token holders
+     * @param vToken the market which to update QVL
+     */
+    function updateQVLs(address[] memory accounts, address vToken) external onlyOwner {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            updateQVL(accounts[i], vToken);
+        }
     }
 }
