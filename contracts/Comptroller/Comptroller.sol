@@ -1558,4 +1558,8 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
         IVAIVault(vaiVaultAddress).updatePendingRewards();
     }
+
+    function swapBorrowRateModeAllowed(address vToken) external {
+        checkActionPauseState(vToken, Action.SWAP_RATE_MODE);
+    }
 }
