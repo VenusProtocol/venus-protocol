@@ -5,15 +5,18 @@ import { ethers } from "hardhat";
 
 import { XVSVaultProxy__factory, XVSVault__factory } from "../../../typechain";
 
+const hre = require("hardhat");
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
-const QUICK_NODE_KEY = process.env.QUICK_NODE_KEY;
+let FORK_ENDPOINT;
+
 const poolId = 0;
 const vaultProxy = "0x051100480289e704d20e9DB4804837068f3f9204";
 const affectedUserAddress = "0xddbc1841be23b2ab55501deb4d6bc39e3f8aa2d7";
+const affectedUserAddress2 = "0x3c7ea3ae7c47bd817c63c47e9ecee89452471a9e";
+const affectedUserAddress3 = "0x37d768c8fc5a0f54754a6bdb8b8469e6ff8cad07";
 const vaultUser = "0xc09a9a0533a0b247c8bb672b2d37cd2c58394768";
 const Owner = "0x1c2cac6ec528c20800b2fe734820d87b581eaa6b";
 const tokenAddress = "0xcf6bb5389c92bdda8a3747ddb454cb7a64626c63";
-const tokenAddress1 = "0xcf6bb5389c92bdda8a3747ddb454cb7a64626c63";
 let admin: Signer;
 let vaultUserSigner: Signer;
 let signer: Signer;
@@ -28,7 +31,11 @@ const beforeUpgrade = [
   ["30000039534293865031955", "1661751289", "0"],
 ];
 
-async function deployAndConfigureVault() {
+function getForkingUrl() {
+  FORK_ENDPOINT = hre.network.config.forking.url;
+}
+
+async function deployAndConfigureNewVault() {
   /*
    *  Forking mainnet
    * */
@@ -36,7 +43,6 @@ async function deployAndConfigureVault() {
   admin = await ethers.getSigner(Owner);
 
   const xvsVaultProxy = XVSVaultProxy__factory.connect(vaultProxy, admin);
-  oldXVSVault = XVSVault__factory.connect(xvsVaultProxy.address, signer);
 
   const xvsVaultFactory = await ethers.getContractFactory("contracts/XVSVault/XVSVault.sol:XVSVault");
   const xvsVaultImpl = await xvsVaultFactory.deploy();
@@ -44,7 +50,18 @@ async function deployAndConfigureVault() {
 
   await xvsVaultProxy.connect(admin)._setPendingImplementation(xvsVaultImpl.address);
   await xvsVaultImpl.connect(admin)._become(xvsVaultProxy.address);
-  xvsVault = XVSVault__factory.connect(xvsVaultProxy.address, signer);
+  xvsVault = XVSVault__factory.connect(xvsVaultProxy.address, admin);
+}
+
+async function deployAndConfigureOldVault() {
+  /*
+   *  Forking mainnet
+   * */
+  await impersonateAccount(Owner);
+  admin = await ethers.getSigner(Owner);
+
+  const xvsVaultProxy = XVSVaultProxy__factory.connect(vaultProxy, admin);
+  oldXVSVault = XVSVault__factory.connect(xvsVaultProxy.address, admin);
 }
 
 async function sendGasCost() {
@@ -60,12 +77,15 @@ async function sendGasCost() {
   });
 }
 
-describe("XVSVault", async () => {
+describe.only("XVSVault", async () => {
+  before(async () => {
+    getForkingUrl();
+  });
   if (FORK_MAINNET) {
-    it("Verify Expected Result old withdraw requests", async () => {
-      await reset(`https://wild-blissful-dawn.bsc.discover.quiknode.pro/${QUICK_NODE_KEY}`, 25458046);
+    it("Verify Expected Result old withdraw requests for affectedUser1", async () => {
+      await reset(`${FORK_ENDPOINT}`, 25458046);
       await sendGasCost();
-      await deployAndConfigureVault();
+      await deployAndConfigureNewVault();
 
       const result = await xvsVault.getWithdrawalRequests(tokenAddress, poolId, affectedUserAddress);
 
@@ -90,12 +110,29 @@ describe("XVSVault", async () => {
       expect(result[4][2].toString()).to.eql(beforeUpgrade[4][2].toString());
     });
 
-    it("Verify Pending rewards of the user", async () => {
-      await reset(`https://wild-blissful-dawn.bsc.discover.quiknode.pro/${QUICK_NODE_KEY}`, 25458046);
+    it("Execute withdrawal", async () => {
+      await reset(`${FORK_ENDPOINT}`, 25458046);
       await sendGasCost();
-      await deployAndConfigureVault();
+      await deployAndConfigureNewVault();
+      await getForkingUrl();
 
+      await impersonateAccount(affectedUserAddress);
+      const affectedUser1Signer = await ethers.getSigner(affectedUserAddress);
+
+      await xvsVault.connect(affectedUser1Signer).executeWithdrawal(tokenAddress, poolId);
+      const result = await xvsVault.getWithdrawalRequests(tokenAddress, poolId, affectedUserAddress);
+      expect(result.length).equals(0);
+    });
+
+    it("Verify Pending rewards of the affectedUser1", async () => {
+      await reset(`${FORK_ENDPOINT}`, 25458045);
+      await sendGasCost();
+      await deployAndConfigureOldVault();
       const beforeUpgradeResult = await oldXVSVault.getUserInfo(tokenAddress, poolId, affectedUserAddress);
+
+      await reset(`${FORK_ENDPOINT}`, 25458046);
+      await sendGasCost();
+      await deployAndConfigureNewVault();
       const afterUpgradeResult = await xvsVault.getUserInfo(tokenAddress, poolId, affectedUserAddress);
 
       expect(beforeUpgradeResult[0].toString()).equals(afterUpgradeResult[0].toString());
@@ -103,17 +140,17 @@ describe("XVSVault", async () => {
       expect(beforeUpgradeResult[2].toString()).equals(afterUpgradeResult[2].toString());
     });
 
-    it("Request Withdrawal Request", async () => {
-      await reset(`https://wild-blissful-dawn.bsc.discover.quiknode.pro/${QUICK_NODE_KEY}`, 25651479);
+    it("Request Withdrawal Request for fresh user in new implementation", async () => {
+      await reset(`${FORK_ENDPOINT}`, 25651479);
       await sendGasCost();
-      await deployAndConfigureVault();
+      await deployAndConfigureNewVault();
       await impersonateAccount(vaultUser);
       vaultUserSigner = await ethers.getSigner(vaultUser);
 
       const amount = "1000000000000000";
-      await xvsVault.connect(vaultUserSigner).requestWithdrawal(tokenAddress1, poolId, amount);
+      await xvsVault.connect(vaultUserSigner).requestWithdrawal(tokenAddress, poolId, amount);
 
-      const lockedPeriod = await xvsVault.poolInfos(tokenAddress1, 0);
+      const lockedPeriod = await xvsVault.poolInfos(tokenAddress, 0);
       const blockNumBefore = await ethers.provider.getBlockNumber();
       const blockBefore = await ethers.provider.getBlock(blockNumBefore);
       const currentTimeStamp = blockBefore.timestamp;
@@ -121,11 +158,61 @@ describe("XVSVault", async () => {
 
       const expectedResult = [amount, lockedUntill, 1];
 
-      const result = await xvsVault.getWithdrawalRequests(tokenAddress1, poolId, vaultUser);
+      const result = await xvsVault.getWithdrawalRequests(tokenAddress, poolId, vaultUser);
 
       expect(result[0][0].toString()).to.eql(expectedResult[0].toString());
       expect(result[0][1].toString()).to.eql(expectedResult[1].toString());
       expect(result[0][2].toString()).to.eql(expectedResult[2].toString());
+    });
+
+    it("Verify Pool Infos", async () => {
+      await reset(`${FORK_ENDPOINT}`, 25458045);
+      await sendGasCost();
+      await deployAndConfigureOldVault();
+      const oldPoolInfo = await oldXVSVault.poolInfos(tokenAddress, 0);
+
+      await reset(`${FORK_ENDPOINT}`, 25458046);
+      await sendGasCost();
+      await deployAndConfigureNewVault();
+      const newPoolInfo = await xvsVault.poolInfos(tokenAddress, 0);
+
+      expect(oldPoolInfo[0]).equals(newPoolInfo[0]);
+      expect(oldPoolInfo[1]).equals(newPoolInfo[1]);
+      expect(oldPoolInfo[2]).equals(newPoolInfo[2]);
+      expect(oldPoolInfo[3]).equals(newPoolInfo[3]);
+      expect(oldPoolInfo[4]).equals(newPoolInfo[4]);
+    });
+
+    it("Verify Reward Debt for affectedUser2", async () => {
+      await reset(`${FORK_ENDPOINT}`, 25458045);
+      await sendGasCost();
+      await deployAndConfigureOldVault();
+      const beforeUpgradeResult = await oldXVSVault.getUserInfo(tokenAddress, poolId, affectedUserAddress2);
+
+      await reset(`${FORK_ENDPOINT}`, 25458046);
+      await sendGasCost();
+      await deployAndConfigureNewVault();
+      const afterUpgradeResult = await xvsVault.getUserInfo(tokenAddress, poolId, affectedUserAddress2);
+
+      expect(beforeUpgradeResult[0].toString()).equals(afterUpgradeResult[0].toString());
+      expect(beforeUpgradeResult[1].toString()).equals(afterUpgradeResult[1].toString());
+      expect(beforeUpgradeResult[2].toString()).equals(afterUpgradeResult[2].toString());
+    });
+
+    it("Verify Reward Debt for affectedUser3", async () => {
+      await reset(`${FORK_ENDPOINT}`, 25458045);
+      await sendGasCost();
+      await deployAndConfigureOldVault();
+      const beforeUpgradeResult = await oldXVSVault.getUserInfo(tokenAddress, poolId, affectedUserAddress3);
+
+      await reset(`${FORK_ENDPOINT}`, 25458046);
+      await sendGasCost();
+      await deployAndConfigureNewVault();
+      const afterUpgradeResult = await xvsVault.getUserInfo(tokenAddress, poolId, affectedUserAddress3);
+
+      expect(beforeUpgradeResult[0].toString()).equals(afterUpgradeResult[0].toString());
+      expect(beforeUpgradeResult[1].toString()).equals(afterUpgradeResult[1].toString());
+      expect(beforeUpgradeResult[2].toString()).equals(afterUpgradeResult[2].toString());
     });
   }
 });
