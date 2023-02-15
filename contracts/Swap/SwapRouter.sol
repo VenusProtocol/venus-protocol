@@ -56,12 +56,6 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     /// @notice This event is emitted whenever a successful swap (BNB -> token) occurs
     event SwapBnbForTokens(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
 
-    /// @notice This event is emitted whenever a successful supply on behalf of the user occurs
-    event SupplyOnBehalf(address indexed supplier, address indexed vTokenAddress, uint256 indexed amount);
-
-    /// @notice This event is emitted whenever a successful repay on behalf of the user occurs
-    event RepayOnBehalf(address indexed repayer, address indexed vTokenAddress, uint256 indexed amount);
-
     // *********************
     // **** CONSTRUCTOR ****
     // *********************
@@ -608,13 +602,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
 
     // **** SWAP (supporting fee-on-transfer tokens) ****
     // requires the initial amount to have already been sent to the first pair
-    function _swapSupportingFeeOnTransferTokens(
-        uint256 amountIn,
-        address[] memory path,
-        address _to
-    ) internal virtual returns (uint256[] memory amounts) {
-        amounts = new uint256[](path.length);
-        amounts[0] = amountIn;
+    function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
         for (uint256 i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0, ) = PancakeLibrary.sortTokens(input, output);
@@ -631,7 +619,6 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
                 uint256 balance = IERC20(input).balanceOf(address(pair));
                 amountInput = balance - reserveInput;
                 amountOutput = PancakeLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
-                amounts[i + 1] = amountOutput;
             }
             (uint256 amount0Out, uint256 amount1Out) = input == token0
                 ? (uint256(0), amountOutput)
@@ -653,8 +640,6 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, swapAmount);
         if (response != 0) {
             revert SupplyError(msg.sender, vTokenAddress, response);
-        } else {
-            emit SupplyOnBehalf(msg.sender, vTokenAddress, swapAmount);
         }
     }
 
@@ -670,8 +655,6 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmount);
         if (response != 0) {
             revert RepayError(msg.sender, vTokenAddress, response);
-        } else {
-            emit RepayOnBehalf(msg.sender, vTokenAddress, swapAmount);
         }
     }
 
@@ -691,7 +674,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
             _swap(amounts, path, to);
         } else {
-            _swapSupportingFeeOnTransferTokens(amounts[0], path, to);
+            _swapSupportingFeeOnTransferTokens(path, to);
         }
         emit SwapTokensForTokens(msg.sender, path, amounts);
     }
@@ -715,7 +698,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
             _swap(amounts, path, to);
         } else {
-            _swapSupportingFeeOnTransferTokens(amounts[0], path, to);
+            _swapSupportingFeeOnTransferTokens(path, to);
         }
         emit SwapBnbForTokens(msg.sender, path, amounts);
     }
@@ -743,7 +726,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
             _swap(amounts, path, address(this));
         } else {
-            _swapSupportingFeeOnTransferTokens(amounts[0], path, address(this));
+            _swapSupportingFeeOnTransferTokens(path, address(this));
         }
         IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);

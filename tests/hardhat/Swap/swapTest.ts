@@ -158,6 +158,7 @@ describe("Swap Contract", () => {
     const contracts = await loadFixture(deploySwapContract);
     await configure(contracts, user);
     ({ vToken, wBNB, swapRouter, tokenA, tokenB, dToken } = contracts);
+    vToken.mintBehalf.return;
   });
 
   describe("Swap", () => {
@@ -261,7 +262,7 @@ describe("Swap Contract", () => {
         swapRouter
           .connect(user)
           .swapAndSupply(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
-      ).to.emit(swapRouter, "SupplyOnBehalf");
+      );
     });
 
     it("swap BNB -> token --> supply token", async () => {
@@ -273,7 +274,7 @@ describe("Swap Contract", () => {
           .swapBnbAndSupply(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      ).to.emit(swapRouter, "SupplyOnBehalf");
+      );
     });
 
     it("revert if deadline has passed  at supporting fee", async () => {
@@ -300,7 +301,7 @@ describe("Swap Contract", () => {
             [dToken.address, tokenB.address],
             deadline,
           ),
-      ).to.emit(swapRouter, "SupplyOnBehalf");
+      );
     });
 
     it("swap BNB -> token --> supply token at supporting fee", async () => {
@@ -312,7 +313,7 @@ describe("Swap Contract", () => {
           .swapBnbAndSupplyAtSupportingFee(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, dToken.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      ).to.emit(swapRouter, "SupplyOnBehalf");
+      );
     });
 
     it("swap tokenA -> exact tokenB", async () => {
@@ -328,7 +329,7 @@ describe("Swap Contract", () => {
             [tokenA.address, tokenB.address],
             deadline,
           ),
-      ).to.emit(swapRouter, "SupplyOnBehalf");
+      );
     });
 
     it("swap bnb -> exact tokenB", async () => {
@@ -340,7 +341,7 @@ describe("Swap Contract", () => {
           .swapETHForExactTokensAndSupply(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      ).to.emit(swapRouter, "SupplyOnBehalf");
+      );
     });
   });
 
@@ -357,7 +358,7 @@ describe("Swap Contract", () => {
         swapRouter
           .connect(user)
           .swapAndRepay(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
-      ).to.emit(swapRouter, "RepayOnBehalf");
+      );
     });
 
     it("swap BNB -> token --> supply token", async () => {
@@ -369,7 +370,7 @@ describe("Swap Contract", () => {
           .swapBnbAndRepay(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      ).to.emit(swapRouter, "RepayOnBehalf");
+      );
     });
 
     it("revert if deadline has passed at supporting fee", async () => {
@@ -396,7 +397,7 @@ describe("Swap Contract", () => {
             [dToken.address, tokenB.address],
             deadline,
           ),
-      ).to.emit(swapRouter, "RepayOnBehalf");
+      );
     });
 
     it("swap BNB -> token --> supply token at supporting fee", async () => {
@@ -408,7 +409,7 @@ describe("Swap Contract", () => {
           .swapBnbAndRepayAtSupportingFee(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, dToken.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      ).to.emit(swapRouter, "RepayOnBehalf");
+      );
     });
 
     it("swap tokenA -> exact tokenB", async () => {
@@ -424,7 +425,7 @@ describe("Swap Contract", () => {
             [tokenA.address, tokenB.address],
             deadline,
           ),
-      ).to.emit(swapRouter, "RepayOnBehalf");
+      );
     });
 
     it("swap bnb -> exact tokenB", async () => {
@@ -436,7 +437,7 @@ describe("Swap Contract", () => {
           .swapETHForExactTokensAndRepay(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      ).to.emit(swapRouter, "RepayOnBehalf");
+      );
     });
   });
 });
