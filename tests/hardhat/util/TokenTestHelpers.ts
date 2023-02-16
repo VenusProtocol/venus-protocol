@@ -10,9 +10,6 @@ import {
   VBNBHarness,
   VBNBHarness__factory,
   InterestRateModel,
-//   ProtocolShareReserve,
-//   RiskFund,
-//   Shortfall,
   StableRateModel,
   VBep20Harness,
   VBep20Harness__factory,
@@ -30,15 +27,11 @@ export type VTokenContracts = {
 export async function makeVToken({
   name,
   comptroller,
-//   accessControlManager,
   admin,
-//   shortfall,
 }: {
   name: string;
   comptroller: FakeContract<Comptroller>;
-//   accessControlManager: FakeContract<AccessControlManager>;
   admin: Signer;
-//   shortfall: FakeContract<Shortfall>;
 }): Promise<VTokenContracts> {
   const interestRateModel = await smock.fake<InterestRateModel>("InterestRateModel");
   interestRateModel.isInterestRateModel.returns(true);
@@ -49,31 +42,11 @@ export async function makeVToken({
   const VTokenFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
   const initialExchangeRateMantissa = convertToUnit("1", 18);
   const vToken = await VTokenFactory.deploy(underlying.address, comptroller.address, interestRateModel.address, initialExchangeRateMantissa,`v${name}`,`v${name}`,8,await admin.getAddress());
-//   const riskFund = await smock.fake<RiskFund>("RiskFund");
-//   const protocolShareReserve = await smock.fake<ProtocolShareReserve>("ProtocolShareReserve");
-  // const initializer =
-  //   "initializeHarness(address,address,address,uint256,string,string,uint8)";
-  //   const vToken = await upgrades.deployProxy(
-    
-  //   VToken,
-  //   [
-  //     underlying.address,
-  //     comptroller.address,
-  //     interestRateModel.address,
-  //     initialExchangeRateMantissa,
-  //     `v${name}`,
-  //     `v${name}`,
-  //     8
-  //   ],
-​
-  //   { initializer },
-  // );
   await vToken.harnessSetStableInterestRateModel(stableInterestRateModel.address);
   return { vToken, underlying, interestRateModel, stableInterestRateModel };
 }
 ​
 export type VTokenTestFixture = {
-//   accessControlManager: FakeContract<AccessControlManager>;
   comptroller: FakeContract<Comptroller>;
   vToken: MockContract<VBep20Harness>;
   underlying: MockContract<VBNBHarness>;
@@ -84,17 +57,11 @@ export type VTokenTestFixture = {
 export async function vTokenTestFixture(): Promise<VTokenTestFixture> {
   const comptroller = await smock.fake<Comptroller>("Comptroller");
   comptroller.isComptroller.returns(true);
-//   const accessControlManager = await smock.fake<AccessControlManager>("AccessControlManager");
-//   const shortfall = await smock.fake<Shortfall>("Shortfall");
-//   accessControlManager.isAllowedToCall.returns(true);
-​
   const [admin] = await ethers.getSigners();
   const { vToken, interestRateModel, underlying, stableInterestRateModel } = await makeVToken({
     name: "BAT",
     comptroller,
-    // accessControlManager,
     admin,
-    // shortfall,
   });
 ​
   return { comptroller, vToken, interestRateModel, underlying, stableInterestRateModel };
