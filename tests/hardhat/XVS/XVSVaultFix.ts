@@ -1,35 +1,38 @@
 import { impersonateAccount, reset } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { Signer } from "ethers";
+import { BigNumber, Signer } from "ethers";
+import { formatEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
-import { XVSVaultProxy__factory, XVSVault__factory } from "../../../typechain";
+import { XVSVaultProxy__factory, XVSVault__factory, XVS__factory } from "../../../typechain";
 
 const hre = require("hardhat");
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 let FORK_ENDPOINT;
 
 const poolId = 0;
+// Address of the vault proxy
 const vaultProxy = "0x051100480289e704d20e9DB4804837068f3f9204";
+// User who has multiple withdraw requests and affected because of afterUpgrade parameter in struct
 const affectedUserAddress = "0xddbc1841be23b2ab55501deb4d6bc39e3f8aa2d7";
+// User who has single withdraw request, partially affected.
 const affectedUserAddress2 = "0x3c7ea3ae7c47bd817c63c47e9ecee89452471a9e";
+// User who has single withdraw request, partially affected.
 const affectedUserAddress3 = "0x37d768c8fc5a0f54754a6bdb8b8469e6ff8cad07";
+// A fresh user picked from latest block to simulate transaction on new vault implementation
 const vaultUser = "0xc09a9a0533a0b247c8bb672b2d37cd2c58394768";
+// Address of vault owner
 const Owner = "0x1c2cac6ec528c20800b2fe734820d87b581eaa6b";
+// Address of reward token
 const tokenAddress = "0xcf6bb5389c92bdda8a3747ddb454cb7a64626c63";
+// Address of xvs token contract
+const xvsAddress = "0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63";
 let admin: Signer;
 let vaultUserSigner: Signer;
 let signer: Signer;
 let xvsVault;
 let oldXVSVault;
-
-const beforeUpgrade = [
-  ["1219905705900531585631", "1665230433", "0"],
-  ["10250054759802389186707", "1662327363", "0"],
-  ["9590000000000000000000", "1662286808", "0"],
-  ["10000000000000000000000", "1661760746", "0"],
-  ["30000039534293865031955", "1661751289", "0"],
-];
+let XVS;
 
 function getForkingUrl() {
   FORK_ENDPOINT = hre.network.config.forking.url;
@@ -51,6 +54,8 @@ async function deployAndConfigureNewVault() {
   await xvsVaultProxy.connect(admin)._setPendingImplementation(xvsVaultImpl.address);
   await xvsVaultImpl.connect(admin)._become(xvsVaultProxy.address);
   xvsVault = XVSVault__factory.connect(xvsVaultProxy.address, admin);
+
+  XVS = XVS__factory.connect(xvsAddress, admin);
 }
 
 async function deployAndConfigureOldVault() {
@@ -77,7 +82,7 @@ async function sendGasCost() {
   });
 }
 
-describe.only("XVSVault", async () => {
+describe("XVSVault", async () => {
   before(async () => {
     getForkingUrl();
   });
@@ -86,6 +91,14 @@ describe.only("XVSVault", async () => {
       await reset(`${FORK_ENDPOINT}`, 25458046);
       await sendGasCost();
       await deployAndConfigureNewVault();
+      // Expected data of the withdrawalRequests array after upgrade i.e append 0 at the end of the each array feild.
+      const beforeUpgrade = [
+        ["1219905705900531585631", "1665230433", "0"],
+        ["10250054759802389186707", "1662327363", "0"],
+        ["9590000000000000000000", "1662286808", "0"],
+        ["10000000000000000000000", "1661760746", "0"],
+        ["30000039534293865031955", "1661751289", "0"],
+      ];
 
       const result = await xvsVault.getWithdrawalRequests(tokenAddress, poolId, affectedUserAddress);
 
@@ -114,13 +127,33 @@ describe.only("XVSVault", async () => {
       await reset(`${FORK_ENDPOINT}`, 25458046);
       await sendGasCost();
       await deployAndConfigureNewVault();
-      await getForkingUrl();
 
       await impersonateAccount(affectedUserAddress);
       const affectedUser1Signer = await ethers.getSigner(affectedUserAddress);
 
-      await xvsVault.connect(affectedUser1Signer).executeWithdrawal(tokenAddress, poolId);
+      await xvsVault.updatePool(tokenAddress, 0);
+
+      const balanceBefore = await XVS.balanceOf(affectedUserAddress);
+      const beforeUpgradeResult = await xvsVault.getUserInfo(tokenAddress, poolId, affectedUserAddress);
+      const poolInfo = await xvsVault.poolInfos(tokenAddress, 0);
+      const poolShare = poolInfo[3];
+      const reward = BigNumber.from(beforeUpgradeResult[0])
+        .mul(poolShare)
+        .div(BigNumber.from(1e12))
+        .sub(beforeUpgradeResult[1]);
+      const tx = await xvsVault.connect(affectedUser1Signer).executeWithdrawal(tokenAddress, poolId);
+
       const result = await xvsVault.getWithdrawalRequests(tokenAddress, poolId, affectedUserAddress);
+      const balanceAfter = await XVS.balanceOf(affectedUserAddress);
+      const afterUpgradeResult = await xvsVault.getUserInfo(tokenAddress, poolId, affectedUserAddress);
+      const amountDifference = BigNumber.from(beforeUpgradeResult[0]).sub(BigNumber.from(afterUpgradeResult[0]));
+      const withdrawalAmount = formatEther(amountDifference.add(reward));
+      const balanceDifference = formatEther(BigNumber.from(balanceAfter).sub(BigNumber.from(balanceBefore)));
+
+      expect(tx)
+        .to.emit(xvsVault, "ExecutedWithdrawal")
+        .withArgs(affectedUserAddress, tokenAddress, poolId, Number(balanceDifference).toFixed(2));
+      expect(Number(withdrawalAmount).toFixed(2)).equals(Number(balanceDifference).toFixed(2));
       expect(result.length).equals(0);
     });
 
