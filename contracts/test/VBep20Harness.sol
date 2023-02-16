@@ -6,7 +6,7 @@ import "../Tokens/VTokens/VBep20Delegate.sol";
 import "./ComptrollerScenario.sol";
 
 contract VBep20Harness is VBep20Immutable {
-    uint internal blockNumber = 100000;
+    uint internal blockNumber;
     uint internal harnessExchangeRate;
     bool internal harnessExchangeRateStored;
 
@@ -35,6 +35,23 @@ contract VBep20Harness is VBep20Immutable {
         )
     {}
 
+    function initializeHarness(
+        address underlying_,
+        ComptrollerInterface comptroller_,
+        InterestRateModel interestRateModel_,
+        uint initialExchangeRateMantissa_,
+        string calldata name_,
+        string calldata symbol_,
+        uint8 decimals_
+    ) external {
+        blockNumber = 100000;
+        console.log(2);
+        super.initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
+        // Set underlying and sanity check it
+        underlying = underlying_;
+        EIP20Interface(underlying).totalSupply();
+    }
+
     function doTransferOut(address payable to, uint amount) internal {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
         return super.doTransferOut(to, amount);
@@ -53,6 +70,10 @@ contract VBep20Harness is VBep20Immutable {
 
     function getBorrowRateMaxMantissa() public pure returns (uint) {
         return borrowRateMaxMantissa;
+    }
+
+    function getStableBorrowRateMaxMantissa() external pure returns (uint256) {
+        return stableBorrowRateMaxMantissa;
     }
 
     function harnessSetAccrualBlockNumber(uint _accrualblockNumber) public {
@@ -79,8 +100,17 @@ contract VBep20Harness is VBep20Immutable {
         totalBorrows = totalBorrows_;
     }
 
+    function harnessSetStableBorrows(uint256 stableBorrows_) external {
+        stableBorrows = stableBorrows_;
+    }
+
     function harnessSetTotalReserves(uint totalReserves_) public {
         totalReserves = totalReserves_;
+    }
+
+    function harnessSetStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256) {
+        uint err = _setStableInterestRateModelFresh(newStableInterestRateModel);
+        return err;
     }
 
     function harnessExchangeRateDetails(uint totalSupply_, uint totalBorrows_, uint totalReserves_) public {
@@ -121,12 +151,38 @@ contract VBep20Harness is VBep20Immutable {
         return (snapshot.principal, snapshot.interestIndex);
     }
 
+    function harnessAccountStableBorrows(
+        address account
+    ) external view returns (uint256 principal, uint256 interestIndex, uint256 lastBlockAccrued) {
+        StableBorrowSnapshot memory snapshot = accountStableBorrows[account];
+        return (snapshot.principal, snapshot.interestIndex, snapshot.lastBlockAccrued);
+    }
+
     function harnessSetAccountBorrows(address account, uint principal, uint interestIndex) public {
         accountBorrows[account] = BorrowSnapshot({ principal: principal, interestIndex: interestIndex });
     }
 
+    function harnessSetAccountStableBorrows(
+        address account,
+        uint256 principal,
+        uint256 interestIndex,
+        uint256 stableRateMantissa,
+        uint256 lastBlock
+    ) external {
+        accountStableBorrows[account] = StableBorrowSnapshot({
+            principal: principal,
+            interestIndex: interestIndex,
+            stableRateMantissa: stableRateMantissa,
+            lastBlockAccrued: lastBlock
+        });
+    }
+
     function harnessSetBorrowIndex(uint borrowIndex_) public {
         borrowIndex = borrowIndex_;
+    }
+
+    function harnessSetStableBorrowIndex(uint256 stableBorrowIndex_) external {
+        stableBorrowIndex = stableBorrowIndex_;
     }
 
     function harnessBorrowFresh(address payable account, uint borrowAmount) public returns (uint) {
@@ -175,6 +231,22 @@ contract VBep20Harness is VBep20Immutable {
 
     function harnessCallBorrowAllowed(uint amount) public returns (uint) {
         return comptroller.borrowAllowed(address(this), msg.sender, amount);
+    }
+
+    function harnessSetAvgStableBorrowRate(uint256 averageStableBorrowRate_) public {
+        averageStableBorrowRate = averageStableBorrowRate_;
+    }
+
+    function harnessStableBorrows(uint256 stableBorrows_) public {
+        stableBorrows = stableBorrows_;
+    }
+
+    function accrueStableInterest(uint256 blockDelta) public returns (uint256) {
+        return _accrueStableInterest(blockDelta);
+    }
+
+    function harnessUpdateUserStableBorrowBalance(address account) public returns (uint256) {
+        return _updateUserStableBorrowBalance(account);
     }
 }
 
