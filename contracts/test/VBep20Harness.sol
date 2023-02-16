@@ -159,9 +159,13 @@ contract VBep20Harness is VBep20Immutable {
 
     function harnessAccountStableBorrows(
         address account
-    ) external view returns (uint256 principal, uint256 interestIndex, uint256 lastBlockAccrued) {
+    )
+        external
+        view
+        returns (uint256 principal, uint256 stableRateMantissa, uint256 interestIndex, uint256 lastBlockAccrued)
+    {
         StableBorrowSnapshot memory snapshot = accountStableBorrows[account];
-        return (snapshot.principal, snapshot.interestIndex, snapshot.lastBlockAccrued);
+        return (snapshot.principal, snapshot.stableRateMantissa, snapshot.interestIndex, snapshot.lastBlockAccrued);
     }
 
     function harnessSetAccountBorrows(address account, uint principal, uint interestIndex) public {
