@@ -1348,7 +1348,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             accountBorrowsPrev = _updateUserStableBorrowBalance(borrower);
         } else {
             /* We fetch the amount the borrower owes, with accumulated interest */
-            accountBorrowsPrev = borrowBalanceStored(borrower);
+            (, accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
         }
 
         if (accountBorrowsPrev == 0) {
@@ -1428,7 +1428,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         address account = msg.sender;
-        uint256 variableDebt = borrowBalanceStored(account);
+        (, uint256 variableDebt) = borrowBalanceStoredInternal(account);
         uint256 stableDebt = _updateUserStableBorrowBalance(account);
         uint256 accountBorrowsNew = variableDebt + stableDebt;
         uint256 stableBorrowsNew;
@@ -1875,6 +1875,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         // Emit NewMarketStableInterestRateModel(oldStableInterestRateModel, newStableInterestRateModel)
         emit NewMarketStableInterestRateModel(oldStableInterestRateModel, newStableInterestRateModel);
+
+        return uint(Error.NO_ERROR);
     }
 
     /*** Safe Token ***/
