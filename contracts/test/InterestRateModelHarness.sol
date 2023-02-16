@@ -43,7 +43,7 @@ contract InterestRateModelHarness is InterestRateModel {
         return borrowRate * (1 - _reserveFactor);
     }
 
-    function utilizationRate(uint256 cash, uint256 borrows, uint256 reserves) public pure returns (uint256) {
+    function utilizationRate(uint cash, uint borrows, uint reserves) public pure returns (uint) {
         // Utilization rate is 0 when there are no borrows
         if (borrows == 0) {
             return 0;
