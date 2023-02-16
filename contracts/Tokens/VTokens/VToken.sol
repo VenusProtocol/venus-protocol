@@ -284,7 +284,17 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return The supply interest rate per block, scaled by 1e18
      */
     function supplyRatePerBlock() external view returns (uint) {
-        return interestRateModel.getSupplyRate(getCashPrior(), totalBorrows, totalReserves, reserveFactorMantissa);
+        if (totalBorrows == 0) {
+            return 0;
+        }
+        uint256 utilizationRate = interestRateModel.utilizationRate(getCashPrior(), totalBorrows, totalReserves);
+        uint256 variableBorrowRate = interestRateModel.getBorrowRate(getCashPrior(), totalBorrows, totalReserves);
+        uint256 variableBorrows = totalBorrows - stableBorrows;
+        uint256 averageMarketBorrowRate = ((variableBorrows * variableBorrowRate) +
+            (stableBorrows * averageStableBorrowRate)) / totalBorrows;
+        return
+            (averageMarketBorrowRate * utilizationRate * (mantissaOne - reserveFactorMantissa)) /
+            (mantissaOne * mantissaOne);
     }
 
     /**
@@ -1151,7 +1161,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
              *  accountBorrowNew = accountBorrow + borrowAmount
              *  totalBorrowsNew = totalBorrows + borrowAmount
              */
-            uint256 accountBorrowsPrev = borrowBalanceStored(borrower);
+            (,uint256 accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
             accountBorrowsNew = accountBorrowsPrev + borrowAmount;
             totalBorrowsNew = totalBorrows + borrowAmount;
 
@@ -1275,7 +1285,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             accountBorrowsPrev = _updateUserStableBorrowBalance(borrower);
         } else {
             /* We fetch the amount the borrower owes, with accumulated interest */
-            accountBorrowsPrev = borrowBalanceStored(borrower);
+            (,accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
         }
 
         if (accountBorrowsPrev == 0) {
@@ -1355,7 +1365,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         address account = msg.sender;
-        uint256 variableDebt = borrowBalanceStored(account);
+        (,uint256 variableDebt) = borrowBalanceStoredInternal(account);
         uint256 stableDebt = _updateUserStableBorrowBalance(account);
         uint256 accountBorrowsNew = variableDebt + stableDebt;
         uint256 stableBorrowsNew;
