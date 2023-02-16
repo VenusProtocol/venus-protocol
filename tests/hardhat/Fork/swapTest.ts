@@ -168,6 +168,7 @@ describe("Swap Contract", () => {
         await comptroller._setPriceOracle(oracle.address);
         await expect(comptroller.connect(usdtUser).enterMarkets([vBUSD.address])).to.emit(comptroller, "MarketEntered");
         await comptroller._setMarketSupplyCaps([vBUSD.address], [parseUnits("100000", 18)]);
+        await comptroller._setMarketSupplyCaps([vUSDT.address], [parseUnits("100000", 18)]);
         await comptroller._setCollateralFactor(vBUSD.address, parseUnits("0.7", 18));
         await comptroller._setCollateralFactor(vUSDT.address, parseUnits("0.5", 18));
       });
@@ -274,6 +275,18 @@ describe("Swap Contract", () => {
           });
 
         const currBalance = await vBUSD.balanceOf(usdtUser.address);
+        expect(currBalance).greaterThan(prevBalance);
+      });
+
+      it("swap BNB -> token --> token --> supply token", async () => {
+        const prevBalance = await vUSDT.balanceOf(usdtUser.address);
+        const deadline = await getValidDeadline();
+        await swapRouter
+          .connect(usdtUser)
+          .swapBnbAndSupply(vUSDT.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address, USDT.address], deadline, {
+            value: SWAP_BNB_AMOUNT,
+          });
+        const currBalance = await vUSDT.balanceOf(usdtUser.address);
         expect(currBalance).greaterThan(prevBalance);
       });
 
