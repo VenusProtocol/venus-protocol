@@ -1152,7 +1152,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     function borrowStableInternal(address borrower, address payable receiver,uint256 borrowAmount) internal nonReentrant returns (uint) {
         accrueInterest();
-        
+
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
         return borrowFresh(borrower, receiver, borrowAmount, InterestRateMode.STABLE);
         
