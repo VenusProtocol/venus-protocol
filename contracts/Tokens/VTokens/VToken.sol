@@ -1192,10 +1192,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalBorrows = totalBorrowsNew;
 
         /*
-         * We invoke _doTransferOut for the borrower and the borrowAmount.
+         * We invoke doTransferOut for the borrower and the borrowAmount.
          *  Note: The vToken must handle variations between BEP-20 and BNB underlying.
          *  On success, the vToken borrowAmount less of cash.
-         *  _doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
+         *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
          */
         doTransferOut(borrower, borrowAmount);
 
