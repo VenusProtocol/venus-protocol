@@ -22,7 +22,7 @@ interface IVToken {
     function underlying() external returns (address);
 }
 
-interface EIP20Interface {
+interface ERC20Interface {
     function decimals() external view returns (uint8);
 }
 
@@ -470,7 +470,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             return 10 ** 18; // vBNB
         }
 
-        return (10 ** EIP20Interface(underlying).decimals());
+        return (10 ** ERC20Interface(underlying).decimals());
     }
 
     /**
