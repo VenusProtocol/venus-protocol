@@ -283,7 +283,21 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return The supply interest rate per block, scaled by 1e18
      */
     function supplyRatePerBlock() external view returns (uint) {
-        return interestRateModel.getSupplyRate(getCashPrior(), totalBorrows, totalReserves, reserveFactorMantissa);
+        if (totalBorrows == 0) {
+            return 0;
+        }
+        uint256 utilizationRate = interestRateModel.utilizationRate(getCashPrior(), totalBorrows, totalReserves);
+        uint256 averageMarketBorrowRate = _averageMarketBorrowRate();
+        return
+            (averageMarketBorrowRate * utilizationRate * (mantissaOne - reserveFactorMantissa)) /
+            (mantissaOne * mantissaOne);
+    }
+
+    /// @notice Calculate the average market borrow rate with respect to variable and stable borrows
+    function _averageMarketBorrowRate() internal view returns (uint256) {
+        uint256 variableBorrowRate = interestRateModel.getBorrowRate(getCashPrior(), totalBorrows, totalReserves);
+        uint256 variableBorrows = totalBorrows - stableBorrows;
+        return ((variableBorrows * variableBorrowRate) + (stableBorrows * averageStableBorrowRate)) / totalBorrows;
     }
 
     /**
