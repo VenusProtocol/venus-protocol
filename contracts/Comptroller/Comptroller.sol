@@ -329,6 +329,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param actualMintAmount The amount of the underlying asset being minted
      * @param mintTokens The number of tokens being minted
      */
+    // solhint-disable-next-line no-unused-vars
     function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {
         if (address(prime) != address(0)) {
             prime.updateQVL(minter, vToken);
@@ -469,6 +470,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param borrower The address borrowing the underlying
      * @param borrowAmount The amount of the underlying asset requested to borrow
      */
+    // solhint-disable-next-line no-unused-vars
     function borrowVerify(address vToken, address borrower, uint borrowAmount) external {
         if (address(prime) != address(0)) {
             prime.updateQVL(borrower, vToken);
@@ -516,9 +518,12 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      */
     function repayBorrowVerify(
         address vToken,
+        // solhint-disable-next-line no-unused-vars
         address payer,
         address borrower,
+        // solhint-disable-next-line no-unused-vars
         uint actualRepayAmount,
+        // solhint-disable-next-line no-unused-vars
         uint borrowerIndex
     ) external {
         if (address(prime) != address(0)) {
@@ -647,11 +652,14 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param borrower The address of the borrower
      * @param seizeTokens The number of collateral tokens to seize
      */
+    // solhint-disable-next-line no-unused-vars
     function seizeVerify(
         address vTokenCollateral,
+        // solhint-disable-next-line no-unused-vars
         address vTokenBorrowed,
         address liquidator,
         address borrower,
+        // solhint-disable-next-line no-unused-vars
         uint seizeTokens
     ) external {
         if (address(prime) != address(0)) {
@@ -700,6 +708,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
      * @param dst The account which receives the tokens
      * @param transferTokens The number of vTokens to transfer
      */
+    // solhint-disable-next-line no-unused-vars
     function transferVerify(address vToken, address src, address dst, uint transferTokens) external {
         if (address(prime) != address(0)) {
             prime.updateQVL(src, vToken);
