@@ -188,6 +188,27 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     }
 
     /**
+     * @notice Claim rewards for pool
+     * @param _account The account for which to claim rewards
+     * @param _rewardToken The Reward Token Address
+     * @param _pid The Pool Index
+     */
+    function claim(address _account, address _rewardToken, uint256 _pid) external nonReentrant {
+        _ensureValidPool(_rewardToken, _pid);
+        PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+        UserInfo storage user = userInfos[_rewardToken][_pid][_account];
+        _updatePool(_rewardToken, _pid);
+        if (user.amount > 0) {
+            uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
+                user.rewardDebt
+            );
+            IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, _account, pending);
+        }
+
+        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+    }
+
+    /**
      * @notice Pushes withdrawal request to the requests array and updates
      *   the pending withdrawals amount. The requests are always sorted
      *   by unlock time (descending) so that the earliest to execute requests

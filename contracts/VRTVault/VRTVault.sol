@@ -176,13 +176,28 @@ contract VRTVault is VRTVaultStorage {
      * @notice claim the accruedInterest of the user's VRTDeposits in the Vault
      */
     function claim() external nonReentrant isInitialized userHasPosition(msg.sender) isActive {
-        address userAddress = msg.sender;
-        uint256 accruedInterest = getAccruedInterest(userAddress);
+        _claim(msg.sender);
+    }
+
+    /**
+     * @notice claim the accruedInterest of the user's VRTDeposits in the Vault
+     * @param account The account for which to claim rewards
+     */
+    function claim(address account) external nonReentrant isInitialized userHasPosition(account) isActive {
+        _claim(account);
+    }
+
+    /**
+     * @notice Low level claim function
+     * @param account The account for which to claim rewards
+     */
+    function _claim(address account) internal {
+        uint256 accruedInterest = getAccruedInterest(account);
         if (accruedInterest > 0) {
-            UserInfo storage user = userInfo[userAddress];
+            UserInfo storage user = userInfo[account];
             uint256 vrtBalance = vrt.balanceOf(address(this));
             require(vrtBalance >= accruedInterest, "Failed to transfer VRT, Insufficient VRT in Vault.");
-            emit Claim(userAddress, accruedInterest);
+            emit Claim(account, accruedInterest);
             user.accrualStartBlockNumber = getBlockNumber();
             vrt.safeTransfer(user.userAddress, accruedInterest);
         }
