@@ -1209,7 +1209,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
              *  accountBorrowNew = accountBorrow + borrowAmount
              *  totalBorrowsNew = totalBorrows + borrowAmount
              */
-            uint256 accountBorrowsPrev = borrowBalanceStored(borrower);
+            (,uint256 accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
             accountBorrowsNew = accountBorrowsPrev + borrowAmount;
             totalBorrowsNew = totalBorrows + borrowAmount;
 
