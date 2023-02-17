@@ -520,14 +520,13 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     ////////// ADD MARKET OR UPDATE QVL //////////
     //////////////////////////////////////////////
 
-
     /**
      * @notice Pauses all vToken and Prime operations for a market
      * @dev We need to pause markets before updating QVL caps or adding existing markets to prime program
      * @param vToken the market which to pause
      */
     function toggleMarketPause(address vToken) external onlyOwner {
-        if(isMarketPaused[vToken] == false && _markets[vToken].lastUpdated != 0) {
+        if (isMarketPaused[vToken] == false && _markets[vToken].lastUpdated != 0) {
             accrueInterest(vToken);
         }
 
@@ -547,7 +546,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     /**
      * @notice To add an existing market to prime token program or update QVL of existing market we need to call this to update the QVL of all users.
-     * @dev When updating QVL of existing market we need to call this after accrueInterestForUsers. 
+     * @dev When updating QVL of existing market we need to call this after accrueInterestForUsers.
      * @param accounts accounts of prime token holders
      * @param vToken the market which to update QVL
      */
