@@ -70,7 +70,23 @@ contract VBep20 is VToken, VBep20Interface {
      */
     // @custom:event Emits Borrow event on success
     function borrow(uint borrowAmount) external returns (uint) {
-        return borrowInternal(borrowAmount);
+        address borrower = msg.sender;
+        address payable receiver = msg.sender;
+        return borrowInternal(borrower, receiver, borrowAmount);
+    }
+
+    /**
+     * @notice Sender borrows assets on behalf of some other address. This function is only available
+     *   for senders, explicitly marked as delegates of the borrower using `comptroller.updateDelegate`
+     * @param borrower The borrower, on behalf of whom to borrow.
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     */
+    // @custom:event Emits Borrow event on success
+    function borrowBehalf(address borrower, uint borrowAmount) external returns (uint) {
+        require(comptroller.approvedDelegates(borrower, msg.sender), "not an approved delegate");
+        address payable receiver = msg.sender;
+        return borrowInternal(borrower, receiver, borrowAmount);
     }
 
     /**

@@ -136,6 +136,8 @@ contract ComptrollerInterface is ComptrollerInterfaceG4 {
     function venusBorrowState(address) external view returns (uint224, uint32);
 
     function venusSupplyState(address) external view returns (uint224, uint32);
+
+    function approvedDelegates(address borrower, address delegate) external view returns (bool);
 }
 
 interface IVAIVault {
