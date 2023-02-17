@@ -1102,10 +1102,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     function borrowStableInternal(uint256 borrowAmount) internal nonReentrant returns (uint) {
         accrueInterest();
-        
+
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
         return borrowFresh(msg.sender, borrowAmount, InterestRateMode.STABLE);
-        
     }
 
     /**
@@ -1113,7 +1112,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param borrowAmount The amount of the underlying asset to borrow
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function borrowFresh(address payable borrower, uint borrowAmount, InterestRateMode interestRateMode) internal returns (uint) {
+    function borrowFresh(
+        address payable borrower,
+        uint borrowAmount,
+        InterestRateMode interestRateMode
+    ) internal returns (uint) {
         /* Fail if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
