@@ -158,7 +158,6 @@ describe("Swap Contract", () => {
     const contracts = await loadFixture(deploySwapContract);
     await configure(contracts, user);
     ({ vToken, wBNB, swapRouter, tokenA, tokenB, dToken } = contracts);
-    vToken.mintBehalf.return;
   });
 
   describe("Swap", () => {
