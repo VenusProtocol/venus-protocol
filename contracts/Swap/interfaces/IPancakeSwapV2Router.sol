@@ -1,10 +1,6 @@
 pragma solidity 0.8.13;
 
 interface IPancakeSwapV2Router {
-    function factory() external view returns (address);
-
-    function WBNB() external view returns (address);
-
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -35,6 +31,22 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external payable returns (uint256[] memory amounts);
 
+    function swapExactTokensForETH(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+
+    function swapExactTokensForETHAtSupportingFee(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+
     function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
@@ -49,6 +61,14 @@ interface IPancakeSwapV2Router {
         address to,
         uint256 deadline
     ) external payable returns (uint256[] memory amounts);
+
+    function swapTokensForExactETH(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
 
     function swapAndSupply(
         address vTokenAddress,
@@ -139,22 +159,4 @@ interface IPancakeSwapV2Router {
         address[] calldata path,
         uint256 deadline
     ) external payable;
-
-    function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) external pure returns (uint256 amountB);
-
-    function getAmountOut(
-        uint256 amountIn,
-        uint256 reserveIn,
-        uint256 reserveOut
-    ) external pure returns (uint256 amountOut);
-
-    function getAmountIn(
-        uint256 amountOut,
-        uint256 reserveIn,
-        uint256 reserveOut
-    ) external pure returns (uint256 amountIn);
-
-    function getAmountsOut(uint256 amountIn, address[] calldata path) external view returns (uint256[] memory amounts);
-
-    function getAmountsIn(uint256 amountOut, address[] calldata path) external view returns (uint256[] memory amounts);
 }
