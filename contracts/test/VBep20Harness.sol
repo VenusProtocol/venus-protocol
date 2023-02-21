@@ -6,7 +6,7 @@ import "../Tokens/VTokens/VBep20Delegate.sol";
 import "./ComptrollerScenario.sol";
 
 contract VBep20Harness is VBep20Immutable {
-    uint internal blockNumber;
+    uint internal blockNumber = 100000;
     uint internal harnessExchangeRate;
     bool internal harnessExchangeRateStored;
 
@@ -44,7 +44,7 @@ contract VBep20Harness is VBep20Immutable {
         string calldata symbol_,
         uint8 decimals_
     ) external {
-        blockNumber = 100000;
+        //blockNumber = 100000;
         console.log(2);
         super.initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
         // Set underlying and sanity check it
