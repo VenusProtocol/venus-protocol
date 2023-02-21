@@ -3,6 +3,8 @@ import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network
 import { NumberLike } from "@nomicfoundation/hardhat-network-helpers/dist/src/types";
 import { ethers, network } from "hardhat";
 
+import { Command, Proposal, ProposalMeta, ProposalType } from "./types";
+
 export async function setForkBlock(blockNumber: number) {
   await network.provider.request({
     method: "hardhat_reset",
@@ -46,4 +48,15 @@ export const initMainnetUser = async (user: string, balance: NumberLike) => {
   await impersonateAccount(user);
   await setBalance(user, balance);
   return ethers.getSigner(user);
+};
+
+export const makeProposal = (commands: Command[], meta: ProposalMeta, type: ProposalType): Proposal => {
+  return {
+    signatures: commands.map(cmd => cmd.signature),
+    targets: commands.map(cmd => cmd.target),
+    params: commands.map(cmd => cmd.params),
+    values: commands.map(cmd => cmd.value ?? "0"),
+    meta,
+    type,
+  };
 };
