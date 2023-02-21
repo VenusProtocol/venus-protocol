@@ -458,6 +458,13 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         return abi.decode(data, (uint));
     }
 
+    function setStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256) {
+        bytes memory data = delegateToImplementation(
+            abi.encodeWithSignature("setStableInterestRateModel(address)", newStableInterestRateModel)
+        );
+        return abi.decode(data, (uint));
+    }
+
     /**
      * @notice Delegates execution to the implementation contract
      * @dev It returns to the external caller whatever the implementation returns or forwards reverts

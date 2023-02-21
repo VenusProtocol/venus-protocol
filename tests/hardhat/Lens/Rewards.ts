@@ -127,8 +127,8 @@ describe("VenusLens: Rewards Summary", () => {
       XVS.address,
       BigNumber.from(convertToUnit(10, 18)),
       [
-        [vBUSD.address, BigNumber.from(convertToUnit(22.35, 18))],
-        [vWBTC.address, BigNumber.from(convertToUnit(0.0000002235, 18))],
+        [vBUSD.address, BigNumber.from(convertToUnit(22.36, 18))],
+        [vWBTC.address, BigNumber.from(convertToUnit(0.0000002236, 18))],
       ],
     ];
 
