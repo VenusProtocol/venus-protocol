@@ -68,6 +68,10 @@ contract VBep20Harness is VBep20Immutable {
         return blockNumber;
     }
 
+    function harnessGetBlockNumber() public view returns (uint) {
+        return blockNumber;
+    }
+
     function getBorrowRateMaxMantissa() public pure returns (uint) {
         return borrowRateMaxMantissa;
     }
@@ -111,6 +115,10 @@ contract VBep20Harness is VBep20Immutable {
     function harnessSetStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256) {
         uint err = _setStableInterestRateModelFresh(newStableInterestRateModel);
         return err;
+    }
+
+    function harnessRepayBorrowStable(uint amount) public {
+        repayBorrowStable(amount);
     }
 
     function harnessExchangeRateDetails(uint totalSupply_, uint totalBorrows_, uint totalReserves_) public {
