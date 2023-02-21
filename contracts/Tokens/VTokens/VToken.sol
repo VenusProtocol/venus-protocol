@@ -1120,7 +1120,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Fail if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
-            revert("math error");
+            return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.BORROW_COMPTROLLER_REJECTION, allowed));
         }
 
         /* Verify market's block number equals current block number */
@@ -1176,7 +1176,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
              *  accountBorrowNew = accountBorrow + borrowAmount
              *  totalBorrowsNew = totalBorrows + borrowAmount
              */
-            (,uint256 accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
+            (MathError mathErr, uint256 accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
+            if (mathErr != MathError.NO_ERROR) {
+                // emit CalculationFailure(uint(mathErr));
+                return (
+                    failOpaque(Error.MATH_ERROR, FailureInfo.BORROW_ACCUMULATED_BALANCE_CALCULATION_FAILED, allowed)
+                );
+            }
+
             accountBorrowsNew = accountBorrowsPrev + borrowAmount;
             totalBorrowsNew = totalBorrows + borrowAmount;
 
