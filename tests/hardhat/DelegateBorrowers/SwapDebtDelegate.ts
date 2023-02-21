@@ -156,7 +156,9 @@ describe("assetListTest", () => {
 
   describe("sweepTokens", async () => {
     it("fails if called by a non-owner", async () => {
-      await expect(swapDebtDelegate.connect(borrower).sweepTokens(foo.address)).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(swapDebtDelegate.connect(borrower).sweepTokens(foo.address)).to.be.revertedWith(
+        "Ownable: caller is not the owner",
+      );
     });
 
     it("transfers the full balance to the owner", async () => {
