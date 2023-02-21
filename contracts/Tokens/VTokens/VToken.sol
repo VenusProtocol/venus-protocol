@@ -1186,7 +1186,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Fail if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
-            revert("math error");
+            return (failOpaque(Error.COMPTROLLER_REJECTION, FailureInfo.BORROW_COMPTROLLER_REJECTION, allowed));
         }
 
         /* Verify market's block number equals current block number */
