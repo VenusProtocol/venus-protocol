@@ -58,6 +58,7 @@ describe("assetListTest", () => {
     priceOracle.getUnderlyingPrice.whenCalledWith(vFoo.address).returns(fooPrice);
     priceOracle.getUnderlyingPrice.whenCalledWith(vBar.address).returns(barPrice);
     foo.transferFrom.returns(true);
+    foo.approve.returns(true);
     bar.transfer.returns(true);
 
     ({ swapDebtDelegate } = await loadFixture(swapDebtFixture));
@@ -97,11 +98,24 @@ describe("assetListTest", () => {
       expect(foo.transferFrom).to.have.been.calledOnceWith(owner.address, swapDebtDelegate.address, repayAmount);
     });
 
+    it("approves vToken to transfer money from the contract", async () => {
+      const repayAmount = parseUnits("1", 18);
+      foo.balanceOf.returnsAtCall(0, 0);
+      foo.balanceOf.returnsAtCall(1, repayAmount);
+      await swapDebtDelegate.swapDebt(borrower.address, vFoo.address, vBar.address, repayAmount);
+      expect(foo.approve).to.have.been.calledTwice;
+      expect(foo.approve.atCall(0)).to.have.been.calledWith(vFoo.address, 0);
+      expect(foo.approve.atCall(1)).to.have.been.calledWith(vFoo.address, repayAmount);
+      expect(foo.approve).to.have.been.calledAfter(foo.transferFrom);
+    });
+
     it("calls repayBorrowBehalf after transferring the underlying to self", async () => {
       const repayAmount = parseUnits("1", 18);
+      foo.balanceOf.returnsAtCall(0, 0);
+      foo.balanceOf.returnsAtCall(1, repayAmount);
       await swapDebtDelegate.swapDebt(borrower.address, vFoo.address, vBar.address, repayAmount);
       expect(vFoo.repayBorrowBehalf).to.have.been.calledOnceWith(borrower.address, repayAmount);
-      expect(vFoo.repayBorrowBehalf).to.have.been.calledAfter(foo.transferFrom);
+      expect(vFoo.repayBorrowBehalf).to.have.been.calledAfter(foo.approve);
     });
 
     it("converts the amounts using the oracle exchange rates", async () => {

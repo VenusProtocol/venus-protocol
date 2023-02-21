@@ -101,10 +101,15 @@ contract SwapDebtDelegate is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable
         uint256 repayAmount
     ) internal returns (uint256 actualRepaymentAmount) {
         IERC20Upgradeable underlying = IERC20Upgradeable(vToken.underlying());
+        uint256 balanceBefore = underlying.balanceOf(address(this));
         underlying.safeTransferFrom(msg.sender, address(this), repayAmount);
+        uint256 balanceAfter = underlying.balanceOf(address(this));
+        uint256 repayAmountMinusFee = balanceAfter - balanceBefore;
 
+        underlying.safeApprove(address(vToken), 0);
+        underlying.safeApprove(address(vToken), repayAmountMinusFee);
         uint256 borrowBalanceBefore = vToken.borrowBalanceCurrent(borrower);
-        uint256 err = vToken.repayBorrowBehalf(borrower, repayAmount);
+        uint256 err = vToken.repayBorrowBehalf(borrower, repayAmountMinusFee);
         if (err != NO_ERROR) {
             revert RepaymentFailed(err);
         }
