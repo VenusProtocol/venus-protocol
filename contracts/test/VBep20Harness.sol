@@ -44,8 +44,6 @@ contract VBep20Harness is VBep20Immutable {
         string calldata symbol_,
         uint8 decimals_
     ) external {
-        //blockNumber = 100000;
-        console.log(2);
         super.initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
         // Set underlying and sanity check it
         underlying = underlying_;
