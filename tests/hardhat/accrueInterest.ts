@@ -56,7 +56,7 @@ describe("VToken", () => {
     await preAccrue({ vToken, interestRateModel, stableInterestRateModel });
   });
 
-  describe.only("accrueInterest", () => {
+  describe("accrueInterest", () => {
     it("reverts if the interest rate is absurdly high", async () => {
       await pretendBlock(vToken, blockNumber, 1);
       expect(await vToken.getBorrowRateMaxMantissa()).to.equal(convertToUnit("0.000005", 18)); // 0.0005% per block
