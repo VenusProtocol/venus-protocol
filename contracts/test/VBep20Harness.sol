@@ -107,7 +107,7 @@ contract VBep20Harness is VBep20Immutable {
     }
 
     function harnessSetStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256) {
-        uint err = _setStableInterestRateModelFresh(newStableInterestRateModel);
+        uint err = setStableInterestRateModel(newStableInterestRateModel);
         return err;
     }
 
