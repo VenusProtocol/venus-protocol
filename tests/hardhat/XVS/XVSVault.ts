@@ -120,6 +120,23 @@ describe("XVSVault", async () => {
     await xvsVault.connect(deployer).requestWithdrawal(xvs.address, poolId, depositAmount);
     currentXVSBalance = await xvs.balanceOf(deployer.address);
     expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString())
+
+    await mine(500);
+
+    previousXVSBalance = await xvs.balanceOf(deployer.address);
+    await xvsVault.executeWithdrawal(xvs.address, poolId);
+    currentXVSBalance = await xvs.balanceOf(deployer.address)
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(depositAmount.toString())
+
+    await xvs.approve(xvsVault.address, depositAmount);
+    await xvsVault.deposit(xvs.address, poolId, depositAmount);
+
+    await mine(1000);
+
+    previousXVSBalance = await xvs.balanceOf(deployer.address);
+    await xvsVault.claim(deployer.address, xvs.address, poolId);
+    currentXVSBalance = await xvs.balanceOf(deployer.address)
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString())
   })
 
   it("no reward for pending withdrawals", async () => {
