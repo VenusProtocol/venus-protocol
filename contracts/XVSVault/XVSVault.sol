@@ -58,6 +58,10 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     /// @notice An event emitted when a pool allocation points are updated
     event PoolUpdated(address indexed rewardToken, uint indexed pid, uint oldAllocPoints, uint newAllocPoints);
 
+    /// @notice Event emitted when reward claimed
+    event Claim(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
+
+
     constructor() public {
         admin = msg.sender;
     }
@@ -203,9 +207,10 @@ contract XVSVault is XVSVaultStorage, ECDSA {
                 user.rewardDebt
             );
             IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, _account, pending);
-        }
+            user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
-        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+            emit Claim(_account, _rewardToken, _pid, pending);
+        }
     }
 
     /**
