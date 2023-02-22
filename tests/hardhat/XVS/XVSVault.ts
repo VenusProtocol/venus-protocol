@@ -84,14 +84,14 @@ describe("XVSVault", async () => {
     let previousXVSBalance = await xvs.balanceOf(deployer.address);
     await xvsVault.connect(deployer).requestWithdrawal(xvs.address, poolId, depositAmount);
     let currentXVSBalance = await xvs.balanceOf(deployer.address);
-    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString())
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString());
 
     await mine(500);
 
     previousXVSBalance = await xvs.balanceOf(deployer.address);
     await xvsVault.executeWithdrawal(xvs.address, poolId);
-    currentXVSBalance = await xvs.balanceOf(deployer.address)
-    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(depositAmount.toString())
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(depositAmount.toString());
   });
 
   it("claim reward", async () => {
@@ -104,29 +104,29 @@ describe("XVSVault", async () => {
 
     let previousXVSBalance = await xvs.balanceOf(deployer.address);
     await xvsVault.claim(deployer.address, xvs.address, poolId);
-    let currentXVSBalance = await xvs.balanceOf(deployer.address)
-    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString())
+    let currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString());
 
     await mine(1000);
 
     previousXVSBalance = await xvs.balanceOf(deployer.address);
     await xvsVault.claim(deployer.address, xvs.address, poolId);
-    currentXVSBalance = await xvs.balanceOf(deployer.address)
-    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString())
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString());
 
     await mine(1000);
 
     previousXVSBalance = await xvs.balanceOf(deployer.address);
     await xvsVault.connect(deployer).requestWithdrawal(xvs.address, poolId, depositAmount);
     currentXVSBalance = await xvs.balanceOf(deployer.address);
-    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString())
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString());
 
     await mine(500);
 
     previousXVSBalance = await xvs.balanceOf(deployer.address);
     await xvsVault.executeWithdrawal(xvs.address, poolId);
-    currentXVSBalance = await xvs.balanceOf(deployer.address)
-    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(depositAmount.toString())
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(depositAmount.toString());
 
     await xvs.approve(xvsVault.address, depositAmount);
     await xvsVault.deposit(xvs.address, poolId, depositAmount);
@@ -135,9 +135,17 @@ describe("XVSVault", async () => {
 
     previousXVSBalance = await xvs.balanceOf(deployer.address);
     await xvsVault.claim(deployer.address, xvs.address, poolId);
-    currentXVSBalance = await xvs.balanceOf(deployer.address)
-    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString())
-  })
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString());
+
+    await xvsVault.setRewardAmountPerBlock(xvs.address, 0);
+    await mine(1000);
+
+    previousXVSBalance = await xvs.balanceOf(deployer.address);
+    await xvsVault.claim(deployer.address, xvs.address, poolId);
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1).toString());
+  });
 
   it("no reward for pending withdrawals", async () => {
     const depositAmount = bigNumber18.mul(100);
