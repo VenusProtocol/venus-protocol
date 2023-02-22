@@ -1,7 +1,5 @@
 pragma solidity ^0.5.16;
 
-import "hardhat/console.sol";
-
 /**
  * @title Logic for Venus stable rate.
  */
@@ -107,6 +105,10 @@ contract StableRateModel {
         uint256 stableRatePremium_,
         uint256 optimalStableLoanRatio_
     ) internal {
+        require(
+            baseRatePerYear_ > blocksPerYear,
+            "StableRateModel: baseRatePerYear should be greater than blocksPerYear"
+        );
         baseRatePerBlock = baseRatePerYear_ / blocksPerYear;
         stableRatePremium = stableRatePremium_;
         optimalStableLoanRatio = optimalStableLoanRatio_;

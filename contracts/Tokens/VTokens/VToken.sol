@@ -540,12 +540,24 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      * custom:events Emits NewMarketInterestRateModel event; may emit AccrueInterest
      * custom:events Emits NewMarketStableInterestRateModel, after setting the new stable rate model
-     * custom:access Controlled by AccessControlManager
      */
     function setStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256) {
-        // require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, "setStableInterestRateModel(address)"), "access denied");
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_STABLE_INTEREST_RATE_MODEL_OWNER_CHECK);
+        }
 
-        accrueInterest();
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted change of interest rate model failed
+            return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
+        }
+
+        // We fail gracefully unless market's block number equals current block number
+        if (accrualBlockNumber != getBlockNumber()) {
+            return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_STABLE_INTEREST_RATE_MODEL_FRESH_CHECK);
+        }
+
         // _setInterestRateModelFresh emits interest-rate-model-update-specific logs on errors, so we don't need to.
         return _setStableInterestRateModelFresh(newStableInterestRateModel);
     }
@@ -1648,11 +1660,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function _setStableInterestRateModelFresh(StableRateModel newStableInterestRateModel) internal returns (uint256) {
         // Used to store old model for use in the event that is emitted on success
         StableRateModel oldStableInterestRateModel;
-
-        // We fail gracefully unless market's block number equals current block number
-        if (accrualBlockNumber != getBlockNumber()) {
-            revert("math error");
-        }
 
         // Track the market's current stable interest rate model
         oldStableInterestRateModel = stableRateModel;

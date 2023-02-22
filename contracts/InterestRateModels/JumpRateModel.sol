@@ -118,6 +118,10 @@ contract JumpRateModel is InterestRateModel {
         uint256 jumpMultiplierPerYear,
         uint256 kink_
     ) internal {
+        require(
+            baseRatePerYear > blocksPerYear,
+            "JumpRateModel: baseRatePerYear should be greater than blocksPerYear"
+        );
         baseRatePerBlock = baseRatePerYear.div(blocksPerYear);
         multiplierPerBlock = multiplierPerYear.div(blocksPerYear);
         jumpMultiplierPerBlock = jumpMultiplierPerYear.div(blocksPerYear);
