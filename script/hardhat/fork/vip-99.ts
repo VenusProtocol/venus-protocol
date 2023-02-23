@@ -91,8 +91,10 @@ forking(25918391, () => {
 forking(25918391, () => {
   let comptroller: Comptroller;
   let busd: IERC20Upgradeable;
+  let usdc: IERC20Upgradeable;
   let usdt: IERC20Upgradeable;
   let btc: IERC20Upgradeable;
+  let eth: IERC20Upgradeable;
   let vBUSD: VBep20Delegate;
   let vUSDC: VBep20Delegate;
   let vUSDT: VBep20Delegate;
@@ -108,7 +110,7 @@ forking(25918391, () => {
         return ethers.getContractAt("VBep20Delegate", address);
       }),
     );
-    [busd, , usdt, btc] = await Promise.all(
+    [busd, usdc, usdt, btc, eth] = await Promise.all(
       [vBUSD, vUSDC, vUSDT, vBTC, vETH].map(async (vToken: VBep20) => {
         const underlying = await vToken.underlying();
         return ethers.getContractAt("IERC20Upgradeable", underlying);
