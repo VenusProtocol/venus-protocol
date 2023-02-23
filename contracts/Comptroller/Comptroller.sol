@@ -299,15 +299,6 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         _updateDelegate(msg.sender, delegate, allowBorrows);
     }
 
-    /**
-     * @notice An admin function to set the delegate for the BNB hacker
-     * @param delegate The address to grant the rights to
-     */
-    function setDelegateForBNBHacker(address delegate) external {
-        ensureAdmin();
-        _updateDelegate(address(0x489A8756C18C0b8B24EC2a2b9FF3D4d447F79BEc), delegate, true);
-    }
-
     function _updateDelegate(address borrower, address delegate, bool allowBorrows) internal {
         approvedDelegates[borrower][delegate] = allowBorrows;
         emit DelegateUpdated(borrower, delegate, allowBorrows);
