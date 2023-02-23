@@ -7,8 +7,8 @@ import { ethers } from "hardhat";
 import { Proposal } from "./types";
 import { getCalldatas, initMainnetUser, setForkBlock } from "./utils";
 
-const PROPOSER_ADDRESS = "0x55A9f5374Af30E3045FB491f1da3C2E8a74d168D";
-const SUPPORTER_ADDRESS = "0xc444949e0054a23c44fc45789738bdf64aed2391";
+const DEFAULT_PROPOSER_ADDRESS = "0x55A9f5374Af30E3045FB491f1da3C2E8a74d168D";
+const DEFAULT_SUPPORTER_ADDRESS = "0xc444949e0054a23c44fc45789738bdf64aed2391";
 const GOVERNOR_PROXY = "0x2d56dC077072B53571b8252008C60e945108c75a";
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
 const NORMAL_TIMELOCK_DELAY = 172800;
@@ -25,6 +25,8 @@ export const forking = (blockNumber: number, fn: () => void) => {
 
 export interface TestingOptions {
   governorAbi?: ContractInterface;
+  proposer?: string;
+  supporter?: string;
 }
 
 const executeCommand = async (timelock: SignerWithAddress, proposal: Proposal, commandIdx: number): Promise<void> => {
@@ -51,15 +53,14 @@ export const testVip = (description: string, proposal: Proposal, options: Testin
   let supporter: SignerWithAddress;
 
   const governanceFixture = async (): Promise<void> => {
-    proposer = await initMainnetUser(PROPOSER_ADDRESS, ethers.utils.parseEther("1.0"));
-    supporter = await initMainnetUser(SUPPORTER_ADDRESS, ethers.utils.parseEther("1.0"));
+    const proposerAddress = options.proposer ?? DEFAULT_PROPOSER_ADDRESS;
+    const supporterAddress = options.supporter ?? DEFAULT_SUPPORTER_ADDRESS;
+    proposer = await initMainnetUser(proposerAddress, ethers.utils.parseEther("1.0"));
+    supporter = await initMainnetUser(supporterAddress, ethers.utils.parseEther("1.0"));
     impersonatedTimelock = await initMainnetUser(NORMAL_TIMELOCK, ethers.utils.parseEther("1.0"));
 
     // Iniitalize impl via Proxy
-    governorProxy = await ethers.getContractAt(
-      options.governorAbi ? options.governorAbi : "GovernorBravoDelegate",
-      GOVERNOR_PROXY,
-    );
+    governorProxy = await ethers.getContractAt(options.governorAbi ?? "GovernorBravoDelegate", GOVERNOR_PROXY);
   };
 
   describe(`${description} commands`, () => {
