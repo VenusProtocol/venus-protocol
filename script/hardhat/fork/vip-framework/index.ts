@@ -23,7 +23,28 @@ export const forking = (blockNumber: number, fn: () => void) => {
   });
 };
 
-export const testVip = (description: string, proposal: Proposal, governorAbi: ContractInterface | null = null) => {
+export interface TestingOptions {
+  governorAbi?: ContractInterface;
+}
+
+const executeCommand = async (timelock: SignerWithAddress, proposal: Proposal, commandIdx: number): Promise<void> => {
+  const iface = new ethers.utils.Interface([`function ${proposal.signatures[commandIdx]}`]);
+  await timelock.sendTransaction({
+    to: proposal.targets[commandIdx],
+    value: proposal.values[commandIdx],
+    data: iface.encodeFunctionData(proposal.signatures[commandIdx], proposal.params[commandIdx]),
+    gasLimit: 8000000,
+  });
+};
+
+export const pretendExecutingVip = async (proposal: Proposal) => {
+  const impersonatedTimelock = await initMainnetUser(NORMAL_TIMELOCK, ethers.utils.parseEther("1.0"));
+  for (let i = 0; i < proposal.signatures.length; ++i) {
+    await executeCommand(impersonatedTimelock, proposal, i);
+  }
+};
+
+export const testVip = (description: string, proposal: Proposal, options: TestingOptions = {}) => {
   let impersonatedTimelock: SignerWithAddress;
   let governorProxy: Contract;
   let proposer: SignerWithAddress;
@@ -34,8 +55,11 @@ export const testVip = (description: string, proposal: Proposal, governorAbi: Co
     supporter = await initMainnetUser(SUPPORTER_ADDRESS, ethers.utils.parseEther("1.0"));
     impersonatedTimelock = await initMainnetUser(NORMAL_TIMELOCK, ethers.utils.parseEther("1.0"));
 
-    // Initialize impl via Proxy
-    governorProxy = await ethers.getContractAt(governorAbi ? governorAbi : "GovernorBravoDelegate", GOVERNOR_PROXY);
+    // Iniitalize impl via Proxy
+    governorProxy = await ethers.getContractAt(
+      options.governorAbi ? options.governorAbi : "GovernorBravoDelegate",
+      GOVERNOR_PROXY,
+    );
   };
 
   describe(`${description} commands`, () => {
@@ -44,14 +68,8 @@ export const testVip = (description: string, proposal: Proposal, governorAbi: Co
     });
 
     proposal.signatures.map((signature, i) => {
-      it(`executes ${signature} successfuly`, async () => {
-        const iface = new ethers.utils.Interface([`function ${proposal.signatures[i]}`]);
-        await impersonatedTimelock.sendTransaction({
-          to: proposal.targets[i],
-          value: proposal.values[i],
-          data: iface.encodeFunctionData(signature, proposal.params[i]),
-          gasLimit: 8000000,
-        });
+      it(`executes ${signature} successfully`, async () => {
+        await executeCommand(impersonatedTimelock, proposal, i);
       });
     });
   });
@@ -66,9 +84,16 @@ export const testVip = (description: string, proposal: Proposal, governorAbi: Co
     it("can be proposed", async () => {
       const { targets, signatures, values, meta } = proposal;
       const proposalIdBefore = await governorProxy.callStatic.proposalCount();
-      const tx = await governorProxy
-        .connect(proposer)
-        .propose(targets, values, signatures, getCalldatas(proposal), JSON.stringify(meta));
+      let tx;
+      if (proposal.type === undefined || proposal.type === null) {
+        tx = await governorProxy
+          .connect(proposer)
+          .propose(targets, values, signatures, getCalldatas(proposal), JSON.stringify(meta));
+      } else {
+        tx = await governorProxy
+          .connect(proposer)
+          .propose(targets, values, signatures, getCalldatas(proposal), JSON.stringify(meta), proposal.type);
+      }
       await tx.wait();
       proposalId = await governorProxy.callStatic.proposalCount();
       expect(proposalIdBefore.add(1)).to.equal(proposalId);
