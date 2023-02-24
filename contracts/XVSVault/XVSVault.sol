@@ -208,10 +208,8 @@ contract XVSVault is XVSVaultStorage, ECDSA {
 
             user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
-            if (pending > 0) {
-                IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, _account, pending);
-                emit Claim(_account, _rewardToken, _pid, pending);
-            }
+            IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, _account, pending);
+            emit Claim(_account, _rewardToken, _pid, pending);
         }
     }
 
