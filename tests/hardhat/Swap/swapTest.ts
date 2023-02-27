@@ -39,6 +39,7 @@ type SwapFixture = {
   pancakeFactory: FakeContract<IPancakeSwapV2Factory>;
   tokenPair: FakeContract<IPancakePair>;
   wBnbPair: FakeContract<IPancakePair>;
+  tokenAwBnbPair: FakeContract<IPancakePair>;
   dTokenPair: FakeContract<IPancakePair>;
   dTokenPair2: FakeContract<IPancakePair>;
 };
@@ -69,6 +70,11 @@ async function deploySwapContract(): Promise<SwapFixture> {
   create2Address = getCreate2Address(pancakeFactory.address, [wBNB.address, tokenB.address]);
   const wBnbPair = await smock.fake<IPancakePair>("IPancakePair", { address: create2Address.toLocaleLowerCase() });
 
+  create2Address = getCreate2Address(pancakeFactory.address, [tokenA.address, wBNB.address]);
+  const tokenAwBnbPair = await smock.fake<IPancakePair>("IPancakePair", {
+    address: create2Address.toLocaleLowerCase(),
+  });
+
   //Calculate tokenPair address
   create2Address = getCreate2Address(pancakeFactory.address, [dToken.address, tokenB.address]);
   const dTokenPair = await smock.fake<IPancakePair>("IPancakePair", { address: create2Address.toLocaleLowerCase() });
@@ -88,11 +94,12 @@ async function deploySwapContract(): Promise<SwapFixture> {
     dToken,
     dTokenPair,
     dTokenPair2,
+    tokenAwBnbPair,
   };
 }
 
 async function configure(fixture: SwapFixture, user: SignerWithAddress) {
-  const { tokenPair, wBnbPair, tokenA, swapRouter, wBNB, dToken, dTokenPair, dTokenPair2 } = fixture;
+  const { tokenPair, wBnbPair, tokenA, swapRouter, wBNB, dToken, dTokenPair, dTokenPair2, tokenAwBnbPair } = fixture;
   tokenPair.getReserves.returns({
     reserve0: DEFAULT_RESERVE,
     reserve1: DEFAULT_RESERVE,
@@ -113,12 +120,18 @@ async function configure(fixture: SwapFixture, user: SignerWithAddress) {
     reserve1: DEFAULT_RESERVE,
     blockTimestampLast: 0,
   });
+  tokenAwBnbPair.getReserves.returns({
+    reserve0: DEFAULT_RESERVE,
+    reserve1: DEFAULT_RESERVE,
+    blockTimestampLast: 0,
+  });
   await tokenA.allocateTo(user.address, SWAP_AMOUNT);
   await tokenA.allocateTo(tokenPair.address, DEFAULT_RESERVE);
   await dToken.transfer(user.address, parseUnits("5000", 18));
   await dToken.transfer(dTokenPair.address, DEFAULT_RESERVE);
   await dToken.transfer(dTokenPair2.address, DEFAULT_RESERVE);
   await wBNB.connect(user).setBalanceOf(wBnbPair.address, DEFAULT_RESERVE);
+  await wBNB.connect(user).setBalanceOf(dTokenPair2.address, DEFAULT_RESERVE);
   await wBNB.connect(user).setBalanceOf(dTokenPair2.address, DEFAULT_RESERVE);
   await tokenA.connect(user).approve(swapRouter.address, SWAP_AMOUNT);
   await dToken.connect(user).approve(swapRouter.address, DEFAULT_RESERVE);
@@ -436,6 +449,57 @@ describe("Swap Contract", () => {
           .swapETHForExactTokensAndRepay(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
+      );
+    });
+
+    it("Exact tokens -> BNB", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapExactTokensForETHAndRepay(
+            vToken.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [tokenA.address, wBNB.address],
+            deadline,
+          ),
+      );
+    });
+
+    it("Exact tokens -> BNB at supporting fee", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapExactTokensForETHAndRepayAtSupportingFee(
+            vToken.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [dToken.address, wBNB.address],
+            deadline,
+          ),
+      );
+    });
+
+    it("Tokens -> Exact BNB", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapTokensForExactETHAndRepay(
+            vToken.address,
+            MIN_AMOUNT_OUT,
+            SWAP_AMOUNT,
+            [tokenA.address, wBNB.address],
+            deadline,
+            {
+              value: SWAP_AMOUNT,
+            },
+          ),
       );
     });
   });
