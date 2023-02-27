@@ -1,9 +1,13 @@
 pragma solidity ^0.5.16;
 
+import "../Utils/SafeMath.sol";
+
 /**
  * @title Logic for Venus stable rate.
  */
 contract StableRateModel {
+    using SafeMath for uint;
+
     event NewStableInterestParams(uint256 baseRatePerBlock, uint256 stableRatePremium, uint256 optimalStableLoanRatio);
 
     /// @notice Indicator that this is an InterestRateModel contract (for inspection)
@@ -109,7 +113,7 @@ contract StableRateModel {
             baseRatePerYear_ > blocksPerYear,
             "StableRateModel: baseRatePerYear should be greater than blocksPerYear"
         );
-        baseRatePerBlock = baseRatePerYear_ / blocksPerYear;
+        baseRatePerBlock = baseRatePerYear_.div(blocksPerYear);
         stableRatePremium = stableRatePremium_;
         optimalStableLoanRatio = optimalStableLoanRatio_;
 
