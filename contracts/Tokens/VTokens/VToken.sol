@@ -593,6 +593,13 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         return result;
     }
 
+    /**
+     * @notice Applies accrued interest to stable borrows and reserves
+     * @dev This calculates interest accrued from the last checkpointed block
+     *   up to the current block and writes new checkpoint to storage.
+     * @param blockDelta the number of blocks elapsed since the last accrual
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function _accrueStableInterest(uint256 blockDelta) internal returns (uint256) {
         uint256 stableIndexPrior = stableBorrowIndex;
 

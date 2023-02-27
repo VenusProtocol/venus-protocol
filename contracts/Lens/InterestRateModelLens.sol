@@ -30,7 +30,7 @@ contract InterestRateModelLens {
             uint256 borrowRate = ir.getBorrowRate(cash, borrow, reserves);
             borrowSimulation[percent_Factor - 1] = borrowRate;
 
-            uint256 supplyRate = ir.getSupplyRate(cash, borrow, reserves, reserveFactorMantissa);
+            uint256 supplyRate = ir.utilizationRate(cash, borrow, reserves);
             supplySimulation[percent_Factor - 1] = supplyRate;
         }
 
