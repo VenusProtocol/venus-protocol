@@ -177,6 +177,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
                 user.rewardDebt
             );
             IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+            emit Claim(msg.sender, _rewardToken, _pid, pending);
         }
         pool.token.safeTransferFrom(address(msg.sender), address(this), _amount);
         user.amount = user.amount.add(_amount);
@@ -186,7 +187,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         if (address(pool.token) == address(xvsAddress)) {
             _moveDelegates(address(0), delegates[msg.sender], uint96(_amount));
         }
-
+        
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
     }
 
@@ -379,6 +380,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             _moveDelegates(delegates[msg.sender], address(0), uint96(_amount));
         }
 
+        emit Claim(msg.sender, _rewardToken, _pid, pending);
         emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }
 
