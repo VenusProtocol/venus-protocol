@@ -471,7 +471,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
                 );
         }
 
-        totalBorrowsNew = totalBorrows + stableBorrows;
+        totalBorrowsNew = totalBorrowsNew + stableBorrows;
 
         (mathErr, totalReservesNew) = mulScalarTruncateAddUInt(
             Exp({ mantissa: reserveFactorMantissa }),
