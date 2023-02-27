@@ -187,7 +187,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         if (address(pool.token) == address(xvsAddress)) {
             _moveDelegates(address(0), delegates[msg.sender], uint96(_amount));
         }
-        
+
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
     }
 
