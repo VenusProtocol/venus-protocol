@@ -157,15 +157,15 @@ describe("VToken", () => {
       const receipt = await vToken.accrueInterest();
       const expectedInterestAccumulated = expectedTotalBorrows.minus(startingTotalBorrows);
 
-      // await expect(receipt)
-      //   .to.emit(vToken, "AccrueInterest")
-      //   .withArgs(
-      //     0,
-      //     expectedInterestAccumulated.toFixed(),
-      //     expectedBorrowIndex.toFixed(),
-      //     expectedTotalBorrows.toFixed(),
-      //     expectedBorrowIndex.toFixed(),
-      //   );
+      await expect(receipt)
+        .to.emit(vToken, "AccrueInterest")
+        .withArgs(
+          0,
+          expectedInterestAccumulated.toFixed(),
+          expectedBorrowIndex.toFixed(),
+          expectedTotalBorrows.toFixed(),
+          expectedBorrowIndex.toFixed(),
+        );
 
       expect(await vToken.accrualBlockNumber()).to.equal(expectedAccrualBlockNumber);
       expect(await vToken.borrowIndex()).to.equal(expectedBorrowIndex);

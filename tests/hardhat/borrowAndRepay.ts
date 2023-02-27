@@ -333,7 +333,6 @@ describe("VToken", function () {
           await preRepay(contracts, payer, borrower, repayAmount, 2);
         });
 
-// --
         it("fails if repay is not allowed", async () => {
           comptroller.repayBorrowAllowed.reverts();
           await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).to.be.reverted;
@@ -358,7 +357,6 @@ describe("VToken", function () {
           );
         });
 
-// -- not checking 
         // it("returns an error if calculating account new account borrow balance fails", async () => {
         //   await pretendBorrow(vToken, borrower, 1, 1, 1);
         //   await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).to.be.revertedWithPanic(
@@ -366,13 +364,12 @@ describe("VToken", function () {
         //   );
         // });
 
-// -- skip
         // it("returns an error if calculation of new total borrow balance fails", async () => {
         //   await vToken.harnessSetTotalBorrows(1);
         //   await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).to.be.reverted;
         //         });
 
-        //-- skip
+        
         // it("reverts if doTransferIn fails", async () => {
         //   await underlying.harnessSetFailTransferFromAddress(payerAddress, true);
         //   await expect(repayBorrowFresh(vToken, payer, borrower, repayAmount)).to.be.revertedWith(
@@ -441,7 +438,7 @@ describe("VToken", function () {
           );
         });
 
-        //-- skip
+        
         // it("returns an error if calculating account new account borrow balance fails", async () => {
         //   await pretendBorrow(vToken, borrower, 1, 1, 1);
         //   await expect(repayBorrowStableFresh(vToken, payer, borrower, repayAmount)).to.be.revertedWithPanic(
@@ -449,7 +446,7 @@ describe("VToken", function () {
         //   );
         // });
 
-        //-- skip
+        
         // it("returns an error if calculation of new total borrow balance fails", async () => {
         //   await vToken.harnessSetTotalBorrows(1);
         //   await expect(repayBorrowStableFresh(vToken, payer, borrower, repayAmount)).to.be.revertedWithPanic(
@@ -457,7 +454,7 @@ describe("VToken", function () {
         //   );
         // });
 
-        //-- skip
+        
         // it("reverts if doTransferIn fails", async () => {
         //   await underlying.harnessSetFailTransferFromAddress(payerAddress, true);
         //   await expect(repayBorrowStableFresh(vToken, payer, borrower, repayAmount)).to.be.revertedWith(
