@@ -331,11 +331,14 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 balanceBefore = address(this).balance;
         _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
-        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmount);
+        if (response != 0) {
+            revert RepayError(msg.sender, vTokenAddress, response);
+        }
     }
 
     /**
@@ -354,11 +357,14 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 balanceBefore = address(this).balance;
         _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+         uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmount);
+        if (response != 0) {
+            revert RepayError(msg.sender, vTokenAddress, response);
+        }
     }
 
     /**
@@ -377,11 +383,14 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 balanceBefore = address(this).balance;
         _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
-        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmount);
+        if (response != 0) {
+            revert RepayError(msg.sender, vTokenAddress, response);
+        }
     }
 
     /**
