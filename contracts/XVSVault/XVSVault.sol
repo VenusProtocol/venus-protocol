@@ -58,6 +58,9 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     /// @notice An event emitted when a pool allocation points are updated
     event PoolUpdated(address indexed rewardToken, uint indexed pid, uint oldAllocPoints, uint newAllocPoints);
 
+    /// @notice Event emitted when reward claimed
+    event Claim(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
+
     constructor() public {
         admin = msg.sender;
     }
@@ -174,6 +177,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
                 user.rewardDebt
             );
             IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+            emit Claim(msg.sender, _rewardToken, _pid, pending);
         }
         pool.token.safeTransferFrom(address(msg.sender), address(this), _amount);
         user.amount = user.amount.add(_amount);
@@ -185,6 +189,29 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
+    }
+
+    /**
+     * @notice Claim rewards for pool
+     * @param _account The account for which to claim rewards
+     * @param _rewardToken The Reward Token Address
+     * @param _pid The Pool Index
+     */
+    function claim(address _account, address _rewardToken, uint256 _pid) external nonReentrant {
+        _ensureValidPool(_rewardToken, _pid);
+        PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+        UserInfo storage user = userInfos[_rewardToken][_pid][_account];
+        _updatePool(_rewardToken, _pid);
+        if (user.amount > 0) {
+            uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
+                user.rewardDebt
+            );
+
+            user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+
+            IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, _account, pending);
+            emit Claim(_account, _rewardToken, _pid, pending);
+        }
     }
 
     /**
@@ -353,6 +380,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             _moveDelegates(delegates[msg.sender], address(0), uint96(_amount));
         }
 
+        emit Claim(msg.sender, _rewardToken, _pid, pending);
         emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }
 

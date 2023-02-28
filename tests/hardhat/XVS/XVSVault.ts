@@ -46,7 +46,7 @@ describe("XVSVault", async () => {
 
     await xvsStore.setNewOwner(xvsVault.address);
     await xvsVault.setXvsStore(xvs.address, xvsStore.address);
-    await xvs.connect(deployer).transfer(xvsStore.address, bigNumber18.mul(1000));
+    await xvs.connect(deployer).transfer(xvsStore.address, bigNumber18.mul(10000));
     await xvs.connect(deployer).transfer(user.address, bigNumber18.mul(1000));
 
     await xvsStore.setRewardToken(xvs.address, true);
@@ -55,7 +55,7 @@ describe("XVSVault", async () => {
   });
 
   it("check xvs balance", async () => {
-    expect(await xvs.balanceOf(xvsStore.address)).to.eq(bigNumber18.mul(1000));
+    expect(await xvs.balanceOf(xvsStore.address)).to.eq(bigNumber18.mul(10000));
   });
 
   it("check if pool exists", async () => {
@@ -81,23 +81,70 @@ describe("XVSVault", async () => {
 
     await mine(1000);
 
-    let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
-
-    await xvsVault.requestWithdrawal(xvs.address, poolId, depositAmount);
-
-    let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
-
-    expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
+    let previousXVSBalance = await xvs.balanceOf(deployer.address);
+    await xvsVault.connect(deployer).requestWithdrawal(xvs.address, poolId, depositAmount);
+    let currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString());
 
     await mine(500);
 
-    previousXVSBalance = currentXVSBalance;
-
+    previousXVSBalance = await xvs.balanceOf(deployer.address);
     await xvsVault.executeWithdrawal(xvs.address, poolId);
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(depositAmount.toString());
+  });
 
-    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
+  it("claim reward", async () => {
+    const depositAmount = bigNumber18.mul(100);
 
-    expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
+    await xvs.approve(xvsVault.address, depositAmount);
+    await xvsVault.deposit(xvs.address, poolId, depositAmount);
+
+    await mine(1000);
+
+    let previousXVSBalance = await xvs.balanceOf(deployer.address);
+    await xvsVault.claim(deployer.address, xvs.address, poolId);
+    let currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString());
+
+    await mine(1000);
+
+    previousXVSBalance = await xvs.balanceOf(deployer.address);
+    await xvsVault.claim(deployer.address, xvs.address, poolId);
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString());
+
+    await mine(1000);
+
+    previousXVSBalance = await xvs.balanceOf(deployer.address);
+    await xvsVault.connect(deployer).requestWithdrawal(xvs.address, poolId, depositAmount);
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString());
+
+    await mine(500);
+
+    previousXVSBalance = await xvs.balanceOf(deployer.address);
+    await xvsVault.executeWithdrawal(xvs.address, poolId);
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(depositAmount.toString());
+
+    await xvs.approve(xvsVault.address, depositAmount);
+    await xvsVault.deposit(xvs.address, poolId, depositAmount);
+
+    await mine(1000);
+
+    previousXVSBalance = await xvs.balanceOf(deployer.address);
+    await xvsVault.claim(deployer.address, xvs.address, poolId);
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1001).toString());
+
+    await xvsVault.setRewardAmountPerBlock(xvs.address, 0);
+    await mine(1000);
+
+    previousXVSBalance = await xvs.balanceOf(deployer.address);
+    await xvsVault.claim(deployer.address, xvs.address, poolId);
+    currentXVSBalance = await xvs.balanceOf(deployer.address);
+    expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(bigNumber18.mul(1).toString());
   });
 
   it("no reward for pending withdrawals", async () => {
