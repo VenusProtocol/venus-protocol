@@ -1382,9 +1382,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         return (uint(Error.NO_ERROR), actualRepayAmount);
     }
 
-    function swapBorrowRateModePreCalculation(address account) internal returns (uint256, uint256) {
+    /**
+     * @notice Checks before swapping borrow rate mode
+     * @param account Address of the borrow holder
+     * @return (uint256, uint256) returns the variableDebt and stableDebt for the account
+     */
+    function _swapBorrowRateModePreCalculation(address account) internal returns (uint256, uint256) {
         /* Fail if swapBorrowRateMode not allowed */
-        //comptroller.preSwapBorrowRateModeHook(address(this));
+        comptroller.preSwapBorrowRateModeHook(address(this));
 
         accrueInterest();
 
@@ -1399,6 +1404,15 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         return (variableDebt, stableDebt);
     }
 
+    /**
+     * @notice Update states for the stable borrow while swapping
+     * @param swappedAmount Amount need to be swapped
+     * @param stableDebt Stable debt for the account
+     * @param variableDebt Variable debt for the account
+     * @param account Address of the account
+     * @param accountBorrowsNew New stable borrow for the account
+     * @return (uint256, uint256) returns updated stable borrow for the account and updated average stable borrow rate
+     */
     function _updateStatesForStableRateSwap(
         uint256 swappedAmount,
         uint256 stableDebt,
@@ -1429,6 +1443,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         return (stableBorrowsNew, averageStableBorrowRateNew);
     }
 
+    /**
+     * @notice Update states for the variable borrow during the swap
+     * @param swappedAmount Amount need to be swapped
+     * @param stableDebt Stable debt for the account
+     * @param variableDebt Variable debt for the account
+     * @param account Address of the account
+     * @return (uint256, uint256) returns updated stable borrow for the account and updated average stable borrow rate
+     */
     function _updateStatesForVariableRateSwap(
         uint256 swappedAmount,
         uint256 stableDebt,
@@ -1446,6 +1468,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             averageStableBorrowRateNew =
                 ((stableBorrows * averageStableBorrowRate) - (swappedAmount * stableRateMantissa)) /
                 stableBorrowsNew;
+            
         }
 
         /////////////////////////
@@ -1461,67 +1484,27 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @dev Allows a borrower to swap his debt between stable and variable mode, or vice versa
-     * @param rateMode The rate mode that the user wants to swap to
-     **/
-    function swapBorrowRateMode(uint256 rateMode) external {
-        address account = msg.sender;
-        (uint256 variableDebt, uint256 stableDebt) = swapBorrowRateModePreCalculation(account);
-
-        uint256 accountBorrowsNew = stableDebt + variableDebt;
-        uint256 stableBorrowsNew;
-        uint256 averageStableBorrowRateNew;
-        uint256 amount;
-
-        if (InterestRateMode(rateMode) == InterestRateMode.STABLE) {
-            require(variableDebt > 0, "vToken: swapBorrowRateMode variable debt is 0");
-            amount = variableDebt;
-
-            (stableBorrowsNew, averageStableBorrowRateNew) = _updateStatesForStableRateSwap(
-                amount,
-                stableDebt,
-                variableDebt,
-                account,
-                accountBorrowsNew
-            );
-        } else {
-            require(stableDebt > 0, "vToken: swapBorrowRateMode stable debt is 0");
-            amount = stableDebt;
-
-            (stableBorrowsNew, averageStableBorrowRateNew) = _updateStatesForVariableRateSwap(
-                amount,
-                stableDebt,
-                variableDebt,
-                account
-            );
-        }
-
-        stableBorrows = stableBorrowsNew;
-        averageStableBorrowRate = averageStableBorrowRateNew;
-
-        emit SwapBorrowRateMode(account, rateMode);
-    }
-
-    /**
      * @dev Allows a borrower to swap his debt between stable and variable mode, or vice versa with specific amount
      * @param rateMode The rate mode that the user wants to swap to
-     * @param amount The amount that the user wants to convert form stable to variable mode or vice versa.
+     * @param sentAmount The amount that the user wants to convert form stable to variable mode or vice versa.
      * custom:access Not restricted
      **/
-    function swapBorrowRateModeWithAmount(uint256 rateMode, uint256 amount) external {
+    function swapBorrowRateModeWithAmount(uint256 rateMode, uint256 sentAmount) external {
         address account = msg.sender;
-        (uint256 variableDebt, uint256 stableDebt) = swapBorrowRateModePreCalculation(account);
+        (uint256 variableDebt, uint256 stableDebt) = _swapBorrowRateModePreCalculation(account);
 
-        uint256 accountBorrowsNew = stableDebt + amount;
         uint256 stableBorrowsNew;
         uint256 averageStableBorrowRateNew;
+        uint256 swappedAmount;
 
         if (InterestRateMode(rateMode) == InterestRateMode.STABLE) {
             require(variableDebt > 0, "vToken: swapBorrowRateMode variable debt is 0");
-            require(variableDebt >= amount, "Insufficient amount");
+
+            swappedAmount = sentAmount > variableDebt ? variableDebt : sentAmount;
+            uint256 accountBorrowsNew = stableDebt + swappedAmount;
 
             (stableBorrowsNew, averageStableBorrowRateNew) = _updateStatesForStableRateSwap(
-                amount,
+                swappedAmount,
                 stableDebt,
                 variableDebt,
                 account,
@@ -1529,10 +1512,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             );
         } else {
             require(stableDebt > 0, "vToken: swapBorrowRateMode stable debt is 0");
-            require(stableDebt >= amount, "Insufficient amount");
+
+            swappedAmount = sentAmount > stableDebt ? stableDebt : sentAmount;
 
             (stableBorrowsNew, averageStableBorrowRateNew) = _updateStatesForVariableRateSwap(
-                amount,
+                swappedAmount,
                 stableDebt,
                 variableDebt,
                 account
@@ -1542,7 +1526,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         stableBorrows = stableBorrowsNew;
         averageStableBorrowRate = averageStableBorrowRateNew;
 
-        emit SwapBorrowRateModeWithAmount(account, rateMode, amount);
+        emit SwapBorrowRateMode(account, rateMode, swappedAmount);
     }
 
     /**
