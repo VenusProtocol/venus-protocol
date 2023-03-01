@@ -75,28 +75,26 @@ describe("VToken", function () {
     });
 
     it("Revert on average borrow rate higher than variable rate threshold", async () => {
-      await vToken.setRebalanceUtilizationRateThreshold(convertToUnit(70, 17));
+      await vToken.setRebalanceUtilizationRateThreshold(convertToUnit(7, 17));
       await vToken.setRebalanceRateFractionThreshold(convertToUnit(50, 17));
       await preBorrow(contracts, borrower, borrowAmount);
       await borrowStable(vToken, borrower, convertToUnit(900, 18));
-      interestRateModel.utilizationRate.returns(convertToUnit(90, 17));
       await expect(vToken.validateRebalanceStableBorrowRate()).to.be.revertedWith(
         "vToken: average borrow rate higher than variable rate threshold.",
       );
     });
 
     it("Satisfy both conditions", async () => {
-      await vToken.setRebalanceUtilizationRateThreshold(convertToUnit(70, 17));
+      await vToken.setRebalanceUtilizationRateThreshold(convertToUnit(7, 17));
       await vToken.setRebalanceRateFractionThreshold(convertToUnit(50, 17));
       await preBorrow(contracts, borrower, borrowAmount);
       await borrowStable(vToken, borrower, convertToUnit(900, 18));
-      interestRateModel.utilizationRate.returns(convertToUnit(90, 17));
-      interestRateModel.getBorrowRate.returns(convertToUnit(5, 8));
+      await interestRateModel.getBorrowRate.returns(convertToUnit(5, 8));
       await vToken.validateRebalanceStableBorrowRate();
     });
 
     it("Rebalacing the stable rate for a user", async () => {
-      await vToken.setRebalanceUtilizationRateThreshold(convertToUnit(70, 17));
+      await vToken.setRebalanceUtilizationRateThreshold(convertToUnit(7, 17));
       await vToken.setRebalanceRateFractionThreshold(convertToUnit(50, 17));
       await preBorrow(contracts, borrower, borrowAmount, convertToUnit(5, 6));
       await borrowStable(vToken, borrower, convertToUnit(900, 18));
@@ -104,7 +102,6 @@ describe("VToken", function () {
       let accountBorrows = await vToken.harnessAccountStableBorrows(borrower.getAddress());
       expect(accountBorrows.stableRateMantissa).to.equal(convertToUnit(5, 6));
 
-      interestRateModel.utilizationRate.returns(convertToUnit(90, 17));
       interestRateModel.getBorrowRate.returns(convertToUnit(5, 8));
       stableInterestRateModel.getBorrowRate.returns(convertToUnit(8, 8));
       await vToken.rebalanceStableBorrowRate(borrower.getAddress());
