@@ -1513,7 +1513,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             averageStableBorrowRateNew =
                 ((stableBorrows * averageStableBorrowRate) - (swappedAmount * stableRateMantissa)) /
                 stableBorrowsNew;
-            
         }
 
         /////////////////////////
