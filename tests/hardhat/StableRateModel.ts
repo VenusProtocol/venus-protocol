@@ -86,13 +86,12 @@ describe("StableRateModel: Tests", function () {
   });
 
   it("Calculate Supply rate of the market", async function () {
-    interestRateModel.utilizationRate.returns(convertToUnit(5, 17));
     interestRateModel.getBorrowRate.returns(convertToUnit(3, 17));
     await vToken.harnessSetTotalBorrows(convertToUnit(2, 20));
     await vToken.harnessSetReserveFactorFresh(convertToUnit(1, 17));
     await vToken.harnessSetAvgStableBorrowRate(convertToUnit(4, 17));
     await vToken.harnessStableBorrows(convertToUnit(2, 18));
 
-    expect((await vToken.supplyRatePerBlock()).toString()).to.equal("135450000000000000");
+    expect((await vToken.supplyRatePerBlock()).toString()).to.equal("270900000000000000");
   });
 });
