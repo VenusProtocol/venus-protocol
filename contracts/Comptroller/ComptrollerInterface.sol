@@ -81,7 +81,6 @@ contract ComptrollerInterfaceG1 {
 
     function preSwapBorrowRateModeHook(address vToken) external;
 
-
     /*** Liquidity/Liquidation Calculations ***/
 
     function liquidateCalculateSeizeTokens(
