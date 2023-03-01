@@ -167,9 +167,6 @@ describe("VToken", function () {
     });
 
     it("fails if borrower is equal to liquidator", async () => {
-      // const (x) =  await liquidateFresh(borrowed.vToken, borrower, borrower, repayAmount, collateral.vToken);
-      // console.log(val);
-      // console.log(val[0],val[1]);
       expect(
         await liquidateFresh(borrowed.vToken, borrower, borrower, repayAmount, collateral.vToken),
       ).to.be.reverted;
@@ -323,35 +320,6 @@ describe("VToken", function () {
       expect(await seize(collateral.vToken, liquidator, borrower, seizeTokens)).to.be.reverted;
     });
 
-    // it("succeeds, updates balances, adds to reserves, and emits Transfer and ReservesAdded events", async () => {
-    //   const liquidatorAddress = await liquidator.getAddress();
-    //   const borrowerAddress = await borrower.getAddress();
-
-    //   const beforeBalances = await getBalances([collateral.vToken], [liquidatorAddress, borrowerAddress]);
-    //   const result = await seize(collateral.vToken, liquidator, borrower, seizeTokens);
-    //   const afterBalances = await getBalances([collateral.vToken], [liquidatorAddress, borrowerAddress]);
-
-    //   await expect(result)
-    //     .to.emit(collateral.vToken, "Transfer")
-    //     .withArgs(borrowerAddress, liquidatorAddress, liquidatorShareTokens);
-
-    //   await expect(result)
-    //     .to.emit(collateral.vToken, "Transfer")
-    //     .withArgs(borrowerAddress, collateral.vToken.address, protocolShareTokens);
-
-    //   await expect(result)
-    //     .to.emit(collateral.vToken, "ReservesAdded")
-    //     .withArgs(collateral.vToken.address, addReservesAmount, addReservesAmount);
-
-    //   expect(afterBalances).to.deep.equal(
-    //     adjustBalances(beforeBalances, [
-    //       [collateral.vToken, liquidatorAddress, "tokens", liquidatorShareTokens],
-    //       [collateral.vToken, borrowerAddress, "tokens", -seizeTokens],
-    //       [collateral.vToken, collateral.vToken.address, "reserves", addReservesAmount],
-    //       [collateral.vToken, collateral.vToken.address, "tokens", -protocolShareTokens], // total supply decreases
-    //     ]),
-    //   );
-    // });
   });
 });
 })
