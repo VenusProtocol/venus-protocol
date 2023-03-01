@@ -283,11 +283,6 @@ contract VTokenInterface is VTokenStorage {
     event UpdatedUserStableBorrowBalance(address borrower, uint256 updatedPrincipal);
 
     /**
-     * @notice Event emitted when a borrow rate mode is swapped for account
-     */
-    event SwapBorrowRateMode(address account, uint256 swappedBorrowMode);
-
-    /**
      * @notice Event emitted when stableInterestRateModel is changed
      */
     event NewMarketStableInterestRateModel(StableRateModel oldInterestRateModel, StableRateModel newInterestRateModel);
@@ -295,7 +290,7 @@ contract VTokenInterface is VTokenStorage {
     /**
      * @notice Event emitted when a borrow rate mode is swapped for account with amount
      */
-    event SwapBorrowRateModeWithAmount(address account, uint256 swappedBorrowMode, uint256 amount);
+    event SwapBorrowRateMode(address account, uint256 swappedBorrowMode, uint256 amount);
 
     /**
      * @notice Event emitted on stable rate rebalacing

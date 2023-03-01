@@ -54,27 +54,17 @@ describe("VToken", function () {
   });
 
   describe("swapBorrowRateMode: tests", () => {
-    it("fails if variable debt is 0", async () => {
-      await expect(vToken.swapBorrowRateMode(1)).to.be.revertedWith("vToken: swapBorrowRateMode variable debt is 0");
-    });
-
-    it("fails if stable debt is 0", async () => {
-      await expect(vToken.swapBorrowRateMode(2)).to.be.revertedWith("vToken: swapBorrowRateMode stable debt is 0");
-    });
-
     it("Swapping borrow rate mode from variable to stable", async () => {
       await preBorrow(contracts, borrower, borrowAmount);
-      
       await borrow(vToken, borrower, borrowAmount);
       let variableBorrow, stableBorrow;
       variableBorrow = await vToken.harnessAccountBorrows(borrowerAddress);
-      
       expect(variableBorrow.principal).equal(borrowAmount);
 
       stableBorrow = await vToken.harnessAccountStableBorrows(borrowerAddress);
       expect(stableBorrow.principal).equal(0);
 
-      await vToken.connect(borrower).swapBorrowRateMode(1);
+      await vToken.connect(borrower).swapBorrowRateModeWithAmount(1, convertToUnit("1001", 18));
 
       variableBorrow = await vToken.harnessAccountBorrows(borrowerAddress);
       expect(variableBorrow.principal).equal(0);
@@ -93,7 +83,7 @@ describe("VToken", function () {
       stableBorrow = await vToken.harnessAccountStableBorrows(borrowerAddress);
       expect(stableBorrow.principal).equal(borrowAmount);
 
-      await vToken.connect(borrower).swapBorrowRateMode(2);
+      await vToken.connect(borrower).swapBorrowRateModeWithAmount(2, convertToUnit("1001", 18));
 
       variableBorrow = await vToken.harnessAccountBorrows(borrowerAddress);
       expect(variableBorrow.principal).equal(borrowAmount);
