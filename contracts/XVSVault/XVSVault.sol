@@ -230,12 +230,12 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         uint _lockedUntil
     ) internal {
         uint i = _requests.length;
-        _requests.push(WithdrawalRequest(0, 0, true));
+        _requests.push(WithdrawalRequest(0, 0, 1));
         // Keep it sorted so that the first to get unlocked request is always at the end
         for (; i > 0 && _requests[i - 1].lockedUntil <= _lockedUntil; --i) {
             _requests[i] = _requests[i - 1];
         }
-        _requests[i] = WithdrawalRequest(_amount, _lockedUntil, true);
+        _requests[i] = WithdrawalRequest(_amount, uint128(_lockedUntil), 1);
         _user.pendingWithdrawals = _user.pendingWithdrawals.add(_amount);
     }
 
@@ -261,7 +261,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         // Since the requests are sorted by their unlock time, we can just
         // pop them from the array and stop at the first not-yet-eligible one
         for (uint i = _requests.length; i > 0 && isUnlocked(_requests[i - 1]); --i) {
-            if (_requests[i - 1].afterUpgrade == true) {
+            if (_requests[i - 1].afterUpgrade == 1) {
                 afterUpgradeWithdrawalAmount = afterUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
             } else {
                 beforeUpgradeWithdrawalAmount = beforeUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
@@ -334,7 +334,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         WithdrawalRequest[] storage _requests
     ) internal returns (uint beforeUpgradeWithdrawalAmount, uint afterUpgradeWithdrawalAmount) {
         for (uint i = _requests.length; i > 0; --i) {
-            if (_requests[i - 1].afterUpgrade == true) {
+            if (_requests[i - 1].afterUpgrade == 1) {
                 afterUpgradeWithdrawalAmount = afterUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
             } else {
                 beforeUpgradeWithdrawalAmount = beforeUpgradeWithdrawalAmount.add(_requests[i - 1].amount);

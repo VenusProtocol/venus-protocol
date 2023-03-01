@@ -56,8 +56,8 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
     // Infomation about a withdrawal request
     struct WithdrawalRequest {
         uint256 amount;
-        uint256 lockedUntil;
-        bool afterUpgrade;
+        uint128 lockedUntil;
+        uint128 afterUpgrade;
     }
 
     // Info of each user that stakes tokens.
