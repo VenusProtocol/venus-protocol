@@ -663,6 +663,10 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         return uint(Error.NO_ERROR);
     }
 
+    function preSwapBorrowRateModeHook(address vToken) external {
+        checkActionPauseState(vToken, Action.SWAP_RATE_MODE);
+    }
+
     /**
      * @notice Validates transfer and reverts on rejection. May emit logs.
      * @param vToken Asset being transferred
