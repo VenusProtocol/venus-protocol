@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "../InterestRateModels/InterestRateModel.sol";
 import "../Utils/SafeMath.sol";
+import "../Tokens/VTokens/VToken.sol";
 
 contract InterestRateModelLens {
     using SafeMath for uint256;
@@ -15,7 +16,7 @@ contract InterestRateModelLens {
     function getSimulationResponse(
         uint referenceAmountInWei,
         address interestRateModel,
-        uint reserveFactorMantissa
+        VToken vToken
     ) external view returns (SimulationResponse memory) {
         InterestRateModel ir = InterestRateModel(interestRateModel);
 
@@ -30,7 +31,7 @@ contract InterestRateModelLens {
             uint256 borrowRate = ir.getBorrowRate(cash, borrow, reserves);
             borrowSimulation[percent_Factor - 1] = borrowRate;
 
-            uint256 supplyRate = ir.utilizationRate(cash, borrow, reserves);
+            uint256 supplyRate = vToken.supplyRatePerBlock();
             supplySimulation[percent_Factor - 1] = supplyRate;
         }
 
