@@ -289,7 +289,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         if (totalBorrows == 0) {
             return 0;
         }
-        uint256 utilizationRate = interestRateModel.utilizationRate(getCashPrior(), totalBorrows, totalReserves);
+        uint256 utilizationRate = utilizationRate(getCashPrior(), totalBorrows, totalReserves);
         uint256 averageMarketBorrowRate = _averageMarketBorrowRate();
         return
             (averageMarketBorrowRate.mul(utilizationRate).mul(mantissaOne.sub(reserveFactorMantissa))).div(
@@ -596,6 +596,21 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function stableBorrowRatePerBlock() public view returns (uint256) {
         uint256 variableBorrowRate = interestRateModel.getBorrowRate(getCashPrior(), totalBorrows, totalReserves);
         return stableRateModel.getBorrowRate(stableBorrows, totalBorrows, variableBorrowRate);
+    }
+
+    /**
+     * @notice Calculates the utilization rate of the market: `borrows / (cash + borrows - reserves)`
+     * @param cash The amount of cash in the market
+     * @param borrows The amount of borrows in the market
+     * @param reserves The amount of reserves in the market (currently unused)
+     * @return The utilization rate as a mantissa between [0, 1e18]
+     */
+    function utilizationRate(uint cash, uint borrows, uint reserves) public pure returns (uint) {
+        // Utilization rate is 0 when there are no borrows
+        if (borrows == 0) {
+            return 0;
+        }
+        return (borrows * mantissaOne) / (cash + borrows - reserves);
     }
 
     /**
@@ -1626,7 +1641,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         require(rebalanceUtilizationRateThreshold > 0, "vToken: rebalanceUtilizationRateThreshold is not set.");
         require(rebalanceRateFractionThreshold > 0, "vToken: rebalanceRateFractionThreshold is not set.");
 
-        uint256 utilizationRate = interestRateModel.utilizationRate(getCashPrior(), totalBorrows, totalReserves);
+        uint256 utilizationRate = utilizationRate(getCashPrior(), totalBorrows, totalReserves);
         uint256 variableBorrowRate = interestRateModel.getBorrowRate(getCashPrior(), totalBorrows, totalReserves);
         /// Utilization rate is above rebalanceUtilizationRateThreshold.
         /// Average market borrow rate should be less than the rebalanceRateFractionThreshold fraction of variable borrow rate.
