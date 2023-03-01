@@ -18,6 +18,7 @@ import {
   IWBNB__factory,
   PriceOracle,
   SwapRouter,
+  VBNB,
   VBep20Immutable,
   VBep20Immutable__factory,
 } from "../../../typechain";
@@ -39,6 +40,7 @@ let wBNBUser: any;
 let vBUSD: VBep20Immutable;
 let vUSDT: VBep20Immutable;
 let vSFM: VBep20Immutable;
+let vBNB: VBNB;
 let vBabyDoge: VBep20Immutable;
 let admin: SignerWithAddress;
 let oracle: FakeContract<PriceOracle>;
@@ -85,6 +87,25 @@ async function configureVtoken(underlyingToken: FaucetToken | VBep20Immutable, n
   const vTokenFactory = await ethers.getContractFactory("VBep20Immutable");
   const vToken = await vTokenFactory.deploy(
     underlyingToken.address,
+    comptroller.address,
+    interestRateModel.address,
+    parseUnits("1", 18),
+    name,
+    symbol,
+    18,
+    admin.address,
+  );
+  await vToken.deployed();
+  return vToken;
+}
+
+async function configureVBNB(name: string, symbol: string) {
+  const InterstRateModel = await ethers.getContractFactory("InterestRateModelHarness");
+  const interestRateModel = await InterstRateModel.deploy(parseUnits("1", 12));
+  await interestRateModel.deployed();
+
+  const vBNBFactory = await ethers.getContractFactory("VBNB");
+  const vToken = await vBNBFactory.deploy(
     comptroller.address,
     interestRateModel.address,
     parseUnits("1", 18),
@@ -162,15 +183,27 @@ describe("Swap Contract", () => {
         configureOracle(oracle);
         vBUSD = await configureVtoken(BUSD, "vToken BUSD", "vBUSD");
         vUSDT = await configureVtoken(USDT, "vToken USDT", "vUSDT");
+        vBNB = await configureVBNB("vToken BNB", "vBNB");
 
         await comptroller._supportMarket(vBUSD.address);
         await comptroller._supportMarket(vUSDT.address);
+        await comptroller._supportMarket(vBNB.address);
         await comptroller._setPriceOracle(oracle.address);
         await expect(comptroller.connect(usdtUser).enterMarkets([vBUSD.address])).to.emit(comptroller, "MarketEntered");
+        await expect(comptroller.connect(usdtUser).enterMarkets([vBNB.address])).to.emit(comptroller, "MarketEntered");
         await comptroller._setMarketSupplyCaps([vBUSD.address], [parseUnits("100000", 18)]);
         await comptroller._setMarketSupplyCaps([vUSDT.address], [parseUnits("100000", 18)]);
+        await comptroller._setMarketSupplyCaps([vBNB.address], [parseUnits("100000", 18)]);
         await comptroller._setCollateralFactor(vBUSD.address, parseUnits("0.7", 18));
         await comptroller._setCollateralFactor(vUSDT.address, parseUnits("0.5", 18));
+        await comptroller._setCollateralFactor(vBNB.address, parseUnits("0.5", 18));
+
+        const [signer] = await ethers.getSigners();
+        await signer.sendTransaction({
+          to: vBNB.address,
+          value: ethers.BigNumber.from("900081987000000000"),
+          data: undefined,
+        });
       });
 
       it("revert if deadline has passed", async () => {
@@ -433,6 +466,61 @@ describe("Swap Contract", () => {
         const currBalance = await vBUSD.balanceOf(usdtUser.address);
         expect(currBalance).greaterThan(prevBalance);
       });
+
+      it("should swap Exact token -> BNB --> repay", async () => {
+        await USDT.connect(usdtUser).transfer(vUSDT.address, 1000);
+        const deadline = await getValidDeadline();
+        await swapRouter
+          .connect(busdUser)
+          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+        await vBNB.connect(busdUser).borrow(parseUnits("5", 0));
+        const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(busdUser.address);
+        await swapRouter
+          .connect(busdUser)
+          .swapExactTokensForETHAndRepay(
+            vBNB.address,
+            parseUnits("1500", 0),
+            parseUnits("4", 0),
+            [USDT.address, wBNB.address],
+            deadline,
+          );
+        const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(busdUser.address);
+        expect(borrowBalanceAfter).lessThan(borrowBalancePrev);
+      });
+
+      it("should revert when expected min amount is greater then actual", async () => {
+        await USDT.connect(usdtUser).transfer(vUSDT.address, 1000);
+        const deadline = await getValidDeadline();
+        await swapRouter
+          .connect(busdUser)
+          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+        await vBNB.connect(busdUser).borrow(parseUnits("5", 0));
+        await expect(
+          swapRouter
+            .connect(busdUser)
+            .swapTokensForExactETHAndRepay(
+              vBNB.address,
+              parseUnits("1500", 0),
+              parseUnits("6", 0),
+              [USDT.address, wBNB.address],
+              deadline,
+            ),
+        ).to.be.revertedWithCustomError(swapRouter, "InputAmountAboveMaximum");
+      });
+
+      it("should swap token -> EXACT BNB --> repay", async () => {
+        const deadline = await getValidDeadline();
+        await swapRouter
+          .connect(busdUser)
+          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+        await vBNB.connect(busdUser).borrow(parseUnits("5", 0));
+        const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(busdUser.address);
+        await swapRouter
+          .connect(busdUser)
+          .swapTokensForExactETHAndRepay(vBNB.address, SWAP_BNB_AMOUNT, 277, [BUSD.address, wBNB.address], deadline);
+        const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(busdUser.address);
+        expect(borrowBalanceAfter).lessThan(borrowBalancePrev);
+      });
     });
 
     describe("Tokens And BNB on supporting Fee", () => {
@@ -442,7 +530,9 @@ describe("Swap Contract", () => {
         configureOracle(oracle);
         vBabyDoge = await configureVtoken(BabyDoge, "vToken Baby Doge", "vBabyDoge");
         vSFM = await configureVtoken(SFM, "vToken SFM", "vSFM");
+        vBNB = await configureVBNB("vToken BNB", "vBNB");
 
+        await comptroller._supportMarket(vBNB.address);
         await comptroller._supportMarket(vBabyDoge.address);
         await comptroller._supportMarket(vSFM.address);
         await comptroller._setPriceOracle(oracle.address);
@@ -451,12 +541,29 @@ describe("Swap Contract", () => {
           comptroller,
           "MarketEntered",
         );
+        await expect(comptroller.connect(BabyDogeUser).enterMarkets([vSFM.address])).to.emit(
+          comptroller,
+          "MarketEntered",
+        );
+        await expect(comptroller.connect(BabyDogeUser).enterMarkets([vBNB.address])).to.emit(
+          comptroller,
+          "MarketEntered",
+        );
 
         await comptroller._setMarketSupplyCaps([vBabyDoge.address], [parseUnits("100000", 18)]);
         await comptroller._setMarketSupplyCaps([vSFM.address], [parseUnits("100000", 18)]);
+        await comptroller._setMarketSupplyCaps([vBNB.address], [parseUnits("100000", 18)]);
 
         await comptroller._setCollateralFactor(vBabyDoge.address, parseUnits("0.7", 18));
         await comptroller._setCollateralFactor(vSFM.address, parseUnits("0.5", 18));
+        await comptroller._setCollateralFactor(vBNB.address, parseUnits("0.5", 18));
+
+        const [signer] = await ethers.getSigners();
+        await signer.sendTransaction({
+          to: vBNB.address,
+          value: ethers.BigNumber.from("7000000000"),
+          data: undefined,
+        });
       });
 
       it("should swap tokenA -> tokenB  at supporting fee", async () => {
@@ -586,6 +693,26 @@ describe("Swap Contract", () => {
           });
 
         const [, , borrowBalanceAfter] = await vSFM.getAccountSnapshot(wBNBUser.address);
+        expect(borrowBalanceAfter).lessThan(borrowBalancePrev);
+      });
+
+      it("swap exact token -> BNB --> repay", async () => {
+        const deadline = await getValidDeadline();
+        await swapRouter
+          .connect(BabyDogeUser)
+          .swapAndSupplyAtSupportingFee(vSFM.address, 10000000000000, 1000, [BabyDoge.address, SFM.address], deadline);
+        await expect(vBNB.connect(BabyDogeUser).borrow(2)).to.emit(vBNB, "Borrow");
+        const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(BabyDogeUser.address);
+        await swapRouter
+          .connect(BabyDogeUser)
+          .swapExactTokensForETHAndRepayAtSupportingFee(
+            vBNB.address,
+            500,
+            2,
+            [BabyDoge.address, wBNB.address],
+            deadline,
+          );
+        const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(BabyDoge.address);
         expect(borrowBalanceAfter).lessThan(borrowBalancePrev);
       });
     });

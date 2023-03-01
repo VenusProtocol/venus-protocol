@@ -156,7 +156,9 @@ abstract contract RouterHelper is IRouterHelper {
             _swapSupportingFeeOnTransferTokens(path, address(this));
         }
         IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+        if (to != address(this)) {
+            TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+        }
     }
 
     function _swapTokensForExactTokens(
@@ -218,7 +220,9 @@ abstract contract RouterHelper is IRouterHelper {
         );
         _swap(amounts, path, address(this));
         IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+        if (to != address(this)) {
+            TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+        }
     }
 
     // **** LIBRARY FUNCTIONS ****
