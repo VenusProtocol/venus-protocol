@@ -1,8 +1,7 @@
 pragma solidity ^0.5.16
 import "../../Tokens/VTokens/VToken.sol";
-import "../../Comptroller/ComptrollerStorage.sol";
 
-library LibComptrollerHelper {
+library LibHelper {
 
      
     /**
@@ -148,6 +147,59 @@ library LibComptrollerHelper {
         emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
     }
 
-    
+    /**
+     * @notice Add the market to the borrower's "assets in" for liquidity calculations
+     * @param vToken The market to enter
+     * @param borrower The address of the account to modify
+     * @return Success indicator for whether the market was entered
+     */
+    function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
+        checkActionPauseState(address(vToken), Action.ENTER_MARKET);
+
+        Market storage marketToJoin = markets[address(vToken)];
+        ensureListed(marketToJoin);
+
+        if (marketToJoin.accountMembership[borrower]) {
+            // already joined
+            return Error.NO_ERROR;
+        }
+
+        // survived the gauntlet, add to list
+        // NOTE: we store these somewhat redundantly as a significant optimization
+        //  this avoids having to iterate through the list for the most common use cases
+        //  that is, only when we need to perform liquidity checks
+        //  and not whenever we want to check if an account is in a particular market
+        marketToJoin.accountMembership[borrower] = true;
+        accountAssets[borrower].push(vToken);
+
+        emit MarketEntered(vToken, borrower);
+
+        return Error.NO_ERROR;
+    }
+
+    function redeemAllowedInternal(address vToken, address redeemer, uint redeemTokens) internal view returns (uint) {
+        ensureListed(markets[vToken]);
+
+        /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
+        if (!markets[vToken].accountMembership[redeemer]) {
+            return uint(Error.NO_ERROR);
+        }
+
+        /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
+        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(
+            redeemer,
+            VToken(vToken),
+            redeemTokens,
+            0
+        );
+        if (err != Error.NO_ERROR) {
+            return uint(err);
+        }
+        if (shortfall != 0) {
+            return uint(Error.INSUFFICIENT_LIQUIDITY);
+        }
+
+        return uint(Error.NO_ERROR);
+    }
     
 }

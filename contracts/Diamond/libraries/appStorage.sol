@@ -1,10 +1,10 @@
-pragma solidity ^0.5.16;
+pragma solidity ^0.8.0;
 
-import "../Tokens/VTokens/VToken.sol";
-import "../Oracle/PriceOracle.sol";
-import "../Tokens/VAI/VAIControllerInterface.sol";
-import "./ComptrollerLensInterface.sol";
-import "../Tokens/Prime/IPrime.sol";
+import "../../Tokens/VTokens/VToken.sol";
+import "../../Oracle/PriceOracle.sol";
+import "../../Tokens/VAI/VAIControllerInterface.sol";
+import "../../Comptroller/ComptrollerLensInterface.sol";
+import "../../Tokens/Prime/IPrime.sol";
 
 struct Market {
         /// @notice Whether or not this market is listed
