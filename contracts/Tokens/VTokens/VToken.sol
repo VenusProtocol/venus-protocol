@@ -1150,12 +1150,23 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         return borrowFresh(borrower, receiver, borrowAmount, InterestRateMode.VARIABLE);
     }
 
-    function borrowStableInternal(address borrower, address payable receiver,uint256 borrowAmount) internal nonReentrant returns (uint) {
+    function borrowStableInternal(
+        address borrower,
+        address payable receiver,
+        uint256 borrowAmount
+    ) internal nonReentrant returns (uint) {
         accrueInterest();
 
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
         return borrowFresh(borrower, receiver, borrowAmount, InterestRateMode.STABLE);
-        
+    }
+
+    struct stableBorrowVars {
+        uint256 accountBorrowsPrev;
+        uint256 stableBorrowsNew;
+        uint256 stableBorrowRate;
+        uint256 averageStableBorrowRateNew;
+        uint256 stableRateMantissaNew;
     }
 
     /**
@@ -1166,7 +1177,12 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param borrowAmount The amount of the underlying asset to borrow
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function borrowFresh(address borrower, address payable receiver, uint borrowAmount, InterestRateMode interestRateMode) internal returns (uint) {
+    function borrowFresh(
+        address borrower,
+        address payable receiver,
+        uint borrowAmount,
+        InterestRateMode interestRateMode
+    ) internal returns (uint) {
         /* Fail if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
@@ -1186,25 +1202,31 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 totalBorrowsNew;
         uint256 accountBorrowsNew;
         if (InterestRateMode(interestRateMode) == InterestRateMode.STABLE) {
+            stableBorrowVars memory vars;
             /*
              * We calculate the new borrower and total borrow balances, failing on overflow:
              *  accountBorrowNew = accountStableBorrow + borrowAmount
              *  totalBorrowsNew = totalBorrows + borrowAmount
              */
-            uint256 accountBorrowsPrev = _updateUserStableBorrowBalance(borrower);
-            accountBorrowsNew = accountBorrowsPrev + borrowAmount;
-            totalBorrowsNew = totalBorrows + borrowAmount;
+            vars.accountBorrowsPrev = _updateUserStableBorrowBalance(borrower);
+            accountBorrowsNew = vars.accountBorrowsPrev.add(borrowAmount);
+            totalBorrowsNew = totalBorrows.add(borrowAmount);
 
             /**
              * Calculte the average stable borrow rate for the total stable borrows
              */
-            uint256 stableBorrowsNew = stableBorrows + borrowAmount;
-            uint256 stableBorrowRate = stableBorrowRatePerBlock();
-            uint256 averageStableBorrowRateNew = ((stableBorrows * averageStableBorrowRate) +
-                (borrowAmount * stableBorrowRate)) / stableBorrowsNew;
 
-            uint256 stableRateMantissaNew = ((accountBorrowsPrev * accountStableBorrows[borrower].stableRateMantissa) +
-                (borrowAmount * stableBorrowRate)) / accountBorrowsNew;
+            vars.stableBorrowsNew = stableBorrows.add(borrowAmount);
+            vars.stableBorrowRate = stableBorrowRatePerBlock();
+            vars.averageStableBorrowRateNew = (
+                stableBorrows.mul(averageStableBorrowRate).add(borrowAmount.mul(vars.stableBorrowRate))
+            ).div(vars.stableBorrowsNew);
+
+            vars.stableRateMantissaNew = (
+                vars.accountBorrowsPrev.mul(accountStableBorrows[borrower].stableRateMantissa).add(
+                    borrowAmount.mul(vars.stableBorrowRate)
+                )
+            ).div(accountBorrowsNew);
 
             /////////////////////////
             // EFFECTS & INTERACTIONS
@@ -1217,18 +1239,18 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
             accountStableBorrows[borrower].principal = accountBorrowsNew;
             accountStableBorrows[borrower].interestIndex = stableBorrowIndex;
-            accountStableBorrows[borrower].stableRateMantissa = stableRateMantissaNew;
-            stableBorrows = stableBorrowsNew;
-            averageStableBorrowRate = averageStableBorrowRateNew;
+            accountStableBorrows[borrower].stableRateMantissa = vars.stableRateMantissaNew;
+            stableBorrows = vars.stableBorrowsNew;
+            averageStableBorrowRate = vars.averageStableBorrowRateNew;
         } else {
             /*
              * We calculate the new borrower and total borrow balances, failing on overflow:
              *  accountBorrowNew = accountBorrow + borrowAmount
              *  totalBorrowsNew = totalBorrows + borrowAmount
              */
-            (,uint256 accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
-            accountBorrowsNew = accountBorrowsPrev + borrowAmount;
-            totalBorrowsNew = totalBorrows + borrowAmount;
+            (, uint256 accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
+            accountBorrowsNew = accountBorrowsPrev.add(borrowAmount);
+            totalBorrowsNew = totalBorrows.add(borrowAmount);
 
             /////////////////////////
             // EFFECTS & INTERACTIONS
