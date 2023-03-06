@@ -3,6 +3,7 @@ pragma solidity ^0.5.16;
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../Utils/ErrorReporter.sol";
 import "../../Utils/Exponential.sol";
+import "../../Utils/SafeMath.sol";
 import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
@@ -15,6 +16,7 @@ import "../../InterestRate/StableRateModel.sol";
  * @author Venus
  */
 contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
+    using SafeMath for uint;
     struct MintLocalVars {
         MathError mathErr;
         uint exchangeRateMantissa;
@@ -1377,34 +1379,37 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /* Verify market's block number equals current block number */
         if (accrualBlockNumber != getBlockNumber()) {
-            // revert SwapBorrowRateModeFreshnessCheck();
+            {
+                revert("math error");
+            }
         }
 
         address account = msg.sender;
         (, uint256 variableDebt) = borrowBalanceStoredInternal(account);
         uint256 stableDebt = _updateUserStableBorrowBalance(account);
-        uint256 accountBorrowsNew = variableDebt + stableDebt;
+        uint256 accountBorrowsNew = variableDebt.add(stableDebt);
         uint256 stableBorrowsNew;
         uint256 averageStableBorrowRateNew;
 
         if (InterestRateMode(rateMode) == InterestRateMode.STABLE) {
             require(variableDebt > 0, "vToken: swapBorrowRateMode variable debt is 0");
 
-            stableBorrowsNew = stableBorrows + variableDebt;
+            stableBorrowsNew = stableBorrows.add(variableDebt);
             uint256 stableBorrowRate = stableBorrowRatePerBlock();
 
-            averageStableBorrowRateNew =
-                ((stableBorrows * averageStableBorrowRate) + (variableDebt * stableBorrowRate)) /
-                stableBorrowsNew;
+            averageStableBorrowRateNew = (
+                stableBorrows.mul(averageStableBorrowRate).add(variableDebt.mul(stableBorrowRate))
+            ).div(stableBorrowsNew);
 
-            uint256 stableRateMantissaNew = ((stableDebt * accountStableBorrows[account].stableRateMantissa) +
-                (variableDebt * stableBorrowRate)) / accountBorrowsNew;
+            uint256 stableRateMantissaNew = (
+                stableDebt.mul(accountStableBorrows[account].stableRateMantissa).add(variableDebt.mul(stableBorrowRate))
+            ).div(accountBorrowsNew);
 
             /////////////////////////
             // EFFECTS & INTERACTIONS
             // (No safe failures beyond this point)
 
-            accountStableBorrows[account].principal = stableDebt + variableDebt;
+            accountStableBorrows[account].principal = stableDebt.add(variableDebt);
             accountStableBorrows[account].interestIndex = stableBorrowIndex;
             accountStableBorrows[account].stableRateMantissa = stableRateMantissaNew;
 
@@ -1420,9 +1425,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             if (stableBorrowsNew == 0) {
                 averageStableBorrowRateNew = 0;
             } else {
-                averageStableBorrowRateNew =
-                    ((stableBorrows * averageStableBorrowRate) - (stableDebt * stableRateMantissa)) /
-                    stableBorrowsNew;
+                averageStableBorrowRateNew = (
+                    stableBorrows.mul(averageStableBorrowRate).sub(stableDebt.mul(stableRateMantissa))
+                ).div(stableBorrowsNew);
             }
 
             /////////////////////////
