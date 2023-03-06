@@ -84,6 +84,7 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
 
         // Set comptroller's oracle to newOracle
         oracle = newOracle;
+        oracle = newOracle;
 
         // Emit NewPriceOracle(oldOracle, newOracle)
         emit NewPriceOracle(oldOracle, newOracle);
@@ -102,6 +103,7 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
         ensureAdmin();
 
         uint oldCloseFactorMantissa = s.closeFactorMantissa;
+        uint oldCloseFactorMantissa = s.closeFactorMantissa;
         s.closeFactorMantissa = newCloseFactorMantissa;
         emit NewCloseFactor(oldCloseFactorMantissa, newCloseFactorMantissa);
 
@@ -119,6 +121,7 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
         ensureAdmin();
         ensureNonzeroAddress(newAccessControlAddress);
 
+        address oldAccessControlAddress = s.accessControl;
         address oldAccessControlAddress = s.accessControl;
         s.accessControl = newAccessControlAddress;
         emit NewAccessControl(oldAccessControlAddress, accessControl);
@@ -178,8 +181,10 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
 
         // Save current value for use in log
         uint oldLiquidationIncentiveMantissa = s.liquidationIncentiveMantissa;
+        uint oldLiquidationIncentiveMantissa = s.liquidationIncentiveMantissa;
 
         // Set liquidation incentive to new incentive
+        s.liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
         s.liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
 
         // Emit event with old incentive, new incentive
@@ -191,6 +196,8 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
     function _setLiquidatorContract(address newLiquidatorContract_) external {
         // Check caller is admin
         ensureAdmin();
+        address oldLiquidatorContract = s.liquidatorContract;
+        s.liquidatorContract = newLiquidatorContract_;
         address oldLiquidatorContract = s.liquidatorContract;
         s.liquidatorContract = newLiquidatorContract_;
         emit NewLiquidatorContract(oldLiquidatorContract, newLiquidatorContract_);
@@ -206,6 +213,7 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
         ensureNonzeroAddress(newPauseGuardian);
 
         // Save current value for inclusion in log
+        address oldPauseGuardian = s.pauseGuardian;
         address oldPauseGuardian = s.pauseGuardian;
 
         // Store pauseGuardian with value newPauseGuardian
@@ -233,6 +241,7 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
 
         for (uint i; i < numMarkets; ++i) {
             s.borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
+            s.borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
             emit NewBorrowCap(vTokens[i], newBorrowCaps[i]);
         }
     }
@@ -253,6 +262,7 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
 
         for (uint i; i < numMarkets; ++i) {
             s.supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
+            s.supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
             emit NewSupplyCap(vTokens[i], newSupplyCaps[i]);
         }
     }
@@ -263,6 +273,7 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
     function _setProtocolPaused(bool state) external returns (bool) {
         ensureAllowed("_setProtocolPaused(bool)");
 
+        s.protocolPaused = state;
         s.protocolPaused = state;
         emit ActionProtocolPaused(state);
         return state;
@@ -295,6 +306,7 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
     function setActionPausedInternal(address market, Action action, bool paused) internal {
         ensureListed(markets[market]);
         s._actionPaused[market][uint(action)] = paused;
+        s._actionPaused[market][uint(action)] = paused;
         emit ActionPausedMarket(VToken(market), action, paused);
     }
 
@@ -310,6 +322,8 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
 
         VAIControllerInterface oldVaiController = s.vaiController;
         s.vaiController = vaiController_;
+        VAIControllerInterface oldVaiController = s.vaiController;
+        s.vaiController = vaiController_;
         emit NewVAIController(oldVaiController, vaiController_);
 
         return uint(Error.NO_ERROR);
@@ -318,6 +332,8 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
     function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
         // Check caller is admin
         ensureAdmin();
+        uint oldVAIMintRate = s.vaiMintRate;
+        s.vaiMintRate = newVAIMintRate;
         uint oldVAIMintRate = s.vaiMintRate;
         s.vaiMintRate = newVAIMintRate;
         emit NewVAIMintRate(oldVAIMintRate, newVAIMintRate);
@@ -341,6 +357,7 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
             return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
         }
         s.mintedVAIs[owner] = amount;
+        s.mintedVAIs[owner] = amount;
 
         return uint(Error.NO_ERROR);
     }
@@ -360,7 +377,13 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
         address oldTreasuryGuardian = s.treasuryGuardian;
         address oldTreasuryAddress = s.treasuryAddress;
         uint oldTreasuryPercent = s.treasuryPercent;
+        address oldTreasuryGuardian = s.treasuryGuardian;
+        address oldTreasuryAddress = s.treasuryAddress;
+        uint oldTreasuryPercent = s.treasuryPercent;
 
+        s.treasuryGuardian = newTreasuryGuardian;
+        s.treasuryAddress = newTreasuryAddress;
+        s.treasuryPercent = newTreasuryPercent;
         s.treasuryGuardian = newTreasuryGuardian;
         s.treasuryAddress = newTreasuryAddress;
         s.treasuryPercent = newTreasuryPercent;
@@ -387,6 +410,8 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
         ensureNonzeroAddress(address(comptrollerLens_));
         address oldComptrollerLens = address(s.comptrollerLens);
         s.comptrollerLens = comptrollerLens_;
+        address oldComptrollerLens = address(s.comptrollerLens);
+        s.comptrollerLens = comptrollerLens_;
         emit NewComptrollerLens(oldComptrollerLens, address(comptrollerLens));
 
         return uint(Error.NO_ERROR);
@@ -399,6 +424,8 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
     function _setVenusVAIVaultRate(uint venusVAIVaultRate_) external {
         ensureAdmin();
 
+        uint oldVenusVAIVaultRate = s.venusVAIVaultRate;
+        s.venusVAIVaultRate = venusVAIVaultRate_;
         uint oldVenusVAIVaultRate = s.venusVAIVaultRate;
         s.venusVAIVaultRate = venusVAIVaultRate_;
         emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
@@ -414,6 +441,9 @@ contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError
         ensureAdmin();
         ensureNonzeroAddress(vault_);
 
+        s.vaiVaultAddress = vault_;
+        s.releaseStartBlock = releaseStartBlock_;
+        s.minReleaseAmount = minReleaseAmount_;
         s.vaiVaultAddress = vault_;
         s.releaseStartBlock = releaseStartBlock_;
         s.minReleaseAmount = minReleaseAmount_;
