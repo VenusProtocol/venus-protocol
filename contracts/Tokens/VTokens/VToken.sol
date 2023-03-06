@@ -1140,6 +1140,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         return borrowFresh(msg.sender, borrowAmount, InterestRateMode.STABLE);
     }
 
+    struct stableBorrowVars{
+        uint256 accountBorrowsPrev;
+        uint256 stableBorrowsNew;
+        uint256 stableBorrowRate;
+        uint256 averageStableBorrowRateNew;
+        uint256 stableRateMantissaNew;
+    }
+
     /**
      * @notice Users borrow assets from the protocol to their own address
      * @param borrowAmount The amount of the underlying asset to borrow
@@ -1150,6 +1158,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint borrowAmount,
         InterestRateMode interestRateMode
     ) internal returns (uint) {
+        
         /* Fail if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
@@ -1169,26 +1178,27 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 totalBorrowsNew;
         uint256 accountBorrowsNew;
         if (InterestRateMode(interestRateMode) == InterestRateMode.STABLE) {
+            stableBorrowVars memory vars;
             /*
              * We calculate the new borrower and total borrow balances, failing on overflow:
              *  accountBorrowNew = accountStableBorrow + borrowAmount
              *  totalBorrowsNew = totalBorrows + borrowAmount
              */
-            uint256 accountBorrowsPrev = _updateUserStableBorrowBalance(borrower);
-            accountBorrowsNew = accountBorrowsPrev + borrowAmount;
-            totalBorrowsNew = totalBorrows + borrowAmount;
+            vars.accountBorrowsPrev = _updateUserStableBorrowBalance(borrower);
+            accountBorrowsNew = vars.accountBorrowsPrev.add(borrowAmount);
+            totalBorrowsNew = totalBorrows.add(borrowAmount);
 
             /**
              * Calculte the average stable borrow rate for the total stable borrows
              */
-            uint256 stableBorrowsNew = stableBorrows + borrowAmount;
-            uint256 stableBorrowRate = stableBorrowRatePerBlock();
-            uint256 averageStableBorrowRateNew = ((stableBorrows * averageStableBorrowRate) +
-                (borrowAmount * stableBorrowRate)) / stableBorrowsNew;
+            
+            vars.stableBorrowsNew = stableBorrows.add(borrowAmount);
+            vars.stableBorrowRate = stableBorrowRatePerBlock();
+            vars.averageStableBorrowRateNew = (stableBorrows.mul(averageStableBorrowRate).add(
+                    borrowAmount.mul(vars.stableBorrowRate))).div(vars.stableBorrowsNew);
 
-            uint256 stableRateMantissaNew = ((accountBorrowsPrev * accountStableBorrows[borrower].stableRateMantissa) +
-                (borrowAmount * stableBorrowRate)) / accountBorrowsNew;
-
+            vars.stableRateMantissaNew = (vars.accountBorrowsPrev.mul(accountStableBorrows[borrower].stableRateMantissa).add(borrowAmount.mul(vars.stableBorrowRate))).div(accountBorrowsNew);
+            
             /////////////////////////
             // EFFECTS & INTERACTIONS
             // (No safe failures beyond this point)
@@ -1200,18 +1210,19 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
             accountStableBorrows[borrower].principal = accountBorrowsNew;
             accountStableBorrows[borrower].interestIndex = stableBorrowIndex;
-            accountStableBorrows[borrower].stableRateMantissa = stableRateMantissaNew;
-            stableBorrows = stableBorrowsNew;
-            averageStableBorrowRate = averageStableBorrowRateNew;
+            accountStableBorrows[borrower].stableRateMantissa = vars.stableRateMantissaNew;
+            stableBorrows = vars.stableBorrowsNew;
+            averageStableBorrowRate = vars.averageStableBorrowRateNew;
+        
         } else {
             /*
              * We calculate the new borrower and total borrow balances, failing on overflow:
              *  accountBorrowNew = accountBorrow + borrowAmount
              *  totalBorrowsNew = totalBorrows + borrowAmount
              */
-            (,uint256 accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
-            accountBorrowsNew = accountBorrowsPrev + borrowAmount;
-            totalBorrowsNew = totalBorrows + borrowAmount;
+            (, uint256 accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
+            accountBorrowsNew = accountBorrowsPrev.add(borrowAmount);
+            totalBorrowsNew = totalBorrows.add(borrowAmount);
 
             /////////////////////////
             // EFFECTS & INTERACTIONS
