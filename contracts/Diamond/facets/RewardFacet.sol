@@ -1,20 +1,21 @@
 pragma solidity ^0.5.16;
 
-import "../Oracle/PriceOracle.sol";
-import "../Tokens/VTokens/VToken.sol";
-import "../Utils/ErrorReporter.sol";
-import "../Tokens/XVS/XVS.sol";
-import "../Tokens/VAI/VAI.sol";
-import "../Governance/IAccessControlManager.sol";
+import "../../Oracle/PriceOracle.sol";
+import "../../Tokens/VTokens/VToken.sol";
+import "../../Utils/ErrorReporter.sol";
+import "../../Tokens/XVS/XVS.sol";
+import "../../Tokens/VAI/VAI.sol";
+import "../libraries/appStorage.sol";
+import "../../Governance/IAccessControlManager.sol";
 
-contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
+contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
     AppStorage internal s;
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address recipient, uint amount);
 
     /// @notice Emitted when XVS is distributed to VAI Vault
     event DistributedVAIVaultVenus(uint amount);
-    
+
     /**
      * @notice Claim all the xvs accrued by holder in all markets and VAI
      * @param holder The address to claim XVS for
@@ -110,7 +111,7 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
      * @param amount The amount of XVS to (possibly) transfer
      */
     function _grantXVS(address recipient, uint amount) external {
-        ensureAdminOr(comptrollerImplementation);
+        ensureAdminOr(s.comptrollerImplementation);
         uint amountLeft = grantXVSInternal(recipient, amount, 0, false);
         require(amountLeft == 0, "insufficient xvs for grant");
         emit VenusGranted(recipient, amount);
@@ -142,7 +143,7 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
      * @param market vToken address
      */
     function actionPaused(address market, Action action) public view returns (bool) {
-        return _actionPaused[market][uint(action)];
+        return s._actionPaused[market][uint(action)];
     }
 
     /*** VAI functions ***/
@@ -151,7 +152,7 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
      * @notice Transfer XVS to VAI Vault
      */
     function releaseToVault() public {
-        if (releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
+        if (s.releaseStartBlock == 0 || getBlockNumber() < s.releaseStartBlock) {
             return;
         }
 
@@ -163,9 +164,9 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
         }
 
         uint256 actualAmount;
-        uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
+        uint256 deltaBlocks = sub_(getBlockNumber(), s.releaseStartBlock);
         // releaseAmount = venusVAIVaultRate * deltaBlocks
-        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
+        uint256 _releaseAmount = mul_(s.venusVAIVaultRate, deltaBlocks);
 
         if (xvsBalance >= _releaseAmount) {
             actualAmount = _releaseAmount;
@@ -173,16 +174,16 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
             actualAmount = xvsBalance;
         }
 
-        if (actualAmount < minReleaseAmount) {
+        if (actualAmount < s.minReleaseAmount) {
             return;
         }
 
         s.releaseStartBlock = getBlockNumber();
 
-        xvs.transfer(vaiVaultAddress, actualAmount);
+        xvs.transfer(s.vaiVaultAddress, actualAmount);
         emit DistributedVAIVaultVenus(actualAmount);
 
-        IVAIVault(vaiVaultAddress).updatePendingRewards();
+        IVAIVault(s.vaiVaultAddress).updatePendingRewards();
     }
 
     /**
@@ -225,9 +226,7 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
             (, , uint shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(0), 0, 0);
-            venusAccrued[holder] = grantXVSInternal(holder, venusAccrued[holder], shortfall, collateral);
+            s.venusAccrued[holder] = grantXVSInternal(holder, venusAccrued[holder], shortfall, collateral);
         }
     }
-
 }
-    

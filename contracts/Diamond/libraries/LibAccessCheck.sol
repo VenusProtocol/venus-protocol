@@ -1,9 +1,8 @@
 pragma solidity ^0.5.16;
 
-import "../Governance/IAccessControlManager.sol";
-import "./ComptrollerStorage.sol";
+import "../../Governance/IAccessControlManager.sol";
 
-library LibAccessCheck  {
+library LibAccessCheck {
     /// @notice Reverts if the protocol is paused
     function checkProtocolPauseState() internal view {
         require(!protocolPaused, "protocol is paused");
