@@ -1400,8 +1400,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  accountBorrowsNew = accountBorrows - actualRepayAmount
          *  totalBorrowsNew = totalBorrows - actualRepayAmount
          */
-        uint256 accountBorrowsNew = accountBorrowsPrev - actualRepayAmount;
-        uint256 totalBorrowsNew = totalBorrows - actualRepayAmount;
+        uint256 accountBorrowsNew = accountBorrowsPrev.sub(actualRepayAmount);
+        uint256 totalBorrowsNew = totalBorrows.sub(actualRepayAmount);
 
         if (InterestRateMode(interestRateMode) == InterestRateMode.STABLE) {
             uint256 stableBorrowsNew = stableBorrows - actualRepayAmount;
@@ -1411,9 +1411,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
                 averageStableBorrowRateNew = 0;
             } else {
                 uint256 stableRateMantissa = accountStableBorrows[borrower].stableRateMantissa;
-                averageStableBorrowRateNew =
-                    ((stableBorrows * averageStableBorrowRate) - (actualRepayAmount * stableRateMantissa)) /
-                    stableBorrowsNew;
+                averageStableBorrowRateNew = (
+                    stableBorrows.mul(averageStableBorrowRate).sub(actualRepayAmount.mul(stableRateMantissa))
+                ).div(stableBorrowsNew);
             }
 
             accountStableBorrows[borrower].principal = accountBorrowsNew;
