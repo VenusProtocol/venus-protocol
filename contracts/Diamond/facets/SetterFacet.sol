@@ -1,16 +1,15 @@
 pragma solidity ^0.5.16;
 
-import "../Oracle/PriceOracle.sol";
-import "../Tokens/VTokens/VToken.sol";
-import "../Utils/ErrorReporter.sol";
-import "../Tokens/XVS/XVS.sol";
-import "../Tokens/VAI/VAI.sol";
-import "../Governance/IAccessControlManager.sol";
-import "../libraries/libAccessCheck.sol";
+import "../../Oracle/PriceOracle.sol";
+import "../../Tokens/VTokens/VToken.sol";
+import "../../Utils/ErrorReporter.sol";
+import "../../Tokens/XVS/XVS.sol";
+import "../../Tokens/VAI/VAI.sol";
+import "../../Governance/IAccessControlManager.sol";
+import "../libraries/LibAccessCheck.sol";
 
-contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{ 
-    AppStorage internal s;   
-     /// @notice Emitted when close factor is changed by admin
+contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError {
+    /// @notice Emitted when close factor is changed by admin
     event NewCloseFactor(uint oldCloseFactorMantissa, uint newCloseFactorMantissa);
 
     /// @notice Emitted when a collateral factor is changed by admin
@@ -84,7 +83,7 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         PriceOracle oldOracle = oracle;
 
         // Set comptroller's oracle to newOracle
-        s.oracle = newOracle;
+        oracle = newOracle;
 
         // Emit NewPriceOracle(oldOracle, newOracle)
         emit NewPriceOracle(oldOracle, newOracle);
@@ -102,7 +101,7 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         // Check caller is admin
         ensureAdmin();
 
-        uint oldCloseFactorMantissa = closeFactorMantissa;
+        uint oldCloseFactorMantissa = s.closeFactorMantissa;
         s.closeFactorMantissa = newCloseFactorMantissa;
         emit NewCloseFactor(oldCloseFactorMantissa, newCloseFactorMantissa);
 
@@ -120,7 +119,7 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         ensureAdmin();
         ensureNonzeroAddress(newAccessControlAddress);
 
-        address oldAccessControlAddress = accessControl;
+        address oldAccessControlAddress = s.accessControl;
         s.accessControl = newAccessControlAddress;
         emit NewAccessControl(oldAccessControlAddress, accessControl);
 
@@ -178,10 +177,10 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
 
         // Save current value for use in log
-        uint oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
+        uint oldLiquidationIncentiveMantissa = s.liquidationIncentiveMantissa;
 
         // Set liquidation incentive to new incentive
-        liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
+        s.liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
 
         // Emit event with old incentive, new incentive
         emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
@@ -192,8 +191,8 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
     function _setLiquidatorContract(address newLiquidatorContract_) external {
         // Check caller is admin
         ensureAdmin();
-        address oldLiquidatorContract = liquidatorContract;
-        liquidatorContract = newLiquidatorContract_;
+        address oldLiquidatorContract = s.liquidatorContract;
+        s.liquidatorContract = newLiquidatorContract_;
         emit NewLiquidatorContract(oldLiquidatorContract, newLiquidatorContract_);
     }
 
@@ -207,7 +206,7 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         ensureNonzeroAddress(newPauseGuardian);
 
         // Save current value for inclusion in log
-        address oldPauseGuardian = pauseGuardian;
+        address oldPauseGuardian = s.pauseGuardian;
 
         // Store pauseGuardian with value newPauseGuardian
         s.pauseGuardian = newPauseGuardian;
@@ -233,7 +232,7 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         require(numMarkets != 0 && numMarkets == numBorrowCaps, "invalid input");
 
         for (uint i; i < numMarkets; ++i) {
-            borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
+            s.borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
             emit NewBorrowCap(vTokens[i], newBorrowCaps[i]);
         }
     }
@@ -253,7 +252,7 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         require(numMarkets != 0 && numMarkets == numSupplyCaps, "invalid input");
 
         for (uint i; i < numMarkets; ++i) {
-            supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
+            s.supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
             emit NewSupplyCap(vTokens[i], newSupplyCaps[i]);
         }
     }
@@ -264,7 +263,7 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
     function _setProtocolPaused(bool state) external returns (bool) {
         ensureAllowed("_setProtocolPaused(bool)");
 
-        protocolPaused = state;
+        s.protocolPaused = state;
         emit ActionProtocolPaused(state);
         return state;
     }
@@ -295,7 +294,7 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
      */
     function setActionPausedInternal(address market, Action action, bool paused) internal {
         ensureListed(markets[market]);
-        _actionPaused[market][uint(action)] = paused;
+        s._actionPaused[market][uint(action)] = paused;
         emit ActionPausedMarket(VToken(market), action, paused);
     }
 
@@ -309,8 +308,8 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         ensureAdmin();
         ensureNonzeroAddress(address(vaiController_));
 
-        VAIControllerInterface oldVaiController = vaiController;
-        vaiController = vaiController_;
+        VAIControllerInterface oldVaiController = s.vaiController;
+        s.vaiController = vaiController_;
         emit NewVAIController(oldVaiController, vaiController_);
 
         return uint(Error.NO_ERROR);
@@ -319,8 +318,8 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
     function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
         // Check caller is admin
         ensureAdmin();
-        uint oldVAIMintRate = vaiMintRate;
-        vaiMintRate = newVAIMintRate;
+        uint oldVAIMintRate = s.vaiMintRate;
+        s.vaiMintRate = newVAIMintRate;
         emit NewVAIMintRate(oldVAIMintRate, newVAIMintRate);
 
         return uint(Error.NO_ERROR);
@@ -341,11 +340,10 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         if (msg.sender != address(vaiController)) {
             return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
         }
-        mintedVAIs[owner] = amount;
+        s.mintedVAIs[owner] = amount;
 
         return uint(Error.NO_ERROR);
     }
-
 
     function _setTreasuryData(
         address newTreasuryGuardian,
@@ -359,13 +357,13 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         ensureNonzeroAddress(newTreasuryGuardian);
         ensureNonzeroAddress(newTreasuryAddress);
 
-        address oldTreasuryGuardian = treasuryGuardian;
-        address oldTreasuryAddress = treasuryAddress;
-        uint oldTreasuryPercent = treasuryPercent;
+        address oldTreasuryGuardian = s.treasuryGuardian;
+        address oldTreasuryAddress = s.treasuryAddress;
+        uint oldTreasuryPercent = s.treasuryPercent;
 
-        treasuryGuardian = newTreasuryGuardian;
-        treasuryAddress = newTreasuryAddress;
-        treasuryPercent = newTreasuryPercent;
+        s.treasuryGuardian = newTreasuryGuardian;
+        s.treasuryAddress = newTreasuryAddress;
+        s.treasuryPercent = newTreasuryPercent;
 
         emit NewTreasuryGuardian(oldTreasuryGuardian, newTreasuryGuardian);
         emit NewTreasuryAddress(oldTreasuryAddress, newTreasuryAddress);
@@ -387,22 +385,22 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
     function _setComptrollerLens(ComptrollerLensInterface comptrollerLens_) external returns (uint) {
         ensureAdmin();
         ensureNonzeroAddress(address(comptrollerLens_));
-        address oldComptrollerLens = address(comptrollerLens);
-        comptrollerLens = comptrollerLens_;
+        address oldComptrollerLens = address(s.comptrollerLens);
+        s.comptrollerLens = comptrollerLens_;
         emit NewComptrollerLens(oldComptrollerLens, address(comptrollerLens));
 
         return uint(Error.NO_ERROR);
     }
 
-     /**
+    /**
      * @notice Set the amount of XVS distributed per block to VAI Vault
      * @param venusVAIVaultRate_ The amount of XVS wei per block to distribute to VAI Vault
      */
     function _setVenusVAIVaultRate(uint venusVAIVaultRate_) external {
         ensureAdmin();
 
-        uint oldVenusVAIVaultRate = venusVAIVaultRate;
-        venusVAIVaultRate = venusVAIVaultRate_;
+        uint oldVenusVAIVaultRate = s.venusVAIVaultRate;
+        s.venusVAIVaultRate = venusVAIVaultRate_;
         emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
     }
 
@@ -416,32 +414,9 @@ contract SetterFacet is  ComptrollerErrorReporter, ExponentialNoError{
         ensureAdmin();
         ensureNonzeroAddress(vault_);
 
-        vaiVaultAddress = vault_;
-        releaseStartBlock = releaseStartBlock_;
-        minReleaseAmount = minReleaseAmount_;
+        s.vaiVaultAddress = vault_;
+        s.releaseStartBlock = releaseStartBlock_;
+        s.minReleaseAmount = minReleaseAmount_;
         emit NewVAIVaultInfo(vault_, releaseStartBlock_, minReleaseAmount_);
     }
-
-    /**
-     * @notice Sets the prime token contract for the comptroller
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-     */
-    function _setPrimeToken(IPrime _prime) external returns (uint) {
-        // Check caller is admin
-        ensureAdmin();
-        ensureNonzeroAddress(address(_prime));
-
-        // Track the old prime token for the comptroller
-        IPrime oldPrime = prime;
-
-        // Set comptroller's prime token to new prime token
-        prime = _prime;
-
-        // Emit NewPrimeToken(oldPrime, newPrime)
-        emit NewPrimeToken(oldPrime, prime);
-
-        return uint(Error.NO_ERROR);
-    }
-
-
 }
