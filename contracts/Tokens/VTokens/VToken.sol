@@ -3,6 +3,7 @@ pragma solidity ^0.5.16;
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../Utils/ErrorReporter.sol";
 import "../../Utils/Exponential.sol";
+import "../../Utils/SafeMath.sol";
 import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
@@ -14,6 +15,7 @@ import "./VTokenInterfaces.sol";
  * @author Venus
  */
 contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
+    using SafeMath for uint;
     struct MintLocalVars {
         MathError mathErr;
         uint exchangeRateMantissa;
@@ -289,8 +291,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 utilizationRate = interestRateModel.utilizationRate(getCashPrior(), totalBorrows, totalReserves);
         uint256 averageMarketBorrowRate = _averageMarketBorrowRate();
         return
-            (averageMarketBorrowRate * utilizationRate * (mantissaOne - reserveFactorMantissa)) /
-            (mantissaOne * mantissaOne);
+            (averageMarketBorrowRate.mul(utilizationRate).mul(mantissaOne.sub(reserveFactorMantissa))).div(
+                mantissaOne.mul(mantissaOne)
+            );
     }
 
     /// @notice Calculate the average market borrow rate with respect to variable and stable borrows
@@ -301,23 +304,23 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 _averageMarketBorrowRate;
         uint256 variableBorrowRate = interestRateModel.getBorrowRate(getCashPrior(), totalBorrows, totalReserves);
         (MathError mathErr, uint256 variableBorrows) = subUInt(totalBorrows, stableBorrows);
-        if ( mathErr != MathError.NO_ERROR) {
+        if (mathErr != MathError.NO_ERROR) {
             revert("math error");
         }
         (mathErr, variableBorrowNew) = mulUInt(variableBorrows, variableBorrowRate);
-        if ( mathErr != MathError.NO_ERROR) {
+        if (mathErr != MathError.NO_ERROR) {
             revert("math error");
         }
         (mathErr, stbleBorrowNew) = mulUInt(stableBorrows, averageStableBorrowRate);
-        if ( mathErr != MathError.NO_ERROR) {
+        if (mathErr != MathError.NO_ERROR) {
             revert("math error");
         }
         (mathErr, totalBorrowNew) = addUInt(variableBorrowNew, stbleBorrowNew);
-        if ( mathErr != MathError.NO_ERROR) {
+        if (mathErr != MathError.NO_ERROR) {
             revert("math error");
         }
         (mathErr, _averageMarketBorrowRate) = divUInt(totalBorrowNew, totalBorrows);
-        if ( mathErr != MathError.NO_ERROR) {
+        if (mathErr != MathError.NO_ERROR) {
             revert("math error");
         }
         return _averageMarketBorrowRate;
