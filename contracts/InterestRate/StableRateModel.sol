@@ -77,7 +77,7 @@ contract StableRateModel {
             return 0;
         }
 
-        return (stableBorrows * BASE) / totalBorrows;
+        return (stableBorrows.mul(BASE)).div(totalBorrows);
     }
 
     /**
@@ -95,7 +95,7 @@ contract StableRateModel {
         uint256 loanRatio = stableLoanRatio(stableBorrows, totalBorrows);
         uint256 excessLoanRatio = calculateLoanRatioDiff(loanRatio);
 
-        return (variableBorrowRate + baseRatePerBlock + ((stableRatePremium * excessLoanRatio) / BASE));
+        return ((variableBorrowRate.add(baseRatePerBlock)).add((stableRatePremium.mul(excessLoanRatio)).div(BASE)));
     }
 
     /**

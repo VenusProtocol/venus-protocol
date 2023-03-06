@@ -295,13 +295,36 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /// @notice Calculate the average market borrow rate with respect to variable and stable borrows
     function _averageMarketBorrowRate() internal view returns (uint256) {
+        uint256 variableBorrowNew;
+        uint256 stbleBorrowNew;
+        uint256 totalBorrowNew;
+        uint256 _averageMarketBorrowRate;
         uint256 variableBorrowRate = interestRateModel.getBorrowRate(getCashPrior(), totalBorrows, totalReserves);
-        uint256 variableBorrows = totalBorrows - stableBorrows;
-        return ((variableBorrows * variableBorrowRate) + (stableBorrows * averageStableBorrowRate)) / totalBorrows;
+        (MathError mathErr, uint256 variableBorrows) = subUInt(totalBorrows, stableBorrows);
+        if ( mathErr != MathError.NO_ERROR) {
+            revert("math error");
+        }
+        (mathErr, variableBorrowNew) = mulUInt(variableBorrows, variableBorrowRate);
+        if ( mathErr != MathError.NO_ERROR) {
+            revert("math error");
+        }
+        (mathErr, stbleBorrowNew) = mulUInt(stableBorrows, averageStableBorrowRate);
+        if ( mathErr != MathError.NO_ERROR) {
+            revert("math error");
+        }
+        (mathErr, totalBorrowNew) = addUInt(variableBorrowNew, stbleBorrowNew);
+        if ( mathErr != MathError.NO_ERROR) {
+            revert("math error");
+        }
+        (mathErr, _averageMarketBorrowRate) = divUInt(totalBorrowNew, totalBorrows);
+        if ( mathErr != MathError.NO_ERROR) {
+            revert("math error");
+        }
+        return _averageMarketBorrowRate;
     }
 
     /**
-     * @notice Returns the current per-block borrow interest rate for this vToken
+     * @notice Calculate the current per-block borrow interest rate for this vToken
      * @return The borrow interest rate per block, scaled by 1e18
      */
     function borrowRatePerBlock() external view returns (uint) {
@@ -563,8 +586,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Returns the current per-block borrow interest rate for this vToken
-     * @return rate The borrow interest rate per block, scaled by 1e18
+     * @notice Calculate the current per-block borrow interest rate for this vToken
+     * @return rate The Stable borrow interest rate per block, scaled by 1e18
      */
     function stableBorrowRatePerBlock() public view returns (uint256) {
         uint256 variableBorrowRate = interestRateModel.getBorrowRate(getCashPrior(), totalBorrows, totalReserves);
