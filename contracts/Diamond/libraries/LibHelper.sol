@@ -5,7 +5,6 @@ import "./LibAccessCheck.sol";
 import "../../Utils/ExponentialNoError.sol";
 
 library LibHelper {
-
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
 
@@ -101,7 +100,7 @@ library LibHelper {
      * @param supplier The address of the supplier to distribute XVS to
      */
     function distributeSupplierVenus(address vToken, address supplier) internal {
-        AppStorage storage s = LibAppStorage.diamondStorage()
+        AppStorage storage s = LibAppStorage.diamondStorage();
         if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }
