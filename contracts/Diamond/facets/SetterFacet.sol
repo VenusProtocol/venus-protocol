@@ -1,15 +1,15 @@
-pragma solidity 0.8.13;
+pragma solidity 0.5.16;
 
 import "../../Oracle/PriceOracle.sol";
 import "../../Tokens/VTokens/VToken.sol";
 import "../../Utils/ErrorReporter.sol";
 import "../../Tokens/XVS/XVS.sol";
 import "../../Tokens/VAI/VAI.sol";
-import "../libraries/appStorage.sol";
+import "../libraries/AppStorage.sol";
 import "../../Governance/IAccessControlManager.sol";
 import "../libraries/LibAccessCheck.sol";
 
-contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
+contract SetterFacet is AppStorage, LibHelper, LibAccessCheck, ComptrollerErrorReporter, ExponentialNoError {
     AppStorage internal s;
     /// @notice Emitted when close factor is changed by admin
     event NewCloseFactor(uint oldCloseFactorMantissa, uint newCloseFactorMantissa);
@@ -79,10 +79,10 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         LibAccessCheck.ensureNonzeroAddress(address(newOracle));
 
         // Track the old oracle for the comptroller
-        PriceOracle oldOracle = s.oracle;
+        PriceOracle oldOracle =AppStorage.oracle;
 
         // Set comptroller's oracle to newOracle
-        s.oracle = newOracle;
+       AppStorage.oracle = newOracle;
 
         // Emit NewPriceOracle(oldOracle, newOracle)
         emit NewPriceOracle(oldOracle, newOracle);
@@ -100,8 +100,8 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         // Check caller is admin
         LibAccessCheck.ensureAdmin();
 
-        uint oldCloseFactorMantissa = s.closeFactorMantissa;
-        s.closeFactorMantissa = newCloseFactorMantissa;
+        uint oldCloseFactorMantissa =AppStorage.closeFactorMantissa;
+       AppStorage.closeFactorMantissa = newCloseFactorMantissa;
         emit NewCloseFactor(oldCloseFactorMantissa, newCloseFactorMantissa);
 
         return uint(Error.NO_ERROR);
@@ -118,8 +118,8 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         LibAccessCheck.ensureAdmin();
         LibAccessCheck.ensureNonzeroAddress(newAccessControlAddress);
 
-        address oldAccessControlAddress = s.accessControl;
-        s.accessControl = newAccessControlAddress;
+        address oldAccessControlAddress =AppStorage.accessControl;
+       AppStorage.accessControl = newAccessControlAddress;
         emit NewAccessControl(oldAccessControlAddress, accessControl);
 
         return uint(Error.NO_ERROR);
@@ -138,7 +138,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         LibAccessCheck.ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
-        Market storage market = s.markets[address(vToken)];
+        Market storage market =AppStorage.markets[address(vToken)];
         LibAccessCheck.ensureListed(market);
 
         Exp memory newCollateralFactorExp = Exp({ mantissa: newCollateralFactorMantissa });
@@ -176,10 +176,10 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
 
         // Save current value for use in log
-        uint oldLiquidationIncentiveMantissa = s.liquidationIncentiveMantissa;
+        uint oldLiquidationIncentiveMantissa =AppStorage.liquidationIncentiveMantissa;
 
         // Set liquidation incentive to new incentive
-        s.liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
+       AppStorage.liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
 
         // Emit event with old incentive, new incentive
         emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
@@ -190,8 +190,8 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
     function _setLiquidatorContract(address newLiquidatorContract_) external {
         // Check caller is admin
         ensureAdmin();
-        address oldLiquidatorContract = s.liquidatorContract;
-        s.liquidatorContract = newLiquidatorContract_;
+        address oldLiquidatorContract =AppStorage.liquidatorContract;
+       AppStorage.liquidatorContract = newLiquidatorContract_;
         emit NewLiquidatorContract(oldLiquidatorContract, newLiquidatorContract_);
     }
 
@@ -205,10 +205,10 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         LibAccessCheck.ensureNonzeroAddress(newPauseGuardian);
 
         // Save current value for inclusion in log
-        address oldPauseGuardian = s.pauseGuardian;
+        address oldPauseGuardian =AppStorage.pauseGuardian;
 
         // Store pauseGuardian with value newPauseGuardian
-        s.pauseGuardian = newPauseGuardian;
+       AppStorage.pauseGuardian = newPauseGuardian;
 
         // Emit NewPauseGuardian(OldPauseGuardian, NewPauseGuardian)
         emit NewPauseGuardian(oldPauseGuardian, newPauseGuardian);
@@ -231,7 +231,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         require(numMarkets != 0 && numMarkets == numBorrowCaps, "invalid input");
 
         for (uint i; i < numMarkets; ++i) {
-            s.borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
+           AppStorage.borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
             emit NewBorrowCap(vTokens[i], newBorrowCaps[i]);
         }
     }
@@ -251,7 +251,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         require(numMarkets != 0 && numMarkets == numSupplyCaps, "invalid input");
 
         for (uint i; i < numMarkets; ++i) {
-            s.supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
+           AppStorage.supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
             emit NewSupplyCap(vTokens[i], newSupplyCaps[i]);
         }
     }
@@ -262,7 +262,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
     function _setProtocolPaused(bool state) external returns (bool) {
         LibAccessCheck.ensureAllowed("_setProtocolPaused(bool)");
 
-        s.protocolPaused = state;
+       AppStorage.protocolPaused = state;
         emit ActionProtocolPaused(state);
         return state;
     }
@@ -276,11 +276,11 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
     function _setActionsPaused(address[] calldata markets, Action[] calldata actions, bool paused) external {
         LibAccessCheck.ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
 
-        uint256 numMarkets = s.markets.length;
+        uint256 numMarkets =AppStorage.markets.length;
         uint256 numActions = actions.length;
         for (uint marketIdx; marketIdx < numMarkets; ++marketIdx) {
             for (uint actionIdx; actionIdx < numActions; ++actionIdx) {
-                setActionPausedInternal(s.markets[marketIdx], actions[actionIdx], paused);
+                setActionPausedInternal(AppStorage.markets[marketIdx], actions[actionIdx], paused);
             }
         }
     }
@@ -293,7 +293,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
      */
     function setActionPausedInternal(address market, Action action, bool paused) internal {
         LibAccessCheck.ensureListed(markets[market]);
-        s._actionPaused[market][uint(action)] = paused;
+       AppStorage._actionPaused[market][uint(action)] = paused;
         emit ActionPausedMarket(VToken(market), action, paused);
     }
 
@@ -307,7 +307,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         LibAccessCheck.ensureAdmin();
         LibAccessCheck.ensureNonzeroAddress(address(vaiController_));
 
-        VAIControllerInterface oldVaiController = s.vaiController;
+        VAIControllerInterface oldVaiController =AppStorage.vaiController;
         vaiController = vaiController_;
         emit NewVAIController(oldVaiController, vaiController_);
 
@@ -318,7 +318,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         // Check caller is admin
         LibAccessCheck.ensureAdmin();
         uint oldVAIMintRate = vaiMintRate;
-        s.vaiMintRate = newVAIMintRate;
+       AppStorage.vaiMintRate = newVAIMintRate;
         emit NewVAIMintRate(oldVAIMintRate, newVAIMintRate);
 
         return uint(Error.NO_ERROR);
@@ -339,7 +339,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         if (msg.sender != address(vaiController)) {
             return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
         }
-        s.mintedVAIs[owner] = amount;
+       AppStorage.mintedVAIs[owner] = amount;
 
         return uint(Error.NO_ERROR);
     }
@@ -356,13 +356,13 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         LibAccessCheck.ensureNonzeroAddress(newTreasuryGuardian);
         LibAccessCheck.ensureNonzeroAddress(newTreasuryAddress);
 
-        address oldTreasuryGuardian = s.treasuryGuardian;
-        address oldTreasuryAddress = s.treasuryAddress;
-        uint oldTreasuryPercent = s.treasuryPercent;
+        address oldTreasuryGuardian =AppStorage.treasuryGuardian;
+        address oldTreasuryAddress =AppStorage.treasuryAddress;
+        uint oldTreasuryPercent =AppStorage.treasuryPercent;
 
-        s.treasuryGuardian = newTreasuryGuardian;
-        s.treasuryAddress = newTreasuryAddress;
-        s.treasuryPercent = newTreasuryPercent;
+       AppStorage.treasuryGuardian = newTreasuryGuardian;
+       AppStorage.treasuryAddress = newTreasuryAddress;
+       AppStorage.treasuryPercent = newTreasuryPercent;
 
         emit NewTreasuryGuardian(oldTreasuryGuardian, newTreasuryGuardian);
         emit NewTreasuryAddress(oldTreasuryAddress, newTreasuryAddress);
@@ -384,9 +384,9 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
     function _setComptrollerLens(ComptrollerLensInterface comptrollerLens_) external returns (uint) {
         LibAccessCheck.ensureAdmin();
         LibAccessCheck.ensureNonzeroAddress(address(comptrollerLens_));
-        address oldComptrollerLens = address(s.comptrollerLens);
-        s.comptrollerLens = comptrollerLens_;
-        emit NewComptrollerLens(oldComptrollerLens, address(s.comptrollerLens));
+        address oldComptrollerLens = address(AppStorage.comptrollerLens);
+       AppStorage.comptrollerLens = comptrollerLens_;
+        emit NewComptrollerLens(oldComptrollerLens, address(AppStorage.comptrollerLens));
 
         return uint(Error.NO_ERROR);
     }
@@ -398,8 +398,8 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
     function _setVenusVAIVaultRate(uint venusVAIVaultRate_) external {
         LibAccessCheck.ensureAdmin();
 
-        uint oldVenusVAIVaultRate = s.venusVAIVaultRate;
-        s.venusVAIVaultRate = venusVAIVaultRate_;
+        uint oldVenusVAIVaultRate =AppStorage.venusVAIVaultRate;
+       AppStorage.venusVAIVaultRate = venusVAIVaultRate_;
         emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
     }
 
@@ -413,9 +413,9 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         LibAccessCheck.ensureAdmin();
         LibAccessCheck.ensureNonzeroAddress(vault_);
 
-        s.vaiVaultAddress = vault_;
-        s.releaseStartBlock = releaseStartBlock_;
-        s.minReleaseAmount = minReleaseAmount_;
+       AppStorage.vaiVaultAddress = vault_;
+       AppStorage.releaseStartBlock = releaseStartBlock_;
+       AppStorage.minReleaseAmount = minReleaseAmount_;
         emit NewVAIVaultInfo(vault_, releaseStartBlock_, minReleaseAmount_);
     }
 }

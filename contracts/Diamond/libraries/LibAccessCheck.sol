@@ -1,9 +1,9 @@
-pragma solidity 0.8.13;
+pragma solidity 0.5.16;
 
 import "../../Governance/IAccessControlManager.sol";
 import "../../Tokens/VTokens/VToken.sol";
 
-library LibAccessCheck {
+contract LibAccessCheck {
     enum Action {
         MINT,
         REDEEM,

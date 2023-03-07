@@ -1,12 +1,12 @@
-pragma solidity 0.8.13;
+pragma solidity 0.5.16;
 
 import "../../Utils/ErrorReporter.sol";
 import "../libraries/LibAccessCheck.sol";
 import "../libraries/LibHelper.sol";
-import "../libraries/appStorage.sol";
+import "../libraries/AppStorage.sol";
 import "../../Tokens/VTokens/VToken.sol";
 
-contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
+contract PolicyFacet is AppStorage, ComptrollerErrorReporter, LibHelper, LibAccessCheck, ComptrollerErrorReporter, ExponentialNoError {
     AppStorage internal s;
     /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
     event VenusBorrowSpeedUpdated(VToken indexed vToken, uint newSpeed);
@@ -25,7 +25,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         // Pausing is a very serious situation - we revert to sound the alarms
         LibAccessCheck.checkProtocolPauseState();
         LibAccessCheck.checkActionPauseState(vToken, Action.MINT);
-        LibAccessCheck.ensureListed(s.markets[vToken]);
+        LibAccessCheck.ensureListed(AppStorage.markets[vToken]);
 
         uint256 supplyCap = supplyCaps[vToken];
         require(supplyCap != 0, "market supply cap is 0");
@@ -91,9 +91,9 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         LibAccessCheck.checkProtocolPauseState();
         LibAccessCheck.checkActionPauseState(vToken, Action.BORROW);
 
-        LibAccessCheck.ensureListed(s.markets[vToken]);
+        LibAccessCheck.ensureListed(AppStorage.markets[vToken]);
 
-        if (!s.markets[vToken].accountMembership[borrower]) {
+        if (!AppStorage.markets[vToken].accountMembership[borrower]) {
             // only vTokens may call borrowAllowed if borrower not in market
             require(msg.sender == vToken, "sender must be vToken");
 
@@ -163,7 +163,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     ) external returns (uint) {
         LibAccessCheck.checkProtocolPauseState();
         LibAccessCheck.checkActionPauseState(vToken, Action.REPAY);
-        LibAccessCheck.ensureListed(s.markets[vToken]);
+        LibAccessCheck.ensureListed(AppStorage.markets[vToken]);
 
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({ mantissa: VToken(vToken).borrowIndex() });
@@ -208,13 +208,13 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         // if we want to pause liquidating to vTokenCollateral, we should pause seizing
         LibAccessCheck.checkActionPauseState(vTokenBorrowed, Action.LIQUIDATE);
 
-        if (s.liquidatorContract != address(0) && liquidator != s.liquidatorContract) {
+        if (AppStorage.liquidatorContract != address(0) && liquidator != AppStorage.liquidatorContract) {
             return uint(Error.UNAUTHORIZED);
         }
 
-        LibAccessCheck.ensureListed(s.markets[vTokenCollateral]);
+        LibAccessCheck.ensureListed(AppStorage.markets[vTokenCollateral]);
         if (address(vTokenBorrowed) != address(vaiController)) {
-            LibAccessCheck.ensureListed(s.markets[vTokenBorrowed]);
+            LibAccessCheck.ensureListed(AppStorage.markets[vTokenBorrowed]);
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
@@ -270,9 +270,9 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         LibAccessCheck.checkActionPauseState(vTokenCollateral, Action.SEIZE);
 
         // We've added VAIController as a borrowed token list check for seize
-        LibAccessCheck.ensureListed(s.markets[vTokenCollateral]);
+        LibAccessCheck.ensureListed(AppStorage.markets[vTokenCollateral]);
         if (address(vTokenBorrowed) != address(vaiController)) {
-            LibAccessCheck.ensureListed(s.markets[vTokenBorrowed]);
+            LibAccessCheck.ensureListed(AppStorage.markets[vTokenBorrowed]);
         }
 
         if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
@@ -403,7 +403,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     }
 
     function setVenusSpeedInternal(VToken vToken, uint supplySpeed, uint borrowSpeed) internal {
-        LibAccessCheck.ensureListed(s.markets[address(vToken)]);
+        LibAccessCheck.ensureListed(AppStorage.markets[address(vToken)]);
 
         if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that

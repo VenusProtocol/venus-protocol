@@ -1,7 +1,10 @@
-pragma solidity 0.8.13;
+pragma solidity 0.5.16;
 import "../../Tokens/VTokens/VToken.sol";
+import "../../Utils/ErrorReporter.sol";
+import "../../Utils/ExponentialNoError.sol";
+import "./AppStorage.sol";
 
-library LibHelper {
+contract LibHelper is AppStorage, ExponentialNoError , ComptrollerErrorReporter{
 
      
     /**

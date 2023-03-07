@@ -1,11 +1,11 @@
-pragma solidity 0.8.13;
+pragma solidity 0.5.16;
 
-import "../libraries/appStorage.sol";
+import "../libraries/AppStorage.sol";
 import "../libraries/LibHelper.sol";
 import "../libraries/LibAccessCheck.sol";
 import "../../Tokens/VTokens/VToken.sol";
 
-contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
+contract MarketFacet is AppStorage, LibHelper, LibAccessCheck, ComptrollerErrorReporter, ExponentialNoError {
     AppStorage internal s;
 
     /// @notice Emitted when an account enters a market
@@ -20,7 +20,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @return A dynamic list with the assets the account has entered
      */
     function getAssetsIn(address account) external view returns (VToken[] memory) {
-        return s.accountAssets[account];
+        returnAppStorage.accountAssets[account];
     }
 
     /**
@@ -30,7 +30,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @return True if the account is in the asset, otherwise false.
      */
     function checkMembership(address account, VToken vToken) external view returns (bool) {
-        return s.markets[address(vToken)].accountMembership[account];
+        returnAppStorage.markets[address(vToken)].accountMembership[account];
     }
 
     /**
@@ -75,7 +75,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
             return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
         }
 
-        Market storage marketToExit = s.markets[address(vToken)];
+        Market storage marketToExit =AppStorage.markets[address(vToken)];
 
         /* Return true if the sender is not already ‘in’ the market */
         if (!marketToExit.accountMembership[msg.sender]) {
@@ -87,7 +87,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
 
         /* Delete vToken from the account’s list of assets */
         // In order to delete vToken, copy last item in list to location of item to be removed, reduce length by 1
-        VToken[] storage userAssetList = s.accountAssets[msg.sender];
+        VToken[] storage userAssetList =AppStorage.accountAssets[msg.sender];
         uint len = userAssetList.length;
         uint i;
         for (; i < len; ++i) {
@@ -120,7 +120,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         }
 
         // Note that isVenus is not in active use anymore
-        s.markets[address(vToken)] = Market({ isListed: true, isVenus: false, collateralFactorMantissa: 0 });
+       AppStorage.markets[address(vToken)] = Market({ isListed: true, isVenus: false, collateralFactorMantissa: 0 });
 
         _addMarketInternal(vToken);
         _initializeMarket(address(vToken));
@@ -131,17 +131,17 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
     }
 
     function _addMarketInternal(VToken vToken) internal {
-        for (uint i; i < s.allMarkets.length; ++i) {
-            require(s.allMarkets[i] != vToken, "market already added");
+        for (uint i; i <AppStorage.allMarkets.length; ++i) {
+            require(AppStorage.allMarkets[i] != vToken, "market already added");
         }
-        s.allMarkets.push(vToken);
+       AppStorage.allMarkets.push(vToken);
     }
 
     function _initializeMarket(address vToken) internal {
         uint32 blockNumber = safe32(LibAccessCheck.getBlockNumber(), "block number exceeds 32 bits");
 
-        VenusMarketState storage supplyState = s.venusSupplyState[vToken];
-        VenusMarketState storage borrowState = s.venusBorrowState[vToken];
+        VenusMarketState storage supplyState =AppStorage.venusSupplyState[vToken];
+        VenusMarketState storage borrowState =AppStorage.venusBorrowState[vToken];
 
         /*
          * Update market state indices

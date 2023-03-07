@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity 0.5.16;
 
 import "../../Oracle/PriceOracle.sol";
 import "../../Tokens/VTokens/VToken.sol";
@@ -7,10 +7,10 @@ import "../../Tokens/XVS/XVS.sol";
 import "../../Tokens/VAI/VAI.sol";
 import "../libraries/LibAccessCheck.sol";
 import "../libraries/LibHelper.sol";
-import "../libraries/appStorage.sol";
+import "../libraries/AppStorage.sol";
 import "../../Governance/IAccessControlManager.sol";
 
-contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
+contract RewardFacet is AppStorage, LibHelper, LibAccessCheck, ComptrollerErrorReporter, ExponentialNoError {
     AppStorage internal s;
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address recipient, uint amount);
@@ -55,7 +55,7 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
     function claimVenusAsCollateral(address holder) external {
         address[] memory holders = new address[](1);
         holders[0] = holder;
-        claimVenus(holders, s.allMarkets, true, true, true);
+        claimVenus(holders,AppStorage.allMarkets, true, true, true);
     }
 
     /**
@@ -145,7 +145,7 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @param market vToken address
      */
     function actionPaused(address market, Action action) public view returns (bool) {
-        return s._actionPaused[market][uint(action)];
+        returnAppStorage._actionPaused[market][uint(action)];
     }
 
     /*** VAI functions ***/
@@ -154,7 +154,7 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @notice Transfer XVS to VAI Vault
      */
     function releaseToVault() public {
-        if (s.releaseStartBlock == 0 || getBlockNumber() < s.releaseStartBlock) {
+        if (AppStorage.releaseStartBlock == 0 || getBlockNumber() <AppStorage.releaseStartBlock) {
             return;
         }
 
@@ -180,12 +180,12 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
             return;
         }
 
-        s.releaseStartBlock = getBlockNumber();
+       AppStorage.releaseStartBlock = getBlockNumber();
 
-        xvs.transfer(s.vaiVaultAddress, actualAmount);
+        xvs.transfer(AppStorage.vaiVaultAddress, actualAmount);
         emit DistributedVAIVaultVenus(actualAmount);
 
-        IVAIVault(s.vaiVaultAddress).updatePendingRewards();
+        IVAIVault(AppStorage.vaiVaultAddress).updatePendingRewards();
     }
 
     /**
@@ -228,7 +228,7 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
             (, , uint shortfall) = LibHelper.getHypotheticalAccountLiquidityInternal(holder, VToken(0), 0, 0);
-            s.venusAccrued[holder] = grantXVSInternal(holder, s.venusAccrued[holder], shortfall, collateral);
+           AppStorage.venusAccrued[holder] = grantXVSInternal(holder,AppStorage.venusAccrued[holder], shortfall, collateral);
         }
     }
 }

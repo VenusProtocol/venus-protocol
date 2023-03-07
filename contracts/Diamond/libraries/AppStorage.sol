@@ -1,9 +1,12 @@
-pragma solidity 0.8.13;
+pragma solidity 0.5.16;
 
 import "../../Tokens/VTokens/VToken.sol";
 import "../../Oracle/PriceOracle.sol";
 import "../../Tokens/VAI/VAIControllerInterface.sol";
 import "../../Comptroller/ComptrollerLensInterface.sol";
+
+
+contract AppStorage {
 
 struct Market {
     /// @notice Whether or not this market is listed
@@ -154,7 +157,7 @@ struct AppStorage {
     mapping(address => uint) venusSupplySpeeds;
 }
 
-library LibAppStorage {
+
     function diamondStorage() internal pure returns (AppStorage storage ds) {
         assembly {
             ds.slot := 0
