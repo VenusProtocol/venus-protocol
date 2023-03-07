@@ -2,6 +2,7 @@ pragma solidity 0.8.13;
 
 import "../../Governance/IAccessControlManager.sol";
 import "../../Tokens/VTokens/VToken.sol";
+import "../libraries/appStorage.sol";
 
 library LibAccessCheck {
     enum Action {
@@ -18,7 +19,8 @@ library LibAccessCheck {
 
     /// @notice Reverts if the protocol is paused
     function checkProtocolPauseState() internal view {
-        require(!protocolPaused, "protocol is paused");
+        AppStorage storage s = LibAppStorage.diamondStorage();
+        require(!s.protocolPaused, "protocol is paused");
     }
 
     /// @notice Reverts if a certain action is paused on a market
@@ -28,7 +30,8 @@ library LibAccessCheck {
 
     /// @notice Reverts if the caller is not admin
     function ensureAdmin() internal view {
-        require(msg.sender == admin, "only admin can");
+        AppStorage storage s = LibAppStorage.diamondStorage();
+        require(msg.sender == s.admin, "only admin can");
     }
 
     /// @notice Checks the passed address is nonzero
@@ -43,11 +46,13 @@ library LibAccessCheck {
 
     /// @notice Reverts if the caller is neither admin nor the passed address
     function ensureAdminOr(address privilegedAddress) internal view {
-        require(msg.sender == admin || msg.sender == privilegedAddress, "access denied");
+        AppStorage storage s = LibAppStorage.diamondStorage();
+        require(msg.sender == s.admin || msg.sender == privilegedAddress, "access denied");
     }
 
     function ensureAllowed(string memory functionSig) internal view {
-        require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+        AppStorage storage s = LibAppStorage.diamondStorage();
+        require(IAccessControlManager(s.accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /**
@@ -57,7 +62,8 @@ library LibAccessCheck {
      * @return True if the account is in the asset, otherwise false.
      */
     function checkMembership(address account, VToken vToken) external view returns (bool) {
-        return markets[address(vToken)].accountMembership[account];
+        AppStorage storage s = LibAppStorage.diamondStorage();
+        return s.markets[address(vToken)].accountMembership[account];
     }
 
     /**
@@ -66,7 +72,8 @@ library LibAccessCheck {
      * @param market vToken address
      */
     function actionPaused(address market, Action action) public view returns (bool) {
-        return _actionPaused[market][uint(action)];
+        AppStorage storage s = LibAppStorage.diamondStorage();
+        return s._actionPaused[market][uint(action)];
     }
 
     function getBlockNumber() public view returns (uint) {
