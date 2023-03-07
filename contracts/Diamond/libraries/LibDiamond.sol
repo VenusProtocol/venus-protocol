@@ -1,6 +1,5 @@
 pragma solidity 0.8.13;
 
-
 import { IDiamondCut } from "../interfaces/IDiamondCut.sol";
 
 // Remember to add the loupe functions from DiamondLoupeFacet to the diamond.
