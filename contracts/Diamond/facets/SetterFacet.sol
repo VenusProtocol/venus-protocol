@@ -458,4 +458,3 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         emit NewVAIVaultInfo(vault_, releaseStartBlock_, minReleaseAmount_);
     }
 }
-}
