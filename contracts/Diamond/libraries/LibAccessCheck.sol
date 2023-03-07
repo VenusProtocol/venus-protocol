@@ -79,6 +79,4 @@ library LibAccessCheck {
     function getBlockNumber() public view returns (uint) {
         return block.number;
     }
-
 }
-
