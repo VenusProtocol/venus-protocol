@@ -167,4 +167,3 @@ library LibAppStorage {
         return uint256(x >= 0 ? x : -x);
     }
 }
-
