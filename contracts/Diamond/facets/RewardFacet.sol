@@ -1,21 +1,23 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../../Oracle/PriceOracle.sol";
 import "../../Tokens/VTokens/VToken.sol";
 import "../../Utils/ErrorReporter.sol";
 import "../../Tokens/XVS/XVS.sol";
 import "../../Tokens/VAI/VAI.sol";
+import "../libraries/LibAccessCheck.sol";
+import "../libraries/LibHelper.sol";
 import "../libraries/appStorage.sol";
 import "../../Governance/IAccessControlManager.sol";
 
-contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
+contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
     AppStorage internal s;
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address recipient, uint amount);
 
     /// @notice Emitted when XVS is distributed to VAI Vault
     event DistributedVAIVaultVenus(uint amount);
-    
+
     /**
      * @notice Claim all the xvs accrued by holder in all markets and VAI
      * @param holder The address to claim XVS for
@@ -53,7 +55,7 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
     function claimVenusAsCollateral(address holder) external {
         address[] memory holders = new address[](1);
         holders[0] = holder;
-        claimVenus(holders, allMarkets, true, true, true);
+        claimVenus(holders, s.allMarkets, true, true, true);
     }
 
     /**
@@ -111,7 +113,7 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
      * @param amount The amount of XVS to (possibly) transfer
      */
     function _grantXVS(address recipient, uint amount) external {
-        ensureAdminOr(s.comptrollerImplementation);
+        LibAccessCheck.ensureAdminOr(comptrollerImplementation);
         uint amountLeft = grantXVSInternal(recipient, amount, 0, false);
         require(amountLeft == 0, "insufficient xvs for grant");
         emit VenusGranted(recipient, amount);
@@ -164,9 +166,9 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
         }
 
         uint256 actualAmount;
-        uint256 deltaBlocks = sub_(getBlockNumber(), s.releaseStartBlock);
+        uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
         // releaseAmount = venusVAIVaultRate * deltaBlocks
-        uint256 _releaseAmount = mul_(s.venusVAIVaultRate, deltaBlocks);
+        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
 
         if (xvsBalance >= _releaseAmount) {
             actualAmount = _releaseAmount;
@@ -174,7 +176,7 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
             actualAmount = xvsBalance;
         }
 
-        if (actualAmount < s.minReleaseAmount) {
+        if (actualAmount < minReleaseAmount) {
             return;
         }
 
@@ -205,18 +207,18 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
         uint256 holdersLength = holders.length;
         for (uint i; i < vTokens.length; ++i) {
             VToken vToken = vTokens[i];
-            ensureListed(markets[address(vToken)]);
+            LibAccessCheck.ensureListed(markets[address(vToken)]);
             if (borrowers) {
                 Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });
-                updateVenusBorrowIndex(address(vToken), borrowIndex);
+                LibHelper.updateVenusBorrowIndex(address(vToken), borrowIndex);
                 for (j = 0; j < holdersLength; ++j) {
-                    distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
+                    LibHelper.distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
                 }
             }
             if (suppliers) {
-                updateVenusSupplyIndex(address(vToken));
+                LibHelper.updateVenusSupplyIndex(address(vToken));
                 for (j = 0; j < holdersLength; ++j) {
-                    distributeSupplierVenus(address(vToken), holders[j]);
+                    LibHelper.distributeSupplierVenus(address(vToken), holders[j]);
                 }
             }
         }
@@ -225,10 +227,8 @@ contract RewardFacet is  ComptrollerErrorReporter, ExponentialNoError {
             address holder = holders[j];
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
-            (, , uint shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(0), 0, 0);
-            s.venusAccrued[holder] = grantXVSInternal(holder, venusAccrued[holder], shortfall, collateral);
+            (, , uint shortfall) = LibHelper.getHypotheticalAccountLiquidityInternal(holder, VToken(0), 0, 0);
+            s.venusAccrued[holder] = grantXVSInternal(holder, s.venusAccrued[holder], shortfall, collateral);
         }
     }
-
 }
-    

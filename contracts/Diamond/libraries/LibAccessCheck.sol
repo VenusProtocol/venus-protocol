@@ -1,8 +1,21 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../../Governance/IAccessControlManager.sol";
+import "../../Tokens/VTokens/VToken.sol";
 
-library LibAccessCheck  {
+library LibAccessCheck {
+    enum Action {
+        MINT,
+        REDEEM,
+        BORROW,
+        REPAY,
+        SEIZE,
+        LIQUIDATE,
+        TRANSFER,
+        ENTER_MARKET,
+        EXIT_MARKET
+    }
+
     /// @notice Reverts if the protocol is paused
     function checkProtocolPauseState() internal view {
         require(!protocolPaused, "protocol is paused");
@@ -54,5 +67,9 @@ library LibAccessCheck  {
      */
     function actionPaused(address market, Action action) public view returns (bool) {
         return _actionPaused[market][uint(action)];
+    }
+
+    function getBlockNumber() public view returns (uint) {
+        return block.number;
     }
 }
