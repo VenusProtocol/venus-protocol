@@ -1,4 +1,4 @@
-pragma solidity ^0.8.0;
+pragma solidity 0.8.13;
 
 import "../../Tokens/VTokens/VToken.sol";
 import "../../Oracle/PriceOracle.sol";
@@ -19,7 +19,26 @@ struct Market {
     /// @notice Whether or not this market receives XVS
     bool isVenus;
 }
+    /// @notice Whether or not this market is listed
+    bool isListed;
+    /**
+     * @notice Multiplier representing the most one can borrow against their collateral in this market.
+     *  For instance, 0.9 to allow borrowing 90% of collateral value.
+     *  Must be between 0 and 1, and stored as a mantissa.
+     */
+    uint collateralFactorMantissa;
+    /// @notice Per-market mapping of "accounts in this asset"
+    mapping(address => bool) accountMembership;
+    /// @notice Whether or not this market receives XVS
+    bool isVenus;
+}
 
+struct VenusMarketState {
+    /// @notice The market's last updated venusBorrowIndex or venusSupplyIndex
+    uint224 index;
+    /// @notice The block number the index was last updated at
+    uint32 block;
+}
 struct VenusMarketState {
     /// @notice The market's last updated venusBorrowIndex or venusSupplyIndex
     uint224 index;
@@ -119,6 +138,7 @@ struct AppStorage {
     /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block (deprecated)
     uint venusVAIRate;
     /// @notice The rate at which the flywheel distributes XVS to VAI Vault, per block
+    /// @notice The rate at which the flywheel distributes XVS to VAI Vault, per block
     uint venusVAIVaultRate;
     // address of VAI Vault
     address vaiVaultAddress;
@@ -149,11 +169,10 @@ struct AppStorage {
     /// @notice True if a certain action is paused on a certain market
     mapping(address => mapping(uint => bool)) _actionPaused;
     /// @notice The rate at which venus is distributed to the corresponding borrow market (per block)
+    /// @notice The rate at which venus is distributed to the corresponding borrow market (per block)
     mapping(address => uint) venusBorrowSpeeds;
     /// @notice The rate at which venus is distributed to the corresponding supply market (per block)
     mapping(address => uint) venusSupplySpeeds;
-    /// @notice Prime token address
-    IPrime prime;
 }
 
 library LibAppStorage {
@@ -167,3 +186,4 @@ library LibAppStorage {
         return uint256(x >= 0 ? x : -x);
     }
 }
+
