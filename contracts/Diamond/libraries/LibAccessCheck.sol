@@ -16,10 +16,7 @@ library LibAccessCheck {
         EXIT_MARKET
     }
 
-<<<<<<< HEAD
 library LibAccessCheck {
-=======
->>>>>>> cdc8bda (Added Policy and Market Facet)
     /// @notice Reverts if the protocol is paused
     function checkProtocolPauseState() internal view {
         require(!protocolPaused, "protocol is paused");
@@ -72,12 +69,10 @@ library LibAccessCheck {
     function actionPaused(address market, Action action) public view returns (bool) {
         return _actionPaused[market][uint(action)];
     }
-<<<<<<< HEAD
-=======
 
     function getBlockNumber() public view returns (uint) {
         return block.number;
     }
->>>>>>> cdc8bda (Added Policy and Market Facet)
+
 }
 

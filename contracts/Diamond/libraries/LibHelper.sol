@@ -2,8 +2,6 @@ pragma solidity 0.8.13;
 import "../../Tokens/VTokens/VToken.sol";
 
 library LibHelper {
-
-     
     /**
      * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed
      * @param vTokenModify The market to hypothetically redeem/borrow in
@@ -32,7 +30,7 @@ library LibHelper {
         return (Error(err), liquidity, shortfall);
     }
 
-     /**
+    /**
      * @notice Accrue XVS to the market by updating the supply index
      * @param vToken The market whose supply index to update
      */
@@ -201,5 +199,4 @@ library LibHelper {
 
         return uint(Error.NO_ERROR);
     }
-    
 }
