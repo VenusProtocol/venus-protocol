@@ -19,26 +19,7 @@ struct Market {
     /// @notice Whether or not this market receives XVS
     bool isVenus;
 }
-    /// @notice Whether or not this market is listed
-    bool isListed;
-    /**
-     * @notice Multiplier representing the most one can borrow against their collateral in this market.
-     *  For instance, 0.9 to allow borrowing 90% of collateral value.
-     *  Must be between 0 and 1, and stored as a mantissa.
-     */
-    uint collateralFactorMantissa;
-    /// @notice Per-market mapping of "accounts in this asset"
-    mapping(address => bool) accountMembership;
-    /// @notice Whether or not this market receives XVS
-    bool isVenus;
-}
 
-struct VenusMarketState {
-    /// @notice The market's last updated venusBorrowIndex or venusSupplyIndex
-    uint224 index;
-    /// @notice The block number the index was last updated at
-    uint32 block;
-}
 struct VenusMarketState {
     /// @notice The market's last updated venusBorrowIndex or venusSupplyIndex
     uint224 index;

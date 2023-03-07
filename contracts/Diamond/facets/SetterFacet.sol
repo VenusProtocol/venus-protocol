@@ -9,7 +9,6 @@ import "../libraries/appStorage.sol";
 import "../../Governance/IAccessControlManager.sol";
 import "../libraries/LibAccessCheck.sol";
 
-contract SetterFacet is AppStorage, ComptrollerErrorReporter, ExponentialNoError {
 contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
     AppStorage internal s;
     /// @notice Emitted when close factor is changed by admin
