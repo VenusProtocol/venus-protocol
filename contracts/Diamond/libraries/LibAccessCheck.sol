@@ -16,7 +16,6 @@ library LibAccessCheck {
         EXIT_MARKET
     }
 
-library LibAccessCheck {
     /// @notice Reverts if the protocol is paused
     function checkProtocolPauseState() internal view {
         require(!protocolPaused, "protocol is paused");
