@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../../Utils/Tokenlock.sol";
 
@@ -87,8 +87,8 @@ contract XVS is Tokenlock {
      */
     function approve(address spender, uint rawAmount) external validLock returns (bool) {
         uint96 amount;
-        if (rawAmount == uint(-1)) {
-            amount = uint96(-1);
+        if (rawAmount == type(uint).max) {
+            amount = type(uint96).max;
         } else {
             amount = safe96(rawAmount, "XVS::approve: amount exceeds 96 bits");
         }
@@ -132,7 +132,7 @@ contract XVS is Tokenlock {
         uint96 spenderAllowance = allowances[src][spender];
         uint96 amount = safe96(rawAmount, "XVS::approve: amount exceeds 96 bits");
 
-        if (spender != src && spenderAllowance != uint96(-1)) {
+        if (spender != src && spenderAllowance != type(uint96).max) {
             uint96 newAllowance = sub96(
                 spenderAllowance,
                 amount,
@@ -173,7 +173,7 @@ contract XVS is Tokenlock {
         address signatory = ecrecover(digest, v, r, s);
         require(signatory != address(0), "XVS::delegateBySig: invalid signature");
         require(nonce == nonces[signatory]++, "XVS::delegateBySig: invalid nonce");
-        require(now <= expiry, "XVS::delegateBySig: signature expired");
+        require(block.timestamp <= expiry, "XVS::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../Tokens/VTokens/VBep20Immutable.sol";
 import "../Tokens/VTokens/VBep20Delegator.sol";

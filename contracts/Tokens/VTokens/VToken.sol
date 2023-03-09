@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../Utils/ErrorReporter.sol";
@@ -193,7 +193,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         admin = pendingAdmin;
 
         // Clear the pending value
-        pendingAdmin = address(0);
+        pendingAdmin = payable(address(0));
 
         emit NewAdmin(oldAdmin, admin);
         emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);
@@ -557,7 +557,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Get the allowance, infinite for the account owner */
         uint startingAllowance = 0;
         if (spender == src) {
-            startingAllowance = uint(-1);
+            startingAllowance = type(uint).max;
         } else {
             startingAllowance = transferAllowances[src][spender];
         }
@@ -591,7 +591,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         accountTokens[dst] = dstTokensNew;
 
         /* Eat some of the allowance (if necessary) */
-        if (startingAllowance != uint(-1)) {
+        if (startingAllowance != type(uint).max) {
             transferAllowances[src][spender] = allowanceNew;
         }
 
@@ -803,7 +803,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
         }
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
-        return redeemFresh(msg.sender, redeemTokens, 0);
+        return redeemFresh(payable(msg.sender), redeemTokens, 0);
     }
 
     /**
@@ -819,7 +819,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
         }
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
-        return redeemFresh(msg.sender, 0, redeemAmount);
+        return redeemFresh(payable(msg.sender), 0, redeemAmount);
     }
 
     /**
@@ -943,7 +943,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
                 revert("math error");
             }
 
-            doTransferOut(address(uint160(IComptroller(address(comptroller)).treasuryAddress())), feeAmount);
+            doTransferOut(payable(address(uint160(IComptroller(address(comptroller)).treasuryAddress()))), feeAmount);
 
             emit RedeemFee(redeemer, feeAmount, vars.redeemTokens);
         } else {
@@ -969,7 +969,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function borrowInternal(uint borrowAmount) internal nonReentrant returns (uint) {
         address borrower = msg.sender;
-        address payable receiver = msg.sender;
+        address payable receiver = payable(msg.sender);
         return borrowInternal(borrower, receiver, borrowAmount);
     }
 
@@ -1139,7 +1139,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* If repayAmount == -1, repayAmount = accountBorrows */
-        if (repayAmount == uint(-1)) {
+        if (repayAmount == type(uint).max) {
             vars.repayAmount = vars.accountBorrows;
         } else {
             vars.repayAmount = repayAmount;
@@ -1261,7 +1261,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Fail if repayAmount = -1 */
-        if (repayAmount == uint(-1)) {
+        if (repayAmount == type(uint).max) {
             return (fail(Error.INVALID_CLOSE_AMOUNT_REQUESTED, FailureInfo.LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
         }
 
@@ -1555,14 +1555,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @dev Performs a transfer in, reverting upon failure. Returns the amount actually transferred to the protocol, in case of a fee.
      *  This may revert due to insufficient balance or insufficient allowance.
      */
-    function doTransferIn(address from, uint amount) internal returns (uint);
+    function doTransferIn(address from, uint amount) internal virtual returns (uint);
 
     /**
      * @dev Performs a transfer out, ideally returning an explanatory error code upon failure rather than reverting.
      *  If caller has not called checked protocol's balance, may revert due to insufficient cash held in the contract.
      *  If caller has checked protocol's balance, and verified it is >= amount, this should not revert in normal conditions.
      */
-    function doTransferOut(address payable to, uint amount) internal;
+    function doTransferOut(address payable to, uint amount) internal virtual;
 
     /**
      * @dev Function to simply retrieve block number
@@ -1653,5 +1653,5 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @dev This excludes the value of the current message, if any
      * @return The quantity of underlying owned by this contract
      */
-    function getCashPrior() internal view returns (uint);
+    function getCashPrior() internal view virtual returns (uint);
 }

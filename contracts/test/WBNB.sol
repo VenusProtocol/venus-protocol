@@ -6,7 +6,7 @@
  *Submitted for verification at Bscscan.com on 2020-09-03
  */
 
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 contract WBNB {
     string public name = "Wrapped BNB";
@@ -21,7 +21,7 @@ contract WBNB {
     mapping(address => uint) public balanceOf;
     mapping(address => mapping(address => uint)) public allowance;
 
-    function() external payable {
+    receive() external payable {
         deposit();
     }
 

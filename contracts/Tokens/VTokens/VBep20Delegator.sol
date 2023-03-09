@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "./VTokenInterfaces.sol";
 
@@ -62,7 +62,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      * @notice Delegates execution to an implementation contract
      * @dev It returns to the external caller whatever the implementation returns or forwards reverts
      */
-    function() external payable {
+    receive() external payable {
         require(msg.value == 0, "VBep20Delegator:fallback: cannot send value to fallback");
 
         // delegate all other functions to current implementation
@@ -70,14 +70,14 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
 
         assembly {
             let free_mem_ptr := mload(0x40)
-            returndatacopy(free_mem_ptr, 0, returndatasize)
+            returndatacopy(free_mem_ptr, 0, returndatasize())
 
             switch success
             case 0 {
-                revert(free_mem_ptr, returndatasize)
+                revert(free_mem_ptr, returndatasize())
             }
             default {
-                return(free_mem_ptr, returndatasize)
+                return(free_mem_ptr, returndatasize())
             }
         }
     }
@@ -481,7 +481,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         );
         assembly {
             if eq(success, 0) {
-                revert(add(returnData, 0x20), returndatasize)
+                revert(add(returnData, 0x20), returndatasize())
             }
         }
         return abi.decode(returnData, (bytes));
@@ -520,7 +520,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         (bool success, bytes memory returnData) = callee.delegatecall(data);
         assembly {
             if eq(success, 0) {
-                revert(add(returnData, 0x20), returndatasize)
+                revert(add(returnData, 0x20), returndatasize())
             }
         }
         return returnData;

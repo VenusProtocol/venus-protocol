@@ -1,9 +1,9 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 
-contract VTokenStorage {
+interface VTokenStorage {
     /**
      * @notice Container for borrow balance information
      * @member principal Total balance (with accrued interest), after applying the most recent balance-changing action
@@ -116,7 +116,7 @@ contract VTokenStorage {
     mapping(address => BorrowSnapshot) internal accountBorrows;
 }
 
-contract VTokenInterface is VTokenStorage {
+interface VTokenInterface is VTokenStorage {
     /**
      * @notice Indicator that this is a vToken contract (for inspection)
      */
@@ -262,29 +262,29 @@ contract VTokenInterface is VTokenStorage {
 
     function getCash() external view returns (uint);
 
-    function exchangeRateCurrent() public returns (uint);
+    function exchangeRateCurrent() external returns (uint);
 
-    function accrueInterest() public returns (uint);
-
-    /*** Admin Function ***/
-    function _setComptroller(ComptrollerInterface newComptroller) public returns (uint);
+    function accrueInterest() external returns (uint);
 
     /*** Admin Function ***/
-    function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint);
+    function _setComptroller(ComptrollerInterface newComptroller) external returns (uint);
 
-    function borrowBalanceStored(address account) public view returns (uint);
+    /*** Admin Function ***/
+    function _setInterestRateModel(InterestRateModel newInterestRateModel) external returns (uint);
 
-    function exchangeRateStored() public view returns (uint);
+    function borrowBalanceStored(address account) external view returns (uint);
+
+    function exchangeRateStored() external view returns (uint);
 }
 
-contract VBep20Storage {
+interface VBep20Storage {
     /**
      * @notice Underlying asset for this VToken
      */
     address public underlying;
 }
 
-contract VBep20Interface is VBep20Storage {
+interface VBep20Interface is VBep20Storage {
     /*** User Interface ***/
 
     function mint(uint mintAmount) external returns (uint);
@@ -312,14 +312,14 @@ contract VBep20Interface is VBep20Storage {
     function _addReserves(uint addAmount) external returns (uint);
 }
 
-contract VDelegationStorage {
+interface VDelegationStorage {
     /**
      * @notice Implementation address for this contract
      */
     address public implementation;
 }
 
-contract VDelegatorInterface is VDelegationStorage {
+interface VDelegatorInterface is VDelegationStorage {
     /**
      * @notice Emitted when implementation is changed
      */
@@ -331,23 +331,19 @@ contract VDelegatorInterface is VDelegationStorage {
      * @param allowResign Flag to indicate whether to call _resignImplementation on the old implementation
      * @param becomeImplementationData The encoded bytes data to be passed to _becomeImplementation
      */
-    function _setImplementation(
-        address implementation_,
-        bool allowResign,
-        bytes memory becomeImplementationData
-    ) public;
+    function _setImplementation(address implementation_, bool allowResign, bytes memory becomeImplementationData) public;
 }
 
-contract VDelegateInterface is VDelegationStorage {
+interface VDelegateInterface is VDelegationStorage {
     /**
      * @notice Called by the delegator on a delegate to initialize it for duty
      * @dev Should revert if any issues arise which make it unfit for delegation
      * @param data The encoded bytes data for any initialization
      */
-    function _becomeImplementation(bytes memory data) public;
+    function _becomeImplementation(bytes memory data) external;
 
     /**
      * @notice Called by the delegator on a delegate to forfeit its responsibility
      */
-    function _resignImplementation() public;
+    function _resignImplementation() external;
 }

@@ -1,11 +1,11 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../VTokens/VToken.sol";
 
-contract VAIControllerInterface {
-    function getVAIAddress() public view returns (address);
+interface VAIControllerInterface {
+    function getVAIAddress() external view returns (address);
 
-    function getMintableVAI(address minter) public view returns (uint, uint);
+    function getMintableVAI(address minter) external view returns (uint, uint);
 
     function mintVAI(address minter, uint mintVAIAmount) external returns (uint);
 
@@ -23,5 +23,5 @@ contract VAIControllerInterface {
 
     function calcDistributeVAIMinterVenus(address vaiMinter) external returns (uint, uint, uint, uint);
 
-    function getVAIRepayAmount(address account) public view returns (uint);
+    function getVAIRepayAmount(address account) external view returns (uint);
 }

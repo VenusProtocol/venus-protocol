@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "./VToken.sol";
 
@@ -39,7 +39,7 @@ contract VBNB is VToken {
     /**
      * @notice Send BNB to VBNB to mint
      */
-    function() external payable {
+    receive() external payable {
         (uint err, ) = mintInternal(msg.value);
         requireNoError(err, "mint failed");
     }

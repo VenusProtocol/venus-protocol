@@ -24,10 +24,10 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vToken, Action.MINT);
+        LibAccessCheck.checkActionPauseState(vToken, LibAccessCheck.Action.MINT);
         LibAccessCheck.ensureListed(s.markets[vToken]);
 
-        uint256 supplyCap = supplyCaps[vToken];
+        uint256 supplyCap = s.supplyCaps[vToken];
         require(supplyCap != 0, "market supply cap is 0");
 
         uint256 vTokenSupply = VToken(vToken).totalSupply();
@@ -53,7 +53,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
      */
     function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint) {
         LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vToken, Action.REDEEM);
+        LibAccessCheck.checkActionPauseState(vToken, LibAccessCheck.Action.REDEEM);
 
         uint allowed = LibHelper.redeemAllowedInternal(vToken, redeemer, redeemTokens);
         if (allowed != uint(Error.NO_ERROR)) {
@@ -89,7 +89,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vToken, Action.BORROW);
+        LibAccessCheck.checkActionPauseState(vToken, LibAccessCheck.Action.BORROW);
 
         LibAccessCheck.ensureListed(s.markets[vToken]);
 
@@ -104,11 +104,11 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
             }
         }
 
-        if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
+        if (s.oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
             return uint(Error.PRICE_ERROR);
         }
 
-        uint borrowCap = borrowCaps[vToken];
+        uint borrowCap = s.borrowCaps[vToken];
         // Borrow cap of 0 corresponds to unlimited borrowing
         if (borrowCap != 0) {
             uint nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
@@ -162,7 +162,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         uint repayAmount
     ) external returns (uint) {
         LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vToken, Action.REPAY);
+        LibAccessCheck.checkActionPauseState(vToken, LibAccessCheck.Action.REPAY);
         LibAccessCheck.ensureListed(s.markets[vToken]);
 
         // Keep the flywheel moving
@@ -206,14 +206,14 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         LibAccessCheck.checkProtocolPauseState();
 
         // if we want to pause liquidating to vTokenCollateral, we should pause seizing
-        LibAccessCheck.checkActionPauseState(vTokenBorrowed, Action.LIQUIDATE);
+        LibAccessCheck.checkActionPauseState(vTokenBorrowed, LibAccessCheck.Action.LIQUIDATE);
 
         if (s.liquidatorContract != address(0) && liquidator != s.liquidatorContract) {
             return uint(Error.UNAUTHORIZED);
         }
 
         LibAccessCheck.ensureListed(s.markets[vTokenCollateral]);
-        if (address(vTokenBorrowed) != address(vaiController)) {
+        if (address(vTokenBorrowed) != address(s.vaiController)) {
             LibAccessCheck.ensureListed(s.markets[vTokenBorrowed]);
         }
 
@@ -228,13 +228,13 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
 
         /* The liquidator may not repay more than what is allowed by the closeFactor */
         uint borrowBalance;
-        if (address(vTokenBorrowed) != address(vaiController)) {
+        if (address(vTokenBorrowed) != address(s.vaiController)) {
             borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
         } else {
-            borrowBalance = vaiController.getVAIRepayAmount(borrower);
+            borrowBalance = s.vaiController.getVAIRepayAmount(borrower);
         }
         //-- maxClose = multipy of closeFactorMantissa and borrowBalance
-        if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactorMantissa }), borrowBalance)) {
+        if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: s.closeFactorMantissa }), borrowBalance)) {
             return uint(Error.TOO_MUCH_REPAY);
         }
 
@@ -267,11 +267,11 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     ) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vTokenCollateral, Action.SEIZE);
+        LibAccessCheck.checkActionPauseState(vTokenCollateral, LibAccessCheck.Action.SEIZE);
 
         // We've added VAIController as a borrowed token list check for seize
         LibAccessCheck.ensureListed(s.markets[vTokenCollateral]);
-        if (address(vTokenBorrowed) != address(vaiController)) {
+        if (address(vTokenBorrowed) != address(s.vaiController)) {
             LibAccessCheck.ensureListed(s.markets[vTokenBorrowed]);
         }
 
@@ -315,7 +315,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vToken, Action.TRANSFER);
+        LibAccessCheck.checkActionPauseState(vToken, LibAccessCheck.Action.TRANSFER);
 
         // Currently the only consideration is whether or not
         //  the src is allowed to redeem this many tokens
@@ -388,7 +388,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         uint[] calldata supplySpeeds,
         uint[] calldata borrowSpeeds
     ) external {
-        LibAccessCheck.ensureAdminOr(comptrollerImplementation);
+        LibAccessCheck.ensureAdminOr(s.comptrollerImplementation);
 
         uint numTokens = vTokens.length;
         require(
@@ -405,7 +405,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     function setVenusSpeedInternal(VToken vToken, uint supplySpeed, uint borrowSpeed) internal {
         LibAccessCheck.ensureListed(s.markets[address(vToken)]);
 
-        if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
+        if (s.venusSupplySpeeds[address(vToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
             //  1. XVS accrued properly for the old speed, and
             //  2. XVS accrued at the new speed starts after this block.
@@ -421,7 +421,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
             //  1. XVS accrued properly for the old speed, and
             //  2. XVS accrued at the new speed starts after this block.
             Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });
-            updateVenusBorrowIndex(address(vToken), borrowIndex);
+            LibHelper.updateVenusBorrowIndex(address(vToken), borrowIndex);
 
             // Update speed and emit event
             LibHelper.venusBorrowSpeeds[address(vToken)] = borrowSpeed;

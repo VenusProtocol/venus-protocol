@@ -2,7 +2,7 @@
  *Submitted for verification at BscScan.io on 2018-11-24
  */
 
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 // File: openzeppelin-solidity/contracts/token/BEP20/BEP20Basic.sol
 
