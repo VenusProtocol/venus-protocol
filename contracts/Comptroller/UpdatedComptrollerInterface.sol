@@ -3,7 +3,7 @@ pragma solidity 0.8.13;
 import "../Tokens/VTokens/VToken.sol";
 import "../Oracle/PriceOracle.sol";
 
-contract UpdatedComptrollerInterfaceG1 {
+interface UpdatedComptrollerInterfaceG1 {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     bool public constant isComptroller = true;
 
@@ -57,14 +57,14 @@ contract UpdatedComptrollerInterfaceG1 {
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
 }
 
-contract UpdatedComptrollerInterfaceG2 is UpdatedComptrollerInterfaceG1 {
+interface UpdatedComptrollerInterfaceG2 is UpdatedComptrollerInterfaceG1 {
     function liquidateVAICalculateSeizeTokens(
         address vTokenCollateral,
         uint repayAmount
     ) external view returns (uint, uint);
 }
 
-contract UpdatedComptrollerInterface is UpdatedComptrollerInterfaceG2 {
+interface UpdatedComptrollerInterface is UpdatedComptrollerInterfaceG2 {
     function markets(address) external view returns (bool, uint);
 
     function oracle() external view returns (PriceOracle);

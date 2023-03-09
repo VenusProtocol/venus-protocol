@@ -105,7 +105,7 @@ interface ComptrollerInterfaceG3 is ComptrollerInterfaceG2 {
 }
 
 interface ComptrollerInterfaceG4 is ComptrollerInterfaceG3 {
-    function getXVSAddress() public view returns (address);
+    function getXVSAddress() external view returns (address);
 }
 
 interface ComptrollerInterface is ComptrollerInterfaceG4 {

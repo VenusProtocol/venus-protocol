@@ -15,13 +15,13 @@ interface BEP20Base {
     function balanceOf(address who) external view returns (uint256);
 }
 
-contract BEP20 is BEP20Base {
+interface BEP20 is BEP20Base {
     function transfer(address to, uint256 value) external returns (bool);
 
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
-contract BEP20NS is BEP20Base {
+interface BEP20NS is BEP20Base {
     function transfer(address to, uint256 value) external;
 
     function transferFrom(address from, address to, uint256 value) external;
@@ -47,7 +47,7 @@ contract StandardToken is BEP20 {
         string memory _tokenName,
         uint8 _decimalUnits,
         string memory _tokenSymbol
-    ) public {
+    ) {
         totalSupply = _initialAmount;
         balanceOf[msg.sender] = _initialAmount;
         name = _tokenName;
@@ -97,7 +97,7 @@ contract NonStandardToken is BEP20NS {
         string memory _tokenName,
         uint8 _decimalUnits,
         string memory _tokenSymbol
-    ) public {
+    ) {
         totalSupply = _initialAmount;
         balanceOf[msg.sender] = _initialAmount;
         name = _tokenName;
@@ -137,7 +137,7 @@ contract BEP20Harness is StandardToken {
         string memory _tokenName,
         uint8 _decimalUnits,
         string memory _tokenSymbol
-    ) public StandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {}
+    ) StandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {}
 
     function harnessSetFailTransferFromAddress(address src, bool _fail) public {
         failTransferFromAddresses[src] = _fail;

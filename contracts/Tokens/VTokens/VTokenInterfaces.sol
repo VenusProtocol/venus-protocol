@@ -220,7 +220,7 @@ interface VTokenInterface is VTokenStorage {
     /**
      * @notice Failure event
      */
-    event Failure(uint error, uint info, uint detail);
+    // event Failure(uint error, uint info, uint detail);
 
     /*** User Interface ***/
 
@@ -331,7 +331,11 @@ interface VDelegatorInterface is VDelegationStorage {
      * @param allowResign Flag to indicate whether to call _resignImplementation on the old implementation
      * @param becomeImplementationData The encoded bytes data to be passed to _becomeImplementation
      */
-    function _setImplementation(address implementation_, bool allowResign, bytes memory becomeImplementationData) public;
+    function _setImplementation(
+        address implementation_,
+        bool allowResign,
+        bytes memory becomeImplementationData
+    ) external;
 }
 
 interface VDelegateInterface is VDelegationStorage {

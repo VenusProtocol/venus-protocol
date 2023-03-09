@@ -274,7 +274,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         for (; i < len; ++i) {
             if (userAssetList[i] == vToken) {
                 userAssetList[i] = userAssetList[len - 1];
-                userAssetList.length--;
+                userAssetList.length -= 1 ;
                 break;
             }
         }

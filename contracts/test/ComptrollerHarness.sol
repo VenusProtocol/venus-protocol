@@ -4,13 +4,13 @@ import "../Comptroller/Comptroller.sol";
 import "../Oracle/PriceOracle.sol";
 
 contract ComptrollerKovan is Comptroller {
-    function getXVSAddress() public view returns (address) {
+    function getXVSAddress() public override view returns (address) {
         return 0x61460874a7196d6a22D1eE4922473664b3E95270;
     }
 }
 
 contract ComptrollerRopsten is Comptroller {
-    function getXVSAddress() public view returns (address) {
+    function getXVSAddress() public override view returns (address) {
         return 0x1Fe16De955718CFAb7A44605458AB023838C2793;
     }
 }
@@ -40,7 +40,7 @@ contract ComptrollerHarness is Comptroller {
         xvsAddress = xvsAddress_;
     }
 
-    function getXVSAddress() public view returns (address) {
+    function getXVSAddress() public override view returns (address) {
         return xvsAddress;
     }
 
@@ -48,7 +48,7 @@ contract ComptrollerHarness is Comptroller {
         vXVSAddress = vXVSAddress_;
     }
 
-    function getXVSVTokenAddress() public view returns (address) {
+    function getXVSVTokenAddress() public override view returns (address) {
         return vXVSAddress;
     }
 
@@ -157,7 +157,7 @@ contract ComptrollerHarness is Comptroller {
         blockNumber = number;
     }
 
-    function getBlockNumber() public view returns (uint) {
+    function getBlockNumber() public override view returns (uint) {
         return blockNumber;
     }
 
@@ -192,7 +192,7 @@ contract ComptrollerBorked {
     }
 }
 
-contract BoolComptroller is ComptrollerInterface {
+abstract contract BoolComptroller is ComptrollerInterface {
     bool internal allowMint = true;
     bool internal allowRedeem = true;
     bool internal allowBorrow = true;

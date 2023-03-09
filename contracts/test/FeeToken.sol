@@ -23,7 +23,7 @@ contract FeeToken is FaucetToken {
         owner = _owner;
     }
 
-    function transfer(address dst, uint amount) public returns (bool) {
+    function transfer(address dst, uint amount) public override returns (bool) {
         uint fee = amount.mul(basisPointFee).div(10000);
         uint net = amount.sub(fee);
         balanceOf[owner] = balanceOf[owner].add(fee);
@@ -33,7 +33,7 @@ contract FeeToken is FaucetToken {
         return true;
     }
 
-    function transferFrom(address src, address dst, uint amount) public returns (bool) {
+    function transferFrom(address src, address dst, uint amount) public override returns (bool) {
         uint fee = amount.mul(basisPointFee).div(10000);
         uint net = amount.sub(fee);
         balanceOf[owner] = balanceOf[owner].add(fee);

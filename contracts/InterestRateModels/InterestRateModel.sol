@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
  * @title Venus's InterestRateModel Interface
  * @author Venus
  */
-contract InterestRateModel {
+abstract contract InterestRateModel {
     /// @notice Indicator that this is an InterestRateModel contract (for inspection)
     bool public constant isInterestRateModel = true;
 
@@ -15,7 +15,7 @@ contract InterestRateModel {
      * @param reserves The total amnount of reserves the market has
      * @return The borrow rate per block (as a percentage, and scaled by 1e18)
      */
-    function getBorrowRate(uint cash, uint borrows, uint reserves) external view returns (uint);
+    function getBorrowRate(uint cash, uint borrows, uint reserves) external virtual view returns (uint);
 
     /**
      * @notice Calculates the current supply interest rate per block
@@ -30,5 +30,5 @@ contract InterestRateModel {
         uint borrows,
         uint reserves,
         uint reserveFactorMantissa
-    ) external view returns (uint);
+    ) external virtual view returns (uint);
 }

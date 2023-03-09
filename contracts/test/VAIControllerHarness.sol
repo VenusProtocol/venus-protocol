@@ -20,7 +20,7 @@ contract VAIControllerHarness is VAIController {
         vaiAddress = vaiAddress_;
     }
 
-    function getVAIAddress() public view returns (address) {
+    function getVAIAddress() public override view returns (address) {
         return vaiAddress;
     }
 
@@ -56,11 +56,11 @@ contract VAIControllerHarness is VAIController {
         blocksPerYear = number;
     }
 
-    function getBlockNumber() public view returns (uint) {
+    function getBlockNumber() public override view returns (uint) {
         return blockNumber;
     }
 
-    function getBlocksPerYear() public view returns (uint) {
+    function getBlocksPerYear() public override view returns (uint) {
         return blocksPerYear;
     }
 }

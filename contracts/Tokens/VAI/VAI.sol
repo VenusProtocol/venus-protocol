@@ -64,7 +64,7 @@ contract VAI is LibNote {
     // bytes32 public constant PERMIT_TYPEHASH = keccak256("Permit(address holder,address spender,uint256 nonce,uint256 expiry,bool allowed)");
     bytes32 public constant PERMIT_TYPEHASH = 0xea2aa0a1be11a07ed86d755c93467f4f82362b452371d1ba94d1715123511acb;
 
-    constructor(uint256 chainId_) public {
+    constructor(uint256 chainId_) {
         wards[msg.sender] = 1;
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
@@ -84,7 +84,7 @@ contract VAI is LibNote {
 
     function transferFrom(address src, address dst, uint wad) public returns (bool) {
         require(balanceOf[src] >= wad, "VAI/insufficient-balance");
-        if (src != msg.sender && allowance[src][msg.sender] != type(uint).max) {
+        if (src != msg.sender && allowance[src][msg.sender] != type(uint128).max) {
             require(allowance[src][msg.sender] >= wad, "VAI/insufficient-allowance");
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
@@ -102,7 +102,7 @@ contract VAI is LibNote {
 
     function burn(address usr, uint wad) external {
         require(balanceOf[usr] >= wad, "VAI/insufficient-balance");
-        if (usr != msg.sender && allowance[usr][msg.sender] != type(uint).max) {
+        if (usr != msg.sender && allowance[usr][msg.sender] != type(uint128).max) {
             require(allowance[usr][msg.sender] >= wad, "VAI/insufficient-allowance");
             allowance[usr][msg.sender] = sub(allowance[usr][msg.sender], wad);
         }
@@ -153,7 +153,7 @@ contract VAI is LibNote {
         require(holder == ecrecover(digest, v, r, s), "VAI/invalid-permit");
         require(expiry == 0 || block.timestamp <= expiry, "VAI/permit-expired");
         require(nonce == nonces[holder]++, "VAI/invalid-nonce");
-        uint wad = allowed ? type(uint).max : 0;
+        uint wad = allowed ? type(uint128).max : 0;
         allowance[holder][spender] = wad;
         emit Approval(holder, spender, wad);
     }

@@ -28,9 +28,9 @@ contract VBep20Immutable is VBep20 {
         string memory symbol_,
         uint8 decimals_,
         address payable admin_
-    ) public {
+    ) {
         // Creator of the contract is admin during initialization
-        admin = msg.sender;
+        admin = payable(msg.sender);
 
         // Initialize the market
         initialize(

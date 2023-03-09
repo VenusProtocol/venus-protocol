@@ -11,12 +11,12 @@ pragma solidity 0.8.13;
  * @dev Simpler version of BEP20 interface
  * See https://github.com/ethereum/EIPs/issues/179
  */
-contract BEP20Basic {
-    function totalSupply() public view returns (uint256);
+interface BEP20Basic {
+    function totalSupply() external view returns (uint256);
 
-    function balanceOf(address _who) public view returns (uint256);
+    function balanceOf(address _who) external view returns (uint256);
 
-    function transfer(address _to, uint256 _value) public returns (bool);
+    function transfer(address _to, uint256 _value) external returns (bool);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 }

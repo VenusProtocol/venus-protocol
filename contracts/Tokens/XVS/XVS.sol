@@ -87,7 +87,7 @@ contract XVS is Tokenlock {
      */
     function approve(address spender, uint rawAmount) external validLock returns (bool) {
         uint96 amount;
-        if (rawAmount == type(uint).max) {
+        if (rawAmount == type(uint128).max) {
             amount = type(uint96).max;
         } else {
             amount = safe96(rawAmount, "XVS::approve: amount exceeds 96 bits");

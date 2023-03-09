@@ -195,7 +195,7 @@ contract UpdatedComptroller is
      * @param vTokens The list of addresses of the vToken markets to be enabled
      * @return Success indicator for whether each corresponding market was entered
      */
-    function enterMarkets(address[] calldata vTokens) external returns (uint[] memory) {
+    function enterMarkets(address[] calldata vTokens) external override returns (uint[] memory) {
         uint len = vTokens.length;
 
         uint[] memory results = new uint[](len);
