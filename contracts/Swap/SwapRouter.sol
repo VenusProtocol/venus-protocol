@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "./interfaces/IPancakeSwapV2Router.sol";
 import "./interfaces/IVtoken.sol";
 import "./RouterHelper.sol";
+import "./interfaces/IVBNB.sol";
 
 /**
  * @title Venus's Pancake Swap Integration Contract
@@ -313,6 +314,75 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
         uint256 swapAmount = balanceAfter - balanceBefore;
         _repay(path[path.length - 1], vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap Exact tokens for BNB and repay to a Venus market
+     * @param vBNBAddress The address of the vToken contract for supplying assets.
+     * @param amountIn The amount of tokens to swap.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapExactTokensForETHAndRepay(
+        address vBNBAddress,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override ensure(deadline) {
+        uint256 balanceBefore = address(this).balance;
+        _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
+    }
+
+    /**
+     * @notice Swap Exact tokens for BNB and repay to a Venus market
+     * @param vBNBAddress The address of the vToken contract for supplying assets.
+     * @param amountIn The amount of tokens to swap.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapExactTokensForETHAndRepayAtSupportingFee(
+        address vBNBAddress,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override ensure(deadline) {
+        uint256 balanceBefore = address(this).balance;
+        _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
+    }
+
+    /**
+     * @notice Swap tokens for Exact BNB and repay to a Venus market
+     * @param vBNBAddress The address of the vToken contract for supplying assets.
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForExactETHAndRepay(
+        address vBNBAddress,
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override ensure(deadline) {
+        uint256 balanceBefore = address(this).balance;
+        _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
     }
 
     /**
