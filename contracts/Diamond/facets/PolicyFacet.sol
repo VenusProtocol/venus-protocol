@@ -424,20 +424,14 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     function updateVenusBorrowIndex(address vToken, ExponentialNoError.Exp memory marketBorrowIndex) internal {
         VenusMarketState storage borrowState = s.venusBorrowState[vToken];
         uint borrowSpeed = s.venusBorrowSpeeds[vToken];
-        uint32 blockNumber = safe32(
-            LibAccessCheck.getBlockNumber(),
-            "block number exceeds 32 bits"
-        );
+        uint32 blockNumber = safe32(LibAccessCheck.getBlockNumber(), "block number exceeds 32 bits");
         uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
             uint borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
             uint venusAccrued = mul_(deltaBlocks, borrowSpeed);
-            Double memory ratio = borrowAmount > 0
-                ? fraction(venusAccrued, borrowAmount)
-                : Double({ mantissa: 0 });
+            Double memory ratio = borrowAmount > 0 ? fraction(venusAccrued, borrowAmount) : Double({ mantissa: 0 });
             borrowState.index = safe224(
-                    add_(Double({ mantissa: borrowState.index }), ratio)
-                    .mantissa,
+                add_(Double({ mantissa: borrowState.index }), ratio).mantissa,
                 "new index exceeds 224 bits"
             );
             borrowState.block = blockNumber;
@@ -446,27 +440,21 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         }
     }
 
-     /**
+    /**
      * @notice Accrue XVS to the market by updating the supply index
      * @param vToken The market whose supply index to update
      */
     function updateVenusSupplyIndex(address vToken) internal {
         VenusMarketState storage supplyState = s.venusSupplyState[vToken];
         uint supplySpeed = s.venusSupplySpeeds[vToken];
-        uint32 blockNumber = safe32(
-            LibAccessCheck.getBlockNumber(),
-            "block number exceeds 32 bits"
-        );
+        uint32 blockNumber = safe32(LibAccessCheck.getBlockNumber(), "block number exceeds 32 bits");
         uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
             uint supplyTokens = VToken(vToken).totalSupply();
             uint venusAccrued = mul_(deltaBlocks, supplySpeed);
-            Double memory ratio = supplyTokens > 0
-                ? fraction(venusAccrued, supplyTokens)
-                : Double({ mantissa: 0 });
+            Double memory ratio = supplyTokens > 0 ? fraction(venusAccrued, supplyTokens) : Double({ mantissa: 0 });
             supplyState.index = safe224(
-                add_(Double({ mantissa: supplyState.index }), ratio)
-                    .mantissa,
+                add_(Double({ mantissa: supplyState.index }), ratio).mantissa,
                 "new index exceeds 224 bits"
             );
             supplyState.block = blockNumber;
@@ -495,9 +483,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
             supplierIndex = LibHelper.venusInitialIndex;
         }
         // Calculate change in the cumulative sum of the XVS per vToken accrued
-        Double memory deltaIndex = Double({
-            mantissa: sub_(supplyIndex, supplierIndex)
-        });
+        Double memory deltaIndex = Double({ mantissa: sub_(supplyIndex, supplierIndex) });
         // Multiply of supplierTokens and supplierDelta
         uint supplierDelta = mul_(VToken(vToken).balanceOf(supplier), deltaIndex);
         // Addition of supplierAccrued and supplierDelta
@@ -530,17 +516,9 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
             borrowerIndex = LibHelper.venusInitialIndex;
         }
         // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
-        Double memory deltaIndex = Double({
-            mantissa: sub_(borrowIndex, borrowerIndex)
-        });
-        uint borrowerDelta = mul_(
-            div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex),
-            deltaIndex
-        );
+        Double memory deltaIndex = Double({ mantissa: sub_(borrowIndex, borrowerIndex) });
+        uint borrowerDelta = mul_(div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
         s.venusAccrued[borrower] = add_(s.venusAccrued[borrower], borrowerDelta);
         // emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
     }
-
-
-
 }

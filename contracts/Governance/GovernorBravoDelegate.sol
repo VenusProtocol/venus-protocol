@@ -152,23 +152,22 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
         uint endBlock = add256(startBlock, proposalConfigs[uint8(proposalType)].votingPeriod);
 
         proposalCount++;
-        
+
         Proposal storage newProposal = proposals[proposalCount];
-            newProposal.id = proposalCount;
-            newProposal.proposer = msg.sender;
-            newProposal.eta = 0;
-            newProposal.targets = targets;
-            newProposal.values = values;
-            newProposal.signatures = signatures;
-            newProposal.calldatas = calldatas;
-            newProposal.startBlock = startBlock;
-            newProposal.endBlock = endBlock;
-            newProposal.forVotes = 0;
-            newProposal.againstVotes = 0;
-            newProposal.canceled = false;
-            newProposal.executed = false;
-            newProposal.proposalType = uint8(proposalType);
-        
+        newProposal.id = proposalCount;
+        newProposal.proposer = msg.sender;
+        newProposal.eta = 0;
+        newProposal.targets = targets;
+        newProposal.values = values;
+        newProposal.signatures = signatures;
+        newProposal.calldatas = calldatas;
+        newProposal.startBlock = startBlock;
+        newProposal.endBlock = endBlock;
+        newProposal.forVotes = 0;
+        newProposal.againstVotes = 0;
+        newProposal.canceled = false;
+        newProposal.executed = false;
+        newProposal.proposalType = uint8(proposalType);
 
         //proposals[newProposal.id] = newProposal;
         latestProposalIds[newProposal.proposer] = newProposal.id;

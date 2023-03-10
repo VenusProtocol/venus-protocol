@@ -46,8 +46,6 @@ library LibHelper {
         return (ComptrollerErrorReporter.Error(err), liquidity, shortfall);
     }
 
-   
-    
     /**
      * @notice Add the market to the borrower's "assets in" for liquidity calculations
      * @param vToken The market to enter
