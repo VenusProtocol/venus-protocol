@@ -210,15 +210,15 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
             LibAccessCheck.ensureListed(s.markets[address(vToken)]);
             if (borrowers) {
                 Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });
-                LibHelper.updateVenusBorrowIndex(address(vToken), borrowIndex);
+                updateVenusBorrowIndex(address(vToken), borrowIndex);
                 for (j = 0; j < holdersLength; ++j) {
-                    LibHelper.distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
+                    distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
                 }
             }
             if (suppliers) {
-                LibHelper.updateVenusSupplyIndex(address(vToken));
+                updateVenusSupplyIndex(address(vToken));
                 for (j = 0; j < holdersLength; ++j) {
-                    LibHelper.distributeSupplierVenus(address(vToken), holders[j]);
+                    distributeSupplierVenus(address(vToken), holders[j]);
                 }
             }
         }
@@ -231,4 +231,129 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
             s.venusAccrued[holder] = grantXVSInternal(holder, s.venusAccrued[holder], shortfall, collateral);
         }
     }
+
+       /**
+     * @notice Accrue XVS to the market by updating the borrow index
+     * @param vToken The market whose borrow index to update
+     */
+    function updateVenusBorrowIndex(address vToken, ExponentialNoError.Exp memory marketBorrowIndex) internal {
+        VenusMarketState storage borrowState = s.venusBorrowState[vToken];
+        uint borrowSpeed = s.venusBorrowSpeeds[vToken];
+        uint32 blockNumber = safe32(
+            LibAccessCheck.getBlockNumber(),
+            "block number exceeds 32 bits"
+        );
+        uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
+        if (deltaBlocks > 0 && borrowSpeed > 0) {
+            uint borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
+            uint venusAccrued = mul_(deltaBlocks, borrowSpeed);
+            Double memory ratio = borrowAmount > 0
+                ? fraction(venusAccrued, borrowAmount)
+                : Double({ mantissa: 0 });
+            borrowState.index = safe224(
+                    add_(Double({ mantissa: borrowState.index }), ratio)
+                    .mantissa,
+                "new index exceeds 224 bits"
+            );
+            borrowState.block = blockNumber;
+        } else if (deltaBlocks > 0) {
+            borrowState.block = blockNumber;
+        }
+    }
+
+     /**
+     * @notice Accrue XVS to the market by updating the supply index
+     * @param vToken The market whose supply index to update
+     */
+    function updateVenusSupplyIndex(address vToken) internal {
+        VenusMarketState storage supplyState = s.venusSupplyState[vToken];
+        uint supplySpeed = s.venusSupplySpeeds[vToken];
+        uint32 blockNumber = safe32(
+            LibAccessCheck.getBlockNumber(),
+            "block number exceeds 32 bits"
+        );
+        uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
+        if (deltaBlocks > 0 && supplySpeed > 0) {
+            uint supplyTokens = VToken(vToken).totalSupply();
+            uint venusAccrued = mul_(deltaBlocks, supplySpeed);
+            Double memory ratio = supplyTokens > 0
+                ? fraction(venusAccrued, supplyTokens)
+                : Double({ mantissa: 0 });
+            supplyState.index = safe224(
+                    add_(Double({ mantissa: supplyState.index }), ratio)
+                    .mantissa,
+                "new index exceeds 224 bits"
+            );
+            supplyState.block = blockNumber;
+        } else if (deltaBlocks > 0) {
+            supplyState.block = blockNumber;
+        }
+    }
+
+    /**
+     * @notice Calculate XVS accrued by a supplier and possibly transfer it to them
+     * @param vToken The market in which the supplier is interacting
+     * @param supplier The address of the supplier to distribute XVS to
+     */
+    function distributeSupplierVenus(address vToken, address supplier) internal {
+        if (address(s.vaiVaultAddress) != address(0)) {
+            // releaseToVault();
+        }
+        uint supplyIndex = s.venusSupplyState[vToken].index;
+        uint supplierIndex = s.venusSupplierIndex[vToken][supplier];
+        // Update supplier's index to the current index since we are distributing accrued XVS
+        s.venusSupplierIndex[vToken][supplier] = supplyIndex;
+        if (supplierIndex == 0 && supplyIndex >= LibHelper.venusInitialIndex) {
+            // Covers the case where users supplied tokens before the market's supply state index was set.
+            // Rewards the user with XVS accrued from the start of when supplier rewards were first
+            // set for the market.
+            supplierIndex = LibHelper.venusInitialIndex;
+        }
+        // Calculate change in the cumulative sum of the XVS per vToken accrued
+        Double memory deltaIndex = Double({
+            mantissa: sub_(supplyIndex, supplierIndex)
+        });
+        // Multiply of supplierTokens and supplierDelta
+        uint supplierDelta = mul_(VToken(vToken).balanceOf(supplier), deltaIndex);
+        // Addition of supplierAccrued and supplierDelta
+        s.venusAccrued[supplier] = add_(s.venusAccrued[supplier], supplierDelta);
+        // emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex);
+    }
+
+    /**
+     * @notice Calculate XVS accrued by a borrower and possibly transfer it to them
+     * @dev Borrowers will not begin to accrue until after the first interaction with the protocol.
+     * @param vToken The market in which the borrower is interacting
+     * @param borrower The address of the borrower to distribute XVS to
+     */
+    function distributeBorrowerVenus(
+        address vToken,
+        address borrower,
+        ExponentialNoError.Exp memory marketBorrowIndex
+    ) internal {
+        if (address(s.vaiVaultAddress) != address(0)) {
+            // releaseToVault();
+        }
+        uint borrowIndex = s.venusBorrowState[vToken].index;
+        uint borrowerIndex = s.venusBorrowerIndex[vToken][borrower];
+        // Update borrowers's index to the current index since we are distributing accrued XVS
+        s.venusBorrowerIndex[vToken][borrower] = borrowIndex;
+        if (borrowerIndex == 0 && borrowIndex >= LibHelper.venusInitialIndex) {
+            // Covers the case where users borrowed tokens before the market's borrow state index was set.
+            // Rewards the user with XVS accrued from the start of when borrower rewards were first
+            // set for the market.
+            borrowerIndex = LibHelper.venusInitialIndex;
+        }
+        // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
+        Double memory deltaIndex = Double({
+            mantissa: sub_(borrowIndex, borrowerIndex)
+        });
+        uint borrowerDelta = mul_(
+            div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex),
+            deltaIndex
+        );
+        s.venusAccrued[borrower] = add_(s.venusAccrued[borrower], borrowerDelta);
+        // emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
+    }
+
 }

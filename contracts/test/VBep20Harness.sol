@@ -444,7 +444,7 @@ contract VBep20DelegateScenarioExtra is VBep20DelegateScenario {
     }
 
     function itIsTheWay() public {
-        admin = address(1); // make a change to test effect
+        admin = payable(address(1)); // make a change to test effect
     }
 
     function babyYoda() public pure {

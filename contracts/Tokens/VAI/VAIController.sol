@@ -92,7 +92,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
         vaiMintIndex = INITIAL_VAI_MINT_INDEX;
         accrualBlockNumber = getBlockNumber();
-        mintCap = uint256(-1);
+        mintCap = type(uint256).max;
 
         // The counter starts true to prevent changing it from zero to non-zero (i.e. smaller cost/refund)
         _notEntered = true;
@@ -324,7 +324,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             }
 
             /* Fail if repayAmount = -1 */
-            if (repayAmount == uint(-1)) {
+            if (repayAmount == type(uint).max) {
                 return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
             }
 
