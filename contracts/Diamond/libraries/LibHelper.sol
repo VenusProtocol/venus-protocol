@@ -2,18 +2,18 @@ pragma solidity 0.8.13;
 import "../../Tokens/VTokens/VToken.sol";
 import "./appStorage.sol";
 import "./LibAccessCheck.sol";
+import "../../Utils/ErrorReporter.sol";
+import "./LibExponentialNoError.sol";
+
 import "../../Utils/ExponentialNoError.sol";
 
 library LibHelper {
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
-
     // closeFactorMantissa must be strictly greater than this value
     uint internal constant closeFactorMinMantissa = 0.05e18; // 0.05
-
     // closeFactorMantissa must not exceed this value
     uint internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
-
     // No collateralFactorMantissa may exceed this value
     uint internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
 
@@ -34,7 +34,7 @@ library LibHelper {
         VToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount
-    ) internal view returns (Error, uint, uint) {
+    ) internal view returns (ComptrollerErrorReporter.Error, uint, uint) {
         AppStorage storage s = LibAppStorage.diamondStorage();
         (uint err, uint liquidity, uint shortfall) = s.comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
@@ -43,7 +43,7 @@ library LibHelper {
             redeemTokens,
             borrowAmount
         );
-        return (Error(err), liquidity, shortfall);
+        return (ComptrollerErrorReporter.Error(err), liquidity, shortfall);
     }
 
     /**
@@ -54,14 +54,21 @@ library LibHelper {
         AppStorage storage s = LibAppStorage.diamondStorage();
         VenusMarketState storage supplyState = s.venusSupplyState[vToken];
         uint supplySpeed = s.venusSupplySpeeds[vToken];
-        uint32 blockNumber = safe32(LibAccessCheck.getBlockNumber(), "block number exceeds 32 bits");
-        uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
+        uint32 blockNumber = LibExponentialNoError.safe32(
+            LibAccessCheck.getBlockNumber(),
+            "block number exceeds 32 bits"
+        );
+        uint deltaBlocks = LibExponentialNoError.sub_(uint(blockNumber), uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
             uint supplyTokens = VToken(vToken).totalSupply();
-            uint venusAccrued = mul_(deltaBlocks, supplySpeed);
-            Double memory ratio = supplyTokens > 0 ? fraction(venusAccrued, supplyTokens) : Double({ mantissa: 0 });
-            supplyState.index = safe224(
-                add_(Double({ mantissa: supplyState.index }), ratio).mantissa,
+            uint venusAccrued = LibExponentialNoError.mul_(deltaBlocks, supplySpeed);
+            LibExponentialNoError.Double memory ratio = supplyTokens > 0
+                ? LibExponentialNoError.fraction(venusAccrued, supplyTokens)
+                : LibExponentialNoError.Double({ mantissa: 0 });
+            supplyState.index = LibExponentialNoError.safe224(
+                LibExponentialNoError
+                    .add_(LibExponentialNoError.Double({ mantissa: supplyState.index }), ratio)
+                    .mantissa,
                 "new index exceeds 224 bits"
             );
             supplyState.block = blockNumber;
@@ -74,18 +81,25 @@ library LibHelper {
      * @notice Accrue XVS to the market by updating the borrow index
      * @param vToken The market whose borrow index to update
      */
-    function updateVenusBorrowIndex(address vToken, Exp memory marketBorrowIndex) internal {
+    function updateVenusBorrowIndex(address vToken, ExponentialNoError.Exp memory marketBorrowIndex) internal {
         AppStorage storage s = LibAppStorage.diamondStorage();
         VenusMarketState storage borrowState = s.venusBorrowState[vToken];
         uint borrowSpeed = s.venusBorrowSpeeds[vToken];
-        uint32 blockNumber = safe32(LibAccessCheck.getBlockNumber(), "block number exceeds 32 bits");
-        uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
+        uint32 blockNumber = LibExponentialNoError.safe32(
+            LibAccessCheck.getBlockNumber(),
+            "block number exceeds 32 bits"
+        );
+        uint deltaBlocks = LibExponentialNoError.sub_(uint(blockNumber), uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
-            uint borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
-            uint venusAccrued = mul_(deltaBlocks, borrowSpeed);
-            Double memory ratio = borrowAmount > 0 ? fraction(venusAccrued, borrowAmount) : Double({ mantissa: 0 });
-            borrowState.index = safe224(
-                add_(Double({ mantissa: borrowState.index }), ratio).mantissa,
+            uint borrowAmount = LibExponentialNoError.div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
+            uint venusAccrued = LibExponentialNoError.mul_(deltaBlocks, borrowSpeed);
+            LibExponentialNoError.Double memory ratio = borrowAmount > 0
+                ? LibExponentialNoError.fraction(venusAccrued, borrowAmount)
+                : LibExponentialNoError.Double({ mantissa: 0 });
+            borrowState.index = LibExponentialNoError.safe224(
+                LibExponentialNoError
+                    .add_(LibExponentialNoError.Double({ mantissa: borrowState.index }), ratio)
+                    .mantissa,
                 "new index exceeds 224 bits"
             );
             borrowState.block = blockNumber;
@@ -101,33 +115,28 @@ library LibHelper {
      */
     function distributeSupplierVenus(address vToken, address supplier) internal {
         AppStorage storage s = LibAppStorage.diamondStorage();
-        if (address(vaiVaultAddress) != address(0)) {
-            releaseToVault();
+        if (address(s.vaiVaultAddress) != address(0)) {
+            // releaseToVault();
         }
-
         uint supplyIndex = s.venusSupplyState[vToken].index;
         uint supplierIndex = s.venusSupplierIndex[vToken][supplier];
-
         // Update supplier's index to the current index since we are distributing accrued XVS
         s.venusSupplierIndex[vToken][supplier] = supplyIndex;
-
         if (supplierIndex == 0 && supplyIndex >= venusInitialIndex) {
             // Covers the case where users supplied tokens before the market's supply state index was set.
             // Rewards the user with XVS accrued from the start of when supplier rewards were first
             // set for the market.
             supplierIndex = venusInitialIndex;
         }
-
         // Calculate change in the cumulative sum of the XVS per vToken accrued
-        Double memory deltaIndex = Double({ mantissa: sub_(supplyIndex, supplierIndex) });
-
+        LibExponentialNoError.Double memory deltaIndex = LibExponentialNoError.Double({
+            mantissa: LibExponentialNoError.sub_(supplyIndex, supplierIndex)
+        });
         // Multiply of supplierTokens and supplierDelta
-        uint supplierDelta = mul_(VToken(vToken).balanceOf(supplier), deltaIndex);
-
+        uint supplierDelta = LibExponentialNoError.mul_(VToken(vToken).balanceOf(supplier), deltaIndex);
         // Addition of supplierAccrued and supplierDelta
-        s.venusAccrued[supplier] = add_(s.venusAccrued[supplier], supplierDelta);
-
-        emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex);
+        s.venusAccrued[supplier] = LibExponentialNoError.add_(s.venusAccrued[supplier], supplierDelta);
+        // emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex);
     }
 
     /**
@@ -136,33 +145,35 @@ library LibHelper {
      * @param vToken The market in which the borrower is interacting
      * @param borrower The address of the borrower to distribute XVS to
      */
-    function distributeBorrowerVenus(address vToken, address borrower, Exp memory marketBorrowIndex) internal {
+    function distributeBorrowerVenus(
+        address vToken,
+        address borrower,
+        ExponentialNoError.Exp memory marketBorrowIndex
+    ) internal {
         AppStorage storage s = LibAppStorage.diamondStorage();
         if (address(s.vaiVaultAddress) != address(0)) {
-            releaseToVault();
+            // releaseToVault();
         }
-
         uint borrowIndex = s.venusBorrowState[vToken].index;
         uint borrowerIndex = s.venusBorrowerIndex[vToken][borrower];
-
         // Update borrowers's index to the current index since we are distributing accrued XVS
         s.venusBorrowerIndex[vToken][borrower] = borrowIndex;
-
         if (borrowerIndex == 0 && borrowIndex >= venusInitialIndex) {
             // Covers the case where users borrowed tokens before the market's borrow state index was set.
             // Rewards the user with XVS accrued from the start of when borrower rewards were first
             // set for the market.
             borrowerIndex = venusInitialIndex;
         }
-
         // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
-        Double memory deltaIndex = Double({ mantissa: sub_(borrowIndex, borrowerIndex) });
-
-        uint borrowerDelta = mul_(div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
-
-        s.venusAccrued[borrower] = add_(s.venusAccrued[borrower], borrowerDelta);
-
-        emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
+        LibExponentialNoError.Double memory deltaIndex = LibExponentialNoError.Double({
+            mantissa: LibExponentialNoError.sub_(borrowIndex, borrowerIndex)
+        });
+        uint borrowerDelta = LibExponentialNoError.mul_(
+            LibExponentialNoError.div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex),
+            deltaIndex
+        );
+        s.venusAccrued[borrower] = LibExponentialNoError.add_(s.venusAccrued[borrower], borrowerDelta);
+        // emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
     }
 
     /**
@@ -171,18 +182,15 @@ library LibHelper {
      * @param borrower The address of the account to modify
      * @return Success indicator for whether the market was entered
      */
-    function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
+    function addToMarketInternal(VToken vToken, address borrower) internal returns (ComptrollerErrorReporter.Error) {
         AppStorage storage s = LibAppStorage.diamondStorage();
-        LibAccessCheck.checkActionPauseState(address(vToken), Action.ENTER_MARKET);
-
+        LibAccessCheck.checkActionPauseState(address(vToken), LibAccessCheck.Action.ENTER_MARKET);
         Market storage marketToJoin = s.markets[address(vToken)];
         LibAccessCheck.ensureListed(marketToJoin);
-
         if (marketToJoin.accountMembership[borrower]) {
             // already joined
-            return Error.NO_ERROR;
+            return ComptrollerErrorReporter.Error.NO_ERROR;
         }
-
         // survived the gauntlet, add to list
         // NOTE: we store these somewhat redundantly as a significant optimization
         //  this avoids having to iterate through the list for the most common use cases
@@ -190,35 +198,30 @@ library LibHelper {
         //  and not whenever we want to check if an account is in a particular market
         marketToJoin.accountMembership[borrower] = true;
         s.accountAssets[borrower].push(vToken);
-
-        emit MarketEntered(vToken, borrower);
-
-        return Error.NO_ERROR;
+        // emit MarketEntered(vToken, borrower);
+        return ComptrollerErrorReporter.Error.NO_ERROR;
     }
 
     function redeemAllowedInternal(address vToken, address redeemer, uint redeemTokens) internal view returns (uint) {
         AppStorage storage s = LibAppStorage.diamondStorage();
         LibAccessCheck.ensureListed(s.markets[vToken]);
-
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
         if (!s.markets[vToken].accountMembership[redeemer]) {
-            return uint(Error.NO_ERROR);
+            return uint(ComptrollerErrorReporter.Error.NO_ERROR);
         }
-
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
-        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(
+        (ComptrollerErrorReporter.Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(
             redeemer,
             VToken(vToken),
             redeemTokens,
             0
         );
-        if (err != Error.NO_ERROR) {
+        if (err != ComptrollerErrorReporter.Error.NO_ERROR) {
             return uint(err);
         }
         if (shortfall != 0) {
-            return uint(Error.INSUFFICIENT_LIQUIDITY);
+            return uint(ComptrollerErrorReporter.Error.INSUFFICIENT_LIQUIDITY);
         }
-
-        return uint(Error.NO_ERROR);
+        return uint(ComptrollerErrorReporter.Error.NO_ERROR);
     }
 }

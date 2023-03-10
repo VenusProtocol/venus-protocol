@@ -57,7 +57,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @return Whether or not the account successfully exited the market
      */
     function exitMarket(address vTokenAddress) external returns (uint) {
-        LibAccessCheck.checkActionPauseState(vTokenAddress, Action.EXIT_MARKET);
+        LibAccessCheck.checkActionPauseState(vTokenAddress, LibAccessCheck.Action.EXIT_MARKET);
 
         VToken vToken = VToken(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
@@ -93,7 +93,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         for (; i < len; ++i) {
             if (userAssetList[i] == vToken) {
                 userAssetList[i] = userAssetList[len - 1];
-                userAssetList.length--;
+                userAssetList.pop();
                 break;
             }
         }
@@ -120,12 +120,14 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         }
 
         // Note that isVenus is not in active use anymore
-        s.markets[address(vToken)] = Market({ isListed: true, isVenus: false, collateralFactorMantissa: 0 });
-
+        Market storage newMarket = s.markets[address(vToken)];
+        newMarket.isListed = true;
+        newMarket.isVenus = false;
+        newMarket.collateralFactorMantissa = 0;
         _addMarketInternal(vToken);
         _initializeMarket(address(vToken));
 
-        emit MarketListed(vToken);
+        //emit MarketListed(vToken);
 
         return uint(Error.NO_ERROR);
     }
@@ -148,12 +150,12 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
          */
         if (supplyState.index == 0) {
             // Initialize supply state index with default value
-            supplyState.index = venusInitialIndex;
+            supplyState.index = LibHelper.venusInitialIndex;
         }
 
         if (borrowState.index == 0) {
             // Initialize borrow state index with default value
-            borrowState.index = venusInitialIndex;
+            borrowState.index = LibHelper.venusInitialIndex;
         }
 
         /*
