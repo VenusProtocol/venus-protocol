@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "./VTokens/VBNB.sol";
 
@@ -38,10 +38,10 @@ contract Maximillion {
         uint received = msg.value;
         uint borrows = vBnb_.borrowBalanceCurrent(borrower);
         if (received > borrows) {
-            vBnb_.repayBorrowBehalf.value(borrows)(borrower);
-            msg.sender.transfer(received - borrows);
+            vBnb_.repayBorrowBehalf{ value: borrows }(borrower);
+            payable(msg.sender).transfer(received - borrows);
         } else {
-            vBnb_.repayBorrowBehalf.value(received)(borrower);
+            vBnb_.repayBorrowBehalf{ value: received }(borrower);
         }
     }
 }

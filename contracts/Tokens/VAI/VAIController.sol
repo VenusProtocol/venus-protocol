@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../../Oracle/PriceOracle.sol";
 import "../../Utils/ErrorReporter.sol";
@@ -764,11 +764,11 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         emit NewVAIMintCap(old, _mintCap);
     }
 
-    function getBlockNumber() public view returns (uint) {
+    function getBlockNumber() public view virtual returns (uint) {
         return block.number;
     }
 
-    function getBlocksPerYear() public view returns (uint) {
+    function getBlocksPerYear() public view virtual returns (uint) {
         return 10512000; //(24 * 60 * 60 * 365) / 3;
     }
 
@@ -776,7 +776,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      * @notice Return the address of the VAI token
      * @return The address of VAI
      */
-    function getVAIAddress() public view returns (address) {
+    function getVAIAddress() public view virtual returns (address) {
         return 0x4BD17003473389A42DAF6a0a729f6Fdb328BbBd7;
     }
 

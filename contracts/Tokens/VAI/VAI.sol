@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "./lib.sol";
 
@@ -84,7 +84,7 @@ contract VAI is LibNote {
 
     function transferFrom(address src, address dst, uint wad) public returns (bool) {
         require(balanceOf[src] >= wad, "VAI/insufficient-balance");
-        if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
+        if (src != msg.sender && allowance[src][msg.sender] != type(uint).max) {
             require(allowance[src][msg.sender] >= wad, "VAI/insufficient-allowance");
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
@@ -102,7 +102,7 @@ contract VAI is LibNote {
 
     function burn(address usr, uint wad) external {
         require(balanceOf[usr] >= wad, "VAI/insufficient-balance");
-        if (usr != msg.sender && allowance[usr][msg.sender] != uint(-1)) {
+        if (usr != msg.sender && allowance[usr][msg.sender] != type(uint).max) {
             require(allowance[usr][msg.sender] >= wad, "VAI/insufficient-allowance");
             allowance[usr][msg.sender] = sub(allowance[usr][msg.sender], wad);
         }
@@ -151,9 +151,9 @@ contract VAI is LibNote {
 
         require(holder != address(0), "VAI/invalid-address-0");
         require(holder == ecrecover(digest, v, r, s), "VAI/invalid-permit");
-        require(expiry == 0 || now <= expiry, "VAI/permit-expired");
+        require(expiry == 0 || block.timestamp <= expiry, "VAI/permit-expired");
         require(nonce == nonces[holder]++, "VAI/invalid-nonce");
-        uint wad = allowed ? uint(-1) : 0;
+        uint wad = allowed ? type(uint).max : 0;
         allowance[holder][spender] = wad;
         emit Approval(holder, spender, wad);
     }
