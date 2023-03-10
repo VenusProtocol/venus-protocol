@@ -22,6 +22,7 @@ const vip102 = () => {
     we'll follow Gauntlet recommendations related to BUSD. But, internally we consider these proposal too risky so we decided to start executing only the following actions:
 
     Pause borrows and entering the market in vBUSD
+    Stop rewarding the market borrowers with XVS
     via Normal VIP
     
     Comptroller._setActionsPaused(...)
@@ -37,6 +38,11 @@ const vip102 = () => {
         target: COMPTROLLER,
         signature: "_setActionsPaused(address[],uint8[],bool)",
         params: [[vBUSD], [Actions.BORROW, Actions.ENTER_MARKETS], true],
+      },
+      {
+        target: COMPTROLLER,
+        signature: "_setVenusSpeeds(address[],uint256[],uint256[])",
+        params: [[vBUSD], ["2712673611111111"], ["0"]],
       },
     ],
     meta,
@@ -60,6 +66,14 @@ forking(26305917, () => {
     it("entering BUSD market", async () => {
       const enteringPaused = await comptroller.actionPaused(vBUSD, Actions.ENTER_MARKETS);
       expect(enteringPaused).to.equal(false);
+    });
+
+    it("Venus Speeds", async () => {
+      const borrowSpeed = await comptroller.venusBorrowSpeeds(vBUSD);
+      const supplySpeed = await comptroller.venusSupplySpeeds(vBUSD);
+
+      expect(borrowSpeed).not.equals(0);
+      expect(supplySpeed).to.equal("2712673611111111");
     });
   });
 });
@@ -85,6 +99,14 @@ forking(26305917, () => {
     it("pauses entering BUSD market", async () => {
       const enteringPaused = await comptroller.actionPaused(vBUSD, Actions.ENTER_MARKETS);
       expect(enteringPaused).to.equal(true);
+    });
+
+    it("Venus Speeds", async () => {
+      const borrowSpeed = await comptroller.venusBorrowSpeeds(vBUSD);
+      const supplySpeed = await comptroller.venusSupplySpeeds(vBUSD);
+
+      expect(borrowSpeed).to.equal(0);
+      expect(supplySpeed).to.equal("2712673611111111");
     });
   });
 });
