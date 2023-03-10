@@ -14,10 +14,10 @@ const Actions = {
   ENTER_MARKETS: 7,
 };
 
-const vip102 = () => {
+const vip103 = () => {
   const meta = {
     version: "v1",
-    title: "VIP-102 Pause BUSD Market",
+    title: "VIP-103 Pause BUSD Market",
     description: `
     we'll follow Gauntlet recommendations related to BUSD. But, internally we consider these proposal too risky so we decided to start executing only the following actions:
 
@@ -79,7 +79,7 @@ forking(26305917, () => {
 });
 
 forking(26305917, () => {
-  testVip("VIP-102 Pause BUSD Market", vip102());
+  testVip("VIP-103 Pause BUSD Market", vip103());
 });
 
 forking(26305917, () => {
@@ -87,7 +87,7 @@ forking(26305917, () => {
 
   before(async () => {
     comptroller = await ethers.getContractAt("Comptroller", COMPTROLLER);
-    await pretendExecutingVip(vip102());
+    await pretendExecutingVip(vip103());
   });
 
   describe("Post-VIP behavior", async () => {
