@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 interface IXVSVesting {
     /// @param _recipient Address of the Vesting. recipient entitled to claim the vested funds

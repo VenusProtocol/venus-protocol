@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 pragma experimental ABIEncoderV2;
 
 contract GovernorAlpha {
@@ -26,7 +26,7 @@ contract GovernorAlpha {
     } // 1 block
 
     /// @notice The duration of voting on a proposal, in blocks
-    function votingPeriod() public pure returns (uint) {
+    function votingPeriod() public pure virtual returns (uint) {
         return (60 * 60 * 24 * 3) / 3;
     } // ~3 days in blocks (assuming 3s blocks)
 

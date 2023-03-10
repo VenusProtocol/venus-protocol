@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 pragma experimental ABIEncoderV2;
 
 import "../Utils/ECDSA.sol";
@@ -648,7 +648,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         return a - b;
     }
 
-    function getChainId() internal pure returns (uint) {
+    function getChainId() internal view returns (uint) {
         uint256 chainId;
         assembly {
             chainId := chainid()

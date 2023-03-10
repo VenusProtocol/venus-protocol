@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
@@ -242,7 +242,7 @@ contract VRTVault is VRTVaultStorage {
         token.safeTransfer(receiver, amount);
     }
 
-    function getBlockNumber() public view returns (uint256) {
+    function getBlockNumber() public view virtual returns (uint256) {
         return block.number;
     }
 

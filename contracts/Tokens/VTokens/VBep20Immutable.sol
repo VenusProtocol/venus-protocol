@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "./VBep20.sol";
 
@@ -30,7 +30,7 @@ contract VBep20Immutable is VBep20 {
         address payable admin_
     ) public {
         // Creator of the contract is admin during initialization
-        admin = msg.sender;
+        admin = payable(msg.sender);
 
         // Initialize the market
         initialize(

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../../Utils/IBEP20.sol";
 import "../../Utils/SafeBEP20.sol";

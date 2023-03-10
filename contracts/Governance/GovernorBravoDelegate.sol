@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 pragma experimental ABIEncoderV2;
 
 import "./GovernorBravoInterfaces.sol";
@@ -286,7 +286,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV2, GovernorBravoE
     /**
      * @notice Gets actions of a proposal
      * @param proposalId the id of the proposal
-     * @return targets, values, signatures, and calldatas of the proposal actions
+     * return targets, values, signatures, and calldatas of the proposal actions
      */
     function getActions(
         uint proposalId
