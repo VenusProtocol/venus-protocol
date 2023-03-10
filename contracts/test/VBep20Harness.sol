@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../Tokens/VTokens/VBep20Immutable.sol";
 import "../Tokens/VTokens/VBep20Delegator.sol";
@@ -35,19 +35,19 @@ contract VBep20Harness is VBep20Immutable {
         )
     {}
 
-    function doTransferOut(address payable to, uint amount) internal {
+    function doTransferOut(address payable to, uint amount) internal override {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
         return super.doTransferOut(to, amount);
     }
 
-    function exchangeRateStoredInternal() internal view returns (MathError, uint) {
+    function exchangeRateStoredInternal() internal view override returns (MathError, uint) {
         if (harnessExchangeRateStored) {
             return (MathError.NO_ERROR, harnessExchangeRate);
         }
         return super.exchangeRateStoredInternal();
     }
 
-    function getBlockNumber() internal view returns (uint) {
+    function getBlockNumber() internal view override returns (uint) {
         return blockNumber;
     }
 
@@ -201,7 +201,7 @@ contract VBep20Scenario is VBep20Immutable {
         totalReserves = totalReserves_;
     }
 
-    function getBlockNumber() internal view returns (uint) {
+    function getBlockNumber() internal view override returns (uint) {
         ComptrollerScenario comptrollerScenario = ComptrollerScenario(address(comptroller));
         return comptrollerScenario.blockNumber();
     }
@@ -283,19 +283,19 @@ contract VBep20DelegateHarness is VBep20Delegate {
 
     mapping(address => bool) public failTransferToAddresses;
 
-    function exchangeRateStoredInternal() internal view returns (MathError, uint) {
+    function exchangeRateStoredInternal() internal view override returns (MathError, uint) {
         if (harnessExchangeRateStored) {
             return (MathError.NO_ERROR, harnessExchangeRate);
         }
         return super.exchangeRateStoredInternal();
     }
 
-    function doTransferOut(address payable to, uint amount) internal {
+    function doTransferOut(address payable to, uint amount) internal override {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
         return super.doTransferOut(to, amount);
     }
 
-    function getBlockNumber() internal view returns (uint) {
+    function getBlockNumber() internal view override returns (uint) {
         return blockNumber;
     }
 
@@ -432,7 +432,7 @@ contract VBep20DelegateScenario is VBep20Delegate {
         totalReserves = totalReserves_;
     }
 
-    function getBlockNumber() internal view returns (uint) {
+    function getBlockNumber() internal view override returns (uint) {
         ComptrollerScenario comptrollerScenario = ComptrollerScenario(address(comptroller));
         return comptrollerScenario.blockNumber();
     }

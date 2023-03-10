@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../Utils/SafeMath.sol";
 
@@ -15,16 +15,16 @@ interface BEP20Base {
     function balanceOf(address who) external view returns (uint256);
 }
 
-contract BEP20 is BEP20Base {
-    function transfer(address to, uint256 value) external returns (bool);
+abstract contract BEP20 is BEP20Base {
+    function transfer(address to, uint256 value) external virtual returns (bool);
 
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
+    function transferFrom(address from, address to, uint256 value) external virtual returns (bool);
 }
 
-contract BEP20NS is BEP20Base {
-    function transfer(address to, uint256 value) external;
+abstract contract BEP20NS is BEP20Base {
+    function transfer(address to, uint256 value) external virtual;
 
-    function transferFrom(address from, address to, uint256 value) external;
+    function transferFrom(address from, address to, uint256 value) external virtual;
 }
 
 /**
@@ -55,14 +55,14 @@ contract StandardToken is BEP20 {
         decimals = _decimalUnits;
     }
 
-    function transfer(address dst, uint256 amount) external returns (bool) {
+    function transfer(address dst, uint256 amount) external virtual override returns (bool) {
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount, "Insufficient balance");
         balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
         emit Transfer(msg.sender, dst, amount);
         return true;
     }
 
-    function transferFrom(address src, address dst, uint256 amount) external returns (bool) {
+    function transferFrom(address src, address dst, uint256 amount) external virtual override returns (bool) {
         allowance[src][msg.sender] = allowance[src][msg.sender].sub(amount, "Insufficient allowance");
         balanceOf[src] = balanceOf[src].sub(amount, "Insufficient balance");
         balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
@@ -105,13 +105,13 @@ contract NonStandardToken is BEP20NS {
         decimals = _decimalUnits;
     }
 
-    function transfer(address dst, uint256 amount) external {
+    function transfer(address dst, uint256 amount) external override {
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount, "Insufficient balance");
         balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
         emit Transfer(msg.sender, dst, amount);
     }
 
-    function transferFrom(address src, address dst, uint256 amount) external {
+    function transferFrom(address src, address dst, uint256 amount) external override {
         allowance[src][msg.sender] = allowance[src][msg.sender].sub(amount, "Insufficient allowance");
         balanceOf[src] = balanceOf[src].sub(amount, "Insufficient balance");
         balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
@@ -126,6 +126,7 @@ contract NonStandardToken is BEP20NS {
 }
 
 contract BEP20Harness is StandardToken {
+    using SafeMath for uint256;
     // To support testing, we can specify addresses for which transferFrom should fail and return false
     mapping(address => bool) public failTransferFromAddresses;
 
@@ -151,7 +152,7 @@ contract BEP20Harness is StandardToken {
         balanceOf[_account] = _amount;
     }
 
-    function transfer(address dst, uint256 amount) external returns (bool success) {
+    function transfer(address dst, uint256 amount) external override returns (bool success) {
         // Added for testing purposes
         if (failTransferToAddresses[dst]) {
             return false;
@@ -162,7 +163,7 @@ contract BEP20Harness is StandardToken {
         return true;
     }
 
-    function transferFrom(address src, address dst, uint256 amount) external returns (bool success) {
+    function transferFrom(address src, address dst, uint256 amount) external override returns (bool success) {
         // Added for testing purposes
         if (failTransferFromAddresses[src]) {
             return false;

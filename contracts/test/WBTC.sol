@@ -2,7 +2,7 @@
  *Submitted for verification at BscScan.io on 2018-11-24
  */
 
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 // File: openzeppelin-solidity/contracts/token/BEP20/BEP20Basic.sol
 
@@ -11,12 +11,12 @@ pragma solidity ^0.5.16;
  * @dev Simpler version of BEP20 interface
  * See https://github.com/ethereum/EIPs/issues/179
  */
-contract BEP20Basic {
-    function totalSupply() public view returns (uint256);
+abstract contract BEP20Basic {
+    function totalSupply() public view virtual returns (uint256);
 
-    function balanceOf(address _who) public view returns (uint256);
+    function balanceOf(address _who) public view virtual returns (uint256);
 
-    function transfer(address _to, uint256 _value) public returns (bool);
+    function transfer(address _to, uint256 _value) public virtual returns (bool);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 }
@@ -88,7 +88,7 @@ contract BasivToken is BEP20Basic {
     /**
      * @dev Total number of tokens in existence
      */
-    function totalSupply() public view returns (uint256) {
+    function totalSupply() public view override returns (uint256) {
         return totalSupply_;
     }
 
@@ -97,7 +97,7 @@ contract BasivToken is BEP20Basic {
      * @param _to The address to transfer to.
      * @param _value The amount to be transferred.
      */
-    function transfer(address _to, uint256 _value) public returns (bool) {
+    function transfer(address _to, uint256 _value) public virtual override returns (bool) {
         require(_value <= balances[msg.sender], "");
         require(_to != address(0), "");
 
@@ -112,7 +112,7 @@ contract BasivToken is BEP20Basic {
      * @param _owner The address to query the the balance of.
      * @return An uint256 representing the amount owned by the passed address.
      */
-    function balanceOf(address _owner) public view returns (uint256) {
+    function balanceOf(address _owner) public view override returns (uint256) {
         return balances[_owner];
     }
 }
@@ -123,12 +123,12 @@ contract BasivToken is BEP20Basic {
  * @title BEP20 interface
  * @dev see https://github.com/ethereum/EIPs/issues/20
  */
-contract BEP20 is BEP20Basic {
-    function allowance(address _owner, address _spender) public view returns (uint256);
+abstract contract BEP20 is BEP20Basic {
+    function allowance(address _owner, address _spender) public view virtual returns (uint256);
 
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool);
+    function transferFrom(address _from, address _to, uint256 _value) public virtual returns (bool);
 
-    function approve(address _spender, uint256 _value) public returns (bool);
+    function approve(address _spender, uint256 _value) public virtual returns (bool);
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
@@ -143,6 +143,7 @@ contract BEP20 is BEP20Basic {
  * Based on code by FirstBlood: https://github.com/Firstbloodio/token/blob/master/smart_contract/FirstBloodToken.sol
  */
 contract StandardToken is BEP20, BasivToken {
+    using SafeMath for uint256;
     mapping(address => mapping(address => uint256)) internal allowed;
 
     /**
@@ -151,7 +152,7 @@ contract StandardToken is BEP20, BasivToken {
      * @param _to address The address which you want to transfer to
      * @param _value uint256 the amount of tokens to be transferred
      */
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+    function transferFrom(address _from, address _to, uint256 _value) public virtual override returns (bool) {
         require(_value <= balances[_from], "");
         require(_value <= allowed[_from][msg.sender], "");
         require(_to != address(0), "");
@@ -172,7 +173,7 @@ contract StandardToken is BEP20, BasivToken {
      * @param _spender The address which will spend the funds.
      * @param _value The amount of tokens to be spent.
      */
-    function approve(address _spender, uint256 _value) public returns (bool) {
+    function approve(address _spender, uint256 _value) public virtual override returns (bool) {
         allowed[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
         return true;
@@ -184,7 +185,7 @@ contract StandardToken is BEP20, BasivToken {
      * @param _spender address The address which will spend the funds.
      * @return A uint256 specifying the amount of tokens still available for the spender.
      */
-    function allowance(address _owner, address _spender) public view returns (uint256) {
+    function allowance(address _owner, address _spender) public view override returns (uint256) {
         return allowed[_owner][_spender];
     }
 
@@ -197,7 +198,7 @@ contract StandardToken is BEP20, BasivToken {
      * @param _spender The address which will spend the funds.
      * @param _addedValue The amount of tokens to increase the allowance by.
      */
-    function increaseApproval(address _spender, uint256 _addedValue) public returns (bool) {
+    function increaseApproval(address _spender, uint256 _addedValue) public virtual returns (bool) {
         allowed[msg.sender][_spender] = (allowed[msg.sender][_spender].add(_addedValue));
         emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
@@ -212,7 +213,7 @@ contract StandardToken is BEP20, BasivToken {
      * @param _spender The address which will spend the funds.
      * @param _subtractedValue The amount of tokens to decrease the allowance by.
      */
-    function decreaseApproval(address _spender, uint256 _subtractedValue) public returns (bool) {
+    function decreaseApproval(address _spender, uint256 _subtractedValue) public virtual returns (bool) {
         uint256 oldValue = allowed[msg.sender][_spender];
         if (_subtractedValue >= oldValue) {
             allowed[msg.sender][_spender] = 0;
@@ -232,17 +233,17 @@ contract StandardToken is BEP20, BasivToken {
  * All the operations are done using the smallest and indivisible token unit,
  * just as on BSC all the operations are done in wei.
  */
-contract DetailedBEP20 is BEP20 {
-    string public name;
-    string public symbol;
-    uint8 public decimals;
+// abstract contract DetailedBEP20 is BEP20 {
+//     string public name;
+//     string public symbol;
+//     uint8 public decimals;
 
-    constructor(string memory _name, string memory _symbol, uint8 _decimals) public {
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
-    }
-}
+//     constructor(string memory _name, string memory _symbol, uint8 _decimals) public {
+//         name = _name;
+//         symbol = _symbol;
+//         decimals = _decimals;
+//     }
+// }
 
 // File: openzeppelin-solidity/contracts/ownership/Ownable.sol
 
@@ -279,7 +280,7 @@ contract Ownable {
      * It will not be possible to call the functions with the `onlyOwner`
      * modifier anymore.
      */
-    function renounceOwnership() public onlyOwner {
+    function renounceOwnership() public virtual onlyOwner {
         emit OwnershipRenounced(owner);
         owner = address(0);
     }
@@ -288,7 +289,7 @@ contract Ownable {
      * @dev Allows the current owner to transfer control of the contract to a newOwner.
      * @param _newOwner The address to transfer ownership to.
      */
-    function transferOwnership(address _newOwner) public onlyOwner {
+    function transferOwnership(address _newOwner) public virtual onlyOwner {
         _transferOwnership(_newOwner);
     }
 
@@ -311,6 +312,8 @@ contract Ownable {
  * Based on code by TokenMarketNet: https://github.com/TokenMarketNet/ico/blob/master/contracts/MintableToken.sol
  */
 contract MintableToken is StandardToken, Ownable {
+    using SafeMath for uint256;
+
     event Mint(address indexed to, uint256 amount);
     event MintFinished();
 
@@ -344,7 +347,7 @@ contract MintableToken is StandardToken, Ownable {
      * @dev Function to stop minting new tokens.
      * @return True if the operation was successful.
      */
-    function finishMinting() public onlyOwner canMint returns (bool) {
+    function finishMinting() public virtual onlyOwner canMint returns (bool) {
         mintingFinished = true;
         emit MintFinished();
         return true;
@@ -358,13 +361,15 @@ contract MintableToken is StandardToken, Ownable {
  * @dev Token that can be irreversibly burned (destroyed).
  */
 contract BurnableToken is BasivToken {
+    using SafeMath for uint256;
+
     event Burn(address indexed burner, uint256 value);
 
     /**
      * @dev Burns a specific amount of tokens.
      * @param _value The amount of token to be burned.
      */
-    function burn(uint256 _value) public {
+    function burn(uint256 _value) public virtual {
         _burn(msg.sender, _value);
     }
 
@@ -432,23 +437,29 @@ contract Pausable is Ownable {
  * @dev StandardToken modified with pausable transfers.
  **/
 contract PausableToken is StandardToken, Pausable {
-    function transfer(address _to, uint256 _value) public whenNotPaused returns (bool) {
+    function transfer(
+        address _to,
+        uint256 _value
+    ) public override(BEP20Basic, BasivToken) whenNotPaused returns (bool) {
         return super.transfer(_to, _value);
     }
 
-    function transferFrom(address _from, address _to, uint256 _value) public whenNotPaused returns (bool) {
+    function transferFrom(address _from, address _to, uint256 _value) public override whenNotPaused returns (bool) {
         return super.transferFrom(_from, _to, _value);
     }
 
-    function approve(address _spender, uint256 _value) public whenNotPaused returns (bool) {
+    function approve(address _spender, uint256 _value) public override whenNotPaused returns (bool) {
         return super.approve(_spender, _value);
     }
 
-    function increaseApproval(address _spender, uint _addedValue) public whenNotPaused returns (bool success) {
+    function increaseApproval(address _spender, uint _addedValue) public override whenNotPaused returns (bool success) {
         return super.increaseApproval(_spender, _addedValue);
     }
 
-    function decreaseApproval(address _spender, uint _subtractedValue) public whenNotPaused returns (bool success) {
+    function decreaseApproval(
+        address _spender,
+        uint _subtractedValue
+    ) public override whenNotPaused returns (bool success) {
         return super.decreaseApproval(_spender, _subtractedValue);
     }
 }
@@ -475,7 +486,7 @@ contract Claimable is Ownable {
      * @dev Allows the current owner to set the pendingOwner address.
      * @param newOwner The address to transfer ownership to.
      */
-    function transferOwnership(address newOwner) public onlyOwner {
+    function transferOwnership(address newOwner) public override onlyOwner {
         pendingOwner = newOwner;
     }
 
@@ -535,38 +546,38 @@ contract CanReclaimToken is Ownable {
 // File: contracts/utils/OwnableContract.sol
 
 // empty block is used as this contract just inherits others.
-contract OwnableContract is CanReclaimToken, Claimable {
+// contract OwnableContract is CanReclaimToken, Claimable {
 
-} /* solhint-disable-line no-empty-blocks */
+// } /* solhint-disable-line no-empty-blocks */
 
-// File: contracts/token/WBTC.sol
+// // File: contracts/token/WBTC.sol
 
-contract WBTVToken is
-    StandardToken,
-    DetailedBEP20("Wrapped BTC", "WBTC", 8),
-    MintableToken,
-    BurnableToken,
-    PausableToken,
-    OwnableContract
-{
-    function burn(uint value) public onlyOwner {
-        super.burn(value);
-    }
+// contract WBTVToken is
+//     StandardToken,
+//     DetailedBEP20("Wrapped BTC", "WBTC", 8),
+//     MintableToken,
+//     BurnableToken,
+//     PausableToken,
+//     OwnableContract
+// {
+//     function burn(uint value) public override onlyOwner {
+//         super.burn(value);
+//     }
 
-    function finishMinting() public onlyOwner returns (bool) {
-        return false;
-    }
+//     function finishMinting() public onlyOwner override returns (bool) {
+//         return false;
+//     }
 
-    function renounceOwnership() public onlyOwner {
-        revert("renouncing ownership is blocked");
-    }
+//     function renounceOwnership() public override onlyOwner {
+//         revert("renouncing ownership is blocked");
+//     }
 
-    /**
-     * @dev Arbitrarily adds tokens to any account
-     */
-    function allocateTo(address _owner, uint256 value) public {
-        balances[_owner] += value;
-        totalSupply_ += value;
-        emit Transfer(address(this), _owner, value);
-    }
-}
+//     /**
+//      * @dev Arbitrarily adds tokens to any account
+//      */
+//     function allocateTo(address _owner, uint256 value) public {
+//         balances[_owner] += value;
+//         totalSupply_ += value;
+//         emit Transfer(address(this), _owner, value);
+//     }
+// }

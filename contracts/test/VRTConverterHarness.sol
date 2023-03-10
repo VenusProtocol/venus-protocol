@@ -1,8 +1,10 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../../contracts/Tokens/VRT/VRTConverter.sol";
 
 contract VRTConverterHarness is VRTConverter {
+    using SafeMath for uint256;
+
     constructor() public VRTConverter() {
         admin = msg.sender;
     }

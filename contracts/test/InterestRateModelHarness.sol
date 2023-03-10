@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../InterestRateModels/InterestRateModel.sol";
 
@@ -23,7 +23,7 @@ contract InterestRateModelHarness is InterestRateModel {
         borrowRate = borrowRate_;
     }
 
-    function getBorrowRate(uint _cash, uint _borrows, uint _reserves) public view returns (uint) {
+    function getBorrowRate(uint _cash, uint _borrows, uint _reserves) public view override returns (uint) {
         _cash; // unused
         _borrows; // unused
         _reserves; // unused
@@ -36,7 +36,7 @@ contract InterestRateModelHarness is InterestRateModel {
         uint _borrows,
         uint _reserves,
         uint _reserveFactor
-    ) external view returns (uint) {
+    ) external view override returns (uint) {
         _cash; // unused
         _borrows; // unused
         _reserves; // unused

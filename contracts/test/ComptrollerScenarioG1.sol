@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../Comptroller/ComptrollerG1.sol";
 
@@ -15,7 +15,7 @@ contract ComptrollerScenarioG1 is ComptrollerG1 {
         xvsAddress = xvsAddress_;
     }
 
-    function getXVSAddress() public view returns (address) {
+    function getXVSAddress() public view override returns (address) {
         return xvsAddress;
     }
 
@@ -41,7 +41,7 @@ contract ComptrollerScenarioG1 is ComptrollerG1 {
         blockNumber = number;
     }
 
-    function getBlockNumber() public view returns (uint) {
+    function getBlockNumber() public view override returns (uint) {
         return blockNumber;
     }
 
