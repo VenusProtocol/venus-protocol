@@ -280,11 +280,11 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
     ) external {
         LibAccessCheck.ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
 
-        uint256 numMarkets = s.markets.length;
+        uint256 numMarkets = markets.length;
         uint256 numActions = actions.length;
         for (uint marketIdx; marketIdx < numMarkets; ++marketIdx) {
             for (uint actionIdx; actionIdx < numActions; ++actionIdx) {
-                setActionPausedInternal(s.markets[marketIdx], actions[actionIdx], paused);
+                setActionPausedInternal(markets[marketIdx], actions[actionIdx], paused);
             }
         }
     }
