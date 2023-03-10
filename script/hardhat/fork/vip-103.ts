@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { Comptroller } from "../../../typechain";
-import { forking, pretendExecutingVip, testVip } from "./vip-framework";
+import { forking, testVip } from "./vip-framework";
 import { ProposalType } from "./vip-framework/types";
 import { makeProposal } from "./vip-framework/utils";
 
@@ -16,7 +16,7 @@ const Actions = {
 
 const vip103 = () => {
   const meta = {
-    version: "v1",
+    version: "v2",
     title: "VIP-103 Pause BUSD Market",
     description: `
     we'll follow Gauntlet recommendations related to BUSD. But, internally we consider these proposal too risky so we decided to start executing only the following actions:
@@ -76,19 +76,8 @@ forking(26305917, () => {
       expect(supplySpeed).to.equal("2712673611111111");
     });
   });
-});
 
-forking(26305917, () => {
   testVip("VIP-103 Pause BUSD Market", vip103());
-});
-
-forking(26305917, () => {
-  let comptroller: Comptroller;
-
-  before(async () => {
-    comptroller = await ethers.getContractAt("Comptroller", COMPTROLLER);
-    await pretendExecutingVip(vip103());
-  });
 
   describe("Post-VIP behavior", async () => {
     it("pauses BUSD borrowing", async () => {
@@ -104,7 +93,6 @@ forking(26305917, () => {
     it("Venus Speeds", async () => {
       const borrowSpeed = await comptroller.venusBorrowSpeeds(vBUSD);
       const supplySpeed = await comptroller.venusSupplySpeeds(vBUSD);
-
       expect(borrowSpeed).to.equal(0);
       expect(supplySpeed).to.equal("2712673611111111");
     });
