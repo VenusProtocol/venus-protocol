@@ -378,7 +378,7 @@ contract GovernorAlpha2 {
         return a - b;
     }
 
-    function getChainId() internal pure returns (uint) {
+    function getChainId() internal view returns (uint) {
         uint chainId;
         assembly {
             chainId := chainid()
