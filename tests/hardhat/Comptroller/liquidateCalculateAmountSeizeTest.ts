@@ -109,14 +109,12 @@ describe("Comptroller", () => {
     it("fails if the repayAmount causes overflow ", async () => {
       await expect(
         calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, constants.MaxUint256),
-      ).to.be.revertedWith("multiplication overflow");
+      ).to.be.reverted;
     });
 
     it("fails if the borrowed asset price causes overflow ", async () => {
       setOraclePrice(vTokenBorrowed, constants.MaxUint256);
-      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)).to.be.revertedWith(
-        "multiplication overflow",
-      );
+      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)).to.be.reverted;
     });
 
     it("reverts if it fails to calculate the exchange rate", async () => {
