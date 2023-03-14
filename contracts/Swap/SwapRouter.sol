@@ -14,7 +14,7 @@ import "./interfaces/IVBNB.sol";
  * @author 0xlucian
  */
 
-contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, RouterHelper, IPancakeSwapV2Router {
+contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Router {
     // ***************
     // ** MODIFIERS **
     // ***************
@@ -47,7 +47,6 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
     // *********************
     function initialize() external initializer {
         __Ownable2Step_init();
-        __ReentrancyGuard_init();
     }
 
     // ****************************
@@ -383,201 +382,6 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
         IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
-    }
-
-    /**
-     * @notice Swaps an exact amount of input tokens for as many output tokens as possible,
-     *         along the route determined by the path. The first element of path is the input token,
-     *         the last is the output token, and any intermediate elements represent intermediate
-     *         pairs to trade through (if, for example, a direct pair does not exist).
-     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
-     * @param amountIn The address of the vToken contract to repay.
-     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
-     * @param path Array with addresses of the underlying assets to be swapped
-     * @param to Recipient of the output tokens.
-     * @param deadline Unix timestamp after which the transaction will revert.
-     */
-    function swapExactTokensForTokens(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, to, TypesOfTokens.NON_SUPPORTING_FEE);
-    }
-
-    /**
-     * @notice Swaps an exact amount of input tokens for as many output tokens as possible,
-     *         along the route determined by the path. The first element of path is the input token,
-     *         the last is the output token, and any intermediate elements represent intermediate
-     *         pairs to trade through (if, for example, a direct pair does not exist).
-     *         This method to swap deflationary tokens which would require supporting fee.
-     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
-     * @param amountIn The address of the vToken contract to repay.
-     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
-     * @param path Array with addresses of the underlying assets to be swapped
-     * @param to Recipient of the output tokens.
-     * @param deadline Unix timestamp after which the transaction will revert.
-     */
-    function swapExactTokensForTokensAtSupportingFee(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
-    }
-
-    /**
-     * @notice Swaps an exact amount of ETH for as many output tokens as possible,
-     *         along the route determined by the path. The first element of path must be WBNB,
-     *         the last is the output token, and any intermediate elements represent
-     *         intermediate pairs to trade through (if, for example, a direct pair does not exist).
-     * @dev amountIn is passed through the msg.value of the transaction
-     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
-     * @param path Array with addresses of the underlying assets to be swapped
-     * @param to Recipient of the output tokens.
-     * @param deadline Unix timestamp after which the transaction will revert.
-     */
-    function swapExactETHForTokens(
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapExactETHForTokens(amountOutMin, path, to, TypesOfTokens.NON_SUPPORTING_FEE);
-    }
-
-    /**
-     * @notice Swaps an exact amount of ETH for as many output tokens as possible,
-     *         along the route determined by the path. The first element of path must be WBNB,
-     *         the last is the output token, and any intermediate elements represent
-     *         intermediate pairs to trade through (if, for example, a direct pair does not exist).
-     *         This method to swap deflationary tokens which would require supporting fee.
-     * @dev amountIn is passed through the msg.value of the transaction
-     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
-     * @param path Array with addresses of the underlying assets to be swapped
-     * @param to Recipient of the output tokens.
-     * @param deadline Unix timestamp after which the transaction will revert.
-     */
-    function swapExactETHForTokensAtSupportingFee(
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapExactETHForTokens(amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
-    }
-
-    /**
-     * @notice Swaps an exact amount of input tokens for as many output ETH as possible,
-     *         along the route determined by the path. The first element of path is the input token,
-     *         the last is the output ETH, and any intermediate elements represent intermediate
-     *         pairs to trade through (if, for example, a direct pair does not exist).
-     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
-     * @param amountIn The address of the vToken contract to repay.
-     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
-     * @param path Array with addresses of the underlying assets to be swapped
-     * @param to Recipient of the output tokens.
-     * @param deadline Unix timestamp after which the transaction will revert.
-     */
-    function swapExactTokensForETH(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.NON_SUPPORTING_FEE);
-    }
-
-    /**
-     * @notice Swaps an exact amount of input tokens for as many output ETH as possible,
-     *         along the route determined by the path. The first element of path is the input token,
-     *         the last is the output ETH, and any intermediate elements represent intermediate
-     *         pairs to trade through (if, for example, a direct pair does not exist).
-     *         This method to swap deflationary tokens which would require supporting fee.
-     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
-     * @param amountIn The address of the vToken contract to repay.
-     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
-     * @param path Array with addresses of the underlying assets to be swapped
-     * @param to Recipient of the output tokens.
-     * @param deadline Unix timestamp after which the transaction will revert.
-     */
-    function swapExactTokensForETHAtSupportingFee(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
-    }
-
-    /**
-     * @notice Swaps an as many amount of input tokens for as exact amount of tokens as output,
-     *         along the route determined by the path. The first element of path is the input token,
-     *         the last is the output token, and any intermediate elements represent intermediate
-     *         pairs to trade through (if, for example, a direct pair does not exist).
-     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
-     * @param amountOut The amount of the tokens needs to be as output token.
-     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
-     * @param path Array with addresses of the underlying assets to be swapped
-     * @param to Recipient of the output tokens.
-     * @param deadline Unix timestamp after which the transaction will revert.
-     **/
-    function swapTokensForExactTokens(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapTokensForExactTokens(amountOut, amountInMax, path, to);
-    }
-
-    /**
-     * @notice Swaps an as ETH as input tokens for as exact amount of tokens as output,
-     *         along the route determined by the path. The first element of path is the input WBNB,
-     *         the last is the output as token, and any intermediate elements represent intermediate
-     *         pairs to trade through (if, for example, a direct pair does not exist).
-     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
-     * @param amountOut The amount of the tokens needs to be as output token.
-     * @param path Array with addresses of the underlying assets to be swapped
-     * @param to Recipient of the output tokens.
-     * @param deadline Unix timestamp after which the transaction will revert.
-     **/
-    function swapETHForExactTokens(
-        uint256 amountOut,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapETHForExactTokens(amountOut, path, to);
-    }
-
-    /**
-     * @notice Swaps an as many amount of input tokens for as exact amount of ETH as output,
-     *         along the route determined by the path. The first element of path is the input token,
-     *         the last is the output as ETH, and any intermediate elements represent intermediate
-     *         pairs to trade through (if, for example, a direct pair does not exist).
-     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
-     * @param amountOut The amount of the tokens needs to be as output token.
-     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
-     * @param path Array with addresses of the underlying assets to be swapped
-     * @param to Recipient of the output tokens.
-     * @param deadline Unix timestamp after which the transaction will revert.
-     **/
-    function swapTokensForExactETH(
-        uint256 amountOut,
-        uint256 amountInMax,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapTokensForExactETH(amountOut, amountInMax, path, to);
     }
 
     /**
