@@ -383,7 +383,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         }
 
         emit Claim(msg.sender, _rewardToken, _pid, pending);
-        emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
+        emit RequestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }
 
     /**

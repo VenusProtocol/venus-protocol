@@ -37,6 +37,6 @@ contract XVSVaultScenario is XVSVault {
             _moveDelegates(delegates[msg.sender], address(0), uint96(_amount));
         }
 
-        emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
+        emit RequestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }
 }
