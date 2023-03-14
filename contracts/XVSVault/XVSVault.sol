@@ -7,6 +7,7 @@ import "../Utils/IBEP20.sol";
 import "./XVSVaultProxy.sol";
 import "./XVSVaultStorage.sol";
 import "./XVSVaultErrorReporter.sol";
+import "../Utils/SafeCast.sol";
 
 interface IXVSStore {
     function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
@@ -16,6 +17,7 @@ interface IXVSStore {
 
 contract XVSVault is XVSVaultStorage, ECDSA {
     using SafeMath for uint256;
+    using SafeCast for uint256;
     using SafeBEP20 for IBEP20;
 
     /// @notice Event emitted when deposit
@@ -237,7 +239,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         for (; i > 0 && _requests[i - 1].lockedUntil <= _lockedUntil; --i) {
             _requests[i] = _requests[i - 1];
         }
-        _requests[i] = WithdrawalRequest(_amount, uint128(_lockedUntil), 1);
+        _requests[i] = WithdrawalRequest(_amount, _lockedUntil.toUint128(), 1);
         _user.pendingWithdrawals = _user.pendingWithdrawals.add(_amount);
     }
 
