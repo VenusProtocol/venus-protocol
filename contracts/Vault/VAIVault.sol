@@ -80,7 +80,7 @@ contract VAIVault is VAIVaultStorage {
      * @notice Claim XVS from VAIVault
      * @param account The account for which to claim XVS
      */
-    function claim(address account) public nonReentrant {
+    function claim(address account) external nonReentrant {
         _withdraw(account, 0);
     }
 
