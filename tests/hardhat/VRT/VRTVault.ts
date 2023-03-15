@@ -7,7 +7,7 @@ import { VRT, VRTVault, VRTVault__factory, VRT__factory } from "../../../typecha
 
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 
-describe("VAIVault", async () => {
+describe("VRTVault", async () => {
   async function deployVaultFixture() {
     const [deployer, user1, user2] = await ethers.getSigners();
 
