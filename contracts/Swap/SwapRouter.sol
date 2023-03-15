@@ -2,13 +2,13 @@ pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "./interfaces/IPancakeSwapV2Router.sol";
 import "./interfaces/IVtoken.sol";
 import "./RouterHelper.sol";
 import "./interfaces/IVBNB.sol";
-
 import "./interfaces/InterfaceComptroller.sol";
-import "hardhat/console.sol";
 
 /**
  * @title Venus's Pancake Swap Integration Contract
@@ -18,6 +18,8 @@ import "hardhat/console.sol";
  */
 
 contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Router {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+
     address public comptrollerAddress;
 
     // ***************
@@ -37,6 +39,12 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         }
         _;
     }
+
+    /// @notice event emitted on sweep token success
+    event SweepToken(address token, address to, uint256 sweepAmount);
+
+    /// @notice event emitted on sweep BNB token success
+    event SweepBNBToken(address to, uint256 sweepAmount);
 
     // *********************
     // **** CONSTRUCTOR ****
@@ -397,6 +405,33 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
     }
 
+       /**
+     * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to admin (timelock)
+     * @param token The address of the ERC-20 token to sweep
+     * @param sweepAmount The ampunt of the tokens to sweep
+     * @custom:access Only Governance
+     */
+    function sweepToken(IERC20Upgradeable token, address to, uint256 sweepAmount) external onlyOwner {
+        uint256 balance = token.balanceOf(address(this));
+        require(sweepAmount <= balance, "SwapRouter::insufficient balance");
+        token.safeTransfer(to, sweepAmount);
+
+        emit SweepToken(address(token), to, sweepAmount);
+    }
+
+    /**
+     * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to admin (timelock)
+     * @param sweepAmount The ampunt of the tokens to sweep
+     * @custom:access Only Governance
+     */
+    function sweepBNBToken(address to, uint256 sweepAmount) external onlyOwner{
+        uint256 balance = address(this).balance;
+        require(sweepAmount <= balance, "SwapRouter::insufficient balance");
+        address payable receiver = payable(to);
+        receiver.transfer(sweepAmount);
+
+        emit SweepBNBToken(to, sweepAmount);
+    }
     /**
      * @notice supply token to a Venus market
      * @param path the addresses of the underlying token
