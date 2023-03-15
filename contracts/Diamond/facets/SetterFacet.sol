@@ -373,11 +373,6 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError {
         return uint(Error.NO_ERROR);
     }
 
-    function _become(Unitroller unitroller) external {
-        require(msg.sender == unitroller.admin(), "only unitroller admin can");
-        require(unitroller._acceptImplementation() == 0, "not authorized");
-    }
-
     /*** Venus Distribution ***/
 
     /**

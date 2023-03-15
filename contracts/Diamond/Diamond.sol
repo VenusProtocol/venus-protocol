@@ -2,6 +2,7 @@ pragma solidity 0.8.13;
 
 import { LibDiamond } from "./libraries/LibDiamond.sol";
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
+import "../Comptroller/Unitroller.sol"; 
 
 contract Diamond {
     constructor(address _contractOwner, address _diamondCutFacet) payable {
@@ -16,7 +17,12 @@ contract Diamond {
             action: IDiamondCut.FacetCutAction.Add,
             functionSelectors: functionSelectors
         });
-        LibDiamond.diamondCut(cut, address(0), "");
+        LibDiamond.libDiamondCut(cut, address(0), "");
+    }
+
+    function _become(Unitroller unitroller) external {
+        require(msg.sender == unitroller.admin(), "only unitroller admin can");
+        require(unitroller._acceptImplementation() == 0, "not authorized");
     }
 
     // Find facet for function that is called and execute the

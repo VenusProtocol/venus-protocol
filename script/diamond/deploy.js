@@ -32,15 +32,24 @@ async function deployDiamond () {
   console.log('Deploying facets')
   const FacetNames = [
     'DiamondLoupeFacet',
-    'DiamondCutFacet',
     'MarketFacet',
     'PolicyFacet',
     'RewardFacet',
     'SetterFacet'
   ]
   const cut = []
+  let index = 0;
   for (const FacetName of FacetNames) {
-    const Facet = await ethers.getContractFactory(FacetName)
+    let Facet;
+    if(index > 0 && index < 4){
+      Facet = await ethers.getContractFactory(FacetName,{
+        libraries:{
+          LibAccessCheck:await accounts[3].getAddress()
+        }
+      })
+    }else{
+      Facet = await ethers.getContractFactory(FacetName)
+    }
     const facet = await Facet.deploy()
     await facet.deployed()
     console.log(`${FacetName} deployed: ${facet.address}`)
@@ -49,6 +58,7 @@ async function deployDiamond () {
       action: FacetCutAction.Add,
       functionSelectors: getSelectors(facet)
     })
+    index++;
   }
 
   // upgrade diamond with facets
@@ -66,7 +76,7 @@ async function deployDiamond () {
     throw Error(`Diamond upgrade failed: ${tx.hash}`)
   }
   console.log('Completed diamond cut')
-  return diamond.address
+  return diamond
 }
 
 // We recommend this pattern to be able to use async/await everywhere
