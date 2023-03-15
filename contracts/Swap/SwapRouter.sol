@@ -33,8 +33,8 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
     }
 
     modifier ensureVTokenListed(address vTokenAddress) {
-        (bool isListed) = InterfaceComptroller(comptrollerAddress).markets(vTokenAddress);
-        if(isListed != true) {
+        bool isListed = InterfaceComptroller(comptrollerAddress).markets(vTokenAddress);
+        if (isListed != true) {
             revert VTokenNotListed(vTokenAddress);
         }
         _;
@@ -405,7 +405,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
     }
 
-       /**
+    /**
      * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to admin (timelock)
      * @param token The address of the ERC-20 token to sweep
      * @param sweepAmount The ampunt of the tokens to sweep
@@ -424,7 +424,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param sweepAmount The ampunt of the tokens to sweep
      * @custom:access Only Governance
      */
-    function sweepBNBToken(address to, uint256 sweepAmount) external onlyOwner{
+    function sweepBNBToken(address to, uint256 sweepAmount) external onlyOwner {
         uint256 balance = address(this).balance;
         require(sweepAmount <= balance, "SwapRouter::insufficient balance");
         address payable receiver = payable(to);
@@ -432,6 +432,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
 
         emit SweepBNBToken(to, sweepAmount);
     }
+
     /**
      * @notice supply token to a Venus market
      * @param path the addresses of the underlying token

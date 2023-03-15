@@ -7,6 +7,8 @@ import { getAddress, keccak256, parseUnits, solidityPack } from "ethers/lib/util
 import { ethers, upgrades } from "hardhat";
 
 import {
+  ComptrollerHarness,
+  ComptrollerHarness__factory,
   DeflatingERC20,
   DeflatingERC20__factory,
   FaucetToken,
@@ -19,8 +21,6 @@ import {
   VBep20Immutable,
   WBNB,
   WBNB__factory,
-  ComptrollerHarness,
-  ComptrollerHarness__factory,
 } from "../../../typechain";
 // import { InterfaceComptroller } from "../../../typechain/contracts/Swap/interfaces/InterfaceComptroller";
 import { EIP20Interface } from "./../../../typechain/contracts/Tokens/EIP20Interface";
@@ -101,12 +101,23 @@ async function deploySwapContract(): Promise<SwapFixture> {
     dTokenPair,
     dTokenPair2,
     tokenAwBnbPair,
-    comptroller
+    comptroller,
   };
 }
 
 async function configure(fixture: SwapFixture, user: SignerWithAddress) {
-  const { tokenPair, wBnbPair, tokenA, swapRouter, wBNB, dToken, dTokenPair, dTokenPair2, tokenAwBnbPair, comptroller } = fixture;
+  const {
+    tokenPair,
+    wBnbPair,
+    tokenA,
+    swapRouter,
+    wBNB,
+    dToken,
+    dTokenPair,
+    dTokenPair2,
+    tokenAwBnbPair,
+    comptroller,
+  } = fixture;
   tokenPair.getReserves.returns({
     reserve0: DEFAULT_RESERVE,
     reserve1: DEFAULT_RESERVE,
@@ -186,12 +197,12 @@ describe("Swap Contract", () => {
     await expect(
       swapRouter.swapAndSupply(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
     ).to.be.reverted;
-  })
+  });
 
   describe("Supply", () => {
     beforeEach(async () => {
       await comptroller.harnessAddVtoken(vToken.address);
-    })
+    });
 
     it("revert if deadline has passed", async () => {
       await expect(
@@ -291,7 +302,7 @@ describe("Swap Contract", () => {
   describe("Repay", () => {
     beforeEach(async () => {
       await comptroller.harnessAddVtoken(vToken.address);
-    })
+    });
 
     it("revert if deadline has passed", async () => {
       await expect(

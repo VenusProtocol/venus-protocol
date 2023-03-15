@@ -184,7 +184,7 @@ contract ComptrollerHarness is Comptroller {
         releaseStartBlock = startBlock;
     }
 
-    function harnessAddVtoken (address vToken) external {
+    function harnessAddVtoken(address vToken) external {
         markets[vToken] = Market({ isListed: true, isVenus: false, collateralFactorMantissa: 0 });
     }
 }
