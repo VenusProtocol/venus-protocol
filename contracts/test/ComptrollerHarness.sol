@@ -183,6 +183,10 @@ contract ComptrollerHarness is Comptroller {
     function harnessSetReleaseStartBlock(uint startBlock) external {
         releaseStartBlock = startBlock;
     }
+
+    function harnessAddVtoken (address vToken) external {
+        markets[vToken] = Market({ isListed: true, isVenus: false, collateralFactorMantissa: 0 });
+    }
 }
 
 contract ComptrollerBorked {

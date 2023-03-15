@@ -19,7 +19,10 @@ import {
   VBep20Immutable,
   WBNB,
   WBNB__factory,
+  ComptrollerHarness,
+  ComptrollerHarness__factory,
 } from "../../../typechain";
+// import { InterfaceComptroller } from "../../../typechain/contracts/Swap/interfaces/InterfaceComptroller";
 import { EIP20Interface } from "./../../../typechain/contracts/Tokens/EIP20Interface";
 
 const { expect } = chai;
@@ -42,6 +45,7 @@ type SwapFixture = {
   tokenAwBnbPair: FakeContract<IPancakePair>;
   dTokenPair: FakeContract<IPancakePair>;
   dTokenPair2: FakeContract<IPancakePair>;
+  comptroller: MockContract<ComptrollerHarness>;
 };
 
 async function deploySwapContract(): Promise<SwapFixture> {
@@ -49,10 +53,12 @@ async function deploySwapContract(): Promise<SwapFixture> {
   const wBNBFactory = await smock.mock<WBNB__factory>("WBNB");
   const wBNB = await wBNBFactory.deploy();
   const pancakeFactory = await smock.fake<IPancakeSwapV2Factory>("IPancakeSwapV2Factory");
+  const comptrollerFactory = await smock.mock<ComptrollerHarness__factory>("ComptrollerHarness");
+  const comptroller = await comptrollerFactory.deploy();
 
   const SwapRouter = await smock.mock<SwapRouter__factory>("SwapRouter");
   const swapRouter = await upgrades.deployProxy(SwapRouter, [], {
-    constructorArgs: [wBNB.address, pancakeFactory.address],
+    constructorArgs: [wBNB.address, pancakeFactory.address, comptroller.address],
   });
 
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
@@ -95,11 +101,12 @@ async function deploySwapContract(): Promise<SwapFixture> {
     dTokenPair,
     dTokenPair2,
     tokenAwBnbPair,
+    comptroller
   };
 }
 
 async function configure(fixture: SwapFixture, user: SignerWithAddress) {
-  const { tokenPair, wBnbPair, tokenA, swapRouter, wBNB, dToken, dTokenPair, dTokenPair2, tokenAwBnbPair } = fixture;
+  const { tokenPair, wBnbPair, tokenA, swapRouter, wBNB, dToken, dTokenPair, dTokenPair2, tokenAwBnbPair, comptroller } = fixture;
   tokenPair.getReserves.returns({
     reserve0: DEFAULT_RESERVE,
     reserve1: DEFAULT_RESERVE,
@@ -157,7 +164,7 @@ async function getValidDeadline(): Promise<number> {
   return blockBefore.timestamp + 1;
 }
 
-describe.only("Swap Contract", () => {
+describe("Swap Contract", () => {
   let user: SignerWithAddress;
   let vToken: FakeContract<VBep20Immutable>;
   let wBNB: FakeContract<IWBNB>;
@@ -165,15 +172,27 @@ describe.only("Swap Contract", () => {
   let tokenA: FakeContract<EIP20Interface>;
   let tokenB: FakeContract<EIP20Interface>;
   let dToken: MockContract<DeflatingERC20>;
+  let comptroller: MockContract<ComptrollerHarness>;
 
   beforeEach(async () => {
     [, user] = await ethers.getSigners();
     const contracts = await loadFixture(deploySwapContract);
     await configure(contracts, user);
-    ({ vToken, wBNB, swapRouter, tokenA, tokenB, dToken } = contracts);
+    ({ vToken, wBNB, swapRouter, tokenA, tokenB, dToken, comptroller } = contracts);
   });
 
+  it("revert if vToken address is not listed", async () => {
+    const deadline = await getValidDeadline();
+    await expect(
+      swapRouter.swapAndSupply(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
+    ).to.be.reverted;
+  })
+
   describe("Supply", () => {
+    beforeEach(async () => {
+      await comptroller.harnessAddVtoken(vToken.address);
+    })
+
     it("revert if deadline has passed", async () => {
       await expect(
         swapRouter.swapAndSupply(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], 0),
@@ -270,6 +289,10 @@ describe.only("Swap Contract", () => {
   });
 
   describe("Repay", () => {
+    beforeEach(async () => {
+      await comptroller.harnessAddVtoken(vToken.address);
+    })
+
     it("revert if deadline has passed", async () => {
       await expect(
         swapRouter.swapAndRepay(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], 0),

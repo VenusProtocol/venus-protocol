@@ -7,6 +7,9 @@ import "./interfaces/IVtoken.sol";
 import "./RouterHelper.sol";
 import "./interfaces/IVBNB.sol";
 
+import "./interfaces/InterfaceComptroller.sol";
+import "hardhat/console.sol";
+
 /**
  * @title Venus's Pancake Swap Integration Contract
  * @notice This contracts allows users to swap a token for another one and supply/repay with the latter.
@@ -15,10 +18,11 @@ import "./interfaces/IVBNB.sol";
  */
 
 contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Router {
+    address public comptrollerAddress;
+
     // ***************
     // ** MODIFIERS **
     // ***************
-
     modifier ensure(uint256 deadline) {
         if (deadline < block.timestamp) {
             revert SwapDeadlineExpire(deadline, block.timestamp);
@@ -26,8 +30,12 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         _;
     }
 
-    receive() external payable {
-        assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
+    modifier ensureVTokenListed(address vTokenAddress) {
+        (bool isListed) = InterfaceComptroller(comptrollerAddress).markets(vTokenAddress);
+        if(isListed != true) {
+            revert VTokenNotListed(vTokenAddress);
+        }
+        _;
     }
 
     // *********************
@@ -36,10 +44,15 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address WBNB_, address factory_) RouterHelper(WBNB_, factory_) {
+    constructor(address WBNB_, address factory_, address _comptrollerAddress) RouterHelper(WBNB_, factory_) {
         // Note that the contract is upgradeable. Use initialize() or reinitializers
         // to set the state variables.
         _disableInitializers();
+        comptrollerAddress = _comptrollerAddress;
+    }
+
+    receive() external payable {
+        assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
     }
 
     // *********************
@@ -67,7 +80,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -89,7 +102,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -111,7 +124,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -133,7 +146,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -156,7 +169,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -177,7 +190,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountOut,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapETHForExactTokens(amountOut, path, address(this));
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -199,7 +212,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -221,7 +234,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -242,7 +255,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -263,7 +276,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -286,7 +299,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -307,7 +320,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 amountOut,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapETHForExactTokens(amountOut, path, address(this));
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));

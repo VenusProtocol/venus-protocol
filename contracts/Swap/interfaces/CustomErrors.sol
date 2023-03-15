@@ -41,3 +41,6 @@ error IdenticalAddresses();
 
 ///@notice Error thrown when the trade path[] parameter consists of only 1 token (i.e. path.length<2)
 error InvalidPath();
+
+//@notice Error thrown when invalid vTOken address is passed to swap router.
+error VTokenNotListed(address vToken);
