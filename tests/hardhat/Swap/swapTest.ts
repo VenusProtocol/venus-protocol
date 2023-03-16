@@ -116,7 +116,6 @@ async function configure(fixture: SwapFixture, user: SignerWithAddress) {
     dTokenPair,
     dTokenPair2,
     tokenAwBnbPair,
-    comptroller,
   } = fixture;
   tokenPair.getReserves.returns({
     reserve0: DEFAULT_RESERVE,
