@@ -7,10 +7,12 @@ import { getAddress, keccak256, parseUnits, solidityPack } from "ethers/lib/util
 import { ethers, upgrades } from "hardhat";
 
 import {
+  BEP20Harness__factory,
   ComptrollerHarness,
   ComptrollerHarness__factory,
   DeflatingERC20,
   DeflatingERC20__factory,
+  EIP20Interface,
   FaucetToken,
   FaucetToken__factory,
   IPancakePair,
@@ -22,8 +24,6 @@ import {
   WBNB,
   WBNB__factory,
 } from "../../../typechain";
-// import { InterfaceComptroller } from "../../../typechain/contracts/Swap/interfaces/InterfaceComptroller";
-import { EIP20Interface } from "./../../../typechain/contracts/Tokens/EIP20Interface";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -447,6 +447,27 @@ describe("Swap Contract", () => {
             },
           ),
       );
+    });
+  });
+
+  describe("Sweep Token", async () => {
+    it("Sweep ERC-20 tokens", async () => {
+      const accounts = await ethers.getSigners();
+      const userAddress = await accounts[0].getAddress();
+
+      const sweepAmount = 1000;
+      const totalSupply = 100000000;
+
+      const Bep20Factory = await smock.mock<BEP20Harness__factory>("BEP20Harness");
+      const token = await Bep20Factory.deploy(totalSupply, "sweep", 4, "SWP");
+
+      await token.transfer(swapRouter.address, 1000);
+      expect(await token.balanceOf(swapRouter.address)).equal(sweepAmount);
+      expect(await token.balanceOf(userAddress)).equal(totalSupply - sweepAmount);
+
+      await swapRouter.sweepToken(token.address, userAddress, sweepAmount);
+      expect(await token.balanceOf(swapRouter.address)).equal(0);
+      expect(await token.balanceOf(userAddress)).equal(totalSupply);
     });
   });
 });

@@ -43,9 +43,6 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
     /// @notice event emitted on sweep token success
     event SweepToken(address token, address to, uint256 sweepAmount);
 
-    /// @notice event emitted on sweep BNB token success
-    event SweepBNBToken(address to, uint256 sweepAmount);
-
     // *********************
     // **** CONSTRUCTOR ****
     // *********************
@@ -417,20 +414,6 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         token.safeTransfer(to, sweepAmount);
 
         emit SweepToken(address(token), to, sweepAmount);
-    }
-
-    /**
-     * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to admin (timelock)
-     * @param sweepAmount The ampunt of the tokens to sweep
-     * @custom:access Only Governance
-     */
-    function sweepBNBToken(address to, uint256 sweepAmount) external onlyOwner {
-        uint256 balance = address(this).balance;
-        require(sweepAmount <= balance, "SwapRouter::insufficient balance");
-        address payable receiver = payable(to);
-        receiver.transfer(sweepAmount);
-
-        emit SweepBNBToken(to, sweepAmount);
     }
 
     /**
