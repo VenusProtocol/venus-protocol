@@ -7,6 +7,7 @@ import "../Utils/IBEP20.sol";
 import "./XVSVaultProxy.sol";
 import "./XVSVaultStorage.sol";
 import "./XVSVaultErrorReporter.sol";
+import "../Utils/SafeCast.sol";
 
 interface IXVSStore {
     function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
@@ -16,6 +17,7 @@ interface IXVSStore {
 
 contract XVSVault is XVSVaultStorage, ECDSA {
     using SafeMath for uint256;
+    using SafeCast for uint256;
     using SafeBEP20 for IBEP20;
 
     /// @notice Event emitted when deposit
@@ -25,7 +27,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     event ExecutedWithdrawal(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
     /// @notice Event emitted when request withrawal
-    event ReqestedWithdrawal(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
+    event RequestedWithdrawal(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
     /// @notice Event emitted when admin changed
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
@@ -207,10 +209,12 @@ contract XVSVault is XVSVaultStorage, ECDSA {
                 user.rewardDebt
             );
 
-            user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+            if (pending > 0) {
+                user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
-            IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, _account, pending);
-            emit Claim(_account, _rewardToken, _pid, pending);
+                IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, _account, pending);
+                emit Claim(_account, _rewardToken, _pid, pending);
+            }
         }
     }
 
@@ -235,7 +239,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         for (; i > 0 && _requests[i - 1].lockedUntil <= _lockedUntil; --i) {
             _requests[i] = _requests[i - 1];
         }
-        _requests[i] = WithdrawalRequest(_amount, uint128(_lockedUntil), 1);
+        _requests[i] = WithdrawalRequest(_amount, _lockedUntil.toUint128(), 1);
         _user.pendingWithdrawals = _user.pendingWithdrawals.add(_amount);
     }
 
@@ -381,7 +385,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         }
 
         emit Claim(msg.sender, _rewardToken, _pid, pending);
-        emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
+        emit RequestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }
 
     /**
