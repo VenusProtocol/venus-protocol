@@ -106,17 +106,7 @@ async function deploySwapContract(): Promise<SwapFixture> {
 }
 
 async function configure(fixture: SwapFixture, user: SignerWithAddress) {
-  const {
-    tokenPair,
-    wBnbPair,
-    tokenA,
-    swapRouter,
-    wBNB,
-    dToken,
-    dTokenPair,
-    dTokenPair2,
-    tokenAwBnbPair,
-  } = fixture;
+  const { tokenPair, wBnbPair, tokenA, swapRouter, wBNB, dToken, dTokenPair, dTokenPair2, tokenAwBnbPair } = fixture;
   tokenPair.getReserves.returns({
     reserve0: DEFAULT_RESERVE,
     reserve1: DEFAULT_RESERVE,
