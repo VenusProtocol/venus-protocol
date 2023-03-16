@@ -49,11 +49,10 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address WBNB_, address factory_, address _comptrollerAddress) RouterHelper(WBNB_, factory_) {
+    constructor(address WBNB_, address factory_) RouterHelper(WBNB_, factory_) {
         // Note that the contract is upgradeable. Use initialize() or reinitializers
         // to set the state variables.
         _disableInitializers();
-        comptrollerAddress = _comptrollerAddress;
     }
 
     receive() external payable {
@@ -63,8 +62,9 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
     // *********************
     // **** INITIALIZE *****
     // *********************
-    function initialize() external initializer {
+    function initialize(address _comptrollerAddress) external initializer {
         __Ownable2Step_init();
+        comptrollerAddress = _comptrollerAddress;
     }
 
     // ****************************

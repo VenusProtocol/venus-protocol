@@ -57,8 +57,8 @@ async function deploySwapContract(): Promise<SwapFixture> {
   const comptroller = await comptrollerFactory.deploy();
 
   const SwapRouter = await smock.mock<SwapRouter__factory>("SwapRouter");
-  const swapRouter = await upgrades.deployProxy(SwapRouter, [], {
-    constructorArgs: [wBNB.address, pancakeFactory.address, comptroller.address],
+  const swapRouter = await upgrades.deployProxy(SwapRouter, [comptroller.address], {
+    constructorArgs: [wBNB.address, pancakeFactory.address],
   });
 
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
@@ -164,7 +164,7 @@ async function getValidDeadline(): Promise<number> {
   return blockBefore.timestamp + 1;
 }
 
-describe("Swap Contract", () => {
+describe.only("Swap Contract", () => {
   let user: SignerWithAddress;
   let vToken: FakeContract<VBep20Immutable>;
   let wBNB: FakeContract<IWBNB>;
@@ -185,7 +185,7 @@ describe("Swap Contract", () => {
     const deadline = await getValidDeadline();
     await expect(
       swapRouter.swapAndSupply(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
-    ).to.be.reverted;
+    ).to.be.revertedWithCustomError(swapRouter, "VTokenNotListed");
   });
 
   describe("Supply", () => {
