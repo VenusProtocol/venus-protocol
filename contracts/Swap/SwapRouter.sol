@@ -41,7 +41,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
     }
 
     /// @notice event emitted on sweep token success
-    event SweepToken(address token, address to, uint256 sweepAmount);
+    event SweepToken(address indexed token, address indexed to, uint256 sweepAmount);
 
     // *********************
     // **** CONSTRUCTOR ****
