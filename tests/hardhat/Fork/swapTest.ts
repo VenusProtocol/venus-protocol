@@ -62,7 +62,7 @@ const initMainnetUser = async (user: string) => {
 
 async function deploySimpleComptroller() {
   oracle = await smock.fake<PriceOracle>("PriceOracle");
-  accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+  accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
@@ -133,12 +133,11 @@ const swapRouterConfigure = async (): Promise<void> => {
     admin,
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
-
-  swapRouter = await upgrades.deployProxy(swapRouterFactory, [], {
+  swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
     constructorArgs: [wBNB.address, pancakeSwapFactory.address],
   });
-
   await swapRouter.deployed();
+
   await USDT.connect(usdtUser).approve(swapRouter.address, parseUnits("1"));
   await BUSD.connect(busdUser).approve(swapRouter.address, parseUnits("1"));
 };
@@ -159,10 +158,9 @@ const swapRouterDeflationaryConfigure = async (): Promise<void> => {
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
 
-  swapRouter = await upgrades.deployProxy(swapRouterFactory, [], {
+  swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
     constructorArgs: [wBNB.address, pancakeSwapFactory.address],
   });
-
   await swapRouter.deployed();
   await BabyDoge.connect(BabyDogeUser).approve(swapRouter.address, parseUnits("100"));
   await SFM.connect(SFMUser).approve(swapRouter.address, parseUnits("100"));
@@ -176,10 +174,13 @@ async function getValidDeadline(): Promise<number> {
 
 describe("Swap Contract", () => {
   if (process.env.FORK_MAINNET === "true") {
+    before(async () => {
+      await deploySimpleComptroller();
+    });
+
     describe("Tokens And BNB", () => {
       beforeEach(async () => {
         await loadFixture(swapRouterConfigure);
-        await deploySimpleComptroller();
         configureOracle(oracle);
         vBUSD = await configureVtoken(BUSD, "vToken BUSD", "vBUSD");
         vUSDT = await configureVtoken(USDT, "vToken USDT", "vUSDT");
@@ -208,59 +209,8 @@ describe("Swap Contract", () => {
 
       it("revert if deadline has passed", async () => {
         await expect(
-          swapRouter.swapExactTokensForTokens(
-            SWAP_AMOUNT,
-            MIN_AMOUNT_OUT,
-            [USDT.address, BUSD.address],
-            usdtUser.address,
-            0,
-          ),
+          swapRouter.swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], 0),
         ).to.be.revertedWithCustomError(swapRouter, "SwapDeadlineExpire");
-      });
-
-      it("should swap USDT -> BUSD", async () => {
-        const deadline = await getValidDeadline();
-        const prevBalance = await BUSD.balanceOf(usdtUser.address);
-        await expect(
-          swapRouter
-            .connect(usdtUser)
-            .swapExactTokensForTokens(
-              SWAP_AMOUNT,
-              MIN_AMOUNT_OUT,
-              [USDT.address, BUSD.address],
-              usdtUser.address,
-              deadline,
-            ),
-        ).to.emit(swapRouter, "SwapTokensForTokens");
-        const currBalance = await BUSD.balanceOf(usdtUser.address);
-        expect(currBalance).greaterThan(prevBalance);
-      });
-
-      it("should swap BNB -> token", async () => {
-        const prevBalance = await BUSD.balanceOf(usdtUser.address);
-        const deadline = await getValidDeadline();
-        await expect(
-          swapRouter
-            .connect(usdtUser)
-            .swapExactETHForTokens(MIN_AMOUNT_OUT_BUSD, [wBNB.address, BUSD.address], busdUser.address, deadline, {
-              value: SWAP_BNB_AMOUNT,
-            }),
-        ).to.emit(swapRouter, "SwapBnbForTokens");
-        const currBalance = await BUSD.balanceOf(usdtUser.address);
-        expect(currBalance).greaterThan(prevBalance);
-      });
-
-      it("should swap BNB -> Exact token", async () => {
-        const prevBalance = await BUSD.balanceOf(usdtUser.address);
-        const deadline = await getValidDeadline();
-        const amountOut = await swapRouter.getAmountsOut(1, [wBNB.address, BUSD.address]);
-        await swapRouter
-          .connect(usdtUser)
-          .swapETHForExactTokens(amountOut[0], [wBNB.address, BUSD.address], usdtUser.address, deadline, {
-            value: SWAP_BNB_AMOUNT,
-          });
-        const currBalance = await BUSD.balanceOf(usdtUser.address);
-        expect(currBalance).greaterThan(prevBalance);
       });
 
       it("should swap BNB -> Exact token -> Supply", async () => {
@@ -274,18 +224,6 @@ describe("Swap Contract", () => {
           });
         const currBalance = await vBUSD.balanceOf(usdtUser.address);
         expect(currBalance).greaterThan(prevBalance);
-      });
-
-      it("should revert when swap BNB -> Exact token and input is not sufficient", async () => {
-        const deadline = await getValidDeadline();
-        const amountOut = await swapRouter.getAmountsOut(1, [wBNB.address, BUSD.address]);
-        await expect(
-          swapRouter
-            .connect(usdtUser)
-            .swapETHForExactTokens(amountOut[0].add(274), [wBNB.address, BUSD.address], usdtUser.address, deadline, {
-              value: SWAP_BNB_AMOUNT,
-            }),
-        ).to.be.revertedWithCustomError(swapRouter, "ExcessiveInputAmount");
       });
 
       it("swap tokenA -> tokenB --> supply tokenB", async () => {
@@ -418,39 +356,6 @@ describe("Swap Contract", () => {
         expect(borrowBalance).equal(0);
       });
 
-      it("should revert USDT -> EXACT BUSD if input is more then required", async () => {
-        const deadline = await getValidDeadline();
-        const amountRequired = await swapRouter.getAmountsOut(100, [USDT.address, BUSD.address]);
-
-        await expect(
-          swapRouter
-            .connect(usdtUser)
-            .swapTokensForExactTokens(
-              MIN_AMOUNT_OUT + 10,
-              amountRequired[1],
-              [USDT.address, BUSD.address],
-              usdtUser.address,
-              deadline,
-            ),
-        ).to.be.revertedWithCustomError(swapRouter, "InputAmountAboveMaximum");
-      });
-
-      it("should swap USDT -> EXACT BUSD", async () => {
-        const deadline = await getValidDeadline();
-        const prevBalance = await BUSD.balanceOf(usdtUser.address);
-        await swapRouter
-          .connect(usdtUser)
-          .swapTokensForExactTokens(
-            MIN_AMOUNT_OUT,
-            SWAP_AMOUNT,
-            [USDT.address, BUSD.address],
-            usdtUser.address,
-            deadline,
-          );
-        const currBalance = await BUSD.balanceOf(usdtUser.address);
-        expect(currBalance).greaterThan(prevBalance);
-      });
-
       it("should swap USDT -> EXACT BUSD -> Supply", async () => {
         const deadline = await getValidDeadline();
         const prevBalance = await vBUSD.balanceOf(usdtUser.address);
@@ -526,7 +431,6 @@ describe("Swap Contract", () => {
     describe("Tokens And BNB on supporting Fee", () => {
       beforeEach(async () => {
         await loadFixture(swapRouterDeflationaryConfigure);
-        await deploySimpleComptroller();
         configureOracle(oracle);
         vBabyDoge = await configureVtoken(BabyDoge, "vToken Baby Doge", "vBabyDoge");
         vSFM = await configureVtoken(SFM, "vToken SFM", "vSFM");
@@ -564,48 +468,6 @@ describe("Swap Contract", () => {
           value: ethers.BigNumber.from("7000000000"),
           data: undefined,
         });
-      });
-
-      it("should swap tokenA -> tokenB  at supporting fee", async () => {
-        const prevBalance = await vBabyDoge.balanceOf(SFMUser.address);
-        const deadline = await getValidDeadline();
-
-        await expect(
-          swapRouter
-            .connect(SFMUser)
-            .swapExactTokensForTokensAtSupportingFee(
-              parseUnits("0.000001"),
-              MIN_AMOUNT_OUT,
-              [SFM.address, BabyDoge.address],
-              SFMUser.address,
-              deadline,
-            ),
-        ).to.emit(swapRouter, "SwapTokensForTokens");
-
-        const currBalance = await BabyDoge.balanceOf(SFMUser.address);
-        expect(currBalance).greaterThan(prevBalance);
-      });
-
-      it("should swap BNB -> token  at supporting fee", async () => {
-        const prevBalance = await vBabyDoge.balanceOf(wBNBUser.address);
-        const deadline = await getValidDeadline();
-
-        await expect(
-          swapRouter
-            .connect(wBNBUser)
-            .swapExactETHForTokensAtSupportingFee(
-              MIN_AMOUNT_OUT,
-              [wBNB.address, SFM.address],
-              wBNBUser.address,
-              deadline,
-              {
-                value: parseUnits("0.000001"),
-              },
-            ),
-        ).to.emit(swapRouter, "SwapBnbForTokens");
-
-        const currBalance = await SFM.balanceOf(wBNBUser.address);
-        expect(currBalance).greaterThan(prevBalance);
       });
 
       it("swap tokenA -> tokenB --> supply tokenB at supporting fee", async () => {
