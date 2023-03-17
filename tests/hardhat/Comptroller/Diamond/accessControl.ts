@@ -3,7 +3,7 @@ import chai from "chai";
 import { Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
-import { Comptroller, Comptroller__factory, IAccessControlManager, Unitroller } from "../../../typechain";
+import { Comptroller, Comptroller__factory, IAccessControlManager } from "../../../typechain";
 const { deployDiamond } = require('../../../../script/diamond/deploy');
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -13,29 +13,14 @@ describe.only("Comptroller", () => {
   let userAddress: string;
   let comptroller: MockContract<Comptroller>;
   let accessControl: FakeContract<IAccessControlManager>;
-  let unitroller: MockContract<Unitroller>;
   let comptrollerProxy:  MockContract<Comptroller>;
 
   beforeEach(async () => {
     const signers = await ethers.getSigners();
     user = signers[1];
     userAddress = await user.getAddress();
-    // const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     comptroller = await deployDiamond();
-    console.log("comp add" , comptroller.address);
-    
-    const UnitrollerFactory = await smock.mock<Unitroller__factory>("Unitroller");
-    
-    unitroller = await UnitrollerFactory.deploy();
-    await unitroller._setPendingImplementation(comptroller.address);
-    const add = await unitroller.pendingComptrollerImplementation();
-    console.log(add);
-    await comptroller._become(unitroller.address);
-    console.log("++++++");
-    const compAdd = await unitroller.comptrollerImplementation();
-    console.log(compAdd);
-    // accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
-    comptrollerProxy = await ethers.getContractAt("Comptroller", unitroller.address);
+    comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
   });
 
   describe("_setAccessControlManager", () => {

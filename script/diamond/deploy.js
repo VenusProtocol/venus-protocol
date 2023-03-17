@@ -15,9 +15,18 @@ async function deployDiamond () {
 
   // deploy Diamond
   const Diamond = await ethers.getContractFactory('Diamond')
-  const diamond = await Diamond.deploy(contractOwner.address, diamondCutFacet.address)
+  const diamond = await Diamond.deploy(contractOwner.address)
   await diamond.deployed()
   console.log('Diamond deployed:', diamond.address)
+  
+  const UnitrollerFactory = await ethers.getContractFactory("Unitroller");
+  const unitroller = await UnitrollerFactory.deploy();
+  await unitroller._setPendingImplementation(diamond.address);
+  await diamond._become(unitroller.address);
+
+  const compProxy = await ethers.getContractAt('Diamond', unitroller.address)
+
+  await compProxy.facetCutInitilizer(diamondCutFacet.address);
 
   // deploy DiamondInit
   // DiamondInit provides a function that is called when the diamond is upgraded to initialize state variables
@@ -64,7 +73,7 @@ async function deployDiamond () {
   // upgrade diamond with facets
   console.log('')
   console.log('Diamond Cut:', cut)
-  const diamondCut = await ethers.getContractAt('IDiamondCut', diamond.address)
+  const diamondCut = await ethers.getContractAt('IDiamondCut', unitroller.address)
   let tx
   let receipt
   // call to init function
@@ -76,7 +85,7 @@ async function deployDiamond () {
     throw Error(`Diamond upgrade failed: ${tx.hash}`)
   }
   console.log('Completed diamond cut')
-  return diamond
+  return unitroller
 }
 
 // We recommend this pattern to be able to use async/await everywhere

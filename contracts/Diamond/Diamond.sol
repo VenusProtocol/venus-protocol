@@ -1,13 +1,20 @@
 pragma solidity 0.8.13;
 
 import { LibDiamond } from "./libraries/LibDiamond.sol";
+import { AppStorage } from "./libraries/appStorage.sol";
+
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
 import "../Comptroller/Unitroller.sol"; 
 
 contract Diamond {
-    constructor(address _contractOwner, address _diamondCutFacet) payable {
-        LibDiamond.setContractOwner(_contractOwner);
+    AppStorage internal s;
 
+    constructor(address _contractOwner) payable {
+        LibDiamond.setContractOwner(_contractOwner);
+    }
+
+    function facetCutInitilizer(address _diamondCutFacet) external {
+        require(s.admin == msg.sender, "Owner check");
         // Add the diamondCut external function from the diamondCutFacet
         IDiamondCut.FacetCut[] memory cut = new IDiamondCut.FacetCut[](1);
         bytes4[] memory functionSelectors = new bytes4[](1);
