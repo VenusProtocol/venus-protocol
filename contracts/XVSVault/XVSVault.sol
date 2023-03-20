@@ -210,7 +210,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         UserInfo storage user = userInfos[_rewardToken][_pid][_account];
         _updatePool(_rewardToken, _pid);
         require(
-            pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, msg.sender) == 0,
+            pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, _account) == 0,
             "execute existing withdrawal before requesting a claim"
         );
 
