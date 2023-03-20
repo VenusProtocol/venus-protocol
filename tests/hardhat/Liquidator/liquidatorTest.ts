@@ -12,6 +12,7 @@ import {
   FaucetToken__factory,
   Liquidator,
   Liquidator__factory,
+  MockVBNB,
   VAIController,
   VBep20Immutable,
 } from "../../../typechain";
@@ -35,14 +36,14 @@ type LiquidatorFixture = {
   vTokenBorrowed: FakeContract<VBep20Immutable>;
   vTokenCollateral: FakeContract<VBep20Immutable>;
   liquidator: MockContract<Liquidator>;
-  vBnb: FakeContract<VBep20Immutable>;
+  vBnb: FakeContract<MockVBNB>;
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
   const [, treasury] = await ethers.getSigners();
 
   const comptroller = await smock.fake<Comptroller>("Comptroller");
-  const vBnb = await smock.fake<VBep20Immutable>("VBep20Immutable");
+  const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
   const borrowedUnderlying = await FaucetToken.deploy(convertToBigInt("100", 18), "USD", 18, "USD");
   const vai = await FaucetToken.deploy(convertToBigInt("100", 18), "VAI", 18, "VAI");
@@ -92,6 +93,7 @@ describe("Liquidator", () => {
   let vaiController: FakeContract<VAIController>;
   let vTokenBorrowed: FakeContract<VBep20Immutable>;
   let vTokenCollateral: FakeContract<VBep20Immutable>;
+  let vBnb: FakeContract<MockVBNB>;
   let liquidatorContract: MockContract<Liquidator>;
 
   beforeEach(async () => {
@@ -104,6 +106,7 @@ describe("Liquidator", () => {
       vai,
       vaiController,
       vTokenCollateral,
+      vBnb,
       liquidator: liquidatorContract,
     } = contracts);
   });
@@ -216,6 +219,55 @@ describe("Liquidator", () => {
           vTokenCollateral.address,
         );
       });
+    });
+  });
+
+  describe("liquidating BNB debt", () => {
+    async function liquidate() {
+      return liquidatorContract.liquidateBorrow(vBnb.address, borrower.address, repayAmount, vTokenCollateral.address, {
+        value: repayAmount,
+      });
+    }
+
+    it("fails if msg.value is not equal to repayment amount", async () => {
+      const tx1 = liquidatorContract.liquidateBorrow(
+        vBnb.address,
+        borrower.address,
+        repayAmount,
+        vTokenCollateral.address,
+        { value: repayAmount - 1n },
+      );
+      await expect(tx1)
+        .to.be.revertedWithCustomError(liquidatorContract, "WrongTransactionAmount")
+        .withArgs(repayAmount, repayAmount - 1n);
+
+      const tx2 = liquidatorContract.liquidateBorrow(
+        vBnb.address,
+        borrower.address,
+        repayAmount,
+        vTokenCollateral.address,
+        { value: repayAmount + 1n },
+      );
+      await expect(tx2)
+        .to.be.revertedWithCustomError(liquidatorContract, "WrongTransactionAmount")
+        .withArgs(repayAmount, repayAmount + 1n);
+    });
+
+    it("transfers BNB from the liquidator", async () => {
+      const tx = await liquidate();
+      await expect(tx).to.changeEtherBalance(liquidator.address, -repayAmount);
+    });
+
+    it("calls liquidateBorrow on VBNB", async () => {
+      await liquidate();
+      expect(vBnb.liquidateBorrow).to.have.been.calledOnce;
+      expect(vBnb.liquidateBorrow).to.have.been.calledWithValue(repayAmount);
+      expect(vBnb.liquidateBorrow).to.have.been.calledWith(borrower.address, vTokenCollateral.address);
+    });
+
+    it("forwards BNB to VBNB contract", async () => {
+      const tx = await liquidate();
+      await expect(tx).to.changeEtherBalance(vBnb.address, repayAmount);
     });
   });
 
