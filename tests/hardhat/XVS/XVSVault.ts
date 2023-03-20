@@ -219,4 +219,68 @@ describe("XVSVault", async () => {
     currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
     expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
   });
+
+  it("handle pre-upgrade withdrawal and post-upgrade deposit/claim requests", async () => {
+    const depositAmount = bigNumber18.mul(100);
+
+    await xvs.approve(xvsVault.address, depositAmount);
+    await xvsVault.deposit(xvs.address, poolId, depositAmount);
+
+    let previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
+
+    await mine(1000);
+    await xvsVault.requestOldWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
+
+    await expect(xvsVault.deposit(xvs.address, poolId, bigNumber18.mul(50))).to.be.revertedWith(
+      "execute existing withdrawal before requesting new deposit",
+    );
+
+    await expect(xvsVault.claim(deployer.address, xvs.address, poolId)).to.be.revertedWith(
+      "execute existing withdrawal before requesting a claim",
+    );
+
+    await mine(500);
+    await xvsVault.executeWithdrawal(xvs.address, poolId);
+    let currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
+
+    expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
+
+    previousXVSBalance = currentXVSBalance;
+
+    await mine(500);
+
+    const previousUserInfo = await xvsVault.getUserInfo(xvs.address, poolId, deployer.address);
+
+    await xvs.approve(xvsVault.address, depositAmount);
+    await expect(xvsVault.deposit(xvs.address, poolId, depositAmount)).to.be.not.reverted;
+
+    const currentUserInfo = await xvsVault.getUserInfo(xvs.address, poolId, deployer.address);
+
+    expect(Number(currentUserInfo.amount)).to.be.equal(Number(previousUserInfo.amount.add(depositAmount)));
+
+    previousXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
+    await expect(xvsVault.claim(deployer.address, xvs.address, poolId)).to.be.not.reverted;
+    currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
+
+    expect(Number(previousXVSBalance)).to.be.lt(Number(currentXVSBalance));
+  });
+
+  it("disable deposit/claim/withdrawal on frontend", async () => {
+    const depositAmount = bigNumber18.mul(100);
+
+    await xvs.approve(xvsVault.address, depositAmount);
+    await xvsVault.deposit(xvs.address, poolId, depositAmount);
+
+    await mine(1000);
+    await xvsVault.requestOldWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
+
+    let pendingAmount = await xvsVault.pendingWithdrawalsBeforeUpgrade(xvs.address, poolId, deployer.address);
+    expect(pendingAmount).to.be.gt(0);
+
+    await mine(500);
+    await xvsVault.executeWithdrawal(xvs.address, poolId);
+
+    pendingAmount = await xvsVault.pendingWithdrawalsBeforeUpgrade(xvs.address, poolId, deployer.address);
+    expect(pendingAmount).to.be.equal(0);
+  });
 });

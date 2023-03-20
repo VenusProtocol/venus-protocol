@@ -174,6 +174,11 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
         _updatePool(_rewardToken, _pid);
+        require(
+            pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, msg.sender) == 0,
+            "execute existing withdrawal before requesting new deposit"
+        );
+
         if (user.amount > 0) {
             uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
                 user.rewardDebt
@@ -204,6 +209,11 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][_account];
         _updatePool(_rewardToken, _pid);
+        require(
+            pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, msg.sender) == 0,
+            "execute existing withdrawal before requesting a claim"
+        );
+
         if (user.amount > 0) {
             uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
                 user.rewardDebt
@@ -336,7 +346,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
      */
     function getRequestedWithdrawalAmount(
         WithdrawalRequest[] storage _requests
-    ) internal returns (uint beforeUpgradeWithdrawalAmount, uint afterUpgradeWithdrawalAmount) {
+    ) internal view returns (uint beforeUpgradeWithdrawalAmount, uint afterUpgradeWithdrawalAmount) {
         for (uint i = _requests.length; i > 0; --i) {
             if (_requests[i - 1].afterUpgrade == 1) {
                 afterUpgradeWithdrawalAmount = afterUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
@@ -505,6 +515,22 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         amount = user.amount;
         rewardDebt = user.rewardDebt;
         pendingWithdrawals = user.pendingWithdrawals;
+    }
+
+    /**
+     * @notice Gets the total pending withdrawal amount of a user before upgrade
+     * @param _rewardToken The Reward Token Address
+     * @param _pid The Pool Index
+     * @param _user The address of the user
+     */
+    function pendingWithdrawalsBeforeUpgrade(
+        address _rewardToken,
+        uint256 _pid,
+        address _user
+    ) public view returns (uint256 beforeUpgradeWithdrawalAmount) {
+        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][_user];
+        (beforeUpgradeWithdrawalAmount, ) = getRequestedWithdrawalAmount(requests);
+        return beforeUpgradeWithdrawalAmount;
     }
 
     /**
