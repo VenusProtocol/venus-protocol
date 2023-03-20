@@ -70,15 +70,16 @@ export const vip103 = () => {
   );
 };
 
-forking(26544741, () => {});
+forking(26544741, () => {
+  testVip("VIP-103 Gauntlet Rrecommendations", vip103());
+});
 
 forking(26544741, () => {
   let comptroller: any;
 
   before(async () => {
-    testVip("VIP-103 Gauntlet Rrecommendations", vip103());
     comptroller = await ethers.getContractAt("Comptroller", COMPTROLLER);
-    // await pretendExecutingVip(vip103());
+    await pretendExecutingVip(vip103());
   });
 
   describe("Post-VIP behavior", async () => {
