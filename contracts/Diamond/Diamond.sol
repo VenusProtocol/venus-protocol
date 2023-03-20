@@ -4,7 +4,7 @@ import { LibDiamond } from "./libraries/LibDiamond.sol";
 import { AppStorage } from "./libraries/appStorage.sol";
 
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
-import "../Comptroller/Unitroller.sol"; 
+import "../Comptroller/Unitroller.sol";
 
 contract Diamond {
     AppStorage internal s;

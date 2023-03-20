@@ -24,7 +24,7 @@ struct VenusMarketState {
     /// @notice The market's last updated venusBorrowIndex or venusSupplyIndex
     uint224 index;
     /// @notice The block number the index was last updated at
-    uint32 block;
+    uint block;
 }
 
 struct AppStorage {

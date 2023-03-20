@@ -424,7 +424,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     function updateVenusBorrowIndex(address vToken, ExponentialNoError.Exp memory marketBorrowIndex) internal {
         VenusMarketState storage borrowState = s.venusBorrowState[vToken];
         uint borrowSpeed = s.venusBorrowSpeeds[vToken];
-        uint32 blockNumber = safe32(LibAccessCheck.getBlockNumber(), "block number exceeds 32 bits");
+        uint blockNumber = block.number;
         uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
             uint borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
@@ -447,7 +447,8 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     function updateVenusSupplyIndex(address vToken) internal {
         VenusMarketState storage supplyState = s.venusSupplyState[vToken];
         uint supplySpeed = s.venusSupplySpeeds[vToken];
-        uint32 blockNumber = safe32(LibAccessCheck.getBlockNumber(), "block number exceeds 32 bits");
+        uint blockNumber = block.number;
+
         uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
             uint supplyTokens = VToken(vToken).totalSupply();

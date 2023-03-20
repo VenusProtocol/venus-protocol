@@ -107,9 +107,8 @@ describe("Comptroller", () => {
     });
 
     it("fails if the repayAmount causes overflow ", async () => {
-      await expect(
-        calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, constants.MaxUint256),
-      ).to.be.reverted;
+      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, constants.MaxUint256)).to.be
+        .reverted;
     });
 
     it("fails if the borrowed asset price causes overflow ", async () => {

@@ -23,6 +23,48 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         return s.accountAssets[account];
     }
 
+    function oracle() external view returns (PriceOracle) {
+        return s.oracle;
+    }
+
+    function markets(address vToken) external view returns (bool, uint, bool) {
+        return (s.markets[vToken].isListed, s.markets[vToken].collateralFactorMantissa, s.markets[vToken].isVenus);
+    }
+
+    function vaiController() external view returns (VAIControllerInterface) {
+        return s.vaiController;
+    }
+
+    function comptrollerLens() external view returns (ComptrollerLensInterface) {
+        return s.comptrollerLens;
+    }
+
+    function liquidationIncentiveMantissa() external view returns (uint) {
+        return s.liquidationIncentiveMantissa;
+    }
+
+    /**
+     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
+     * @param vTokenBorrowed The address of the borrowed vToken
+     * @param vTokenCollateral The address of the collateral vToken
+     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
+     */
+    function liquidateCalculateSeizeTokens(
+        address vTokenBorrowed,
+        address vTokenCollateral,
+        uint actualRepayAmount
+    ) external view returns (uint, uint) {
+        (uint err, uint seizeTokens) = s.comptrollerLens.liquidateCalculateSeizeTokens(
+            address(this),
+            vTokenBorrowed,
+            vTokenCollateral,
+            actualRepayAmount
+        );
+        return (err, seizeTokens);
+    }
+
     /**
      * @notice Returns whether the given account is entered in the given asset
      * @param account The address of the account to check
@@ -140,7 +182,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
     }
 
     function _initializeMarket(address vToken) internal {
-        uint32 blockNumber = safe32(LibAccessCheck.getBlockNumber(), "block number exceeds 32 bits");
+        uint blockNumber = block.number;
 
         VenusMarketState storage supplyState = s.venusSupplyState[vToken];
         VenusMarketState storage borrowState = s.venusBorrowState[vToken];

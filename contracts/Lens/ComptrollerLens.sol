@@ -8,6 +8,7 @@ import "../Oracle/PriceOracle.sol";
 import "../Utils/ErrorReporter.sol";
 import "../Comptroller/Comptroller.sol";
 import "../Tokens/VAI/VAIControllerInterface.sol";
+import "../Diamond/facets/MarketFacet.sol";
 
 contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, ExponentialNoError {
     /**

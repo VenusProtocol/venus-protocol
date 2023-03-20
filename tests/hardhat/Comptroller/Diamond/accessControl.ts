@@ -4,7 +4,8 @@ import { Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import { Comptroller, Comptroller__factory, IAccessControlManager } from "../../../typechain";
-const { deployDiamond } = require('../../../../script/diamond/deploy');
+
+const { deployDiamond } = require("../../../../script/diamond/deploy");
 const { expect } = chai;
 chai.use(smock.matchers);
 
@@ -13,14 +14,14 @@ describe("Comptroller", () => {
   let userAddress: string;
   let comptroller: MockContract<Comptroller>;
   let accessControl: FakeContract<IAccessControlManager>;
-  let comptrollerProxy:  MockContract<Comptroller>;
+  let comptrollerProxy: MockContract<Comptroller>;
 
   beforeEach(async () => {
     const signers = await ethers.getSigners();
     user = signers[1];
     userAddress = await user.getAddress();
-    comptroller = await deployDiamond();
     accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+    comptroller = await deployDiamond();
     comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
   });
 
@@ -89,7 +90,9 @@ describe("Comptroller", () => {
     });
     describe("setActionsPaused", () => {
       it("Should have AccessControl", async () => {
-        await expect(comptrollerProxy.connect(user)._setActionsPaused([], [], true)).to.be.revertedWith("access denied");
+        await expect(comptrollerProxy.connect(user)._setActionsPaused([], [], true)).to.be.revertedWith(
+          "access denied",
+        );
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
           "_setActionsPaused(address[],uint256[],bool)",

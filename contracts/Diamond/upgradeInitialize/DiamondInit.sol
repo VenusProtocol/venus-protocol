@@ -14,15 +14,15 @@ pragma solidity ^0.8.0;
 
 /******************************************************************************/
 
-import {LibDiamond} from "../libraries/LibDiamond.sol";
+import { LibDiamond } from "../libraries/LibDiamond.sol";
 
-import {IDiamondLoupe} from "../interfaces/IDiamondLoupe.sol";
+import { IDiamondLoupe } from "../interfaces/IDiamondLoupe.sol";
 
-import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
+import { IDiamondCut } from "../interfaces/IDiamondCut.sol";
 
-import {IMarketFacet} from "../interfaces/IMarketFacet.sol";
+import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 
-import {IPolicyFacet} from "../interfaces/IPloicyFacet.sol";
+import { IPolicyFacet } from "../interfaces/IPloicyFacet.sol";
 
 // It is expected that this contract is customized if you want to deploy your diamond
 
@@ -31,13 +31,11 @@ import {IPolicyFacet} from "../interfaces/IPloicyFacet.sol";
 // of your diamond. Add parameters to the init function if you need to.
 
 contract DiamondInit {
-
     // You can add parameters to this function in order to pass in
 
     // data to set your own state variables
 
     function init() external {
-
         // adding ERC165 data
 
         LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
@@ -61,7 +59,5 @@ contract DiamondInit {
         // in order to set state variables in the diamond during deployment or an upgrade
 
         // More info here: https://eips.ethereum.org/EIPS/eip-2535#diamond-interface
-
     }
-
 }
