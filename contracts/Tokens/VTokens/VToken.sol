@@ -963,17 +963,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Sender borrows assets from the protocol to their own address
-     * @param borrowAmount The amount of the underlying asset to borrow
-     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
-     */
-    function borrowInternal(uint borrowAmount) internal nonReentrant returns (uint) {
-        address borrower = msg.sender;
-        address payable receiver = msg.sender;
-        return borrowInternal(borrower, receiver, borrowAmount);
-    }
-
-    /**
      * @notice Receiver gets the borrow on behalf of the borrower address
      * @param borrower The borrower, on behalf of whom to borrow
      * @param receiver The account that would receive the funds (can be the same as the borrower)
