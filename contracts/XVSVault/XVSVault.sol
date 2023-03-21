@@ -174,10 +174,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
         _updatePool(_rewardToken, _pid);
-        require(
-            pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, msg.sender) == 0,
-            "execute pending withdrawal"
-        );
+        require(pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, msg.sender) == 0, "execute pending withdrawal");
 
         if (user.amount > 0) {
             uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
@@ -209,10 +206,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][_account];
         _updatePool(_rewardToken, _pid);
-        require(
-            pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, _account) == 0,
-            "execute pending withdrawal"
-        );
+        require(pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, _account) == 0, "execute pending withdrawal");
 
         if (user.amount > 0) {
             uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
