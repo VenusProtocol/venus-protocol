@@ -197,7 +197,7 @@ describe("XVSVault", async () => {
     await mine(1000);
     await xvsVault.requestOldWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
     await expect(xvsVault.requestWithdrawal(xvs.address, poolId, bigNumber18.mul(50))).to.be.revertedWith(
-      "execute existing withdrawal before requesting new withdrawal",
+      "execute pending withdrawal",
     );
 
     await mine(500);
@@ -232,11 +232,11 @@ describe("XVSVault", async () => {
     await xvsVault.requestOldWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
 
     await expect(xvsVault.deposit(xvs.address, poolId, bigNumber18.mul(50))).to.be.revertedWith(
-      "execute existing withdrawal before requesting new deposit",
+      "execute pending withdrawal",
     );
 
     await expect(xvsVault.claim(deployer.address, xvs.address, poolId)).to.be.revertedWith(
-      "execute existing withdrawal before requesting a claim",
+      "execute pending withdrawal",
     );
 
     await mine(500);

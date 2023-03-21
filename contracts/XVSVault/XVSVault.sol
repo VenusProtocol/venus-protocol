@@ -176,7 +176,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         _updatePool(_rewardToken, _pid);
         require(
             pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, msg.sender) == 0,
-            "execute existing withdrawal before requesting new deposit"
+            "execute pending withdrawal"
         );
 
         if (user.amount > 0) {
@@ -211,7 +211,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         _updatePool(_rewardToken, _pid);
         require(
             pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, _account) == 0,
-            "execute existing withdrawal before requesting a claim"
+            "execute pending withdrawal"
         );
 
         if (user.amount > 0) {
@@ -375,7 +375,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         uint beforeUpgradeWithdrawalAmount;
 
         (beforeUpgradeWithdrawalAmount, ) = getRequestedWithdrawalAmount(requests);
-        require(beforeUpgradeWithdrawalAmount == 0, "execute existing withdrawal before requesting new withdrawal");
+        require(beforeUpgradeWithdrawalAmount == 0, "execute pending withdrawal");
 
         _updatePool(_rewardToken, _pid);
         uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
