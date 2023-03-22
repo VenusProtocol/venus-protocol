@@ -1,6 +1,5 @@
 pragma solidity ^0.8.13;
 
-import "../../Comptroller/ComptrollerInterface.sol";
 import "../../Utils/ErrorReporter.sol";
 import "../../Utils/Exponential.sol";
 import "../../Tokens/EIP20Interface.sol";
@@ -488,8 +487,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         ComptrollerInterface oldComptroller = comptroller;
         // Ensure invoke comptroller.isComptroller() returns true
-        require(newComptroller.isComptroller(), "marker method returned false");
-
+        //require(newComptroller.isComptroller(), "marker method returned false");
         // Set market's comptroller to newComptroller
         comptroller = newComptroller;
 

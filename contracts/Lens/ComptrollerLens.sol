@@ -44,8 +44,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint actualRepayAmount
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
-        uint priceBorrowedMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(VToken(vTokenBorrowed));
-        uint priceCollateralMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(VToken(vTokenCollateral));
+        uint priceBorrowedMantissa = MarketFacet(comptroller).oracle().getUnderlyingPrice(VToken(vTokenBorrowed));
+        uint priceCollateralMantissa = MarketFacet(comptroller).oracle().getUnderlyingPrice(VToken(vTokenCollateral));
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -63,7 +63,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         Exp memory ratio;
 
         numerator = mul_(
-            Exp({ mantissa: Comptroller(comptroller).liquidationIncentiveMantissa() }),
+            Exp({ mantissa: MarketFacet(comptroller).liquidationIncentiveMantissa() }),
             Exp({ mantissa: priceBorrowedMantissa })
         );
         denominator = mul_(Exp({ mantissa: priceCollateralMantissa }), Exp({ mantissa: exchangeRateMantissa }));
@@ -88,7 +88,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
         uint priceBorrowedMantissa = 1e18; // Note: this is VAI
-        uint priceCollateralMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(VToken(vTokenCollateral));
+        uint priceCollateralMantissa = MarketFacet(comptroller).oracle().getUnderlyingPrice(VToken(vTokenCollateral));
         if (priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
         }
@@ -106,7 +106,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         Exp memory ratio;
 
         numerator = mul_(
-            Exp({ mantissa: Comptroller(comptroller).liquidationIncentiveMantissa() }),
+            Exp({ mantissa: MarketFacet(comptroller).liquidationIncentiveMantissa() }),
             Exp({ mantissa: priceBorrowedMantissa })
         );
         denominator = mul_(Exp({ mantissa: priceCollateralMantissa }), Exp({ mantissa: exchangeRateMantissa }));
@@ -138,7 +138,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint oErr;
 
         // For each asset the account is in
-        VToken[] memory assets = Comptroller(comptroller).getAssetsIn(account);
+        VToken[] memory assets = MarketFacet(comptroller).getAssetsIn(account);
         uint assetsCount = assets.length;
         for (uint i = 0; i < assetsCount; ++i) {
             VToken asset = assets[i];
@@ -151,12 +151,12 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (uint(Error.SNAPSHOT_ERROR), 0, 0);
             }
-            (, uint collateralFactorMantissa, ) = Comptroller(comptroller).markets(address(asset));
+            (,uint collateralFactorMantissa, ) = MarketFacet(comptroller).markets(address(asset));
             vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
             vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = Comptroller(comptroller).oracle().getUnderlyingPrice(asset);
+            vars.oraclePriceMantissa = MarketFacet(comptroller).oracle().getUnderlyingPrice(asset);
             if (vars.oraclePriceMantissa == 0) {
                 return (uint(Error.PRICE_ERROR), 0, 0);
             }
@@ -195,7 +195,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             }
         }
 
-        VAIControllerInterface vaiController = Comptroller(comptroller).vaiController();
+        VAIControllerInterface vaiController = MarketFacet(comptroller).vaiController();
 
         if (address(vaiController) != address(0)) {
             vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, vaiController.getVAIRepayAmount(account));
