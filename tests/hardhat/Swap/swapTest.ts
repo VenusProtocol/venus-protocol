@@ -164,7 +164,7 @@ async function getValidDeadline(): Promise<number> {
   return blockBefore.timestamp + 1;
 }
 
-describe("Swap Contract", () => {
+describe.only("Swap Contract", () => {
   let user: SignerWithAddress;
   let vToken: FakeContract<VBep20Immutable>;
   let wBNB: FakeContract<IWBNB>;
