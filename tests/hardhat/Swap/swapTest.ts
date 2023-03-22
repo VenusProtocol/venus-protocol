@@ -188,6 +188,94 @@ describe("Swap Contract", () => {
     ).to.be.revertedWithCustomError(swapRouter, "VTokenNotListed");
   });
 
+  describe("Swap", () => {
+    it("revert if deadline has passed", async () => {
+      await expect(
+        swapRouter.swapExactTokensForTokens(
+          SWAP_AMOUNT,
+          MIN_AMOUNT_OUT,
+          [tokenA.address, tokenB.address],
+          user.address,
+          0,
+        ),
+      ).to.be.revertedWithCustomError(swapRouter, "SwapDeadlineExpire");
+    });
+
+    it("should swap tokenA -> tokenB", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapExactTokensForTokens(
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [tokenA.address, tokenB.address],
+            user.address,
+            deadline,
+          ),
+      ).to.emit(swapRouter, "SwapTokensForTokens");
+    });
+
+    it("should swap BNB -> token", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapExactETHForTokens(MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], user.address, deadline, {
+            value: SWAP_AMOUNT,
+          }),
+      ).to.emit(swapRouter, "SwapBnbForTokens");
+    });
+
+    it("revert if deadline has passed at supporting fee", async () => {
+      await expect(
+        swapRouter.swapExactTokensForTokensAtSupportingFee(
+          SWAP_AMOUNT,
+          MIN_AMOUNT_OUT,
+          [dToken.address, tokenB.address],
+          user.address,
+          0,
+        ),
+      ).to.be.revertedWithCustomError(swapRouter, "SwapDeadlineExpire");
+    });
+
+    it("should swap tokenA -> tokenB  at supporting fee", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapExactTokensForTokensAtSupportingFee(
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [dToken.address, tokenB.address],
+            user.address,
+            deadline,
+          ),
+      ).to.emit(swapRouter, "SwapTokensForTokens");
+    });
+
+    it("should swap BNB -> token  at supporting fee", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapExactETHForTokensAtSupportingFee(
+            MIN_AMOUNT_OUT,
+            [wBNB.address, dToken.address],
+            user.address,
+            deadline,
+            {
+              value: SWAP_AMOUNT,
+            },
+          ),
+      ).to.emit(swapRouter, "SwapBnbForTokens");
+    });
+  });
+
   describe("Supply", () => {
     beforeEach(async () => {
       await comptroller.harnessAddVtoken(vToken.address);
