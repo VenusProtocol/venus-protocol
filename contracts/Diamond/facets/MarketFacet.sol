@@ -31,19 +31,19 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         return (s.markets[vToken].isListed, s.markets[vToken].collateralFactorMantissa, s.markets[vToken].isVenus);
     }
 
-    function venusSupplyState(address vToken) external view returns (uint224,uint){
+    function venusSupplyState(address vToken) external view returns (uint224, uint) {
         return (s.venusSupplyState[vToken].index, s.venusSupplyState[vToken].block);
     }
 
-    function venusBorrowState(address vToken) external view returns (uint224, uint){
+    function venusBorrowState(address vToken) external view returns (uint224, uint) {
         return (s.venusBorrowState[vToken].index, s.venusBorrowState[vToken].block);
     }
 
-    function venusSupplySpeeds(address vToken) external view returns (uint){
+    function venusSupplySpeeds(address vToken) external view returns (uint) {
         return s.venusSupplySpeeds[vToken];
     }
 
-    function venusBorrowSpeeds(address vToken) external view returns (uint){
+    function venusBorrowSpeeds(address vToken) external view returns (uint) {
         return s.venusBorrowSpeeds[vToken];
     }
 
@@ -71,12 +71,12 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         return s.treasuryGuardian;
     }
 
-    function supplyCaps(address vToken) external view returns(uint) {
+    function supplyCaps(address vToken) external view returns (uint) {
         return s.supplyCaps[vToken];
     }
 
     /// @notice Indicator that this is a Comptroller contract (for inspection)
-    function isComptroller() external view returns(bool) {
+    function isComptroller() external view returns (bool) {
         return true;
     }
 
@@ -123,8 +123,8 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         uint[] memory results = new uint[](len);
         for (uint i; i < len; ++i) {
             results[i] = uint(LibHelper.addToMarketInternal(VToken(vTokens[i]), msg.sender));
-            if(results[i] == 0){
-                emit MarketEntered( VToken(vTokens[i]), msg.sender);
+            if (results[i] == 0) {
+                emit MarketEntered(VToken(vTokens[i]), msg.sender);
             }
         }
 

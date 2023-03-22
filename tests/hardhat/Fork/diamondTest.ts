@@ -127,7 +127,7 @@ describe.only("diamond Contract", () => {
       });
     });
 
-    describe("Diamond", () => {
+    describe("Diamond Hooks", () => {
       beforeEach(async () => {
         configureOracle(oracle);
         await loadFixture(vTokenConfigure);
@@ -180,6 +180,41 @@ describe.only("diamond Contract", () => {
         await vBUSD.connect(usdtUser).repayBorrow(10);
         [, , borrowBalance] = await vBUSD.getAccountSnapshot(usdtUser.address);
         expect(borrowBalance).equal(0);
+      });
+
+      describe.only("Diamond Rewards", () => {
+        it("grant and claim rewards", async () => {
+          await BUSD.connect(usdtUser).transfer(vBUSD.address, 1000);
+          await USDT.connect(usdtUser).approve(vUSDT.address, 110);
+          await vUSDT.connect(usdtUser).mint(110);
+          await vUSDT.connect(usdtUser).redeem(10);
+          await expect(vBUSD.connect(usdtUser).borrow(10)).to.emit(vBUSD, "Borrow");
+          let borrowBalance;
+          [, , borrowBalance] = await vBUSD.getAccountSnapshot(usdtUser.address);
+          expect(borrowBalance).equal(10);
+          await BUSD.connect(usdtUser).approve(vBUSD.address, 10);
+          await vBUSD.connect(usdtUser).repayBorrow(10);
+          let xvsS = await comptrollerProxy.getXVSAddress();
+
+          let vxvsS = await comptrollerProxy.getXVSVTokenAddress();
+          XVS = XVS__factory.connect(xvsS, admin);
+          XVSV = VToken__factory.connect(vxvsS, admin);
+
+          const usdtUserBalance = await XVS.connect(usdtUser).balanceOf(usdtUser.address).toString();
+
+          await XVS.approve("0xce1c6851843125167c223423bb3b88c465b96107", 100);
+          await XVS.connect(usdtUser).transfer("0xce1c6851843125167c223423bb3b88c465b96107", 100);
+          expect(await XVS.connect(usdtUser).balanceOf("0xce1c6851843125167c223423bb3b88c465b96107")).equal(100);
+          expect(await XVS.connect(usdtUser).balanceOf(usdtUser.address)).equal(
+            parseUnits("4946633239619992136668403", 0),
+          );
+
+          expect(await comptrollerProxy._grantXVS(usdtUser.address, 10)).to.emit(XVS, "VenusGranted");
+          await comptrollerProxy.claimVenusAsCollateral(usdtUser.address);
+          expect(await XVS.connect(usdtUser).balanceOf(usdtUser.address)).equal(
+            parseUnits("4946633239619992136668413", 0),
+          );
+        });
       });
     });
   }

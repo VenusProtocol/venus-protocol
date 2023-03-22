@@ -39,15 +39,9 @@ async function deployDiamond() {
   let index = 0;
   for (const FacetName of FacetNames) {
     let Facet;
-    if (FacetName == "RewardFacet") {
-      Facet = await ethers.getContractFactory(FacetName, {
-        libraries: {
-          LibAccessCheck: await accounts[3].getAddress(),
-        },
-      });
-    } else {
-      Facet = await ethers.getContractFactory(FacetName);
-    }
+
+    Facet = await ethers.getContractFactory(FacetName);
+
     const facet = await Facet.deploy();
     await facet.deployed();
     cut.push({

@@ -101,26 +101,21 @@ describe("assetListTest", () => {
     expectedTokens: FakeContract<VBep20Immutable>[],
     expectedErrors: ComptrollerErrorReporter.Error[] | null = null,
   ) {
-    //console.log("1----");
-
     const reply = await comptrollerProxy.connect(customer).callStatic.enterMarkets(enterTokens.map(t => t.address));
     const receipt = await comptrollerProxy.connect(customer).enterMarkets(enterTokens.map(t => t.address));
-    //console.log("2----");
+
     const assetsIn = await comptrollerProxy.getAssetsIn(await customer.getAddress());
 
     const expectedErrors_ = expectedErrors || enterTokens.map(_ => Error.NO_ERROR);
-    //console.log("3----");
 
     reply.forEach((tokenReply, i) => {
       expect(tokenReply).to.equal(expectedErrors_[i]);
     });
 
-    //console.log("4----");
     expect(receipt).to.emit(comptroller, "MarketEntered");
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
 
     await checkMarkets(expectedTokens);
-    //console.log("5----");
 
     return receipt;
   }
@@ -136,24 +131,19 @@ describe("assetListTest", () => {
     expectedTokens: FakeContract<VBep20Immutable>[],
     expectedError: ComptrollerErrorReporter.Error = Error.NO_ERROR,
   ) {
-    //console.log("1++++");
     const reply = await comptrollerProxy.connect(customer).callStatic.exitMarket(exitToken.address);
-    //console.log("2++++");
     const receipt = await comptrollerProxy.connect(customer).exitMarket(exitToken.address);
     const assetsIn = await comptrollerProxy.getAssetsIn(await customer.getAddress());
-    //console.log("3++++");
 
     expect(reply).to.equal(expectedError);
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
-    //console.log("4++++");
 
     await checkMarkets(expectedTokens);
-    ////console.log("5++++");
     return receipt;
   }
 
   describe("enterMarkets", () => {
-    it("properly emits events", async () => {
+    it.only("properly emits events", async () => {
       const tx1 = await enterAndCheckMarkets([OMG], [OMG]);
       const tx2 = await enterAndCheckMarkets([OMG], [OMG]);
       expect(tx1).to.emit(comptroller, "MarketEntered").withArgs(OMG.address, customer);

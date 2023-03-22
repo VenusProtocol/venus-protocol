@@ -155,7 +155,7 @@ function isFork() {
           blockNumber: 21068448,
         },
         accounts: {
-          accountsBalance: "1000000000000000000",
+          accountsBalance: "1000000000000000000000",
         },
         live: false,
       }

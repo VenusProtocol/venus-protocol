@@ -151,7 +151,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
                 return (uint(Error.SNAPSHOT_ERROR), 0, 0);
             }
-            (,uint collateralFactorMantissa, ) = MarketFacet(comptroller).markets(address(asset));
+            (, uint collateralFactorMantissa, ) = MarketFacet(comptroller).markets(address(asset));
             vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
             vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
