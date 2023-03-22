@@ -62,7 +62,7 @@ const initMainnetUser = async (user: string) => {
 
 async function deploySimpleComptroller() {
   oracle = await smock.fake<PriceOracle>("PriceOracle");
-  accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+  accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
@@ -123,7 +123,6 @@ const swapRouterConfigure = async (): Promise<void> => {
   // MAINNET USER WITH BALANCE
   busdUser = await initMainnetUser("0xf977814e90da44bfa03b6295a0616a897441acec");
   usdtUser = await initMainnetUser("0xf977814e90da44bfa03b6295a0616a897441acec");
-
   BUSD = FaucetToken__factory.connect("0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", admin);
   USDT = FaucetToken__factory.connect("0x55d398326f99059fF775485246999027B3197955", admin);
   wBNB = IWBNB__factory.connect("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", admin);
@@ -158,7 +157,6 @@ const swapRouterDeflationaryConfigure = async (): Promise<void> => {
     admin,
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
-
   swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
     constructorArgs: [wBNB.address, pancakeSwapFactory.address],
   });
@@ -175,10 +173,13 @@ async function getValidDeadline(): Promise<number> {
 
 describe("Swap Contract", () => {
   if (process.env.FORK_MAINNET === "true") {
+    before(async() => {
+      await deploySimpleComptroller();
+    })
+
     describe("Tokens And BNB", () => {
       beforeEach(async () => {
         await loadFixture(swapRouterConfigure);
-        await deploySimpleComptroller();
         configureOracle(oracle);
         vBUSD = await configureVtoken(BUSD, "vToken BUSD", "vBUSD");
         vUSDT = await configureVtoken(USDT, "vToken USDT", "vUSDT");
@@ -519,7 +520,6 @@ describe("Swap Contract", () => {
     describe("Tokens And BNB on supporting Fee", () => {
       beforeEach(async () => {
         await loadFixture(swapRouterDeflationaryConfigure);
-        await deploySimpleComptroller();
         configureOracle(oracle);
         vBabyDoge = await configureVtoken(BabyDoge, "vToken Baby Doge", "vBabyDoge");
         vSFM = await configureVtoken(SFM, "vToken SFM", "vSFM");
