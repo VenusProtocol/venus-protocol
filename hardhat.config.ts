@@ -62,7 +62,9 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200,
+            details: {
+              yul: !process.env.CI,
+            },
           },
           outputSelection: {
             "*": {
@@ -76,7 +78,9 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000,
+            details: {
+              yul: !process.env.CI,
+            },
           },
           outputSelection: {
             "*": {
@@ -147,7 +151,7 @@ function isFork() {
         allowUnlimitedContractSize: false,
         loggingEnabled: false,
         forking: {
-          url: `https://wild-blissful-dawn.bsc.discover.quiknode.pro/${process.env.QUICK_NODE_KEY}/`,
+          url: `https://tame-white-dinghy.bsc.discover.quiknode.pro/${process.env.QUICK_NODE_KEY}/`,
           blockNumber: 21068448,
         },
         accounts: {
