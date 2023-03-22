@@ -134,11 +134,11 @@ const swapRouterConfigure = async (): Promise<void> => {
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
 
-  swapRouter = await upgrades.deployProxy(swapRouterFactory, [], {
+  swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
     constructorArgs: [wBNB.address, pancakeSwapFactory.address],
   });
-
   await swapRouter.deployed();
+
   await USDT.connect(usdtUser).approve(swapRouter.address, parseUnits("1"));
   await BUSD.connect(busdUser).approve(swapRouter.address, parseUnits("1"));
 };
@@ -159,10 +159,9 @@ const swapRouterDeflationaryConfigure = async (): Promise<void> => {
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
 
-  swapRouter = await upgrades.deployProxy(swapRouterFactory, [], {
+  swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
     constructorArgs: [wBNB.address, pancakeSwapFactory.address],
   });
-
   await swapRouter.deployed();
   await BabyDoge.connect(BabyDogeUser).approve(swapRouter.address, parseUnits("100"));
   await SFM.connect(SFMUser).approve(swapRouter.address, parseUnits("100"));
@@ -208,13 +207,7 @@ describe("Swap Contract", () => {
 
       it("revert if deadline has passed", async () => {
         await expect(
-          swapRouter.swapExactTokensForTokens(
-            SWAP_AMOUNT,
-            MIN_AMOUNT_OUT,
-            [USDT.address, BUSD.address],
-            usdtUser.address,
-            0,
-          ),
+          swapRouter.swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], 0),
         ).to.be.revertedWithCustomError(swapRouter, "SwapDeadlineExpire");
       });
 
