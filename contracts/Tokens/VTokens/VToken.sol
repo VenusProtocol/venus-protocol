@@ -487,7 +487,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         ComptrollerInterface oldComptroller = comptroller;
         // Ensure invoke comptroller.isComptroller() returns true
-        //require(newComptroller.isComptroller(), "marker method returned false");
+        require(newComptroller.isComptroller(), "marker method returned false");
         // Set market's comptroller to newComptroller
         comptroller = newComptroller;
 

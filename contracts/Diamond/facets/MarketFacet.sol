@@ -75,6 +75,11 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         return s.supplyCaps[vToken];
     }
 
+    /// @notice Indicator that this is a Comptroller contract (for inspection)
+    function isComptroller() external view returns(bool) {
+        return true;
+    }
+
     /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
