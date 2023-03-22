@@ -2,8 +2,8 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { impersonateAccount, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { checkProperties, parseUnits } from "ethers/lib/utils";
-import { ethers, constants } from "hardhat";
+import { parseUnits } from "ethers/lib/utils";
+import { ethers } from "hardhat";
 
 
 import {
@@ -42,7 +42,7 @@ const initMainnetUser = async (user: string) => {
 
 async function deployComptroller() {
   oracle = await smock.fake<PriceOracle>("PriceOracle");
-  accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+  accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   comptrollerLens = await ComptrollerLensFactory.deploy();
@@ -90,50 +90,51 @@ function configureOracle(oracle: FakeContract<PriceOracle>) {
   };
   
 
-describe("diamond Contract", () => {
+describe.only("diamond Contract", () => {
   if (process.env.FORK_MAINNET === "true") {
-    // describe("Diamond setters", () => {
-    //   beforeEach(async () => {
-    //     await deployComptroller();
-    //       configureOracle(oracle);
-    //       await loadFixture(vTokenConfigure);
-    //       vBUSD = await configureVtoken(BUSD, "vToken BUSD", "vBUSD");
-    //       vUSDT = await configureVtoken(USDT, "vToken USDT", "vUSDT");
-    //   })
+    before(async() => {
+      await deployComptroller();
+    })
 
-    //   it("setting market supply cap", async () => {
-    //     await comptrollerProxy._supportMarket(vBUSD.address);
-    //     await comptrollerProxy._setAccessControl(accessControl.address);
+    describe("Diamond setters", () => {
+      beforeEach(async () => {
+          configureOracle(oracle);
+          await loadFixture(vTokenConfigure);
+          vBUSD = await configureVtoken(BUSD, "vToken BUSD", "vBUSD");
+          vUSDT = await configureVtoken(USDT, "vToken USDT", "vUSDT");
+      })
 
-    //     await comptrollerProxy._setMarketSupplyCaps([vBUSD.address], [parseUnits("100000", 18)]);
+      it("setting market supply cap", async () => {
+        await comptrollerProxy._supportMarket(vBUSD.address);
+        await comptrollerProxy._setAccessControl(accessControl.address);
 
-    //     await comptrollerProxy._setPriceOracle(oracle.address);
+        await comptrollerProxy._setMarketSupplyCaps([vBUSD.address], [parseUnits("100000", 18)]);
 
-    //     await comptrollerProxy._setCollateralFactor(vBUSD.address, parseUnits("0.7", 18));
+        await comptrollerProxy._setPriceOracle(oracle.address);
 
-    //     // console.log(await comptrollerProxy.access());
-    //     const treasuryGuardian = await comptrollerProxy.treasuryGuardian();
-    //     const treasuryAddress = await comptrollerProxy.treasuryAddress();
-    //     const treasuryPercent = await comptrollerProxy.treasuryPercent();
+        await comptrollerProxy._setCollateralFactor(vBUSD.address, parseUnits("0.7", 18));
 
-    //     console.log("gard",treasuryGuardian);
-    //     console.log("add",treasuryAddress);
-    //     console.log("per",treasuryPercent);
+        // console.log(await comptrollerProxy.access());
+        const treasuryGuardian = await comptrollerProxy.treasuryGuardian();
+        const treasuryAddress = await comptrollerProxy.treasuryAddress();
+        const treasuryPercent = await comptrollerProxy.treasuryPercent();
 
-    //     expect(await comptrollerProxy.supplyCaps(vBUSD.address)).to.equals(parseUnits("100000", 18));
+        console.log("gard",treasuryGuardian);
+        console.log("add",treasuryAddress);
+        console.log("per",treasuryPercent);
 
-    //     expect(await comptrollerProxy.oracle()).to.equals(oracle.address);
-    //     const data = await comptrollerProxy.markets(vBUSD.address);
+        expect(await comptrollerProxy.supplyCaps(vBUSD.address)).to.equals(parseUnits("100000", 18));
 
-    //     expect(data.collateralFactorMantissa).to.equals(parseUnits("0.7", 18));
+        expect(await comptrollerProxy.oracle()).to.equals(oracle.address);
+        const data = await comptrollerProxy.markets(vBUSD.address);
+
+        expect(data.collateralFactorMantissa).to.equals(parseUnits("0.7", 18));
         
-    //   })
-    // })
+      })
+    })
 
     describe("Diamond", () => {
         beforeEach(async () => {
-        
-          await deployComptroller();
           configureOracle(oracle);
           await loadFixture(vTokenConfigure);
           vBUSD = await configureVtoken(BUSD, "vToken BUSD", "vBUSD");
