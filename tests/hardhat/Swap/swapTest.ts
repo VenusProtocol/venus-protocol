@@ -184,7 +184,7 @@ describe.only("Swap Contract", () => {
   it("revert if vToken address is not listed", async () => {
     const deadline = await getValidDeadline();
     await expect(
-      swapRouter.swapAndSupply(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
+      swapRouter.swapAndSupply(tokenB.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
     ).to.be.revertedWithCustomError(swapRouter, "VTokenNotListed");
   });
 
@@ -463,6 +463,16 @@ describe.only("Swap Contract", () => {
       );
     });
 
+    it("swap tokenA -> full debt of tokenB", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapTokensForFullTokenDebtAndRepay(vToken.address, SWAP_AMOUNT, [tokenA.address, tokenB.address], deadline),
+      );
+    });
+
     it("swap bnb -> exact tokenB", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -523,6 +533,18 @@ describe.only("Swap Contract", () => {
               value: SWAP_AMOUNT,
             },
           ),
+      );
+    });
+
+    it("Tokens -> full debt of BNB", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapTokensForFullETHDebtAndRepay(vToken.address, SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline, {
+            value: SWAP_AMOUNT,
+          }),
       );
     });
   });

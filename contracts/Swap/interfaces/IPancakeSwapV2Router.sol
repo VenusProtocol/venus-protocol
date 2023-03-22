@@ -153,6 +153,13 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external;
 
+    function swapTokensForFullTokenDebtAndRepay(
+        address vTokenAddress,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external;
+
     function swapETHForExactTokensAndRepay(
         address vTokenAddress,
         uint256 amountOut,
@@ -179,6 +186,13 @@ interface IPancakeSwapV2Router {
     function swapTokensForExactETHAndRepay(
         address vTokenAddress,
         uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable;
+
+    function swapTokensForFullETHDebtAndRepay(
+        address vBNBAddress,
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline

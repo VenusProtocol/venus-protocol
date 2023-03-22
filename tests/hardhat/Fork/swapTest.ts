@@ -173,9 +173,9 @@ async function getValidDeadline(): Promise<number> {
 
 describe("Swap Contract", () => {
   if (process.env.FORK_MAINNET === "true") {
-    before(async() => {
+    before(async () => {
       await deploySimpleComptroller();
-    })
+    });
 
     describe("Tokens And BNB", () => {
       beforeEach(async () => {

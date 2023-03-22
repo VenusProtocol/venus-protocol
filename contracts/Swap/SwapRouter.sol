@@ -289,7 +289,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
     }
 
     /**
-     * @notice Swap tokens for Exact tokens and supply to a Venus market
+     * @notice Swap tokens for Exact tokens and repay to a Venus market
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountOut The amount of the tokens needs to be as output token.
      * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
@@ -305,6 +305,28 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 deadline
     ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap tokens for full tokens debt and repay to a Venus market
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForFullTokenDebtAndRepay(
+        address vTokenAddress,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 amountOut = IVToken(vTokenAddress).borrowBalanceCurrent(msg.sender);
         _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
         uint256 swapAmount = balanceAfter - balanceBefore;
@@ -395,6 +417,28 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 deadline
     ) external payable override ensure(deadline) {
         uint256 balanceBefore = address(this).balance;
+        _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
+    }
+
+    /**
+     * @notice Swap tokens for Exact BNB and repay to a Venus market
+     * @param vBNBAddress The address of the vToken contract for supplying assets.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForFullETHDebtAndRepay(
+        address vBNBAddress,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override ensure(deadline) {
+        uint256 balanceBefore = address(this).balance;
+        uint256 amountOut = IVToken(vBNBAddress).borrowBalanceCurrent(msg.sender);
         _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
