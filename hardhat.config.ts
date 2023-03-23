@@ -10,7 +10,7 @@ import "hardhat-deploy";
 import { HardhatUserConfig, task } from "hardhat/config";
 import "solidity-docgen";
 import "solidity-docgen";
-
+require('hardhat-contract-sizer');
 require("dotenv").config();
 
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
