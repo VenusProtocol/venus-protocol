@@ -515,6 +515,37 @@ describe("Swap Contract", () => {
         const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(busdUser.address);
         expect(borrowBalanceAfter).lessThan(borrowBalancePrev);
       });
+
+      it("Borrow--> swap TokenA -> Exact TokenB --> repay full debt", async () => {
+        await USDT.connect(usdtUser).transfer(vUSDT.address, 1000);
+        const deadline = await getValidDeadline();
+        await swapRouter
+          .connect(busdUser)
+          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+
+        await expect(vUSDT.connect(busdUser).borrow(BORROW_AMOUNT)).to.emit(vUSDT, "Borrow");
+        let borrowBalance;
+        [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
+        expect(borrowBalance).equal(BORROW_AMOUNT);
+        await swapRouter
+          .connect(busdUser)
+          .swapTokensForFullTokenDebtAndRepay(vUSDT.address, SWAP_AMOUNT, [BUSD.address, USDT.address], deadline);
+        [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
+        expect(borrowBalance).equal(0);
+      });
+
+      it("should swap token -> EXACT BNB --> repay full debt", async () => {
+        const deadline = await getValidDeadline();
+        await swapRouter
+          .connect(busdUser)
+          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+        await vBNB.connect(busdUser).borrow(parseUnits("1", 0));
+        await swapRouter
+          .connect(busdUser)
+          .swapTokensForExactETHAndRepay(vBNB.address, SWAP_BNB_AMOUNT, 277, [BUSD.address, wBNB.address], deadline);
+        const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(busdUser.address);
+        expect(borrowBalanceAfter).equal(0);
+      });
     });
 
     describe("Tokens And BNB on supporting Fee", () => {
