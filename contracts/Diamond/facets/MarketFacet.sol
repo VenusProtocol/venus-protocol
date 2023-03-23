@@ -75,8 +75,36 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         return s.supplyCaps[vToken];
     }
 
+    function maxAssets() external view returns (uint) {
+        return s.maxAssets;
+    }
+
+    function closeFactorMantissa() external view returns (uint) {
+        return s.closeFactorMantissa;
+    }
+
+    function allMarkets(uint index) external view returns (VToken) {
+        return s.allMarkets[index];
+    }
+
+    function venusRate() external view returns (uint) {
+        return s.venusRate;
+    }
+
+    function venusSpeeds(address token) external view returns (uint) {
+        return s.venusSpeeds[token];
+    }
+
+    function venusAccrued(address token) external view returns (uint) {
+        return s.venusAccrued[token];
+    }
+
+    function vaiMintRate() external view returns (uint) {
+        return s.vaiMintRate;
+    }
+
     /// @notice Indicator that this is a Comptroller contract (for inspection)
-    function isComptroller() external view returns (bool) {
+    function isComptroller() external pure returns (bool) {
         return true;
     }
 
