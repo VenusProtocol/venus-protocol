@@ -21,7 +21,8 @@ describe("Comptroller", () => {
     user = signers[1];
     userAddress = await user.getAddress();
     accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
-    comptroller = await deployDiamond();
+    const result = await deployDiamond("");
+    comptroller = result.unitroller;
     comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
   });
 

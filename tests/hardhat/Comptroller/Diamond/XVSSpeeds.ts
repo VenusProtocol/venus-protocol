@@ -17,7 +17,9 @@ describe("Comptroller", () => {
   let vToken2: FakeContract<VToken>;
 ​
   beforeEach(async () => {
-    comptroller = await deployDiamond();
+    const result = await deployDiamond("");
+    comptroller = result.unitroller;
+    
     comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
     accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
     vToken1 = await smock.fake<VToken>("VToken");

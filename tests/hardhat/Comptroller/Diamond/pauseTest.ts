@@ -3,12 +3,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { ethers } from "hardhat";
 
-import {
-  Comptroller,
-  IAccessControlManager,
-  PriceOracle,
-  VBep20Immutable,
-} from "../../../../typechain";
+import { Comptroller, IAccessControlManager, PriceOracle, VBep20Immutable } from "../../../../typechain";
 
 const { deployDiamond } = require("../../../../script/diamond/deploy");
 
@@ -29,7 +24,8 @@ type PauseFixture = {
 
 async function pauseFixture(): Promise<PauseFixture> {
   const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
-  const comptrollerDeployment = await deployDiamond();
+  const result = await deployDiamond("");
+  const comptrollerDeployment = result.unitroller;
   const comptroller = await ethers.getContractAt("Comptroller", comptrollerDeployment.address);
   await comptroller._setAccessControl(accessControl.address);
   const oracle = await smock.fake<PriceOracle>("PriceOracle");

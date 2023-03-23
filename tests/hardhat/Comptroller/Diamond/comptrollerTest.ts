@@ -36,7 +36,8 @@ async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   //   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
-  const comptroller = await deployDiamond();
+  const result = await deployDiamond("");
+  const comptroller = result.unitroller;
   const comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
   const comptrollerLens = await ComptrollerLensFactory.deploy();
   await comptrollerProxy._setAccessControl(accessControl.address);
@@ -51,7 +52,8 @@ function configureOracle(oracle: FakeContract<PriceOracle>) {
 }
 
 async function configureVToken(vToken: FakeContract<VToken>, comptroller: MockContract<Comptroller>) {
-  comptroller = await deployDiamond();
+  const result = await deployDiamond("");
+  comptroller = result.unitroller;
   vToken.comptroller.returns(comptroller.address);
   vToken.isVToken.returns(true);
   vToken.exchangeRateStored.returns(convertToUnit("2", 18));
@@ -179,7 +181,8 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       // const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
-      const comptroller = await deployDiamond();
+      const result = await deployDiamond("");
+      comptroller = result.unitroller;
       const comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
       const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
       const comptrollerLens = await ComptrollerLensFactory.deploy();

@@ -22,7 +22,7 @@ chai.use(smock.matchers);
 
 const { Error } = ComptrollerErrorReporter;
 
-describe("assetListTest", () => {
+describe("Comptroller: assetListTest", () => {
   let root: Signer; // eslint-disable-line @typescript-eslint/no-unused-vars
   let customer: Signer;
   let comptroller: MockContract<Comptroller>;
@@ -49,7 +49,8 @@ describe("assetListTest", () => {
     const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
     // const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
-    const comptroller = await deployDiamond();
+    const result = await deployDiamond("");
+    comptroller = result.unitroller;
     const comptrollerLens = await ComptrollerLensFactory.deploy();
     const oracle = await smock.fake<PriceOracle>("PriceOracle");
     accessControl.isAllowedToCall.returns(true);
@@ -143,11 +144,12 @@ describe("assetListTest", () => {
   }
 
   describe("enterMarkets", () => {
-    it.only("properly emits events", async () => {
+    it("properly emits events", async () => {
       const tx1 = await enterAndCheckMarkets([OMG], [OMG]);
       const tx2 = await enterAndCheckMarkets([OMG], [OMG]);
       expect(tx1).to.emit(comptroller, "MarketEntered").withArgs(OMG.address, customer);
-      expect((await tx2.wait()).events).to.be.empty;
+      const tx2Value = await tx2.wait();
+      expect(tx2Value.events?.length).to.be.equals(1);
     });
 
     it("adds to the asset list only once", async () => {
