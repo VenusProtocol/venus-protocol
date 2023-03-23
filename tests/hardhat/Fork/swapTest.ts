@@ -542,7 +542,7 @@ describe("Swap Contract", () => {
         await vBNB.connect(busdUser).borrow(parseUnits("1", 0));
         await swapRouter
           .connect(busdUser)
-          .swapTokensForExactETHAndRepay(vBNB.address, SWAP_BNB_AMOUNT, 277, [BUSD.address, wBNB.address], deadline);
+          .swapTokensForFullETHDebtAndRepay(vBNB.address, 277, [BUSD.address, wBNB.address], deadline);
         const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(busdUser.address);
         expect(borrowBalanceAfter).equal(0);
       });
