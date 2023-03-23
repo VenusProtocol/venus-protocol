@@ -1,11 +1,19 @@
-require("dotenv").config();
 const hre = require("hardhat");
+const { impersonateAccount } = require("@nomicfoundation/hardhat-network-helpers");
+
+require("dotenv").config();
+
+const { Unitroller__factory } = require("../../typechain");
 const { getSelectors, FacetCutAction } = require("./diamond.js");
 const ethers = hre.ethers;
 
-async function deployDiamond() {
+const Owner = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
+
+async function deployDiamond(unitrollerAddress) {
   const accounts = await ethers.getSigners();
   const contractOwner = accounts[0];
+  let unitroller;
+  let unitrollerAdmin;
 
   // deploy DiamondCutFacet
   const DiamondCutFacet = await ethers.getContractFactory("DiamondCutFacet");
@@ -17,14 +25,25 @@ async function deployDiamond() {
   const diamond = await Diamond.deploy(contractOwner.address);
   await diamond.deployed();
 
-  const UnitrollerFactory = await ethers.getContractFactory("Unitroller");
-  const unitroller = await UnitrollerFactory.deploy();
-  await unitroller._setPendingImplementation(diamond.address);
-  await diamond._become(unitroller.address);
+  if (unitrollerAddress != "") {
+    await impersonateAccount(Owner);
+    unitrollerAdmin = await ethers.getSigner(Owner);
+    unitroller = await Unitroller__factory.connect(unitrollerAddress, unitrollerAdmin);
+    // await unitroller.connect(unitrollerAdmin)._setPendingAdmin(await accounts[0].getAddress());
+    // await unitroller.connect(accounts[0])._acceptAdmin();
+  } else {
+    const UnitrollerFactory = await ethers.getContractFactory("Unitroller");
+    unitroller = await UnitrollerFactory.deploy();
+  }
+  const signer = await ethers.getSigners();
+  unitrollerAdmin = signer[0];
+
+  await unitroller.connect(unitrollerAdmin)._setPendingImplementation(diamond.address);
+  await diamond.connect(unitrollerAdmin)._become(unitroller.address);
 
   const compProxy = await ethers.getContractAt("Diamond", unitroller.address);
 
-  await compProxy.facetCutInitilizer(diamondCutFacet.address);
+  await compProxy.connect(unitrollerAdmin).facetCutInitilizer(diamondCutFacet.address);
 
   // deploy DiamondInit
   // DiamondInit provides a function that is called when the diamond is upgraded to initialize state variables
@@ -58,12 +77,12 @@ async function deployDiamond() {
   let receipt;
   // call to init function
   let functionCall = diamondInit.interface.encodeFunctionData("init");
-  tx = await diamondCut.diamondCut(cut, diamondInit.address, functionCall);
+  tx = await diamondCut.connect(unitrollerAdmin).diamondCut(cut, diamondInit.address, functionCall);
   receipt = await tx.wait();
   if (!receipt.status) {
     throw Error(`Diamond upgrade failed: ${tx.hash}`);
   }
-  return unitroller;
+  return { unitroller, diamond };
 }
 
 // We recommend this pattern to be able to use async/await everywhere
