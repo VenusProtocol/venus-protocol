@@ -16,7 +16,7 @@ interface IXVSStore {
     function setRewardToken(address _tokenAddress, bool status) external;
 }
 
-contract XVSVault is XVSVaultStorage, ECDSA, AccessControlled {
+contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
     using SafeMath for uint256;
     using SafeCast for uint256;
     using SafeBEP20 for IBEP20;

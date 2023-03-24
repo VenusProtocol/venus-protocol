@@ -112,7 +112,9 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
 
     /// @notice Tracks pending withdrawals for all users for a particular reward token and pool id
     mapping(address => mapping(uint256 => uint256)) internal totalPendingWithdrawals;
+}
 
+contract XVSVaultStorageV2 is XVSVaultStorage {
     /// @notice pause indicator for Vault
     bool public vaultPaused;
 }

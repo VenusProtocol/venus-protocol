@@ -4,8 +4,9 @@ import "../Utils/IBEP20.sol";
 import "./VAIVaultProxy.sol";
 import "./VAIVaultStorage.sol";
 import "./VAIVaultErrorReporter.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlled.sol";
 
-contract VAIVault is VAIVaultStorage {
+contract VAIVault is VAIVaultStorageV1 {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -17,6 +18,12 @@ contract VAIVault is VAIVaultStorage {
 
     /// @notice Event emitted when admin changed
     event AdminTransfered(address indexed oldAdmin, address indexed newAdmin);
+
+    /// @notice Event emitted when vault is paused
+    event VaultPaused(address indexed admin);
+
+    /// @notice Event emitted when vault is resumed after pause
+    event VaultResumed(address indexed admin);
 
     constructor() public {
         admin = msg.sender;
@@ -40,10 +47,18 @@ contract VAIVault is VAIVaultStorage {
     }
 
     /**
+     * @dev Prevents functions to execute when vault is paused.
+     */
+    modifier isActive() {
+        require(vaultPaused == false, "Vault is paused");
+        _;
+    }
+
+    /**
      * @notice Deposit VAI to VAIVault for XVS allocation
      * @param _amount The amount to deposit to vault
      */
-    function deposit(uint256 _amount) public nonReentrant {
+    function deposit(uint256 _amount) public nonReentrant isActive {
         UserInfo storage user = userInfo[msg.sender];
 
         updateVault();
@@ -65,14 +80,14 @@ contract VAIVault is VAIVaultStorage {
      * @notice Withdraw VAI from VAIVault
      * @param _amount The amount to withdraw from vault
      */
-    function withdraw(uint256 _amount) public nonReentrant {
+    function withdraw(uint256 _amount) public nonReentrant isActive {
         _withdraw(msg.sender, _amount);
     }
 
     /**
      * @notice Claim XVS from VAIVault
      */
-    function claim() public nonReentrant {
+    function claim() public nonReentrant isActive {
         _withdraw(msg.sender, 0);
     }
 
@@ -147,7 +162,7 @@ contract VAIVault is VAIVaultStorage {
     /**
      * @notice Function that updates pending rewards
      */
-    function updatePendingRewards() public {
+    function updatePendingRewards() public isActive {
         uint256 newRewards = xvs.balanceOf(address(this)).sub(xvsBalance);
 
         if (newRewards > 0) {
@@ -206,5 +221,30 @@ contract VAIVault is VAIVaultStorage {
         vai = IBEP20(_vai);
 
         _notEntered = true;
+    }
+
+    function pause() external {
+        _checkAccessAllowed("pause()");
+        require(vaultPaused == false, "Vault is already paused");
+        vaultPaused = true;
+        emit VaultPaused(msg.sender);
+    }
+
+    function resume() external {
+        _checkAccessAllowed("resume()");
+        require(vaultPaused == true, "Vault is not paused");
+        vaultPaused = false;
+        emit VaultResumed(msg.sender);
+    }
+
+    /**
+     * @notice Sets the address of the access control of this contract
+     * @dev Admin function to set the access control address
+     * @param newAccessControlAddress New address for the access control
+     * @return uint 0=success, otherwise will revert
+     */
+    function _setAccessControl(address newAccessControlAddress) external onlyOwner returns (uint) {
+        _setAccessControlManager(newAccessControlAddress);
+        return uint(Error.NO_ERROR);
     }
 }
