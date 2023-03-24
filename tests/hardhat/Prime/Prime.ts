@@ -21,6 +21,7 @@ import {
   XVSVault,
   XVSVaultScenario,
 } from "../../../typechain";
+import { xvs } from "../../../typechain/contracts/Tokens";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -151,7 +152,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const primeFactory = await ethers.getContractFactory("Prime");
   const prime: Prime = (await primeFactory.deploy(xvsVault.address)) as Prime;
-  prime.initialize();
+  prime.initialize(1, 2);
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 
@@ -338,31 +339,44 @@ describe("Prime Token", () => {
     });
   });
 
-  // describe("boosted yield", () => {
-  //   let comptroller: MockContract<Comptroller>;
-  //   let prime: Prime;
-  //   let vusdt: VBep20Harness;
-  //   let veth: VBep20Harness;
-  //   let usdt: BEP20Harness;
-  //   let eth: BEP20Harness;
-  //   let oracle: FakeContract<PriceOracle>;
+  describe("boosted yield", () => {
+    let comptroller: MockContract<Comptroller>;
+    let prime: Prime;
+    let vusdt: VBep20Harness;
+    let veth: VBep20Harness;
+    let usdt: BEP20Harness;
+    let eth: BEP20Harness;
+    let oracle: FakeContract<PriceOracle>;
 
-  //   beforeEach(async () => {
-  //     ({ comptroller, prime, vusdt, veth, usdt, eth, oracle } = await loadFixture(deployProtocol));
+    beforeEach(async () => {
+      ({ comptroller, prime, vusdt, veth, usdt, eth, oracle } = await loadFixture(deployProtocol));
 
-  //     await eth.connect(accounts[0]).approve(veth.address, bigNumber18.mul(90));
-  //     await veth.connect(accounts[0]).mint(bigNumber18.mul(90));
+      await eth.connect(accounts[0]).approve(veth.address, bigNumber18.mul(90));
+      await veth.connect(accounts[0]).mint(bigNumber18.mul(90));
 
-  //     await usdt.connect(accounts[1]).approve(vusdt.address, bigNumber18.mul(9000));
-  //     await vusdt.connect(accounts[1]).mint(bigNumber18.mul(9000));
+      await usdt.connect(accounts[1]).approve(vusdt.address, bigNumber18.mul(9000));
+      await vusdt.connect(accounts[1]).mint(bigNumber18.mul(9000));
 
-  //     await comptroller.connect(accounts[0]).enterMarkets([vusdt.address, veth.address]);
+      await comptroller.connect(accounts[0]).enterMarkets([vusdt.address, veth.address]);
 
-  //     await comptroller.connect(accounts[1]).enterMarkets([vusdt.address, veth.address]);
+      await comptroller.connect(accounts[1]).enterMarkets([vusdt.address, veth.address]);
 
-  //     await vusdt.connect(accounts[0]).borrow(bigNumber18.mul(5));
-  //     await veth.connect(accounts[1]).borrow(bigNumber18.mul(1));
-  //   });
+      await vusdt.connect(accounts[0]).borrow(bigNumber18.mul(5));
+      await veth.connect(accounts[1]).borrow(bigNumber18.mul(1));
+    });
+
+    it("calculate score", async () => {
+      const xvsBalance = bigNumber18.mul(5000)
+      const capital = bigNumber18.mul(120)
+
+      // 5000^0.5 * 120^1-0.5 = 774.5966692
+      expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("774596669241483420144")
+
+      await prime.updateAlpha(4, 5); //0.80
+
+      //  5000^0.8 * 120^1-0.8 = 2371.44061
+      expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("2371440609779311958519")
+    })
 
   //   it("accrue interest", async () => {
   //     const [user1, user2] = accounts;
@@ -594,5 +608,5 @@ describe("Prime Token", () => {
   //       expect(reward).to.be.equal(57);
   //     });
   //   });
-  // });
+  });
 });

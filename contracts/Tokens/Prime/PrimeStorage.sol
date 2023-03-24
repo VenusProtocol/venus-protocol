@@ -7,21 +7,25 @@ contract PrimeStorageV1 {
     }
 
     struct Market {
-        uint256 index;
-        uint256 lastUpdated;
-        uint256 totalScore;
         uint256 supplyMultiplier;
         uint256 borrowMultiplier;
+        uint256 rewardIndex;
+        uint256 lastUpdated;
+        uint256 totalScore;
+        uint256 timesScoreUpdated;
     }
 
     struct Interest {
         uint256 accrued;
-        uint256 index;
-        uint totalQVL;
+        uint256 score;
+        uint256 timesScoreUpdated;
+        uint256 rewardIndex;
     }
 
+    /// @notice minimum amount of XVS user needs to stake to become a prime member
     uint256 public constant MINIMUM_STAKED_XVS = 1000 * 1e18;
 
+    /// @notice maximum XVS taken in account when calculating user score
     uint256 public constant MAXIMUM_XVS_CAP = 10000 * 1e18;
 
     /// @notice number of days user need to stake to claim prime token
@@ -30,10 +34,10 @@ contract PrimeStorageV1 {
     /// @notice initial market index
     uint256 internal constant INITIAL_INDEX = 1e18;
 
-    /// @notice maxmimum BPS
+    /// @notice maxmimum BPS = 100%
     uint256 internal constant MAXIMUM_BPS = 10000;
 
-    /// @notice protocol income distribution BPS.
+    /// @notice protocol income distribution BPS = 20%
     uint256 internal constant INCOME_DISTRIBUTION_BPS = 2000;
 
     /// @notice Mapping to get prime token's metadata
@@ -58,10 +62,14 @@ contract PrimeStorageV1 {
     mapping(address => Market) public markets;
 
     /// @notice vToken to user to user index
-    mapping(address => mapping(address => Interest)) public _interests;
+    mapping(address => mapping(address => Interest)) public interests;
 
     /// @notice A list of boosted markets
     address[] public allMarkets;
 
-    mapping(address => bool) public isMarketPaused;
+    /// @notice numberator of alpha. Ex: if alpha is 0.5 then this will be 1
+    uint128 public alphaNumerator;
+
+    /// @notice denominator of alpha. Ex: if alpha is 0.5 then this will be 2
+    uint128 public alphaDenominator;
 }
