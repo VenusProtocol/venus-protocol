@@ -6,7 +6,7 @@ import "./VAIVaultStorage.sol";
 import "./VAIVaultErrorReporter.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlled.sol";
 
-contract VAIVault is VAIVaultStorageV1 {
+contract VAIVault is VAIVaultStorageV1, AccessControlled {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
