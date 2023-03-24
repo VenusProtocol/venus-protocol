@@ -29,14 +29,14 @@ async function deployDiamond(unitrollerAddress) {
     await impersonateAccount(Owner);
     unitrollerAdmin = await ethers.getSigner(Owner);
     unitroller = await Unitroller__factory.connect(unitrollerAddress, unitrollerAdmin);
-    // await unitroller.connect(unitrollerAdmin)._setPendingAdmin(await accounts[0].getAddress());
-    // await unitroller.connect(accounts[0])._acceptAdmin();
+    
   } else {
     const UnitrollerFactory = await ethers.getContractFactory("Unitroller");
     unitroller = await UnitrollerFactory.deploy();
+    const signer = await ethers.getSigners();
+    unitrollerAdmin = signer[0];
   }
-  const signer = await ethers.getSigners();
-  unitrollerAdmin = signer[0];
+
 
   await unitroller.connect(unitrollerAdmin)._setPendingImplementation(diamond.address);
   await diamond.connect(unitrollerAdmin)._become(unitroller.address);

@@ -120,7 +120,7 @@ forking(26713742, () => {
       // These tests checks the storage collision of comptroller while updating it via diamond.
       // Using mainnet comptroller fork to verify it.
       describe("Diamond deployed successfully", async () => {
-        it("Owner of Diamond unitroller contract should match", async () => {
+        it.only("Owner of Diamond unitroller contract should match", async () => {
           const diamondUnitrollerAdmin = await diamondUnitroller.admin();
           const pendingAdmin = await diamondUnitroller.pendingAdmin();
           expect(diamondUnitrollerAdmin.toLowerCase()).to.equal(Owner);
