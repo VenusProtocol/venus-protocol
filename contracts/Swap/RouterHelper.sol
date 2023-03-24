@@ -34,6 +34,9 @@ abstract contract RouterHelper is IRouterHelper {
     /// @notice This event is emitted whenever a successful swap (BNB -> token) occurs
     event SwapBnbForTokens(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
 
+    /// @notice This event is emitted whenever a successful swap (token -> BNB) occurs
+    event SwapTokensForBnb(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address WBNB_, address factory_) {
         if (WBNB_ == address(0) || factory_ == address(0)) {
@@ -159,6 +162,7 @@ abstract contract RouterHelper is IRouterHelper {
         if (to != address(this)) {
             TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
         }
+        emit SwapTokensForBnb(msg.sender, path, amounts);
     }
 
     function _swapTokensForExactTokens(
@@ -178,6 +182,7 @@ abstract contract RouterHelper is IRouterHelper {
             amounts[0]
         );
         _swap(amounts, path, to);
+        emit SwapTokensForTokens(msg.sender, path, amounts);
     }
 
     function _swapETHForExactTokens(
@@ -197,6 +202,7 @@ abstract contract RouterHelper is IRouterHelper {
         _swap(amounts, path, to);
         // refund dust eth, if any
         if (msg.value > amounts[0]) TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);
+        emit SwapBnbForTokens(msg.sender, path, amounts);
     }
 
     function _swapTokensForExactETH(
@@ -223,6 +229,7 @@ abstract contract RouterHelper is IRouterHelper {
         if (to != address(this)) {
             TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
         }
+        emit SwapTokensForBnb(msg.sender, path, amounts);
     }
 
     // **** LIBRARY FUNCTIONS ****

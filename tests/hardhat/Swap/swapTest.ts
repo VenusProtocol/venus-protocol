@@ -106,7 +106,8 @@ async function deploySwapContract(): Promise<SwapFixture> {
 }
 
 async function configure(fixture: SwapFixture, user: SignerWithAddress) {
-  const { tokenPair, wBnbPair, tokenA, swapRouter, wBNB, dToken, dTokenPair, dTokenPair2, tokenAwBnbPair } = fixture;
+  const { tokenPair, wBnbPair, tokenA, swapRouter, wBNB, dToken, dTokenPair, dTokenPair2, tokenAwBnbPair, vToken } =
+    fixture;
   tokenPair.getReserves.returns({
     reserve0: DEFAULT_RESERVE,
     reserve1: DEFAULT_RESERVE,
@@ -132,6 +133,9 @@ async function configure(fixture: SwapFixture, user: SignerWithAddress) {
     reserve1: DEFAULT_RESERVE,
     blockTimestampLast: 0,
   });
+  vToken.borrowBalanceCurrent.returns(MIN_AMOUNT_OUT);
+  wBNB.withdraw.returns(true);
+  wBNB.transfer.returns(true);
   await tokenA.allocateTo(user.address, SWAP_AMOUNT);
   await tokenA.allocateTo(tokenPair.address, DEFAULT_RESERVE);
   await dToken.transfer(user.address, parseUnits("5000", 18));
@@ -142,7 +146,6 @@ async function configure(fixture: SwapFixture, user: SignerWithAddress) {
   await wBNB.connect(user).setBalanceOf(dTokenPair2.address, DEFAULT_RESERVE);
   await tokenA.connect(user).approve(swapRouter.address, SWAP_AMOUNT);
   await dToken.connect(user).approve(swapRouter.address, DEFAULT_RESERVE);
-  wBNB.transfer.returns(true);
 }
 
 function getCreate2Address(factoryAddress: string, [tokenA, tokenB]: [string, string]): string {
@@ -293,7 +296,7 @@ describe("Swap Contract", () => {
         swapRouter
           .connect(user)
           .swapAndSupply(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
-      );
+      ).to.emit(swapRouter, "SwapTokensForTokens");
     });
 
     it("swap BNB -> token --> supply token", async () => {
@@ -305,7 +308,7 @@ describe("Swap Contract", () => {
           .swapBnbAndSupply(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      );
+      ).to.emit(swapRouter, "SwapBnbForTokens");
     });
 
     it("revert if deadline has passed  at supporting fee", async () => {
@@ -360,7 +363,7 @@ describe("Swap Contract", () => {
             [tokenA.address, tokenB.address],
             deadline,
           ),
-      );
+      ).to.emit(swapRouter, "SwapTokensForTokens");
     });
 
     it("swap bnb -> exact tokenB", async () => {
@@ -372,7 +375,7 @@ describe("Swap Contract", () => {
           .swapETHForExactTokensAndSupply(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      );
+      ).to.emit(swapRouter, "SwapBnbForTokens");
     });
   });
 
@@ -393,7 +396,7 @@ describe("Swap Contract", () => {
         swapRouter
           .connect(user)
           .swapAndRepay(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
-      );
+      ).to.emit(swapRouter, "SwapTokensForTokens");
     });
 
     it("swap BNB -> token --> supply token", async () => {
@@ -405,7 +408,7 @@ describe("Swap Contract", () => {
           .swapBnbAndRepay(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      );
+      ).to.emit(swapRouter, "SwapBnbForTokens");
     });
 
     it("revert if deadline has passed at supporting fee", async () => {
@@ -460,7 +463,7 @@ describe("Swap Contract", () => {
             [tokenA.address, tokenB.address],
             deadline,
           ),
-      );
+      ).to.emit(swapRouter, "SwapTokensForTokens");
     });
 
     it("swap tokenA -> full debt of tokenB", async () => {
@@ -470,7 +473,7 @@ describe("Swap Contract", () => {
         swapRouter
           .connect(user)
           .swapTokensForFullTokenDebtAndRepay(vToken.address, SWAP_AMOUNT, [tokenA.address, tokenB.address], deadline),
-      );
+      ).to.emit(swapRouter, "SwapTokensForTokens");
     });
 
     it("swap bnb -> exact tokenB", async () => {
@@ -482,7 +485,7 @@ describe("Swap Contract", () => {
           .swapETHForExactTokensAndRepay(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      );
+      ).to.emit(swapRouter, "SwapBnbForTokens");
     });
 
     it("Exact tokens -> BNB", async () => {
@@ -498,7 +501,7 @@ describe("Swap Contract", () => {
             [tokenA.address, wBNB.address],
             deadline,
           ),
-      );
+      ).to.emit(swapRouter, "SwapTokensForBnb");
     });
 
     it("Exact tokens -> BNB at supporting fee", async () => {
@@ -533,7 +536,7 @@ describe("Swap Contract", () => {
               value: SWAP_AMOUNT,
             },
           ),
-      );
+      ).to.emit(swapRouter, "SwapTokensForBnb");
     });
 
     it("Tokens -> full debt of BNB", async () => {
@@ -545,7 +548,7 @@ describe("Swap Contract", () => {
           .swapTokensForFullETHDebtAndRepay(vToken.address, SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
-      );
+      ).to.emit(swapRouter, "SwapTokensForBnb");
     });
   });
 
