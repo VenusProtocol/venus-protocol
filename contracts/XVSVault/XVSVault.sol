@@ -186,7 +186,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         }
 
         if (_primeRewardToken == _rewardToken && _pid == _primePoolId) {
-            _primeToken.staked(msg.sender, user.amount.sub(user.pendingWithdrawals));
+            _primeToken.xvsUpdated(msg.sender);
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
@@ -359,7 +359,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         }
 
         if (_primeRewardToken == _rewardToken && _pid == _primePoolId) {
-            _primeToken.unstaked(msg.sender, user.amount.sub(user.pendingWithdrawals));
+            _primeToken.xvsUpdated(msg.sender);
         }
 
         emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);

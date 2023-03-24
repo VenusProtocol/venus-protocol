@@ -27,9 +27,16 @@ interface ERC20Interface {
     function decimals() external view returns (uint8);
 }
 
+interface IXVSVault {
+    function getUserInfo(
+        address _rewardToken,
+        uint256 _pid,
+        address _user
+    ) external view returns (uint256 amount, uint256 rewardDebt, uint256 pendingWithdrawals);
+}
+
 contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
-    /// @notice address of XVS vault
-    address internal immutable xvsVault;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Emitted when prime token is minted
     event Mint(address owner, bool isIrrevocable);
@@ -37,18 +44,18 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     /// @notice Emitted when prime token is burned
     event Burn(address owner);
 
-    using SafeERC20Upgradeable for IERC20Upgradeable;
-
-    constructor(address _xvsVault) {
-        xvsVault = _xvsVault;
-    }
-
     function initialize(
+        address _xvsVault,
+        address _xvsVaultRewardToken,
+        uint256 _xvsVaultPoolId,
         uint128 _alphaNumerator,
         uint128 _alphaDemominator
     ) external virtual initializer {
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDemominator;
+        xvsVaultRewardToken = _xvsVaultRewardToken;
+        xvsVaultPoolId = _xvsVaultPoolId;
+        xvsVault = _xvsVault;
 
         __Ownable2Step_init();
     }
@@ -76,8 +83,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     function addMarket(
         address vToken,
-        uint256 supplyMultiplier,
-        uint256 borrowMultiplier
+        uint256 supplyMultiplier, //represented as 1e18
+        uint256 borrowMultiplier //represented as 1e18
     ) external onlyOwner {
         require(markets[vToken].lastUpdated == 0, "market is already added");
 
@@ -85,7 +92,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         markets[vToken].lastUpdated = block.number;
         markets[vToken].supplyMultiplier = supplyMultiplier;
         markets[vToken].borrowMultiplier = borrowMultiplier;
-        markets[vToken].totalScore = 0;
+        markets[vToken].score = 0;
         markets[vToken].timesScoreUpdated = 0;
 
         allMarkets.push(vToken);
@@ -111,18 +118,15 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
     }
 
-    /**
-     * @notice Called by XVS vault when someone deposits XVS. Used to start staking period if eligible
-     * @param owner the address of the user who staked XVS
-     * @param totalStaked the total staked XVS balance of user
-     */
-    function staked(address owner, uint256 totalStaked) external onlyXVSVault {
-        if (tokens[owner].exists == true) {
-            return;
-        }
-
+    function xvsUpdated(address owner) external onlyXVSVault {
+        uint256 totalStaked = _xvsBalanceOfUser(owner);
         bool isAccountEligible = isEligible(totalStaked);
-        if(stakedAt[owner] == 0 && isAccountEligible == true) {
+
+        if (tokens[owner].exists == true && isAccountEligible == false) {
+            _burn(owner);
+        } else if (isAccountEligible == false && tokens[owner].exists == false && stakedAt[owner] > 0) {
+            stakedAt[owner] = 0;
+        } else if(stakedAt[owner] == 0 && isAccountEligible == true && tokens[owner].exists == false) {
             stakedAt[owner] = block.timestamp;
         }
     }
@@ -144,44 +148,71 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     function _initializeMarkets(address account) internal {
-        // for (uint i = 0; i < allMarkets.length; i++) {
-        //     address market = allMarkets[i];
-        //     IVToken vToken = IVToken(allMarkets[i]);
-        //     uint256 borrowBalance = vToken.borrowBalanceCurrent(account);
-        //     uint256 supplyBalance = vToken.balanceOfUnderlying(account);
+        for (uint i = 0; i < allMarkets.length; i++) {
+            address market = allMarkets[i];
+            accrueInterest(market);
+            
+            IVToken vToken = IVToken(allMarkets[i]);
+            uint256 borrow = vToken.borrowBalanceCurrent(account);
+            uint256 supply = vToken.balanceOfUnderlying(account);
 
-        //     accrueInterest(market);
+            interests[market][account].rewardIndex = markets[market].rewardIndex;
+            interests[market][account].timesScoreUpdated = markets[market].timesScoreUpdated;
+            interests[market][account].supply = supply;
+            interests[market][account].borrow = borrow;
 
-        //     _interests[market][account].index = _markets[market].index;
+            uint xvs = _xvsBalanceOfUser(account);
 
-        //     uint accountTotalQVL = getQVL(account, market, borrowBalance, supplyBalance);
-        //     _markets[market].totalQVL = _markets[market].totalQVL + accountTotalQVL;
-        //     _interests[market][account].totalQVL = accountTotalQVL;
-        // }
+            uint score = _calculateScore(xvs, market, account);
+            interests[market][account].score = score;
+            markets[market].score = markets[market].score + score;
+        }
     }
 
-    function calculateScore(
+    function _xvsBalanceOfUser(address account) internal view returns(uint256) {
+        (uint256 xvs,,uint256 pendingWithdrawals) = IXVSVault(xvsVault).getUserInfo(xvsVaultRewardToken, xvsVaultPoolId, account);
+        return (xvs - pendingWithdrawals);
+    }
+
+    function _calculateScore(
         uint256 xvs,
-        uint256 capital
-    ) public view returns (uint256) {
-        return Scores.calculateScore(xvs, capital, alphaNumerator, alphaDenominator);
+        address market,
+        address account
+    ) internal view returns (uint256) {
+        uint xvsBalanceForScore = _xvsBalanceForScore(xvs);
+        return Scores.calculateScore(xvsBalanceForScore, _capitalForScore(xvsBalanceForScore, market, account), alphaNumerator, alphaDenominator);
     }
 
-    /**
-     * @notice Called by XVS vault when someone withdraws XVS. Used to downgrade user tier or burn the prime token
-     * @param owner the address of the user who withdrew XVS
-     * @param totalStaked the total staked XVS balance of user
-     */
-    function unstaked(address owner, uint256 totalStaked) external onlyXVSVault {
-        bool isAccountEligible = isEligible(totalStaked);
+    function _xvsBalanceForScore(
+        uint256 xvs
+    ) internal view returns (uint256) {
+        if(xvs > MAXIMUM_XVS_CAP) {
+            return MAXIMUM_XVS_CAP;
+        } else {
+            return xvs;
+        }
+    }
 
-        if (isAccountEligible == false && tokens[owner].exists == true) {
-            _burn(owner);
+    function _capitalForScore(
+        uint256 xvs,
+        address market,
+        address account
+    ) internal view returns (uint256) {
+        uint256 borrowCap = (xvs * markets[market].borrowMultiplier) / 1e18;
+        uint256 supplyCap = (xvs * markets[market].supplyMultiplier) / 1e18;
+
+        uint256 supply = interests[market][account].supply;
+        uint256 borrow = interests[market][account].borrow;
+
+        if (supply > supplyCap) {
+            supply = supplyCap;
         }
 
-        if (isAccountEligible == false && tokens[owner].exists == false && stakedAt[owner] > 0) {
-            stakedAt[owner] = 0;
+        if (borrow > borrowCap) {
+            borrow = borrowCap;
         }
+
+        return (supply + borrow);
     }
 
     /**
@@ -270,62 +301,33 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     /**
      * @notice Update total QVL of user and market. Must be called after changing account's borrow or supply balance.
      * @param account account for which we need to update QVL
-     * @param vToken the market for which we need to QVL
+     * @param market the market for which we need to QVL
      */
-    function updateQVL(address account, address vToken) public {
-        // if (_markets[vToken].lastUpdated == 0) {
-        //     return;
-        // }
+    function updateScore(address account, address market) public {
+        if (markets[market].lastUpdated == 0) {
+            return;
+        }
 
-        // if (_tokens[account].tier == Tier.ZERO) {
-        //     return;
-        // }
+        if (tokens[account].exists == false) {
+            return;
+        }
 
-        // IVToken market = IVToken(vToken);
-        // uint256 borrowBalance = market.borrowBalanceCurrent(account);
-        // uint256 supplyBalance = market.balanceOfUnderlying(account);
+        IVToken vToken = IVToken(market);
+        uint256 borrow = vToken.borrowBalanceCurrent(account);
+        uint256 supply = vToken.balanceOfUnderlying(account);
 
-        // uint accountTotalQVL = getQVL(account, vToken, borrowBalance, supplyBalance);
+        uint xvs = _xvsBalanceOfUser(account);
 
-        // _markets[vToken].totalQVL = _markets[vToken].totalQVL - _interests[vToken][account].totalQVL;
-        // _markets[vToken].totalQVL = _markets[vToken].totalQVL + accountTotalQVL;
-        // _interests[vToken][account].totalQVL = accountTotalQVL;
+        uint score = _calculateScore(xvs, market, account);
 
-        // // when existing market is added to prime program we need to initiaze the market for the user
-        // if (_interests[vToken][account].index == 0) {
-        //     _interests[vToken][account].index = _markets[vToken].index;
-        // }
-    }
+        interests[market][account].score = score;
+        markets[market].score = markets[market].score + score;
 
-    /**
-     * @notice Update total QVL of user and market. Must be called after changing account's borrow or supply balance.
-     * @param account account for which we need to update QVL
-     * @param vToken the market for which we need to QVL
-     */
-    function getQVL(
-        address account,
-        address vToken,
-        uint256 borrowBalance,
-        uint256 supplyBalance
-    ) internal returns (uint) {
-        // uint borrowQVL;
-        // uint supplyQVL;
-        // uint tier = uint(_tokens[account].tier);
-
-        // for (uint i = 0; i <= tier; i++) {
-        //     borrowQVL = borrowQVL + _markets[vToken].caps[Tier(i)].borrowTVLCap;
-        //     supplyQVL = supplyQVL + _markets[vToken].caps[Tier(i)].supplyTVLCap;
-        // }
-
-        // if (borrowBalance < borrowQVL) {
-        //     borrowQVL = borrowBalance;
-        // }
-
-        // if (supplyBalance < supplyQVL) {
-        //     supplyQVL = supplyBalance;
-        // }
-
-        // return (borrowQVL + supplyQVL);
+        // when existing market is added to prime program we need to initiaze the market for the user
+        if (interests[market][account].rewardIndex == 0) {
+            interests[market][account].rewardIndex = markets[market].rewardIndex;
+            interests[market][account].timesScoreUpdated = markets[market].timesScoreUpdated;
+        }
     }
 
     /**
@@ -353,16 +355,16 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     function getMarketDecimals(address vToken) internal returns (uint256) {
-        // IVToken market = IVToken(vToken);
-        // address underlying;
+        IVToken market = IVToken(vToken);
+        address underlying;
 
-        // try market.underlying() returns (address _underlying) {
-        //     underlying = _underlying;
-        // } catch (bytes memory) {
-        //     return 10 ** 18; // vBNB
-        // }
+        try market.underlying() returns (address _underlying) {
+            underlying = _underlying;
+        } catch (bytes memory) {
+            return 10 ** 18; // vBNB
+        }
 
-        // return (10 ** ERC20Interface(underlying).decimals());
+        return (10 ** ERC20Interface(underlying).decimals());
     }
 
     /**

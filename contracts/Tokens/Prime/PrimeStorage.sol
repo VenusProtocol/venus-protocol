@@ -11,7 +11,7 @@ contract PrimeStorageV1 {
         uint256 borrowMultiplier;
         uint256 rewardIndex;
         uint256 lastUpdated;
-        uint256 totalScore;
+        uint256 score;
         uint256 timesScoreUpdated;
     }
 
@@ -20,6 +20,8 @@ contract PrimeStorageV1 {
         uint256 score;
         uint256 timesScoreUpdated;
         uint256 rewardIndex;
+        uint256 supply;
+        uint256 borrow;
     }
 
     /// @notice minimum amount of XVS user needs to stake to become a prime member
@@ -72,4 +74,11 @@ contract PrimeStorageV1 {
 
     /// @notice denominator of alpha. Ex: if alpha is 0.5 then this will be 2
     uint128 public alphaDenominator;
+
+    /// @notice address of XVS vault
+    address internal xvsVault;
+
+    address internal xvsVaultRewardToken;
+
+    uint256 internal xvsVaultPoolId;
 }

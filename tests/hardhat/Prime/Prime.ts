@@ -1,5 +1,6 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { Libraries } from "@nomiclabs/hardhat-ethers/types";
 import chai from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
@@ -14,7 +15,7 @@ import {
   IAccessControlManager,
   InterestRateModelHarness,
   PriceOracle,
-  Prime,
+  PrimeScenario,
   VBep20Harness,
   XVS,
   XVSStore,
@@ -41,7 +42,7 @@ type SetupProtocolFixture = {
   xvsVault: XVSVaultScenario;
   xvs: XVS;
   xvsStore: XVSStore;
-  prime: Prime;
+  prime: PrimeScenario;
 };
 
 async function deployProtocol(): Promise<SetupProtocolFixture> {
@@ -150,9 +151,15 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const rewardPerBlock = bigNumber18.mul(1);
   await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
 
-  const primeFactory = await ethers.getContractFactory("Prime");
-  const prime: Prime = (await primeFactory.deploy(xvsVault.address)) as Prime;
-  prime.initialize(1, 2);
+  const primeFactory = await ethers.getContractFactory("PrimeScenario");
+  const prime: PrimeScenario = (await primeFactory.deploy()) as PrimeScenario;
+  prime.initialize(
+    xvsVault.address,
+    xvs.address,
+    0,
+    1, 
+    2
+  );
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 
@@ -189,7 +196,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   };
 }
 
-describe("Prime Token", () => {
+describe("PrimeScenario Token", () => {
   let accounts: Signer[];
 
   before(async () => {
@@ -232,7 +239,7 @@ describe("Prime Token", () => {
   });
 
   describe("mint and burn", () => {
-    let prime: Prime;
+    let prime: PrimeScenario;
     let xvsVault: XVSVault;
     let xvs: XVS;
 
@@ -341,7 +348,7 @@ describe("Prime Token", () => {
 
   describe("boosted yield", () => {
     let comptroller: MockContract<Comptroller>;
-    let prime: Prime;
+    let prime: PrimeScenario;
     let vusdt: VBep20Harness;
     let veth: VBep20Harness;
     let usdt: BEP20Harness;
