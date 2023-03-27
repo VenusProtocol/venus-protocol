@@ -1,11 +1,17 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
-import "../Utils/SafeBEP20.sol";
-import "../Utils/IBEP20.sol";
-import "./VRTVaultProxy.sol";
-import "./VRTVaultStorage.sol";
+import "../Utils/UtilsV8/SafeBEP20.sol";
+import "../Utils/UtilsV8/IBEP20.sol";
+import "./VRTVaultStorageV8.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlled.sol";
 
-contract VRTVault is VRTVaultStorage {
+interface IVRTVaultProxy {
+    function _acceptImplementation() external returns (uint);
+
+    function admin() external returns (address);
+}
+
+contract VRTVault is VRTVaultStorage, AccessControlled {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -64,12 +70,14 @@ contract VRTVault is VRTVaultStorage {
     }
 
     function pause() public onlyAdmin {
+        _checkAccessAllowed("pause()");
         require(vaultPaused == false, "Vault is already paused");
         vaultPaused = true;
         emit VaultPaused(msg.sender);
     }
 
     function resume() public onlyAdmin {
+        _checkAccessAllowed("resume()");
         require(vaultPaused == true, "Vault is not paused");
         vaultPaused = false;
         emit VaultResumed(msg.sender);
@@ -235,6 +243,7 @@ contract VRTVault is VRTVaultStorage {
         address receiver,
         uint256 amount
     ) external onlyAdmin isInitialized nonZeroAddress(tokenAddress) nonZeroAddress(receiver) {
+        _checkAccessAllowed("withdrawBep20(address,address,uint256)");
         require(amount > 0, "amount is invalid");
         IBEP20 token = IBEP20(tokenAddress);
         require(amount <= token.balanceOf(address(this)), "Insufficient amount in Vault");
@@ -242,14 +251,23 @@ contract VRTVault is VRTVaultStorage {
         token.safeTransfer(receiver, amount);
     }
 
-    function getBlockNumber() public view returns (uint256) {
+    function getBlockNumber() public view virtual returns (uint256) {
         return block.number;
     }
 
     /*** Admin Functions ***/
 
-    function _become(VRTVaultProxy vrtVaultProxy) external {
+    function _become(IVRTVaultProxy vrtVaultProxy) external {
         require(msg.sender == vrtVaultProxy.admin(), "only proxy admin can change brains");
         vrtVaultProxy._acceptImplementation();
+    }
+
+    /**
+     * @notice Sets the address of the access control of this contract
+     * @dev Admin function to set the access control address
+     * @param newAccessControlAddress New address for the access control
+     */
+    function _setAccessControl(address newAccessControlAddress) external onlyAdmin {
+        _setAccessControlManager(newAccessControlAddress);
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../../contracts/VRTVault/VRTVault.sol";
 
@@ -25,7 +25,7 @@ contract VRTVaultHarness is VRTVault {
         blockNumber = number;
     }
 
-    function getBlockNumber() public view returns (uint256) {
+    function getBlockNumber() public view override returns (uint256) {
         return blockNumber;
     }
 }

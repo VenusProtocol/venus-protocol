@@ -247,9 +247,8 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
      * @notice Sets the address of the access control of this contract
      * @dev Admin function to set the access control address
      * @param newAccessControlAddress New address for the access control
-     * @return uint 0=success, otherwise will revert
      */
-    function _setAccessControl(address newAccessControlAddress) external onlyOwner returns (uint) {
+    function _setAccessControl(address newAccessControlAddress) external onlyAdmin {
         _setAccessControlManager(newAccessControlAddress);
     }
 }
