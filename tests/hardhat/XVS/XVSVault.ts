@@ -1,9 +1,11 @@
+import { smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Wallet } from "ethers";
 import { ethers } from "hardhat";
 
 import { XVS, XVSStore, XVSVaultScenario } from "../../../typechain";
+import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 const rewardPerBlock = bigNumber18.mul(1);
@@ -37,6 +39,10 @@ describe("XVSVault", async () => {
 
     const xvsVaultFactory = await ethers.getContractFactory("XVSVaultScenario");
     xvsVault = (await xvsVaultFactory.deploy()) as XVSVaultScenario;
+
+    const accessControlMock = await smock.fake<IAccessControlManager>("AccessControlManager");
+    accessControlMock.isAllowedToCall.returns(true);
+    await xvsVault.connect(deployer)._setAccessControl(accessControlMock.address);
 
     return { xvsVault, xvs, xvsStore };
   }

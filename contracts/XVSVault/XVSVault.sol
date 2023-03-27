@@ -121,6 +121,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         uint256 _rewardPerBlock,
         uint256 _lockPeriod
     ) external onlyAdmin {
+        _checkAccessAllowed("add(address,uint256,address,uint256,uint256)");
         require(address(xvsStore) != address(0), "Store contract addres is empty");
 
         massUpdatePools(_rewardToken);
@@ -153,6 +154,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
 
     // Update the given pool's reward allocation point. Can only be called by the admin.
     function set(address _rewardToken, uint256 _pid, uint256 _allocPoint) external onlyAdmin {
+        _checkAccessAllowed("set(address,uint256,uint256)");
         _ensureValidPool(_rewardToken, _pid);
         massUpdatePools(_rewardToken);
 
@@ -166,6 +168,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
 
     // Update the given reward token's amount per block
     function setRewardAmountPerBlock(address _rewardToken, uint256 _rewardAmount) external onlyAdmin {
+        _checkAccessAllowed("setRewardAmountPerBlock(address,uint256)");
         massUpdatePools(_rewardToken);
         uint256 oldReward = rewardTokenAmountsPerBlock[_rewardToken];
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardAmount;
@@ -175,6 +178,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
 
     // Update the given reward token's amount per block
     function setWithdrawalLockingPeriod(address _rewardToken, uint256 _pid, uint256 _newPeriod) external onlyAdmin {
+        _checkAccessAllowed("setWithdrawalLockingPeriod(address,uint256,uint256)");
         _ensureValidPool(_rewardToken, _pid);
         require(_newPeriod > 0, "Invalid new locking period");
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
@@ -768,9 +772,8 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
      * @notice Sets the address of the access control of this contract
      * @dev Admin function to set the access control address
      * @param newAccessControlAddress New address for the access control
-     * @return uint 0=success, otherwise will revert
      */
-    function _setAccessControl(address newAccessControlAddress) external onlyOwner returns (uint) {
+    function _setAccessControl(address newAccessControlAddress) external onlyAdmin {
         _setAccessControlManager(newAccessControlAddress);
     }
 }
