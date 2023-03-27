@@ -52,8 +52,3 @@ contract VAIVaultStorage is VAIVaultAdminStorage {
     // Info of each user that stakes tokens.
     mapping(address => UserInfo) public userInfo;
 }
-
-contract VAIVaultStorageV1 is VAIVaultStorage {
-    /// @notice pause indicator for Vault
-    bool public vaultPaused;
-}
