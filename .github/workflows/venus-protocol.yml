@@ -26,7 +26,7 @@ jobs:
         run: docker build -t venus:${GITHUB_SHA::7} .
 
       - name: Run tests
-        run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} test
+        run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} yarn test
 
       - name: Clear
         run: docker rm ${GITHUB_SHA::7}
