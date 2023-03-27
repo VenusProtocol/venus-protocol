@@ -1,10 +1,16 @@
-pragma solidity ^0.5.16;
-import "../Utils/SafeBEP20.sol";
-import "../Utils/IBEP20.sol";
-import "./VAIVaultProxy.sol";
-import "./VAIVaultStorage.sol";
-import "./VAIVaultErrorReporter.sol";
+pragma solidity 0.8.13;
+
+import "../Utils/UtilsV8/SafeBEP20.sol";
+import "../Utils/UtilsV8/IBEP20.sol";
+import "./VAIVaultStorageV8.sol";
+import "./VAIVaultErrorReporterV8.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlled.sol";
+
+interface IVAIVaultProxy {
+    function _acceptImplementation() external returns (uint);
+
+    function admin() external returns (address);
+}
 
 contract VAIVault is VAIVaultStorageV1, AccessControlled {
     using SafeMath for uint256;
@@ -211,7 +217,7 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
 
     /*** Admin Functions ***/
 
-    function _become(VAIVaultProxy vaiVaultProxy) public {
+    function _become(IVAIVaultProxy vaiVaultProxy) public {
         require(msg.sender == vaiVaultProxy.admin(), "only proxy admin can change brains");
         require(vaiVaultProxy._acceptImplementation() == 0, "change not authorized");
     }
@@ -245,6 +251,5 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
      */
     function _setAccessControl(address newAccessControlAddress) external onlyOwner returns (uint) {
         _setAccessControlManager(newAccessControlAddress);
-        return uint(Error.NO_ERROR);
     }
 }

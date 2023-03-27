@@ -1,7 +1,7 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
 import "../XVSVault/XVSVault.sol";
-import "../Utils/IBEP20.sol";
+import "../Utils/UtilsV8/IBEP20.sol";
 
 contract XVSStakingLens {
     /**

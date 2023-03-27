@@ -1,9 +1,11 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 pragma experimental ABIEncoderV2;
 
 import "../XVSVault/XVSVault.sol";
 
 contract XVSVaultScenario is XVSVault {
+    using SafeMath for uint256;
+
     function pushOldWithdrawalRequest(
         UserInfo storage _user,
         WithdrawalRequest[] storage _requests,

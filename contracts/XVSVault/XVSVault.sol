@@ -1,19 +1,25 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
+
 pragma experimental ABIEncoderV2;
 
-import "../Utils/ECDSA.sol";
-import "../Utils/SafeBEP20.sol";
-import "../Utils/IBEP20.sol";
-import "./XVSVaultProxy.sol";
-import "./XVSVaultStorage.sol";
-import "./XVSVaultErrorReporter.sol";
-import "../Utils/SafeCast.sol";
+import "../Utils/UtilsV8/ECDSA.sol";
+import "../Utils/UtilsV8/SafeBEP20.sol";
+import "../Utils/UtilsV8/IBEP20.sol";
+import "../Utils/UtilsV8/SafeCast.sol";
+import "./XVSVaultStorageV8.sol";
+import "./XVSVaultErrorReporterV8.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlled.sol";
 
 interface IXVSStore {
     function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
 
     function setRewardToken(address _tokenAddress, bool status) external;
+}
+
+interface IXVSVaultProxy {
+    function _acceptImplementation() external returns (uint);
+
+    function admin() external returns (address);
 }
 
 contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
@@ -663,7 +669,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         return a - b;
     }
 
-    function getChainId() internal pure returns (uint) {
+    function getChainId() internal view returns (uint) {
         uint256 chainId;
         assembly {
             chainId := chainid()
@@ -728,7 +734,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
 
     /*** Admin Functions ***/
 
-    function _become(XVSVaultProxy xvsVaultProxy) external {
+    function _become(IXVSVaultProxy xvsVaultProxy) external {
         require(msg.sender == xvsVaultProxy.admin(), "only proxy admin can change brains");
         require(xvsVaultProxy._acceptImplementation() == 0, "change not authorized");
     }
@@ -766,6 +772,5 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
      */
     function _setAccessControl(address newAccessControlAddress) external onlyOwner returns (uint) {
         _setAccessControlManager(newAccessControlAddress);
-        return uint(Error.NO_ERROR);
     }
 }

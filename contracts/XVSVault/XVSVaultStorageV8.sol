@@ -1,7 +1,7 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.13;
 
-import "../Utils/SafeMath.sol";
-import "../Utils/IBEP20.sol";
+import "../Utils/UtilsV8/SafeMath.sol";
+import "../Utils/UtilsV8/IBEP20.sol";
 
 contract XVSVaultAdminStorage {
     /**
@@ -112,4 +112,9 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
 
     /// @notice Tracks pending withdrawals for all users for a particular reward token and pool id
     mapping(address => mapping(uint256 => uint256)) internal totalPendingWithdrawals;
+}
+
+contract XVSVaultStorageV2 is XVSVaultStorage {
+    /// @notice pause indicator for Vault
+    bool public vaultPaused;
 }
