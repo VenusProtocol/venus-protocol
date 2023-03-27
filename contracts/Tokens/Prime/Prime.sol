@@ -95,7 +95,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         markets[vToken].supplyMultiplier = supplyMultiplier;
         markets[vToken].borrowMultiplier = borrowMultiplier;
         markets[vToken].score = 0;
-        markets[vToken].timesScoreUpdated = 0;
+        markets[vToken].indexMultiplier = 0;
 
         allMarkets.push(vToken);
     }
@@ -159,7 +159,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             uint256 supply = vToken.balanceOfUnderlying(account);
 
             interests[market][account].rewardIndex = markets[market].rewardIndex;
-            interests[market][account].timesScoreUpdated = markets[market].timesScoreUpdated;
+            interests[market][account].indexMultiplier = markets[market].indexMultiplier;
             interests[market][account].supply = supply;
             interests[market][account].borrow = borrow;
 
@@ -291,13 +291,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         accrueInterest(vToken);
         
-        if (interests[vToken][account].rewardIndex == markets[vToken].rewardIndex) {
-            return;
-        }
-
         interests[vToken][account].accrued = _interestAccrued(vToken, account);
         interests[vToken][account].rewardIndex = markets[vToken].rewardIndex;
-        interests[vToken][account].timesScoreUpdated = markets[vToken].timesScoreUpdated;
+        interests[vToken][account].indexMultiplier = markets[vToken].indexMultiplier;
     }
 
 
@@ -331,23 +327,24 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param vToken the market for which to distribute the income
      */
     function accrueInterest(address vToken) public {
-        // require(_markets[vToken].lastUpdated != 0, "market is not supported");
+        require(markets[vToken].lastUpdated != 0, "market is not supported");
 
-        // IVToken market = IVToken(vToken);
+        IVToken market = IVToken(vToken);
 
-        // uint256 pastBlocks = block.number - _markets[vToken].lastUpdated;
-        // uint256 protocolIncomePerBlock = (((market.totalBorrowsCurrent() * market.borrowRatePerBlock()) / 1e18) *
-        //     market.reserveFactorMantissa()) / 1e18;
-        // uint256 accumulatedIncome = protocolIncomePerBlock * pastBlocks;
-        // uint256 distributionIncome = (accumulatedIncome * INCOME_DISTRIBUTION_BPS) / MAXIMUM_BPS;
-        // uint256 distributionPerQVL = 0;
+        uint256 pastBlocks = block.number - markets[vToken].lastUpdated;
+        uint256 protocolIncomePerBlock = (((market.totalBorrowsCurrent() * market.borrowRatePerBlock()) / 1e18) *
+            market.reserveFactorMantissa()) / 1e18;
+        uint256 accumulatedIncome = protocolIncomePerBlock * pastBlocks;
+        uint256 distributionIncome = (accumulatedIncome * INCOME_DISTRIBUTION_BPS) / MAXIMUM_BPS;
 
-        // if (_markets[vToken].totalQVL > 0) {
-        //     distributionPerQVL = ((distributionIncome * getMarketDecimals(vToken)) / _markets[vToken].totalQVL);
-        // }
-
-        // _markets[vToken].index = _markets[vToken].index + distributionPerQVL;
-        // _markets[vToken].lastUpdated = block.number;
+        uint256 delta;
+        if (markets[vToken].score > 0) {
+            delta = ((distributionIncome * 1e18) / markets[vToken].score) / 1e18;
+        }
+         
+        markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;
+        markets[vToken].indexMultiplier = markets[vToken].indexMultiplier + 1;
+        markets[vToken].lastUpdated = block.number;
     }
 
     function getMarketDecimals(address vToken) internal returns (uint256) {
