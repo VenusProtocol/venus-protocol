@@ -23,7 +23,6 @@ interface IXVSVaultProxy {
 }
 
 contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
-    using SafeMath for uint256;
     using SafeCast for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -133,7 +132,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
             require(poolInfo[pid].token != _token, "Error pool already added");
         }
 
-        totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken].add(_allocPoint);
+        totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken] + _allocPoint;
 
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardPerBlock;
 
@@ -159,7 +158,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         massUpdatePools(_rewardToken);
 
         PoolInfo[] storage poolInfo = poolInfos[_rewardToken];
-        totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken].sub(poolInfo[_pid].allocPoint).add(_allocPoint);
+        totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken] - poolInfo[_pid].allocPoint + _allocPoint;
         uint256 oldAllocPoints = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
 
@@ -202,15 +201,14 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         require(pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, msg.sender) == 0, "execute pending withdrawal");
 
         if (user.amount > 0) {
-            uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
-                user.rewardDebt
-            );
+            uint256 pending = (((user.amount - user.pendingWithdrawals) * pool.accRewardPerShare) / 1e12) -
+                user.rewardDebt;
             IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
             emit Claim(msg.sender, _rewardToken, _pid, pending);
         }
         pool.token.safeTransferFrom(address(msg.sender), address(this), _amount);
-        user.amount = user.amount.add(_amount);
-        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+        user.amount += _amount;
+        user.rewardDebt = ((user.amount - user.pendingWithdrawals) * pool.accRewardPerShare) / 1e12;
 
         // Update Delegate Amount
         if (address(pool.token) == address(xvsAddress)) {
@@ -234,12 +232,11 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         require(pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, _account) == 0, "execute pending withdrawal");
 
         if (user.amount > 0) {
-            uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
-                user.rewardDebt
-            );
+            uint256 pending = (((user.amount - user.pendingWithdrawals) * pool.accRewardPerShare) / 1e12) -
+                user.rewardDebt;
 
             if (pending > 0) {
-                user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+                user.rewardDebt = ((user.amount - user.pendingWithdrawals) * pool.accRewardPerShare) / 1e12;
 
                 IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, _account, pending);
                 emit Claim(_account, _rewardToken, _pid, pending);
@@ -269,7 +266,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
             _requests[i] = _requests[i - 1];
         }
         _requests[i] = WithdrawalRequest(_amount, _lockedUntil.toUint128(), 1);
-        _user.pendingWithdrawals = _user.pendingWithdrawals.add(_amount);
+        _user.pendingWithdrawals += _amount;
     }
 
     /**
@@ -295,16 +292,14 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         // pop them from the array and stop at the first not-yet-eligible one
         for (uint i = _requests.length; i > 0 && isUnlocked(_requests[i - 1]); --i) {
             if (_requests[i - 1].afterUpgrade == 1) {
-                afterUpgradeWithdrawalAmount = afterUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
+                afterUpgradeWithdrawalAmount += _requests[i - 1].amount;
             } else {
-                beforeUpgradeWithdrawalAmount = beforeUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
+                beforeUpgradeWithdrawalAmount += _requests[i - 1].amount;
             }
 
             _requests.pop();
         }
-        _user.pendingWithdrawals = _user.pendingWithdrawals.sub(
-            afterUpgradeWithdrawalAmount.add(beforeUpgradeWithdrawalAmount)
-        );
+        _user.pendingWithdrawals -= afterUpgradeWithdrawalAmount + beforeUpgradeWithdrawalAmount;
         return (beforeUpgradeWithdrawalAmount, afterUpgradeWithdrawalAmount);
     }
 
@@ -336,16 +331,14 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
 
         if (beforeUpgradeWithdrawalAmount > 0) {
             _updatePool(_rewardToken, _pid);
-            uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pending = (user.amount * pool.accRewardPerShare) / 1e12 - user.rewardDebt;
             IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
-            user.amount = user.amount.sub(beforeUpgradeWithdrawalAmount);
-            user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
+            user.amount -= beforeUpgradeWithdrawalAmount;
+            user.rewardDebt = (user.amount * pool.accRewardPerShare) / 1e12;
             pool.token.safeTransfer(address(msg.sender), beforeUpgradeWithdrawalAmount);
         } else {
-            user.amount = user.amount.sub(afterUpgradeWithdrawalAmount);
-            totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].sub(
-                afterUpgradeWithdrawalAmount
-            );
+            user.amount -= afterUpgradeWithdrawalAmount;
+            totalPendingWithdrawals[_rewardToken][_pid] -= afterUpgradeWithdrawalAmount;
             pool.token.safeTransfer(address(msg.sender), afterUpgradeWithdrawalAmount);
         }
 
@@ -353,7 +346,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
             msg.sender,
             _rewardToken,
             _pid,
-            beforeUpgradeWithdrawalAmount.add(afterUpgradeWithdrawalAmount)
+            beforeUpgradeWithdrawalAmount + afterUpgradeWithdrawalAmount
         );
     }
 
@@ -368,9 +361,9 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
     ) internal view returns (uint beforeUpgradeWithdrawalAmount, uint afterUpgradeWithdrawalAmount) {
         for (uint i = _requests.length; i > 0; --i) {
             if (_requests[i - 1].afterUpgrade == 1) {
-                afterUpgradeWithdrawalAmount = afterUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
+                afterUpgradeWithdrawalAmount += _requests[i - 1].amount;
             } else {
-                beforeUpgradeWithdrawalAmount = beforeUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
+                beforeUpgradeWithdrawalAmount += _requests[i - 1].amount;
             }
         }
         return (beforeUpgradeWithdrawalAmount, afterUpgradeWithdrawalAmount);
@@ -386,7 +379,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         _ensureValidPool(_rewardToken, _pid);
         require(_amount > 0, "requested amount cannot be zero");
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
-        require(user.amount >= user.pendingWithdrawals.add(_amount), "requested amount is invalid");
+        require(user.amount >= user.pendingWithdrawals + _amount, "requested amount is invalid");
 
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
@@ -397,16 +390,15 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         require(beforeUpgradeWithdrawalAmount == 0, "execute pending withdrawal");
 
         _updatePool(_rewardToken, _pid);
-        uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
-            user.rewardDebt
-        );
+        uint256 pending = ((user.amount - user.pendingWithdrawals) * pool.accRewardPerShare) / 1e12 - user.rewardDebt;
+
         IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
 
-        uint lockedUntil = pool.lockPeriod.add(block.timestamp);
+        uint lockedUntil = pool.lockPeriod + block.timestamp;
 
         pushWithdrawalRequest(user, requests, _amount, lockedUntil);
-        totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].add(_amount);
-        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+        totalPendingWithdrawals[_rewardToken][_pid] += _amount;
+        user.rewardDebt = ((user.amount - user.pendingWithdrawals) * pool.accRewardPerShare) / 1e12;
 
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {
@@ -434,7 +426,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         // the entries from the end of the array and stop at the first
         // not-yet-eligible one
         for (uint i = requests.length; i > 0 && isUnlocked(requests[i - 1]); --i) {
-            withdrawalAmount = withdrawalAmount.add(requests[i - 1].amount);
+            withdrawalAmount += requests[i - 1].amount;
         }
         return withdrawalAmount;
     }
@@ -476,13 +468,11 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         uint256 curBlockNumber = block.number;
         uint256 rewardTokenPerBlock = rewardTokenAmountsPerBlock[_rewardToken];
         if (curBlockNumber > pool.lastRewardBlock && supply != 0) {
-            uint256 multiplier = curBlockNumber.sub(pool.lastRewardBlock);
-            uint256 reward = multiplier.mul(rewardTokenPerBlock).mul(pool.allocPoint).div(
-                totalAllocPoints[_rewardToken]
-            );
-            accRewardPerShare = accRewardPerShare.add(reward.mul(1e12).div(supply));
+            uint256 multiplier = curBlockNumber - pool.lastRewardBlock;
+            uint256 reward = (multiplier * rewardTokenPerBlock * pool.allocPoint) / totalAllocPoints[_rewardToken];
+            accRewardPerShare += (reward * 1e12) / supply;
         }
-        return user.amount.mul(accRewardPerShare).div(1e12).sub(user.rewardDebt);
+        return (user.amount * accRewardPerShare) / 1e12 - user.rewardDebt;
     }
 
     // Update reward vairables for all pools. Be careful of gas spending!
@@ -505,17 +495,17 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
             return;
         }
         uint256 supply = pool.token.balanceOf(address(this));
-        supply = supply.sub(totalPendingWithdrawals[_rewardToken][_pid]);
+        supply -= totalPendingWithdrawals[_rewardToken][_pid];
         if (supply == 0) {
             pool.lastRewardBlock = block.number;
             return;
         }
         uint256 curBlockNumber = block.number;
-        uint256 multiplier = curBlockNumber.sub(pool.lastRewardBlock);
-        uint256 reward = multiplier.mul(rewardTokenAmountsPerBlock[_rewardToken]).mul(pool.allocPoint).div(
-            totalAllocPoints[_rewardToken]
-        );
-        pool.accRewardPerShare = pool.accRewardPerShare.add(reward.mul(1e12).div(supply));
+        uint256 multiplier = curBlockNumber - pool.lastRewardBlock;
+        uint256 reward = (multiplier * rewardTokenAmountsPerBlock[_rewardToken] * pool.allocPoint) /
+            totalAllocPoints[_rewardToken];
+
+        pool.accRewardPerShare += (reward * 1e12) / supply;
         pool.lastRewardBlock = block.number;
     }
 
@@ -566,7 +556,7 @@ contract XVSVault is XVSVaultStorageV2, ECDSA, AccessControlled {
         for (uint256 pid = 0; pid < length; ++pid) {
             if (address(poolInfo[pid].token) == address(xvsAddress)) {
                 UserInfo storage user = userInfos[xvsAddress][pid][account];
-                return uint96(user.amount.sub(user.pendingWithdrawals));
+                return uint96(user.amount - user.pendingWithdrawals);
             }
         }
         return uint96(0);

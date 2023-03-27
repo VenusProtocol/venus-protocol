@@ -13,7 +13,6 @@ interface IVAIVaultProxy {
 }
 
 contract VAIVault is VAIVaultStorageV1, AccessControlled {
-    using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
     /// @notice Event emitted when VAI deposit
@@ -75,10 +74,10 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
         // Transfer in the amounts from user
         if (_amount > 0) {
             vai.safeTransferFrom(address(msg.sender), address(this), _amount);
-            user.amount = user.amount.add(_amount);
+            user.amount += _amount;
         }
 
-        user.rewardDebt = user.amount.mul(accXVSPerShare).div(1e18);
+        user.rewardDebt = (user.amount * accXVSPerShare) / 1e18;
         emit Deposit(msg.sender, _amount);
     }
 
@@ -118,11 +117,10 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
         updateAndPayOutPending(account); // Update balances of account this is not withdrawal but claiming XVS farmed
 
         if (_amount > 0) {
-            user.amount = user.amount.sub(_amount);
+            user.amount -= _amount;
             vai.safeTransfer(address(account), _amount);
         }
-        user.rewardDebt = user.amount.mul(accXVSPerShare).div(1e18);
-
+        user.rewardDebt = (user.amount * accXVSPerShare) / 1e18;
         emit Withdraw(account, _amount);
     }
 
@@ -133,7 +131,7 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
     function pendingXVS(address _user) public view returns (uint256) {
         UserInfo storage user = userInfo[_user];
 
-        return user.amount.mul(accXVSPerShare).div(1e18).sub(user.rewardDebt);
+        return (user.amount * accXVSPerShare) / 1e18 - user.rewardDebt;
     }
 
     /**
@@ -169,11 +167,11 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
      * @notice Function that updates pending rewards
      */
     function updatePendingRewards() public isActive {
-        uint256 newRewards = xvs.balanceOf(address(this)).sub(xvsBalance);
+        uint256 newRewards = xvs.balanceOf(address(this)) - xvsBalance;
 
         if (newRewards > 0) {
             xvsBalance = xvs.balanceOf(address(this)); // If there is no change the balance didn't change
-            pendingRewards = pendingRewards.add(newRewards);
+            pendingRewards += newRewards;
         }
     }
 
@@ -187,7 +185,7 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
             return;
         }
 
-        accXVSPerShare = accXVSPerShare.add(pendingRewards.mul(1e18).div(vaiBalance));
+        accXVSPerShare = accXVSPerShare + ((pendingRewards * 1e18) / vaiBalance);
         pendingRewards = 0;
     }
 

@@ -12,7 +12,6 @@ interface IVRTVaultProxy {
 }
 
 contract VRTVault is VRTVaultStorage, AccessControlled {
-    using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
     /// @notice Event emitted when admin changed
@@ -126,7 +125,7 @@ contract VRTVault is VRTVaultStorage, AccessControlled {
             // accrue Interest and transfer to the user
             uint256 accruedInterest = computeAccruedInterest(user.totalPrincipalAmount, user.accrualStartBlockNumber);
 
-            user.totalPrincipalAmount = user.totalPrincipalAmount.add(depositAmount);
+            user.totalPrincipalAmount += depositAmount;
 
             if (accruedInterest > 0) {
                 uint256 vrtBalance = vrt.balanceOf(address(this));
@@ -175,8 +174,8 @@ contract VRTVault is VRTVaultStorage, AccessControlled {
         }
 
         //number of blocks Since Deposit
-        uint256 blockDelta = blockNumber.sub(accrualStartBlockNumber);
-        uint256 accruedInterest = (totalPrincipalAmount.mul(interestRatePerBlock).mul(blockDelta)).div(1e18);
+        uint256 blockDelta = blockNumber - accrualStartBlockNumber;
+        uint256 accruedInterest = (totalPrincipalAmount * interestRatePerBlock * blockDelta) / 1e18;
         return accruedInterest;
     }
 
@@ -221,7 +220,7 @@ contract VRTVault is VRTVaultStorage, AccessControlled {
         UserInfo storage user = userInfo[userAddress];
 
         uint256 totalPrincipalAmount = user.totalPrincipalAmount;
-        uint256 vrtForWithdrawal = accruedInterest.add(totalPrincipalAmount);
+        uint256 vrtForWithdrawal = accruedInterest + totalPrincipalAmount;
         user.totalPrincipalAmount = 0;
         user.accrualStartBlockNumber = getBlockNumber();
 
