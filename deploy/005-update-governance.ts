@@ -1,14 +1,44 @@
 import { parseUnits } from "ethers/lib/utils";
+import { network } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { Contracts as Mainnet } from "../networks/mainnet.json";
 //TESTNET DEPLOYED CONTRACTS
-import { Contracts } from "../networks/testnet.json";
+import { Contracts as Testnet } from "../networks/testnet.json";
+//MAINNET DEPLOYED CONTRACTS
 import { GovernorBravoDelegate } from "../typechain/contracts/Governance/";
 
-const GOVERNOR_PROXY_TESTNET = Contracts.GovernorBravoDelegator;
-const NORMAL_VIP_TIMELOCK_ADDRESS = Contracts.Timelock;
-const XVS_VAULT_TESTNET = Contracts.XVSVaultProxy;
+const networkName: string = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
+
+interface Address {
+  [key: string]: string;
+}
+
+interface Delay {
+  [key: string]: number;
+}
+
+interface AddressConfig {
+  [key: string]: Address;
+}
+
+interface DelayConfig {
+  [key: string]: Delay;
+}
+
+const addresses: AddressConfig = {
+  bsctestnet: {
+    governorProxy: Testnet.GovernorBravoDelegator,
+    normalVipTimelock: Testnet.Timelock,
+    xvsVault: Testnet.XVSVaultProxy,
+  },
+  bscmainnet: {
+    governorProxy: "0x2d56dC077072B53571b8252008C60e945108c75a",
+    normalVipTimelock: Mainnet.Timelock,
+    xvsVault: Mainnet.XVSVaultProxy,
+  },
+};
 
 const PROPOSAL_CONFIGS = [
   // ProposalType.NORMAL
@@ -31,22 +61,29 @@ const PROPOSAL_CONFIGS = [
   },
 ];
 
-const TIMELOCK_MIN_DELAYS_TESTNET = {
-  NORMAL: 600,
-  FAST_TRACK: 300,
-  CRITICAL: 100,
+const timelockDelays: DelayConfig = {
+  bsctestnet: {
+    NORMAL: 600,
+    FAST_TRACK: 300,
+    CRITICAL: 100,
+  },
+  bscmainnet: {
+    NORMAL: 172800,
+    FAST_TRACK: 21600,
+    CRITICAL: 3600,
+  },
 };
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
   const { deployer } = await getNamedAccounts();
   const { deploy } = deployments;
-  const governorProxy = await ethers.getContractAt("GovernorBravoDelegator", GOVERNOR_PROXY_TESTNET);
+  const governorProxy = await ethers.getContractAt("GovernorBravoDelegator", addresses[networkName].governorProxy);
 
   const timeLockFastTrack = await deploy("Timelock_FastTrack", {
     contract: "Timelock",
     from: deployer,
-    args: [GOVERNOR_PROXY_TESTNET, TIMELOCK_MIN_DELAYS_TESTNET.FAST_TRACK],
+    args: [addresses[networkName].governorProxy, timelockDelays[networkName].FAST_TRACK],
     log: true,
     autoMine: true,
   });
@@ -54,7 +91,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const timeLockCritical = await deploy("Timelock_Critical", {
     contract: "Timelock",
     from: deployer,
-    args: [GOVERNOR_PROXY_TESTNET, TIMELOCK_MIN_DELAYS_TESTNET.CRITICAL],
+    args: [addresses[networkName].governorProxy, timelockDelays[networkName].CRITICAL],
     log: true,
     autoMine: true,
   });
@@ -75,12 +112,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
     const governorProxy_Impl = (await ethers.getContractAt(
       "GovernorBravoDelegate",
-      GOVERNOR_PROXY_TESTNET,
+      addresses[networkName].governorProxy,
     )) as GovernorBravoDelegate;
     tx = await governorProxy_Impl.initialize(
-      XVS_VAULT_TESTNET,
+      addresses[networkName].xvsVault,
       PROPOSAL_CONFIGS,
-      [NORMAL_VIP_TIMELOCK_ADDRESS, timeLockFastTrack.address, timeLockCritical.address],
+      [addresses[networkName].normalVipTimelock, timeLockFastTrack.address, timeLockCritical.address],
       deployer,
     );
     await tx.wait();
