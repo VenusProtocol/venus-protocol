@@ -332,7 +332,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     // solhint-disable-next-line no-unused-vars
     function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {
         if (address(prime) != address(0)) {
-            prime.updateQVL(minter, vToken);
+            prime.updateScore(minter, vToken);
         }
     }
 
@@ -399,7 +399,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
         if (address(prime) != address(0)) {
-            prime.updateQVL(redeemer, vToken);
+            prime.updateScore(redeemer, vToken);
         }
     }
 
@@ -473,7 +473,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     // solhint-disable-next-line no-unused-vars
     function borrowVerify(address vToken, address borrower, uint borrowAmount) external {
         if (address(prime) != address(0)) {
-            prime.updateQVL(borrower, vToken);
+            prime.updateScore(borrower, vToken);
         }
     }
 
@@ -527,7 +527,7 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         uint borrowerIndex
     ) external {
         if (address(prime) != address(0)) {
-            prime.updateQVL(borrower, vToken);
+            prime.updateScore(borrower, vToken);
         }
     }
 
@@ -663,8 +663,8 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         uint seizeTokens
     ) external {
         if (address(prime) != address(0)) {
-            prime.updateQVL(borrower, vTokenCollateral);
-            prime.updateQVL(liquidator, vTokenCollateral);
+            prime.updateScore(borrower, vTokenCollateral);
+            prime.updateScore(liquidator, vTokenCollateral);
         }
     }
 
@@ -711,8 +711,8 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
     // solhint-disable-next-line no-unused-vars
     function transferVerify(address vToken, address src, address dst, uint transferTokens) external {
         if (address(prime) != address(0)) {
-            prime.updateQVL(src, vToken);
-            prime.updateQVL(dst, vToken);
+            prime.updateScore(src, vToken);
+            prime.updateScore(dst, vToken);
         }
     }
 

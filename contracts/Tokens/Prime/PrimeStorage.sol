@@ -81,4 +81,6 @@ contract PrimeStorageV1 {
     address internal xvsVaultRewardToken;
 
     uint256 internal xvsVaultPoolId;
+
+    address internal comptroller;
 }

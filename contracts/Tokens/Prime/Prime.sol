@@ -49,13 +49,15 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         address _xvsVaultRewardToken,
         uint256 _xvsVaultPoolId,
         uint128 _alphaNumerator,
-        uint128 _alphaDemominator
+        uint128 _alphaDemominator,
+        address _comptroller
     ) external virtual initializer {
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDemominator;
         xvsVaultRewardToken = _xvsVaultRewardToken;
         xvsVaultPoolId = _xvsVaultPoolId;
         xvsVault = _xvsVault;
+        comptroller = _comptroller;
 
         __Ownable2Step_init();
     }
@@ -161,9 +163,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             interests[market][account].supply = supply;
             interests[market][account].borrow = borrow;
 
-            uint xvs = _xvsBalanceOfUser(account);
-
-            uint score = _calculateScore(xvs, market, account);
+            uint score = _calculateScore(market, account);
             interests[market][account].score = score;
             markets[market].score = markets[market].score + score;
         }
@@ -175,12 +175,16 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     function _calculateScore(
-        uint256 xvs,
         address market,
         address account
     ) internal view returns (uint256) {
-        uint xvsBalanceForScore = _xvsBalanceForScore(xvs);
-        return Scores.calculateScore(xvsBalanceForScore, _capitalForScore(xvsBalanceForScore, market, account), alphaNumerator, alphaDenominator);
+        uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(account));
+        return Scores.calculateScore(
+            xvsBalanceForScore, 
+            _capitalForScore(xvsBalanceForScore, market, account), 
+            alphaNumerator,
+            alphaDenominator
+        );
     }
 
     function _xvsBalanceForScore(
@@ -276,34 +280,33 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param account account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
      */
-    function executeBoost(address account, address vToken) public {
-        // if (_markets[vToken].lastUpdated == 0) {
-        //     return;
-        // }
+    function executeBoost(address account, address vToken) public onlyComptroller {
+        if (markets[vToken].lastUpdated == 0) {
+            return;
+        }
 
-        // if (_tokens[account].tier == Tier.ZERO) {
-        //     return;
-        // }
+        if (tokens[account].exists == false) {
+            return;
+        }
 
-        // accrueInterest(vToken);
-        // _executeBoost(account, vToken);
+        accrueInterest(vToken);
+        
+        if (interests[vToken][account].rewardIndex == markets[vToken].rewardIndex) {
+            return;
+        }
+
+        interests[vToken][account].accrued = _interestAccrued(vToken, account);
+        interests[vToken][account].rewardIndex = markets[vToken].rewardIndex;
+        interests[vToken][account].timesScoreUpdated = markets[vToken].timesScoreUpdated;
     }
 
-    function _executeBoost(address account, address vToken) internal {
-        // if (_interests[vToken][account].index == _markets[vToken].index) {
-        //     return;
-        // }
-
-        // _interests[vToken][account].accrued = _interestAccrued(vToken, account);
-        // _interests[vToken][account].index = _markets[vToken].index;
-    }
 
     /**
      * @notice Update total QVL of user and market. Must be called after changing account's borrow or supply balance.
      * @param account account for which we need to update QVL
      * @param market the market for which we need to QVL
      */
-    function updateScore(address account, address market) public {
+    function updateScore(address account, address market) public onlyComptroller {
         if (markets[market].lastUpdated == 0) {
             return;
         }
@@ -316,18 +319,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256 borrow = vToken.borrowBalanceCurrent(account);
         uint256 supply = vToken.balanceOfUnderlying(account);
 
-        uint xvs = _xvsBalanceOfUser(account);
+        uint score = _calculateScore(market, account);
 
-        uint score = _calculateScore(xvs, market, account);
-
+        markets[market].score = markets[market].score - interests[market][account].score;
         interests[market][account].score = score;
         markets[market].score = markets[market].score + score;
-
-        // when existing market is added to prime program we need to initiaze the market for the user
-        if (interests[market][account].rewardIndex == 0) {
-            interests[market][account].rewardIndex = markets[market].rewardIndex;
-            interests[market][account].timesScoreUpdated = markets[market].timesScoreUpdated;
-        }
     }
 
     /**
@@ -402,6 +398,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     modifier onlyXVSVault() {
         require(msg.sender == xvsVault, "only XVS vault can call this function");
+        _;
+    }
+
+    modifier onlyComptroller() {
+        require(msg.sender == comptroller, "only comptroller can call this function");
         _;
     }
 }
