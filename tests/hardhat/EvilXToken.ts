@@ -13,7 +13,7 @@ describe("Evil Token test", async () => {
   beforeEach(async () => {
     const [root, account1] = await ethers.getSigners();
 
-    const accessControlMock = await smock.fake<IAccessControlManager>("IAccessControlManager");
+    const accessControlMock = await smock.fake<IAccessControlManager>("contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager");
     accessControlMock.isAllowedToCall.returns(true);
 
     user = account1;

@@ -20,7 +20,7 @@ describe("Comptroller", () => {
     userAddress = await user.getAddress();
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     comptroller = await ComptrollerFactory.deploy();
-    accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+    accessControl = await smock.fake<IAccessControlManager>("contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager");
   });
 
   describe("_setAccessControlManager", () => {

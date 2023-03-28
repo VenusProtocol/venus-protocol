@@ -65,7 +65,7 @@ describe("VAIController", async () => {
       "BEP20 usdt",
     )) as BEP20Harness;
 
-    const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+    const accessControl = await smock.fake<IAccessControlManager>("contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager");
     accessControl.isAllowedToCall.returns(true);
 
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
@@ -534,7 +534,7 @@ describe("VAIController", async () => {
     });
 
     it("emits NewAccessControl event", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+      const newAccessControl = await smock.fake<IAccessControlManager>("contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager");
       const tx = await vaiController.setAccessControl(newAccessControl.address);
       await expect(tx)
         .to.emit(vaiController, "NewAccessControl")
@@ -542,7 +542,7 @@ describe("VAIController", async () => {
     });
 
     it("sets ACM address in storage", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+      const newAccessControl = await smock.fake<IAccessControlManager>("contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager");
       await vaiController.setAccessControl(newAccessControl.address);
       expect(await vaiController.getVariable("accessControl")).to.equal(newAccessControl.address);
     });
