@@ -6,7 +6,7 @@ import "../../Utils/V0.8.13/ErrorReporter.sol";
 import "../libraries/LibAccessCheck.sol";
 import "../libraries/LibHelper.sol";
 import "../libraries/appStorage.sol";
-import "../../Governance/V0.8.13/IAccessControlManagerV8.sol";
+import "../../Governance/V0.8.13/IAccessControlManager.sol";
 
 interface IXVS {
     function balanceOf(address account) external view returns (uint);

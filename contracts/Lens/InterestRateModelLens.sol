@@ -1,12 +1,8 @@
 pragma solidity 0.8.13;
-pragma experimental ABIEncoderV2;
 
-import "../InterestRateModels/InterestRateModel.sol";
-import "../Utils/SafeMath.sol";
+import "../InterestRateModels/V0.8.13/InterestRateModel.sol";
 
 contract InterestRateModelLens {
-    using SafeMath for uint256;
-
     struct SimulationResponse {
         uint256[] borrowSimulation;
         uint256[] supplySimulation;
@@ -26,7 +22,7 @@ contract InterestRateModelLens {
         uint reserves = 0;
 
         for (uint percent_Factor = 1; percent_Factor <= 100; ++percent_Factor) {
-            uint cash = (percent_Factor.mul(referenceAmountInWei)).div(1e2);
+            uint cash = (percent_Factor*referenceAmountInWei)/1e2;
             uint256 borrowRate = ir.getBorrowRate(cash, borrow, reserves);
             borrowSimulation[percent_Factor - 1] = borrowRate;
 

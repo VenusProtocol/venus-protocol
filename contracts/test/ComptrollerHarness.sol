@@ -1,16 +1,16 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "../Comptroller/Comptroller.sol";
 import "../Oracle/PriceOracle.sol";
 
 contract ComptrollerKovan is Comptroller {
-    function getXVSAddress() public view override returns (address) {
+    function getXVSAddress() public view returns (address) {
         return 0x61460874a7196d6a22D1eE4922473664b3E95270;
     }
 }
 
 contract ComptrollerRopsten is Comptroller {
-    function getXVSAddress() public view override returns (address) {
+    function getXVSAddress() public view returns (address) {
         return 0x1Fe16De955718CFAb7A44605458AB023838C2793;
     }
 }
@@ -40,7 +40,7 @@ contract ComptrollerHarness is Comptroller {
         xvsAddress = xvsAddress_;
     }
 
-    function getXVSAddress() public view override returns (address) {
+    function getXVSAddress() public view returns (address) {
         return xvsAddress;
     }
 
@@ -48,7 +48,7 @@ contract ComptrollerHarness is Comptroller {
         vXVSAddress = vXVSAddress_;
     }
 
-    function getXVSVTokenAddress() public view override returns (address) {
+    function getXVSVTokenAddress() public view returns (address) {
         return vXVSAddress;
     }
 
@@ -157,7 +157,7 @@ contract ComptrollerHarness is Comptroller {
         blockNumber = number;
     }
 
-    function getBlockNumber() public view override returns (uint) {
+    function getBlockNumber() public view returns (uint) {
         return blockNumber;
     }
 
@@ -196,7 +196,7 @@ contract ComptrollerBorked {
     }
 }
 
-abstract contract BoolComptroller is ComptrollerInterface {
+contract BoolComptroller is ComptrollerInterface {
     bool internal allowMint = true;
     bool internal allowRedeem = true;
     bool internal allowBorrow = true;
@@ -232,27 +232,27 @@ abstract contract BoolComptroller is ComptrollerInterface {
 
     /*** Assets You Are In ***/
 
-    function enterMarkets(address[] calldata _vTokens) external override returns (uint[] memory) {
+    function enterMarkets(address[] calldata _vTokens) external returns (uint[] memory) {
         _vTokens;
         uint[] memory ret;
         return ret;
     }
 
-    function exitMarket(address _vToken) external override returns (uint) {
+    function exitMarket(address _vToken) external returns (uint) {
         _vToken;
         return noError;
     }
 
     /*** Policy Hooks ***/
 
-    function mintAllowed(address _vToken, address _minter, uint _mintAmount) external override returns (uint) {
+    function mintAllowed(address _vToken, address _minter, uint _mintAmount) external returns (uint) {
         _vToken;
         _minter;
         _mintAmount;
         return allowMint ? noError : opaqueError;
     }
 
-    function mintVerify(address _vToken, address _minter, uint _mintAmount, uint _mintTokens) external override {
+    function mintVerify(address _vToken, address _minter, uint _mintAmount, uint _mintTokens) external {
         _vToken;
         _minter;
         _mintAmount;
@@ -260,19 +260,14 @@ abstract contract BoolComptroller is ComptrollerInterface {
         require(verifyMint, "mintVerify rejected mint");
     }
 
-    function redeemAllowed(address _vToken, address _redeemer, uint _redeemTokens) external override returns (uint) {
+    function redeemAllowed(address _vToken, address _redeemer, uint _redeemTokens) external returns (uint) {
         _vToken;
         _redeemer;
         _redeemTokens;
         return allowRedeem ? noError : opaqueError;
     }
 
-    function redeemVerify(
-        address _vToken,
-        address _redeemer,
-        uint _redeemAmount,
-        uint _redeemTokens
-    ) external override {
+    function redeemVerify(address _vToken, address _redeemer, uint _redeemAmount, uint _redeemTokens) external {
         _vToken;
         _redeemer;
         _redeemAmount;
@@ -280,14 +275,14 @@ abstract contract BoolComptroller is ComptrollerInterface {
         require(verifyRedeem, "redeemVerify rejected redeem");
     }
 
-    function borrowAllowed(address _vToken, address _borrower, uint _borrowAmount) external override returns (uint) {
+    function borrowAllowed(address _vToken, address _borrower, uint _borrowAmount) external returns (uint) {
         _vToken;
         _borrower;
         _borrowAmount;
         return allowBorrow ? noError : opaqueError;
     }
 
-    function borrowVerify(address _vToken, address _borrower, uint _borrowAmount) external override {
+    function borrowVerify(address _vToken, address _borrower, uint _borrowAmount) external {
         _vToken;
         _borrower;
         _borrowAmount;
@@ -299,7 +294,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
         address _payer,
         address _borrower,
         uint _repayAmount
-    ) external override returns (uint) {
+    ) external returns (uint) {
         _vToken;
         _payer;
         _borrower;
@@ -313,7 +308,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
         address _borrower,
         uint _repayAmount,
         uint _borrowerIndex
-    ) external override {
+    ) external {
         _vToken;
         _payer;
         _borrower;
@@ -332,7 +327,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
         address _liquidator,
         address _borrower,
         uint _repayAmount
-    ) external override returns (uint) {
+    ) external returns (uint) {
         _vTokenBorrowed;
         _vTokenCollateral;
         _borrower;
@@ -350,7 +345,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
         address _borrower,
         uint _repayAmount,
         uint _seizeTokens
-    ) external override {
+    ) external {
         _vTokenBorrowed;
         _vTokenCollateral;
         _liquidator;
@@ -366,7 +361,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
         address _borrower,
         address _liquidator,
         uint _seizeTokens
-    ) external override returns (uint) {
+    ) external returns (uint) {
         _vTokenCollateral;
         _vTokenBorrowed;
         _liquidator;
@@ -381,7 +376,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
         address _liquidator,
         address _borrower,
         uint _seizeTokens
-    ) external override {
+    ) external {
         _vTokenCollateral;
         _vTokenBorrowed;
         _liquidator;
@@ -395,7 +390,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
         address _src,
         address _dst,
         uint _transferTokens
-    ) external override returns (uint) {
+    ) external returns (uint) {
         _vToken;
         _src;
         _dst;
@@ -403,7 +398,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
         return allowTransfer ? noError : opaqueError;
     }
 
-    function transferVerify(address _vToken, address _src, address _dst, uint _transferTokens) external override {
+    function transferVerify(address _vToken, address _src, address _dst, uint _transferTokens) external {
         _vToken;
         _src;
         _dst;
@@ -417,7 +412,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
         address _vTokenBorrowed,
         address _vTokenCollateral,
         uint _repayAmount
-    ) external view override returns (uint, uint) {
+    ) external view returns (uint, uint) {
         _vTokenBorrowed;
         _vTokenCollateral;
         _repayAmount;
@@ -429,7 +424,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
     function liquidateVAICalculateSeizeTokens(
         address _vTokenCollateral,
         uint _repayAmount
-    ) external view override returns (uint, uint) {
+    ) external view returns (uint, uint) {
         _vTokenCollateral;
         _repayAmount;
         return vaiFailCalculateSeizeTokens ? (opaqueError, 0) : (noError, vaiCalculatedSeizeTokens);
@@ -528,7 +523,7 @@ abstract contract BoolComptroller is ComptrollerInterface {
     //     return 1e18;
     // }
 
-    function setMintedVAIOf(address owner, uint amount) external override returns (uint) {
+    function setMintedVAIOf(address owner, uint amount) external returns (uint) {
         owner;
         amount;
         return noError;
@@ -548,27 +543,27 @@ abstract contract BoolComptroller is ComptrollerInterface {
 
     /*** Functions from ComptrollerInterface not implemented by BoolComptroller ***/
 
-    function markets(address) external view override returns (bool, uint) {
+    function markets(address) external view returns (bool, uint) {
         revert();
     }
 
-    function oracle() external view override returns (PriceOracle) {
+    function oracle() external view returns (PriceOracle) {
         revert();
     }
 
-    function getAccountLiquidity(address) external view override returns (uint, uint, uint) {
+    function getAccountLiquidity(address) external view returns (uint, uint, uint) {
         revert();
     }
 
-    function getAssetsIn(address) external view override returns (VToken[] memory) {
+    function getAssetsIn(address) external view returns (VToken[] memory) {
         revert();
     }
 
-    function claimVenus(address) external override {
+    function claimVenus(address) external {
         revert();
     }
 
-    function venusAccrued(address) external view override returns (uint) {
+    function venusAccrued(address) external view returns (uint) {
         revert();
     }
 
@@ -576,27 +571,27 @@ abstract contract BoolComptroller is ComptrollerInterface {
         revert();
     }
 
-    function getAllMarkets() external view override returns (VToken[] memory) {
+    function getAllMarkets() external view returns (VToken[] memory) {
         revert();
     }
 
-    function venusSupplierIndex(address, address) external view override returns (uint) {
+    function venusSupplierIndex(address, address) external view returns (uint) {
         revert();
     }
 
-    function venusInitialIndex() external view override returns (uint224) {
+    function venusInitialIndex() external view returns (uint224) {
         revert();
     }
 
-    function venusBorrowerIndex(address, address) external view override returns (uint) {
+    function venusBorrowerIndex(address, address) external view returns (uint) {
         revert();
     }
 
-    function venusBorrowState(address) external view override returns (uint224, uint32) {
+    function venusBorrowState(address) external view returns (uint224, uint32) {
         revert();
     }
 
-    function venusSupplyState(address) external view override returns (uint224, uint32) {
+    function venusSupplyState(address) external view returns (uint224, uint32) {
         revert();
     }
 }

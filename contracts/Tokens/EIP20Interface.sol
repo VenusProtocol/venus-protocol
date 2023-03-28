@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 /**
  * @title BEP 20 Token Standard Interface

@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "./CarefulMath.sol";
 import "./ExponentialNoError.sol";

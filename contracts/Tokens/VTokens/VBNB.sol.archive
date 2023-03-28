@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "./VToken.sol";
 
@@ -26,9 +26,9 @@ contract VBNB is VToken {
         string memory symbol_,
         uint8 decimals_,
         address payable admin_
-    ) {
+    ) public {
         // Creator of the contract is admin during initialization
-        admin = payable(msg.sender);
+        admin = msg.sender;
 
         initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
 
@@ -39,7 +39,7 @@ contract VBNB is VToken {
     /**
      * @notice Send BNB to VBNB to mint
      */
-    fallback() external payable {
+    function() external payable {
         (uint err, ) = mintInternal(msg.value);
         requireNoError(err, "mint failed");
     }
@@ -135,14 +135,14 @@ contract VBNB is VToken {
      * @param amount Amount of BNB being sent
      * @return The actual amount of BNB transferred
      */
-    function doTransferIn(address from, uint amount) internal override returns (uint) {
+    function doTransferIn(address from, uint amount) internal returns (uint) {
         // Sanity checks
         require(msg.sender == from, "sender mismatch");
         require(msg.value == amount, "value mismatch");
         return amount;
     }
 
-    function doTransferOut(address payable to, uint amount) internal virtual override {
+    function doTransferOut(address payable to, uint amount) internal {
         /* Send the BNB, with minimal gas and revert on failure */
         to.transfer(amount);
     }
@@ -152,7 +152,7 @@ contract VBNB is VToken {
      * @dev This excludes the value of the current message, if any
      * @return The quantity of BNB owned by this contract
      */
-    function getCashPrior() internal view override returns (uint) {
+    function getCashPrior() internal view returns (uint) {
         (MathError err, uint startingBalance) = subUInt(address(this).balance, msg.value);
         require(err == MathError.NO_ERROR, "cash prior math error");
         return startingBalance;

@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "../XVSVault/XVSVault.sol";
 import "../Utils/IBEP20.sol";

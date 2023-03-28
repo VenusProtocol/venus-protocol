@@ -1,10 +1,8 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "../../contracts/Tokens/XVS/XVSVesting.sol";
 
 contract XVSVestingHarness is XVSVesting {
-    using SafeMath for uint256;
-    using SafeBEP20 for IBEP20;
     address public constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000;
 
     constructor() public XVSVesting() {

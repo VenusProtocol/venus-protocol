@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
 contract GovernorAlpha2 {
@@ -177,22 +177,23 @@ contract GovernorAlpha2 {
         uint endBlock = add256(startBlock, votingPeriod());
 
         proposalCount++;
-        Proposal storage newProposal = proposals[proposalCount];
-        newProposal.id = proposalCount;
-        newProposal.proposer = msg.sender;
-        newProposal.eta = 0;
-        newProposal.targets = targets;
-        newProposal.values = values;
-        newProposal.signatures = signatures;
-        newProposal.calldatas = calldatas;
-        newProposal.startBlock = startBlock;
-        newProposal.endBlock = endBlock;
-        newProposal.forVotes = 0;
-        newProposal.againstVotes = 0;
-        newProposal.canceled = false;
-        newProposal.executed = false;
+        Proposal memory newProposal = Proposal({
+            id: proposalCount,
+            proposer: msg.sender,
+            eta: 0,
+            targets: targets,
+            values: values,
+            signatures: signatures,
+            calldatas: calldatas,
+            startBlock: startBlock,
+            endBlock: endBlock,
+            forVotes: 0,
+            againstVotes: 0,
+            canceled: false,
+            executed: false
+        });
 
-        //proposals[newProposal.id] = newProposal;
+        proposals[newProposal.id] = newProposal;
         latestProposalIds[newProposal.proposer] = newProposal.id;
 
         emit ProposalCreated(
@@ -239,7 +240,7 @@ contract GovernorAlpha2 {
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
-            timelock.executeTransaction{ value: proposal.values[i] }(
+            timelock.executeTransaction.value(proposal.values[i])(
                 proposal.targets[i],
                 proposal.values[i],
                 proposal.signatures[i],
@@ -378,7 +379,7 @@ contract GovernorAlpha2 {
         return a - b;
     }
 
-    function getChainId() internal view returns (uint) {
+    function getChainId() internal pure returns (uint) {
         uint chainId;
         assembly {
             chainId := chainid()

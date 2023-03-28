@@ -1,6 +1,6 @@
 pragma solidity 0.8.13;
 
-import "../../Governance/V0.8.13/IAccessControlManagerV8.sol";
+import "../../Governance/V0.8.13/IAccessControlManager.sol";
 import "../../Tokens/V0.8.13/VTokens/VToken.sol";
 import "../libraries/appStorage.sol";
 
@@ -52,7 +52,7 @@ library LibAccessCheck {
 
     function ensureAllowed(string memory functionSig) internal view {
         AppStorage storage s = LibAppStorage.diamondStorage();
-        require(IAccessControlManagerV8(s.accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+        require(IAccessControlManager(s.accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /**

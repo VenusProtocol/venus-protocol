@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.5;
 
 /**
  * @dev Collection of functions related to the address type
@@ -41,7 +41,7 @@ library Address {
      * _Available since v2.4.0._
      */
     function toPayable(address account) internal pure returns (address payable) {
-        return payable(address(uint160(account)));
+        return address(uint160(account));
     }
 
     /**
@@ -67,7 +67,7 @@ library Address {
 
         // solhint-disable-next-line avoid-call-value
         // solium-disable-next-line security/no-call-value
-        (bool success, ) = recipient.call{ value: amount }("");
+        (bool success, ) = recipient.call.value(amount)("");
         require(success, "Address: unable to send value, recipient may have reverted");
     }
 }

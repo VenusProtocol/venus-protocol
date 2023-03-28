@@ -4,7 +4,7 @@
 // SPDX-Copyright-Text: OpenZeppelin, 2021
 // SPDX-Copyright-Text: Venus, 2021
 
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.

@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "./VBep20.sol";
 
@@ -17,7 +17,7 @@ contract VBep20Delegate is VBep20, VDelegateInterface {
      * @notice Called by the delegator on a delegate to initialize it for duty
      * @param data The encoded bytes data for any initialization
      */
-    function _becomeImplementation(bytes memory data) public override {
+    function _becomeImplementation(bytes memory data) public {
         // Shh -- currently unused
         data;
 
@@ -32,7 +32,7 @@ contract VBep20Delegate is VBep20, VDelegateInterface {
     /**
      * @notice Called by the delegator on a delegate to forfeit its responsibility
      */
-    function _resignImplementation() public override {
+    function _resignImplementation() public {
         // Shh -- we don't ever want this hook to be marked pure
         if (false) {
             implementation = address(0);

@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "../Tokens/VTokens/VBep20.sol";
 import "../Tokens/BEP20Interface.sol";
@@ -32,7 +32,7 @@ contract VenusChainlinkOracle is PriceOracle {
         emit MaxStalePeriodUpdated(oldMaxStalePeriod, newMaxStalePeriod);
     }
 
-    function getUnderlyingPrice(VToken vToken) public view override returns (uint) {
+    function getUnderlyingPrice(VToken vToken) public view returns (uint) {
         string memory symbol = vToken.symbol();
         if (compareStrings(symbol, "vBNB")) {
             return getChainlinkPrice(getFeed(symbol));

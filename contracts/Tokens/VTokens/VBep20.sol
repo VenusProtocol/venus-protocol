@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "./VToken.sol";
 
@@ -18,7 +18,7 @@ contract VBep20 is VToken, VBep20Interface {
      */
     // @custom:event Emits Transfer event
     // @custom:event Emits Mint event
-    function mint(uint mintAmount) external override returns (uint) {
+    function mint(uint mintAmount) external returns (uint) {
         (uint err, ) = mintInternal(mintAmount);
         return err;
     }
@@ -32,7 +32,7 @@ contract VBep20 is VToken, VBep20Interface {
      */
     // @custom:event Emits Transfer event
     // @custom:event Emits MintBehalf event
-    function mintBehalf(address receiver, uint mintAmount) external override returns (uint) {
+    function mintBehalf(address receiver, uint mintAmount) external returns (uint) {
         (uint err, ) = mintBehalfInternal(receiver, mintAmount);
         return err;
     }
@@ -46,7 +46,7 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits Redeem event on success
     // @custom:event Emits Transfer event on success
     // @custom:event Emits RedeemFee when fee is charged by the treasury
-    function redeem(uint redeemTokens) external override returns (uint) {
+    function redeem(uint redeemTokens) external returns (uint) {
         return redeemInternal(redeemTokens);
     }
 
@@ -59,7 +59,7 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits Redeem event on success
     // @custom:event Emits Transfer event on success
     // @custom:event Emits RedeemFee when fee is charged by the treasury
-    function redeemUnderlying(uint redeemAmount) external override returns (uint) {
+    function redeemUnderlying(uint redeemAmount) external returns (uint) {
         return redeemUnderlyingInternal(redeemAmount);
     }
 
@@ -69,9 +69,9 @@ contract VBep20 is VToken, VBep20Interface {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits Borrow event on success
-    function borrow(uint borrowAmount) external override returns (uint) {
+    function borrow(uint borrowAmount) external returns (uint) {
         address borrower = msg.sender;
-        address payable receiver = payable(msg.sender);
+        address payable receiver = msg.sender;
         return borrowInternal(borrower, receiver, borrowAmount);
     }
 
@@ -85,7 +85,7 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits Borrow event on success
     function borrowBehalf(address borrower, uint borrowAmount) external returns (uint) {
         require(comptroller.approvedDelegates(borrower, msg.sender), "not an approved delegate");
-        address payable receiver = payable(msg.sender);
+        address payable receiver = msg.sender;
         return borrowInternal(borrower, receiver, borrowAmount);
     }
 
@@ -95,7 +95,7 @@ contract VBep20 is VToken, VBep20Interface {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits RepayBorrow event on success
-    function repayBorrow(uint repayAmount) external override returns (uint) {
+    function repayBorrow(uint repayAmount) external returns (uint) {
         (uint err, ) = repayBorrowInternal(repayAmount);
         return err;
     }
@@ -107,7 +107,7 @@ contract VBep20 is VToken, VBep20Interface {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits RepayBorrow event on success
-    function repayBorrowBehalf(address borrower, uint repayAmount) external override returns (uint) {
+    function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint) {
         (uint err, ) = repayBorrowBehalfInternal(borrower, repayAmount);
         return err;
     }
@@ -125,7 +125,7 @@ contract VBep20 is VToken, VBep20Interface {
         address borrower,
         uint repayAmount,
         VTokenInterface vTokenCollateral
-    ) external override returns (uint) {
+    ) external returns (uint) {
         (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;
     }
@@ -136,7 +136,7 @@ contract VBep20 is VToken, VBep20Interface {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits ReservesAdded event
-    function _addReserves(uint addAmount) external override returns (uint) {
+    function _addReserves(uint addAmount) external returns (uint) {
         return _addReservesInternal(addAmount);
     }
 
@@ -178,7 +178,7 @@ contract VBep20 is VToken, VBep20Interface {
      *      Note: This wrapper safely handles non-standard BEP-20 tokens that do not return a value.
      *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
      */
-    function doTransferIn(address from, uint amount) internal override returns (uint) {
+    function doTransferIn(address from, uint amount) internal returns (uint) {
         EIP20NonStandardInterface token = EIP20NonStandardInterface(underlying);
         uint balanceBefore = EIP20Interface(underlying).balanceOf(address(this));
         token.transferFrom(from, address(this), amount);
@@ -217,7 +217,7 @@ contract VBep20 is VToken, VBep20Interface {
      *      Note: This wrapper safely handles non-standard BEP-20 tokens that do not return a value.
      *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
      */
-    function doTransferOut(address payable to, uint amount) internal virtual override {
+    function doTransferOut(address payable to, uint amount) internal {
         EIP20NonStandardInterface token = EIP20NonStandardInterface(underlying);
         token.transfer(to, amount);
 
@@ -246,7 +246,7 @@ contract VBep20 is VToken, VBep20Interface {
      * @dev This excludes the value of the current message, if any
      * @return The quantity of underlying tokens owned by this contract
      */
-    function getCashPrior() internal view override returns (uint) {
+    function getCashPrior() internal view returns (uint) {
         EIP20Interface token = EIP20Interface(underlying);
         return token.balanceOf(address(this));
     }

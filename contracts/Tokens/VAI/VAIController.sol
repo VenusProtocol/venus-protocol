@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "../../Oracle/PriceOracle.sol";
 import "../../Utils/ErrorReporter.sol";
@@ -92,7 +92,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
         vaiMintIndex = INITIAL_VAI_MINT_INDEX;
         accrualBlockNumber = getBlockNumber();
-        mintCap = type(uint256).max;
+        mintCap = uint256(-1);
 
         // The counter starts true to prevent changing it from zero to non-zero (i.e. smaller cost/refund)
         _notEntered = true;
@@ -324,7 +324,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
             }
 
             /* Fail if repayAmount = -1 */
-            if (repayAmount == type(uint).max) {
+            if (repayAmount == uint(-1)) {
                 return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
             }
 
@@ -764,11 +764,11 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         emit NewVAIMintCap(old, _mintCap);
     }
 
-    function getBlockNumber() public view virtual returns (uint) {
+    function getBlockNumber() public view returns (uint) {
         return block.number;
     }
 
-    function getBlocksPerYear() public view virtual returns (uint) {
+    function getBlocksPerYear() public view returns (uint) {
         return 10512000; //(24 * 60 * 60 * 365) / 3;
     }
 
@@ -776,7 +776,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
      * @notice Return the address of the VAI token
      * @return The address of VAI
      */
-    function getVAIAddress() public view virtual returns (address) {
+    function getVAIAddress() public view returns (address) {
         return 0x4BD17003473389A42DAF6a0a729f6Fdb328BbBd7;
     }
 

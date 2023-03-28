@@ -4,7 +4,7 @@ import "../../Oracle/V0.8.13/PriceOracle.sol";
 import "../../Tokens/V0.8.13/VTokens/VToken.sol";
 import "../../Utils/V0.8.13/ErrorReporter.sol";
 import "../libraries/appStorage.sol";
-import "../../Governance/V0.8.13/IAccessControlManagerV8.sol";
+import "../../Governance/V0.8.13/IAccessControlManager.sol";
 import "../libraries/LibAccessCheck.sol";
 import "../libraries/LibHelper.sol";
 

@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "../Utils/IBEP20.sol";
 import "../Utils/SafeBEP20.sol";
@@ -20,7 +20,7 @@ contract VTreasury is Ownable {
     /**
      * @notice To receive BNB
      */
-    receive() external payable {}
+    function() external payable {}
 
     /**
      * @notice Withdraw Treasury BEP20 Tokens, Only owner call it

@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "../Tokens/VAI/VAIController.sol";
 
@@ -20,7 +20,7 @@ contract VAIControllerHarness is VAIController {
         vaiAddress = vaiAddress_;
     }
 
-    function getVAIAddress() public view override returns (address) {
+    function getVAIAddress() public view returns (address) {
         return vaiAddress;
     }
 
@@ -56,11 +56,11 @@ contract VAIControllerHarness is VAIController {
         blocksPerYear = number;
     }
 
-    function getBlockNumber() public view override returns (uint) {
+    function getBlockNumber() public view returns (uint) {
         return blockNumber;
     }
 
-    function getBlocksPerYear() public view override returns (uint) {
+    function getBlocksPerYear() public view returns (uint) {
         return blocksPerYear;
     }
 }

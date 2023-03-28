@@ -1,6 +1,6 @@
 pragma solidity 0.8.13;
 
-import "../InterestRateModels/InterestRateModel.sol";
+import "../InterestRateModels/V0.8.13/InterestRateModel.sol";
 
 /**
  * @title An Interest Rate Model for tests that can be instructed to return a failure instead of doing a calculation
