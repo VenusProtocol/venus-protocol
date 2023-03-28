@@ -180,6 +180,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   await vusdt._setPrimeToken(prime.address);
   await veth._setPrimeToken(prime.address);
+  await comptroller._setPrimeToken(prime.address);
 
   return {
     oracle,
@@ -355,9 +356,21 @@ describe("PrimeScenario Token", () => {
     let usdt: BEP20Harness;
     let eth: BEP20Harness;
     let oracle: FakeContract<PriceOracle>;
+    let xvsVault: XVSVault;
+    let xvs: XVS;
 
     beforeEach(async () => {
-      ({ comptroller, prime, vusdt, veth, usdt, eth, oracle } = await loadFixture(deployProtocol));
+      ({ comptroller, prime, vusdt, veth, usdt, eth, oracle, xvsVault, xvs } = await loadFixture(deployProtocol));
+
+      const [user1, user2] = accounts;
+
+      await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
+      await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));
+      await mine(90 * 24 * 60 * 60);
+      await prime.connect(user1).claim()
+
+      await xvs.connect(user2).approve(xvsVault.address, bigNumber18.mul(100));
+      await xvsVault.connect(user2).deposit(xvs.address, 0, bigNumber18.mul(100));
 
       await eth.connect(accounts[0]).approve(veth.address, bigNumber18.mul(90));
       await veth.connect(accounts[0]).mint(bigNumber18.mul(90));
@@ -386,44 +399,26 @@ describe("PrimeScenario Token", () => {
       expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("2371440609779311958519")
     })
 
-  //   it("accrue interest", async () => {
-  //     const [user1, user2] = accounts;
+    it("accrue interest", async () => {
+      const [user1, user2] = accounts;
 
-  //     await prime.executeBoost(user1.getAddress(), vusdt.address);
+      let interest = await prime.interests(vusdt.address, user1.getAddress());
+      expect(interest.score).to.be.equal("223606797749979014552");
+      expect(interest.accrued).to.be.equal(0);
+      expect(interest.rewardIndex).to.be.equal(bigNumber18);
+      expect(interest.indexMultiplier).to.be.equal(2);
 
-  //     let interest = await prime._interests(vusdt.address, user1.getAddress());
-  //     expect(interest.totalQVL).to.be.equal(0);
+      await prime.issue(false, [user2.getAddress()])
 
-  //     await prime.issue(true, [user1.getAddress(), user2.getAddress()], [1, 1]);
+      interest = await prime.interests(vusdt.address, user2.getAddress());
+      expect(interest.score).to.be.equal(bigNumber18.mul(100));
+      expect(interest.accrued).to.be.equal(0);
+      expect(interest.rewardIndex).to.be.equal(bigNumber18);
+      expect(interest.indexMultiplier).to.be.equal(3);
 
-  //     interest = await prime._interests(vusdt.address, user1.getAddress());
-  //     expect(interest.totalQVL).to.be.equal(bigNumber18.mul(5));
-  //     expect(interest.index).to.be.equal(bigNumber18.mul(1));
-  //     expect(interest.accrued).to.be.equal(0);
-
-  //     interest = await prime._interests(veth.address, user1.getAddress());
-  //     expect(interest.totalQVL).to.be.equal(bigNumber18.mul(90));
-
-  //     const market = await prime._markets(vusdt.address);
-  //     expect(market.totalQVL).to.be.equal(bigNumber18.mul(9005));
-
-  //     await mine(24 * 60 * 20);
-  //     await prime.executeBoost(user1.getAddress(), vusdt.address);
-
-  //     interest = await prime._interests(vusdt.address, user1.getAddress());
-
-  //     /**
-  //      * incomePerBlock * totalBlocks / totalQVL = 18 * 28800 / 9005000000000000000000 = 57
-  //      */
-  //     expect(interest.index).to.be.equal(BigNumber.from("1000000000000000057"));
-
-  //     /**
-  //      * accrued = index * qvl = 57 * 5 = 285
-  //      */
-  //     expect(interest.accrued).to.be.equal("285");
-
-  //     expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal("285");
-  //   });
+      await mine(24 * 60 * 20);
+      expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(715988)
+    });
 
   //   it("claim interest", async () => {
   //     const [user1, user2] = accounts;

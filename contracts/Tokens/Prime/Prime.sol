@@ -12,13 +12,15 @@ interface IVToken {
 
     function reserveFactorMantissa() external returns (uint);
 
-    function totalBorrowsCurrent() external returns (uint);
+    function totalBorrows() external returns (uint);
 
     function accrueInterest() external returns (uint);
 
-    function borrowBalanceCurrent(address account) external returns (uint);
+    function borrowBalanceStored(address account) external returns (uint);
 
-    function balanceOfUnderlying(address account) external returns (uint);
+    function exchangeRateStored() external returns (uint);
+
+    function balanceOf(address account) external returns (uint);
 
     function underlying() external returns (address);
 }
@@ -85,8 +87,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     function addMarket(
         address vToken,
-        uint256 supplyMultiplier, //represented as 1e18
-        uint256 borrowMultiplier //represented as 1e18
+        uint256 supplyMultiplier, //represented as EXP_SCALE
+        uint256 borrowMultiplier //represented as EXP_SCALE
     ) external onlyOwner {
         require(markets[vToken].lastUpdated == 0, "market is already added");
 
@@ -154,14 +156,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             address market = allMarkets[i];
             accrueInterest(market);
             
-            IVToken vToken = IVToken(allMarkets[i]);
-            uint256 borrow = vToken.borrowBalanceCurrent(account);
-            uint256 supply = vToken.balanceOfUnderlying(account);
-
             interests[market][account].rewardIndex = markets[market].rewardIndex;
             interests[market][account].indexMultiplier = markets[market].indexMultiplier;
-            interests[market][account].supply = supply;
-            interests[market][account].borrow = borrow;
 
             uint score = _calculateScore(market, account);
             interests[market][account].score = score;
@@ -177,11 +173,18 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     function _calculateScore(
         address market,
         address account
-    ) internal view returns (uint256) {
+    ) internal returns (uint256) {
         uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(account));
+
+        IVToken vToken = IVToken(market);
+        uint256 borrow = vToken.borrowBalanceStored(account);
+        uint256 exchangeRate = vToken.exchangeRateStored();
+        uint256 balanceOfAccount = vToken.balanceOf(account);
+        uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
+
         return Scores.calculateScore(
             xvsBalanceForScore, 
-            _capitalForScore(xvsBalanceForScore, market, account), 
+            _capitalForScore(xvsBalanceForScore, borrow, supply, market), 
             alphaNumerator,
             alphaDenominator
         );
@@ -199,14 +202,12 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     function _capitalForScore(
         uint256 xvs,
-        address market,
-        address account
+        uint256 borrow, 
+        uint256 supply,
+        address market
     ) internal view returns (uint256) {
-        uint256 borrowCap = (xvs * markets[market].borrowMultiplier) / 1e18;
-        uint256 supplyCap = (xvs * markets[market].supplyMultiplier) / 1e18;
-
-        uint256 supply = interests[market][account].supply;
-        uint256 borrow = interests[market][account].borrow;
+        uint256 borrowCap = (xvs * markets[market].borrowMultiplier) / EXP_SCALE;
+        uint256 supplyCap = (xvs * markets[market].supplyMultiplier) / EXP_SCALE;
 
         if (supply > supplyCap) {
             supply = supplyCap;
@@ -290,12 +291,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
 
         accrueInterest(vToken);
-        
         interests[vToken][account].accrued = _interestAccrued(vToken, account);
         interests[vToken][account].rewardIndex = markets[vToken].rewardIndex;
         interests[vToken][account].indexMultiplier = markets[vToken].indexMultiplier;
     }
-
 
     /**
      * @notice Update total QVL of user and market. Must be called after changing account's borrow or supply balance.
@@ -311,12 +310,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             return;
         }
 
-        IVToken vToken = IVToken(market);
-        uint256 borrow = vToken.borrowBalanceCurrent(account);
-        uint256 supply = vToken.balanceOfUnderlying(account);
-
         uint score = _calculateScore(market, account);
-
         markets[market].score = markets[market].score - interests[market][account].score;
         interests[market][account].score = score;
         markets[market].score = markets[market].score + score;
@@ -332,14 +326,14 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         IVToken market = IVToken(vToken);
 
         uint256 pastBlocks = block.number - markets[vToken].lastUpdated;
-        uint256 protocolIncomePerBlock = (((market.totalBorrowsCurrent() * market.borrowRatePerBlock()) / 1e18) *
-            market.reserveFactorMantissa()) / 1e18;
+        uint256 protocolIncomePerBlock = (((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) *
+            market.reserveFactorMantissa()) / EXP_SCALE;
         uint256 accumulatedIncome = protocolIncomePerBlock * pastBlocks;
         uint256 distributionIncome = (accumulatedIncome * INCOME_DISTRIBUTION_BPS) / MAXIMUM_BPS;
 
         uint256 delta;
         if (markets[vToken].score > 0) {
-            delta = ((distributionIncome * 1e18) / markets[vToken].score);
+            delta = ((distributionIncome * EXP_SCALE) / markets[vToken].score);
         }
          
         markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;
@@ -376,7 +370,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256 indexMultiplier = markets[vToken].indexMultiplier - interests[vToken][account].indexMultiplier;
         uint256 score = interests[vToken][account].score;
 
-        return (index * indexMultiplier * score) / 1e18;
+        return (index * indexMultiplier * score) / EXP_SCALE;
     }
 
     /**

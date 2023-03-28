@@ -20,27 +20,28 @@ contract PrimeStorageV1 {
         uint256 score;
         uint256 indexMultiplier;
         uint256 rewardIndex;
-        uint256 supply;
-        uint256 borrow;
     }
 
+    uint internal constant EXP_SCALE = 1e18;
+
     /// @notice minimum amount of XVS user needs to stake to become a prime member
-    uint256 public constant MINIMUM_STAKED_XVS = 1000 * 1e18;
+    uint256 public constant MINIMUM_STAKED_XVS = 1000 * EXP_SCALE;
 
     /// @notice maximum XVS taken in account when calculating user score
-    uint256 public constant MAXIMUM_XVS_CAP = 10000 * 1e18;
+    uint256 public constant MAXIMUM_XVS_CAP = 10000 * EXP_SCALE;
 
     /// @notice number of days user need to stake to claim prime token
     uint256 internal constant STAKING_PERIOD = 90 * 24 * 60 * 60;
 
     /// @notice initial market index
-    uint256 internal constant INITIAL_INDEX = 1e18;
+    uint256 internal constant INITIAL_INDEX = EXP_SCALE;
 
     /// @notice maxmimum BPS = 100%
     uint256 internal constant MAXIMUM_BPS = 10000;
 
     /// @notice protocol income distribution BPS = 20%
     uint256 internal constant INCOME_DISTRIBUTION_BPS = 2000;
+
 
     /// @notice Mapping to get prime token's metadata
     mapping(address => Token) public tokens;
