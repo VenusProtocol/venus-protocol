@@ -8,6 +8,7 @@ import { VRT, VRTVault, VRTVault__factory, VRT__factory } from "../../../typecha
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 
 describe("VRTVault", async () => {
+  let lastAccruingBlock;
   async function deployVaultFixture() {
     const [deployer, user1, user2] = await ethers.getSigners();
 
@@ -17,7 +18,9 @@ describe("VRTVault", async () => {
     const vrtVaultFactory: VRTVault__factory = await ethers.getContractFactory("VRTVault");
     const vrtVault: VRTVault = await vrtVaultFactory.deploy();
     await vrtVault.initialize(vrt.address, bigNumber18);
-
+    //setting last accruing block to be 1000 blocks after deployment
+    lastAccruingBlock = (await ethers.provider.getBlock("latest")).number + 1000;
+    await vrtVault.setLastAccruingBlock(lastAccruingBlock);
     return { vrtVault, vrt, user1, user2 };
   }
 
