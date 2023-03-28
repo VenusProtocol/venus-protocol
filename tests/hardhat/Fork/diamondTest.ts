@@ -5,7 +5,7 @@ import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 
-import { IERC20Upgradeable, VBep20, VToken__factory, XVS__factory } from "../../../typechain";
+import { VBep20, VToken__factory, XVS__factory } from "../../../typechain";
 
 const { deployDiamond } = require("../../../script/diamond/deploy");
 
@@ -79,8 +79,8 @@ const forking = (blockNumber: number, fn: () => void) => {
 };
 
 forking(26713742, () => {
-  let USDT: IERC20Upgradeable;
-  let BUSD: IERC20Upgradeable;
+  let USDT: ethers.contract;
+  let BUSD: ethers.contract;
   // let XVS: IERC20Upgradeable;
   let usdtHolder: ethers.Signer;
   let busdHolder: ethers.Signer;
@@ -252,7 +252,7 @@ forking(26713742, () => {
           const comptrollerLensUpgrade = await diamondUnitroller.comptrollerLens();
           expect(comptrollerLens).to.equal(comptrollerLensUpgrade);
 
-          // cheking all public mapingns
+          // cheking all public mappings
           market = await unitroller.markets(vBUSD.address);
           const marketUpgrade = await diamondUnitroller.markets(vBUSD.address);
           expect(market.collateralFactorMantissa).to.equal(marketUpgrade.collateralFactorMantissa);

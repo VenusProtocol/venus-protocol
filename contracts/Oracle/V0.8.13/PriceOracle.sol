@@ -1,4 +1,4 @@
-pragma solidity ^0.8.13;
+pragma solidity 0.8.13;
 
 import "../../Tokens/V0.8.13/VTokens/VToken.sol";
 

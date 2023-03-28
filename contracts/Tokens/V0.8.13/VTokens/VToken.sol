@@ -1,4 +1,4 @@
-pragma solidity ^0.8.13;
+pragma solidity 0.8.13;
 
 import "../../../Utils/V0.8.13/ErrorReporter.sol";
 import "../../../Utils/V0.8.13/Exponential.sol";
