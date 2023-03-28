@@ -22,6 +22,7 @@ let owner,
   unitroller,
   diamondProxy,
   // layout variables
+  oracle,
   maxAssets,
   closeFactorMantissa,
   liquidationIncentiveMantissa,
@@ -81,12 +82,10 @@ const forking = (blockNumber: number, fn: () => void) => {
 forking(26713742, () => {
   let USDT: ethers.contract;
   let BUSD: ethers.contract;
-  // let XVS: IERC20Upgradeable;
   let usdtHolder: ethers.Signer;
   let busdHolder: ethers.Signer;
   let vBUSD: ethers.contract;
   let vUSDT: ethers.contract;
-  // let vXVS: ethers.contract;
   let admin: SignerWithAddress;
   let diamondUnitroller;
 
@@ -155,6 +154,10 @@ forking(26713742, () => {
 
       describe("Verify storage layout", async () => {
         it("verify all the state before and after upgrade", async () => {
+          oracle = await unitroller.oracle();
+          const oracelUpgrade = await diamondUnitroller.oracle();
+          expect(oracle).to.equal(oracelUpgrade);
+
           maxAssets = await unitroller.maxAssets();
           const maxAssetsAfterUpgrade = await diamondUnitroller.maxAssets();
           expect(maxAssets).to.equal(maxAssetsAfterUpgrade);
@@ -284,7 +287,6 @@ forking(26713742, () => {
       });
     });
 
-    // TODO !!
     describe("Verify states of diamond Contract", () => {
       describe("Diamond setters", () => {
         it("setting market supply cap", async () => {
@@ -348,12 +350,13 @@ forking(26713742, () => {
             "ActionPausedMarket",
           );
 
+          await expect(vBUSD.connect(usdtHolder).mint(1000)).to.be.revertedWith("action is paused")
+
           expect(await diamondUnitroller.connect(owner)._setActionsPaused([vBUSD.address], [0], false)).to.emit(
             vBUSD,
             "ActionPausedMarket",
           );
-
-          // expect(await vBUSD.connect(usdtHolder).mint(1000)).to.be.reverted("action is paused")
+          expect(await vBUSD.connect(busdHolder).mint(10)).to.be.emit(vBUSD, "Mint")
         });
       });
 
@@ -405,20 +408,6 @@ forking(26713742, () => {
 
           expect(await vBUSD.connect(busdHolder).repayBorrow(1000)).to.emit(vBUSD, "RepayBorrow");
           expect((await BUSD.balanceOf(busdHolder.address)).toString()).to.equal(busdUserBal);
-        });
-
-        describe("Diamond Rewards", () => {
-          it("grant and claim rewards", async () => {
-            const xvsOwner = "0x3a3284dc0faffb0b5f0d074c4c704d14326c98cf";
-            await impersonateAccount(xvsOwner);
-            const xvsAdmin = await ethers.getSigner(xvsOwner);
-
-            const vXVSAddress = await unitroller.getXVSVTokenAddress();
-            const XVSAddress = await unitroller.getXVSAddress();
-            const XVS = XVS__factory.connect(XVSAddress, xvsAdmin);
-            const vXVS = VToken__factory.connect(vXVSAddress, admin);
-            // await diamondUnitroller.claimVenus(busdHolder.address,[vBUSD.address]);
-          });
         });
       });
     });
