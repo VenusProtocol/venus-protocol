@@ -23,6 +23,14 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         return s.accountAssets[account];
     }
 
+    function venusSupplierIndex(address market, address borrower) external view returns(uint){
+        return s.venusSupplierIndex[market][borrower];
+    }
+
+    function venusBorrowerIndex(address market, address borrower) external view returns(uint){
+        return s.venusBorrowerIndex[market][borrower];
+    }
+
     function oracle() external view returns (PriceOracle) {
         return s.oracle;
     }
@@ -140,7 +148,9 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         return s.liquidatorContract;
     }
 
-    
+    function pauseGuardian() external view returns(address){
+        return s.pauseGuardian;
+    }
 
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     function isComptroller() external pure returns (bool) {
