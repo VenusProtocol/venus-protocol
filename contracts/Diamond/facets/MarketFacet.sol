@@ -99,9 +99,48 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         return s.venusAccrued[token];
     }
 
+    function mintedVAIs(address vToken) external view returns (uint) {
+        return s.mintedVAIs[vToken];
+    }
     function vaiMintRate() external view returns (uint) {
         return s.vaiMintRate;
     }
+    function venusVAIVaultRate() external view returns (uint) {
+        return s.venusVAIVaultRate;
+    }
+    function vaiVaultAddress() external view returns (address) {
+        return s.vaiVaultAddress;
+    }
+    function releaseStartBlock() external view returns (uint256) {
+        return s.releaseStartBlock;
+    }
+    function minReleaseAmount() external view returns (uint256) {
+        return s.minReleaseAmount;
+    }
+    function borrowCapGuardian() external view returns (address) {
+        return s.borrowCapGuardian;
+    }
+    function borrowCaps(address token) external view returns (uint) {
+        return s.borrowCaps[token];
+    }
+
+    function  mintVAIGuardianPaused() external view returns(bool){
+        return s.mintVAIGuardianPaused;
+    }
+
+    function  repayVAIGuardianPaused() external view returns(bool){
+        return s.repayVAIGuardianPaused;
+    }
+
+    function  protocolPaused() external view returns(bool){
+        return s.protocolPaused;
+    }
+
+    function liquidatorContract() externl view returns(address){
+        return s.liquidatorContract;
+    }
+
+    
 
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     function isComptroller() external pure returns (bool) {

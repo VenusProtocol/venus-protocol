@@ -1,11 +1,11 @@
-import { MockContract, smock } from "@defi-wonderland/smock";
-import { impersonateAccount, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { smock } from "@defi-wonderland/smock";
+import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 
-import { Comptroller__factory, IERC20Upgradeable, VBep20, VToken__factory, XVS__factory } from "../../../typechain";
+import { IERC20Upgradeable, VBep20 } from "../../../typechain";
 
 const { deployDiamond } = require("../../../script/diamond/deploy");
 
@@ -31,7 +31,22 @@ let owner,
   venusSupplyState,
   venusBorrowState,
   venusAccrued,
-  vaiMintRate;
+  vaiMintRate,
+  vaiController,
+  mintedVAIs,
+  mintVAIGuardianPaused, 
+  repayVAIGuardianPaused,
+  protocolPaused,
+  venusVAIVaultRate,
+  vaiVaultAddress,
+  releaseStartBlock,
+  minReleaseAmount,
+  treasuryGuardian,
+  treasuryAddress,
+  treasuryPercent,
+  liquidatorContract,
+  comptrollerLens,
+  market
 
 const initMainnetUser = async (user: string) => {
   await impersonateAccount(user);
@@ -80,7 +95,7 @@ forking(26713742, () => {
       /**
        *  sending gas cost to owner
        * */
-      impersonateAccount(Owner);
+      await impersonateAccount(Owner);
       owner = await ethers.getSigner(Owner);
       const [signer] = await ethers.getSigners();
       await signer.sendTransaction({
@@ -118,7 +133,6 @@ forking(26713742, () => {
 
     describe("Verify Storage slots", () => {
       // These tests checks the storage collision of comptroller while updating it via diamond.
-      // Using mainnet comptroller fork to verify it.
       describe("Diamond deployed successfully", async () => {
         it("Owner of Diamond unitroller contract should match", async () => {
           const diamondUnitrollerAdmin = await diamondUnitroller.admin();
@@ -136,130 +150,175 @@ forking(26713742, () => {
       });
 
       describe("Verify storage layout", async () => {
-        it("verify all the state before and after upgrade", async () => {
-          // unitroller states before the upgrade of diamond
+        it.only("verify all the state before and after upgrade", async () => {
+
           maxAssets = await unitroller.maxAssets();
-          closeFactorMantissa = await unitroller.closeFactorMantissa();
-          liquidationIncentiveMantissa = await unitroller.liquidationIncentiveMantissa();
-          allMarkets = await unitroller.allMarkets(0);
-          venusRate = await unitroller.venusRate();
-          venusSpeeds = await unitroller.venusSpeeds(BUSD.address);
-          venusSupplyState = await unitroller.venusSupplyState(BUSD.address);
-          venusBorrowState = await unitroller.venusBorrowState(BUSD.address);
-          venusAccrued = await unitroller.venusAccrued(BUSD.address);
-          vaiMintRate = await unitroller.vaiMintRate();
-
-          // unitroller states after the upgrade of diamond
           const maxAssetsAfterUpgrade = await diamondUnitroller.maxAssets();
-          const closeFactorMantissaAfterUpgrade = await diamondUnitroller.closeFactorMantissa();
-          const liquidationIncentiveMantissaAfterUpgrade = await diamondUnitroller.liquidationIncentiveMantissa();
-          const allMarketsAfterUpgrade = await diamondUnitroller.allMarkets(0);
-          const venusRateAfterUpgrade = await diamondUnitroller.venusRate();
-          const venusSpeedsAfterUpgrade = await diamondUnitroller.venusSpeeds(BUSD.address);
-          const venusSupplyStateAfterUpgrade = await diamondUnitroller.venusSupplyState(BUSD.address);
-          const venusBorrowStateAfterUpgrade = await diamondUnitroller.venusBorrowState(BUSD.address);
-          const venusAccruedAfterUpgrade = await diamondUnitroller.venusAccrued(BUSD.address);
-          const vaiMintRateAfterUpgrade = await diamondUnitroller.vaiMintRate();
-
-          // checks states for before and after upgrade to diamond.
           expect(maxAssets).to.equal(maxAssetsAfterUpgrade);
+
+          closeFactorMantissa = await unitroller.closeFactorMantissa();
+          const closeFactorMantissaAfterUpgrade = await diamondUnitroller.closeFactorMantissa();
           expect(closeFactorMantissa).to.equal(closeFactorMantissaAfterUpgrade);
+
+          liquidationIncentiveMantissa = await unitroller.liquidationIncentiveMantissa();
+          const liquidationIncentiveMantissaAfterUpgrade = await diamondUnitroller.liquidationIncentiveMantissa();
           expect(liquidationIncentiveMantissa).to.equal(liquidationIncentiveMantissaAfterUpgrade);
+
+          allMarkets = await unitroller.allMarkets(0);
+          const allMarketsAfterUpgrade = await diamondUnitroller.allMarkets(0);
           expect(allMarkets).to.equal(allMarketsAfterUpgrade);
+
+          venusRate = await unitroller.venusRate();
+          const venusRateAfterUpgrade = await diamondUnitroller.venusRate();
           expect(venusRate).to.equal(venusRateAfterUpgrade);
+
+          venusSpeeds = await unitroller.venusSpeeds(BUSD.address);
+          const venusSpeedsAfterUpgrade = await diamondUnitroller.venusSpeeds(BUSD.address);
           expect(venusSpeeds).to.equal(venusSpeedsAfterUpgrade);
+
+          venusSupplyState = await unitroller.venusSupplyState(BUSD.address);
+          const venusSupplyStateAfterUpgrade = await diamondUnitroller.venusSupplyState(BUSD.address);
           expect(venusSupplyState.index.toString()).to.equal(venusSupplyStateAfterUpgrade.index.toString());
+
+          venusBorrowState = await unitroller.venusBorrowState(BUSD.address);
+          const venusBorrowStateAfterUpgrade = await diamondUnitroller.venusBorrowState(BUSD.address);
           expect(venusBorrowState.index.toString()).to.equal(venusBorrowStateAfterUpgrade.index.toString());
+
+          venusAccrued = await unitroller.venusAccrued(BUSD.address);
+          const venusAccruedAfterUpgrade = await diamondUnitroller.venusAccrued(BUSD.address);
           expect(venusAccrued).to.equal(venusAccruedAfterUpgrade);
+
+          vaiMintRate = await unitroller.vaiMintRate();
+          const vaiMintRateAfterUpgrade = await diamondUnitroller.vaiMintRate();
           expect(vaiMintRate).to.equal(vaiMintRateAfterUpgrade);
+          
+          vaiController = await unitroller.vaiController();
+          const vaiControllerUpgrade = await diamondUnitroller.vaiController();
+          expect(vaiControllerUpgrade).to.equal(vaiController)
+
+          mintedVAIs = await unitroller.mintedVAIs(busdHolder.address);
+          unitroller.minte
+          const mintedVAIsUpgrade = await diamondUnitroller.mintedVAIs(usdtHolder.address);
+          expect(mintedVAIsUpgrade).to.equal(mintedVAIs)
+
+          mintVAIGuardianPaused = await unitroller.mintVAIGuardianPaused();
+          const mintVAIGuardianPausedUpgrade = (await diamondUnitroller. mintVAIGuardianPaused());
+          expect(mintVAIGuardianPausedUpgrade).to.equal(mintVAIGuardianPaused)
+
+          repayVAIGuardianPaused = await unitroller.repayVAIGuardianPaused();
+          const repayVAIGuardianPausedUpgrade = (await diamondUnitroller.repayVAIGuardianPaused());
+          expect(repayVAIGuardianPausedUpgrade).to.equal(repayVAIGuardianPaused)
+
+          protocolPaused = await unitroller.protocolPaused();
+          const protocolPausedUpgrade = await diamondUnitroller.protocolPaused();
+          expect(protocolPausedUpgrade).to.equal(protocolPaused)
+
+          venusVAIVaultRate = await unitroller.venusVAIVaultRate();
+          const venusVAIVaultRateUpgrade = await diamondUnitroller.venusVAIVaultRate();
+          expect(venusVAIVaultRateUpgrade).to.equal(venusVAIVaultRate)
+
+          vaiVaultAddress = await unitroller.vaiVaultAddress();
+          const vaiVaultAddressUpgrade = await diamondUnitroller.vaiVaultAddress();
+          expect(vaiVaultAddressUpgrade).to.equal(vaiVaultAddress)
+
+          releaseStartBlock = await unitroller.releaseStartBlock();
+          const releaseStartBlockUpgrade = await diamondUnitroller.releaseStartBlock();
+          expect(releaseStartBlockUpgrade).to.equal(releaseStartBlock)
+
+          minReleaseAmount = await unitroller.minReleaseAmount();
+          const minReleaseAmountUpgrade = await diamondUnitroller.minReleaseAmount();
+          expect(minReleaseAmountUpgrade).to.equal(minReleaseAmount)
+
+          treasuryGuardian = await unitroller.treasuryGuardian();
+          const treasuryGuardianUpgrade = await diamondUnitroller.treasuryGuardian();
+          expect(treasuryGuardian).to.equal(treasuryGuardianUpgrade);
+
+          treasuryAddress = await unitroller.treasuryAddress();
+          const treasuryAddressUpgrade = await diamondUnitroller.treasuryAddress();
+          expect(treasuryAddress).to.equal(treasuryAddressUpgrade);
+
+          treasuryPercent = await unitroller.treasuryPercent();
+          const treasuryPercentUpgrade = await diamondUnitroller.treasuryPercent();
+          expect(treasuryPercent).to.equal(treasuryPercentUpgrade);
+
+          liquidatorContract = await unitroller.liquidatorContract();
+          const liquidatorContractUpgrade = await diamondUnitroller.liquidatorContract();
+          expect(liquidatorContract).to.equal(liquidatorContractUpgrade)    
+      
+          comptrollerLens = await unitroller.comptrollerLens();
+          const comptrollerLensUpgrade = await diamondUnitroller.comptrollerLens();
+          expect(comptrollerLens).to.equal(comptrollerLensUpgrade)
+
+          // cheking all public mapingns 
+          market = await unitroller.markets(vBUSD.address);
+          const marketUpgrade = await diamondUnitroller.markets(vBUSD.address);
+          expect(market.collateralFactorMantissa).to.equal(marketUpgrade.collateralFactorMantissa);
+          expect(market.isListed).to.equal(marketUpgrade.isListed);
+          expect(market.isVenus).to.equal(marketUpgrade.isVenus);
+
+          const venusBorrowSpeeds = await unitroller.venusBorrowSpeeds(vUSDT.address);
+          const venusBorrowSpeedsUpgrade = await diamondUnitroller.venusBorrowSpeeds(vUSDT.address); 
+          const venusSupplySpeeds = await unitroller.venusSupplySpeeds(vUSDT.address);
+          const venusSupplySpeedsUpgrade = await diamondUnitroller.venusSupplySpeeds(vUSDT.address);           
+
+          expect(venusBorrowSpeeds).to.equal(venusBorrowSpeedsUpgrade);
+          expect(venusSupplySpeeds).to.equal(venusSupplySpeedsUpgrade);
+
         });
       });
     });
 
     // TODO !!
-    // describe("Verify states of diamond Contract", () => {
-    //   describe("Diamond setters", () => {
-    //     it("setting market supply cap", async () => {
-    //       expect(await unitroller.supplyCaps(vBUSD.address)).to.equals(0);
-    //       await unitroller._setMarketSupplyCaps([vBUSD.address], [parseUnits("100000", 18)]);
-    //       expect(await unitroller.supplyCaps(vBUSD.address)).to.equals(parseUnits("100000", 18));
-    //     });
+    describe("Verify states of diamond Contract", () => {
+      describe("Diamond Hooks", () => {
+        it.only("mint vToken vBUSD", async () => {
+          const vBUSDBalance = await BUSD.balanceOf(vBUSD.address);
+          const usdtHolerBalance = (await BUSD.balanceOf(usdtHolder.address)).toString();
 
-    //     it("checking PriceOracle", async () => {
-    //       await unitroller._setPriceOracle(oracle.address);
-    //       const oracleAddress = await comptroller.oracle();
-    //       expect(await unitroller.oracle()).to.equals(oracle.address);
-    //     });
+          expect(vBUSDBalance.toString()).to.equal(parseUnits("15088539659055255125122602",0));
+          expect(usdtHolerBalance.toString()).to.equal(parseUnits("8839004217706336576688",0));
 
-    //     it("setting collateral factor", async () => {
-    //       let data = await unitroller.markets(vBUSD.address);
-    //       expect(data.collateralFactorMantissa).to.equals(0);
-    //       await unitroller._setCollateralFactor(vBUSD.address, parseUnits("0.7", 18));
-    //       data = await unitroller.markets(vBUSD.address);
-    //       expect(data.collateralFactorMantissa).to.equals(parseUnits("0.7", 18));
-    //     });
-    //   });
+          expect(await vBUSD.connect(usdtHolder).mint(1000)).to.emit(vBUSD, "Mint");
 
-    //   describe("Diamond Hooks", () => {
-    //     it("mint vToken", async () => {
-    //       await BUSD.connect(usdtHolder).transfer(vBUSD.address, 1000);
-    //       await USDT.connect(usdtHolder).approve(vUSDT.address, 110);
-    //       await vUSDT.connect(usdtHolder).mint(110);
-    //       expect(await vUSDT.connect(usdtHolder).balanceOf(usdtHolder.address)).equal(110);
-    //     });
+          const newvBUSDBalance = await BUSD.balanceOf(vBUSD.address);
+          const newUsdtHolerBalance = await BUSD.balanceOf(usdtHolder.address);
 
-    //     it("redeem vToken", async () => {
-    //       await BUSD.connect(usdtHolder).transfer(vBUSD.address, 1000);
-    //       await USDT.connect(usdtHolder).approve(vUSDT.address, 110);
-    //       await vUSDT.connect(usdtHolder).mint(110);
-    //       await vUSDT.connect(usdtHolder).redeem(10);
-    //       expect(await vUSDT.connect(usdtHolder).balanceOf(usdtHolder.address)).equal(100);
-    //     });
+          expect(newvBUSDBalance.toString()).to.equal(parseUnits("15088539659055255125123602",0));
+          expect(newUsdtHolerBalance.toString()).to.equal(parseUnits("8839004217706336575688",0));
+        });
 
-    //     it("Burn vToken", async () => {
-    //       await BUSD.connect(usdtHolder).transfer(vBUSD.address, 1000);
-    //       await USDT.connect(usdtHolder).approve(vUSDT.address, 110);
-    //       await vUSDT.connect(usdtHolder).mint(110);
-    //       await expect(vBUSD.connect(usdtHolder).borrow(10)).to.emit(vBUSD, "Borrow");
-    //       let borrowBalance;
-    //       [, , borrowBalance] = await vBUSD.getAccountSnapshot(usdtHolder.address);
-    //       expect(borrowBalance).equal(10);
-    //     });
+        it.only("redeem vToken", async () => {
+          const vBUSDBalance = (await BUSD.balanceOf(vBUSD.address)).toString();
+          
+          expect(await vBUSD.connect(usdtHolder).redeem(1000)).to.emit(vBUSD,"Redeem");
+          
+          const newVBUSDBalance = (await BUSD.balanceOf(vBUSD.address)).toString();
+          const newUsdtHolerBalance = (await vBUSD.balanceOf(usdtHolder.address)).toString();
+          
+          expect(Number(vBUSDBalance)).greaterThan(Number(newVBUSDBalance));
+          expect(newUsdtHolerBalance).to.equal(parseUnits("54755160421016577",0)); 
+         
+        });
 
-    //     it("Repay vToken", async () => {
-    //       await BUSD.connect(usdtHolder).transfer(vBUSD.address, 1000);
-    //       await USDT.connect(usdtHolder).approve(vUSDT.address, 110);
-    //       await vUSDT.connect(usdtHolder).mint(110);
-    //       await vBUSD.connect(usdtHolder).borrow(10);
-    //       let borrowBalance;
-    //       [, , borrowBalance] = await vBUSD.getAccountSnapshot(usdtHolder.address);
-    //       expect(borrowBalance).equal(10);
-    //       await BUSD.connect(usdtHolder).approve(vBUSD.address, 10);
-    //       await vBUSD.connect(usdtHolder).repayBorrow(10);
-    //       [, , borrowBalance] = await vBUSD.getAccountSnapshot(usdtHolder.address);
-    //       expect(borrowBalance).equal(0);
-    //     });
+        it.only("borrow vToken", async () => {
+          expect((await BUSD.balanceOf(usdtHolder.address)).toString()).to.equal(parseUnits("8839004217926107052066",0));
 
-    //     describe("Diamond Rewards", () => {
-    //       it("grant and claim rewards", async () => {
-    //         await BUSD.connect(usdtHolder).transfer(vBUSD.address, 1000);
-    //         await USDT.connect(usdtHolder).approve(vUSDT.address, 110);
-    //         await vUSDT.connect(usdtHolder).mint(110);
-    //         await vUSDT.connect(usdtHolder).redeem(10);
-    //         await expect(vBUSD.connect(usdtHolder).borrow(10)).to.emit(vBUSD, "Borrow");
-    //         let borrowBalance;
-    //         [, , borrowBalance] = await vBUSD.getAccountSnapshot(usdtHolder.address);
-    //         expect(borrowBalance).equal(10);
-    //         await BUSD.connect(usdtHolder).approve(vBUSD.address, 10);
-    //         await vBUSD.connect(usdtHolder).repayBorrow(10);
-    //         let xvsS = await unitroller.getXVSAddress();
+          expect(await vBUSD.connect(usdtHolder).borrow(1000)).to.emit(vBUSD,"Borrow");
+          expect((await BUSD.balanceOf(usdtHolder.address)).toString()).to.equal(parseUnits("8839004217926107053066",0));
 
-    //         let vxvsS = await unitroller.getXVSVTokenAddress();
-    //         XVS = XVS__factory.connect(xvsS, admin);
-    //         XVSV = VToken__factory.connect(vxvsS, admin);
-    //       });
-    //     });
-    //   });
-    // });
+        });
+
+        it.only("Repay vToken", async () => {
+          expect((await BUSD.balanceOf(usdtHolder.address)).toString()).to.equal(parseUnits("8839004217926107053066",0));
+          expect(await vBUSD.connect(usdtHolder).borrow(1000)).to.emit(vBUSD,"Borrow");
+
+          expect((await BUSD.balanceOf(usdtHolder.address)).toString()).to.equal(parseUnits("8839004217926107054066",0));
+
+          expect(await vBUSD.connect(usdtHolder).repayBorrow(1000)).to.emit(vBUSD,"RepayBorrow");
+          expect((await BUSD.balanceOf(usdtHolder.address)).toString()).to.equal(parseUnits("8839004217926107053066",0));
+
+        });
+      });
+    });
   }
 });
