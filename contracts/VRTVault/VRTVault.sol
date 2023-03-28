@@ -35,6 +35,9 @@ contract VRTVault is VRTVaultStorage {
     /// @notice Event emitted when accruedInterest is claimed
     event Claim(address indexed user, uint256 interestAmount);
 
+    /// @notice Event emitted when lastAccruingBlock state variable changes
+    event LastAccruingBlockChanged(uint256 oldLastAccruingBlock, uint256 newLastAccruingBlock);
+
     constructor() public {
         admin = msg.sender;
     }
@@ -73,6 +76,12 @@ contract VRTVault is VRTVaultStorage {
         require(vaultPaused == true, "Vault is not paused");
         vaultPaused = false;
         emit VaultResumed(msg.sender);
+    }
+
+     function setLastAccruingBlock(uint256 _lastAccruingBlock) public onlyAdmin {
+        uint256 oldLastAccruingBlock = lastAccruingBlock;
+        lastAccruingBlock = _lastAccruingBlock;
+        emit LastAccruingBlockChanged(oldLastAccruingBlock,_lastAccruingBlock);
     }
 
     modifier isActive() {
@@ -161,6 +170,11 @@ contract VRTVault is VRTVaultStorage {
         uint256 accrualStartBlockNumber
     ) internal view isInitialized returns (uint256) {
         uint256 blockNumber = getBlockNumber();
+        uint256 _lastAccruingBlock = lastAccruingBlock;
+
+        if(blockNumber > _lastAccruingBlock){
+            blockNumber = _lastAccruingBlock;
+        }
 
         if (accrualStartBlockNumber == 0 || accrualStartBlockNumber >= blockNumber) {
             return 0;

@@ -47,4 +47,7 @@ contract VRTVaultStorage is VRTVaultAdminStorage {
 
     // Info of each user that stakes tokens.
     mapping(address => UserInfo) public userInfo;
+
+    /// @notice block number after which no interest will be accrued
+    uint256 public lastAccruingBlock;
 }
