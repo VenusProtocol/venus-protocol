@@ -86,7 +86,7 @@ forking(26713742, () => {
   let busdHolder: ethers.Signer;
   let vBUSD: ethers.contract;
   let vUSDT: ethers.contract;
-  let admin: SignerWithAddress;
+  let admin: SignerWithAddress; //eslint-disable-line
   let diamondUnitroller;
 
   if (process.env.FORK_MAINNET === "true") {
