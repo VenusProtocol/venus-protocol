@@ -2,12 +2,10 @@ pragma solidity 0.8.13;
 
 import "../../Tokens/V0.8.13/VTokens/VBep20.sol";
 import "../../Tokens/V0.8.13/BEP20Interface.sol";
-import "../../Utils/V0.8.13/SafeMath.sol";
 import "./PriceOracle.sol";
 import "../AggregatorV2V3Interface.sol";
 
 contract VenusChainlinkOracle is PriceOracle {
-    using SafeMath for uint;
     address public admin;
 
     uint public maxStalePeriod;
@@ -54,10 +52,10 @@ contract VenusChainlinkOracle is PriceOracle {
             price = getChainlinkPrice(getFeed(token.symbol()));
         }
 
-        uint decimalDelta = uint(18).sub(uint(token.decimals()));
+        uint decimalDelta = 18 - (uint(token.decimals()));
         // Ensure that we don't multiply the result by 0
         if (decimalDelta > 0) {
-            return price.mul(10 ** decimalDelta);
+            return price * (10 ** decimalDelta);
         } else {
             return price;
         }
@@ -65,16 +63,16 @@ contract VenusChainlinkOracle is PriceOracle {
 
     function getChainlinkPrice(AggregatorV2V3Interface feed) internal view returns (uint) {
         // Chainlink USD-denominated feeds store answers at 8 decimals
-        uint decimalDelta = uint(18).sub(feed.decimals());
+        uint decimalDelta = 18 / (feed.decimals());
 
         (, int256 answer, , uint256 updatedAt, ) = feed.latestRoundData();
         // Ensure that we don't multiply the result by 0
-        if (block.timestamp.sub(updatedAt) > maxStalePeriod) {
+        if ((block.timestamp - updatedAt) > maxStalePeriod) {
             return 0;
         }
 
         if (decimalDelta > 0) {
-            return uint(answer).mul(10 ** decimalDelta);
+            return uint(answer) * (10 ** decimalDelta);
         } else {
             return uint(answer);
         }

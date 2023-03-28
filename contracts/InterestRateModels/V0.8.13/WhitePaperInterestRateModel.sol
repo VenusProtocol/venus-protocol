@@ -1,6 +1,5 @@
 pragma solidity 0.8.13;
 
-import "../../Utils/V0.8.13/SafeMath.sol";
 import "./InterestRateModel.sol";
 
 /**
@@ -9,8 +8,6 @@ import "./InterestRateModel.sol";
  * @notice The parameterized model described in section 2.4 of the original Venus Protocol whitepaper
  */
 contract WhitePaperInterestRateModel is InterestRateModel {
-    using SafeMath for uint;
-
     event NewInterestParams(uint baseRatePerBlock, uint multiplierPerBlock);
 
     /**
@@ -33,9 +30,9 @@ contract WhitePaperInterestRateModel is InterestRateModel {
      * @param baseRatePerYear The approximate target base APR, as a mantissa (scaled by 1e18)
      * @param multiplierPerYear The rate of increase in interest rate wrt utilization (scaled by 1e18)
      */
-    constructor(uint baseRatePerYear, uint multiplierPerYear) public {
-        baseRatePerBlock = baseRatePerYear.div(blocksPerYear);
-        multiplierPerBlock = multiplierPerYear.div(blocksPerYear);
+    constructor(uint baseRatePerYear, uint multiplierPerYear) {
+        baseRatePerBlock = baseRatePerYear / blocksPerYear;
+        multiplierPerBlock = multiplierPerYear / blocksPerYear;
 
         emit NewInterestParams(baseRatePerBlock, multiplierPerBlock);
     }
@@ -53,7 +50,7 @@ contract WhitePaperInterestRateModel is InterestRateModel {
             return 0;
         }
 
-        return borrows.mul(1e18).div(cash.add(borrows).sub(reserves));
+        return (borrows * 1e18) / (cash + borrows - reserves);
     }
 
     /**
@@ -65,7 +62,7 @@ contract WhitePaperInterestRateModel is InterestRateModel {
      */
     function getBorrowRate(uint cash, uint borrows, uint reserves) public view override returns (uint) {
         uint ur = utilizationRate(cash, borrows, reserves);
-        return ur.mul(multiplierPerBlock).div(1e18).add(baseRatePerBlock);
+        return ((ur * multiplierPerBlock) / 1e18) + baseRatePerBlock;
     }
 
     /**
@@ -82,9 +79,9 @@ contract WhitePaperInterestRateModel is InterestRateModel {
         uint reserves,
         uint reserveFactorMantissa
     ) public view override returns (uint) {
-        uint oneMinusReserveFactor = uint(1e18).sub(reserveFactorMantissa);
+        uint oneMinusReserveFactor = 1e18 - reserveFactorMantissa;
         uint borrowRate = getBorrowRate(cash, borrows, reserves);
-        uint rateToPool = borrowRate.mul(oneMinusReserveFactor).div(1e18);
-        return utilizationRate(cash, borrows, reserves).mul(rateToPool).div(1e18);
+        uint rateToPool = (borrowRate * oneMinusReserveFactor) / 1e18;
+        return (utilizationRate(cash, borrows, reserves) * rateToPool) / 1e18;
     }
 }

@@ -81,12 +81,12 @@ const forking = (blockNumber: number, fn: () => void) => {
 forking(26713742, () => {
   let USDT: IERC20Upgradeable;
   let BUSD: IERC20Upgradeable;
-  let XVS: IERC20Upgradeable;
-  let usdtHolder: any;
-  let busdHolder: any;
-  let vBUSD: any;
-  let vUSDT: any;
-  let vXVS: any;
+  // let XVS: IERC20Upgradeable;
+  let usdtHolder: ethers.Signer;
+  let busdHolder: ethers.Signer;
+  let vBUSD: ethers.contract;
+  let vUSDT: ethers.contract;
+  // let vXVS: ethers.contract;
   let admin: SignerWithAddress;
   let diamondUnitroller;
 
@@ -124,7 +124,7 @@ forking(26713742, () => {
 
       [vBUSD, vUSDT] = await Promise.all(
         [VBUSD, VUSDT].map((address: string) => {
-          return ethers.getContractAt("VBep20Delegate", address);
+          return ethers.getContractAt("contracts/Tokens/V0.8.13/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
         }),
       );
       [BUSD, USDT] = await Promise.all(
@@ -154,7 +154,7 @@ forking(26713742, () => {
       });
 
       describe("Verify storage layout", async () => {
-        it.only("verify all the state before and after upgrade", async () => {
+        it("verify all the state before and after upgrade", async () => {
           maxAssets = await unitroller.maxAssets();
           const maxAssetsAfterUpgrade = await diamondUnitroller.maxAssets();
           expect(maxAssets).to.equal(maxAssetsAfterUpgrade);
@@ -316,8 +316,6 @@ forking(26713742, () => {
         });
 
         it("setting setting Liquidation Incentive", async () => {
-          // console.log((await diamondUnitroller.liquidationIncentiveMantissa()).toString());
-
           await diamondUnitroller.connect(owner)._setLiquidationIncentive(parseUnits("13", 17));
           expect(await diamondUnitroller.liquidationIncentiveMantissa()).to.equal(parseUnits("13", 17));
 
@@ -345,9 +343,6 @@ forking(26713742, () => {
         });
 
         it("pausing mint action in vUSDT", async () => {
-          // let data = await unitroller.markets(vBUSD.address);
-          // expect(data.collateralFactorMantissa).to.equals(0);
-          console.log((await diamondUnitroller.supplyCaps(vBUSD.address)).toString(), "second");
           expect(await diamondUnitroller.connect(owner)._setActionsPaused([vBUSD.address], [0], true)).to.emit(
             vBUSD,
             "ActionPausedMarket",
@@ -413,18 +408,15 @@ forking(26713742, () => {
         });
 
         describe("Diamond Rewards", () => {
-          it.only("grant and claim rewards", async () => {
+          it("grant and claim rewards", async () => {
             const xvsOwner = "0x3a3284dc0faffb0b5f0d074c4c704d14326c98cf";
             await impersonateAccount(xvsOwner);
             const xvsAdmin = await ethers.getSigner(xvsOwner);
 
             const vXVSAddress = await unitroller.getXVSVTokenAddress();
             const XVSAddress = await unitroller.getXVSAddress();
-            XVS = XVS__factory.connect(XVSAddress, xvsAdmin);
-            vXVS = VToken__factory.connect(vXVSAddress, admin);
-
-            console.log((await XVS.connect(busdHolder).balanceOf(busdHolder.address)).toString());
-
+            const XVS = XVS__factory.connect(XVSAddress, xvsAdmin);
+            const vXVS = VToken__factory.connect(vXVSAddress, admin);
             // await diamondUnitroller.claimVenus(busdHolder.address,[vBUSD.address]);
           });
         });

@@ -1,7 +1,5 @@
 pragma solidity 0.8.13;
 
-import "../Utils/V0.8.13/SafeMath.sol";
-
 interface BEP20Base {
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -33,8 +31,6 @@ abstract contract BEP20NS is BEP20Base {
  *  See https://github.com/ethereum/EIPs/issues/20
  */
 contract StandardToken is BEP20 {
-    using SafeMath for uint256;
-
     string public name;
     string public symbol;
     uint8 public decimals;
@@ -42,12 +38,7 @@ contract StandardToken is BEP20 {
     mapping(address => mapping(address => uint256)) public allowance;
     mapping(address => uint256) public balanceOf;
 
-    constructor(
-        uint256 _initialAmount,
-        string memory _tokenName,
-        uint8 _decimalUnits,
-        string memory _tokenSymbol
-    ) public {
+    constructor(uint256 _initialAmount, string memory _tokenName, uint8 _decimalUnits, string memory _tokenSymbol) {
         totalSupply = _initialAmount;
         balanceOf[msg.sender] = _initialAmount;
         name = _tokenName;
@@ -56,16 +47,16 @@ contract StandardToken is BEP20 {
     }
 
     function transfer(address dst, uint256 amount) external virtual override returns (bool) {
-        balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount, "Insufficient balance");
-        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
+        balanceOf[msg.sender] = balanceOf[msg.sender] - amount;
+        balanceOf[dst] = balanceOf[dst] + amount;
         emit Transfer(msg.sender, dst, amount);
         return true;
     }
 
     function transferFrom(address src, address dst, uint256 amount) external virtual override returns (bool) {
-        allowance[src][msg.sender] = allowance[src][msg.sender].sub(amount, "Insufficient allowance");
-        balanceOf[src] = balanceOf[src].sub(amount, "Insufficient balance");
-        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
+        allowance[src][msg.sender] = allowance[src][msg.sender] - amount;
+        balanceOf[src] = balanceOf[src] - amount;
+        balanceOf[dst] = balanceOf[dst] + amount;
         emit Transfer(src, dst, amount);
         return true;
     }
@@ -83,8 +74,6 @@ contract StandardToken is BEP20 {
  *  See https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
  */
 contract NonStandardToken is BEP20NS {
-    using SafeMath for uint256;
-
     string public name;
     uint8 public decimals;
     string public symbol;
@@ -92,12 +81,7 @@ contract NonStandardToken is BEP20NS {
     mapping(address => mapping(address => uint256)) public allowance;
     mapping(address => uint256) public balanceOf;
 
-    constructor(
-        uint256 _initialAmount,
-        string memory _tokenName,
-        uint8 _decimalUnits,
-        string memory _tokenSymbol
-    ) public {
+    constructor(uint256 _initialAmount, string memory _tokenName, uint8 _decimalUnits, string memory _tokenSymbol) {
         totalSupply = _initialAmount;
         balanceOf[msg.sender] = _initialAmount;
         name = _tokenName;
@@ -106,15 +90,15 @@ contract NonStandardToken is BEP20NS {
     }
 
     function transfer(address dst, uint256 amount) external override {
-        balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount, "Insufficient balance");
-        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
+        balanceOf[msg.sender] = balanceOf[msg.sender] - amount;
+        balanceOf[dst] = balanceOf[dst] + amount;
         emit Transfer(msg.sender, dst, amount);
     }
 
     function transferFrom(address src, address dst, uint256 amount) external override {
-        allowance[src][msg.sender] = allowance[src][msg.sender].sub(amount, "Insufficient allowance");
-        balanceOf[src] = balanceOf[src].sub(amount, "Insufficient balance");
-        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
+        allowance[src][msg.sender] = allowance[src][msg.sender] - amount;
+        balanceOf[src] = balanceOf[src] - amount;
+        balanceOf[dst] = balanceOf[dst] + amount;
         emit Transfer(src, dst, amount);
     }
 
@@ -126,7 +110,6 @@ contract NonStandardToken is BEP20NS {
 }
 
 contract BEP20Harness is StandardToken {
-    using SafeMath for uint256;
     // To support testing, we can specify addresses for which transferFrom should fail and return false
     mapping(address => bool) public failTransferFromAddresses;
 
@@ -157,8 +140,8 @@ contract BEP20Harness is StandardToken {
         if (failTransferToAddresses[dst]) {
             return false;
         }
-        balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount, "Insufficient balance");
-        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
+        balanceOf[msg.sender] = balanceOf[msg.sender] - amount;
+        balanceOf[dst] = balanceOf[dst] + amount;
         emit Transfer(msg.sender, dst, amount);
         return true;
     }
@@ -168,9 +151,9 @@ contract BEP20Harness is StandardToken {
         if (failTransferFromAddresses[src]) {
             return false;
         }
-        allowance[src][msg.sender] = allowance[src][msg.sender].sub(amount, "Insufficient allowance");
-        balanceOf[src] = balanceOf[src].sub(amount, "Insufficient balance");
-        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
+        allowance[src][msg.sender] = allowance[src][msg.sender] - amount;
+        balanceOf[src] = balanceOf[src] - amount;
+        balanceOf[dst] = balanceOf[dst] + amount;
         emit Transfer(src, dst, amount);
         return true;
     }

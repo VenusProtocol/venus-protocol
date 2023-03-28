@@ -13,7 +13,7 @@ contract FaucetToken is StandardToken {
         string memory _tokenName,
         uint8 _decimalUnits,
         string memory _tokenSymbol
-    ) public StandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {}
+    ) StandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {}
 
     function allocateTo(address _owner, uint256 value) public {
         balanceOf[_owner] += value;
@@ -33,7 +33,7 @@ contract FaucetNonStandardToken is NonStandardToken {
         string memory _tokenName,
         uint8 _decimalUnits,
         string memory _tokenSymbol
-    ) public NonStandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {}
+    ) NonStandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {}
 
     function allocateTo(address _owner, uint256 value) public {
         balanceOf[_owner] += value;
@@ -48,8 +48,6 @@ contract FaucetNonStandardToken is NonStandardToken {
  * @notice A test token that is malicious and tries to re-enter callers
  */
 contract FaucetTokenReEntrantHarness {
-    using SafeMath for uint256;
-
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
@@ -70,7 +68,7 @@ contract FaucetTokenReEntrantHarness {
         string memory _tokenSymbol,
         bytes memory _reEntryCallData,
         string memory _reEntryFun
-    ) public {
+    ) {
         totalSupply_ = _initialAmount;
         balanceOf_[msg.sender] = _initialAmount;
         name = _tokenName;
@@ -133,7 +131,7 @@ contract FaucetTokenReEntrantHarness {
         uint256 amount
     ) public reEnter("transferFrom") returns (bool success) {
         _transfer(src, dst, amount);
-        _approve(src, msg.sender, allowance_[src][msg.sender].sub(amount));
+        _approve(src, msg.sender, allowance_[src][msg.sender] - amount);
         return true;
     }
 
@@ -146,8 +144,8 @@ contract FaucetTokenReEntrantHarness {
 
     function _transfer(address src, address dst, uint256 amount) internal {
         require(dst != address(0), "dst should be valid address");
-        balanceOf_[src] = balanceOf_[src].sub(amount);
-        balanceOf_[dst] = balanceOf_[dst].add(amount);
+        balanceOf_[src] = balanceOf_[src] - amount;
+        balanceOf_[dst] = balanceOf_[dst] + amount;
         emit Transfer(src, dst, amount);
     }
 }

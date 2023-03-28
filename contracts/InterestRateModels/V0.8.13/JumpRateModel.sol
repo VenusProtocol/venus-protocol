@@ -1,6 +1,5 @@
 pragma solidity 0.8.13;
 
-import "../../Utils/V0.8.13/SafeMath.sol";
 import "./InterestRateModel.sol";
 
 /**
@@ -8,8 +7,6 @@ import "./InterestRateModel.sol";
  * @author Venus
  */
 contract JumpRateModel is InterestRateModel {
-    using SafeMath for uint;
-
     event NewInterestParams(uint baseRatePerBlock, uint multiplierPerBlock, uint jumpMultiplierPerBlock, uint kink);
 
     /**
@@ -44,10 +41,10 @@ contract JumpRateModel is InterestRateModel {
      * @param jumpMultiplierPerYear The multiplierPerBlock after hitting a specified utilization point
      * @param kink_ The utilization point at which the jump multiplier is applied
      */
-    constructor(uint baseRatePerYear, uint multiplierPerYear, uint jumpMultiplierPerYear, uint kink_) public {
-        baseRatePerBlock = baseRatePerYear.div(blocksPerYear);
-        multiplierPerBlock = multiplierPerYear.div(blocksPerYear);
-        jumpMultiplierPerBlock = jumpMultiplierPerYear.div(blocksPerYear);
+    constructor(uint baseRatePerYear, uint multiplierPerYear, uint jumpMultiplierPerYear, uint kink_) {
+        baseRatePerBlock = baseRatePerYear / blocksPerYear;
+        multiplierPerBlock = multiplierPerYear / blocksPerYear;
+        jumpMultiplierPerBlock = jumpMultiplierPerYear / blocksPerYear;
         kink = kink_;
 
         emit NewInterestParams(baseRatePerBlock, multiplierPerBlock, jumpMultiplierPerBlock, kink);
@@ -66,7 +63,7 @@ contract JumpRateModel is InterestRateModel {
             return 0;
         }
 
-        return borrows.mul(1e18).div(cash.add(borrows).sub(reserves));
+        return (borrows * 1e18) / (cash + borrows - reserves);
     }
 
     /**
@@ -80,11 +77,11 @@ contract JumpRateModel is InterestRateModel {
         uint util = utilizationRate(cash, borrows, reserves);
 
         if (util <= kink) {
-            return util.mul(multiplierPerBlock).div(1e18).add(baseRatePerBlock);
+            return ((util * multiplierPerBlock) / 1e18) + baseRatePerBlock;
         } else {
-            uint normalRate = kink.mul(multiplierPerBlock).div(1e18).add(baseRatePerBlock);
-            uint excessUtil = util.sub(kink);
-            return excessUtil.mul(jumpMultiplierPerBlock).div(1e18).add(normalRate);
+            uint normalRate = ((kink * multiplierPerBlock) / 1e18) + baseRatePerBlock;
+            uint excessUtil = util / kink;
+            return ((excessUtil * jumpMultiplierPerBlock) / 1e18) + normalRate;
         }
     }
 
@@ -102,9 +99,9 @@ contract JumpRateModel is InterestRateModel {
         uint reserves,
         uint reserveFactorMantissa
     ) public view override returns (uint) {
-        uint oneMinusReserveFactor = uint(1e18).sub(reserveFactorMantissa);
+        uint oneMinusReserveFactor = 1e18 - reserveFactorMantissa;
         uint borrowRate = getBorrowRate(cash, borrows, reserves);
-        uint rateToPool = borrowRate.mul(oneMinusReserveFactor).div(1e18);
-        return utilizationRate(cash, borrows, reserves).mul(rateToPool).div(1e18);
+        uint rateToPool = (borrowRate * oneMinusReserveFactor) / 1e18;
+        return (utilizationRate(cash, borrows, reserves) * (rateToPool)) / 1e18;
     }
 }
