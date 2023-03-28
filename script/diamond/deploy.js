@@ -66,7 +66,7 @@ async function deployDiamond(unitrollerAddress) {
       action: FacetCutAction.Add,
       functionSelectors: getSelectors(facet),
     });
-    index++;
+    index++; //eslint-disable-line
   }
 
   // upgrade diamond with facets
