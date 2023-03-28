@@ -2,7 +2,7 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import chai from "chai";
 import { ethers, network } from "hardhat";
 ​
-import { Comptroller, Comptroller__factory, IAccessControlManager, VToken } from "../../../../typechain";
+import { Comptroller, IAccessControlManager, VToken } from "../../../../typechain";
 import { convertToUnit } from "../../../../helpers/utils";
 const { deployDiamond } = require("../../../../script/diamond/deploy");
 ​
@@ -21,9 +21,9 @@ describe("Comptroller", () => {
     comptroller = result.unitroller;
     
     comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
-    accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
-    vToken1 = await smock.fake<VToken>("VToken");
-    vToken2 = await smock.fake<VToken>("VToken");
+    accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+    vToken1 = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
+    vToken2 = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
 ​
     accessControl.isAllowedToCall.returns(true);
     vToken1.isVToken.returns(true);

@@ -22,6 +22,7 @@ let owner,
   unitroller,
   diamondProxy,
   // layout variables
+  oracle,
   maxAssets,
   closeFactorMantissa,
   liquidationIncentiveMantissa,
@@ -46,7 +47,9 @@ let owner,
   treasuryPercent,
   liquidatorContract,
   comptrollerLens,
-  market
+  market,
+  venusSupplierIndex,
+  venusBorrowerIndex
 
 const initMainnetUser = async (user: string) => {
   await impersonateAccount(user);
@@ -95,7 +98,7 @@ forking(26713742, () => {
       /**
        *  sending gas cost to owner
        * */
-      await impersonateAccount(Owner);
+      impersonateAccount(Owner);
       owner = await ethers.getSigner(Owner);
       const [signer] = await ethers.getSigners();
       await signer.sendTransaction({
@@ -150,11 +153,15 @@ forking(26713742, () => {
       });
 
       describe("Verify storage layout", async () => {
-        it.only("verify all the state before and after upgrade", async () => {
+        it("verify all the state before and after upgrade", async () => {
 
           maxAssets = await unitroller.maxAssets();
           const maxAssetsAfterUpgrade = await diamondUnitroller.maxAssets();
           expect(maxAssets).to.equal(maxAssetsAfterUpgrade);
+
+          // oracle = await unitroller.oracle();
+          // const oracelUpgrade = await diamondUnitroller.oracel();
+          // expect(oracle).to.equal(oracelUpgrade);
 
           closeFactorMantissa = await unitroller.closeFactorMantissa();
           const closeFactorMantissaAfterUpgrade = await diamondUnitroller.closeFactorMantissa();
@@ -256,9 +263,15 @@ forking(26713742, () => {
           expect(market.isListed).to.equal(marketUpgrade.isListed);
           expect(market.isVenus).to.equal(marketUpgrade.isVenus);
 
-          const venusBorrowSpeeds = await unitroller.venusBorrowSpeeds(vUSDT.address);
+          // venusBorrowerIndex = await unitroller.venusBorrowerIndex(vBUSD.address,zeroAddr);
+          // console.log(venusBorrowerIndex,"----- venusBorrowerIndex");
+
+          // venusSupplierIndex = await unitroller.venusSupplierIndex(vBUSD.address,zeroAddr);
+          // console.log(venusSupplierIndex,"---- venusSupplierIndex");
+
+          let venusBorrowSpeeds = await unitroller.venusBorrowSpeeds(vUSDT.address);
           const venusBorrowSpeedsUpgrade = await diamondUnitroller.venusBorrowSpeeds(vUSDT.address); 
-          const venusSupplySpeeds = await unitroller.venusSupplySpeeds(vUSDT.address);
+          let venusSupplySpeeds = await unitroller.venusSupplySpeeds(vUSDT.address);
           const venusSupplySpeedsUpgrade = await diamondUnitroller.venusSupplySpeeds(vUSDT.address);           
 
           expect(venusBorrowSpeeds).to.equal(venusBorrowSpeedsUpgrade);
@@ -270,8 +283,30 @@ forking(26713742, () => {
 
     // TODO !!
     describe("Verify states of diamond Contract", () => {
+      // describe("Diamond setters", () => {
+      //   it("setting market supply cap", async () => {
+      //     expect(await unitroller.supplyCaps(vBUSD.address)).to.equals(0);
+      //     await unitroller._setMarketSupplyCaps([vBUSD.address], [parseUnits("100000", 18)]);
+      //     expect(await unitroller.supplyCaps(vBUSD.address)).to.equals(parseUnits("100000", 18));
+      //   });
+
+      //   it("checking PriceOracle", async () => {
+      //     await unitroller._setPriceOracle(oracle.address);
+      //     const oracleAddress = await comptroller.oracle();
+      //     expect(await unitroller.oracle()).to.equals(oracle.address);
+    //   });
+
+      //   it("setting collateral factor", async () => {
+      //     let data = await unitroller.markets(vBUSD.address);
+      //     expect(data.collateralFactorMantissa).to.equals(0);
+      //     await unitroller._setCollateralFactor(vBUSD.address, parseUnits("0.7", 18));
+      //     data = await unitroller.markets(vBUSD.address);
+      //     expect(data.collateralFactorMantissa).to.equals(parseUnits("0.7", 18));
+      //   });
+      // });
+
       describe("Diamond Hooks", () => {
-        it.only("mint vToken vBUSD", async () => {
+        it("mint vToken vBUSD", async () => {
           const vBUSDBalance = await BUSD.balanceOf(vBUSD.address);
           const usdtHolerBalance = (await BUSD.balanceOf(usdtHolder.address)).toString();
 
@@ -287,37 +322,64 @@ forking(26713742, () => {
           expect(newUsdtHolerBalance.toString()).to.equal(parseUnits("8839004217706336575688",0));
         });
 
-        it.only("redeem vToken", async () => {
-          const vBUSDBalance = (await BUSD.balanceOf(vBUSD.address)).toString();
+        it("redeem vToken", async () => {
+          
+          let vBUSDBalance = (await BUSD.balanceOf(vBUSD.address)).toString();
+          let usdtHolerBalance = (await vBUSD.balanceOf(usdtHolder.address)).toString();
+          console.log(usdtHolerBalance,"++++")
           
           expect(await vBUSD.connect(usdtHolder).redeem(1000)).to.emit(vBUSD,"Redeem");
           
-          const newVBUSDBalance = (await BUSD.balanceOf(vBUSD.address)).toString();
-          const newUsdtHolerBalance = (await vBUSD.balanceOf(usdtHolder.address)).toString();
+          let newVBUSDBalance = (await BUSD.balanceOf(vBUSD.address)).toString();
+          let newUsdtHolerBalance = (await vBUSD.balanceOf(usdtHolder.address)).toString();
+          console.log(newUsdtHolerBalance,"++++")
           
           expect(Number(vBUSDBalance)).greaterThan(Number(newVBUSDBalance));
           expect(newUsdtHolerBalance).to.equal(parseUnits("54755160421016577",0)); 
          
         });
 
-        it.only("borrow vToken", async () => {
+        it("borrow vToken", async () => {
           expect((await BUSD.balanceOf(usdtHolder.address)).toString()).to.equal(parseUnits("8839004217926107052066",0));
 
           expect(await vBUSD.connect(usdtHolder).borrow(1000)).to.emit(vBUSD,"Borrow");
+
           expect((await BUSD.balanceOf(usdtHolder.address)).toString()).to.equal(parseUnits("8839004217926107053066",0));
 
         });
 
-        it.only("Repay vToken", async () => {
+        it("Repay vToken", async () => {
           expect((await BUSD.balanceOf(usdtHolder.address)).toString()).to.equal(parseUnits("8839004217926107053066",0));
+
           expect(await vBUSD.connect(usdtHolder).borrow(1000)).to.emit(vBUSD,"Borrow");
 
           expect((await BUSD.balanceOf(usdtHolder.address)).toString()).to.equal(parseUnits("8839004217926107054066",0));
 
           expect(await vBUSD.connect(usdtHolder).repayBorrow(1000)).to.emit(vBUSD,"RepayBorrow");
+
           expect((await BUSD.balanceOf(usdtHolder.address)).toString()).to.equal(parseUnits("8839004217926107053066",0));
 
         });
+
+        // describe("Diamond Rewards", () => {
+        //   it("grant and claim rewards", async () => {
+        //     await BUSD.connect(usdtHolder).transfer(vBUSD.address, 1000);
+        //     await USDT.connect(usdtHolder).approve(vUSDT.address, 110);
+        //     await vUSDT.connect(usdtHolder).mint(110);
+        //     await vUSDT.connect(usdtHolder).redeem(10);
+        //     await expect(vBUSD.connect(usdtHolder).borrow(10)).to.emit(vBUSD, "Borrow");
+        //     let borrowBalance;
+        //     [, , borrowBalance] = await vBUSD.getAccountSnapshot(usdtHolder.address);
+        //     expect(borrowBalance).equal(10);
+        //     await BUSD.connect(usdtHolder).approve(vBUSD.address, 10);
+        //     await vBUSD.connect(usdtHolder).repayBorrow(10);
+        //     let xvsS = await unitroller.getXVSAddress();
+
+        //     let vxvsS = await unitroller.getXVSVTokenAddress();
+        //     XVS = XVS__factory.connect(xvsS, admin);
+        //     XVSV = VToken__factory.connect(vxvsS, admin);
+        //   });
+        // });
       });
     });
   }

@@ -46,13 +46,13 @@ describe("Comptroller: assetListTest", () => {
   };
 
   async function assetListFixture(): Promise<AssetListFixture> {
-    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+    const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
     // const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const result = await deployDiamond("");
     comptroller = result.unitroller;
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-    const oracle = await smock.fake<PriceOracle>("PriceOracle");
+    const oracle = await smock.fake<PriceOracle>("contracts/Oracle/V0.8.13/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);
     comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
     await comptrollerProxy._setAccessControl(accessControl.address);
@@ -61,7 +61,7 @@ describe("Comptroller: assetListTest", () => {
     const names = ["OMG", "ZRX", "BAT", "sketch"];
     const [OMG, ZRX, BAT, SKT] = await Promise.all(
       names.map(async name => {
-        const vToken = await smock.fake<VBep20Immutable>("VBep20Immutable");
+        const vToken = await smock.fake<VBep20Immutable>("contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable");
         if (name !== "sketch") {
           await comptrollerProxy._supportMarket(vToken.address);
         }

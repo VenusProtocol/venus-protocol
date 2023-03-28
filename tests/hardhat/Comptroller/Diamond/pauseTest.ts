@@ -28,14 +28,14 @@ async function pauseFixture(): Promise<PauseFixture> {
   const comptrollerDeployment = result.unitroller;
   const comptroller = await ethers.getContractAt("Comptroller", comptrollerDeployment.address);
   await comptroller._setAccessControl(accessControl.address);
-  const oracle = await smock.fake<PriceOracle>("PriceOracle");
+  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/V0.8.13/PriceOracle.sol:PriceOracle");
 
   accessControl.isAllowedToCall.returns(true);
   await comptroller._setPriceOracle(oracle.address);
   const names = ["OMG", "ZRX", "BAT", "sketch"];
   const [OMG, ZRX, BAT, SKT] = await Promise.all(
     names.map(async name => {
-      const vToken = await smock.fake<VBep20Immutable>("VBep20Immutable");
+      const vToken = await smock.fake<VBep20Immutable>("contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable");
       if (name !== "sketch") {
         await comptroller._supportMarket(vToken.address);
       }

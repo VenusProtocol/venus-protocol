@@ -55,20 +55,20 @@ describe("Comptroller", () => {
   }
 
   async function liquidateFixture(): Promise<LiquidateFixture> {
-    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+    const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const comptroller = await ComptrollerFactory.deploy();
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-    const oracle = await smock.fake<PriceOracle>("PriceOracle");
+    const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
     await comptroller._setLiquidationIncentive(convertToUnit("1.1", 18));
 
-    const vTokenBorrowed = await smock.fake<VBep20Immutable>("VBep20Immutable");
-    const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
+    const vTokenBorrowed = await smock.fake<VBep20Immutable>("contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable");
+    const vTokenCollateral = await smock.fake<VBep20Immutable>("contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable");
 
     return { comptroller, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
   }

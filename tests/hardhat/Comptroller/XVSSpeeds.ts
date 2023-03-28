@@ -17,9 +17,9 @@ describe("Comptroller", () => {
   beforeEach(async () => {
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     comptroller = await ComptrollerFactory.deploy();
-    accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
-    vToken1 = await smock.fake<VToken>("VToken");
-    vToken2 = await smock.fake<VToken>("VToken");
+    accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+    vToken1 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+    vToken2 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
 
     await accessControl.isAllowedToCall.returns(true);
     await vToken1.isVToken.returns(true);

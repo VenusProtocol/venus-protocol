@@ -13,7 +13,7 @@ import {
   EIP20Interface,
   IAccessControlManager,
   PriceOracle,
-  VToken,
+  VToken
 } from "../../../../typechain";
 import { ComptrollerErrorReporter } from "../../util/Errors";
 
@@ -31,8 +31,8 @@ type SimpleComptrollerFixture = {
 };
 
 async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
-  const oracle = await smock.fake<PriceOracle>("PriceOracle");
-  const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/V0.8.13/PriceOracle.sol:PriceOracle");
+  const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   //   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
@@ -144,7 +144,7 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const newOracle = await smock.fake<PriceOracle>("PriceOracle");
+      const newOracle = await smock.fake<PriceOracle>("contracts/Oracle/V0.8.13/PriceOracle.sol:PriceOracle");
       // comptrollerProxy = await ethers.getContractAt("Comptroller", contracts.comptroller);
       return { ...contracts, newOracle };
     }
@@ -231,7 +231,7 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const vToken = await smock.fake<VToken>("VToken");
+      const vToken = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
       vToken.comptroller.returns(contracts.comptroller.address);
       vToken.isVToken.returns(true);
       return { vToken, ...contracts };
@@ -281,9 +281,9 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const vToken1 = await smock.fake<VToken>("VToken");
-      const vToken2 = await smock.fake<VToken>("VToken");
-      const token = await smock.fake<EIP20Interface>("EIP20Interface");
+      const vToken1 = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
+      const vToken2 = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
+      const token = await smock.fake<EIP20Interface>("contracts/Tokens/V0.8.13/EIP20Interface.sol:EIP20Interface");
       return { ...contracts, vToken1, vToken2, token };
     }
 
@@ -333,7 +333,7 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const vToken = await smock.fake<VToken>("VToken");
+      const vToken = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
       await contracts.comptrollerProxy._supportMarket(vToken.address);
       return { ...contracts, vToken };
     }
@@ -382,7 +382,7 @@ describe("Comptroller", () => {
       });
 
       it("reverts if market is not listed", async () => {
-        const someVToken = await smock.fake<VToken>("VToken");
+        const someVToken = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
         await expect(
           comptrollerProxy.mintAllowed(someVToken.address, await root.getAddress(), convertToUnit("1", 18)),
         ).to.be.revertedWith("market not listed");

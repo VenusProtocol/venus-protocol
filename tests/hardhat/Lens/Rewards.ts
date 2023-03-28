@@ -5,12 +5,12 @@ import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
-import { Comptroller, MockToken, VToken, VenusLens, VenusLens__factory } from "../../../typechain";
+import { Comptroller, FaucetToken, VToken, VenusLens, VenusLens__factory } from "../../../typechain";
 
 let comptroller: FakeContract<Comptroller>;
 let vBUSD: FakeContract<VToken>;
 let vWBTC: FakeContract<VToken>;
-let XVS: FakeContract<MockToken>;
+let XVS: FakeContract<FaucetToken>;
 let account: Signer;
 let venusLens: MockContract<VenusLens>;
 let startBlock: number;
@@ -21,15 +21,15 @@ type RewardsFixtire = {
   comptroller: FakeContract<Comptroller>;
   vBUSD: FakeContract<VToken>;
   vWBTC: FakeContract<VToken>;
-  XVS: FakeContract<MockToken>;
+  XVS: FakeContract<FaucetToken>;
   venusLens: MockContract<VenusLens>;
   startBlock: number;
 };
 
 const rewardsFixture = async (): Promise<RewardsFixtire> => {
-  vBUSD = await smock.fake<VToken>("VToken");
-  vWBTC = await smock.fake<VToken>("VToken");
-  XVS = await smock.fake<MockToken>("MockToken");
+  vBUSD = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
+  vWBTC = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
+  XVS = await smock.fake<FaucetToken>("FaucetToken");
   const venusLensFactory = await smock.mock<VenusLens__factory>("VenusLens");
   venusLens = await venusLensFactory.deploy();
   comptroller = await smock.fake<Comptroller>("Comptroller");

@@ -84,7 +84,7 @@ async function configureVtoken(underlyingToken: FaucetToken | VBep20Immutable, n
   const interestRateModel = await InterstRateModel.deploy(parseUnits("1", 12));
   await interestRateModel.deployed();
 
-  const vTokenFactory = await ethers.getContractFactory("VBep20Immutable");
+  const vTokenFactory = await ethers.getContractFactory("contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable");
   const vToken = await vTokenFactory.deploy(
     underlyingToken.address,
     comptroller.address,
