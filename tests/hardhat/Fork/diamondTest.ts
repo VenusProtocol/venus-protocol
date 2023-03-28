@@ -350,13 +350,13 @@ forking(26713742, () => {
             "ActionPausedMarket",
           );
 
-          await expect(vBUSD.connect(usdtHolder).mint(1000)).to.be.revertedWith("action is paused")
+          await expect(vBUSD.connect(usdtHolder).mint(1000)).to.be.revertedWith("action is paused");
 
           expect(await diamondUnitroller.connect(owner)._setActionsPaused([vBUSD.address], [0], false)).to.emit(
             vBUSD,
             "ActionPausedMarket",
           );
-          expect(await vBUSD.connect(busdHolder).mint(10)).to.be.emit(vBUSD, "Mint")
+          expect(await vBUSD.connect(busdHolder).mint(10)).to.be.emit(vBUSD, "Mint");
         });
       });
 

@@ -273,7 +273,7 @@ describe("Comptroller", () => {
     let oracle: FakeContract<PriceOracle>;
     let vToken1: FakeContract<VToken>;
     let vToken2: FakeContract<VToken>;
-    let token: FakeContract<EIP20Interface>;
+    let token: FakeContract<EIP20Interface>; //eslint-disable-line
 
     type Contracts = SimpleComptrollerFixture & {
       vToken1: FakeContract<VToken>;

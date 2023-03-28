@@ -2,7 +2,6 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { BigNumberish, constants } from "ethers";
-import { computePublicKey } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../../helpers/utils";
@@ -40,14 +39,13 @@ function rando(min: number, max: number): number {
 }
 
 describe("Comptroller", () => {
-  let comptroller: MockContract<Comptroller>;
+  let comptroller: MockContract<Comptroller>; //eslint-disable-line
   let comptrollerProxy: MockContract<Comptroller>;
   let oracle: FakeContract<PriceOracle>;
   let vTokenBorrowed: FakeContract<VBep20Immutable>;
   let vTokenCollateral: FakeContract<VBep20Immutable>;
 
   type LiquidateFixture = {
-    // comptroller: MockContract<Comptroller>;
     comptrollerProxy: MockContract<Comptroller>;
     comptrollerLens: MockContract<ComptrollerLens>;
     oracle: FakeContract<PriceOracle>;
