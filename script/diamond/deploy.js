@@ -19,19 +19,18 @@ async function deployDiamond(unitrollerAddress) {
   const DiamondCutFacet = await ethers.getContractFactory("DiamondCutFacet");
   const diamondCutFacet = await DiamondCutFacet.deploy();
   await diamondCutFacet.deployed();
-  
+
   if (unitrollerAddress != "") {
     await impersonateAccount(Owner);
     unitrollerAdmin = await ethers.getSigner(Owner);
     unitroller = await Unitroller__factory.connect(unitrollerAddress, unitrollerAdmin);
-    
   } else {
     const UnitrollerFactory = await ethers.getContractFactory("Unitroller");
     unitroller = await UnitrollerFactory.deploy();
     const signer = await ethers.getSigners();
     unitrollerAdmin = signer[0];
   }
-  
+
   // deploy Diamond
   const Diamond = await ethers.getContractFactory("Diamond");
   const diamond = await Diamond.deploy(contractOwner.address, unitroller.address);

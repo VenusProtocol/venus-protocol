@@ -10,7 +10,9 @@ import "../../Governance/V0.8.13/IAccessControlManager.sol";
 
 interface IXVS {
     function balanceOf(address account) external view returns (uint);
+
     function transfer(address dst, uint rawAmount) external returns (bool);
+
     function approve(address spender, uint rawAmount) external returns (bool);
 }
 

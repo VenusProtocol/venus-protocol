@@ -13,7 +13,7 @@ import {
   EIP20Interface,
   IAccessControlManager,
   PriceOracle,
-  VToken
+  VToken,
 } from "../../../../typechain";
 import { ComptrollerErrorReporter } from "../../util/Errors";
 
@@ -32,7 +32,9 @@ type SimpleComptrollerFixture = {
 
 async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   const oracle = await smock.fake<PriceOracle>("contracts/Oracle/V0.8.13/PriceOracle.sol:PriceOracle");
-  const accessControl = await smock.fake<IAccessControlManager>("contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager");
+  const accessControl = await smock.fake<IAccessControlManager>(
+    "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+  );
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   //   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");

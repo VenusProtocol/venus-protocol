@@ -23,7 +23,9 @@ type PauseFixture = {
 };
 
 async function pauseFixture(): Promise<PauseFixture> {
-  const accessControl = await smock.fake<IAccessControlManager>("contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager");
+  const accessControl = await smock.fake<IAccessControlManager>(
+    "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+  );
   const result = await deployDiamond("");
   const comptrollerDeployment = result.unitroller;
   const comptroller = await ethers.getContractAt("Comptroller", comptrollerDeployment.address);
@@ -35,7 +37,9 @@ async function pauseFixture(): Promise<PauseFixture> {
   const names = ["OMG", "ZRX", "BAT", "sketch"];
   const [OMG, ZRX, BAT, SKT] = await Promise.all(
     names.map(async name => {
-      const vToken = await smock.fake<VBep20Immutable>("contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable");
+      const vToken = await smock.fake<VBep20Immutable>(
+        "contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable",
+      );
       if (name !== "sketch") {
         await comptroller._supportMarket(vToken.address);
       }

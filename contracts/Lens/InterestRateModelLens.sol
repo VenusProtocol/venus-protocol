@@ -22,7 +22,7 @@ contract InterestRateModelLens {
         uint reserves = 0;
 
         for (uint percent_Factor = 1; percent_Factor <= 100; ++percent_Factor) {
-            uint cash = (percent_Factor*referenceAmountInWei)/1e2;
+            uint cash = (percent_Factor * referenceAmountInWei) / 1e2;
             uint256 borrowRate = ir.getBorrowRate(cash, borrow, reserves);
             borrowSimulation[percent_Factor - 1] = borrowRate;
 

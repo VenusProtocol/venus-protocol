@@ -46,7 +46,9 @@ describe("Comptroller: assetListTest", () => {
   };
 
   async function assetListFixture(): Promise<AssetListFixture> {
-    const accessControl = await smock.fake<IAccessControlManager>("contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager");
+    const accessControl = await smock.fake<IAccessControlManager>(
+      "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+    );
     // const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const result = await deployDiamond("");
@@ -61,7 +63,9 @@ describe("Comptroller: assetListTest", () => {
     const names = ["OMG", "ZRX", "BAT", "sketch"];
     const [OMG, ZRX, BAT, SKT] = await Promise.all(
       names.map(async name => {
-        const vToken = await smock.fake<VBep20Immutable>("contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable");
+        const vToken = await smock.fake<VBep20Immutable>(
+          "contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable",
+        );
         if (name !== "sketch") {
           await comptrollerProxy._supportMarket(vToken.address);
         }

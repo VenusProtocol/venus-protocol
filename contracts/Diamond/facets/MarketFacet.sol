@@ -23,11 +23,11 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         return s.accountAssets[account];
     }
 
-    function venusSupplierIndex(address market, address borrower) external view returns(uint){
+    function venusSupplierIndex(address market, address borrower) external view returns (uint) {
         return s.venusSupplierIndex[market][borrower];
     }
 
-    function venusBorrowerIndex(address market, address borrower) external view returns(uint){
+    function venusBorrowerIndex(address market, address borrower) external view returns (uint) {
         return s.venusBorrowerIndex[market][borrower];
     }
 
@@ -110,45 +110,52 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
     function mintedVAIs(address vToken) external view returns (uint) {
         return s.mintedVAIs[vToken];
     }
+
     function vaiMintRate() external view returns (uint) {
         return s.vaiMintRate;
     }
+
     function venusVAIVaultRate() external view returns (uint) {
         return s.venusVAIVaultRate;
     }
+
     function vaiVaultAddress() external view returns (address) {
         return s.vaiVaultAddress;
     }
+
     function releaseStartBlock() external view returns (uint256) {
         return s.releaseStartBlock;
     }
+
     function minReleaseAmount() external view returns (uint256) {
         return s.minReleaseAmount;
     }
+
     function borrowCapGuardian() external view returns (address) {
         return s.borrowCapGuardian;
     }
+
     function borrowCaps(address token) external view returns (uint) {
         return s.borrowCaps[token];
     }
 
-    function  mintVAIGuardianPaused() external view returns(bool){
+    function mintVAIGuardianPaused() external view returns (bool) {
         return s.mintVAIGuardianPaused;
     }
 
-    function  repayVAIGuardianPaused() external view returns(bool){
+    function repayVAIGuardianPaused() external view returns (bool) {
         return s.repayVAIGuardianPaused;
     }
 
-    function  protocolPaused() external view returns(bool){
+    function protocolPaused() external view returns (bool) {
         return s.protocolPaused;
     }
 
-    function liquidatorContract() external view returns(address){
+    function liquidatorContract() external view returns (address) {
         return s.liquidatorContract;
     }
 
-    function pauseGuardian() external view returns(address){
+    function pauseGuardian() external view returns (address) {
         return s.pauseGuardian;
     }
 

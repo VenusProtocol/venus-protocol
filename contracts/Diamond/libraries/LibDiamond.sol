@@ -55,7 +55,7 @@ library LibDiamond {
         emit OwnershipTransferred(previousOwner, _newOwner);
     }
 
-     function setUnitrollerAddress(address _unitrollerAddress) internal {
+    function setUnitrollerAddress(address _unitrollerAddress) internal {
         DiamondStorage storage ds = diamondStorage();
         address previousUnitrollerAddress = ds.unitrollerAddress;
         ds.unitrollerAddress = _unitrollerAddress;
@@ -70,7 +70,7 @@ library LibDiamond {
         require(msg.sender == diamondStorage().contractOwner, "LibDiamond: Must be contract owner");
     }
 
-    function getUnitrollerAddress() internal view returns(address) {
+    function getUnitrollerAddress() internal view returns (address) {
         return diamondStorage().unitrollerAddress;
     }
 

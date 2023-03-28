@@ -6,7 +6,8 @@ import { AppStorage } from "./libraries/appStorage.sol";
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
 
 interface IUnitroller {
-    function admin() external view returns(address);
+    function admin() external view returns (address);
+
     function _acceptImplementation() external returns (uint);
 }
 

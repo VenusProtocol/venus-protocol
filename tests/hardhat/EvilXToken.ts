@@ -13,7 +13,9 @@ describe("Evil Token test", async () => {
   beforeEach(async () => {
     const [root, account1] = await ethers.getSigners();
 
-    const accessControlMock = await smock.fake<IAccessControlManager>("contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager");
+    const accessControlMock = await smock.fake<IAccessControlManager>(
+      "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+    );
     accessControlMock.isAllowedToCall.returns(true);
 
     user = account1;
@@ -81,7 +83,9 @@ describe("Evil Token test", async () => {
     const vDelegatee1 = await vDelegatee1Factory.deploy();
     await vDelegatee1.deployed();
 
-    const vDelegator1Factory = await ethers.getContractFactory("contracts/Tokens/V0.8.13/VTokens/VBep20Delegator.sol:VBep20Delegator");
+    const vDelegator1Factory = await ethers.getContractFactory(
+      "contracts/Tokens/V0.8.13/VTokens/VBep20Delegator.sol:VBep20Delegator",
+    );
     const vDelegator1 = await vDelegator1Factory.deploy(
       underlying1.address,
       unitroller.address,
@@ -110,7 +114,9 @@ describe("Evil Token test", async () => {
     const vDelegatee2 = await vDelegatee2Factory.deploy();
     await vDelegatee2.deployed();
 
-    const vDelegator2Factory = await ethers.getContractFactory("contracts/Tokens/V0.8.13/VTokens/VBep20Delegator.sol:VBep20Delegator");
+    const vDelegator2Factory = await ethers.getContractFactory(
+      "contracts/Tokens/V0.8.13/VTokens/VBep20Delegator.sol:VBep20Delegator",
+    );
     const vDelegator2 = await vDelegator2Factory.deploy(
       underlying2.address,
       unitroller.address,

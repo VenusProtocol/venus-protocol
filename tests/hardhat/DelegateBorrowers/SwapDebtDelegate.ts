@@ -6,7 +6,7 @@ import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
 import {
-  Comptroller,  
+  Comptroller,
   IERC20Upgradeable,
   PriceOracle,
   SwapDebtDelegate,
@@ -45,7 +45,7 @@ describe("assetListTest", () => {
     priceOracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
     comptroller = await smock.fake<Comptroller>("contracts/Comptroller/Comptroller.sol:Comptroller");
     foo = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
-    
+
     bar = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
     vFoo = await smock.fake<VBep20>("contracts/Tokens/VTokens/VBep20.sol:VBep20");
     vBar = await smock.fake<VBep20>("contracts/Tokens/VTokens/VBep20.sol:VBep20");
