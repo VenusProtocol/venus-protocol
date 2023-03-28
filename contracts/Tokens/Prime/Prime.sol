@@ -339,7 +339,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         uint256 delta;
         if (markets[vToken].score > 0) {
-            delta = ((distributionIncome * 1e18) / markets[vToken].score) / 1e18;
+            delta = ((distributionIncome * 1e18) / markets[vToken].score);
         }
          
         markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;
@@ -372,10 +372,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     function _interestAccrued(address vToken, address account) internal returns (uint256) {
-        // uint delta = _markets[vToken].index - _interests[vToken][account].index;
-        // return
-        //     _interests[vToken][account].accrued +
-        //     ((_interests[vToken][account].totalQVL * delta) / getMarketDecimals(vToken));
+        uint256 index = markets[vToken].rewardIndex - interests[vToken][account].rewardIndex;
+        uint256 indexMultiplier = markets[vToken].indexMultiplier - interests[vToken][account].indexMultiplier;
+        uint256 score = interests[vToken][account].score;
+
+        return (index * indexMultiplier * score) / 1e18;
     }
 
     /**
@@ -383,14 +384,15 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param vToken the market for which claim the accrued interest
      */
     function claimInterest(address vToken) external {
-        // accrueInterest(vToken);
+        accrueInterest(vToken);
 
-        // uint256 amount = getInterestAccrued(vToken, msg.sender);
-        // _interests[vToken][msg.sender].index = _markets[vToken].index;
-        // _interests[vToken][msg.sender].accrued = 0;
+        uint256 amount = getInterestAccrued(vToken, msg.sender);
+        interests[vToken][msg.sender].rewardIndex = markets[vToken].rewardIndex;
+        interests[vToken][msg.sender].indexMultiplier = markets[vToken].indexMultiplier;
+        interests[vToken][msg.sender].accrued = 0;
 
-        // IERC20Upgradeable asset = IERC20Upgradeable(IVToken(vToken).underlying());
-        // asset.safeTransfer(msg.sender, amount);
+        IERC20Upgradeable asset = IERC20Upgradeable(IVToken(vToken).underlying());
+        asset.safeTransfer(msg.sender, amount);
     }
 
     modifier onlyXVSVault() {
