@@ -414,12 +414,12 @@ forking(26713742, () => {
 
         describe("Diamond Rewards", () => {
           it.only("grant and claim rewards", async () => {
-            let xvsOwner = "0x3a3284dc0faffb0b5f0d074c4c704d14326c98cf";
+            const xvsOwner = "0x3a3284dc0faffb0b5f0d074c4c704d14326c98cf";
             await impersonateAccount(xvsOwner);
             const xvsAdmin = await ethers.getSigner(xvsOwner);
 
-            let vXVSAddress = await unitroller.getXVSVTokenAddress();
-            let XVSAddress = await unitroller.getXVSAddress();
+            const vXVSAddress = await unitroller.getXVSVTokenAddress();
+            const XVSAddress = await unitroller.getXVSAddress();
             XVS = XVS__factory.connect(XVSAddress, xvsAdmin);
             vXVS = VToken__factory.connect(vXVSAddress, admin);
 
