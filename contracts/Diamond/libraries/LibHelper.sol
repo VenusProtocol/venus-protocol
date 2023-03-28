@@ -1,11 +1,11 @@
 pragma solidity 0.8.13;
-import "../../Tokens/VTokens/VToken.sol";
+import "../../Tokens/V0.8.13/VTokens/VToken.sol";
 import "./appStorage.sol";
 import "./LibAccessCheck.sol";
-import "../../Utils/ErrorReporter.sol";
+import "../../Utils/V0.8.13/ErrorReporter.sol";
 import "./LibExponentialNoError.sol";
 
-import "../../Utils/ExponentialNoError.sol";
+import "../../Utils/V0.8.13/ExponentialNoError.sol";
 
 library LibHelper {
     /// @notice The initial Venus index for a market

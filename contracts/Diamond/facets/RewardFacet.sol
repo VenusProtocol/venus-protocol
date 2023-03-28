@@ -1,14 +1,18 @@
 pragma solidity 0.8.13;
 
-import "../../Oracle/PriceOracle.sol";
-import "../../Tokens/VTokens/VToken.sol";
-import "../../Utils/ErrorReporter.sol";
-import "../../Tokens/XVS/XVS.sol";
-import "../../Tokens/VAI/VAI.sol";
+import "../../Oracle/V0.8.13/PriceOracle.sol";
+import "../../Tokens/V0.8.13/VTokens/VToken.sol";
+import "../../Utils/V0.8.13/ErrorReporter.sol";
 import "../libraries/LibAccessCheck.sol";
 import "../libraries/LibHelper.sol";
 import "../libraries/appStorage.sol";
-import "../../Governance/IAccessControlManager.sol";
+import "../../Governance/V0.8.13/IAccessControlManagerV8.sol";
+
+interface IXVS {
+    function balanceOf(address account) external view returns (uint);
+    function transfer(address dst, uint rawAmount) external returns (bool);
+    function approve(address spender, uint rawAmount) external returns (bool);
+}
 
 contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
     AppStorage internal s;
@@ -77,14 +81,12 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
             "Blacklisted"
         );
 
-        XVS xvs = XVS(getXVSAddress());
-
-        if (amount == 0 || amount > xvs.balanceOf(address(this))) {
+        if (amount == 0 || amount > IXVS(getXVSAddress()).balanceOf(address(this))) {
             return amount;
         }
 
         if (shortfall == 0) {
-            xvs.transfer(user, amount);
+            IXVS(getXVSAddress()).transfer(user, amount);
             return 0;
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
@@ -94,7 +96,7 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt accounts can only collateralize their pending xvs rewards");
 
-        xvs.approve(getXVSVTokenAddress(), amount);
+        IXVS(getXVSAddress()).approve(getXVSVTokenAddress(), amount);
         require(
             VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint(Error.NO_ERROR),
             "mint behalf error during collateralize xvs"
@@ -158,9 +160,7 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
             return;
         }
 
-        XVS xvs = XVS(getXVSAddress());
-
-        uint256 xvsBalance = xvs.balanceOf(address(this));
+        uint256 xvsBalance = IXVS(getXVSAddress()).balanceOf(address(this));
         if (xvsBalance == 0) {
             return;
         }
@@ -182,7 +182,7 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError {
 
         s.releaseStartBlock = getBlockNumber();
 
-        xvs.transfer(s.vaiVaultAddress, actualAmount);
+        IXVS(getXVSAddress()).transfer(s.vaiVaultAddress, actualAmount);
         emit DistributedVAIVaultVenus(actualAmount);
 
         IVAIVault(s.vaiVaultAddress).updatePendingRewards();

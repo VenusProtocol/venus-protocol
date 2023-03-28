@@ -4,13 +4,18 @@ import { LibDiamond } from "./libraries/LibDiamond.sol";
 import { AppStorage } from "./libraries/appStorage.sol";
 
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
-import "../Comptroller/Unitroller.sol";
+
+interface IUnitroller {
+    function admin() external view returns(address);
+    function _acceptImplementation() external returns (uint);
+}
 
 contract Diamond {
     AppStorage internal s;
 
-    constructor(address _contractOwner) payable {
+    constructor(address _contractOwner, address _unitrollerAddress) payable {
         LibDiamond.setContractOwner(_contractOwner);
+        LibDiamond.setUnitrollerAddress(_unitrollerAddress);
     }
 
     function facetCutInitilizer(address _diamondCutFacet) external {
@@ -27,9 +32,10 @@ contract Diamond {
         LibDiamond.libDiamondCut(cut, address(0), "");
     }
 
-    function _become(Unitroller unitroller) external {
-        require(msg.sender == unitroller.admin(), "only unitroller admin can");
-        require(unitroller._acceptImplementation() == 0, "not authorized");
+    function _become() external {
+        address unitrollerAddress = LibDiamond.getUnitrollerAddress();
+        require(msg.sender == IUnitroller(unitrollerAddress).admin(), "only unitroller admin can");
+        require(IUnitroller(unitrollerAddress)._acceptImplementation() == 0, "not authorized");
     }
 
     // Find facet for function that is called and execute the

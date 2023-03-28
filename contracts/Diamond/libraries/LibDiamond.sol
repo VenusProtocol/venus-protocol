@@ -33,6 +33,8 @@ library LibDiamond {
         mapping(bytes4 => bool) supportedInterfaces;
         // owner of the contract
         address contractOwner;
+        // unitroller address
+        address unitrollerAddress;
     }
 
     function diamondStorage() internal pure returns (DiamondStorage storage ds) {
@@ -44,11 +46,20 @@ library LibDiamond {
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    event UnitrollerAddressUpdated(address indexed previousOwner, address indexed newOwner);
+
     function setContractOwner(address _newOwner) internal {
         DiamondStorage storage ds = diamondStorage();
         address previousOwner = ds.contractOwner;
         ds.contractOwner = _newOwner;
         emit OwnershipTransferred(previousOwner, _newOwner);
+    }
+
+     function setUnitrollerAddress(address _unitrollerAddress) internal {
+        DiamondStorage storage ds = diamondStorage();
+        address previousUnitrollerAddress = ds.unitrollerAddress;
+        ds.unitrollerAddress = _unitrollerAddress;
+        emit OwnershipTransferred(previousUnitrollerAddress, _unitrollerAddress);
     }
 
     function contractOwner() internal view returns (address contractOwner_) {
@@ -57,6 +68,10 @@ library LibDiamond {
 
     function enforceIsContractOwner() internal view {
         require(msg.sender == diamondStorage().contractOwner, "LibDiamond: Must be contract owner");
+    }
+
+    function getUnitrollerAddress() internal view returns(address) {
+        return diamondStorage().unitrollerAddress;
     }
 
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut, address _init, bytes _calldata);

@@ -1,9 +1,9 @@
 pragma solidity 0.8.13;
 
-import "../../Tokens/VTokens/VToken.sol";
-import "../../Oracle/PriceOracle.sol";
-import "../../Tokens/VAI/VAIControllerInterface.sol";
-import "../../Comptroller/ComptrollerLensInterface.sol";
+import "../../Tokens/V0.8.13/VTokens/VToken.sol";
+import "../../Oracle/V0.8.13/PriceOracle.sol";
+import "../../Tokens/V0.8.13/VAI/VAIControllerInterface.sol";
+import "../../Comptroller/V0.8.13/ComptrollerLensInterface.sol";
 
 struct Market {
     /// @notice Whether or not this market is listed
@@ -154,6 +154,10 @@ struct AppStorage {
     mapping(address => uint) venusBorrowSpeeds;
     /// @notice The rate at which venus is distributed to the corresponding supply market (per block)
     mapping(address => uint) venusSupplySpeeds;
+    /// @notice Address of the XVS token.
+    address XVSAddress;
+    /// @notice Address of the VAI token.
+    address VAIAddress;
 }
 
 library LibAppStorage {

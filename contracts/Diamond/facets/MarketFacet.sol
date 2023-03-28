@@ -3,7 +3,7 @@ pragma solidity 0.8.13;
 import "../libraries/appStorage.sol";
 import "../libraries/LibHelper.sol";
 import "../libraries/LibAccessCheck.sol";
-import "../../Tokens/VTokens/VToken.sol";
+import "../../Tokens/V0.8.13/VTokens/VToken.sol";
 
 contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
     AppStorage internal s;
@@ -136,7 +136,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError {
         return s.protocolPaused;
     }
 
-    function liquidatorContract() externl view returns(address){
+    function liquidatorContract() external view returns(address){
         return s.liquidatorContract;
     }
 

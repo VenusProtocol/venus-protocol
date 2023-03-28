@@ -1,10 +1,10 @@
 pragma solidity 0.8.13;
 
-import "../../Utils/ErrorReporter.sol";
+import "../../Utils/V0.8.13/ErrorReporter.sol";
 import "../libraries/LibAccessCheck.sol";
 import "../libraries/LibHelper.sol";
 import "../libraries/appStorage.sol";
-import "../../Tokens/VTokens/VToken.sol";
+import "../../Tokens/V0.8.13/VTokens/VToken.sol";
 
 contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     AppStorage internal s;

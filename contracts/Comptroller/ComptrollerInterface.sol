@@ -1,38 +1,38 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "../Tokens/VTokens/VToken.sol";
 import "../Oracle/PriceOracle.sol";
 
-abstract contract ComptrollerInterfaceG1 {
+contract ComptrollerInterfaceG1 {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     bool public constant isComptroller = true;
 
     /*** Assets You Are In ***/
 
-    function enterMarkets(address[] calldata vTokens) external virtual returns (uint[] memory);
+    function enterMarkets(address[] calldata vTokens) external returns (uint[] memory);
 
-    function exitMarket(address vToken) external virtual returns (uint);
+    function exitMarket(address vToken) external returns (uint);
 
     /*** Policy Hooks ***/
 
-    function mintAllowed(address vToken, address minter, uint mintAmount) external virtual returns (uint);
+    function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint);
 
-    function mintVerify(address vToken, address minter, uint mintAmount, uint mintTokens) external virtual;
+    function mintVerify(address vToken, address minter, uint mintAmount, uint mintTokens) external;
 
-    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external virtual returns (uint);
+    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint);
 
-    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external virtual;
+    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external;
 
-    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external virtual returns (uint);
+    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint);
 
-    function borrowVerify(address vToken, address borrower, uint borrowAmount) external virtual {}
+    function borrowVerify(address vToken, address borrower, uint borrowAmount) external;
 
     function repayBorrowAllowed(
         address vToken,
         address payer,
         address borrower,
         uint repayAmount
-    ) external virtual returns (uint);
+    ) external returns (uint);
 
     function repayBorrowVerify(
         address vToken,
@@ -40,7 +40,7 @@ abstract contract ComptrollerInterfaceG1 {
         address borrower,
         uint repayAmount,
         uint borrowerIndex
-    ) external virtual;
+    ) external;
 
     function liquidateBorrowAllowed(
         address vTokenBorrowed,
@@ -48,7 +48,7 @@ abstract contract ComptrollerInterfaceG1 {
         address liquidator,
         address borrower,
         uint repayAmount
-    ) external virtual returns (uint);
+    ) external returns (uint);
 
     function liquidateBorrowVerify(
         address vTokenBorrowed,
@@ -57,7 +57,7 @@ abstract contract ComptrollerInterfaceG1 {
         address borrower,
         uint repayAmount,
         uint seizeTokens
-    ) external virtual;
+    ) external;
 
     function seizeAllowed(
         address vTokenCollateral,
@@ -65,7 +65,7 @@ abstract contract ComptrollerInterfaceG1 {
         address liquidator,
         address borrower,
         uint seizeTokens
-    ) external virtual returns (uint);
+    ) external returns (uint);
 
     function seizeVerify(
         address vTokenCollateral,
@@ -73,16 +73,11 @@ abstract contract ComptrollerInterfaceG1 {
         address liquidator,
         address borrower,
         uint seizeTokens
-    ) external virtual;
+    ) external;
 
-    function transferAllowed(
-        address vToken,
-        address src,
-        address dst,
-        uint transferTokens
-    ) external virtual returns (uint);
+    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint);
 
-    function transferVerify(address vToken, address src, address dst, uint transferTokens) external virtual;
+    function transferVerify(address vToken, address src, address dst, uint transferTokens) external;
 
     /*** Liquidity/Liquidation Calculations ***/
 
@@ -90,59 +85,59 @@ abstract contract ComptrollerInterfaceG1 {
         address vTokenBorrowed,
         address vTokenCollateral,
         uint repayAmount
-    ) external view virtual returns (uint, uint);
+    ) external view returns (uint, uint);
 
-    function setMintedVAIOf(address owner, uint amount) external virtual returns (uint);
+    function setMintedVAIOf(address owner, uint amount) external returns (uint);
 }
 
-abstract contract ComptrollerInterfaceG2 is ComptrollerInterfaceG1 {
+contract ComptrollerInterfaceG2 is ComptrollerInterfaceG1 {
     function liquidateVAICalculateSeizeTokens(
         address vTokenCollateral,
         uint repayAmount
-    ) external view virtual returns (uint, uint);
+    ) external view returns (uint, uint);
 }
 
-abstract contract ComptrollerInterfaceG3 is ComptrollerInterfaceG2 {
+contract ComptrollerInterfaceG3 is ComptrollerInterfaceG2 {
     function liquidateVAICalculateSeizeTokens(
         address vTokenCollateral,
         uint repayAmount
-    ) external view virtual override returns (uint, uint) {}
+    ) external view returns (uint, uint);
 }
 
-abstract contract ComptrollerInterfaceG4 is ComptrollerInterfaceG3 {
-    function getXVSAddress() public view virtual returns (address);
+contract ComptrollerInterfaceG4 is ComptrollerInterfaceG3 {
+    function getXVSAddress() public view returns (address);
 }
 
-abstract contract ComptrollerInterface is ComptrollerInterfaceG4 {
-    function markets(address) external view virtual returns (bool, uint);
+contract ComptrollerInterface is ComptrollerInterfaceG4 {
+    function markets(address) external view returns (bool, uint);
 
-    function oracle() external view virtual returns (PriceOracle);
+    function oracle() external view returns (PriceOracle);
 
-    function getAccountLiquidity(address) external view virtual returns (uint, uint, uint);
+    function getAccountLiquidity(address) external view returns (uint, uint, uint);
 
-    function getAssetsIn(address) external view virtual returns (VToken[] memory);
+    function getAssetsIn(address) external view returns (VToken[] memory);
 
-    function claimVenus(address) external virtual;
+    function claimVenus(address) external;
 
-    function venusAccrued(address) external view virtual returns (uint);
+    function venusAccrued(address) external view returns (uint);
 
-    function venusSupplySpeeds(address) external view virtual returns (uint);
+    function venusSupplySpeeds(address) external view returns (uint);
 
-    function venusBorrowSpeeds(address) external view virtual returns (uint);
+    function venusBorrowSpeeds(address) external view returns (uint);
 
-    function getAllMarkets() external view virtual returns (VToken[] memory);
+    function getAllMarkets() external view returns (VToken[] memory);
 
-    function venusSupplierIndex(address, address) external view virtual returns (uint);
+    function venusSupplierIndex(address, address) external view returns (uint);
 
-    function venusInitialIndex() external view virtual returns (uint224);
+    function venusInitialIndex() external view returns (uint224);
 
-    function venusBorrowerIndex(address, address) external view virtual returns (uint);
+    function venusBorrowerIndex(address, address) external view returns (uint);
 
-    function venusBorrowState(address) external view virtual returns (uint224, uint32);
+    function venusBorrowState(address) external view returns (uint224, uint32);
 
-    function venusSupplyState(address) external view virtual returns (uint224, uint32);
+    function venusSupplyState(address) external view returns (uint224, uint32);
 
-    function approvedDelegates(address borrower, address delegate) external view virtual returns (bool);
+    function approvedDelegates(address borrower, address delegate) external view returns (bool);
 }
 
 interface IVAIVault {

@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "../Oracle/PriceOracle.sol";
 import "../Tokens/VTokens/VToken.sol";
@@ -189,7 +189,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param vTokens The list of addresses of the vToken markets to be enabled
      * @return Success indicator for whether each corresponding market was entered
      */
-    function enterMarkets(address[] calldata vTokens) external override returns (uint[] memory) {
+    function enterMarkets(address[] calldata vTokens) external returns (uint[] memory) {
         uint len = vTokens.length;
 
         uint[] memory results = new uint[](len);
@@ -237,7 +237,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param vTokenAddress The address of the asset to be removed
      * @return Whether or not the account successfully exited the market
      */
-    function exitMarket(address vTokenAddress) external override returns (uint) {
+    function exitMarket(address vTokenAddress) external returns (uint) {
         checkActionPauseState(vTokenAddress, Action.EXIT_MARKET);
 
         VToken vToken = VToken(vTokenAddress);
@@ -274,7 +274,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         for (; i < len; ++i) {
             if (userAssetList[i] == vToken) {
                 userAssetList[i] = userAssetList[len - 1];
-                userAssetList.pop();
+                userAssetList.length--;
                 break;
             }
         }
@@ -313,7 +313,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param mintAmount The amount of underlying being supplied to the market in exchange for tokens
      * @return 0 if the mint is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function mintAllowed(address vToken, address minter, uint mintAmount) external override returns (uint) {
+    function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.MINT);
@@ -341,7 +341,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param actualMintAmount The amount of the underlying asset being minted
      * @param mintTokens The number of tokens being minted
      */
-    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external override {}
+    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {}
 
     /**
      * @notice Checks if the account should be allowed to redeem tokens in the given market
@@ -350,7 +350,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param redeemTokens The number of vTokens to exchange for the underlying asset in the market
      * @return 0 if the redeem is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external override returns (uint) {
+    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REDEEM);
 
@@ -399,7 +399,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param redeemTokens The number of tokens being redeemed
      */
     // solhint-disable-next-line no-unused-vars
-    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external override {
+    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
     }
 
@@ -410,7 +410,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param borrowAmount The amount of underlying the account would borrow
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external override returns (uint) {
+    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.BORROW);
@@ -466,7 +466,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param borrower The address borrowing the underlying
      * @param borrowAmount The amount of the underlying asset requested to borrow
      */
-    function borrowVerify(address vToken, address borrower, uint borrowAmount) external override {}
+    function borrowVerify(address vToken, address borrower, uint borrowAmount) external {}
 
     /**
      * @notice Checks if the account should be allowed to repay a borrow in the given market
@@ -483,7 +483,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         address borrower,
         // solhint-disable-next-line no-unused-vars
         uint repayAmount
-    ) external override returns (uint) {
+    ) external returns (uint) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REPAY);
         ensureListed(markets[vToken]);
@@ -509,7 +509,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         address borrower,
         uint actualRepayAmount,
         uint borrowerIndex
-    ) external override {}
+    ) external {}
 
     /**
      * @notice Checks if the liquidation should be allowed to occur
@@ -525,7 +525,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         address liquidator,
         address borrower,
         uint repayAmount
-    ) external override returns (uint) {
+    ) external returns (uint) {
         checkProtocolPauseState();
 
         // if we want to pause liquidating to vTokenCollateral, we should pause seizing
@@ -541,7 +541,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
+        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(0), 0, 0);
         if (err != Error.NO_ERROR) {
             return uint(err);
         }
@@ -580,7 +580,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         address borrower,
         uint actualRepayAmount,
         uint seizeTokens
-    ) external override {}
+    ) external {}
 
     /**
      * @notice Checks if the seizing of assets should be allowed to occur
@@ -596,7 +596,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         address liquidator,
         address borrower,
         uint seizeTokens // solhint-disable-line no-unused-vars
-    ) external override returns (uint) {
+    ) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vTokenCollateral, Action.SEIZE);
@@ -633,7 +633,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         address liquidator,
         address borrower,
         uint seizeTokens
-    ) external override {}
+    ) external {}
 
     /**
      * @notice Checks if the account should be allowed to transfer tokens in the given market
@@ -643,12 +643,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param transferTokens The number of vTokens to transfer
      * @return 0 if the transfer is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function transferAllowed(
-        address vToken,
-        address src,
-        address dst,
-        uint transferTokens
-    ) external override returns (uint) {
+    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.TRANSFER);
@@ -675,7 +670,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param dst The account which receives the tokens
      * @param transferTokens The number of vTokens to transfer
      */
-    function transferVerify(address vToken, address src, address dst, uint transferTokens) external override {}
+    function transferVerify(address vToken, address src, address dst, uint transferTokens) external {}
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
@@ -684,12 +679,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      *          account shortfall below collateral requirements)
      */
     function getAccountLiquidity(address account) external view returns (uint, uint, uint) {
-        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(
-            account,
-            VToken(address(0)),
-            0,
-            0
-        );
+        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(account, VToken(0), 0, 0);
 
         return (uint(err), liquidity, shortfall);
     }
@@ -759,7 +749,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         address vTokenBorrowed,
         address vTokenCollateral,
         uint actualRepayAmount
-    ) external view override returns (uint, uint) {
+    ) external view returns (uint, uint) {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
             address(this),
             vTokenBorrowed,
@@ -779,7 +769,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
     function liquidateVAICalculateSeizeTokens(
         address vTokenCollateral,
         uint actualRepayAmount
-    ) external view override returns (uint, uint) {
+    ) external view returns (uint, uint) {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
             address(this),
             vTokenCollateral,
@@ -933,10 +923,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         vToken.isVToken(); // Sanity check to make sure its really a VToken
 
         // Note that isVenus is not in active use anymore
-        Market storage newMarket = markets[address(vToken)];
-        newMarket.isListed = true;
-        newMarket.isVenus = false;
-        newMarket.collateralFactorMantissa = 0;
+        markets[address(vToken)] = Market({ isListed: true, isVenus: false, collateralFactorMantissa: 0 });
 
         _addMarketInternal(vToken);
         _initializeMarket(address(vToken));
@@ -1365,7 +1352,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
             address holder = holders[j];
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
-            (, , uint shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
+            (, , uint shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(0), 0, 0);
             venusAccrued[holder] = grantXVSInternal(holder, venusAccrued[holder], shortfall, collateral);
         }
     }
@@ -1503,7 +1490,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         return allMarkets;
     }
 
-    function getBlockNumber() public view virtual returns (uint) {
+    function getBlockNumber() public view returns (uint) {
         return block.number;
     }
 
@@ -1511,7 +1498,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @notice Return the address of the XVS token
      * @return The address of XVS
      */
-    function getXVSAddress() public view virtual returns (address) {
+    function getXVSAddress() public view returns (address) {
         return 0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63;
     }
 
@@ -1519,7 +1506,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @notice Return the address of the XVS vToken
      * @return The address of XVS vToken
      */
-    function getXVSVTokenAddress() public view virtual returns (address) {
+    function getXVSVTokenAddress() public view returns (address) {
         return 0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D;
     }
 
@@ -1540,7 +1527,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
      * @param amount The amount of VAI to set to the account
      * @return The number of minted VAI by `owner`
      */
-    function setMintedVAIOf(address owner, uint amount) external override returns (uint) {
+    function setMintedVAIOf(address owner, uint amount) external returns (uint) {
         checkProtocolPauseState();
 
         // Pausing is a very serious situation - we revert to sound the alarms
