@@ -78,10 +78,10 @@ contract VRTVault is VRTVaultStorage {
         emit VaultResumed(msg.sender);
     }
 
-     function setLastAccruingBlock(uint256 _lastAccruingBlock) public onlyAdmin {
+    function setLastAccruingBlock(uint256 _lastAccruingBlock) public onlyAdmin {
         uint256 oldLastAccruingBlock = lastAccruingBlock;
         lastAccruingBlock = _lastAccruingBlock;
-        emit LastAccruingBlockChanged(oldLastAccruingBlock,_lastAccruingBlock);
+        emit LastAccruingBlockChanged(oldLastAccruingBlock, _lastAccruingBlock);
     }
 
     modifier isActive() {
@@ -172,7 +172,7 @@ contract VRTVault is VRTVaultStorage {
         uint256 blockNumber = getBlockNumber();
         uint256 _lastAccruingBlock = lastAccruingBlock;
 
-        if(blockNumber > _lastAccruingBlock){
+        if (blockNumber > _lastAccruingBlock) {
             blockNumber = _lastAccruingBlock;
         }
 
