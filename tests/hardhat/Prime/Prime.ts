@@ -1,6 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
-import { Libraries } from "@nomiclabs/hardhat-ethers/types";
 import chai from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
@@ -22,7 +21,6 @@ import {
   XVSVault,
   XVSVaultScenario,
 } from "../../../typechain";
-import { xvs } from "../../../typechain/contracts/Tokens";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -240,7 +238,7 @@ describe("PrimeScenario Token", () => {
     });
   });
 
-  describe.skip("mint and burn", () => {
+  describe("mint and burn", () => {
     let prime: PrimeScenario;
     let xvsVault: XVSVault;
     let xvs: XVS;
@@ -355,12 +353,11 @@ describe("PrimeScenario Token", () => {
     let veth: VBep20Harness;
     let usdt: BEP20Harness;
     let eth: BEP20Harness;
-    let oracle: FakeContract<PriceOracle>;
     let xvsVault: XVSVault;
     let xvs: XVS;
 
     beforeEach(async () => {
-      ({ comptroller, prime, vusdt, veth, usdt, eth, oracle, xvsVault, xvs } = await loadFixture(deployProtocol));
+      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs } = await loadFixture(deployProtocol));
 
       const [user1, user2] = accounts;
 
@@ -386,7 +383,7 @@ describe("PrimeScenario Token", () => {
       await veth.connect(user2).borrow(bigNumber18.mul(1));
     });
 
-    it.skip("calculate score", async () => {
+    it("calculate score", async () => {
       const xvsBalance = bigNumber18.mul(5000)
       const capital = bigNumber18.mul(120)
 
@@ -399,12 +396,12 @@ describe("PrimeScenario Token", () => {
       expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("2371440609779311958519")
     })
 
-    it("accrue interest", async () => {
+    it("accrue interest - prime token minted after market is added", async () => {
       const [user1, user2] = accounts;
 
       let interest = await prime.interests(vusdt.address, user1.getAddress());
       /**
-       * 10000^0.5 * 5^0.5 = 223.6067977
+       * score = 10000^0.5 * 5^0.5 = 223.6067977
        */
       expect(interest.score).to.be.equal("223606797749979014552");
       expect(interest.accrued).to.be.equal(0);
@@ -432,44 +429,40 @@ describe("PrimeScenario Token", () => {
 
       /**
        * index = 1000000000000002318 - 1000000000000000000
-       * indexMultiplier = 
-       * 
+       * indexMultiplier = 3 - 2
+       * score = 223606797749979014552 (223.606797749979014552)
+       * interest = index * indexMultiplier * score = 0.000000000000002318 * 1 * 223.606797749979014552 = 0.00000000000051832
        */
-      expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(715988)
+      expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(518320)
 
       await prime.issue(false, [user2.getAddress()])
 
       interest = await prime.interests(vusdt.address, user2.getAddress());
+      /**
+       * score = 100^0.5 * 100^0.5 = 100
+       */
       expect(interest.score).to.be.equal(bigNumber18.mul(100));
       expect(interest.accrued).to.be.equal(0);
       expect(interest.rewardIndex).to.be.equal("1000000000000002318");
-      expect(interest.indexMultiplier).to.be.equal(3);
-
-      await mine(24 * 60 * 20);
-      
+      expect(interest.indexMultiplier).to.be.equal(4);
     });
 
-  //   it("claim interest", async () => {
-  //     const [user1, user2] = accounts;
+    it("claim interest", async () => {
+      const [user1, user2] = accounts;
 
-  //     await prime.issue(true, [user1.getAddress(), user2.getAddress()], [1, 1]);
+      await mine(24 * 60 * 20);
+      await prime.accrueInterest(vusdt.address)
+      expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(518320)
 
-  //     await mine(24 * 60 * 20);
-  //     await prime.executeBoost(user1.getAddress(), vusdt.address);
+      await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.reverted;
 
-  //     await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.reverted;
-
-  //     const interest = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
-  //     await usdt.transfer(prime.address, interest);
-
-  //     const previousBalance = await usdt.balanceOf(user1.getAddress());
-
-  //     await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.not.reverted;
-
-  //     const newBalance = await usdt.balanceOf(user1.getAddress());
-
-  //     expect(newBalance).to.be.equal(previousBalance.add(interest));
-  //   });
+      const interest = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
+      await usdt.transfer(prime.address, interest);
+      const previousBalance = await usdt.balanceOf(user1.getAddress());
+      await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.not.reverted;
+      const newBalance = await usdt.balanceOf(user1.getAddress());
+      expect(newBalance).to.be.equal(previousBalance.add(interest));
+    });
 
   //   describe("update QVL", () => {
   //     let vbnb: VBep20Harness;

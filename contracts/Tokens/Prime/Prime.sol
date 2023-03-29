@@ -325,6 +325,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
         IVToken market = IVToken(vToken);
 
+        if (block.number == markets[vToken].lastUpdated) {
+            return;
+        }
+
         uint256 pastBlocks = block.number - markets[vToken].lastUpdated;
         uint256 protocolIncomePerBlock = (((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) *
             market.reserveFactorMantissa()) / EXP_SCALE;
@@ -378,8 +382,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param vToken the market for which claim the accrued interest
      */
     function claimInterest(address vToken) external {
-        accrueInterest(vToken);
-
         uint256 amount = getInterestAccrued(vToken, msg.sender);
         interests[vToken][msg.sender].rewardIndex = markets[vToken].rewardIndex;
         interests[vToken][msg.sender].indexMultiplier = markets[vToken].indexMultiplier;
