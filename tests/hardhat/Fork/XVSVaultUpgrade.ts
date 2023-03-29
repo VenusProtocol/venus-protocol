@@ -3,7 +3,8 @@ import { expect } from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
-import { XVSVaultProxy__factory, XVSVault__factory } from "../../../typechain";
+import { XVSVault, XVSVaultProxy__factory, XVSVault__factory } from "../../../typechain";
+import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
 const hre = require("hardhat");
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
@@ -26,9 +27,9 @@ const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
 let admin: Signer;
 let impersonatedTimelock: Signer;
 let signer: Signer;
-let xvsVault: ethers.Contract;
-let oldXVSVault: ethers.Contract;
-let accessControlManager: ethers.Contract;
+let xvsVault: XVSVault;
+let oldXVSVault: XVSVault;
+let accessControlManager: IAccessControlManager;
 
 function getForkingUrl() {
   FORK_ENDPOINT = hre.network.config.forking.url;

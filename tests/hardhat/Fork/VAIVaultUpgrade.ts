@@ -4,7 +4,8 @@ import { expect } from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
-import { VAIVault, VAIVaultProxy__factory, VAIVault__factory } from "../../../typechain";
+import { VAI, VAIVault, VAIVaultProxy__factory, VAIVault__factory, XVS } from "../../../typechain";
+import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
 const hre = require("hardhat");
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
@@ -22,17 +23,17 @@ const ACM = "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555";
 // Owner of the ACM
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
 
-let admin: Signer;
-let impersonatedTimelock: Signer;
-let signer: Signer;
+let admin: SignerWithAddress;
+let impersonatedTimelock: SignerWithAddress;
+let signer: SignerWithAddress;
 let user1: SignerWithAddress;
 let user2: SignerWithAddress;
 let deployer: SignerWithAddress;
-let vaiVault: ethers.Contract;
-let oldVAIVault: ethers.Contract;
-let accessControlManager: ethers.Contract;
-let vai: ethers.Contract;
-let xvs: ethers.Contract;
+let vaiVault: VAIVault;
+let oldVAIVault: VAIVault;
+let accessControlManager: IAccessControlManager;
+let vai: VAI;
+let xvs: XVS;
 let vaiVaultFresh: VAIVault;
 
 function getForkingUrl() {
