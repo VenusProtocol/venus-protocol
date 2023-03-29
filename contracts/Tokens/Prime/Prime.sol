@@ -51,11 +51,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         address _xvsVaultRewardToken,
         uint256 _xvsVaultPoolId,
         uint128 _alphaNumerator,
-        uint128 _alphaDemominator,
+        uint128 _alphaDenominator,
         address _comptroller
     ) external virtual initializer {
         alphaNumerator = _alphaNumerator;
-        alphaDenominator = _alphaDemominator;
+        alphaDenominator = _alphaDenominator;
         xvsVaultRewardToken = _xvsVaultRewardToken;
         xvsVaultPoolId = _xvsVaultPoolId;
         xvsVault = _xvsVault;
@@ -64,12 +64,17 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         __Ownable2Step_init();
     }
 
+    /**
+     * @notice Update value of alpha 
+     * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numberator is 1
+     * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then numberator is 2
+     */
     function updateAlpha(
         uint128 _alphaNumerator,
-        uint128 _alphaDemominator
+        uint128 _alphaDenominator
     ) external onlyOwner {
         alphaNumerator = _alphaNumerator;
-        alphaDenominator = _alphaDemominator;
+        alphaDenominator = _alphaDenominator;
     }
 
     /**
@@ -85,10 +90,16 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _irrevocableLimit = irrevocableLimit;
     }
 
+    /**
+     * @notice Add a market to prime program
+     * @param vToken address of the market vToken
+     * @param supplyMultiplier the multiplier for supply cap. It should be converted to 1e18
+     * @param borrowMultiplier the multiplier for borrow cap. It should be converted to 1e18
+     */
     function addMarket(
         address vToken,
-        uint256 supplyMultiplier, //represented as EXP_SCALE
-        uint256 borrowMultiplier //represented as EXP_SCALE
+        uint256 supplyMultiplier, 
+        uint256 borrowMultiplier
     ) external onlyOwner {
         require(markets[vToken].lastUpdated == 0, "market is already added");
 
@@ -122,6 +133,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
     }
 
+    /**
+     * @notice Executed by XVSVault whenever users XVSVault balance changes
+     * @param owner the account address whose balance was updated
+     */
     function xvsUpdated(address owner) external onlyXVSVault {
         uint256 totalStaked = _xvsBalanceOfUser(owner);
         bool isAccountEligible = isEligible(totalStaked);
@@ -151,6 +166,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         _initializeMarkets(msg.sender);
     }
 
+    /**
+     * @notice Initializes all the markets for the user when a prime token is minted
+     * @param owner the account address for which markets needs to be initialized
+     */
     function _initializeMarkets(address account) internal {
         for (uint i = 0; i < allMarkets.length; i++) {
             address market = allMarkets[i];
@@ -165,11 +184,22 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
     }
 
+    /**
+     * @notice fetch the current XVS balance of user in the XVSVault
+     * @param owner the account address for which markets needs to be initialized
+     * @return xvsBalance the XVS balance of user
+     */
     function _xvsBalanceOfUser(address account) internal view returns(uint256) {
         (uint256 xvs,,uint256 pendingWithdrawals) = IXVSVault(xvsVault).getUserInfo(xvsVaultRewardToken, xvsVaultPoolId, account);
         return (xvs - pendingWithdrawals);
     }
 
+    /**
+     * @notice calculate the current score of user
+     * @param market the market for which to calculate the score 
+     * @param account the account for which to calculate the score
+     * @return score the score of the user 
+     */
     function _calculateScore(
         address market,
         address account
@@ -190,6 +220,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         );
     }
 
+    /**
+     * @notice calcukate the current XVS balance that will be used in calculation of score
+     * @param xvs the actual XVS balance of user
+     * @return xvsBalanceForScore the XVS balance to use in score
+     */
     function _xvsBalanceForScore(
         uint256 xvs
     ) internal view returns (uint256) {
@@ -200,6 +235,14 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         }
     }
 
+    /**
+     * @notice calculate the capital for calculation of score
+     * @param xvs the actual XVS balance of user
+     * @param borrow the borrow balance of user
+     * @param supply the supply balance of user
+     * @param market the market vToken address
+     * @return capital the capital to use in calculation of score
+     */
     function _capitalForScore(
         uint256 xvs,
         uint256 borrow, 
@@ -265,7 +308,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
-     * @notice Used to get the eligible tier associated with XVS amount
+     * @notice Used to get if the XVS balance is eligible for prime token
      * @param amount amount of XVS
      */
     function isEligible(uint256 amount) internal view returns (bool) {
@@ -277,7 +320,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
-     * @notice Accrue rewards for the user. Must be called before changing account's borrow or supply balance.
+     * @notice Accrue rewards for the user. Must be called by Comptroller before changing account's borrow or supply balance.
      * @param account account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
      */
@@ -297,7 +340,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
-     * @notice Update total QVL of user and market. Must be called after changing account's borrow or supply balance.
+     * @notice Update total score of user and market. Must be called after changing account's borrow or supply balance.
      * @param account account for which we need to update QVL
      * @param market the market for which we need to QVL
      */

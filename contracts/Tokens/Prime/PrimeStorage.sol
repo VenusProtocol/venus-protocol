@@ -22,7 +22,7 @@ contract PrimeStorageV1 {
         uint256 rewardIndex;
     }
 
-    uint internal constant EXP_SCALE = 1e18;
+    uint256 internal constant EXP_SCALE = 1e18;
 
     /// @notice minimum amount of XVS user needs to stake to become a prime member
     uint256 public constant MINIMUM_STAKED_XVS = 1000 * EXP_SCALE;
@@ -41,7 +41,6 @@ contract PrimeStorageV1 {
 
     /// @notice protocol income distribution BPS = 20%
     uint256 internal constant INCOME_DISTRIBUTION_BPS = 2000;
-
 
     /// @notice Mapping to get prime token's metadata
     mapping(address => Token) public tokens;
@@ -79,9 +78,12 @@ contract PrimeStorageV1 {
     /// @notice address of XVS vault
     address internal xvsVault;
 
+    /// @notice address of XVS vault reward token
     address internal xvsVaultRewardToken;
 
+    /// @notice address of XVS vault pool id
     uint256 internal xvsVaultPoolId;
 
+    /// @notice address of comptroller
     address internal comptroller;
 }
