@@ -21,7 +21,7 @@ describe("Comptroller", () => {
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     comptroller = await ComptrollerFactory.deploy();
     accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
     );
   });
 

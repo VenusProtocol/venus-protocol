@@ -27,8 +27,8 @@ type RewardsFixtire = {
 };
 
 const rewardsFixture = async (): Promise<RewardsFixtire> => {
-  vBUSD = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
-  vWBTC = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
+  vBUSD = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+  vWBTC = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
   XVS = await smock.fake<FaucetToken>("FaucetToken");
   const venusLensFactory = await smock.mock<VenusLens__factory>("VenusLens");
   venusLens = await venusLensFactory.deploy();

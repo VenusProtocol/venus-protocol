@@ -66,7 +66,7 @@ describe("VAIController", async () => {
     )) as BEP20Harness;
 
     const accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
     );
     accessControl.isAllowedToCall.returns(true);
 
@@ -537,7 +537,7 @@ describe("VAIController", async () => {
 
     it("emits NewAccessControl event", async () => {
       const newAccessControl = await smock.fake<IAccessControlManager>(
-        "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
       );
       const tx = await vaiController.setAccessControl(newAccessControl.address);
       await expect(tx)
@@ -547,7 +547,7 @@ describe("VAIController", async () => {
 
     it("sets ACM address in storage", async () => {
       const newAccessControl = await smock.fake<IAccessControlManager>(
-        "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
       );
       await vaiController.setAccessControl(newAccessControl.address);
       expect(await vaiController.getVariable("accessControl")).to.equal(newAccessControl.address);

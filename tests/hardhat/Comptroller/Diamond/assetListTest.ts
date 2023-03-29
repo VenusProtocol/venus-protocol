@@ -64,7 +64,7 @@ describe("Comptroller: assetListTest", () => {
     const [OMG, ZRX, BAT, SKT] = await Promise.all(
       names.map(async name => {
         const vToken = await smock.fake<VBep20Immutable>(
-          "contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable",
+          "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
         );
         if (name !== "sketch") {
           await comptrollerProxy._supportMarket(vToken.address);

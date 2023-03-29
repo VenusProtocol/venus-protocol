@@ -49,9 +49,7 @@ type SwapFixture = {
 };
 
 async function deploySwapContract(): Promise<SwapFixture> {
-  const vToken = await smock.fake<VBep20Immutable>(
-    "contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable",
-  );
+  const vToken = await smock.fake<VBep20Immutable>("contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable");
   const wBNBFactory = await smock.mock<WBNB__factory>("WBNB");
   const wBNB = await wBNBFactory.deploy();
   const pancakeFactory = await smock.fake<IPancakeSwapV2Factory>("IPancakeSwapV2Factory");

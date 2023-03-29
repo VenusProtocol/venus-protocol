@@ -75,10 +75,10 @@ describe("Comptroller", () => {
     await comptrollerProxy._setLiquidationIncentive(convertToUnit("1.1", 18));
 
     const vTokenBorrowed = await smock.fake<VBep20Immutable>(
-      "contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable",
+      "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
     );
     const vTokenCollateral = await smock.fake<VBep20Immutable>(
-      "contracts/Tokens/V0.8.13/VTokens/VBep20Immutable.sol:VBep20Immutable",
+      "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
     );
 
     return { comptrollerProxy, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };

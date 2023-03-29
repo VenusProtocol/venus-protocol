@@ -18,7 +18,7 @@ describe("Comptroller", () => {
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     comptroller = await ComptrollerFactory.deploy();
     accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
     );
     vToken1 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
     vToken2 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");

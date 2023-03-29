@@ -31,7 +31,7 @@ type SimpleComptrollerFixture = {
 async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
   const accessControl = await smock.fake<IAccessControlManager>(
-    "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+    "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
   );
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");

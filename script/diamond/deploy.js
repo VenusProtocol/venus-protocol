@@ -53,30 +53,24 @@ async function deployDiamond(unitrollerAddress) {
   // deploy facets
   const FacetNames = ["DiamondLoupeFacet", "MarketFacet", "PolicyFacet", "RewardFacet", "SetterFacet"];
   const cut = [];
-  let index = 0;
   for (const FacetName of FacetNames) {
-    let Facet;
-
-    Facet = await ethers.getContractFactory(FacetName);
-
+    const Facet = await ethers.getContractFactory(FacetName);
     const facet = await Facet.deploy();
     await facet.deployed();
+
     cut.push({
       facetAddress: facet.address,
       action: FacetCutAction.Add,
       functionSelectors: getSelectors(facet),
     });
-    index++; //eslint-disable-line
   }
 
   // upgrade diamond with facets
   const diamondCut = await ethers.getContractAt("IDiamondCut", unitroller.address);
-  let tx;
-  let receipt;
   // call to init function
-  let functionCall = diamondInit.interface.encodeFunctionData("init");
-  tx = await diamondCut.connect(unitrollerAdmin).diamondCut(cut, diamondInit.address, functionCall);
-  receipt = await tx.wait();
+  const functionCall = diamondInit.interface.encodeFunctionData("init");
+  const tx = await diamondCut.connect(unitrollerAdmin).diamondCut(cut, diamondInit.address, functionCall);
+  const receipt = await tx.wait();
   if (!receipt.status) {
     throw Error(`Diamond upgrade failed: ${tx.hash}`);
   }
