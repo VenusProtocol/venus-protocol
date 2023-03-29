@@ -15,7 +15,7 @@ const VDAI = "0x334b3eCB4DCa3593BCCC3c7EBD1A1C1d1780FBF1";
 export const vip104 = () => {
   const meta = {
     version: "v2",
-    title: "VIP-104 Gauntlen Recommendations",
+    title: "VIP-104 Gauntlet Recommendations",
     description: `
     TRXOLD: Decrease CF to 0.20 (conservative)
     TRX: (aggressive)
@@ -24,9 +24,10 @@ export const vip104 = () => {
     * Increase Supply Cap to 10,000,000
     DAI: Increase borrow cap to 7,500,000 (from 7 millions)
     `,
-    forDescription: "I agree that Venus Protocol should proceed with the Gauntlen Recommendations",
-    againstDescription: "I do not think that Venus Protocol should proceed with the Gauntlen Recommendations",
-    abstainDescription: "I am indifferent to whether Venus Protocol proceeds with the Gauntlen Recommendations or not",
+    forDescription: "I agree that Venus Protocol should proceed with the Gauntlet's Recommendations",
+    againstDescription: "I do not think that Venus Protocol should proceed with the Gauntlet's Recommendations",
+    abstainDescription:
+      "I am indifferent to whether Venus Protocol proceeds with the Gauntlet's Recommendations or not",
   };
 
   return makeProposal(
@@ -98,7 +99,7 @@ forking(26881099, () => {
 });
 
 forking(26881099, () => {
-  testVip("VIP-104 Change VAIVault Implementation", vip104());
+  testVip("VIP-104 Risk Parameters Update", vip104());
 });
 
 forking(26881099, () => {
