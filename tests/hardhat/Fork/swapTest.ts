@@ -16,9 +16,9 @@ import {
   IPancakeSwapV2Factory__factory,
   IWBNB,
   IWBNB__factory,
+  MockVBNB,
   PriceOracle,
   SwapRouter,
-  VBNB,
   VBep20Immutable,
   VBep20Immutable__factory,
 } from "../../../typechain";
@@ -40,7 +40,7 @@ let wBNBUser: any;
 let vBUSD: VBep20Immutable;
 let vUSDT: VBep20Immutable;
 let vSFM: VBep20Immutable;
-let vBNB: VBNB;
+let vBNB: MockVBNB;
 let vBabyDoge: VBep20Immutable;
 let admin: SignerWithAddress;
 let oracle: FakeContract<PriceOracle>;
@@ -104,7 +104,7 @@ async function configureVBNB(name: string, symbol: string) {
   const interestRateModel = await InterstRateModel.deploy(parseUnits("1", 12));
   await interestRateModel.deployed();
 
-  const vBNBFactory = await ethers.getContractFactory("VBNB");
+  const vBNBFactory = await ethers.getContractFactory("MockVBNB");
   const vToken = await vBNBFactory.deploy(
     comptroller.address,
     interestRateModel.address,
