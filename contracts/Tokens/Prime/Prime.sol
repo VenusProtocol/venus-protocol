@@ -335,7 +335,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         if (markets[vToken].score > 0) {
             delta = ((distributionIncome * EXP_SCALE) / markets[vToken].score);
         }
-         
+
         markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;
         markets[vToken].indexMultiplier = markets[vToken].indexMultiplier + 1;
         markets[vToken].lastUpdated = block.number;

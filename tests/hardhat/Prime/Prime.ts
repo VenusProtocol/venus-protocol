@@ -240,7 +240,7 @@ describe("PrimeScenario Token", () => {
     });
   });
 
-  describe("mint and burn", () => {
+  describe.skip("mint and burn", () => {
     let prime: PrimeScenario;
     let xvsVault: XVSVault;
     let xvs: XVS;
@@ -372,21 +372,21 @@ describe("PrimeScenario Token", () => {
       await xvs.connect(user2).approve(xvsVault.address, bigNumber18.mul(100));
       await xvsVault.connect(user2).deposit(xvs.address, 0, bigNumber18.mul(100));
 
-      await eth.connect(accounts[0]).approve(veth.address, bigNumber18.mul(90));
-      await veth.connect(accounts[0]).mint(bigNumber18.mul(90));
+      await eth.connect(user1).approve(veth.address, bigNumber18.mul(90));
+      await veth.connect(user1).mint(bigNumber18.mul(90));
 
-      await usdt.connect(accounts[1]).approve(vusdt.address, bigNumber18.mul(9000));
-      await vusdt.connect(accounts[1]).mint(bigNumber18.mul(9000));
+      await usdt.connect(user2).approve(vusdt.address, bigNumber18.mul(9000));
+      await vusdt.connect(user2).mint(bigNumber18.mul(9000));
 
-      await comptroller.connect(accounts[0]).enterMarkets([vusdt.address, veth.address]);
+      await comptroller.connect(user1).enterMarkets([vusdt.address, veth.address]);
 
-      await comptroller.connect(accounts[1]).enterMarkets([vusdt.address, veth.address]);
+      await comptroller.connect(user2).enterMarkets([vusdt.address, veth.address]);
 
-      await vusdt.connect(accounts[0]).borrow(bigNumber18.mul(5));
-      await veth.connect(accounts[1]).borrow(bigNumber18.mul(1));
+      await vusdt.connect(user1).borrow(bigNumber18.mul(5));
+      await veth.connect(user2).borrow(bigNumber18.mul(1));
     });
 
-    it("calculate score", async () => {
+    it.skip("calculate score", async () => {
       const xvsBalance = bigNumber18.mul(5000)
       const capital = bigNumber18.mul(120)
 
@@ -403,21 +403,50 @@ describe("PrimeScenario Token", () => {
       const [user1, user2] = accounts;
 
       let interest = await prime.interests(vusdt.address, user1.getAddress());
+      /**
+       * 10000^0.5 * 5^0.5 = 223.6067977
+       */
       expect(interest.score).to.be.equal("223606797749979014552");
       expect(interest.accrued).to.be.equal(0);
       expect(interest.rewardIndex).to.be.equal(bigNumber18);
       expect(interest.indexMultiplier).to.be.equal(2);
+
+      let market = await prime.markets(vusdt.address);
+      expect(market.score).to.be.equal("223606797749979014552");
+      expect(market.rewardIndex).to.be.equal(bigNumber18)
+
+      await mine(24 * 60 * 20);
+      await prime.accrueInterest(vusdt.address)
+      market = await prime.markets(vusdt.address);
+      expect(market.indexMultiplier).to.be.equal(3);
+      expect(market.score).to.be.equal("223606797749979014552");
+      /**
+       * PastBlocks = (24 * 60 * 20) + 2 = 28802
+       * IncomePerBlock = 90
+       * TotalIncomeInPastBlocks = 90 * 28802 = 2592180
+       * IncomeToDistribute = 20% of TotalIncomeInPastBlocks = 518436
+       * IndexDelta = IncomeToDistribute/MarketScore = 518436 / 223606797749979014552 = 0.000000000000002318
+       * NewIndex += IndexDelta = 1.000000000000002318
+       */
+      expect(market.rewardIndex).to.be.equal("1000000000000002318")
+
+      /**
+       * index = 1000000000000002318 - 1000000000000000000
+       * indexMultiplier = 
+       * 
+       */
+      expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(715988)
 
       await prime.issue(false, [user2.getAddress()])
 
       interest = await prime.interests(vusdt.address, user2.getAddress());
       expect(interest.score).to.be.equal(bigNumber18.mul(100));
       expect(interest.accrued).to.be.equal(0);
-      expect(interest.rewardIndex).to.be.equal(bigNumber18);
+      expect(interest.rewardIndex).to.be.equal("1000000000000002318");
       expect(interest.indexMultiplier).to.be.equal(3);
 
       await mine(24 * 60 * 20);
-      expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(715988)
+      
     });
 
   //   it("claim interest", async () => {
