@@ -6,7 +6,7 @@ import "./VRTVaultStorageV8.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlled.sol";
 
 interface IVRTVaultProxy {
-    function _acceptImplementation() external returns (uint);
+    function _acceptImplementation() external;
 
     function admin() external returns (address);
 }
@@ -68,14 +68,14 @@ contract VRTVault is VRTVaultStorage, AccessControlled {
         _;
     }
 
-    function pause() public onlyAdmin {
+    function pause() public {
         _checkAccessAllowed("pause()");
         require(vaultPaused == false, "Vault is already paused");
         vaultPaused = true;
         emit VaultPaused(msg.sender);
     }
 
-    function resume() public onlyAdmin {
+    function resume() public {
         _checkAccessAllowed("resume()");
         require(vaultPaused == true, "Vault is not paused");
         vaultPaused = false;
@@ -241,7 +241,7 @@ contract VRTVault is VRTVaultStorage, AccessControlled {
         address tokenAddress,
         address receiver,
         uint256 amount
-    ) external onlyAdmin isInitialized nonZeroAddress(tokenAddress) nonZeroAddress(receiver) {
+    ) external isInitialized nonZeroAddress(tokenAddress) nonZeroAddress(receiver) {
         _checkAccessAllowed("withdrawBep20(address,address,uint256)");
         require(amount > 0, "amount is invalid");
         IBEP20 token = IBEP20(tokenAddress);
