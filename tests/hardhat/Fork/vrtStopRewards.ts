@@ -10,6 +10,7 @@ import { VRT, VRTVault, VRTVaultProxy, VRTVault__factory } from "../../../typech
 
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 
+const TWO_ETHER = ethers.utils.parseEther("2");
 // Address of the vault proxy
 const vaultProxy = "0x98bF4786D72AAEF6c714425126Dd92f149e3F334";
 // vrt vault user
@@ -19,7 +20,7 @@ const vaultAdmin = "0x1c2cac6ec528c20800b2fe734820d87b581eaa6b";
 // vrt token
 const vrtAddress = "0x5f84ce30dc3cf7909101c69086c50de191895883";
 
-const stopAccruingRewardsAtBlock = 26967000;
+const stopAccruingRewardsAtBlock = 27348741;
 
 type VRTVaultFixture = {
   admin: SignerWithAddress;
@@ -31,14 +32,12 @@ type VRTVaultFixture = {
 async function deployNewVaultImplementation(): Promise<VRTVaultFixture> {
   await impersonateAccount(vaultAdmin);
   const admin = await ethers.getSigner(vaultAdmin);
-  await setBalance(vaultAdmin, ethers.utils.parseEther("2"));
+  await setBalance(vaultAdmin, TWO_ETHER);
 
   await impersonateAccount(vaultUser);
   const user = await ethers.getSigner(vaultUser);
-  //await setBalance(user, ethers.utils.parseEther("1"));
 
   const vrtVaultProxy: VRTVaultProxy = await ethers.getContractAt("VRTVaultProxy", vaultProxy);
-
   const vrtVaultFactory: VRTVault__factory = await ethers.getContractFactory("VRTVault");
   const vrtVaultImpl = await vrtVaultFactory.deploy();
   await vrtVaultImpl.deployed();
