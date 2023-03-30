@@ -1,13 +1,12 @@
 import { impersonateAccount, loadFixture, mine, mineUpTo, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { expect, use } from "chai";
+import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
 import { forking } from "../../../script/hardhat/fork/vip-framework";
 import { VRT, VRTVault, VRTVaultProxy, VRTVault__factory } from "../../../typechain";
-import { vrtVault } from "../../../typechain/contracts";
 
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 
