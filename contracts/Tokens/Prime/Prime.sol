@@ -123,7 +123,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     ) external onlyOwner {
         require(markets[vToken].lastUpdated == 0, "market is already added");
 
-        markets[vToken].rewardIndex = INITIAL_INDEX;
+        markets[vToken].rewardIndex = 0;
         markets[vToken].lastUpdated = block.number;
         markets[vToken].supplyMultiplier = supplyMultiplier;
         markets[vToken].borrowMultiplier = borrowMultiplier;
@@ -377,7 +377,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         if (tokens[account].exists == false) {
             return;
         }
-        
+
         uint score = _calculateScore(market, account);
         markets[market].score = markets[market].score - interests[market][account].score;
         interests[market][account].score = score;

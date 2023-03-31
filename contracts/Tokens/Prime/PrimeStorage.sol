@@ -33,9 +33,6 @@ contract PrimeStorageV1 {
     /// @notice number of days user need to stake to claim prime token
     uint256 internal constant STAKING_PERIOD = 90 * 24 * 60 * 60;
 
-    /// @notice initial market index
-    uint256 internal constant INITIAL_INDEX = EXP_SCALE;
-
     /// @notice maxmimum BPS = 100%
     uint256 internal constant MAXIMUM_BPS = 10000;
 
