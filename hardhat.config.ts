@@ -89,12 +89,6 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: isFork(),
-    frame: {
-      url: "http://127.0.0.1:1248",
-      chainId: 56,
-      live: true,
-      timeout: 1200000, // 20 minutes
-    },
     bsctestnet: {
       url: process.env.BSC_TESTNET_NODE || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
@@ -105,10 +99,11 @@ const config: HardhatUserConfig = {
       gasMultiplier: 10,
       timeout: 12000000,
     },
-    // currently not used, we are still using saddle to deploy contracts
     bscmainnet: {
-      url: `https://bsc-dataseed.binance.org/`,
-      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+      url: "http://127.0.0.1:1248",
+      chainId: 56,
+      live: true,
+      timeout: 1200000, // 20 minutes
     },
   },
   etherscan: {
