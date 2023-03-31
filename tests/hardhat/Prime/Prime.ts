@@ -241,7 +241,7 @@ describe("PrimeScenario Token", () => {
     });
   });
 
-  describe.skip("mint and burn", () => {
+  describe("mint and burn", () => {
     let prime: PrimeScenario;
     let xvsVault: XVSVault;
     let xvs: XVS;
@@ -379,7 +379,7 @@ describe("PrimeScenario Token", () => {
       await veth.connect(user2).borrow(bigNumber18.mul(1));
     });
 
-    it.skip("calculate score", async () => {
+    it("calculate score", async () => {
       const xvsBalance = bigNumber18.mul(5000)
       const capital = bigNumber18.mul(120)
 
@@ -392,7 +392,7 @@ describe("PrimeScenario Token", () => {
       expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("2371440609779311958519")
     })
 
-    it.skip("accrue interest - prime token minted after market is added", async () => {
+    it("accrue interest - prime token minted after market is added", async () => {
       let interest = await prime.interests(vusdt.address, user1.getAddress());
       /**
        * score = 10000^0.5 * 5^0.5 = 223.6067977
@@ -441,7 +441,7 @@ describe("PrimeScenario Token", () => {
       expect(interest.indexMultiplier).to.be.equal(4);
     });
 
-    it.skip("claim interest", async () => {
+    it("claim interest", async () => {
       await mine(24 * 60 * 20);
       await prime.accrueInterest(vusdt.address)
       expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(518320)
@@ -515,7 +515,7 @@ describe("PrimeScenario Token", () => {
         await comptroller._setPrimeToken(prime.address);
       });
 
-      it.skip("add existing market after issuing prime tokens - update score manually", async () => {
+      it("add existing market after issuing prime tokens - update score manually", async () => {
         await xvs.connect(user3).approve(xvsVault.address, bigNumber18.mul(2000));
         await xvsVault.connect(user3).deposit(xvs.address, 0, bigNumber18.mul(2000)); 
         await prime.issue(false, [user3.getAddress()]);
