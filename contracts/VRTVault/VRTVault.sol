@@ -1,9 +1,9 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
-import "../Utils/UtilsV8/SafeBEP20.sol";
-import "../Utils/UtilsV8/IBEP20.sol";
-import "./VRTVaultStorageV8.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlled.sol";
+import "../Utils/SafeBEP20.sol";
+import "../Utils/IBEP20.sol";
+import "./VRTVaultStorage.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
 
 interface IVRTVaultProxy {
     function _acceptImplementation() external;
@@ -11,7 +11,8 @@ interface IVRTVaultProxy {
     function admin() external returns (address);
 }
 
-contract VRTVault is VRTVaultStorage, AccessControlled {
+contract VRTVault is VRTVaultStorage, AccessControlledV5 {
+    using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
     /// @notice Event emitted when admin changed
@@ -125,7 +126,7 @@ contract VRTVault is VRTVaultStorage, AccessControlled {
             // accrue Interest and transfer to the user
             uint256 accruedInterest = computeAccruedInterest(user.totalPrincipalAmount, user.accrualStartBlockNumber);
 
-            user.totalPrincipalAmount += depositAmount;
+            user.totalPrincipalAmount = user.totalPrincipalAmount.add(depositAmount);
 
             if (accruedInterest > 0) {
                 uint256 vrtBalance = vrt.balanceOf(address(this));
@@ -174,8 +175,8 @@ contract VRTVault is VRTVaultStorage, AccessControlled {
         }
 
         //number of blocks Since Deposit
-        uint256 blockDelta = blockNumber - accrualStartBlockNumber;
-        uint256 accruedInterest = (totalPrincipalAmount * interestRatePerBlock * blockDelta) / 1e18;
+        uint256 blockDelta = blockNumber.sub(accrualStartBlockNumber);
+        uint256 accruedInterest = (totalPrincipalAmount.mul(interestRatePerBlock).mul(blockDelta)).div(1e18);
         return accruedInterest;
     }
 
@@ -220,7 +221,7 @@ contract VRTVault is VRTVaultStorage, AccessControlled {
         UserInfo storage user = userInfo[userAddress];
 
         uint256 totalPrincipalAmount = user.totalPrincipalAmount;
-        uint256 vrtForWithdrawal = accruedInterest + totalPrincipalAmount;
+        uint256 vrtForWithdrawal = accruedInterest.add(totalPrincipalAmount);
         user.totalPrincipalAmount = 0;
         user.accrualStartBlockNumber = getBlockNumber();
 
@@ -250,7 +251,7 @@ contract VRTVault is VRTVaultStorage, AccessControlled {
         token.safeTransfer(receiver, amount);
     }
 
-    function getBlockNumber() public view virtual returns (uint256) {
+    function getBlockNumber() public view returns (uint256) {
         return block.number;
     }
 

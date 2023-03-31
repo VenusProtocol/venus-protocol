@@ -4,7 +4,13 @@ import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 
-import { VRT, VRTVault, VRTVaultProxy__factory, VRTVault__factory } from "../../../typechain";
+import {
+  IAccessControlManagerV5__factory,
+  VRT,
+  VRTVault,
+  VRTVaultProxy__factory,
+  VRTVault__factory,
+} from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
 const hre = require("hardhat");
@@ -59,11 +65,7 @@ async function deployAndConfigureNewVault() {
   vrtVault = VRTVault__factory.connect(vrtVaultProxy.address, admin);
 
   await vrtVault._setAccessControl(ACM);
-  accessControlManager = await ethers.getContractAt(
-    "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-    ACM,
-    Owner,
-  );
+  accessControlManager = IAccessControlManagerV5__factory.connect(ACM, admin);
 }
 
 async function grantPermissions() {
@@ -142,8 +144,8 @@ describe("VRTVault", async () => {
     });
 
     it("Revert when permission is not granted for pause and resume", async () => {
-      await expect(vrtVault.connect(signer).pause()).to.be.revertedWithCustomError(vrtVault, "Unauthorized");
-      await expect(vrtVault.connect(signer).resume()).to.be.revertedWithCustomError(vrtVault, "Unauthorized");
+      await expect(vrtVault.connect(signer).pause()).to.be.reverted;
+      await expect(vrtVault.connect(signer).resume()).to.be.reverted;
     });
 
     it("Success when permission is granted for pause and resume", async () => {
@@ -163,9 +165,7 @@ describe("VRTVault", async () => {
       await tx.wait();
 
       await vrt.transfer(vrtVaultFresh.address, bigNumber18.mul(10000));
-      await expect(
-        vrtVaultFresh.connect(signer).withdrawBep20(vrt.address, user1.address, 100),
-      ).to.be.revertedWithCustomError(vrtVaultFresh, "Unauthorized");
+      await expect(vrtVaultFresh.connect(signer).withdrawBep20(vrt.address, user1.address, 100)).to.be.reverted;
       await vrtVaultFresh.connect(admin).withdrawBep20(vrt.address, user1.address, 100);
     });
   }

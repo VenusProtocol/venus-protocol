@@ -1,10 +1,10 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
-import "../Utils/UtilsV8/SafeBEP20.sol";
-import "../Utils/UtilsV8/IBEP20.sol";
-import "./VAIVaultStorageV8.sol";
-import "./VAIVaultErrorReporterV8.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlled.sol";
+import "../Utils/SafeBEP20.sol";
+import "../Utils/IBEP20.sol";
+import "./VAIVaultStorage.sol";
+import "./VAIVaultErrorReporter.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
 
 interface IVAIVaultProxy {
     function _acceptImplementation() external returns (uint);
@@ -12,7 +12,8 @@ interface IVAIVaultProxy {
     function admin() external returns (address);
 }
 
-contract VAIVault is VAIVaultStorageV1, AccessControlled {
+contract VAIVault is VAIVaultStorageV1, AccessControlledV5 {
+    using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
     /// @notice Event emitted when VAI deposit
@@ -74,10 +75,10 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
         // Transfer in the amounts from user
         if (_amount > 0) {
             vai.safeTransferFrom(address(msg.sender), address(this), _amount);
-            user.amount += _amount;
+            user.amount = user.amount.add(_amount);
         }
 
-        user.rewardDebt = (user.amount * accXVSPerShare) / 1e18;
+        user.rewardDebt = user.amount.mul(accXVSPerShare).div(1e18);
         emit Deposit(msg.sender, _amount);
     }
 
@@ -100,7 +101,7 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
      * @notice Claim XVS from VAIVault
      * @param account The account for which to claim XVS
      */
-    function claim(address account) external nonReentrant {
+    function claim(address account) external nonReentrant isActive {
         _withdraw(account, 0);
     }
 
@@ -117,10 +118,11 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
         updateAndPayOutPending(account); // Update balances of account this is not withdrawal but claiming XVS farmed
 
         if (_amount > 0) {
-            user.amount -= _amount;
+            user.amount = user.amount.sub(_amount);
             vai.safeTransfer(address(account), _amount);
         }
-        user.rewardDebt = (user.amount * accXVSPerShare) / 1e18;
+        user.rewardDebt = user.amount.mul(accXVSPerShare).div(1e18);
+
         emit Withdraw(account, _amount);
     }
 
@@ -131,7 +133,7 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
     function pendingXVS(address _user) public view returns (uint256) {
         UserInfo storage user = userInfo[_user];
 
-        return (user.amount * accXVSPerShare) / 1e18 - user.rewardDebt;
+        return user.amount.mul(accXVSPerShare).div(1e18).sub(user.rewardDebt);
     }
 
     /**
@@ -167,11 +169,11 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
      * @notice Function that updates pending rewards
      */
     function updatePendingRewards() public isActive {
-        uint256 newRewards = xvs.balanceOf(address(this)) - xvsBalance;
+        uint256 newRewards = xvs.balanceOf(address(this)).sub(xvsBalance);
 
         if (newRewards > 0) {
             xvsBalance = xvs.balanceOf(address(this)); // If there is no change the balance didn't change
-            pendingRewards += newRewards;
+            pendingRewards = pendingRewards.add(newRewards);
         }
     }
 
@@ -185,7 +187,7 @@ contract VAIVault is VAIVaultStorageV1, AccessControlled {
             return;
         }
 
-        accXVSPerShare = accXVSPerShare + ((pendingRewards * 1e18) / vaiBalance);
+        accXVSPerShare = accXVSPerShare.add(pendingRewards.mul(1e18).div(vaiBalance));
         pendingRewards = 0;
     }
 

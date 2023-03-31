@@ -1,10 +1,17 @@
 import { impersonateAccount, reset, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { BigNumber, Signer } from "ethers";
+import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 
-import { VAI, VAIVault, VAIVaultProxy__factory, VAIVault__factory, XVS } from "../../../typechain";
+import {
+  IAccessControlManagerV5__factory,
+  VAI,
+  VAIVault,
+  VAIVaultProxy__factory,
+  VAIVault__factory,
+  XVS,
+} from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
 const hre = require("hardhat");
@@ -61,11 +68,7 @@ async function deployAndConfigureNewVault() {
   vaiVault = VAIVault__factory.connect(vaiVaultProxy.address, admin);
 
   await vaiVault._setAccessControl(ACM);
-  accessControlManager = await ethers.getContractAt(
-    "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-    ACM,
-    Owner,
-  );
+  accessControlManager = IAccessControlManagerV5__factory.connect(ACM, admin);
 }
 
 async function grantPermissions() {
@@ -165,8 +168,8 @@ describe("VAIVault", async () => {
     });
 
     it("Revert when permission is not granted for pause and resume", async () => {
-      await expect(vaiVault.connect(signer).pause()).to.be.revertedWithCustomError(vaiVault, "Unauthorized");
-      await expect(vaiVault.connect(signer).resume()).to.be.revertedWithCustomError(vaiVault, "Unauthorized");
+      await expect(vaiVault.connect(signer).pause()).to.be.reverted;
+      await expect(vaiVault.connect(signer).resume()).to.be.reverted;
     });
 
     it("Success when permission is granted for pause and resume", async () => {

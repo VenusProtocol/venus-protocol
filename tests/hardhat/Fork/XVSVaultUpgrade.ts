@@ -3,7 +3,12 @@ import { expect } from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
-import { XVSVault, XVSVaultProxy__factory, XVSVault__factory } from "../../../typechain";
+import {
+  IAccessControlManagerV5__factory,
+  XVSVault,
+  XVSVaultProxy__factory,
+  XVSVault__factory,
+} from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
 const hre = require("hardhat");
@@ -56,11 +61,7 @@ async function deployAndConfigureNewVault() {
   xvsVault = XVSVault__factory.connect(xvsVaultProxy.address, admin);
 
   await xvsVault._setAccessControl(ACM);
-  accessControlManager = await ethers.getContractAt(
-    "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-    ACM,
-    Owner,
-  );
+  accessControlManager = IAccessControlManagerV5__factory.connect(ACM, admin);
 }
 
 async function grantPermissions() {
@@ -134,8 +135,8 @@ describe("XVSVault", async () => {
     });
 
     it("Revert when permission is not granted for pause and resume", async () => {
-      await expect(xvsVault.connect(signer).pause()).to.be.revertedWithCustomError(xvsVault, "Unauthorized");
-      await expect(xvsVault.connect(signer).resume()).to.be.revertedWithCustomError(xvsVault, "Unauthorized");
+      await expect(xvsVault.connect(signer).pause()).to.be.reverted;
+      await expect(xvsVault.connect(signer).resume()).to.be.reverted;
     });
 
     it("Success when permission is granted for pause and resume", async () => {
@@ -153,9 +154,8 @@ describe("XVSVault", async () => {
       const allocPoint = 100;
       const dummyToken = "0x2170Ed0880ac9A755fd29B2688956BD959F933F8";
 
-      await expect(
-        xvsVault.connect(signer).add(xvsAddress, allocPoint, dummyToken, rewardPerBlock, lockPeriod),
-      ).to.be.revertedWithCustomError(xvsVault, "Unauthorized");
+      await expect(xvsVault.connect(signer).add(xvsAddress, allocPoint, dummyToken, rewardPerBlock, lockPeriod)).to.be
+        .reverted;
     });
 
     it("Success when permission is granted for add a new token pool", async () => {
@@ -173,10 +173,7 @@ describe("XVSVault", async () => {
 
     it("Revert when permission is not granted for add a new token pool", async () => {
       const allocPoint = 100;
-      await expect(xvsVault.connect(signer).set(xvsAddress, poolId, allocPoint)).to.be.revertedWithCustomError(
-        xvsVault,
-        "Unauthorized",
-      );
+      await expect(xvsVault.connect(signer).set(xvsAddress, poolId, allocPoint)).to.be.reverted;
     });
 
     it("Success when permission is granted for add a new token pool", async () => {
