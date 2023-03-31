@@ -75,6 +75,26 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     ) external onlyOwner {
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
+
+        for (uint i = 0; i < allMarkets.length; i++) {
+            accrueInterest(allMarkets[i]);
+        }
+    }
+
+    /**
+     * @notice Update multipliers for a market 
+     * @param _supplyMultiplier new supply multiplier for the market
+     * @param _borrowMultiplier new borrow multiplier for the market
+     */
+    function updateMultipliers(
+        address market,
+        uint256 _supplyMultiplier,
+        uint256 _borrowMultiplier
+    ) external onlyOwner {
+        require(markets[market].lastUpdated != 0, "market is not supported");
+
+        markets[market].supplyMultiplier = _supplyMultiplier;
+        markets[market].borrowMultiplier = _borrowMultiplier;
     }
 
     /**
@@ -147,6 +167,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             stakedAt[owner] = 0;
         } else if(stakedAt[owner] == 0 && isAccountEligible == true && tokens[owner].exists == false) {
             stakedAt[owner] = block.timestamp;
+        } else if (tokens[owner].exists == true && isAccountEligible == true) {
+            for (uint i = 0; i < allMarkets.length; i++) {
+                executeBoost(owner, allMarkets[i]);
+                updateScore(owner, allMarkets[i]);
+            }
         }
     }
 
@@ -168,7 +193,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     /**
      * @notice Initializes all the markets for the user when a prime token is minted
-     * @param owner the account address for which markets needs to be initialized
+     * @param account the account address for which markets needs to be initialized
      */
     function _initializeMarkets(address account) internal {
         for (uint i = 0; i < allMarkets.length; i++) {
@@ -186,7 +211,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     /**
      * @notice fetch the current XVS balance of user in the XVSVault
-     * @param owner the account address for which markets needs to be initialized
+     * @param account the account address for which markets needs to be initialized
      * @return xvsBalance the XVS balance of user
      */
     function _xvsBalanceOfUser(address account) internal view returns(uint256) {
@@ -324,7 +349,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param account account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
      */
-    function executeBoost(address account, address vToken) public onlyComptroller {
+    function executeBoost(address account, address vToken) public {
         if (markets[vToken].lastUpdated == 0) {
             return;
         }
@@ -344,7 +369,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param account account for which we need to update QVL
      * @param market the market for which we need to QVL
      */
-    function updateScore(address account, address market) public onlyComptroller {
+    function updateScore(address account, address market) public {
         if (markets[market].lastUpdated == 0) {
             return;
         }
@@ -352,7 +377,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         if (tokens[account].exists == false) {
             return;
         }
-
+        
         uint score = _calculateScore(market, account);
         markets[market].score = markets[market].score - interests[market][account].score;
         interests[market][account].score = score;
@@ -436,11 +461,6 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     modifier onlyXVSVault() {
         require(msg.sender == xvsVault, "only XVS vault can call this function");
-        _;
-    }
-
-    modifier onlyComptroller() {
-        require(msg.sender == comptroller, "only comptroller can call this function");
         _;
     }
 }

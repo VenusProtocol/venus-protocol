@@ -44,7 +44,7 @@ type SetupProtocolFixture = {
 };
 
 async function deployProtocol(): Promise<SetupProtocolFixture> {
-  const [wallet, ...accounts] = await ethers.getSigners();
+  const [wallet, user1, user2] = await ethers.getSigners();
 
   const oracle = await smock.fake<PriceOracle>("PriceOracle");
   const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
@@ -118,8 +118,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._supportMarket(veth.address);
   await comptroller._setCollateralFactor(veth.address, half);
 
-  eth.transfer(accounts[0].address, bigNumber18.mul(100));
-  usdt.transfer(accounts[1].address, bigNumber18.mul(10000));
+  eth.transfer(user1.address, bigNumber18.mul(100));
+  usdt.transfer(user2.address, bigNumber18.mul(10000));
 
   await comptroller._setMarketSupplyCaps([vusdt.address, veth.address], [bigNumber18.mul(10000), bigNumber18.mul(100)]);
 
@@ -138,8 +138,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await xvsVault.setXvsStore(xvs.address, xvsStore.address);
 
   await xvs.transfer(xvsStore.address, bigNumber18.mul(1000));
-  await xvs.transfer(accounts[0].address, bigNumber18.mul(1000000));
-  await xvs.transfer(accounts[1].address, bigNumber18.mul(1000000));
+  await xvs.transfer(user1.address, bigNumber18.mul(1000000));
+  await xvs.transfer(user2.address, bigNumber18.mul(1000000));
 
   await xvsStore.setRewardToken(xvs.address, true);
 
@@ -197,10 +197,13 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 }
 
 describe("PrimeScenario Token", () => {
-  let accounts: Signer[];
+  let deployer: Signer;
+  let user1: Signer;
+  let user2: Signer;
+  let user3: Signer;
 
   before(async () => {
-    [, ...accounts] = await ethers.getSigners();
+    [deployer, user1, user2, user3] = await ethers.getSigners();
   });
 
   describe("protocol setup", () => {
@@ -213,18 +216,17 @@ describe("PrimeScenario Token", () => {
     beforeEach(async () => {
       ({ comptroller, vusdt, veth, usdt, eth } = await loadFixture(deployProtocol));
 
-      await eth.connect(accounts[0]).approve(veth.address, bigNumber18.mul(90));
-      await veth.connect(accounts[0]).mint(bigNumber18.mul(90));
+      await eth.connect(user1).approve(veth.address, bigNumber18.mul(90));
+      await veth.connect(user1).mint(bigNumber18.mul(90));
 
-      await usdt.connect(accounts[1]).approve(vusdt.address, bigNumber18.mul(9000));
-      await vusdt.connect(accounts[1]).mint(bigNumber18.mul(9000));
+      await usdt.connect(user2).approve(vusdt.address, bigNumber18.mul(9000));
+      await vusdt.connect(user2).mint(bigNumber18.mul(9000));
 
-      await comptroller.connect(accounts[0]).enterMarkets([vusdt.address, veth.address]);
+      await comptroller.connect(user1).enterMarkets([vusdt.address, veth.address]);
+      await comptroller.connect(user2).enterMarkets([vusdt.address, veth.address]);
 
-      await comptroller.connect(accounts[1]).enterMarkets([vusdt.address, veth.address]);
-
-      await vusdt.connect(accounts[0]).borrow(bigNumber18.mul(5));
-      await veth.connect(accounts[1]).borrow(bigNumber18.mul(1));
+      await vusdt.connect(user1).borrow(bigNumber18.mul(5));
+      await veth.connect(user2).borrow(bigNumber18.mul(1));
     });
 
     it("markets added", async () => {
@@ -233,8 +235,8 @@ describe("PrimeScenario Token", () => {
     });
 
     it("borrow balance", async () => {
-      expect(await usdt.balanceOf(accounts[0].getAddress())).to.be.gt(0);
-      expect(await eth.balanceOf(accounts[1].getAddress())).to.be.gt(0);
+      expect(await usdt.balanceOf(user1.getAddress())).to.be.gt(0);
+      expect(await eth.balanceOf(user2.getAddress())).to.be.gt(0);
     });
   });
 
@@ -248,7 +250,7 @@ describe("PrimeScenario Token", () => {
     });
 
     it("stake and mint", async () => {
-      const user = accounts[0];
+      const user = user1;
 
       await expect(prime.connect(user).claim()).to.be.revertedWith("you are not eligible to claim prime token");
 
@@ -274,7 +276,7 @@ describe("PrimeScenario Token", () => {
     });
 
     it("stake and unstake", async () => {
-      const user = accounts[0];
+      const user = user1;
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
@@ -293,7 +295,7 @@ describe("PrimeScenario Token", () => {
     });
 
     it("burn", async () => {
-      const user = accounts[0];
+      const user = user1;
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
@@ -318,8 +320,6 @@ describe("PrimeScenario Token", () => {
     });
 
     it("issue", async () => {
-      const [user1, user2, user3, user4] = accounts;
-
       await expect(prime.connect(user1).issue(false, [user1.getAddress()])).to.be.revertedWith(
         "Ownable: caller is not the owner",
       );
@@ -334,13 +334,9 @@ describe("PrimeScenario Token", () => {
       expect(token.isIrrevocable).to.be.equal(true);
       expect(token.exists).to.be.equal(true);
 
-      await prime.issue(false, [user3.getAddress(), user4.getAddress()]);
+      await prime.issue(false, [user3.getAddress()]);
 
       token = await prime.tokens(user3.getAddress())
-      expect(token.isIrrevocable).to.be.equal(false);
-      expect(token.exists).to.be.equal(true);
-
-      token = await prime.tokens(user4.getAddress())
       expect(token.isIrrevocable).to.be.equal(false);
       expect(token.exists).to.be.equal(true);
     });
@@ -355,11 +351,10 @@ describe("PrimeScenario Token", () => {
     let eth: BEP20Harness;
     let xvsVault: XVSVault;
     let xvs: XVS;
+    let oracle: PriceOracle;
 
     beforeEach(async () => {
-      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs } = await loadFixture(deployProtocol));
-
-      const [user1, user2] = accounts;
+      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, oracle } = await loadFixture(deployProtocol));
 
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));
@@ -397,8 +392,6 @@ describe("PrimeScenario Token", () => {
     })
 
     it("accrue interest - prime token minted after market is added", async () => {
-      const [user1, user2] = accounts;
-
       let interest = await prime.interests(vusdt.address, user1.getAddress());
       /**
        * score = 10000^0.5 * 5^0.5 = 223.6067977
@@ -448,8 +441,6 @@ describe("PrimeScenario Token", () => {
     });
 
     it("claim interest", async () => {
-      const [user1, user2] = accounts;
-
       await mine(24 * 60 * 20);
       await prime.accrueInterest(vusdt.address)
       expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(518320)
@@ -464,174 +455,118 @@ describe("PrimeScenario Token", () => {
       expect(newBalance).to.be.equal(previousBalance.add(interest));
     });
 
-  //   describe("update QVL", () => {
-  //     let vbnb: VBep20Harness;
-  //     let bnb: BEP20Harness;
+    describe("update score", () => {
+      let vbnb: VBep20Harness;
+      let bnb: BEP20Harness;
 
-  //     beforeEach(async () => {
-  //       const [wallet, ...accounts] = await ethers.getSigners();
+      beforeEach(async () => {
+        const tokenFactory = await ethers.getContractFactory("BEP20Harness");
+        bnb = (await tokenFactory.deploy(
+          bigNumber18.mul(100000000),
+          "bnb",
+          BigNumber.from(18),
+          "BEP20 bnb",
+        )) as BEP20Harness;
 
-  //       const tokenFactory = await ethers.getContractFactory("BEP20Harness");
-  //       bnb = (await tokenFactory.deploy(
-  //         bigNumber18.mul(100000000),
-  //         "bnb",
-  //         BigNumber.from(18),
-  //         "BEP20 bnb",
-  //       )) as BEP20Harness;
+        const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
+        const InterestRateModelHarness = (await interestRateModelHarnessFactory.deploy(
+          BigNumber.from(18).mul(5),
+        )) as InterestRateModelHarness;
 
-  //       const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
-  //       const InterestRateModelHarness = (await interestRateModelHarnessFactory.deploy(
-  //         BigNumber.from(18).mul(5),
-  //       )) as InterestRateModelHarness;
+        const vTokenFactory = await ethers.getContractFactory("VBep20Harness");
+        vbnb = (await vTokenFactory.deploy(
+          bnb.address,
+          comptroller.address,
+          InterestRateModelHarness.address,
+          bigNumber18,
+          "VToken bnb",
+          "vbnb",
+          BigNumber.from(18),
+          deployer.getAddress(),
+        )) as VBep20Harness;
 
-  //       const vTokenFactory = await ethers.getContractFactory("VBep20Harness");
-  //       vbnb = (await vTokenFactory.deploy(
-  //         bnb.address,
-  //         comptroller.address,
-  //         InterestRateModelHarness.address,
-  //         bigNumber18,
-  //         "VToken bnb",
-  //         "vbnb",
-  //         BigNumber.from(18),
-  //         wallet.address,
-  //       )) as VBep20Harness;
+        await vbnb._setReserveFactor(bigNumber16.mul(20));
 
-  //       await vbnb._setReserveFactor(bigNumber16.mul(20));
+        oracle.getUnderlyingPrice.returns((vToken: string) => {
+          if (vToken == vusdt.address) {
+            return convertToUnit(1, 18);
+          } else if (vToken == veth.address) {
+            return convertToUnit(1200, 18);
+          } else if (vToken == vbnb.address) {
+            return convertToUnit(300, 18);
+          }
+        });
 
-  //       oracle.getUnderlyingPrice.returns((vToken: string) => {
-  //         if (vToken == vusdt.address) {
-  //           return convertToUnit(1, 18);
-  //         } else if (vToken == veth.address) {
-  //           return convertToUnit(1200, 18);
-  //         } else if (vToken == vbnb.address) {
-  //           return convertToUnit(300, 18);
-  //         }
-  //       });
+        const half = convertToUnit("0.5", 8);
+        await comptroller._supportMarket(vbnb.address);
+        await comptroller._setCollateralFactor(vbnb.address, half);
 
-  //       const half = convertToUnit("0.5", 8);
-  //       await comptroller._supportMarket(vbnb.address);
-  //       await comptroller._setCollateralFactor(vbnb.address, half);
+        bnb.transfer(user3.getAddress(), bigNumber18.mul(100));
 
-  //       bnb.transfer(accounts[0].address, bigNumber18.mul(100));
+        await comptroller._setMarketSupplyCaps([vbnb.address], [bigNumber18.mul(100)]);
+        await comptroller._setMarketBorrowCaps([vbnb.address], [bigNumber18.mul(100)]);
 
-  //       await comptroller._setMarketSupplyCaps([vbnb.address], [bigNumber18.mul(100)]);
-  //       await comptroller._setMarketBorrowCaps([vbnb.address], [bigNumber18.mul(100)]);
+        await bnb.connect(user3).approve(vbnb.address, bigNumber18.mul(90));
+        await vbnb.connect(user3).mint(bigNumber18.mul(90));
 
-  //       await bnb.connect(accounts[0]).approve(vbnb.address, bigNumber18.mul(90));
-  //       await vbnb.connect(accounts[0]).mint(bigNumber18.mul(90));
+        await vbnb.connect(user2).borrow(bigNumber18.mul(1));
 
-  //       await vbnb.connect(accounts[1]).borrow(bigNumber18.mul(1));
+        await prime.issue(false, [user3.getAddress()]);
 
-  //       await prime.issue(false, [accounts[0].getAddress(), accounts[1].getAddress()], [1, 1]);
+        await comptroller._setPrimeToken(prime.address);
+        await vbnb._setPrimeToken(prime.address);
+      });
 
-  //       await comptroller._setPrimeToken(prime.address);
-  //       await vbnb._setPrimeToken(prime.address);
-  //     });
+      it("add existing market after issuing prime tokens", async () => {
+        
+      });
 
-  //     it("add existing market after issuing prime tokens", async () => {
-  //       const [user1] = accounts;
+      // it("update QVL of existing market", async () => {
+      //   const [user1] = accounts;
 
-  //       await mine(24 * 60 * 20);
-  //       await prime.executeBoost(user1.getAddress(), vusdt.address);
+      //   let interest = await prime._interests(vusdt.address, user1.getAddress());
+      //   expect(interest.totalQVL).to.be.equal(bigNumber18.mul(5));
+      //   expect(interest.index).to.be.equal(bigNumber18.mul(1));
+      //   expect(interest.accrued).to.be.equal(0);
 
-  //       let interest = await prime._interests(vusdt.address, user1.getAddress());
-  //       expect(interest.index).to.be.equal(BigNumber.from("1000000000000000057"));
+      //   await mine(24 * 60 * 20);
 
-  //       interest = await prime._interests(vbnb.address, user1.getAddress());
-  //       expect(interest.index).to.be.equal(0);
+      //   await prime.toggleMarketPause(vusdt.address);
+      //   await prime.accrueInterestForUsers([user1.getAddress()], vusdt.address);
+      //   await prime.updateQVLCaps(
+      //     vusdt.address,
+      //     [
+      //       bigNumber18.mul("1"),
+      //       bigNumber18.mul("4"),
+      //       bigNumber18.mul("5"),
+      //       bigNumber18.mul("6"),
+      //       bigNumber18.mul("7"),
+      //     ],
+      //     [
+      //       bigNumber18.mul("1"),
+      //       bigNumber18.mul("4"),
+      //       bigNumber18.mul("5"),
+      //       bigNumber18.mul("6"),
+      //       bigNumber18.mul("7"),
+      //     ],
+      //   );
+      //   await prime.updateQVLs([user1.getAddress()], vusdt.address);
+      //   await prime.toggleMarketPause(vusdt.address);
 
-  //       let status = await prime.isMarketPaused(vbnb.address);
-  //       expect(status).to.be.equal(false);
+      //   interest = await prime._interests(vusdt.address, user1.getAddress());
+      //   expect(interest.totalQVL).to.be.equal(bigNumber18.mul(1));
+      //   expect(interest.accrued).to.be.equal(285);
 
-  //       await prime.toggleMarketPause(vbnb.address);
-  //       status = await prime.isMarketPaused(vbnb.address);
-  //       expect(status).to.be.equal(true);
+      //   let reward = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
+      //   expect(reward).to.be.equal(285);
 
-  //       await expect(prime.accrueInterest(vbnb.address)).to.be.revertedWith(
-  //         "market is temporarily paused for configuring prime token",
-  //       );
+      //   await usdt.transfer(prime.address, reward);
+      //   await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.not.reverted;
 
-  //       await prime.addMarket(
-  //         vbnb.address,
-  //         [
-  //           bigNumber18.mul("5"),
-  //           bigNumber18.mul("25"),
-  //           bigNumber18.mul("100"),
-  //           bigNumber18.mul("500"),
-  //           bigNumber18.mul("1000"),
-  //         ],
-  //         [
-  //           bigNumber18.mul("10"),
-  //           bigNumber18.mul("50"),
-  //           bigNumber18.mul("200"),
-  //           bigNumber18.mul("1000"),
-  //           bigNumber18.mul("2000"),
-  //         ],
-  //       );
-
-  //       await expect(vbnb.connect(accounts[0]).mint(bigNumber18.mul(90))).to.be.reverted;
-
-  //       await prime.updateQVLs([accounts[0].getAddress()], vbnb.address);
-
-  //       await prime.toggleMarketPause(vbnb.address);
-  //       status = await prime.isMarketPaused(vbnb.address);
-  //       expect(status).to.be.equal(false);
-
-  //       let accruedInterest = await prime.callStatic.getInterestAccrued(vbnb.address, accounts[0].getAddress());
-  //       expect(accruedInterest).to.be.equal(10);
-
-  //       await mine(24 * 60 * 20);
-
-  //       accruedInterest = await prime.callStatic.getInterestAccrued(vbnb.address, accounts[0].getAddress());
-  //       expect(accruedInterest).to.be.equal("103690");
-  //     });
-
-  //     it("update QVL of existing market", async () => {
-  //       const [user1] = accounts;
-
-  //       let interest = await prime._interests(vusdt.address, user1.getAddress());
-  //       expect(interest.totalQVL).to.be.equal(bigNumber18.mul(5));
-  //       expect(interest.index).to.be.equal(bigNumber18.mul(1));
-  //       expect(interest.accrued).to.be.equal(0);
-
-  //       await mine(24 * 60 * 20);
-
-  //       await prime.toggleMarketPause(vusdt.address);
-  //       await prime.accrueInterestForUsers([user1.getAddress()], vusdt.address);
-  //       await prime.updateQVLCaps(
-  //         vusdt.address,
-  //         [
-  //           bigNumber18.mul("1"),
-  //           bigNumber18.mul("4"),
-  //           bigNumber18.mul("5"),
-  //           bigNumber18.mul("6"),
-  //           bigNumber18.mul("7"),
-  //         ],
-  //         [
-  //           bigNumber18.mul("1"),
-  //           bigNumber18.mul("4"),
-  //           bigNumber18.mul("5"),
-  //           bigNumber18.mul("6"),
-  //           bigNumber18.mul("7"),
-  //         ],
-  //       );
-  //       await prime.updateQVLs([user1.getAddress()], vusdt.address);
-  //       await prime.toggleMarketPause(vusdt.address);
-
-  //       interest = await prime._interests(vusdt.address, user1.getAddress());
-  //       expect(interest.totalQVL).to.be.equal(bigNumber18.mul(1));
-  //       expect(interest.accrued).to.be.equal(285);
-
-  //       let reward = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
-  //       expect(reward).to.be.equal(285);
-
-  //       await usdt.transfer(prime.address, reward);
-  //       await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.not.reverted;
-
-  //       await mine(24 * 60 * 20);
-  //       reward = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
-  //       expect(reward).to.be.equal(57);
-  //     });
-  //   });
+      //   await mine(24 * 60 * 20);
+      //   reward = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
+      //   expect(reward).to.be.equal(57);
+      // });
+    });
   });
 });
