@@ -1,14 +1,25 @@
-import { DeployFunction } from "hardhat-deploy/types";
+import { Address, DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-const ADDRESSES = {
+import { Contracts as Mainnet } from "../networks/mainnet.json";
+import { Contracts as Testnet } from "../networks/testnet.json";
+
+interface AddressConfig {
+  [key: string]: {
+    [key: string]: Address;
+  };
+}
+
+const ADDRESSES: AddressConfig = {
   bsctestnet: {
-    WBNBAddress: "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
-    pancakeFactory: "0x182859893230dC89b114d6e2D547BFFE30474a21",
+    WBNBAddress: Testnet.WBNB,
+    pancakeFactory: Testnet.pancakeFactory,
+    unitroller: Testnet.Unitroller,
   },
   bscmainnet: {
-    WBNBAddress: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-    pancakeFactory: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
+    WBNBAddress: Mainnet.WBNB,
+    pancakeFactory: Mainnet.pancakeFactory,
+    unitroller: Mainnet.Unitroller,
   },
 };
 
@@ -20,7 +31,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
   const WBNBAddress = ADDRESSES[networkName].WBNBAddress;
   const pancakeFactoryAddress = ADDRESSES[networkName].pancakeFactory;
-  const comptroller = await deployments.get("Comptroller");
 
   await deploy("SwapRouter", {
     contract: "SwapRouter",
@@ -33,7 +43,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [comptroller.address],
+        args: [ADDRESSES[networkName].unitroller],
       },
     },
   });
