@@ -3,17 +3,16 @@ import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { Comptroller } from "../../../typechain";
+import COMPTROLLER_ABI from "./vip-104/comptroller.json";
 import { forking, pretendExecutingVip, testVip } from "./vip-framework";
 import { ProposalType } from "./vip-framework/types";
-import { makeProposal, setMaxStalePeriodInOracle, expectEvents } from "./vip-framework/utils";
+import { expectEvents, makeProposal, setMaxStalePeriodInOracle } from "./vip-framework/utils";
 
 const COMPTROLLER = "0xfd36e2c2a6789db23113685031d7f16329158384";
 const NEW_VTRX = "0xC5D3466aA484B040eE977073fcF337f2c00071c1";
 const OLD_VTRX = "0x61eDcFe8Dd6bA3c891CB9bEc2dc7657B3B422E93";
 const VDAI = "0x334b3eCB4DCa3593BCCC3c7EBD1A1C1d1780FBF1";
 const VSXP = "0x2fF3d0F6990a40261c66E1ff2017aCBc282EB6d0";
-
-import COMPTROLLER_ABI from "./vip-104/comptroller.json";
 
 export const vip104 = () => {
   const meta = {
@@ -119,7 +118,7 @@ forking(26881099, () => {
   });
 
   testVip("VIP-104 Risk Parameters Update", vip104(), {
-    callbackAfterExecution: async (txResponse) => {
+    callbackAfterExecution: async txResponse => {
       await expectEvents(
         txResponse,
         [COMPTROLLER_ABI],
