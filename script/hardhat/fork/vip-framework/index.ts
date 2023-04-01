@@ -27,6 +27,7 @@ export interface TestingOptions {
   governorAbi?: ContractInterface;
   proposer?: string;
   supporter?: string;
+  callbackAfterExecution?: Func;
 }
 
 const executeCommand = async (timelock: SignerWithAddress, proposal: Proposal, commandIdx: number): Promise<void> => {
@@ -115,7 +116,11 @@ export const testVip = (description: string, proposal: Proposal, options: Testin
     it("should be executed successfully", async () => {
       await mineUpTo((await ethers.provider.getBlockNumber()) + NORMAL_TIMELOCK_DELAY);
       const tx = await governorProxy.connect(proposer).execute(proposalId);
-      await tx.wait();
+      const txResponse = await tx.wait();
+
+      if (options.callbackAfterExecution) {
+        await options.callbackAfterExecution(txResponse);
+      }
     });
   });
 };
