@@ -10,6 +10,7 @@ import {
   Comptroller,
   FaucetToken,
   FaucetToken__factory,
+  IAccessControlManager,
   Liquidator,
   Liquidator__factory,
   MockVBNB,
@@ -37,6 +38,7 @@ type LiquidatorFixture = {
   vTokenCollateral: FakeContract<VBep20Immutable>;
   liquidator: MockContract<Liquidator>;
   vBnb: FakeContract<MockVBNB>;
+  accessControlManager: FakeContract<IAccessControlManager>;
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
@@ -55,14 +57,27 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   comptroller.vaiController.returns(vaiController.address);
   vaiController.getVAIAddress.returns(vai.address);
 
+  const accessControlManager = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  accessControlManager.isAllowedToCall.returns(true);
+
   const Liquidator = await smock.mock<Liquidator__factory>("Liquidator");
-  const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercent], {
+  const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercent, accessControlManager.address], {
     constructorArgs: [comptroller.address, vBnb.address, treasury.address],
   });
   await borrowedUnderlying.approve(liquidator.address, repayAmount);
   await vai.approve(liquidator.address, repayAmount);
 
-  return { comptroller, vBnb, borrowedUnderlying, vai, vaiController, vTokenBorrowed, vTokenCollateral, liquidator };
+  return {
+    comptroller,
+    vBnb,
+    borrowedUnderlying,
+    vai,
+    vaiController,
+    vTokenBorrowed,
+    vTokenCollateral,
+    liquidator,
+    accessControlManager,
+  };
 }
 
 function configure(fixture: LiquidatorFixture) {
@@ -95,6 +110,7 @@ describe("Liquidator", () => {
   let vTokenCollateral: FakeContract<VBep20Immutable>;
   let vBnb: FakeContract<MockVBNB>;
   let liquidatorContract: MockContract<Liquidator>;
+  let accessControlManager: FakeContract<IAccessControlManager>;
 
   beforeEach(async () => {
     [liquidator, treasury, borrower] = await ethers.getSigners();
@@ -108,6 +124,7 @@ describe("Liquidator", () => {
       vTokenCollateral,
       vBnb,
       liquidator: liquidatorContract,
+      accessControlManager,
     } = contracts);
   });
 
@@ -281,10 +298,14 @@ describe("Liquidator", () => {
       expect(newPercent).to.equal(convertToBigInt("0.08", 18));
     });
 
-    it("fails when called from non-admin", async () => {
+    it("fails when permission is not granted", async () => {
+      // toggle permissions
+      accessControlManager.isAllowedToCall.returns(false);
       await expect(
         liquidatorContract.connect(borrower).setTreasuryPercent(convertToBigInt("0.08", 18)),
-      ).to.be.revertedWith("Ownable: caller is not the owner");
+      ).to.be.revertedWithCustomError(liquidatorContract, "Unauthorized");
+      // revert back
+      accessControlManager.isAllowedToCall.returns(true);
     });
 
     it("fails when the percentage is too high", async () => {

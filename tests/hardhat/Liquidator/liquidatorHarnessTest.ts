@@ -7,6 +7,7 @@ import { ethers, upgrades } from "hardhat";
 import { convertToBigInt } from "../../../helpers/utils";
 import {
   Comptroller,
+  IAccessControlManager,
   LiquidatorHarness,
   LiquidatorHarness__factory,
   MockVBNB,
@@ -30,13 +31,15 @@ type LiquidatorFixture = {
 async function deployLiquidator(): Promise<LiquidatorFixture> {
   const [, treasury] = await ethers.getSigners();
 
+  const accessControlManager = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  accessControlManager.isAllowedToCall.returns(true);
   const comptroller = await smock.fake<Comptroller>("Comptroller");
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
   const Liquidator = await smock.mock<LiquidatorHarness__factory>("LiquidatorHarness");
-  const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercent], {
+  const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercent, accessControlManager.address], {
     constructorArgs: [comptroller.address, vBnb.address, treasury.address],
   });
 
