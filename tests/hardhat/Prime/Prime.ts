@@ -158,7 +158,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     0,
     1, 
     2,
-    comptroller.address
   );
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);

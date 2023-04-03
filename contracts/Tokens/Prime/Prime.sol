@@ -51,15 +51,14 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         address _xvsVaultRewardToken,
         uint256 _xvsVaultPoolId,
         uint128 _alphaNumerator,
-        uint128 _alphaDenominator,
-        address _comptroller
+        uint128 _alphaDenominator
     ) external virtual initializer {
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
         xvsVaultRewardToken = _xvsVaultRewardToken;
         xvsVaultPoolId = _xvsVaultPoolId;
         xvsVault = _xvsVault;
-        comptroller = _comptroller;
+        nextScoreUpdateRoundId = 0;
 
         __Ownable2Step_init();
     }
@@ -79,6 +78,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         for (uint i = 0; i < allMarkets.length; i++) {
             accrueInterest(allMarkets[i]);
         }
+
+        _startScoreUpdateRound(address(0));
     }
 
     /**
@@ -93,21 +94,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     ) external onlyOwner {
         require(markets[market].lastUpdated != 0, "market is not supported");
 
+        accrueInterest(market);
         markets[market].supplyMultiplier = _supplyMultiplier;
         markets[market].borrowMultiplier = _borrowMultiplier;
-    }
 
-    /**
-     * @notice Set limits for total tokens that can be mined
-     * @param irrevocableLimit total number of irrevocable tokens that can be minted
-     * @param revocableLimit total number of revocable tokens that can be minted
-     */
-    function setLimit(uint256 irrevocableLimit, uint256 revocableLimit) external onlyOwner {
-        require(_totalRevocable <= revocableLimit, "limit is lower than total minted tokens");
-        require(_totalIrrevocable <= irrevocableLimit, "limit is lower than total minted tokens");
-
-        _revocableLimit = revocableLimit;
-        _irrevocableLimit = irrevocableLimit;
+        _startScoreUpdateRound(market);
     }
 
     /**
@@ -131,6 +122,21 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         markets[vToken].indexMultiplier = 0;
 
         allMarkets.push(vToken);
+
+        _startScoreUpdateRound(vToken);
+    }
+
+    /**
+     * @notice Set limits for total tokens that can be mined
+     * @param irrevocableLimit total number of irrevocable tokens that can be minted
+     * @param revocableLimit total number of revocable tokens that can be minted
+     */
+    function setLimit(uint256 irrevocableLimit, uint256 revocableLimit) external onlyOwner {
+        require(_totalRevocable <= revocableLimit, "limit is lower than total minted tokens");
+        require(_totalIrrevocable <= irrevocableLimit, "limit is lower than total minted tokens");
+
+        _revocableLimit = revocableLimit;
+        _irrevocableLimit = irrevocableLimit;
     }
 
     /**
@@ -157,7 +163,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @notice Executed by XVSVault whenever users XVSVault balance changes
      * @param owner the account address whose balance was updated
      */
-    function xvsUpdated(address owner) external onlyXVSVault {
+    function xvsUpdated(address owner) external {
         uint256 totalStaked = _xvsBalanceOfUser(owner);
         bool isAccountEligible = isEligible(totalStaked);
 
@@ -310,6 +316,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             "exceeds token mint limit"
         );
 
+        _updateRoundAfterTokenMinted();
+
         emit Mint(owner, isIrrevocable);
     }
 
@@ -328,6 +336,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         } else {
             _totalRevocable--;
         }
+
+        _updateRoundAfterTokenBurned();
 
         emit Burn(owner);
     }
@@ -366,8 +376,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     /**
      * @notice Update total score of user and market. Must be called after changing account's borrow or supply balance.
-     * @param account account for which we need to update QVL
-     * @param market the market for which we need to QVL
+     * @param account account for which we need to update score
+     * @param market the market for which we need to score
      */
     function updateScore(address account, address market) public {
         if (markets[market].lastUpdated == 0) {
@@ -459,8 +469,63 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         asset.safeTransfer(msg.sender, amount);
     }
 
-    modifier onlyXVSVault() {
-        require(msg.sender == xvsVault, "only XVS vault can call this function");
-        _;
+    /**
+     * @notice Update total score of multiple users and market
+     * @param accounts accounts for which we need to update score
+     */
+    function updateScores(address[] memory accounts) external {
+        require(pendingScoreUpdates != 0, "there is no pending score updates");
+        require(nextScoreUpdateRoundId != 0, "there is no score updates required");
+
+        for (uint256 i = 0; i < accounts.length; i++) {
+            address account = accounts[i];
+
+            require(tokens[account].exists == true, "prime token for the account doesn't exist");
+            require(isScoreUpdated[nextScoreUpdateRoundId][account] == false, "score is already updated for this account");
+
+            //update score
+            if(marketForScoreUpdate == address(0)) {
+                for (uint i = 0; i < allMarkets.length; i++) {
+                    address market = allMarkets[i];
+                    updateScore(account, market);
+                }
+            } else {
+                updateScore(account, marketForScoreUpdate);
+            }
+
+            pendingScoreUpdates--;
+            isScoreUpdated[nextScoreUpdateRoundId][account] = true;
+        }
+    }
+
+    /**
+     * @notice starts round to update scores of a particular or all markets
+     * @param market the market for which to start the round or 0 address for all markets
+     */
+    function _startScoreUpdateRound(address market) internal {
+        nextScoreUpdateRoundId++;
+        totalScoreUpdatesRequired = _totalIrrevocable + _totalRevocable;
+        pendingScoreUpdates = totalScoreUpdatesRequired;
+        marketForScoreUpdate = market;
+    }
+
+    /**
+     * @notice update the required score updates when token is burned before round is completed
+     */
+    function _updateRoundAfterTokenBurned() internal {
+        if (pendingScoreUpdates > 0) {
+            totalScoreUpdatesRequired--;
+            pendingScoreUpdates--;
+        }
+    }
+
+    /**
+     * @notice update the required score updates when token is burned before round is completed
+     */
+    function _updateRoundAfterTokenMinted() internal {
+        if (pendingScoreUpdates > 0) {
+            totalScoreUpdatesRequired++;
+            pendingScoreUpdates++;
+        }
     }
 }

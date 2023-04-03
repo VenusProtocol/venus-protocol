@@ -81,6 +81,18 @@ contract PrimeStorageV1 {
     /// @notice address of XVS vault pool id
     uint256 internal xvsVaultPoolId;
 
-    /// @notice address of comptroller
-    address internal comptroller;
+    /// @notice mapping to check if a account's score was updated in the round
+    mapping (uint256 => mapping( address => bool )) isScoreUpdated;
+
+    /// @notice unique id for next round
+    uint256 public nextScoreUpdateRoundId;
+
+    /// @notice total number of accounts whose score needs to be updated
+    uint256 public totalScoreUpdatesRequired;
+
+    /// @notice total number of accounts whose score is yet to be updated
+    uint256 public pendingScoreUpdates;
+
+    /// @notice the market whose score needs to be update in this round
+    address public marketForScoreUpdate;
 }
