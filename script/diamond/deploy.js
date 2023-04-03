@@ -9,39 +9,19 @@ const ethers = hre.ethers;
 
 const Owner = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
 
-async function deployDiamond(unitrollerAddress) {
+async function deployFacets(unitrollerAddress) {
   const accounts = await ethers.getSigners();
   const contractOwner = accounts[0];
-  let unitroller;
-  let unitrollerAdmin;
 
   // deploy DiamondCutFacet
   const DiamondCutFacet = await ethers.getContractFactory("DiamondCutFacet");
   const diamondCutFacet = await DiamondCutFacet.deploy();
   await diamondCutFacet.deployed();
 
-  if (unitrollerAddress != "") {
-    await impersonateAccount(Owner);
-    unitrollerAdmin = await ethers.getSigner(Owner);
-    unitroller = await Unitroller__factory.connect(unitrollerAddress, unitrollerAdmin);
-  } else {
-    const UnitrollerFactory = await ethers.getContractFactory("Unitroller");
-    unitroller = await UnitrollerFactory.deploy();
-    const signer = await ethers.getSigners();
-    unitrollerAdmin = signer[0];
-  }
-
   // deploy Diamond
   const Diamond = await ethers.getContractFactory("Diamond");
-  const diamond = await Diamond.deploy(contractOwner.address, unitroller.address);
+  const diamond = await Diamond.deploy(contractOwner.address, unitrollerAddress);
   await diamond.deployed();
-
-  await unitroller.connect(unitrollerAdmin)._setPendingImplementation(diamond.address);
-  await diamond.connect(unitrollerAdmin)._become();
-
-  const compProxy = await ethers.getContractAt("Diamond", unitroller.address);
-
-  await compProxy.connect(unitrollerAdmin).facetCutInitilizer(diamondCutFacet.address);
 
   // deploy DiamondInit
   // DiamondInit provides a function that is called when the diamond is upgraded to initialize state variables
@@ -65,6 +45,37 @@ async function deployDiamond(unitrollerAddress) {
     });
   }
 
+  return {
+    diamondCutFacet,
+    diamond,
+    diamondInit,
+    cut,
+  };
+}
+
+async function deployDiamond(unitrollerAddress) {
+  let unitroller;
+  let unitrollerAdmin;
+
+  if (unitrollerAddress != "") {
+    await impersonateAccount(Owner);
+    unitrollerAdmin = await ethers.getSigner(Owner);
+    unitroller = await Unitroller__factory.connect(unitrollerAddress, unitrollerAdmin);
+  } else {
+    const UnitrollerFactory = await ethers.getContractFactory("Unitroller");
+    unitroller = await UnitrollerFactory.deploy();
+    const signer = await ethers.getSigners();
+    unitrollerAdmin = signer[0];
+  }
+
+  const { diamondCutFacet, diamond, diamondInit, cut } = await deployFacets(unitroller.addres);
+  await unitroller.connect(unitrollerAdmin)._setPendingImplementation(diamond.address);
+  await diamond.connect(unitrollerAdmin)._become();
+
+  const compProxy = await ethers.getContractAt("Diamond", unitroller.address);
+
+  await compProxy.connect(unitrollerAdmin).facetCutInitilizer(diamondCutFacet.address);
+
   // upgrade diamond with facets
   const diamondCut = await ethers.getContractAt("IDiamondCut", unitroller.address);
   // call to init function
@@ -74,7 +85,8 @@ async function deployDiamond(unitrollerAddress) {
   if (!receipt.status) {
     throw Error(`Diamond upgrade failed: ${tx.hash}`);
   }
-  return { unitroller, diamond };
+
+  return { unitroller, diamond, cut, diamondInit, diamondCutFacet };
 }
 
 // We recommend this pattern to be able to use async/await everywhere
@@ -89,3 +101,4 @@ if (require.main === module) {
 }
 
 exports.deployDiamond = deployDiamond;
+exports.deployFacets = deployFacets;
