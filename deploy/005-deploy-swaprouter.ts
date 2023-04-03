@@ -11,16 +11,8 @@ interface AddressConfig {
 }
 
 const ADDRESSES: AddressConfig = {
-  bsctestnet: {
-    WBNBAddress: Testnet.WBNB,
-    pancakeFactory: Testnet.pancakeFactory,
-    unitroller: Testnet.Unitroller,
-  },
-  bscmainnet: {
-    WBNBAddress: Mainnet.WBNB,
-    pancakeFactory: Mainnet.pancakeFactory,
-    unitroller: Mainnet.Unitroller,
-  },
+  bsctestnet: Testnet,
+  bscmainnet: Mainnet,
 };
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -29,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
 
   const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
-  const WBNBAddress = ADDRESSES[networkName].WBNBAddress;
+  const WBNBAddress = ADDRESSES[networkName].WBNB;
   const pancakeFactoryAddress = ADDRESSES[networkName].pancakeFactory;
 
   await deploy("SwapRouter", {
@@ -43,7 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [ADDRESSES[networkName].unitroller],
+        args: [ADDRESSES[networkName].Unitroller],
       },
     },
   });
