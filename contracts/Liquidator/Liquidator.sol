@@ -4,6 +4,7 @@ pragma solidity 0.8.13;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 
 interface IComptroller {
     function liquidationIncentiveMantissa() external view returns (uint256);
@@ -37,7 +38,7 @@ interface IVAIController {
     function getVAIAddress() external view returns (address);
 }
 
-contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
+contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, AccessControlledV8 {
     /// @notice Address of vBNB contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IVBNB public immutable vBnb;
@@ -146,16 +147,22 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
 
     /// @notice Initializer for the implementation contract.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
-    function initialize(uint256 treasuryPercentMantissa_) external virtual initializer {
-        __Liquidator_init(treasuryPercentMantissa_);
+    /// @param accessControlManager_ address of access control manager
+    function initialize(uint256 treasuryPercentMantissa_, address accessControlManager_) external virtual initializer {
+        __Liquidator_init(treasuryPercentMantissa_, accessControlManager_);
     }
 
     /// @dev Liquidator initializer for derived contracts.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
-    function __Liquidator_init(uint256 treasuryPercentMantissa_) internal onlyInitializing {
+    /// @param accessControlManager_ address of access control manager
+    function __Liquidator_init(
+        uint256 treasuryPercentMantissa_,
+        address accessControlManager_
+    ) internal onlyInitializing {
         __Ownable2Step_init();
         __ReentrancyGuard_init();
         __Liquidator_init_unchained(treasuryPercentMantissa_);
+        __AccessControlled_init_unchained(accessControlManager_);
     }
 
     /// @dev Liquidator initializer for derived contracts that doesn't call parent initializers.
@@ -168,7 +175,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice An admin function to restrict liquidations to allowed addresses only.
     /// @dev Use {addTo,removeFrom}AllowList to configure the allowed addresses.
     /// @param borrower The address of the borrower
-    function restrictLiquidation(address borrower) external onlyOwner {
+    function restrictLiquidation(address borrower) external {
+        _checkAccessAllowed("estrictLiquidation(address)");
         if (liquidationRestricted[borrower]) {
             revert AlreadyRestricted(borrower);
         }
@@ -179,7 +187,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice An admin function to remove restrictions for liquidations.
     /// @dev Does not impact the allowedLiquidatorsByAccount mapping for the borrower, just turns off the check.
     /// @param borrower The address of the borrower
-    function unrestrictLiquidation(address borrower) external onlyOwner {
+    function unrestrictLiquidation(address borrower) external {
+        _checkAccessAllowed("unrestrictLiquidation(address) ");
         if (!liquidationRestricted[borrower]) {
             revert NoRestrictionsExist(borrower);
         }
@@ -192,7 +201,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     ///         allowedLiquidatorsByAccount mapping can participate in liquidating the positions of this borrower.
     /// @param borrower The address of the borrower
     /// @param borrower The address of the liquidator
-    function addToAllowlist(address borrower, address liquidator) external onlyOwner {
+    function addToAllowlist(address borrower, address liquidator) external {
+        _checkAccessAllowed("addToAllowlist(address,address)");
         if (allowedLiquidatorsByAccount[borrower][liquidator]) {
             revert AlreadyAllowed(borrower, liquidator);
         }
@@ -205,7 +215,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     ///         able to liquidate the positions of this borrower.
     /// @param borrower The address of the borrower
     /// @param borrower The address of the liquidator
-    function removeFromAllowlist(address borrower, address liquidator) external onlyOwner {
+    function removeFromAllowlist(address borrower, address liquidator) external {
+        _checkAccessAllowed("removeFromAllowlist(address,address)");
         if (!allowedLiquidatorsByAccount[borrower][liquidator]) {
             revert AllowlistEntryNotFound(borrower, liquidator);
         }
@@ -263,7 +274,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice Sets the new percent of the seized amount that goes to treasury. Should
     ///         be less than or equal to comptroller.liquidationIncentiveMantissa().sub(1e18).
     /// @param newTreasuryPercentMantissa New treasury percent (scaled by 10^18).
-    function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external onlyOwner {
+    function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external {
+        _checkAccessAllowed("setTreasuryPercent(uint256)");
         validateTreasuryPercentMantissa(newTreasuryPercentMantissa);
         emit NewLiquidationTreasuryPercent(treasuryPercentMantissa, newTreasuryPercentMantissa);
         treasuryPercentMantissa = newTreasuryPercentMantissa;
@@ -349,5 +361,14 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         if (treasuryPercentMantissa_ > maxTreasuryPercentMantissa) {
             revert TreasuryPercentTooHigh(maxTreasuryPercentMantissa, treasuryPercentMantissa_);
         }
+    }
+
+    /**
+     * @notice Sets the address of the access control of this contract
+     * @dev Admin function to set the access control address
+     * @param newAccessControlAddress New address for the access control
+     */
+    function _setAccessControl(address newAccessControlAddress) external onlyOwner {
+        _setAccessControlManager(newAccessControlAddress);
     }
 }
