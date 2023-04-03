@@ -12,8 +12,11 @@ contract LiquidatorHarness is Liquidator {
         address treasury_
     ) Liquidator(comptroller_, vBnb_, treasury_) {}
 
-    function initialize(uint256 liquidationIncentiveMantissa_) external override initializer {
-        __Liquidator_init(liquidationIncentiveMantissa_);
+    function initialize(
+        uint256 liquidationIncentiveMantissa_,
+        address accessControlManager_
+    ) external override initializer {
+        __Liquidator_init(liquidationIncentiveMantissa_, accessControlManager_);
     }
 
     event DistributeLiquidationIncentive(uint256 seizeTokensForTreasury, uint256 seizeTokensForLiquidator);
