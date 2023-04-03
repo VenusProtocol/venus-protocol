@@ -79,7 +79,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             accrueInterest(allMarkets[i]);
         }
 
-        _startScoreUpdateRound(address(0));
+        _startScoreUpdateRound();
     }
 
     /**
@@ -98,7 +98,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         markets[market].supplyMultiplier = _supplyMultiplier;
         markets[market].borrowMultiplier = _borrowMultiplier;
 
-        _startScoreUpdateRound(market);
+        _startScoreUpdateRound();
     }
 
     /**
@@ -122,8 +122,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         markets[vToken].indexMultiplier = 0;
 
         allMarkets.push(vToken);
-
-        _startScoreUpdateRound(vToken);
+        _startScoreUpdateRound();
     }
 
     /**
@@ -483,14 +482,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             require(tokens[account].exists == true, "prime token for the account doesn't exist");
             require(isScoreUpdated[nextScoreUpdateRoundId][account] == false, "score is already updated for this account");
 
-            //update score
-            if(marketForScoreUpdate == address(0)) {
-                for (uint i = 0; i < allMarkets.length; i++) {
-                    address market = allMarkets[i];
-                    updateScore(account, market);
-                }
-            } else {
-                updateScore(account, marketForScoreUpdate);
+            for (uint i = 0; i < allMarkets.length; i++) {
+                address market = allMarkets[i];
+                updateScore(account, market);
             }
 
             pendingScoreUpdates--;
@@ -500,13 +494,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
     /**
      * @notice starts round to update scores of a particular or all markets
-     * @param market the market for which to start the round or 0 address for all markets
      */
     function _startScoreUpdateRound(address market) internal {
         nextScoreUpdateRoundId++;
         totalScoreUpdatesRequired = _totalIrrevocable + _totalRevocable;
         pendingScoreUpdates = totalScoreUpdatesRequired;
-        marketForScoreUpdate = market;
     }
 
     /**

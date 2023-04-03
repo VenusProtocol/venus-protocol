@@ -92,7 +92,4 @@ contract PrimeStorageV1 {
 
     /// @notice total number of accounts whose score is yet to be updated
     uint256 public pendingScoreUpdates;
-
-    /// @notice the market whose score needs to be update in this round
-    address public marketForScoreUpdate;
 }
