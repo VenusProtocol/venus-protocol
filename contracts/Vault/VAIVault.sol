@@ -4,7 +4,7 @@ import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
 import "./VAIVaultStorage.sol";
 import "./VAIVaultErrorReporter.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
+import "../Governance/AccessControlledV5.sol";
 
 interface IVAIVaultProxy {
     function _acceptImplementation() external returns (uint);
