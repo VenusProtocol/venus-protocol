@@ -41,6 +41,9 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     /// @notice Event emitted when accruedInterest is claimed
     event Claim(address indexed user, uint256 interestAmount);
 
+    /// @notice Event emitted when lastAccruingBlock state variable changes
+    event LastAccruingBlockChanged(uint256 oldLastAccruingBlock, uint256 newLastAccruingBlock);
+
     constructor() public {
         admin = msg.sender;
     }
@@ -169,6 +172,11 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
         uint256 accrualStartBlockNumber
     ) internal view isInitialized returns (uint256) {
         uint256 blockNumber = getBlockNumber();
+        uint256 _lastAccruingBlock = lastAccruingBlock;
+
+        if (blockNumber > _lastAccruingBlock) {
+            blockNumber = _lastAccruingBlock;
+        }
 
         if (accrualStartBlockNumber == 0 || accrualStartBlockNumber >= blockNumber) {
             return 0;
@@ -249,6 +257,13 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
         require(amount <= token.balanceOf(address(this)), "Insufficient amount in Vault");
         emit WithdrawToken(tokenAddress, receiver, amount);
         token.safeTransfer(receiver, amount);
+    }
+
+    function setLastAccruingBlock(uint256 _lastAccruingBlock) external {
+        _checkAccessAllowed("setLastAccruingBlock(uint256)");
+        uint256 oldLastAccruingBlock = lastAccruingBlock;
+        lastAccruingBlock = _lastAccruingBlock;
+        emit LastAccruingBlockChanged(oldLastAccruingBlock, _lastAccruingBlock);
     }
 
     function getBlockNumber() public view returns (uint256) {
