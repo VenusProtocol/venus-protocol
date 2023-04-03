@@ -495,7 +495,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     /**
      * @notice starts round to update scores of a particular or all markets
      */
-    function _startScoreUpdateRound(address market) internal {
+    function _startScoreUpdateRound() internal {
         nextScoreUpdateRoundId++;
         totalScoreUpdatesRequired = _totalIrrevocable + _totalRevocable;
         pendingScoreUpdates = totalScoreUpdatesRequired;
