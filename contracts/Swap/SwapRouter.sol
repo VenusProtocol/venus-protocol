@@ -1,11 +1,13 @@
 pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "./interfaces/IPancakeSwapV2Router.sol";
 import "./interfaces/IVtoken.sol";
 import "./RouterHelper.sol";
 import "./interfaces/IVBNB.sol";
+import "./interfaces/InterfaceComptroller.sol";
 
 /**
  * @title Venus's Pancake Swap Integration Contract
@@ -14,11 +16,14 @@ import "./interfaces/IVBNB.sol";
  * @author 0xlucian
  */
 
-contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, RouterHelper, IPancakeSwapV2Router {
+contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Router {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+
+    address public comptrollerAddress;
+
     // ***************
     // ** MODIFIERS **
     // ***************
-
     modifier ensure(uint256 deadline) {
         if (deadline < block.timestamp) {
             revert SwapDeadlineExpire(deadline, block.timestamp);
@@ -26,9 +31,16 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         _;
     }
 
-    receive() external payable {
-        assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
+    modifier ensureVTokenListed(address vTokenAddress) {
+        bool isListed = InterfaceComptroller(comptrollerAddress).markets(vTokenAddress);
+        if (isListed != true) {
+            revert VTokenNotListed(vTokenAddress);
+        }
+        _;
     }
+
+    /// @notice event emitted on sweep token success
+    event SweepToken(address indexed token, address indexed to, uint256 sweepAmount);
 
     // *********************
     // **** CONSTRUCTOR ****
@@ -42,12 +54,16 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         _disableInitializers();
     }
 
+    receive() external payable {
+        assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
+    }
+
     // *********************
     // **** INITIALIZE *****
     // *********************
-    function initialize() external initializer {
+    function initialize(address _comptrollerAddress) external initializer {
         __Ownable2Step_init();
-        __ReentrancyGuard_init();
+        comptrollerAddress = _comptrollerAddress;
     }
 
     // ****************************
@@ -68,7 +84,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -90,7 +106,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -112,7 +128,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -134,7 +150,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -157,7 +173,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -178,7 +194,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountOut,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapETHForExactTokens(amountOut, path, address(this));
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -200,7 +216,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -222,7 +238,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -243,7 +259,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -264,7 +280,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -273,7 +289,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
     }
 
     /**
-     * @notice Swap tokens for Exact tokens and supply to a Venus market
+     * @notice Swap tokens for Exact tokens and repay to a Venus market
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountOut The amount of the tokens needs to be as output token.
      * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
@@ -287,8 +303,30 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap tokens for full tokens debt and repay to a Venus market
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForFullTokenDebtAndRepay(
+        address vTokenAddress,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) {
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 amountOut = IVToken(vTokenAddress).borrowBalanceCurrent(msg.sender);
         _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
         uint256 swapAmount = balanceAfter - balanceBefore;
@@ -308,7 +346,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 amountOut,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapETHForExactTokens(amountOut, path, address(this));
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
@@ -379,6 +417,28 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 deadline
     ) external payable override ensure(deadline) {
         uint256 balanceBefore = address(this).balance;
+        _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
+    }
+
+    /**
+     * @notice Swap tokens for Exact BNB and repay to a Venus market
+     * @param vBNBAddress The address of the vToken contract for supplying assets.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForFullETHDebtAndRepay(
+        address vBNBAddress,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override ensure(deadline) {
+        uint256 balanceBefore = address(this).balance;
+        uint256 amountOut = IVToken(vBNBAddress).borrowBalanceCurrent(msg.sender);
         _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
@@ -578,6 +638,20 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Rout
         uint256 deadline
     ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
         amounts = _swapTokensForExactETH(amountOut, amountInMax, path, to);
+    }
+
+    /**
+     * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to admin (timelock)
+     * @param token The address of the ERC-20 token to sweep
+     * @param sweepAmount The ampunt of the tokens to sweep
+     * @custom:access Only Governance
+     */
+    function sweepToken(IERC20Upgradeable token, address to, uint256 sweepAmount) external onlyOwner {
+        uint256 balance = token.balanceOf(address(this));
+        require(sweepAmount <= balance, "SwapRouter::insufficient balance");
+        token.safeTransfer(to, sweepAmount);
+
+        emit SweepToken(address(token), to, sweepAmount);
     }
 
     /**
