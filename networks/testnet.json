@@ -40,7 +40,9 @@
     "XVSVesting": "0x9667B6E438232925525F26CeC0acC3A39B9980C8",
     "XVSVestingProxy": "0xcfa3a6bc934EcA22fa39e854c823cD3dE79D9BC8",
     "ComptrollerLens": "0xc698edFbac7F4A3A2A06757860938e73260ed7a4",
-    "Liquidator": "0x40FB27A83e52E7B213CC345f5b6ACA17bf7D5139"
+    "Liquidator": "0x40FB27A83e52E7B213CC345f5b6ACA17bf7D5139",
+    "WBNB": "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
+    "pancakeFactory": "0x182859893230dC89b114d6e2D547BFFE30474a21"
   },
   "Accounts": {
     "admin": "0xfea1c651a47fe29db9b1bf3cc1f224d8d9cff68c",

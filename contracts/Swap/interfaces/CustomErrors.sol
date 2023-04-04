@@ -24,6 +24,12 @@ error InsufficientOutputAmount();
 ///@notice Error thrown when the amount received from a trade is below the minimum
 error OutputAmountBelowMinimum(uint256 amountOut, uint256 amountOutMin);
 
+///@notice Error thrown when the amount In is above the amount in maximum
+error InputAmountAboveMaximum(uint256 amountIn, uint256 amountIntMax);
+
+///@notice Error thrown when amount is above the msg.value(amountMax)
+error ExcessiveInputAmount(uint256 amount, uint256 amountMax);
+
 ///@notice Error thrown when the given reserves are equal to 0
 error InsufficientLiquidity();
 
@@ -35,3 +41,6 @@ error IdenticalAddresses();
 
 ///@notice Error thrown when the trade path[] parameter consists of only 1 token (i.e. path.length<2)
 error InvalidPath();
+
+//@notice Error thrown when invalid vTOken address is passed to swap router.
+error VTokenNotListed(address vToken);

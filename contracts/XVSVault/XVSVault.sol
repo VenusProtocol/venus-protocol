@@ -8,6 +8,7 @@ import "./XVSVaultProxy.sol";
 import "./XVSVaultStorage.sol";
 import "./XVSVaultErrorReporter.sol";
 import "../Tokens/Prime/IPrime.sol";
+import "../Utils/SafeCast.sol";
 
 interface IXVSStore {
     function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
@@ -17,6 +18,7 @@ interface IXVSStore {
 
 contract XVSVault is XVSVaultStorage, ECDSA {
     using SafeMath for uint256;
+    using SafeCast for uint256;
     using SafeBEP20 for IBEP20;
 
     /// @notice Event emitted when deposit
@@ -26,7 +28,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     event ExecutedWithdrawal(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
     /// @notice Event emitted when request withrawal
-    event ReqestedWithdrawal(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
+    event RequestedWithdrawal(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
     /// @notice Event emitted when admin changed
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
@@ -58,6 +60,9 @@ contract XVSVault is XVSVaultStorage, ECDSA {
 
     /// @notice An event emitted when a pool allocation points are updated
     event PoolUpdated(address indexed rewardToken, uint indexed pid, uint oldAllocPoints, uint newAllocPoints);
+
+    /// @notice Event emitted when reward claimed
+    event Claim(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
     constructor() public {
         admin = msg.sender;
@@ -170,11 +175,14 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
         _updatePool(_rewardToken, _pid);
+        require(pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, msg.sender) == 0, "execute pending withdrawal");
+
         if (user.amount > 0) {
             uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
                 user.rewardDebt
             );
             IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+            emit Claim(msg.sender, _rewardToken, _pid, pending);
         }
         pool.token.safeTransferFrom(address(msg.sender), address(this), _amount);
         user.amount = user.amount.add(_amount);
@@ -193,6 +201,33 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     }
 
     /**
+     * @notice Claim rewards for pool
+     * @param _account The account for which to claim rewards
+     * @param _rewardToken The Reward Token Address
+     * @param _pid The Pool Index
+     */
+    function claim(address _account, address _rewardToken, uint256 _pid) external nonReentrant {
+        _ensureValidPool(_rewardToken, _pid);
+        PoolInfo storage pool = poolInfos[_rewardToken][_pid];
+        UserInfo storage user = userInfos[_rewardToken][_pid][_account];
+        _updatePool(_rewardToken, _pid);
+        require(pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, _account) == 0, "execute pending withdrawal");
+
+        if (user.amount > 0) {
+            uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
+                user.rewardDebt
+            );
+
+            if (pending > 0) {
+                user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+
+                IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, _account, pending);
+                emit Claim(_account, _rewardToken, _pid, pending);
+            }
+        }
+    }
+
+    /**
      * @notice Pushes withdrawal request to the requests array and updates
      *   the pending withdrawals amount. The requests are always sorted
      *   by unlock time (descending) so that the earliest to execute requests
@@ -208,12 +243,12 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         uint _lockedUntil
     ) internal {
         uint i = _requests.length;
-        _requests.push(WithdrawalRequest(0, 0, true));
+        _requests.push(WithdrawalRequest(0, 0, 1));
         // Keep it sorted so that the first to get unlocked request is always at the end
         for (; i > 0 && _requests[i - 1].lockedUntil <= _lockedUntil; --i) {
             _requests[i] = _requests[i - 1];
         }
-        _requests[i] = WithdrawalRequest(_amount, _lockedUntil, true);
+        _requests[i] = WithdrawalRequest(_amount, _lockedUntil.toUint128(), 1);
         _user.pendingWithdrawals = _user.pendingWithdrawals.add(_amount);
     }
 
@@ -239,7 +274,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         // Since the requests are sorted by their unlock time, we can just
         // pop them from the array and stop at the first not-yet-eligible one
         for (uint i = _requests.length; i > 0 && isUnlocked(_requests[i - 1]); --i) {
-            if (_requests[i - 1].afterUpgrade == true) {
+            if (_requests[i - 1].afterUpgrade == 1) {
                 afterUpgradeWithdrawalAmount = afterUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
             } else {
                 beforeUpgradeWithdrawalAmount = beforeUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
@@ -310,9 +345,9 @@ contract XVSVault is XVSVaultStorage, ECDSA {
      */
     function getRequestedWithdrawalAmount(
         WithdrawalRequest[] storage _requests
-    ) internal returns (uint beforeUpgradeWithdrawalAmount, uint afterUpgradeWithdrawalAmount) {
+    ) internal view returns (uint beforeUpgradeWithdrawalAmount, uint afterUpgradeWithdrawalAmount) {
         for (uint i = _requests.length; i > 0; --i) {
-            if (_requests[i - 1].afterUpgrade == true) {
+            if (_requests[i - 1].afterUpgrade == 1) {
                 afterUpgradeWithdrawalAmount = afterUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
             } else {
                 beforeUpgradeWithdrawalAmount = beforeUpgradeWithdrawalAmount.add(_requests[i - 1].amount);
@@ -339,7 +374,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         uint beforeUpgradeWithdrawalAmount;
 
         (beforeUpgradeWithdrawalAmount, ) = getRequestedWithdrawalAmount(requests);
-        require(beforeUpgradeWithdrawalAmount == 0, "execute existing withdrawal before requesting new withdrawal");
+        require(beforeUpgradeWithdrawalAmount == 0, "execute pending withdrawal");
 
         _updatePool(_rewardToken, _pid);
         uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
@@ -362,7 +397,8 @@ contract XVSVault is XVSVaultStorage, ECDSA {
             _primeToken.xvsUpdated(msg.sender);
         }
 
-        emit ReqestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
+        emit Claim(msg.sender, _rewardToken, _pid, pending);
+        emit RequestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }
 
     /**
@@ -482,6 +518,22 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         amount = user.amount;
         rewardDebt = user.rewardDebt;
         pendingWithdrawals = user.pendingWithdrawals;
+    }
+
+    /**
+     * @notice Gets the total pending withdrawal amount of a user before upgrade
+     * @param _rewardToken The Reward Token Address
+     * @param _pid The Pool Index
+     * @param _user The address of the user
+     */
+    function pendingWithdrawalsBeforeUpgrade(
+        address _rewardToken,
+        uint256 _pid,
+        address _user
+    ) public view returns (uint256 beforeUpgradeWithdrawalAmount) {
+        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][_user];
+        (beforeUpgradeWithdrawalAmount, ) = getRequestedWithdrawalAmount(requests);
+        return beforeUpgradeWithdrawalAmount;
     }
 
     /**

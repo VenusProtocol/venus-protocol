@@ -175,10 +175,10 @@ To lint the code, run:
 To run in docker:
 
     # Build the docker image
-    docker build -t swipewallet/venus-protocol .
+    docker build -t venusprotocol/venus-protocol .
 
     # Run a shell to the built image
-    docker run -it swipewallet/venus-protocol /bin/sh
+    docker run -it venusprotocol/venus-protocol /bin/sh
 
 From within a docker shell, you can interact locally with the protocol via ganache and truffle:
 

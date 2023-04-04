@@ -48,6 +48,11 @@ typechain
 artifacts
 cache
 
+# OZ
+.openzeppelin/
 # Build
 dist
 docgen-docs
+
+#openzepplin files
+.openzeppelin/*

@@ -16,7 +16,7 @@ import "../Tokens/Prime/IPrime.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -113,6 +113,9 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
 
     /// @notice Emitted when access control address is changed by admin
     event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
+
+    /// @notice Emitted when the borrowing delegate rights are updated for an account
+    event DelegateUpdated(address borrower, address delegate, bool allowDelegatedBorrows);
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
@@ -286,6 +289,23 @@ contract Comptroller is ComptrollerV10Storage, ComptrollerInterfaceG2, Comptroll
         emit MarketExited(vToken, msg.sender);
 
         return uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Grants or revokes the borrowing delegate rights to / from an account.
+     *  If allowed, the delegate will be able to borrow funds on behalf of the sender.
+     *  Upon a delegated borrow, the delegate will receive the funds, and the borrower
+     *  will see the debt on their account.
+     * @param delegate The address to update the rights for
+     * @param allowBorrows Whether to grant (true) or revoke (false) the rights
+     */
+    function updateDelegate(address delegate, bool allowBorrows) external {
+        _updateDelegate(msg.sender, delegate, allowBorrows);
+    }
+
+    function _updateDelegate(address borrower, address delegate, bool allowBorrows) internal {
+        approvedDelegates[borrower][delegate] = allowBorrows;
+        emit DelegateUpdated(borrower, delegate, allowBorrows);
     }
 
     /*** Policy Hooks ***/

@@ -232,3 +232,9 @@ contract ComptrollerV10Storage is ComptrollerV9Storage {
     /// @notice Prime token address
     IPrime public prime;
 }
+
+contract ComptrollerV11Storage is ComptrollerV10Storage {
+    /// @notice Whether the delegate is allowed to borrow on behalf of the borrower
+    //mapping(address borrower => mapping (address delegate => bool approved)) public approvedDelegates;
+    mapping(address => mapping(address => bool)) public approvedDelegates;
+}

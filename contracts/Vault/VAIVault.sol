@@ -77,6 +77,14 @@ contract VAIVault is VAIVaultStorage {
     }
 
     /**
+     * @notice Claim XVS from VAIVault
+     * @param account The account for which to claim XVS
+     */
+    function claim(address account) external nonReentrant {
+        _withdraw(account, 0);
+    }
+
+    /**
      * @notice Low level withdraw function
      * @param account The account to withdraw from vault
      * @param _amount The amount to withdraw from vault

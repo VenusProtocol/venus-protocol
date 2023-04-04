@@ -14,8 +14,6 @@ RUN yarn install --lock-file
 # Then rest of code and build
 ADD . /venus-protocol
 
-RUN npx hardhat compile
+RUN yarn hardhat compile
 
 RUN yarn cache clean
-
-ENTRYPOINT ["yarn"]

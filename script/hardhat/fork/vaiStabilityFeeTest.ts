@@ -117,7 +117,7 @@ Before the VAI Stability Fee, a user's VAI mint limit was based on their total s
 };
 
 forking(24265539, () => {
-  testVip("VIP-80 Stability fee", vip80(), GOVERNOR_V3_ABI);
+  testVip("VIP-80 Stability fee", vip80(), { governorAbi: GOVERNOR_V3_ABI });
 
   describe("VIP-80 Post-upgrade behavior", async () => {
     const BLOCKS_PER_YEAR = 10512000n;
