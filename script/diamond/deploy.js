@@ -68,7 +68,7 @@ async function deployDiamond(unitrollerAddress) {
     unitrollerAdmin = signer[0];
   }
 
-  const { diamondCutFacet, diamond, diamondInit, cut } = await deployFacets(unitroller.addres);
+  const { diamondCutFacet, diamond, diamondInit, cut } = await deployFacets(unitroller.address);
   await unitroller.connect(unitrollerAdmin)._setPendingImplementation(diamond.address);
   await diamond.connect(unitrollerAdmin)._become();
 
