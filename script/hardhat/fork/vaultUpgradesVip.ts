@@ -1,10 +1,11 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { IAccessControlManager, VAIVault, VRTVault, XVSVault } from "../../../typechain";
-import { forking, pretendExecutingVip, testVip } from "./vip-framework";
+import { IAccessControlManager, VAIVault, VRTVault, VRTVaultProxy, XVSVault, XVSVaultProxy } from "../../../typechain";
+import { forking, testVip } from "./vip-framework";
 import { ProposalType } from "./vip-framework/types";
 import { makeProposal } from "./vip-framework/utils";
+import { initMainnetUser } from "./vip-framework/utils";
 
 const ACM = "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555";
 const XVS_VAULT_PROXY = "0x051100480289e704d20e9DB4804837068f3f9204";
@@ -13,9 +14,9 @@ const VRT_VAULT_PROXY = "0x98bF4786D72AAEF6c714425126Dd92f149e3F334";
 const XVS_OLD = "0xA0c958ca0FfA25253DE0a23f98aD3062F3987073";
 const VAI_OLD = "0x7680C89Eb3e58dEc4D38093B4803be2b7f257360";
 const VRT_OLD = "0xA3EEA5e491AD45caE30F6E0a315A275cc99EE147";
-const XVS_NEW = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"; // Fake Address
-const VAI_NEW = "0x55d398326f99059fF775485246999027B3197955"; // Fake Address
-const VRT_NEW = "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56"; // Fake Address
+const XVS_NEW = "0x5F0A1E8941d6d0E3d220237FA326F0bfbbCC3E9F";
+const VAI_NEW = "0x23D1F85ACDC301bA61D46Ab1c986B781a3776435";
+const VRT_NEW = "0x023EEDd63947634854654b2607088EB12B2d185f";
 const FAST_TRACK_TIMELOCK = "0x555ba73dB1b006F3f2C7dB7126d6e4343aDBce02";
 const CRITICAL_TIMELOCK = "0x213c446ec11e45b15a6E29C1C1b402B8897f606d";
 const MULTISIG = "0x1C2CAc6ec528c20800B2fe734820D87b581eAA6B";
@@ -62,6 +63,42 @@ export const vip105 = () => {
         target: VRT_VAULT_PROXY,
         signature: "_acceptAdmin()",
         params: [],
+      },
+
+      {
+        target: XVS_VAULT_PROXY,
+        signature: "_setPendingImplementation(address)",
+        params: [XVS_NEW],
+      },
+
+      {
+        target: VRT_VAULT_PROXY,
+        signature: "_setPendingImplementation(address)",
+        params: [VRT_NEW],
+      },
+
+      {
+        target: VAI_VAULT_PROXY,
+        signature: "_setPendingImplementation(address)",
+        params: [VAI_NEW],
+      },
+
+      {
+        target: XVS_NEW,
+        signature: "_become(address)",
+        params: [XVS_VAULT_PROXY],
+      },
+
+      {
+        target: VRT_NEW,
+        signature: "_become(address)",
+        params: [VRT_VAULT_PROXY],
+      },
+
+      {
+        target: VAI_NEW,
+        signature: "_become(address)",
+        params: [VAI_VAULT_PROXY],
       },
 
       {
@@ -159,15 +196,26 @@ export const vip105 = () => {
   );
 };
 
-forking(26881099, () => {
+forking(27054856, async () => {
+  let xvsVaultProxy: XVSVaultProxy;
+  let vrtVaultProxy: VRTVaultProxy;
   let xvsVault: XVSVault;
   let vaiVault: VAIVault;
   let vrtVault: VRTVault;
+  let accessControlManager: IAccessControlManager;
 
   before(async () => {
     xvsVault = await ethers.getContractAt("XVSVault", XVS_VAULT_PROXY);
     vaiVault = await ethers.getContractAt("VAIVault", VAI_VAULT_PROXY);
     vrtVault = await ethers.getContractAt("VRTVault", VRT_VAULT_PROXY);
+    accessControlManager = await ethers.getContractAt("IAccessControlManager", ACM);
+
+    xvsVaultProxy = await ethers.getContractAt("XVSVaultProxy", XVS_VAULT_PROXY);
+    vrtVaultProxy = await ethers.getContractAt("VRTVaultProxy", VRT_VAULT_PROXY);
+    const multiSigSigner = await initMainnetUser(MULTISIG, ethers.utils.parseEther("1.0"));
+
+    await xvsVaultProxy.connect(multiSigSigner)._setPendingAdmin(NORMAL_TIMELOCK);
+    await vrtVaultProxy.connect(multiSigSigner)._setPendingAdmin(NORMAL_TIMELOCK);
   });
 
   describe("Pre-VIP behavior", async () => {
@@ -196,25 +244,8 @@ forking(26881099, () => {
       expect(impl).to.equal(VRT_OLD);
     });
   });
-});
 
-forking(26881099, () => {
-  testVip("VIP-104 Change VAIVault Implementation", vip105());
-});
-
-forking(26881099, () => {
-  let xvsVault: XVSVault;
-  let vaiVault: VAIVault;
-  let vrtVault: VRTVault;
-  let accessControlManager: IAccessControlManager;
-
-  before(async () => {
-    xvsVault = await ethers.getContractAt("XVSVault", XVS_VAULT_PROXY);
-    vaiVault = await ethers.getContractAt("VAIVault", VAI_VAULT_PROXY);
-    vrtVault = await ethers.getContractAt("VRTVault", VRT_VAULT_PROXY);
-    accessControlManager = await ethers.getContractAt("IAccessControlManager", ACM);
-    await pretendExecutingVip(vip105());
-  });
+  testVip("VIP-105 Change Vault Implementation", vip105());
 
   describe("Post-VIP behavior", async () => {
     it("Owner of XVSVault is NORMAL TIMELOCK", async () => {
