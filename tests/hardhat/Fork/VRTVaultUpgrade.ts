@@ -1,9 +1,10 @@
-import { impersonateAccount, loadFixture, reset, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import { impersonateAccount, loadFixture, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 
+import { forking } from "../../../script/hardhat/fork/vip-framework";
 import {
   IAccessControlManagerV5__factory,
   VRT,
@@ -13,9 +14,7 @@ import {
 } from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
-const hre = require("hardhat");
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
-let FORK_ENDPOINT;
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 
 // Address of the vault proxy
@@ -39,10 +38,6 @@ let oldVRTVault: VRTVault;
 let accessControlManager: IAccessControlManager;
 let vrtVaultFresh: VRTVault;
 let vrt: VRT;
-
-function getForkingUrl() {
-  FORK_ENDPOINT = hre.network.config.forking.url;
-}
 
 async function deployAndConfigureNewVault() {
   /*
@@ -113,60 +108,61 @@ async function sendGasCost() {
     data: undefined,
   });
 }
+if (FORK_MAINNET) {
+  const blockNumber = 26834304;
+  forking(blockNumber, () => {
+    describe("VRTVault", async () => {
+      before(async () => {
+        await sendGasCost();
+        await deployAndConfigureOldVault();
+        await deployAndConfigureNewVault();
+        await grantPermissions();
+        await deployFreshVaultFixture();
+      });
 
-describe("VRTVault", async () => {
-  before(async () => {
-    getForkingUrl();
-    await reset(`${FORK_ENDPOINT}`, 26834304);
-    await sendGasCost();
-    await deployAndConfigureOldVault();
-    await deployAndConfigureNewVault();
-    await grantPermissions();
-    await deployFreshVaultFixture();
+      it("Verify states after upgrade", async () => {
+        // Save all states before upgrade
+        const vrtV1 = await oldVRTVault.vrt();
+        const interestRatePerBlockV1 = await oldVRTVault.interestRatePerBlock();
+        const userInfoV1 = await oldVRTVault.userInfo(vaultUser);
+
+        const vrtV2 = await oldVRTVault.vrt();
+        const interestRatePerBlockV2 = await oldVRTVault.interestRatePerBlock();
+        const userInfoV2 = await oldVRTVault.userInfo(vaultUser);
+
+        expect(vrtV1).equals(vrtV2);
+        expect(interestRatePerBlockV1).equals(interestRatePerBlockV2);
+        expect(userInfoV1.userAddress).equals(userInfoV2.userAddress);
+        expect(userInfoV1.accrualStartBlockNumber).equals(userInfoV2.accrualStartBlockNumber);
+        expect(userInfoV1.totalPrincipalAmount).equals(userInfoV2.totalPrincipalAmount);
+        expect(userInfoV1.lastWithdrawnBlockNumber).equals(userInfoV2.lastWithdrawnBlockNumber);
+      });
+
+      it("Revert when permission is not granted for pause and resume", async () => {
+        await expect(vrtVault.connect(signer).pause()).to.be.reverted;
+        await expect(vrtVault.connect(signer).resume()).to.be.reverted;
+      });
+
+      it("Success when permission is granted for pause and resume", async () => {
+        await expect(vrtVault.connect(admin).pause()).to.emit(vrtVault, "VaultPaused");
+        expect(await vrtVault.vaultPaused()).equals(true);
+
+        await expect(vrtVault.connect(admin).resume()).to.emit(vrtVault, "VaultResumed");
+        expect(await vrtVault.vaultPaused()).equals(false);
+      });
+
+      it("claim reward", async function () {
+        await loadFixture(deployFreshVaultFixture);
+        // grant permissions
+        const tx = await accessControlManager
+          .connect(impersonatedTimelock)
+          .giveCallPermission(vrtVaultFresh.address, "withdrawBep20(address,address,uint256)", Owner);
+        await tx.wait();
+
+        await vrt.transfer(vrtVaultFresh.address, bigNumber18.mul(10000));
+        await expect(vrtVaultFresh.connect(signer).withdrawBep20(vrt.address, user1.address, 100)).to.be.reverted;
+        await vrtVaultFresh.connect(admin).withdrawBep20(vrt.address, user1.address, 100);
+      });
+    });
   });
-  if (FORK_MAINNET) {
-    it("Verify states after upgrade", async () => {
-      // Save all states before upgrade
-      const vrtV1 = await oldVRTVault.vrt();
-      const interestRatePerBlockV1 = await oldVRTVault.interestRatePerBlock();
-      const userInfoV1 = await oldVRTVault.userInfo(vaultUser);
-
-      const vrtV2 = await oldVRTVault.vrt();
-      const interestRatePerBlockV2 = await oldVRTVault.interestRatePerBlock();
-      const userInfoV2 = await oldVRTVault.userInfo(vaultUser);
-
-      expect(vrtV1).equals(vrtV2);
-      expect(interestRatePerBlockV1).equals(interestRatePerBlockV2);
-      expect(userInfoV1.userAddress).equals(userInfoV2.userAddress);
-      expect(userInfoV1.accrualStartBlockNumber).equals(userInfoV2.accrualStartBlockNumber);
-      expect(userInfoV1.totalPrincipalAmount).equals(userInfoV2.totalPrincipalAmount);
-      expect(userInfoV1.lastWithdrawnBlockNumber).equals(userInfoV2.lastWithdrawnBlockNumber);
-    });
-
-    it("Revert when permission is not granted for pause and resume", async () => {
-      await expect(vrtVault.connect(signer).pause()).to.be.reverted;
-      await expect(vrtVault.connect(signer).resume()).to.be.reverted;
-    });
-
-    it("Success when permission is granted for pause and resume", async () => {
-      await expect(vrtVault.connect(admin).pause()).to.emit(vrtVault, "VaultPaused");
-      expect(await vrtVault.vaultPaused()).equals(true);
-
-      await expect(vrtVault.connect(admin).resume()).to.emit(vrtVault, "VaultResumed");
-      expect(await vrtVault.vaultPaused()).equals(false);
-    });
-
-    it("claim reward", async function () {
-      await loadFixture(deployFreshVaultFixture);
-      // grant permissions
-      const tx = await accessControlManager
-        .connect(impersonatedTimelock)
-        .giveCallPermission(vrtVaultFresh.address, "withdrawBep20(address,address,uint256)", Owner);
-      await tx.wait();
-
-      await vrt.transfer(vrtVaultFresh.address, bigNumber18.mul(10000));
-      await expect(vrtVaultFresh.connect(signer).withdrawBep20(vrt.address, user1.address, 100)).to.be.reverted;
-      await vrtVaultFresh.connect(admin).withdrawBep20(vrt.address, user1.address, 100);
-    });
-  }
-});
+}

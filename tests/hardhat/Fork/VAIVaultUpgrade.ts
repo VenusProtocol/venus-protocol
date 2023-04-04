@@ -1,9 +1,10 @@
-import { impersonateAccount, reset, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 
+import { forking } from "../../../script/hardhat/fork/vip-framework";
 import {
   IAccessControlManagerV5__factory,
   VAI,
@@ -14,9 +15,7 @@ import {
 } from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
-const hre = require("hardhat");
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
-let FORK_ENDPOINT;
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 
 // Address of the vault proxy
@@ -42,10 +41,6 @@ let accessControlManager: IAccessControlManager;
 let vai: VAI;
 let xvs: XVS;
 let vaiVaultFresh: VAIVault;
-
-function getForkingUrl() {
-  FORK_ENDPOINT = hre.network.config.forking.url;
-}
 
 async function deployAndConfigureNewVault() {
   /*
@@ -130,108 +125,110 @@ async function sendGasCost() {
   });
 }
 
-describe("VAIVault", async () => {
-  before(async () => {
-    getForkingUrl();
-    await reset(`${FORK_ENDPOINT}`, 26850561);
-    await sendGasCost();
-    await deployAndConfigureOldVault();
-    await deployAndConfigureNewVault();
-    await grantPermissions();
-    await deployFreshVaultFixture();
+if (FORK_MAINNET) {
+  const blockNumber = 26850561;
+  forking(blockNumber, () => {
+    describe("VAIVault", async () => {
+      before(async () => {
+        await sendGasCost();
+        await deployAndConfigureOldVault();
+        await deployAndConfigureNewVault();
+        await grantPermissions();
+        await deployFreshVaultFixture();
+      });
+
+      it("Verify states after upgrade", async () => {
+        // Save all states before upgrade
+        // Note : More states are covered in another test case `hardhat/XVS/XVSVaultFix.ts`
+        const xvsV1 = await oldVAIVault.xvs();
+        const vaiV1 = await oldVAIVault.vai();
+        const xvsBalanceV1 = await oldVAIVault.xvsBalance();
+        const accXVSPerShareV1 = await oldVAIVault.accXVSPerShare();
+        const pendingRewardsV1 = await oldVAIVault.pendingRewards();
+        const userInfoV1 = await oldVAIVault.userInfo(vaultUser);
+
+        const xvsV2 = await vaiVault.xvs();
+        const vaiV2 = await vaiVault.vai();
+        const xvsBalanceV2 = await vaiVault.xvsBalance();
+        const accXVSPerShareV2 = await vaiVault.accXVSPerShare();
+        const pendingRewardsV2 = await vaiVault.pendingRewards();
+        const userInfoV2 = await vaiVault.userInfo(vaultUser);
+
+        expect(xvsV1).equals(xvsV2);
+        expect(vaiV1).equals(vaiV2);
+        expect(xvsBalanceV1).equals(xvsBalanceV2);
+        expect(accXVSPerShareV1).equals(accXVSPerShareV2);
+        expect(pendingRewardsV1).equals(pendingRewardsV2);
+        expect(userInfoV1.amount).equals(userInfoV2.amount);
+        expect(userInfoV1.rewardDebt).equals(userInfoV2.rewardDebt);
+      });
+
+      it("Revert when permission is not granted for pause and resume", async () => {
+        await expect(vaiVault.connect(signer).pause()).to.be.reverted;
+        await expect(vaiVault.connect(signer).resume()).to.be.reverted;
+      });
+
+      it("Success when permission is granted for pause and resume", async () => {
+        await expect(vaiVault.connect(admin).pause()).to.emit(vaiVault, "VaultPaused");
+        expect(await vaiVault.vaultPaused()).equals(true);
+
+        await expect(vaiVault.connect(admin).resume()).to.emit(vaiVault, "VaultResumed");
+        expect(await vaiVault.vaultPaused()).equals(false);
+      });
+
+      it("claim reward", async function () {
+        // Grant permission to fresh vault
+        let tx = await accessControlManager
+          .connect(impersonatedTimelock)
+          .giveCallPermission(vaiVaultFresh.address, "pause()", Owner);
+        await tx.wait();
+
+        tx = await accessControlManager
+          .connect(impersonatedTimelock)
+          .giveCallPermission(vaiVaultFresh.address, "resume()", Owner);
+        await tx.wait();
+
+        await vaiVaultFresh.setVenusInfo(xvs.address, vai.address);
+        await vai.mint(user1.address, bigNumber18.mul(100));
+        await vai.mint(user2.address, bigNumber18.mul(100));
+
+        expect(await vai.balanceOf(user1.address)).to.be.equal(bigNumber18.mul(100));
+        await vai.connect(user1).approve(vaiVaultFresh.address, bigNumber18.mul(100));
+
+        // Revert when vault is paused
+        await expect(vaiVaultFresh.connect(admin).pause()).to.emit(vaiVaultFresh, "VaultPaused");
+        await expect(vaiVaultFresh.connect(user1).deposit(bigNumber18.mul(100))).to.revertedWith("Vault is paused");
+        await expect(vaiVaultFresh.connect(admin).resume()).to.emit(vaiVaultFresh, "VaultResumed");
+
+        await vaiVaultFresh.connect(user1).deposit(bigNumber18.mul(100));
+
+        await vai.connect(user2).approve(vaiVaultFresh.address, bigNumber18.mul(100));
+        await vaiVaultFresh.connect(user2).deposit(bigNumber18.mul(100));
+
+        await xvs.transfer(vaiVaultFresh.address, bigNumber18.mul(50));
+
+        await vaiVaultFresh.updatePendingRewards();
+
+        // Revert when vault is paused
+        await expect(vaiVaultFresh.connect(admin).pause()).to.emit(vaiVaultFresh, "VaultPaused");
+        await expect(vaiVaultFresh.connect(user1).withdraw(1)).to.revertedWith("Vault is paused");
+        await expect(vaiVaultFresh.connect(admin).resume()).to.emit(vaiVaultFresh, "VaultResumed");
+        await vaiVaultFresh.connect(user1).withdraw(1);
+
+        expect(await xvs.balanceOf(user1.address)).to.be.equal(bigNumber18.mul(25));
+        expect(await xvs.balanceOf(user2.address)).to.be.equal(bigNumber18.mul(0));
+
+        expect(await vaiVaultFresh.pendingXVS(user2.address)).to.be.equal(bigNumber18.mul(25));
+        expect(await vaiVaultFresh.pendingXVS(user1.address)).to.be.equal(bigNumber18.mul(0));
+
+        // Revert when vault is paused
+        await expect(vaiVaultFresh.connect(admin).pause()).to.emit(vaiVaultFresh, "VaultPaused");
+        await expect(vaiVaultFresh.connect(user2)["claim()"]()).to.revertedWith("Vault is paused");
+        await expect(vaiVaultFresh.connect(admin).resume()).to.emit(vaiVaultFresh, "VaultResumed");
+
+        await vaiVaultFresh.connect(user2)["claim()"]();
+        expect(await xvs.balanceOf(user2.address)).to.be.equal(bigNumber18.mul(25));
+      });
+    });
   });
-  if (FORK_MAINNET) {
-    it("Verify states after upgrade", async () => {
-      // Save all states before upgrade
-      // Note : More states are covered in another test case `hardhat/XVS/XVSVaultFix.ts`
-      const xvsV1 = await oldVAIVault.xvs();
-      const vaiV1 = await oldVAIVault.vai();
-      const xvsBalanceV1 = await oldVAIVault.xvsBalance();
-      const accXVSPerShareV1 = await oldVAIVault.accXVSPerShare();
-      const pendingRewardsV1 = await oldVAIVault.pendingRewards();
-      const userInfoV1 = await oldVAIVault.userInfo(vaultUser);
-
-      const xvsV2 = await vaiVault.xvs();
-      const vaiV2 = await vaiVault.vai();
-      const xvsBalanceV2 = await vaiVault.xvsBalance();
-      const accXVSPerShareV2 = await vaiVault.accXVSPerShare();
-      const pendingRewardsV2 = await vaiVault.pendingRewards();
-      const userInfoV2 = await vaiVault.userInfo(vaultUser);
-
-      expect(xvsV1).equals(xvsV2);
-      expect(vaiV1).equals(vaiV2);
-      expect(xvsBalanceV1).equals(xvsBalanceV2);
-      expect(accXVSPerShareV1).equals(accXVSPerShareV2);
-      expect(pendingRewardsV1).equals(pendingRewardsV2);
-      expect(userInfoV1.amount).equals(userInfoV2.amount);
-      expect(userInfoV1.rewardDebt).equals(userInfoV2.rewardDebt);
-    });
-
-    it("Revert when permission is not granted for pause and resume", async () => {
-      await expect(vaiVault.connect(signer).pause()).to.be.reverted;
-      await expect(vaiVault.connect(signer).resume()).to.be.reverted;
-    });
-
-    it("Success when permission is granted for pause and resume", async () => {
-      await expect(vaiVault.connect(admin).pause()).to.emit(vaiVault, "VaultPaused");
-      expect(await vaiVault.vaultPaused()).equals(true);
-
-      await expect(vaiVault.connect(admin).resume()).to.emit(vaiVault, "VaultResumed");
-      expect(await vaiVault.vaultPaused()).equals(false);
-    });
-
-    it("claim reward", async function () {
-      // Grant permission to fresh vault
-      let tx = await accessControlManager
-        .connect(impersonatedTimelock)
-        .giveCallPermission(vaiVaultFresh.address, "pause()", Owner);
-      await tx.wait();
-
-      tx = await accessControlManager
-        .connect(impersonatedTimelock)
-        .giveCallPermission(vaiVaultFresh.address, "resume()", Owner);
-      await tx.wait();
-
-      await vaiVaultFresh.setVenusInfo(xvs.address, vai.address);
-      await vai.mint(user1.address, bigNumber18.mul(100));
-      await vai.mint(user2.address, bigNumber18.mul(100));
-
-      expect(await vai.balanceOf(user1.address)).to.be.equal(bigNumber18.mul(100));
-      await vai.connect(user1).approve(vaiVaultFresh.address, bigNumber18.mul(100));
-
-      // Revert when vault is paused
-      await expect(vaiVaultFresh.connect(admin).pause()).to.emit(vaiVaultFresh, "VaultPaused");
-      await expect(vaiVaultFresh.connect(user1).deposit(bigNumber18.mul(100))).to.revertedWith("Vault is paused");
-      await expect(vaiVaultFresh.connect(admin).resume()).to.emit(vaiVaultFresh, "VaultResumed");
-
-      await vaiVaultFresh.connect(user1).deposit(bigNumber18.mul(100));
-
-      await vai.connect(user2).approve(vaiVaultFresh.address, bigNumber18.mul(100));
-      await vaiVaultFresh.connect(user2).deposit(bigNumber18.mul(100));
-
-      await xvs.transfer(vaiVaultFresh.address, bigNumber18.mul(50));
-
-      await vaiVaultFresh.updatePendingRewards();
-
-      // Revert when vault is paused
-      await expect(vaiVaultFresh.connect(admin).pause()).to.emit(vaiVaultFresh, "VaultPaused");
-      await expect(vaiVaultFresh.connect(user1).withdraw(1)).to.revertedWith("Vault is paused");
-      await expect(vaiVaultFresh.connect(admin).resume()).to.emit(vaiVaultFresh, "VaultResumed");
-      await vaiVaultFresh.connect(user1).withdraw(1);
-
-      expect(await xvs.balanceOf(user1.address)).to.be.equal(bigNumber18.mul(25));
-      expect(await xvs.balanceOf(user2.address)).to.be.equal(bigNumber18.mul(0));
-
-      expect(await vaiVaultFresh.pendingXVS(user2.address)).to.be.equal(bigNumber18.mul(25));
-      expect(await vaiVaultFresh.pendingXVS(user1.address)).to.be.equal(bigNumber18.mul(0));
-
-      // Revert when vault is paused
-      await expect(vaiVaultFresh.connect(admin).pause()).to.emit(vaiVaultFresh, "VaultPaused");
-      await expect(vaiVaultFresh.connect(user2)["claim()"]()).to.revertedWith("Vault is paused");
-      await expect(vaiVaultFresh.connect(admin).resume()).to.emit(vaiVaultFresh, "VaultResumed");
-
-      await vaiVaultFresh.connect(user2)["claim()"]();
-      expect(await xvs.balanceOf(user2.address)).to.be.equal(bigNumber18.mul(25));
-    });
-  }
-});
+}

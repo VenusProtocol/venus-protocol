@@ -1,8 +1,9 @@
-import { impersonateAccount, reset, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
+import { forking } from "../../../script/hardhat/fork/vip-framework";
 import {
   IAccessControlManagerV5__factory,
   XVSVault,
@@ -11,9 +12,7 @@ import {
 } from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
-const hre = require("hardhat");
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
-let FORK_ENDPOINT;
 
 const poolId = 0;
 // Address of the vault proxy
@@ -35,10 +34,6 @@ let signer: Signer;
 let xvsVault: XVSVault;
 let oldXVSVault: XVSVault;
 let accessControlManager: IAccessControlManager;
-
-function getForkingUrl() {
-  FORK_ENDPOINT = hre.network.config.forking.url;
-}
 
 async function deployAndConfigureNewVault() {
   /*
@@ -108,77 +103,78 @@ async function sendGasCost() {
   });
 }
 
-describe("XVSVault", async () => {
-  before(async () => {
-    getForkingUrl();
-    await reset(`${FORK_ENDPOINT}`, 26848882);
-    await sendGasCost();
-    await deployAndConfigureOldVault();
-    await deployAndConfigureNewVault();
-    await grantPermissions();
+if (FORK_MAINNET) {
+  const blockNumber = 26848882;
+  forking(blockNumber, () => {
+    describe("XVSVault", async () => {
+      before(async () => {
+        await sendGasCost();
+        await deployAndConfigureOldVault();
+        await deployAndConfigureNewVault();
+        await grantPermissions();
+      });
+
+      it("Verify states after upgrade", async () => {
+        // Save all states before upgrade
+        // Note : More states are covered in another test case `hardhat/XVS/XVSVaultFix.ts`
+        const xvsStoreV1 = await oldXVSVault.xvsStore();
+        const xvsAddressV1 = await oldXVSVault.xvsAddress();
+        const rewardTokenAmountsPerBlockV1 = await oldXVSVault.rewardTokenAmountsPerBlock(vaultUser);
+
+        const xvsStoreV2 = await xvsVault.xvsStore();
+        const xvsAddressV2 = await xvsVault.xvsAddress();
+        const rewardTokenAmountsPerBlockV2 = await xvsVault.rewardTokenAmountsPerBlock(vaultUser);
+
+        expect(xvsStoreV1).equals(xvsStoreV2);
+        expect(xvsAddressV1).equals(xvsAddressV2);
+        expect(rewardTokenAmountsPerBlockV1).equals(rewardTokenAmountsPerBlockV2);
+      });
+
+      it("Revert when permission is not granted for pause and resume", async () => {
+        await expect(xvsVault.connect(signer).pause()).to.be.reverted;
+        await expect(xvsVault.connect(signer).resume()).to.be.reverted;
+      });
+
+      it("Success when permission is granted for pause and resume", async () => {
+        await expect(xvsVault.connect(admin).pause()).to.emit(xvsVault, "VaultPaused");
+        expect(await xvsVault.vaultPaused()).equals(true);
+
+        await expect(xvsVault.connect(admin).resume()).to.emit(xvsVault, "VaultResumed");
+        expect(await xvsVault.vaultPaused()).equals(false);
+      });
+
+      it("Revert when permission is not granted for add a new token pool", async () => {
+        const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
+        const rewardPerBlock = bigNumber18.mul(1);
+        const lockPeriod = 300;
+        const allocPoint = 100;
+        const dummyToken = "0x2170Ed0880ac9A755fd29B2688956BD959F933F8";
+
+        await expect(xvsVault.connect(signer).add(xvsAddress, allocPoint, dummyToken, rewardPerBlock, lockPeriod)).to.be
+          .reverted;
+      });
+
+      it("Success when permission is granted for add a new token pool", async () => {
+        const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
+        const rewardPerBlock = bigNumber18.mul(1);
+        const lockPeriod = 300;
+        const allocPoint = 100;
+        const dummyToken = "0x2170Ed0880ac9A755fd29B2688956BD959F933F8";
+
+        await expect(
+          xvsVault.connect(admin).add(xvsAddress, allocPoint, dummyToken, rewardPerBlock, lockPeriod),
+        ).to.emit(xvsVault, "PoolAdded");
+      });
+
+      it("Revert when permission is not granted for add a new token pool", async () => {
+        const allocPoint = 100;
+        await expect(xvsVault.connect(signer).set(xvsAddress, poolId, allocPoint)).to.be.reverted;
+      });
+
+      it("Success when permission is granted for add a new token pool", async () => {
+        const allocPoint = 100;
+        await expect(xvsVault.connect(admin).set(xvsAddress, poolId, allocPoint)).to.emit(xvsVault, "PoolUpdated");
+      });
+    });
   });
-  if (FORK_MAINNET) {
-    it("Verify states after upgrade", async () => {
-      // Save all states before upgrade
-      // Note : More states are covered in another test case `hardhat/XVS/XVSVaultFix.ts`
-      const xvsStoreV1 = await oldXVSVault.xvsStore();
-      const xvsAddressV1 = await oldXVSVault.xvsAddress();
-      const rewardTokenAmountsPerBlockV1 = await oldXVSVault.rewardTokenAmountsPerBlock(vaultUser);
-
-      const xvsStoreV2 = await xvsVault.xvsStore();
-      const xvsAddressV2 = await xvsVault.xvsAddress();
-      const rewardTokenAmountsPerBlockV2 = await xvsVault.rewardTokenAmountsPerBlock(vaultUser);
-
-      expect(xvsStoreV1).equals(xvsStoreV2);
-      expect(xvsAddressV1).equals(xvsAddressV2);
-      expect(rewardTokenAmountsPerBlockV1).equals(rewardTokenAmountsPerBlockV2);
-    });
-
-    it("Revert when permission is not granted for pause and resume", async () => {
-      await expect(xvsVault.connect(signer).pause()).to.be.reverted;
-      await expect(xvsVault.connect(signer).resume()).to.be.reverted;
-    });
-
-    it("Success when permission is granted for pause and resume", async () => {
-      await expect(xvsVault.connect(admin).pause()).to.emit(xvsVault, "VaultPaused");
-      expect(await xvsVault.vaultPaused()).equals(true);
-
-      await expect(xvsVault.connect(admin).resume()).to.emit(xvsVault, "VaultResumed");
-      expect(await xvsVault.vaultPaused()).equals(false);
-    });
-
-    it("Revert when permission is not granted for add a new token pool", async () => {
-      const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
-      const rewardPerBlock = bigNumber18.mul(1);
-      const lockPeriod = 300;
-      const allocPoint = 100;
-      const dummyToken = "0x2170Ed0880ac9A755fd29B2688956BD959F933F8";
-
-      await expect(xvsVault.connect(signer).add(xvsAddress, allocPoint, dummyToken, rewardPerBlock, lockPeriod)).to.be
-        .reverted;
-    });
-
-    it("Success when permission is granted for add a new token pool", async () => {
-      const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
-      const rewardPerBlock = bigNumber18.mul(1);
-      const lockPeriod = 300;
-      const allocPoint = 100;
-      const dummyToken = "0x2170Ed0880ac9A755fd29B2688956BD959F933F8";
-
-      await expect(xvsVault.connect(admin).add(xvsAddress, allocPoint, dummyToken, rewardPerBlock, lockPeriod)).to.emit(
-        xvsVault,
-        "PoolAdded",
-      );
-    });
-
-    it("Revert when permission is not granted for add a new token pool", async () => {
-      const allocPoint = 100;
-      await expect(xvsVault.connect(signer).set(xvsAddress, poolId, allocPoint)).to.be.reverted;
-    });
-
-    it("Success when permission is granted for add a new token pool", async () => {
-      const allocPoint = 100;
-      await expect(xvsVault.connect(admin).set(xvsAddress, poolId, allocPoint)).to.emit(xvsVault, "PoolUpdated");
-    });
-  }
-});
+}
