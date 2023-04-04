@@ -3,7 +3,6 @@ import { expect } from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
-import { forking } from "../../../script/hardhat/fork/vip-framework";
 import {
   IAccessControlManagerV5__factory,
   XVSVault,
@@ -11,6 +10,7 @@ import {
   XVSVault__factory,
 } from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
+import { forking } from "./utils";
 
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 

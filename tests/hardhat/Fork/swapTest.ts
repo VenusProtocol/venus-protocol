@@ -5,7 +5,6 @@ import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
-import { forking } from "../../../script/hardhat/fork/vip-framework";
 import {
   Comptroller,
   ComptrollerLens,
@@ -23,6 +22,7 @@ import {
   VBep20Immutable,
   VBep20Immutable__factory,
 } from "../../../typechain";
+import { forking } from "./utils";
 
 const { expect } = chai;
 chai.use(smock.matchers);

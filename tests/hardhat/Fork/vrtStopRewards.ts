@@ -5,8 +5,8 @@ import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
-import { forking } from "../../../script/hardhat/fork/vip-framework";
 import { VRT, VRTVault, VRTVaultProxy, VRTVault__factory } from "../../../typechain";
+import { forking } from "./utils";
 
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 

@@ -4,7 +4,6 @@ import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 
-import { forking } from "../../../script/hardhat/fork/vip-framework";
 import {
   IAccessControlManagerV5__factory,
   VAI,
@@ -14,6 +13,7 @@ import {
   XVS,
 } from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
+import { forking } from "./utils";
 
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
