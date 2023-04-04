@@ -173,9 +173,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         } else if(stakedAt[owner] == 0 && isAccountEligible == true && tokens[owner].exists == false) {
             stakedAt[owner] = block.timestamp;
         } else if (tokens[owner].exists == true && isAccountEligible == true) {
-            for (uint i = 0; i < allMarkets.length; i++) {
-                executeBoost(owner, allMarkets[i]);
-                updateScore(owner, allMarkets[i]);
+            address[] storage _allMarkets = allMarkets;
+            for (uint i = 0; i < _allMarkets.length; i++) {
+                executeBoost(owner, _allMarkets[i]);
+                updateScore(owner, _allMarkets[i]);
             }
         }
     }
@@ -201,8 +202,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param account the account address for which markets needs to be initialized
      */
     function _initializeMarkets(address account) internal {
-        for (uint i = 0; i < allMarkets.length; i++) {
-            address market = allMarkets[i];
+        address[] storage _allMarkets = allMarkets;
+        for (uint i = 0; i < _allMarkets.length; i++) {
+            address market = _allMarkets[i];
             accrueInterest(market);
             
             interests[market][account].rewardIndex = markets[market].rewardIndex;
@@ -481,9 +483,10 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
 
             require(tokens[account].exists == true, "prime token for the account doesn't exist");
             require(isScoreUpdated[nextScoreUpdateRoundId][account] == false, "score is already updated for this account");
-
-            for (uint i = 0; i < allMarkets.length; i++) {
-                address market = allMarkets[i];
+            
+            address[] storage _allMarkets = allMarkets;
+            for (uint i = 0; i < _allMarkets.length; i++) {
+                address market = _allMarkets[i];
                 updateScore(account, market);
             }
 
