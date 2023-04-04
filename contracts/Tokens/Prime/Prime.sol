@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
-import "hardhat/console.sol";
 
 interface IVToken {
     function borrowRatePerBlock() external view returns (uint);
