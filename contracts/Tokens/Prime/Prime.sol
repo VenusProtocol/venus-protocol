@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
-
 interface IVToken {
     function borrowRatePerBlock() external view returns (uint);
 
@@ -63,14 +62,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
-     * @notice Update value of alpha 
+     * @notice Update value of alpha
      * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numberator is 1
      * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then numberator is 2
      */
-    function updateAlpha(
-        uint128 _alphaNumerator,
-        uint128 _alphaDenominator
-    ) external onlyOwner {
+    function updateAlpha(uint128 _alphaNumerator, uint128 _alphaDenominator) external onlyOwner {
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
 
@@ -82,7 +78,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     }
 
     /**
-     * @notice Update multipliers for a market 
+     * @notice Update multipliers for a market
      * @param _supplyMultiplier new supply multiplier for the market
      * @param _borrowMultiplier new borrow multiplier for the market
      */
@@ -106,11 +102,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param supplyMultiplier the multiplier for supply cap. It should be converted to 1e18
      * @param borrowMultiplier the multiplier for borrow cap. It should be converted to 1e18
      */
-    function addMarket(
-        address vToken,
-        uint256 supplyMultiplier, 
-        uint256 borrowMultiplier
-    ) external onlyOwner {
+    function addMarket(address vToken, uint256 supplyMultiplier, uint256 borrowMultiplier) external onlyOwner {
         require(markets[vToken].lastUpdated == 0, "market is already added");
 
         markets[vToken].rewardIndex = 0;
@@ -169,7 +161,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             _burn(owner);
         } else if (isAccountEligible == false && tokens[owner].exists == false && stakedAt[owner] > 0) {
             stakedAt[owner] = 0;
-        } else if(stakedAt[owner] == 0 && isAccountEligible == true && tokens[owner].exists == false) {
+        } else if (stakedAt[owner] == 0 && isAccountEligible == true && tokens[owner].exists == false) {
             stakedAt[owner] = block.timestamp;
         } else if (tokens[owner].exists == true && isAccountEligible == true) {
             address[] storage _allMarkets = allMarkets;
@@ -205,7 +197,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         for (uint i = 0; i < _allMarkets.length; i++) {
             address market = _allMarkets[i];
             accrueInterest(market);
-            
+
             interests[market][account].rewardIndex = markets[market].rewardIndex;
             interests[market][account].indexMultiplier = markets[market].indexMultiplier;
 
@@ -220,21 +212,22 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param account the account address for which markets needs to be initialized
      * @return xvsBalance the XVS balance of user
      */
-    function _xvsBalanceOfUser(address account) internal view returns(uint256) {
-        (uint256 xvs,,uint256 pendingWithdrawals) = IXVSVault(xvsVault).getUserInfo(xvsVaultRewardToken, xvsVaultPoolId, account);
+    function _xvsBalanceOfUser(address account) internal view returns (uint256) {
+        (uint256 xvs, , uint256 pendingWithdrawals) = IXVSVault(xvsVault).getUserInfo(
+            xvsVaultRewardToken,
+            xvsVaultPoolId,
+            account
+        );
         return (xvs - pendingWithdrawals);
     }
 
     /**
      * @notice calculate the current score of user
-     * @param market the market for which to calculate the score 
+     * @param market the market for which to calculate the score
      * @param account the account for which to calculate the score
-     * @return score the score of the user 
+     * @return score the score of the user
      */
-    function _calculateScore(
-        address market,
-        address account
-    ) internal returns (uint256) {
+    function _calculateScore(address market, address account) internal returns (uint256) {
         uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(account));
 
         IVToken vToken = IVToken(market);
@@ -243,12 +236,13 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         uint256 balanceOfAccount = vToken.balanceOf(account);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
-        return Scores.calculateScore(
-            xvsBalanceForScore, 
-            _capitalForScore(xvsBalanceForScore, borrow, supply, market), 
-            alphaNumerator,
-            alphaDenominator
-        );
+        return
+            Scores.calculateScore(
+                xvsBalanceForScore,
+                _capitalForScore(xvsBalanceForScore, borrow, supply, market),
+                alphaNumerator,
+                alphaDenominator
+            );
     }
 
     /**
@@ -256,10 +250,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param xvs the actual XVS balance of user
      * @return xvsBalanceForScore the XVS balance to use in score
      */
-    function _xvsBalanceForScore(
-        uint256 xvs
-    ) internal view returns (uint256) {
-        if(xvs > MAXIMUM_XVS_CAP) {
+    function _xvsBalanceForScore(uint256 xvs) internal view returns (uint256) {
+        if (xvs > MAXIMUM_XVS_CAP) {
             return MAXIMUM_XVS_CAP;
         } else {
             return xvs;
@@ -276,7 +268,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      */
     function _capitalForScore(
         uint256 xvs,
-        uint256 borrow, 
+        uint256 borrow,
         uint256 supply,
         address market
     ) internal view returns (uint256) {
@@ -481,8 +473,11 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
             address account = accounts[i];
 
             require(tokens[account].exists == true, "prime token for the account doesn't exist");
-            require(isScoreUpdated[nextScoreUpdateRoundId][account] == false, "score is already updated for this account");
-            
+            require(
+                isScoreUpdated[nextScoreUpdateRoundId][account] == false,
+                "score is already updated for this account"
+            );
+
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
                 address market = _allMarkets[i];

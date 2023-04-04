@@ -82,7 +82,7 @@ contract PrimeStorageV1 {
     uint256 internal xvsVaultPoolId;
 
     /// @notice mapping to check if a account's score was updated in the round
-    mapping (uint256 => mapping( address => bool )) public isScoreUpdated;
+    mapping(uint256 => mapping(address => bool)) public isScoreUpdated;
 
     /// @notice unique id for next round
     uint256 public nextScoreUpdateRoundId;

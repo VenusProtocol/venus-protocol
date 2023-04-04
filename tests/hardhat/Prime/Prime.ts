@@ -152,29 +152,15 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
   const prime: PrimeScenario = (await primeFactory.deploy()) as PrimeScenario;
-  prime.initialize(
-    xvsVault.address,
-    xvs.address,
-    0,
-    1, 
-    2,
-  );
+  prime.initialize(xvsVault.address, xvs.address, 0, 1, 2);
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 
   await prime.setLimit(1000, 1000);
 
-  await prime.addMarket(
-    vusdt.address,
-    bigNumber18.mul("1"),
-    bigNumber18.mul("1"),
-  );
+  await prime.addMarket(vusdt.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
-  await prime.addMarket(
-    veth.address,
-    bigNumber18.mul("1"),
-    bigNumber18.mul("1"),
-  );
+  await prime.addMarket(veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
   await vusdt._setPrimeToken(prime.address);
   await veth._setPrimeToken(prime.address);
@@ -255,8 +241,8 @@ describe("PrimeScenario Token", () => {
       await expect(prime.connect(user).claim()).to.be.revertedWith("you are not eligible to claim prime token");
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
-      let tx = await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
-      
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
+
       let stake = await prime.stakedAt(user.getAddress());
       expect(stake).be.gt(0);
 
@@ -267,7 +253,7 @@ describe("PrimeScenario Token", () => {
       await mine(90 * 24 * 60 * 60);
       await expect(prime.connect(user).claim()).to.be.not.reverted;
 
-      const token = await prime.tokens(user.getAddress())
+      const token = await prime.tokens(user.getAddress());
       expect(token.isIrrevocable).to.be.equal(false);
       expect(token.exists).to.be.equal(true);
 
@@ -306,13 +292,13 @@ describe("PrimeScenario Token", () => {
 
       await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000));
 
-      let token = await prime.tokens(user.getAddress())
+      let token = await prime.tokens(user.getAddress());
       expect(token.exists).to.be.equal(true);
       expect(token.isIrrevocable).to.be.equal(false);
 
       await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000));
-      
-      token = await prime.tokens(user.getAddress())
+
+      token = await prime.tokens(user.getAddress());
       expect(token.exists).to.be.equal(false);
       expect(token.isIrrevocable).to.be.equal(false);
 
@@ -326,17 +312,17 @@ describe("PrimeScenario Token", () => {
 
       await prime.issue(true, [user1.getAddress(), user2.getAddress()]);
 
-      let token = await prime.tokens(user1.getAddress())
+      let token = await prime.tokens(user1.getAddress());
       expect(token.exists).to.be.equal(true);
       expect(token.isIrrevocable).to.be.equal(true);
 
-      token = await prime.tokens(user2.getAddress())
+      token = await prime.tokens(user2.getAddress());
       expect(token.isIrrevocable).to.be.equal(true);
       expect(token.exists).to.be.equal(true);
 
       await prime.issue(false, [user3.getAddress()]);
 
-      token = await prime.tokens(user3.getAddress())
+      token = await prime.tokens(user3.getAddress());
       expect(token.isIrrevocable).to.be.equal(false);
       expect(token.exists).to.be.equal(true);
     });
@@ -359,7 +345,7 @@ describe("PrimeScenario Token", () => {
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));
       await mine(90 * 24 * 60 * 60);
-      await prime.connect(user1).claim()
+      await prime.connect(user1).claim();
 
       await xvs.connect(user2).approve(xvsVault.address, bigNumber18.mul(100));
       await xvsVault.connect(user2).deposit(xvs.address, 0, bigNumber18.mul(100));
@@ -379,17 +365,17 @@ describe("PrimeScenario Token", () => {
     });
 
     it("calculate score", async () => {
-      const xvsBalance = bigNumber18.mul(5000)
-      const capital = bigNumber18.mul(120)
+      const xvsBalance = bigNumber18.mul(5000);
+      const capital = bigNumber18.mul(120);
 
       // 5000^0.5 * 120^1-0.5 = 774.5966692
-      expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("774596669241483420144")
+      expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("774596669241483420144");
 
       await prime.updateAlpha(4, 5); //0.80
 
       //  5000^0.8 * 120^1-0.8 = 2371.44061
-      expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("2371440609779311958519")
-    })
+      expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("2371440609779311958519");
+    });
 
     it("accrue interest - prime token minted after market is added", async () => {
       let interest = await prime.interests(vusdt.address, user1.getAddress());
@@ -403,10 +389,10 @@ describe("PrimeScenario Token", () => {
 
       let market = await prime.markets(vusdt.address);
       expect(market.score).to.be.equal("223606797749979014552");
-      expect(market.rewardIndex).to.be.equal(0)
+      expect(market.rewardIndex).to.be.equal(0);
 
       await mine(24 * 60 * 20);
-      await prime.accrueInterest(vusdt.address)
+      await prime.accrueInterest(vusdt.address);
       market = await prime.markets(vusdt.address);
       expect(market.indexMultiplier).to.be.equal(3);
       expect(market.score).to.be.equal("223606797749979014552");
@@ -418,7 +404,7 @@ describe("PrimeScenario Token", () => {
        * IndexDelta = IncomeToDistribute/MarketScore = 518436 / 223606797749979014552 = 0.000000000000002318
        * NewIndex += IndexDelta = 2318
        */
-      expect(market.rewardIndex).to.be.equal("2318")
+      expect(market.rewardIndex).to.be.equal("2318");
 
       /**
        * index = 2318 - 0
@@ -426,9 +412,9 @@ describe("PrimeScenario Token", () => {
        * score = 223606797749979014552 (223.606797749979014552)
        * interest = index * indexMultiplier * score = 2318 * 1 * 223.606797749979014552 = 518320
        */
-      expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(518320)
+      expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(518320);
 
-      await prime.issue(false, [user2.getAddress()])
+      await prime.issue(false, [user2.getAddress()]);
 
       interest = await prime.interests(vusdt.address, user2.getAddress());
       /**
@@ -442,8 +428,8 @@ describe("PrimeScenario Token", () => {
 
     it("claim interest", async () => {
       await mine(24 * 60 * 20);
-      await prime.accrueInterest(vusdt.address)
-      expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(518320)
+      await prime.accrueInterest(vusdt.address);
+      expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(518320);
 
       await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.reverted;
 
@@ -516,54 +502,50 @@ describe("PrimeScenario Token", () => {
 
       it("add existing market after issuing prime tokens - update score gradually", async () => {
         await xvs.connect(user3).approve(xvsVault.address, bigNumber18.mul(2000));
-        await xvsVault.connect(user3).deposit(xvs.address, 0, bigNumber18.mul(2000)); 
+        await xvsVault.connect(user3).deposit(xvs.address, 0, bigNumber18.mul(2000));
         await prime.issue(false, [user3.getAddress()]);
         await vbnb._setPrimeToken(prime.address);
-        await prime.addMarket(
-          vbnb.address,
-          bigNumber18.mul(1),
-          bigNumber18.mul(1)
-        )
+        await prime.addMarket(vbnb.address, bigNumber18.mul(1), bigNumber18.mul(1));
 
-        let interest = await prime.interests(vbnb.address, user3.getAddress())
-        expect(interest.accrued).to.be.equal(0)
-        expect(interest.score).to.be.equal(0)
-        expect(interest.indexMultiplier).to.be.equal(0)
-        expect(interest.rewardIndex).to.be.equal(0)
+        let interest = await prime.interests(vbnb.address, user3.getAddress());
+        expect(interest.accrued).to.be.equal(0);
+        expect(interest.score).to.be.equal(0);
+        expect(interest.indexMultiplier).to.be.equal(0);
+        expect(interest.rewardIndex).to.be.equal(0);
 
-        let market = await prime.markets(vbnb.address)
-        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.rewardIndex).to.be.equal(0)
-        expect(market.lastUpdated).to.be.not.equal(0)
-        expect(market.score).to.be.equal(0)
-        expect(market.indexMultiplier).to.be.equal(0)
+        let market = await prime.markets(vbnb.address);
+        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.rewardIndex).to.be.equal(0);
+        expect(market.lastUpdated).to.be.not.equal(0);
+        expect(market.score).to.be.equal(0);
+        expect(market.indexMultiplier).to.be.equal(0);
 
         await bnb.connect(user3).approve(vbnb.address, bigNumber18.mul(90));
         await vbnb.connect(user3).mint(bigNumber18.mul(1));
 
-        interest = await prime.interests(vbnb.address, user3.getAddress())
-        expect(interest.accrued).to.be.equal(0)
+        interest = await prime.interests(vbnb.address, user3.getAddress());
+        expect(interest.accrued).to.be.equal(0);
         /**
          * score = 2000^0.5 * 91^0.5 = 426.6145802
          */
-        expect(interest.score).to.be.equal("426614580154030858642")
-        expect(interest.indexMultiplier).to.be.equal(1)
-        expect(interest.rewardIndex).to.be.equal(0)
+        expect(interest.score).to.be.equal("426614580154030858642");
+        expect(interest.indexMultiplier).to.be.equal(1);
+        expect(interest.rewardIndex).to.be.equal(0);
 
-        market = await prime.markets(vbnb.address)
-        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.rewardIndex).to.be.equal(0)
-        expect(market.lastUpdated).to.be.not.equal(0)
-        expect(market.score).to.be.equal("426614580154030858642")
-        expect(market.indexMultiplier).to.be.equal(1)
+        market = await prime.markets(vbnb.address);
+        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.rewardIndex).to.be.equal(0);
+        expect(market.lastUpdated).to.be.not.equal(0);
+        expect(market.score).to.be.equal("426614580154030858642");
+        expect(market.indexMultiplier).to.be.equal(1);
 
         await mine(24 * 60 * 20);
-        await prime.accrueInterest(vbnb.address)
-        market = await prime.markets(vbnb.address)
-        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1))
+        await prime.accrueInterest(vbnb.address);
+        market = await prime.markets(vbnb.address);
+        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         /**
          * pastBlocks = 28801
          * incomePerBlock = 18
@@ -571,10 +553,10 @@ describe("PrimeScenario Token", () => {
          * distributionIncome = 20% of 518436 = 103683
          * rewardIndex += 103687/426614580154030858642 = 243
          */
-        expect(market.rewardIndex).to.be.equal(243)
-        expect(market.lastUpdated).to.be.not.equal(0)
-        expect(market.score).to.be.equal("426614580154030858642")
-        expect(market.indexMultiplier).to.be.equal(2)
+        expect(market.rewardIndex).to.be.equal(243);
+        expect(market.lastUpdated).to.be.not.equal(0);
+        expect(market.score).to.be.equal("426614580154030858642");
+        expect(market.indexMultiplier).to.be.equal(2);
 
         /**
          * index = 243
@@ -582,96 +564,89 @@ describe("PrimeScenario Token", () => {
          * score = 426614580154030858642 (426.614580154030858642)
          * interest = index * indexMultiplier * score = 243 * 1 * 426.614580154030858642 = 1037088
          */
-        expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(1037088)
+        expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(1037088);
 
         await mine(24 * 60 * 20);
-        await prime.accrueInterest(vbnb.address)
-        market = await prime.markets(vbnb.address)
-        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.rewardIndex).to.be.equal(486)
-        expect(market.lastUpdated).to.be.not.equal(0)
-        expect(market.score).to.be.equal("426614580154030858642")
-        expect(market.indexMultiplier).to.be.equal(3)
+        await prime.accrueInterest(vbnb.address);
+        market = await prime.markets(vbnb.address);
+        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.rewardIndex).to.be.equal(486);
+        expect(market.lastUpdated).to.be.not.equal(0);
+        expect(market.score).to.be.equal("426614580154030858642");
+        expect(market.indexMultiplier).to.be.equal(3);
 
         /**
          * 1037088 * 2 = 2074176
          */
-        expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(2074176)
+        expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(2074176);
       });
 
       it("add existing market after issuing prime tokens - update score manually", async () => {
         await xvs.connect(user3).approve(xvsVault.address, bigNumber18.mul(2000));
-        await xvsVault.connect(user3).deposit(xvs.address, 0, bigNumber18.mul(2000)); 
+        await xvsVault.connect(user3).deposit(xvs.address, 0, bigNumber18.mul(2000));
         await prime.issue(false, [user3.getAddress()]);
         await vbnb._setPrimeToken(prime.address);
-        await prime.addMarket(
-          vbnb.address,
-          bigNumber18.mul(1),
-          bigNumber18.mul(1)
-        )
+        await prime.addMarket(vbnb.address, bigNumber18.mul(1), bigNumber18.mul(1));
 
-        let interest = await prime.interests(vbnb.address, user3.getAddress())
-        expect(interest.accrued).to.be.equal(0)
-        expect(interest.score).to.be.equal(0)
-        expect(interest.indexMultiplier).to.be.equal(0)
-        expect(interest.rewardIndex).to.be.equal(0)
+        let interest = await prime.interests(vbnb.address, user3.getAddress());
+        expect(interest.accrued).to.be.equal(0);
+        expect(interest.score).to.be.equal(0);
+        expect(interest.indexMultiplier).to.be.equal(0);
+        expect(interest.rewardIndex).to.be.equal(0);
 
-        let market = await prime.markets(vbnb.address)
-        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.rewardIndex).to.be.equal(0)
-        expect(market.lastUpdated).to.be.not.equal(0)
-        expect(market.score).to.be.equal(0)
-        expect(market.indexMultiplier).to.be.equal(0)
+        let market = await prime.markets(vbnb.address);
+        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.rewardIndex).to.be.equal(0);
+        expect(market.lastUpdated).to.be.not.equal(0);
+        expect(market.score).to.be.equal(0);
+        expect(market.indexMultiplier).to.be.equal(0);
 
-        let nextScoreUpdateRoundId = await prime.nextScoreUpdateRoundId()
-        let totalScoreUpdatesRequired = await prime.totalScoreUpdatesRequired()
-        let pendingScoreUpdates = await prime.pendingScoreUpdates()
-        let isScoreUpdated = await prime.isScoreUpdated(nextScoreUpdateRoundId, user3.getAddress())
-        expect(nextScoreUpdateRoundId).to.be.equal(3)
-        expect(totalScoreUpdatesRequired).to.be.equal(2)
-        expect(pendingScoreUpdates).to.be.equal(2)
-        expect(isScoreUpdated).to.be.equal(false)
+        let nextScoreUpdateRoundId = await prime.nextScoreUpdateRoundId();
+        let totalScoreUpdatesRequired = await prime.totalScoreUpdatesRequired();
+        let pendingScoreUpdates = await prime.pendingScoreUpdates();
+        let isScoreUpdated = await prime.isScoreUpdated(nextScoreUpdateRoundId, user3.getAddress());
+        expect(nextScoreUpdateRoundId).to.be.equal(3);
+        expect(totalScoreUpdatesRequired).to.be.equal(2);
+        expect(pendingScoreUpdates).to.be.equal(2);
+        expect(isScoreUpdated).to.be.equal(false);
 
-        await prime.updateScores([
-          user1.getAddress(),
-          user3.getAddress()
-        ])
+        await prime.updateScores([user1.getAddress(), user3.getAddress()]);
 
-        nextScoreUpdateRoundId = await prime.nextScoreUpdateRoundId()
-        totalScoreUpdatesRequired = await prime.totalScoreUpdatesRequired()
-        pendingScoreUpdates = await prime.pendingScoreUpdates()
-        isScoreUpdated = await prime.isScoreUpdated(nextScoreUpdateRoundId, user3.getAddress())
-        expect(nextScoreUpdateRoundId).to.be.equal(3)
-        expect(totalScoreUpdatesRequired).to.be.equal(2)
-        expect(pendingScoreUpdates).to.be.equal(0)
-        expect(isScoreUpdated).to.be.equal(true)
-        isScoreUpdated = await prime.isScoreUpdated(nextScoreUpdateRoundId, user1.getAddress())
-        expect(isScoreUpdated).to.be.equal(true)
+        nextScoreUpdateRoundId = await prime.nextScoreUpdateRoundId();
+        totalScoreUpdatesRequired = await prime.totalScoreUpdatesRequired();
+        pendingScoreUpdates = await prime.pendingScoreUpdates();
+        isScoreUpdated = await prime.isScoreUpdated(nextScoreUpdateRoundId, user3.getAddress());
+        expect(nextScoreUpdateRoundId).to.be.equal(3);
+        expect(totalScoreUpdatesRequired).to.be.equal(2);
+        expect(pendingScoreUpdates).to.be.equal(0);
+        expect(isScoreUpdated).to.be.equal(true);
+        isScoreUpdated = await prime.isScoreUpdated(nextScoreUpdateRoundId, user1.getAddress());
+        expect(isScoreUpdated).to.be.equal(true);
 
-        interest = await prime.interests(vbnb.address, user3.getAddress())
-        expect(interest.accrued).to.be.equal(0)
+        interest = await prime.interests(vbnb.address, user3.getAddress());
+        expect(interest.accrued).to.be.equal(0);
         /**
          * score = 2000^0.5 * 90^0.5 = 424.2640687
          */
-        expect(interest.score).to.be.equal("424264068711928538075")
-        expect(interest.indexMultiplier).to.be.equal(0)
-        expect(interest.rewardIndex).to.be.equal(0)
+        expect(interest.score).to.be.equal("424264068711928538075");
+        expect(interest.indexMultiplier).to.be.equal(0);
+        expect(interest.rewardIndex).to.be.equal(0);
 
-        market = await prime.markets(vbnb.address)
-        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.rewardIndex).to.be.equal(0)
-        expect(market.lastUpdated).to.be.not.equal(0)
-        expect(market.score).to.be.equal("424264068711928538075")
-        expect(market.indexMultiplier).to.be.equal(0)
+        market = await prime.markets(vbnb.address);
+        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.rewardIndex).to.be.equal(0);
+        expect(market.lastUpdated).to.be.not.equal(0);
+        expect(market.score).to.be.equal("424264068711928538075");
+        expect(market.indexMultiplier).to.be.equal(0);
 
         await mine(24 * 60 * 20);
-        await prime.accrueInterest(vbnb.address)
-        market = await prime.markets(vbnb.address)
-        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1))
+        await prime.accrueInterest(vbnb.address);
+        market = await prime.markets(vbnb.address);
+        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         /**
          * pastBlocks = 28802
          * incomePerBlock = 18
@@ -679,10 +654,10 @@ describe("PrimeScenario Token", () => {
          * distributionIncome = 20% of 518436 = 103687
          * rewardIndex += 103687/424264068711928538075 = 244
          */
-        expect(market.rewardIndex).to.be.equal(244)
-        expect(market.lastUpdated).to.be.not.equal(0)
-        expect(market.score).to.be.equal("424264068711928538075")
-        expect(market.indexMultiplier).to.be.equal(1)
+        expect(market.rewardIndex).to.be.equal(244);
+        expect(market.lastUpdated).to.be.not.equal(0);
+        expect(market.score).to.be.equal("424264068711928538075");
+        expect(market.indexMultiplier).to.be.equal(1);
 
         /**
          * index = 244
@@ -690,13 +665,13 @@ describe("PrimeScenario Token", () => {
          * score = 424264068711928538075 (424.264068711928538075)
          * interest = index * indexMultiplier * score = 244 * 1 * 424.264068711928538075 = 1037088
          */
-        expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(1037088)
+        expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(1037088);
 
         await mine(24 * 60 * 20);
-        await prime.accrueInterest(vbnb.address)
-        market = await prime.markets(vbnb.address)
-        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1))
-        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1))
+        await prime.accrueInterest(vbnb.address);
+        market = await prime.markets(vbnb.address);
+        expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
+        expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         /**
          * pastBlocks = 28802
          * incomePerBlock = 18
@@ -704,15 +679,15 @@ describe("PrimeScenario Token", () => {
          * distributionIncome = 20% of 518436 = 103687
          * rewardIndex += 103687/424264068711928538075 = 488
          */
-        expect(market.rewardIndex).to.be.equal(488)
-        expect(market.lastUpdated).to.be.not.equal(0)
-        expect(market.score).to.be.equal("424264068711928538075")
-        expect(market.indexMultiplier).to.be.equal(2)
+        expect(market.rewardIndex).to.be.equal(488);
+        expect(market.lastUpdated).to.be.not.equal(0);
+        expect(market.score).to.be.equal("424264068711928538075");
+        expect(market.indexMultiplier).to.be.equal(2);
 
         /**
          * 1037088 * 2 = 2074176
          */
-        expect((await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress()))).to.be.equal(2074176)
+        expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(2074176);
       });
     });
   });
