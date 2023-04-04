@@ -16,9 +16,9 @@ import {
   IPancakeSwapV2Factory__factory,
   IWBNB,
   IWBNB__factory,
+  MockVBNB,
   PriceOracle,
   SwapRouter,
-  VBNB,
   VBep20Immutable,
   VBep20Immutable__factory,
 } from "../../../typechain";
@@ -41,7 +41,7 @@ let wBNBUser: any;
 let vBUSD: VBep20Immutable;
 let vUSDT: VBep20Immutable;
 let vSFM: VBep20Immutable;
-let vBNB: VBNB;
+let vBNB: MockVBNB;
 let vBabyDoge: VBep20Immutable;
 let admin: SignerWithAddress;
 let oracle: FakeContract<PriceOracle>;
@@ -63,7 +63,7 @@ const initMainnetUser = async (user: string) => {
 
 async function deploySimpleComptroller() {
   oracle = await smock.fake<PriceOracle>("PriceOracle");
-  accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+  accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
@@ -105,7 +105,7 @@ async function configureVBNB(name: string, symbol: string) {
   const interestRateModel = await InterstRateModel.deploy(parseUnits("1", 12));
   await interestRateModel.deployed();
 
-  const vBNBFactory = await ethers.getContractFactory("VBNB");
+  const vBNBFactory = await ethers.getContractFactory("MockVBNB");
   const vToken = await vBNBFactory.deploy(
     comptroller.address,
     interestRateModel.address,
@@ -124,7 +124,6 @@ const swapRouterConfigure = async (): Promise<void> => {
   // MAINNET USER WITH BALANCE
   busdUser = await initMainnetUser("0xf977814e90da44bfa03b6295a0616a897441acec");
   usdtUser = await initMainnetUser("0xf977814e90da44bfa03b6295a0616a897441acec");
-
   BUSD = FaucetToken__factory.connect("0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", admin);
   USDT = FaucetToken__factory.connect("0x55d398326f99059fF775485246999027B3197955", admin);
   wBNB = IWBNB__factory.connect("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", admin);
@@ -135,11 +134,11 @@ const swapRouterConfigure = async (): Promise<void> => {
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
 
-  swapRouter = await upgrades.deployProxy(swapRouterFactory, [], {
+  swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
     constructorArgs: [wBNB.address, pancakeSwapFactory.address],
   });
-
   await swapRouter.deployed();
+
   await USDT.connect(usdtUser).approve(swapRouter.address, parseUnits("1"));
   await BUSD.connect(busdUser).approve(swapRouter.address, parseUnits("1"));
 };
@@ -159,11 +158,9 @@ const swapRouterDeflationaryConfigure = async (): Promise<void> => {
     admin,
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
-
-  swapRouter = await upgrades.deployProxy(swapRouterFactory, [], {
+  swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
     constructorArgs: [wBNB.address, pancakeSwapFactory.address],
   });
-
   await swapRouter.deployed();
   await BabyDoge.connect(BabyDogeUser).approve(swapRouter.address, parseUnits("100"));
   await SFM.connect(SFMUser).approve(swapRouter.address, parseUnits("100"));
