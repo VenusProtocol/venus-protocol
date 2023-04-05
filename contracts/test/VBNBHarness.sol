@@ -8,6 +8,7 @@ contract VBNBHarness is VBNB {
     uint public blockNumber = 100000;
 
     mapping(address => bool) public failTransferToAddresses;
+    mapping(address => bool) public failTransferFromAddresses;
 
     constructor(
         ComptrollerInterface comptroller_,
@@ -77,6 +78,10 @@ contract VBNBHarness is VBNB {
         failTransferToAddresses[_to] = _fail;
     }
 
+    function harnessSetFailTransferFromAddress(address src, bool _fail) public {
+        failTransferFromAddresses[src] = _fail;
+    }
+
     function harnessMintFresh(address account, uint mintAmount) public returns (uint) {
         (uint err, ) = super.mintFresh(account, mintAmount);
         return err;
@@ -112,7 +117,7 @@ contract VBNBHarness is VBNB {
         address account,
         uint repayBorrowAmount
     ) public payable returns (uint) {
-        (uint err, ) = repayBorrowFresh(payer, account, repayBorrowAmount);
+        (uint err, ) = repayBorrowFresh(payer, account, repayBorrowAmount, InterestRateMode.VARIABLE);
         return err;
     }
 
