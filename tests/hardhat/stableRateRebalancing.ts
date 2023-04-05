@@ -90,7 +90,7 @@ describe("VToken", function () {
       await preBorrow(contracts, borrower, borrowAmount);
       await borrowStable(vToken, borrower, convertToUnit(900, 18));
       await interestRateModel.getBorrowRate.returns(convertToUnit(5, 8));
-      await vToken.validateRebalanceStableBorrowRate();
+      expect(await vToken.validateRebalanceStableBorrowRate()).equal(true);
     });
 
     it("Rebalacing the stable rate for a user", async () => {

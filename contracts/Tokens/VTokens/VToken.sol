@@ -1550,19 +1550,21 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /// Validate the conditions to rebalance the stable borrow rate.
-    function validateRebalanceStableBorrowRate() public view {
+    function validateRebalanceStableBorrowRate() public view returns (bool) {
         require(rebalanceUtilizationRateThreshold > 0, "vToken: rebalanceUtilizationRateThreshold is not set.");
         require(rebalanceRateFractionThreshold > 0, "vToken: rebalanceRateFractionThreshold is not set.");
 
-        uint256 utilizationRate = utilizationRate(getCashPrior(), totalBorrows, totalReserves);
+        uint256 utRate = utilizationRate(getCashPrior(), totalBorrows, totalReserves);
         uint256 variableBorrowRate = interestRateModel.getBorrowRate(getCashPrior(), totalBorrows, totalReserves);
         /// Utilization rate is above rebalanceUtilizationRateThreshold.
         /// Average market borrow rate should be less than the rebalanceRateFractionThreshold fraction of variable borrow rate.
-        require(utilizationRate >= rebalanceUtilizationRateThreshold, "vToken: low utilization rate for rebalacing.");
+        require(utRate >= rebalanceUtilizationRateThreshold, "vToken: low utilization rate for rebalacing.");
         require(
             _averageMarketBorrowRate() < (variableBorrowRate * rebalanceRateFractionThreshold),
             "vToken: average borrow rate higher than variable rate threshold."
         );
+
+        return true;
     }
 
     /**
