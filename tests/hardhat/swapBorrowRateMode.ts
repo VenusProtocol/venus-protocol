@@ -145,5 +145,3 @@ describe("VToken", function () {
     });
   });
 });
-
-
