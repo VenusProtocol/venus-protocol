@@ -78,36 +78,16 @@ contract JumpRateModel is InterestRateModel {
     }
 
     /**
-     * @notice Calculates the utilization rate of the market: `borrows / (cash + borrows - reserves)`
-     * @param cash The amount of cash in the market
-     * @param borrows The amount of borrows in the market
-     * @param reserves The amount of reserves in the market (currently unused)
-     * @return The utilization rate as a mantissa between [0, 1e18]
-     */
-    function utilizationRate(uint cash, uint borrows, uint reserves) public pure returns (uint) {
-        // Utilization rate is 0 when there are no borrows
-        if (borrows == 0) {
-            return 0;
-        }
-
-        return borrows.mul(1e18).div(cash.add(borrows).sub(reserves));
-    }
-
-    /**
      * @notice Calculates the current borrow rate per block, with the error code expected by the market
-     * @param cash The amount of cash in the market
-     * @param borrows The amount of borrows in the market
-     * @param reserves The amount of reserves in the market
+     * @param utilizationRate The utilization rate per total borrows and cash available
      * @return The borrow rate percentage per block as a mantissa (scaled by 1e18)
      */
-    function getBorrowRate(uint cash, uint borrows, uint reserves) public view returns (uint) {
-        uint util = utilizationRate(cash, borrows, reserves);
-
-        if (util <= kink) {
-            return util.mul(multiplierPerBlock).div(1e18).add(baseRatePerBlock);
+    function getBorrowRate(uint utilizationRate) public view returns (uint) {
+        if (utilizationRate <= kink) {
+            return utilizationRate.mul(multiplierPerBlock).div(1e18).add(baseRatePerBlock);
         } else {
             uint normalRate = kink.mul(multiplierPerBlock).div(1e18).add(baseRatePerBlock);
-            uint excessUtil = util.sub(kink);
+            uint excessUtil = utilizationRate.sub(kink);
             return excessUtil.mul(jumpMultiplierPerBlock).div(1e18).add(normalRate);
         }
     }
@@ -118,10 +98,7 @@ contract JumpRateModel is InterestRateModel {
         uint256 jumpMultiplierPerYear,
         uint256 kink_
     ) internal {
-        require(
-            baseRatePerYear > blocksPerYear,
-            "JumpRateModel: baseRatePerYear should be greater than blocksPerYear"
-        );
+        require(baseRatePerYear > blocksPerYear, "JumpRateModel: baseRatePerYear should be greater than blocksPerYear");
         baseRatePerBlock = baseRatePerYear.div(blocksPerYear);
         multiplierPerBlock = multiplierPerYear.div(blocksPerYear);
         jumpMultiplierPerBlock = jumpMultiplierPerYear.div(blocksPerYear);
