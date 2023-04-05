@@ -8,6 +8,7 @@ import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 import "./VTokenInterfaces.sol";
+import "../../InterestRate/StableRateModel.sol";
 
 /**
  * @title Venus's vToken Contract
@@ -1129,7 +1130,22 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return fail(Error(error), FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
         }
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
-        return borrowFresh(msg.sender, borrowAmount);
+        return borrowFresh(msg.sender, borrowAmount, InterestRateMode.VARIABLE);
+    }
+
+    function borrowStableInternal(uint256 borrowAmount) internal nonReentrant returns (uint) {
+        accrueInterest();
+
+        // borrowFresh emits borrow-specific logs on errors, so we don't need to
+        return borrowFresh(msg.sender, borrowAmount, InterestRateMode.STABLE);
+    }
+
+    struct stableBorrowVars{
+        uint256 accountBorrowsPrev;
+        uint256 stableBorrowsNew;
+        uint256 stableBorrowRate;
+        uint256 averageStableBorrowRateNew;
+        uint256 stableRateMantissaNew;
     }
 
     /**
@@ -1137,7 +1153,12 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param borrowAmount The amount of the underlying asset to borrow
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function borrowFresh(address payable borrower, uint borrowAmount) internal returns (uint) {
+    function borrowFresh(
+        address payable borrower,
+        uint borrowAmount,
+        InterestRateMode interestRateMode
+    ) internal returns (uint) {
+        
         /* Fail if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
@@ -1154,36 +1175,68 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             revert("math error");
         }
 
-        BorrowLocalVars memory vars;
+        uint256 totalBorrowsNew;
+        uint256 accountBorrowsNew;
+        if (InterestRateMode(interestRateMode) == InterestRateMode.STABLE) {
+            stableBorrowVars memory vars;
+            /*
+             * We calculate the new borrower and total borrow balances, failing on overflow:
+             *  accountBorrowNew = accountStableBorrow + borrowAmount
+             *  totalBorrowsNew = totalBorrows + borrowAmount
+             */
+            vars.accountBorrowsPrev = _updateUserStableBorrowBalance(borrower);
+            accountBorrowsNew = vars.accountBorrowsPrev.add(borrowAmount);
+            totalBorrowsNew = totalBorrows.add(borrowAmount);
 
-        /*
-         * We calculate the new borrower and total borrow balances, failing on overflow:
-         *  accountBorrowsNew = accountBorrows + borrowAmount
-         *  totalBorrowsNew = totalBorrows + borrowAmount
-         */
-        (vars.mathErr, vars.accountBorrows) = borrowBalanceStoredInternal(borrower);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
+            /**
+             * Calculte the average stable borrow rate for the total stable borrows
+             */
+            
+            vars.stableBorrowsNew = stableBorrows.add(borrowAmount);
+            vars.stableBorrowRate = stableBorrowRatePerBlock();
+            vars.averageStableBorrowRateNew = (stableBorrows.mul(averageStableBorrowRate).add(
+                    borrowAmount.mul(vars.stableBorrowRate))).div(vars.stableBorrowsNew);
+
+            vars.stableRateMantissaNew = (vars.accountBorrowsPrev.mul(accountStableBorrows[borrower].stableRateMantissa).add(borrowAmount.mul(vars.stableBorrowRate))).div(accountBorrowsNew);
+            
+            /////////////////////////
+            // EFFECTS & INTERACTIONS
+            // (No safe failures beyond this point)
+
+            /*
+             * We write the previously calculated values into storage.
+             *  Note: Avoid token reentrancy attacks by writing increased borrow before external transfer.
+             */
+
+            accountStableBorrows[borrower].principal = accountBorrowsNew;
+            accountStableBorrows[borrower].interestIndex = stableBorrowIndex;
+            accountStableBorrows[borrower].stableRateMantissa = vars.stableRateMantissaNew;
+            stableBorrows = vars.stableBorrowsNew;
+            averageStableBorrowRate = vars.averageStableBorrowRateNew;
+        
+        } else {
+            /*
+             * We calculate the new borrower and total borrow balances, failing on overflow:
+             *  accountBorrowNew = accountBorrow + borrowAmount
+             *  totalBorrowsNew = totalBorrows + borrowAmount
+             */
+            (, uint256 accountBorrowsPrev) = borrowBalanceStoredInternal(borrower);
+            accountBorrowsNew = accountBorrowsPrev.add(borrowAmount);
+            totalBorrowsNew = totalBorrows.add(borrowAmount);
+
+            /////////////////////////
+            // EFFECTS & INTERACTIONS
+            // (No safe failures beyond this point)
+
+            /*
+             * We write the previously calculated values into storage.
+             *  Note: Avoid token reentrancy attacks by writing increased borrow before external transfer.
+             */
+            accountBorrows[borrower].principal = accountBorrowsNew;
+            accountBorrows[borrower].interestIndex = borrowIndex;
         }
 
-        (vars.mathErr, vars.accountBorrowsNew) = addUInt(vars.accountBorrows, borrowAmount);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
-
-        (vars.mathErr, vars.totalBorrowsNew) = addUInt(totalBorrows, borrowAmount);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
-
-        /////////////////////////
-        // EFFECTS & INTERACTIONS
-        // (No safe failures beyond this point)
-
-        /* We write the previously calculated values into storage */
-        accountBorrows[borrower].principal = vars.accountBorrowsNew;
-        accountBorrows[borrower].interestIndex = borrowIndex;
-        totalBorrows = vars.totalBorrowsNew;
+        totalBorrows = totalBorrowsNew;
 
         /*
          * We invoke doTransferOut for the borrower and the borrowAmount.
@@ -1194,11 +1247,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         doTransferOut(borrower, borrowAmount);
 
         /* We emit a Borrow event */
-        emit Borrow(borrower, borrowAmount, vars.accountBorrowsNew, vars.totalBorrowsNew);
-
-        /* We call the defense hook */
-        comptroller.borrowVerify(address(this), borrower, borrowAmount);
-
+        emit Borrow(borrower, borrowAmount, accountBorrowsNew, totalBorrowsNew);
         return uint(Error.NO_ERROR);
     }
 
