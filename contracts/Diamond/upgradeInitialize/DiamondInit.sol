@@ -22,7 +22,7 @@ import { IDiamondCut } from "../interfaces/IDiamondCut.sol";
 
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 
-import { IPolicyFacet } from "../interfaces/IPloicyFacet.sol";
+import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 // It is expected that this contract is customized if you want to deploy your diamond
 
