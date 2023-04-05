@@ -85,18 +85,18 @@ describe("VToken", () => {
 
     it("fails if simple interest factor calculation fails", async () => {
       await pretendBlock(vToken, blockNumber, convertToUnit("5", 70));
-      expect(await vToken.accrueInterest()).to.be.revertedWith("multiplication overflow")
+      expect(await vToken.accrueInterest()).to.be.revertedWith("multiplication overflow");
     });
 
     it("fails if new borrow index calculation fails", async () => {
       await pretendBlock(vToken, blockNumber, convertToUnit("5", 70));
-      await expect(vToken.accrueInterest()).to.emit(vToken,"Failure").withArgs(9,6,2);
+      await expect(vToken.accrueInterest()).to.emit(vToken, "Failure").withArgs(9, 6, 2);
     });
 
     it("fails if new borrow interest index calculation fails", async () => {
       await pretendBlock(vToken);
       await vToken.harnessSetBorrowIndex(constants.MaxUint256);
-      await expect(vToken.accrueInterest()).to.emit(vToken,"Failure").withArgs(9,3,2);
+      await expect(vToken.accrueInterest()).to.emit(vToken, "Failure").withArgs(9, 3, 2);
     });
 
     it("fails if new borrow interest index calculation fails", async () => {
@@ -108,14 +108,14 @@ describe("VToken", () => {
     it("fails if interest accumulated calculation fails", async () => {
       await vToken.harnessExchangeRateDetails(0, constants.MaxUint256, 0);
       await pretendBlock(vToken);
-      await expect(vToken.accrueInterest()).to.emit(vToken,"Failure").withArgs(9,1,2);
+      await expect(vToken.accrueInterest()).to.emit(vToken, "Failure").withArgs(9, 1, 2);
     });
 
     it("fails if new total borrows calculation fails", async () => {
       interestRateModel.getBorrowRate.returns("1");
       await pretendBlock(vToken);
       await vToken.harnessExchangeRateDetails(0, constants.MaxUint256, 0);
-      await expect(vToken.accrueInterest()).to.emit(vToken,"Failure").withArgs(9,4,2);
+      await expect(vToken.accrueInterest()).to.emit(vToken, "Failure").withArgs(9, 4, 2);
     });
 
     it("fails if interest accumulated for reserves calculation fails", async () => {
@@ -123,7 +123,9 @@ describe("VToken", () => {
       await vToken.harnessExchangeRateDetails(0, convertToUnit("1", 30), constants.MaxUint256);
       await vToken.harnessSetReserveFactorFresh(convertToUnit("1", 10));
       await pretendBlock(vToken, blockNumber, 5e20);
-      expect(await vToken.accrueInterest()).to.emit(vToken,"Failure").withArgs(9,5,2);
+      expect(await vToken.accrueInterest())
+        .to.emit(vToken, "Failure")
+        .withArgs(9, 5, 2);
     });
 
     it("fails if new total reserves calculation fails", async () => {
@@ -131,7 +133,7 @@ describe("VToken", () => {
       await vToken.harnessExchangeRateDetails(0, convertToUnit("1", 56), constants.MaxUint256);
       await vToken.harnessSetReserveFactorFresh(convertToUnit("1", 17));
       await pretendBlock(vToken);
-      await expect(vToken.accrueInterest()).to.emit(vToken,"Failure").withArgs(9,5,2);
+      await expect(vToken.accrueInterest()).to.emit(vToken, "Failure").withArgs(9, 5, 2);
     });
 
     it("succeeds and saves updated values in storage on success", async () => {
