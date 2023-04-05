@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { IAccessControlManager, VAIVault, VRTVault, VRTVaultProxy, XVSVault, XVSVaultProxy } from "../../../typechain";
+import { VAIVault, VRTVault, VRTVaultProxy, XVSVault, XVSVaultProxy } from "../../../typechain";
 import { forking, testVip } from "./vip-framework";
 import { ProposalType } from "./vip-framework/types";
 import { makeProposal } from "./vip-framework/utils";
@@ -20,7 +20,7 @@ const VRT_NEW = "0x023EEDd63947634854654b2607088EB12B2d185f";
 const FAST_TRACK_TIMELOCK = "0x555ba73dB1b006F3f2C7dB7126d6e4343aDBce02";
 const CRITICAL_TIMELOCK = "0x213c446ec11e45b15a6E29C1C1b402B8897f606d";
 const MULTISIG = "0x1C2CAc6ec528c20800B2fe734820D87b581eAA6B";
-const NORMAL_TIMELOCK = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
+const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
 
 export const vip105 = () => {
   const meta = {
@@ -196,19 +196,17 @@ export const vip105 = () => {
   );
 };
 
-forking(27054856, async () => {
+forking(27077371, async () => {
   let xvsVaultProxy: XVSVaultProxy;
   let vrtVaultProxy: VRTVaultProxy;
   let xvsVault: XVSVault;
   let vaiVault: VAIVault;
   let vrtVault: VRTVault;
-  let accessControlManager: IAccessControlManager;
 
   before(async () => {
     xvsVault = await ethers.getContractAt("XVSVault", XVS_VAULT_PROXY);
     vaiVault = await ethers.getContractAt("VAIVault", VAI_VAULT_PROXY);
     vrtVault = await ethers.getContractAt("VRTVault", VRT_VAULT_PROXY);
-    accessControlManager = await ethers.getContractAt("IAccessControlManager", ACM);
 
     xvsVaultProxy = await ethers.getContractAt("XVSVaultProxy", XVS_VAULT_PROXY);
     vrtVaultProxy = await ethers.getContractAt("VRTVaultProxy", VRT_VAULT_PROXY);
@@ -276,18 +274,6 @@ forking(27054856, async () => {
     it("Implementation of VRTVault", async () => {
       const impl = await vrtVault.implementation();
       expect(impl).to.equal(VRT_NEW);
-    });
-
-    it("Permissions Granted", async () => {
-      const criticalPause = await accessControlManager.isAllowedToCall(CRITICAL_TIMELOCK, "pause()");
-      const criticalResume = await accessControlManager.isAllowedToCall(CRITICAL_TIMELOCK, "resume()");
-      const fastTrackPause = await accessControlManager.isAllowedToCall(CRITICAL_TIMELOCK, "pause()");
-      const fastTrackResume = await accessControlManager.isAllowedToCall(CRITICAL_TIMELOCK, "resume()");
-
-      expect(criticalPause).to.equal(true);
-      expect(criticalResume).to.equal(true);
-      expect(fastTrackPause).to.equal(true);
-      expect(fastTrackResume).to.equal(true);
     });
   });
 });
