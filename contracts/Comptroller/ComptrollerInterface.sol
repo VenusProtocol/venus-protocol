@@ -79,6 +79,8 @@ contract ComptrollerInterfaceG1 {
 
     function transferVerify(address vToken, address src, address dst, uint transferTokens) external;
 
+    function preSwapBorrowRateModeHook(address vToken) external;
+
     /*** Liquidity/Liquidation Calculations ***/
 
     function liquidateCalculateSeizeTokens(
@@ -116,6 +118,8 @@ contract ComptrollerInterface is ComptrollerInterfaceG4 {
     function getAccountLiquidity(address) external view returns (uint, uint, uint);
 
     function getAssetsIn(address) external view returns (VToken[] memory);
+
+    function swapBorrowRateModeAllowed(address vToken) external;
 
     function claimVenus(address) external;
 

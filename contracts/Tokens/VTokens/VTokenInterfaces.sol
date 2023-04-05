@@ -155,6 +155,12 @@ contract VTokenStorage {
     // Maximum stable borrow rate that can ever be applied (.0005% / block)
     uint256 internal constant stableBorrowRateMaxMantissa = 0.0005e16;
 
+    /// @notice Utilization rate threshold where rebalancing condition get satisfied for stable rate borrowing.
+    uint256 internal rebalanceUtilizationRateThreshold;
+
+    /// @notice Rate fraction for variable rate borrwing where rebalancing condition get satisfied for stable rate borrowing.
+    uint256 internal rebalanceRateFractionThreshold;
+
     // Mapping of account addresses to outstanding stable borrow balances
     mapping(address => StableBorrowSnapshot) internal accountStableBorrows;
 }
@@ -277,14 +283,19 @@ contract VTokenInterface is VTokenStorage {
     event UpdatedUserStableBorrowBalance(address borrower, uint256 updatedPrincipal);
 
     /**
-     * @notice Event emitted when a borrow rate mode is swapped for account
-     */
-    event SwapBorrowRateMode(address account, uint256 swappedBorrowMode);
-
-    /**
      * @notice Event emitted when stableInterestRateModel is changed
      */
     event NewMarketStableInterestRateModel(StableRateModel oldInterestRateModel, StableRateModel newInterestRateModel);
+
+    /**
+     * @notice Event emitted when a borrow rate mode is swapped for account with amount
+     */
+    event SwapBorrowRateMode(address account, uint256 swappedBorrowMode, uint256 amount);
+
+    /**
+     * @notice Event emitted on stable rate rebalacing
+     */
+    event RebalancedStableBorrowRate(address account, uint256 stableRateMantissa);
 
     /*** User Interface ***/
 
