@@ -64,7 +64,7 @@ contract VAIVault is VAIVaultStorageV1, AccessControlledV5 {
      * @notice Deposit VAI to VAIVault for XVS allocation
      * @param _amount The amount to deposit to vault
      */
-    function deposit(uint256 _amount) public nonReentrant isActive {
+    function deposit(uint256 _amount) external nonReentrant isActive {
         UserInfo storage user = userInfo[msg.sender];
 
         updateVault();
@@ -86,14 +86,14 @@ contract VAIVault is VAIVaultStorageV1, AccessControlledV5 {
      * @notice Withdraw VAI from VAIVault
      * @param _amount The amount to withdraw from vault
      */
-    function withdraw(uint256 _amount) public nonReentrant isActive {
+    function withdraw(uint256 _amount) external nonReentrant isActive {
         _withdraw(msg.sender, _amount);
     }
 
     /**
      * @notice Claim XVS from VAIVault
      */
-    function claim() public nonReentrant isActive {
+    function claim() external nonReentrant isActive {
         _withdraw(msg.sender, 0);
     }
 
@@ -168,7 +168,7 @@ contract VAIVault is VAIVaultStorageV1, AccessControlledV5 {
     /**
      * @notice Function that updates pending rewards
      */
-    function updatePendingRewards() public isActive {
+    function updatePendingRewards() external isActive {
         uint256 newRewards = xvs.balanceOf(address(this)).sub(xvsBalance);
 
         if (newRewards > 0) {
@@ -194,14 +194,14 @@ contract VAIVault is VAIVaultStorageV1, AccessControlledV5 {
     /**
      * @dev Returns the address of the current admin
      */
-    function getAdmin() public view returns (address) {
+    function getAdmin() external view returns (address) {
         return admin;
     }
 
     /**
      * @dev Burn the current admin
      */
-    function burnAdmin() public onlyAdmin {
+    function burnAdmin() external onlyAdmin {
         emit AdminTransfered(admin, address(0));
         admin = address(0);
     }
@@ -209,7 +209,7 @@ contract VAIVault is VAIVaultStorageV1, AccessControlledV5 {
     /**
      * @dev Set the current admin to new address
      */
-    function setNewAdmin(address newAdmin) public onlyAdmin {
+    function setNewAdmin(address newAdmin) external onlyAdmin {
         require(newAdmin != address(0), "new owner is the zero address");
         emit AdminTransfered(admin, newAdmin);
         admin = newAdmin;
@@ -217,12 +217,12 @@ contract VAIVault is VAIVaultStorageV1, AccessControlledV5 {
 
     /*** Admin Functions ***/
 
-    function _become(IVAIVaultProxy vaiVaultProxy) public {
+    function _become(IVAIVaultProxy vaiVaultProxy) external {
         require(msg.sender == vaiVaultProxy.admin(), "only proxy admin can change brains");
         require(vaiVaultProxy._acceptImplementation() == 0, "change not authorized");
     }
 
-    function setVenusInfo(address _xvs, address _vai) public onlyAdmin {
+    function setVenusInfo(address _xvs, address _vai) external onlyAdmin {
         xvs = IBEP20(_xvs);
         vai = IBEP20(_vai);
 
