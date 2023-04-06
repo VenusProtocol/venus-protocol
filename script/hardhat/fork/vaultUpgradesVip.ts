@@ -45,6 +45,7 @@ export const vip105 = () => {
       VAIVault
         pause
         resume
+    Set the lastAcrruingBlock in VRTVault to 27348741, so after this block no rewards will be accrued in the VRT Vault.
     `,
     forDescription: "I agree that Venus Protocol should proceed with the Vault Upgrades",
     againstDescription: "I do not think that Venus Protocol should proceed with the Vault Upgrades",
@@ -189,6 +190,11 @@ export const vip105 = () => {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
         params: [VRT_VAULT_PROXY, "resume()", CRITICAL_TIMELOCK],
+      },
+      {
+        target: VRT_VAULT_PROXY,
+        signature: "setLastAccruingBlock(uint256)",
+        params: [27348741],
       },
     ],
     meta,
