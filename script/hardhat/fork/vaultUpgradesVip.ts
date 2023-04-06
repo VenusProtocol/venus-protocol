@@ -191,6 +191,13 @@ export const vip105 = () => {
         signature: "giveCallPermission(address,string,address)",
         params: [VRT_VAULT_PROXY, "resume()", CRITICAL_TIMELOCK],
       },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
+        params: [VRT_VAULT_PROXY, "setLastAccruingBlock(uint256)", NORMAL_TIMELOCK],
+      },
+
       {
         target: VRT_VAULT_PROXY,
         signature: "setLastAccruingBlock(uint256)",
@@ -334,6 +341,10 @@ forking(27077371, async () => {
       expect(
         await accessControlManager.connect(vrtVaultSigner).isAllowedToCall(FAST_TRACK_TIMELOCK, "resume()"),
       ).equals(true);
+    });
+
+    it("Check VRT VAULT lastAccruingBlock", async () => {
+      expect(await vrtVault.lastAccruingBlock()).to.equals(27348741);
     });
   });
 });
