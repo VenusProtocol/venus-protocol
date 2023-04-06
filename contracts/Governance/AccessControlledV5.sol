@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.5.16;
 
-import "./Utils/InitializableV5.sol";
-import "./Utils/Ownable2StepUpgradeableV5.sol";
 import "./IAccessControlManagerV5.sol";
 
 /**
@@ -12,7 +10,7 @@ import "./IAccessControlManagerV5.sol";
  * It provides initialise methods and verifying access methods
  */
 
-contract AccessControlledV5 is InitializableV5, Ownable2StepUpgradeableV5 {
+contract AccessControlledV5 {
     /// @notice Access control manager contract
     IAccessControlManagerV5 private _accessControlManager;
 
@@ -25,31 +23,6 @@ contract AccessControlledV5 is InitializableV5, Ownable2StepUpgradeableV5 {
 
     /// @notice Emitted when access control manager contract address is changed
     event NewAccessControlManager(address oldAccessControlManager, address newAccessControlManager);
-
-    function __AccessControlled_init(address accessControlManager_) internal onlyInitializing {
-        __Ownable2Step_init();
-        __AccessControlled_init_unchained(accessControlManager_);
-    }
-
-    function __AccessControlled_init_unchained(address accessControlManager_) internal onlyInitializing {
-        _setAccessControlManager(accessControlManager_);
-    }
-
-    /**
-     * @notice Sets the address of AccessControlManager
-     * @dev Admin function to set address of AccessControlManager
-     * @param accessControlManager_ The new address of the AccessControlManager
-     */
-    function setAccessControlManager(address accessControlManager_) external onlyOwner {
-        _setAccessControlManager(accessControlManager_);
-    }
-
-    /**
-     * @notice Returns the address of the access control manager contract
-     */
-    function accessControlManager() external view returns (IAccessControlManagerV5) {
-        return _accessControlManager;
-    }
 
     /**
      * @dev Internal function to set address of AccessControlManager
