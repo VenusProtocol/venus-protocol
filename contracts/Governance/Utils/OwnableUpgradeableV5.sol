@@ -3,7 +3,7 @@
 
 pragma solidity 0.5.16;
 
-import "./ContextUpgradeableV5.sol";
+import "../Utils/InitializableV5.sol";
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -17,7 +17,7 @@ import "./ContextUpgradeableV5.sol";
  * `onlyOwner`, which can be applied to your functions to restrict their use to
  * the owner.
  */
-contract OwnableUpgradeableV5 is ContextUpgradeableV5 {
+contract OwnableUpgradeableV5 is InitializableV5 {
     address private _owner;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
