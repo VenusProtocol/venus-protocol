@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { VAIVault, VRTVault, VRTVaultProxy, XVSVault, XVSVaultProxy } from "../../../typechain";
+import { IAccessControlManager, VAIVault, VRTVault, VRTVaultProxy, XVSVault, XVSVaultProxy } from "../../../typechain";
 import { forking, testVip } from "./vip-framework";
 import { ProposalType } from "./vip-framework/types";
 import { makeProposal } from "./vip-framework/utils";
@@ -42,12 +42,9 @@ export const vip105 = () => {
       VRTVault
         pause
         resume
-        setLastAccruingBlock
       VAIVault
         pause
         resume
-    
-    Set the lastAcrruingBlock in VRTVault to 27348741, so after this block no rewards will be accrued in the VRT Vault.
     `,
     forDescription: "I agree that Venus Protocol should proceed with the Vault Upgrades",
     againstDescription: "I do not think that Venus Protocol should proceed with the Vault Upgrades",
@@ -193,11 +190,6 @@ export const vip105 = () => {
         signature: "giveCallPermission(address,string,address)",
         params: [VRT_VAULT_PROXY, "resume()", CRITICAL_TIMELOCK],
       },
-      {
-        target: VRT_VAULT_PROXY,
-        signature: "setLastAccruingBlock(uint256)",
-        params: [27348741],
-      },
     ],
     meta,
     ProposalType.REGULAR,
@@ -210,6 +202,10 @@ forking(27077371, async () => {
   let xvsVault: XVSVault;
   let vaiVault: VAIVault;
   let vrtVault: VRTVault;
+  let accessControlManager: IAccessControlManager;
+  let xvsVaultSigner;
+  let vaiVaultSigner;
+  let vrtVaultSigner;
 
   before(async () => {
     xvsVault = await ethers.getContractAt("XVSVault", XVS_VAULT_PROXY);
@@ -222,6 +218,11 @@ forking(27077371, async () => {
 
     await xvsVaultProxy.connect(multiSigSigner)._setPendingAdmin(NORMAL_TIMELOCK);
     await vrtVaultProxy.connect(multiSigSigner)._setPendingAdmin(NORMAL_TIMELOCK);
+
+    xvsVaultSigner = await initMainnetUser(XVS_VAULT_PROXY, ethers.utils.parseEther("1"));
+    vaiVaultSigner = await initMainnetUser(VAI_VAULT_PROXY, ethers.utils.parseEther("1"));
+    vrtVaultSigner = await initMainnetUser(VRT_VAULT_PROXY, ethers.utils.parseEther("1"));
+    accessControlManager = await ethers.getContractAt("IAccessControlManager", ACM);
   });
 
   describe("Pre-VIP behavior", async () => {
@@ -282,6 +283,51 @@ forking(27077371, async () => {
     it("Implementation of VRTVault", async () => {
       const impl = await vrtVault.implementation();
       expect(impl).to.equal(VRT_NEW);
+    });
+
+    it("XVS VAULT Permissions", async () => {
+      expect(await accessControlManager.connect(xvsVaultSigner).isAllowedToCall(CRITICAL_TIMELOCK, "pause()")).equals(
+        true,
+      );
+      expect(await accessControlManager.connect(xvsVaultSigner).isAllowedToCall(CRITICAL_TIMELOCK, "resume()")).equals(
+        true,
+      );
+      expect(await accessControlManager.connect(xvsVaultSigner).isAllowedToCall(FAST_TRACK_TIMELOCK, "pause()")).equals(
+        true,
+      );
+      expect(
+        await accessControlManager.connect(xvsVaultSigner).isAllowedToCall(FAST_TRACK_TIMELOCK, "resume()"),
+      ).equals(true);
+    });
+
+    it("VAI VAULT Permissions", async () => {
+      expect(await accessControlManager.connect(vaiVaultSigner).isAllowedToCall(CRITICAL_TIMELOCK, "pause()")).equals(
+        true,
+      );
+      expect(await accessControlManager.connect(vaiVaultSigner).isAllowedToCall(CRITICAL_TIMELOCK, "resume()")).equals(
+        true,
+      );
+      expect(await accessControlManager.connect(vaiVaultSigner).isAllowedToCall(FAST_TRACK_TIMELOCK, "pause()")).equals(
+        true,
+      );
+      expect(
+        await accessControlManager.connect(vaiVaultSigner).isAllowedToCall(FAST_TRACK_TIMELOCK, "resume()"),
+      ).equals(true);
+    });
+
+    it("XVS VAULT Permissions", async () => {
+      expect(await accessControlManager.connect(vrtVaultSigner).isAllowedToCall(CRITICAL_TIMELOCK, "pause()")).equals(
+        true,
+      );
+      expect(await accessControlManager.connect(vrtVaultSigner).isAllowedToCall(CRITICAL_TIMELOCK, "resume()")).equals(
+        true,
+      );
+      expect(await accessControlManager.connect(vrtVaultSigner).isAllowedToCall(FAST_TRACK_TIMELOCK, "pause()")).equals(
+        true,
+      );
+      expect(
+        await accessControlManager.connect(vrtVaultSigner).isAllowedToCall(FAST_TRACK_TIMELOCK, "resume()"),
+      ).equals(true);
     });
   });
 });
