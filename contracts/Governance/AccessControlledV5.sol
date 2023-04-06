@@ -25,6 +25,13 @@ contract AccessControlledV5 {
     event NewAccessControlManager(address oldAccessControlManager, address newAccessControlManager);
 
     /**
+     * @notice Returns the address of the access control manager contract
+     */
+    function accessControlManager() external view returns (IAccessControlManagerV5) {
+        return _accessControlManager;
+    }
+
+    /**
      * @dev Internal function to set address of AccessControlManager
      * @param accessControlManager_ The new address of the AccessControlManager
      */
