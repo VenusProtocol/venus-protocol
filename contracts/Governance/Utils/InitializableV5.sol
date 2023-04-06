@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts (last updated v4.8.1) (proxy/utils/Initializable.sol)
+// This is a backport of the v4.8.1 contract in OZ to solidity 0.5.16
 
-pragma solidity ^0.5.16;
+pragma solidity 0.5.16;
 
 import "./AddressUpgradeableV5.sol";
 

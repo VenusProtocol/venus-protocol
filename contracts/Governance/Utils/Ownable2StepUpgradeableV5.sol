@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts (last updated v4.8.0) (access/Ownable2Step.sol)
+// This is a backport of the v4.8.0 contract in OZ to solidity 0.5.16
 
-pragma solidity ^0.5.16;
+pragma solidity 0.5.16;
 
 import "./OwnableUpgradeableV5.sol";
 import "./InitializableV5.sol";
@@ -57,7 +57,7 @@ contract Ownable2StepUpgradeableV5 is InitializableV5, OwnableUpgradeableV5 {
      * @dev The new owner accepts the ownership transfer.
      */
     function acceptOwnership() external {
-        address sender = _msgSender();
+        address sender = msg.sender;
         require(pendingOwner() == sender, "Ownable2Step: caller is not the new owner");
         _transferOwnership(sender);
     }

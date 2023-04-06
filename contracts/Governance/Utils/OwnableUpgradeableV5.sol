@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts (last updated v4.7.0) (access/Ownable.sol)
+// This is a backport of the v4.7.0 contract in OZ to solidity 0.5.16
 
-pragma solidity ^0.5.16;
+pragma solidity 0.5.16;
 
 import "./ContextUpgradeableV5.sol";
-import "./InitializableV5.sol";
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -18,7 +17,7 @@ import "./InitializableV5.sol";
  * `onlyOwner`, which can be applied to your functions to restrict their use to
  * the owner.
  */
-contract OwnableUpgradeableV5 is InitializableV5, ContextUpgradeableV5 {
+contract OwnableUpgradeableV5 is ContextUpgradeableV5 {
     address private _owner;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -31,7 +30,7 @@ contract OwnableUpgradeableV5 is InitializableV5, ContextUpgradeableV5 {
     }
 
     function __Ownable_init_unchained() internal onlyInitializing {
-        _transferOwnership(_msgSender());
+        _transferOwnership(msg.sender);
     }
 
     /**
@@ -53,7 +52,7 @@ contract OwnableUpgradeableV5 is InitializableV5, ContextUpgradeableV5 {
      * @dev Throws if the sender is not the owner.
      */
     function _checkOwner() internal view {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        require(owner() == msg.sender, "Ownable: caller is not the owner");
     }
 
     /**

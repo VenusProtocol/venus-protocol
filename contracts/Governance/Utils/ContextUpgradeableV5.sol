@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
+// This is a backport of the v4.4.1 contract in OZ to solidity 0.5.16
 
-pragma solidity ^0.5.16;
+pragma solidity 0.5.16;
 import "./InitializableV5.sol";
 
 /**
@@ -18,10 +18,6 @@ contract ContextUpgradeableV5 is InitializableV5 {
     function __Context_init() internal onlyInitializing {}
 
     function __Context_init_unchained() internal onlyInitializing {}
-
-    function _msgSender() internal view returns (address) {
-        return msg.sender;
-    }
 
     function _msgData() internal pure returns (bytes memory) {
         return msg.data;
