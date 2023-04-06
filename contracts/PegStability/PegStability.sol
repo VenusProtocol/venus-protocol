@@ -44,10 +44,10 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     uint256[49] private __gap;
 
     /// @notice Event emitted when contract is paused
-    event PsmPaused(address indexed admin);
+    event PSMPaused(address indexed admin);
 
     /// @notice Event emitted when the contract is resumed after pause
-    event PsmResumed(address indexed admin);
+    event PSMResumed(address indexed admin);
 
     /// @notice Event emitted when feeIn state var is modified
     event FeeInChanged(uint256 oldFeeIn, uint256 newFeeIn);
@@ -101,30 +101,34 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
 
     /*** Swap Functions ***/
 
-    function swapVAIForStable(address receiver, uint256 amount) external isActive {
+    function swapVAIForStable(address receiver, uint256 stableTknAmount) external isActive {
         ensureNonzeroAddress(receiver);
-        require(VAI(vaiAddress).balanceOf(msg.sender) >= amount, "not enought VAI");
-        uint256 fee = _calculateFee(amount, FeeDirection.IN);
+        require(stableTknAmount > 0, "Amount must be greater than zero");
+        uint256 fee = _calculateFee(stableTknAmount, FeeDirection.OUT);
+        require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmount + fee, "not enought VAI");
         bool success = VAI(vaiAddress).transferFrom(msg.sender, venusTreasury, fee);
         require(success, "VAI fee transfer failed");
-        //also the same amount will be transfered in stable to receiver
-        uint256 amountToBurn = amount - fee;
-        VAI(vaiAddress).burn(msg.sender, amountToBurn);
-        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(address(this), receiver, amountToBurn);
+        VAI(vaiAddress).burn(msg.sender, stableTknAmount);
+        vaiMinted -= stableTknAmount;
+        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(address(this), receiver, stableTknAmount);
     }
 
-    function swapStableForVAI(address receiver, uint256 amount) external isActive {
+    function swapStableForVAI(address receiver, uint256 stableTknAmount) external isActive {
         ensureNonzeroAddress(receiver);
-        require(amount > 0, "Amount must be greater than zero");
-        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(msg.sender, address(this), amount);
-        require(vaiMinted + amount <= vaiMintCap, "VAI min cap reached");
+        require(stableTknAmount > 0, "Amount must be greater than zero");
+        uint256 balanceBefore = IERC20Upgradeable(stableTokenAddress).balanceOf(address(this));
+        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(msg.sender, address(this), stableTknAmount);
+        uint256 balanceAfter = IERC20Upgradeable(stableTokenAddress).balanceOf(address(this));
+        uint256 actualTransferAmt = balanceAfter - balanceBefore;
         //calculate feeIn
-        uint256 fee = _calculateFee(amount, FeeDirection.OUT);
-        uint256 vaiToSend = amount - fee;
+        uint256 fee = _calculateFee(actualTransferAmt, FeeDirection.IN);
+        uint256 vaiToMint = actualTransferAmt - fee;
+        require(vaiMinted + actualTransferAmt <= vaiMintCap, "VAI min cap reached");
+        vaiMintCap += actualTransferAmt;
         // mint VAI to receiver
-        VAI(vaiAddress).mint(receiver, vaiToSend);
+        VAI(vaiAddress).mint(receiver, vaiToMint);
         // mint VAI fee to venus treasury
-        VAI(vaiAddress).mint(venusTreasury, vaiToSend);
+        VAI(vaiAddress).mint(venusTreasury, fee);
     }
 
     /*** Helper Functions ***/
@@ -151,14 +155,14 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         _checkAccessAllowed("pause()");
         require(isPaused == false, "PSM is already paused");
         isPaused = true;
-        emit PsmPaused(msg.sender);
+        emit PSMPaused(msg.sender);
     }
 
     function resume() external {
         _checkAccessAllowed("resume()");
-        require(isPaused == true, "Vault is not paused");
+        require(isPaused == true, "PSM is not paused");
         isPaused = false;
-        emit PsmResumed(msg.sender);
+        emit PSMResumed(msg.sender);
     }
 
     function setFeeIn(uint256 feeIn_) external {
@@ -181,7 +185,6 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
 
     function setVaiMintCap(uint256 vaiMintCap_) external {
         _checkAccessAllowed("setVaiMintCap(uint256)");
-        //NOTE: not really sure what upper bounds we should have for maximum MINT CAP
         uint256 oldVaiMintCap = vaiMintCap;
         vaiMintCap = vaiMintCap_;
         emit VaiMintCapChanged(oldVaiMintCap, vaiMintCap);
