@@ -15,7 +15,7 @@ let DIAMOND_CUT_FACET;
 let DIAMOND;
 let DIAMOND_INIT;
 
-const vip105 = async () => {
+export const vip106 = async () => {
   const meta = {
     version: "v1",
     title: "VIP-105 Comptroller Diamond proxy",
@@ -33,6 +33,31 @@ const vip105 = async () => {
   DIAMOND_INIT = diamondInit.address;
 
   const initFunctionEncode = diamondInit.interface.encodeFunctionData("init");
+
+  function getFunctionSelector(selectors: any) {
+    const functionSelector: any = [];
+    for (let i = 0; i < selectors.length; i++) {
+      if (selectors[i][0] == "0") {
+        functionSelector.push(selectors[i]);
+      } else {
+        break;
+      }
+    }
+    return functionSelector;
+  }
+
+  function makeCutParam(cut: any) {
+    const cutParams = [];
+    for (let i = 0; i < cut.length; i++) {
+      const arr: any = new Array(3);
+      arr[0] = cut[i].facetAddress;
+      arr[1] = cut[i].action;
+      arr[2] = getFunctionSelector(cut[i].functionSelectors);
+      cutParams.push(arr);
+    }
+    return cutParams;
+  }
+  const cutParams = makeCutParam(cut);
 
   return makeProposal(
     [
@@ -53,8 +78,8 @@ const vip105 = async () => {
       },
       {
         target: UNITROLLER,
-        signature: "diamondCut(FacetCut[],address,bytes)",
-        params: [cut, DIAMOND_INIT, initFunctionEncode],
+        signature: "diamondCut((address,uint8,bytes4[])[],address,bytes)",
+        params: [cutParams, DIAMOND_INIT, initFunctionEncode],
       },
     ],
     meta,
@@ -63,52 +88,52 @@ const vip105 = async () => {
 };
 
 forking(25892445, async () => {
-  testVip("VIP-98 TRON Contract Migration", await vip105());
+  testVip("VIP-98 TRON Contract Migration", await vip106());
 });
 
-let owner,
-  unitroller,
-  // layout variables
-  oracle,
-  maxAssets,
-  closeFactorMantissa,
-  liquidationIncentiveMantissa,
-  allMarkets,
-  venusRate,
-  venusSpeeds,
-  venusSupplyState,
-  venusBorrowState,
-  venusAccrued,
-  vaiMintRate,
-  vaiController,
-  mintedVAIs,
-  mintVAIGuardianPaused,
-  repayVAIGuardianPaused,
-  protocolPaused,
-  venusVAIVaultRate,
-  vaiVaultAddress,
-  releaseStartBlock,
-  minReleaseAmount,
-  treasuryGuardian,
-  treasuryAddress,
-  treasuryPercent,
-  liquidatorContract,
-  comptrollerLens,
-  market,
-  venusSupplierIndex,
-  venusBorrowerIndex;
+forking(26713742, async () => {
+  let owner,
+    unitroller,
+    // layout variables
+    oracle,
+    maxAssets,
+    closeFactorMantissa,
+    liquidationIncentiveMantissa,
+    allMarkets,
+    venusRate,
+    venusSpeeds,
+    venusSupplyState,
+    venusBorrowState,
+    venusAccrued,
+    vaiMintRate,
+    vaiController,
+    mintedVAIs,
+    mintVAIGuardianPaused,
+    repayVAIGuardianPaused,
+    protocolPaused,
+    venusVAIVaultRate,
+    vaiVaultAddress,
+    releaseStartBlock,
+    minReleaseAmount,
+    treasuryGuardian,
+    treasuryAddress,
+    treasuryPercent,
+    liquidatorContract,
+    comptrollerLens,
+    market,
+    venusSupplierIndex,
+    venusBorrowerIndex;
 
-const Owner = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
-const zeroAddr = "0x0000000000000000000000000000000000000000";
-const VBUSD = "0x95c78222B3D6e262426483D42CfA53685A67Ab9D";
-const VUSDT = "0xfD5840Cd36d94D7229439859C0112a4185BC0255";
+  const Owner = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
+  const zeroAddr = "0x0000000000000000000000000000000000000000";
+  const VBUSD = "0x95c78222B3D6e262426483D42CfA53685A67Ab9D";
+  const VUSDT = "0xfD5840Cd36d94D7229439859C0112a4185BC0255";
 
-const initMainnetUser = async (user: string) => {
-  await impersonateAccount(user);
-  return ethers.getSigner(user);
-};
+  const initMainnetUser = async (user: string) => {
+    await impersonateAccount(user);
+    return ethers.getSigner(user);
+  };
 
-forking(26713742, () => {
   let USDT: ethers.contract;
   let BUSD: ethers.contract;
   let usdtHolder: ethers.Signer;
@@ -119,13 +144,11 @@ forking(26713742, () => {
 
   if (process.env.FORK_MAINNET === "true") {
     before(async () => {
-      /*
-       *  Forking mainnet
-       * */
-
       /**
        *  sending gas cost to owner
        * */
+
+      await pretendExecutingVip(await vip106());
       await impersonateAccount(Owner);
       owner = await ethers.getSigner(Owner);
       const [signer] = await ethers.getSigners();
@@ -138,8 +161,7 @@ forking(26713742, () => {
       // unitroller without diamond
       unitroller = await ethers.getContractAt("Comptroller", UNITROLLER);
 
-      // unitroller with diamond
-      diamondUnitroller = await ethers.getContractAt("Comptroller", UNITROLLER);
+      diamondUnitroller = await ethers.getContractAt("Comptroller", unitroller.address);
 
       busdHolder = await initMainnetUser("0xf977814e90da44bfa03b6295a0616a897441acec");
       usdtHolder = await initMainnetUser("0xc444949e0054A23c44Fc45789738bdF64aed2391");
@@ -155,10 +177,9 @@ forking(26713742, () => {
           return ethers.getContractAt("IERC20Upgradeable", underlying);
         }),
       );
-      await pretendExecutingVip(await vip105());
     });
 
-    describe("Verify Storage slots", () => {
+    describe("Verify Storage slots", async () => {
       // These tests checks the storage collision of comptroller while updating it via diamond.
       describe("Diamond deployed successfully", async () => {
         it("Owner of Diamond unitroller contract should match", async () => {
@@ -171,6 +192,7 @@ forking(26713742, () => {
         it("Diamond Unitroller Implementation (comptroller) should match the diamond Proxy Address", async () => {
           const comptrollerImplementation = await diamondUnitroller.comptrollerImplementation();
           const pendingComptrollerImplementation = await diamondUnitroller.pendingComptrollerImplementation();
+          console.log("pending implementation ", comptrollerImplementation, DIAMOND);
           expect(comptrollerImplementation.toLowerCase()).to.equal(DIAMOND.toLowerCase());
           expect(pendingComptrollerImplementation.toLowerCase()).to.equal(zeroAddr);
         });
