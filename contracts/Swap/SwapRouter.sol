@@ -154,7 +154,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-    function swapBnbAndSupplyAtSupportingFee(
+    function swapBNBAndSupplyAtSupportingFee(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,
@@ -199,7 +199,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-    function swapETHForExactTokensAndSupply(
+    function swapBNBForExactTokensAndSupply(
         address vTokenAddress,
         uint256 amountOut,
         address[] calldata path,
@@ -265,7 +265,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param path Array with addresses of the underlying assets to be swapped
      * @dev Addresses of underlying assets should be ordered so the swap path tokens are listed first and last asset is the token we receive
      */
-    function swapBnbAndRepay(
+    function swapBNBAndRepay(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,
@@ -286,7 +286,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param path Array with addresses of the underlying assets to be swapped
      * @dev Addresses of underlying assets should be ordered so the swap path tokens are listed first and last asset is the token we receive
      */
-    function swapBnbAndRepayAtSupportingFee(
+    function swapBNBAndRepayAtSupportingFee(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,
@@ -353,7 +353,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-    function swapETHForExactTokensAndRepay(
+    function swapBNBForExactTokensAndRepay(
         address vTokenAddress,
         uint256 amountOut,
         address[] calldata path,
@@ -375,7 +375,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-    function swapExactTokensForETHAndRepay(
+    function swapExactTokensForBNBAndRepay(
         address vBNBAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -398,7 +398,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-    function swapExactTokensForETHAndRepayAtSupportingFee(
+    function swapExactTokensForBNBAndRepayAtSupportingFee(
         address vBNBAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -422,7 +422,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-    function swapTokensForExactETHAndRepay(
+    function swapTokensForExactBNBAndRepay(
         address vBNBAddress,
         uint256 amountOut,
         uint256 amountInMax,
@@ -444,7 +444,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-    function swapTokensForFullETHDebtAndRepay(
+    function swapTokensForFullBNBDebtAndRepay(
         address vBNBAddress,
         uint256 amountInMax,
         address[] calldata path,
@@ -518,7 +518,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param to Recipient of the output tokens.
      * @param deadline Unix timestamp after which the transaction will revert.
      */
-    function swapExactETHForTokens(
+    function swapExactBNBForTokens(
         uint256 amountOutMin,
         address[] calldata path,
         address to,
@@ -539,7 +539,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param to Recipient of the output tokens.
      * @param deadline Unix timestamp after which the transaction will revert.
      */
-    function swapExactETHForTokensAtSupportingFee(
+    function swapExactBNBForTokensAtSupportingFee(
         uint256 amountOutMin,
         address[] calldata path,
         address to,
@@ -564,7 +564,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param to Recipient of the output tokens.
      * @param deadline Unix timestamp after which the transaction will revert.
      */
-    function swapExactTokensForETH(
+    function swapExactTokensForBNB(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
@@ -587,7 +587,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param to Recipient of the output tokens.
      * @param deadline Unix timestamp after which the transaction will revert.
      */
-    function swapExactTokensForETHAtSupportingFee(
+    function swapExactTokensForBNBAtSupportingFee(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
@@ -634,7 +634,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param to Recipient of the output tokens.
      * @param deadline Unix timestamp after which the transaction will revert.
      **/
-    function swapETHForExactTokens(
+    function swapBNBForExactTokens(
         uint256 amountOut,
         address[] calldata path,
         address to,
@@ -655,7 +655,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param to Recipient of the output tokens.
      * @param deadline Unix timestamp after which the transaction will revert.
      **/
-    function swapTokensForExactETH(
+    function swapTokensForExactBNB(
         uint256 amountOut,
         uint256 amountInMax,
         address[] calldata path,

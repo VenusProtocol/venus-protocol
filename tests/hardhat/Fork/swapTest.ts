@@ -236,7 +236,7 @@ describe("Swap Contract", () => {
         await expect(
           swapRouter
             .connect(usdtUser)
-            .swapExactETHForTokens(MIN_AMOUNT_OUT_BUSD, [wBNB.address, BUSD.address], busdUser.address, deadline, {
+            .swapExactBNBForTokens(MIN_AMOUNT_OUT_BUSD, [wBNB.address, BUSD.address], busdUser.address, deadline, {
               value: SWAP_BNB_AMOUNT,
             }),
         ).to.emit(swapRouter, "SwapBnbForTokens");
@@ -250,7 +250,7 @@ describe("Swap Contract", () => {
         const amountOut = await swapRouter.getAmountsOut(1, [wBNB.address, BUSD.address]);
         await swapRouter
           .connect(usdtUser)
-          .swapETHForExactTokens(amountOut[0], [wBNB.address, BUSD.address], usdtUser.address, deadline, {
+          .swapBNBForExactTokens(amountOut[0], [wBNB.address, BUSD.address], usdtUser.address, deadline, {
             value: SWAP_BNB_AMOUNT,
           });
         const currBalance = await BUSD.balanceOf(usdtUser.address);
@@ -263,7 +263,7 @@ describe("Swap Contract", () => {
         const amountOut = await swapRouter.getAmountsOut(1, [wBNB.address, BUSD.address]);
         await swapRouter
           .connect(usdtUser)
-          .swapETHForExactTokensAndSupply(vBUSD.address, amountOut[0], [wBNB.address, BUSD.address], deadline, {
+          .swapBNBForExactTokensAndSupply(vBUSD.address, amountOut[0], [wBNB.address, BUSD.address], deadline, {
             value: SWAP_BNB_AMOUNT,
           });
         const currBalance = await vBUSD.balanceOf(usdtUser.address);
@@ -276,7 +276,7 @@ describe("Swap Contract", () => {
         await expect(
           swapRouter
             .connect(usdtUser)
-            .swapETHForExactTokens(amountOut[0].add(274), [wBNB.address, BUSD.address], usdtUser.address, deadline, {
+            .swapBNBForExactTokens(amountOut[0].add(274), [wBNB.address, BUSD.address], usdtUser.address, deadline, {
               value: SWAP_BNB_AMOUNT,
             }),
         ).to.be.revertedWithCustomError(swapRouter, "ExcessiveInputAmount");
@@ -378,7 +378,7 @@ describe("Swap Contract", () => {
         expect(borrowBalance).equal(274);
         await swapRouter
           .connect(busdUser)
-          .swapBnbAndRepay(vUSDT.address, MIN_AMOUNT_OUT, [wBNB.address, USDT.address], deadline, {
+          .swapBNBAndRepay(vUSDT.address, MIN_AMOUNT_OUT, [wBNB.address, USDT.address], deadline, {
             value: 1,
           });
         [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
@@ -405,7 +405,7 @@ describe("Swap Contract", () => {
         expect(borrowBalance).equal(274);
         await swapRouter
           .connect(busdUser)
-          .swapETHForExactTokensAndRepay(vUSDT.address, 274, [wBNB.address, USDT.address], deadline, {
+          .swapBNBForExactTokensAndRepay(vUSDT.address, 274, [wBNB.address, USDT.address], deadline, {
             value: 1,
           });
         [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
@@ -471,7 +471,7 @@ describe("Swap Contract", () => {
         const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(busdUser.address);
         await swapRouter
           .connect(busdUser)
-          .swapExactTokensForETHAndRepay(
+          .swapExactTokensForBNBAndRepay(
             vBNB.address,
             parseUnits("1500", 0),
             parseUnits("4", 0),
@@ -492,7 +492,7 @@ describe("Swap Contract", () => {
         await expect(
           swapRouter
             .connect(busdUser)
-            .swapTokensForExactETHAndRepay(
+            .swapTokensForExactBNBAndRepay(
               vBNB.address,
               parseUnits("1500", 0),
               parseUnits("6", 0),
@@ -511,7 +511,7 @@ describe("Swap Contract", () => {
         const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(busdUser.address);
         await swapRouter
           .connect(busdUser)
-          .swapTokensForExactETHAndRepay(vBNB.address, SWAP_BNB_AMOUNT, 277, [BUSD.address, wBNB.address], deadline);
+          .swapTokensForExactBNBAndRepay(vBNB.address, SWAP_BNB_AMOUNT, 277, [BUSD.address, wBNB.address], deadline);
         const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(busdUser.address);
         expect(borrowBalanceAfter).lessThan(borrowBalancePrev);
       });
@@ -542,7 +542,7 @@ describe("Swap Contract", () => {
         await vBNB.connect(busdUser).borrow(parseUnits("1", 0));
         await swapRouter
           .connect(busdUser)
-          .swapTokensForFullETHDebtAndRepay(vBNB.address, 277, [BUSD.address, wBNB.address], deadline);
+          .swapTokensForFullBNBDebtAndRepay(vBNB.address, 277, [BUSD.address, wBNB.address], deadline);
         const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(busdUser.address);
         expect(borrowBalanceAfter).equal(0);
       });
@@ -617,7 +617,7 @@ describe("Swap Contract", () => {
         await expect(
           swapRouter
             .connect(wBNBUser)
-            .swapExactETHForTokensAtSupportingFee(
+            .swapExactBNBForTokensAtSupportingFee(
               MIN_AMOUNT_OUT,
               [wBNB.address, SFM.address],
               wBNBUser.address,
@@ -656,7 +656,7 @@ describe("Swap Contract", () => {
 
         await swapRouter
           .connect(wBNBUser)
-          .swapBnbAndSupplyAtSupportingFee(vSFM.address, MIN_AMOUNT_OUT, [wBNB.address, SFM.address], deadline, {
+          .swapBNBAndSupplyAtSupportingFee(vSFM.address, MIN_AMOUNT_OUT, [wBNB.address, SFM.address], deadline, {
             value: parseUnits("0.000001"),
           });
 
@@ -702,7 +702,7 @@ describe("Swap Contract", () => {
 
         await swapRouter
           .connect(wBNBUser)
-          .swapBnbAndSupplyAtSupportingFee(vSFM.address, MIN_AMOUNT_OUT, [wBNB.address, SFM.address], deadline, {
+          .swapBNBAndSupplyAtSupportingFee(vSFM.address, MIN_AMOUNT_OUT, [wBNB.address, SFM.address], deadline, {
             value: parseUnits("0.000001"),
           });
 
@@ -712,7 +712,7 @@ describe("Swap Contract", () => {
 
         await swapRouter
           .connect(wBNBUser)
-          .swapBnbAndRepayAtSupportingFee(vSFM.address, MIN_AMOUNT_OUT, [wBNB.address, SFM.address], deadline, {
+          .swapBNBAndRepayAtSupportingFee(vSFM.address, MIN_AMOUNT_OUT, [wBNB.address, SFM.address], deadline, {
             value: parseUnits("0.000000001"),
           });
 
@@ -729,7 +729,7 @@ describe("Swap Contract", () => {
         const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(BabyDogeUser.address);
         await swapRouter
           .connect(BabyDogeUser)
-          .swapExactTokensForETHAndRepayAtSupportingFee(
+          .swapExactTokensForBNBAndRepayAtSupportingFee(
             vBNB.address,
             500,
             2,
