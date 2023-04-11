@@ -8,7 +8,6 @@ import "./interfaces/IVtoken.sol";
 import "./RouterHelper.sol";
 import "./interfaces/IVBNB.sol";
 import "./interfaces/InterfaceComptroller.sol";
-import "hardhat/console.sol";
 
 /**
  * @title Venus's Pancake Swap Integration Contract
