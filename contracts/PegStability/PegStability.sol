@@ -5,7 +5,6 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-
 interface VAI {
     function balanceOf(address usr) external returns (uint256);
 
@@ -62,10 +61,10 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     event VenusTreasuryChanged(address indexed oldTreasury, address indexed newTreasury);
 
     /// @notice Event emitted when stable token is swapped for VAI
-    event StableForVAISwapped(uint256 stableIn, uint256 vaiOut);
+    event StableForVAISwapped(uint256 stableIn, uint256 vaiOut, uint256 fee);
 
     /// @notice Event emitted when stable token is swapped for VAI
-    event VaiForStableSwapped(uint256 vaiIn, uint256 stableOut);
+    event VaiForStableSwapped(uint256 vaiBurnt, uint256 vaiFee, uint256 stableOut);
 
     /**
      * @dev Prevents functions to execute when contract is paused.
@@ -107,20 +106,22 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
 
     /*** Swap Functions ***/
 
-    function swapVAIForStable(address receiver, uint256 stableTknAmount) external isActive {
+    function swapVAIForStable(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
         ensureNonzeroAddress(receiver);
         require(stableTknAmount > 0, "Amount must be greater than zero");
         uint256 fee = _calculateFee(stableTknAmount, FeeDirection.OUT);
         require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmount + fee, "not enought VAI");
         bool success = VAI(vaiAddress).transferFrom(msg.sender, venusTreasury, fee);
         require(success, "VAI fee transfer failed");
+        if (vaiMinted != 0) {
+            vaiMinted -= stableTknAmount;
+        }
         VAI(vaiAddress).burn(msg.sender, stableTknAmount);
-        vaiMinted -= stableTknAmount;
         IERC20Upgradeable(stableTokenAddress).safeTransferFrom(address(this), receiver, stableTknAmount);
-        emit VaiForStableSwapped(stableTknAmount + fee, stableTknAmount);
+        emit VaiForStableSwapped(stableTknAmount, fee, stableTknAmount);
     }
 
-    function swapStableForVAI(address receiver, uint256 stableTknAmount) external isActive {
+    function swapStableForVAI(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
         ensureNonzeroAddress(receiver);
         require(stableTknAmount > 0, "Amount must be greater than zero");
         uint256 balanceBefore = IERC20Upgradeable(stableTokenAddress).balanceOf(address(this));
@@ -130,13 +131,13 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         //calculate feeIn
         uint256 fee = _calculateFee(actualTransferAmt, FeeDirection.IN);
         uint256 vaiToMint = actualTransferAmt - fee;
-        require(vaiMinted + actualTransferAmt <= vaiMintCap, "VAI min cap reached");
-        vaiMintCap += actualTransferAmt;
+        require(vaiMinted + actualTransferAmt <= vaiMintCap, "VAI mint cap reached");
+        vaiMinted += actualTransferAmt;
         // mint VAI to receiver
         VAI(vaiAddress).mint(receiver, vaiToMint);
         // mint VAI fee to venus treasury
         VAI(vaiAddress).mint(venusTreasury, fee);
-        emit StableForVAISwapped(stableTknAmount, vaiToMint + fee);
+        emit StableForVAISwapped(stableTknAmount, vaiToMint, fee);
     }
 
     /*** Helper Functions ***/
