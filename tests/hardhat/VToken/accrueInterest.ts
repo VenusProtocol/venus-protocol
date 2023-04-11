@@ -4,9 +4,9 @@ import { BigNumber } from "bignumber.js";
 import chai from "chai";
 import { constants } from "ethers";
 
-import { convertToUnit } from "../../helpers/utils";
-import { InterestRateModel, StableRateModel, VBep20Harness } from "../../typechain";
-import { vTokenTestFixture } from "./util/TokenTestHelpers";
+import { convertToUnit } from "../../../helpers/utils";
+import { InterestRateModel, StableRateModel, VBep20Harness } from "../../../typechain";
+import { vTokenTestFixture } from "../util/TokenTestHelpers";
 
 const { expect } = chai;
 chai.use(smock.matchers);

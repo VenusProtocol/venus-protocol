@@ -16,7 +16,9 @@ describe("Evil Token test", async () => {
     const accessControlMock = await smock.fake<IAccessControlManager>("IAccessControlManager");
     accessControlMock.isAllowedToCall.returns(true);
 
-    const stableInterestRateModel = await smock.fake<StableRateModel>("StableRateModel");
+    const stableInterestRateModel = await smock.fake<StableRateModel>(
+      "contracts/InterestRateModels/V0.8.13/StableRateModel.sol:StableRateModel",
+    );
     stableInterestRateModel.isInterestRateModel.returns(true);
 
     user = account1;

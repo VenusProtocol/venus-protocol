@@ -1,21 +1,19 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { BigNumber } from "bignumber.js";
 import chai from "chai";
 import { BigNumberish, Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
-import { convertToUnit } from "../../helpers/utils";
-import { Comptroller, InterestRateModel, StableRateModel, VBNBHarness, VBep20Harness } from "../../typechain";
-import { ComptrollerErrorReporter } from "./util/Errors";
+import { convertToUnit } from "../../../helpers/utils";
+import { Comptroller, InterestRateModel, StableRateModel, VBep20Harness } from "../../../typechain";
 import {
   VTokenTestFixture,
   preApprove,
   pretendBorrow,
   pretendStableBorrow,
   vTokenTestFixture,
-} from "./util/TokenTestHelpers";
+} from "../util/TokenTestHelpers";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -148,7 +146,7 @@ describe("VToken", function () {
   let contracts: VTokenTestFixture;
   let comptroller: FakeContract<Comptroller>;
   let vToken: MockContract<VBep20Harness>;
-  let underlying: MockContract<VBNBHarness>;
+  let underlying: MockContract<VBep20Harness>;
   let interestRateModel: FakeContract<InterestRateModel>;
   let stableInterestRateModel: FakeContract<StableRateModel>;
   let _root: Signer;

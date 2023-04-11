@@ -1,9 +1,9 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.5.16;
 
-import "../Tokens/VTokens/VBNB.sol";
+import "./MockVBNB.sol";
 import "./ComptrollerScenario.sol";
 
-contract VBNBHarness is VBNB {
+contract VBNBHarness is MockVBNB {
     uint internal harnessExchangeRate;
     uint public blockNumber = 100000;
 
@@ -18,7 +18,10 @@ contract VBNBHarness is VBNB {
         string memory symbol_,
         uint8 decimals_,
         address payable admin_
-    ) public VBNB(comptroller_, interestRateModel_, initialExchangeRateMantissa, name_, symbol_, decimals_, admin_) {}
+    )
+        public
+        MockVBNB(comptroller_, interestRateModel_, initialExchangeRateMantissa, name_, symbol_, decimals_, admin_)
+    {}
 
     function doTransferOut(address payable to, uint amount) internal {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
@@ -109,7 +112,7 @@ contract VBNBHarness is VBNB {
     }
 
     function harnessBorrowFresh(address payable account, uint borrowAmount) public returns (uint) {
-        return borrowFresh(account, account, borrowAmount);
+        return borrowFresh(account, account, borrowAmount, InterestRateMode.VARIABLE);
     }
 
     function harnessRepayBorrowFresh(
@@ -168,7 +171,7 @@ contract VBNBHarness is VBNB {
     }
 }
 
-contract VBNBScenario is VBNB {
+contract VBNBScenario is MockVBNB {
     uint internal reserveFactor;
 
     constructor(
@@ -179,7 +182,10 @@ contract VBNBScenario is VBNB {
         ComptrollerInterface comptroller_,
         InterestRateModel interestRateModel_,
         uint initialExchangeRateMantissa
-    ) public VBNB(comptroller_, interestRateModel_, initialExchangeRateMantissa, name_, symbol_, decimals_, admin_) {}
+    )
+        public
+        MockVBNB(comptroller_, interestRateModel_, initialExchangeRateMantissa, name_, symbol_, decimals_, admin_)
+    {}
 
     function setTotalBorrows(uint totalBorrows_) public {
         totalBorrows = totalBorrows_;

@@ -6,9 +6,8 @@ import chai from "chai";
 import { BigNumberish, Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
-import { convertToUnit } from "../../helpers/utils";
-import { Comptroller, VBep20Harness } from "../../typechain";
-import { ComptrollerErrorReporter } from "./util/Errors";
+import { convertToUnit } from "../../../helpers/utils";
+import { Comptroller, VBep20Harness } from "../../../typechain";
 import {
   VTokenContracts,
   adjustBalances,
@@ -16,7 +15,7 @@ import {
   makeVToken,
   preApprove,
   pretendBorrow,
-} from "./util/TokenTestHelpers";
+} from "../util/TokenTestHelpers";
 
 const { expect } = chai;
 chai.use(smock.matchers);

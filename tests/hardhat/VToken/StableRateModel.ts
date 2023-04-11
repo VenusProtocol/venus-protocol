@@ -3,9 +3,9 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { convertToUnit } from "../../helpers/utils";
-import { InterestRateModel, StableRateModel, StableRateModel__factory, VBep20Harness } from "../../typechain";
-import { vTokenTestFixture } from "./util/TokenTestHelpers";
+import { convertToUnit } from "../../../helpers/utils";
+import { InterestRateModel, StableRateModel, StableRateModel__factory, VBep20Harness } from "../../../typechain";
+import { vTokenTestFixture } from "../util/TokenTestHelpers";
 
 let stableRateModelFactory: MockContractFactory<StableRateModel__factory>;
 let stableRateModel: MockContract<StableRateModel>;
@@ -14,7 +14,9 @@ let interestRateModel: FakeContract<InterestRateModel>;
 
 const fixture = async (): Promise<void> => {
   const [owner] = await ethers.getSigners();
-  stableRateModelFactory = await smock.mock<StableRateModel__factory>("StableRateModel");
+  stableRateModelFactory = await smock.mock<StableRateModel__factory>(
+    "contracts/InterestRateModels/StableRateModel.sol:StableRateModel",
+  );
   stableRateModel = await stableRateModelFactory.deploy(
     convertToUnit(1, 10),
     convertToUnit(1, 12),

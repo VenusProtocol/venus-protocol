@@ -33,9 +33,9 @@ export async function makeVToken({
   comptroller: FakeContract<Comptroller>;
   admin: Signer;
 }): Promise<VTokenContracts> {
-  const interestRateModel = await smock.fake<InterestRateModel>("InterestRateModel");
+  const interestRateModel = await smock.fake<InterestRateModel>("contracts/InterestRateModels/InterestRateModel.sol:InterestRateModel");
   interestRateModel.isInterestRateModel.returns(true);
-  const stableInterestRateModel = await smock.fake<StableRateModel>("StableRateModel");
+  const stableInterestRateModel = await smock.fake<StableRateModel>("contracts/InterestRateModels/StableRateModel.sol:StableRateModel");
   stableInterestRateModel.isInterestRateModel.returns(true);
   const underlyingFactory = await smock.mock<VBNBHarness__factory>("VBNBHarness");
   const underlying = await underlyingFactory.deploy(comptroller.address,interestRateModel.address,1, name,"$", 18, admin.getAddress());

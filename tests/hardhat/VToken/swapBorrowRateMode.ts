@@ -4,9 +4,9 @@ import chai from "chai";
 import { BigNumberish, Signer } from "ethers";
 import { ethers } from "hardhat";
 
-import { convertToUnit } from "../../helpers/utils";
-import { VBep20Harness } from "../../typechain";
-import { VTokenTestFixture, vTokenTestFixture } from "./util/TokenTestHelpers";
+import { convertToUnit } from "../../../helpers/utils";
+import { VBep20Harness } from "../../../typechain";
+import { VTokenTestFixture, vTokenTestFixture } from "../util/TokenTestHelpers";
 
 const { expect } = chai;
 chai.use(smock.matchers);
