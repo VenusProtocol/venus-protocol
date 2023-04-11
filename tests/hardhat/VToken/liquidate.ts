@@ -126,10 +126,6 @@ describe("VToken", function () {
     .dividedBy(convertToUnit("1", 18))
     .toString();
   const liquidatorShareTokens = new BigNumber(seizeTokens).toString();
-  const addReservesAmount = new BigNumber(protocolShareTokens)
-    .multipliedBy(exchangeRate)
-    .dividedBy(convertToUnit("1", 18))
-    .toString();
 
   beforeEach(async () => {
     [_root, liquidator, borrower] = await ethers.getSigners();
