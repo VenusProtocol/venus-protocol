@@ -61,6 +61,12 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     /// @notice Event emitted when venusTreasury state var is modified
     event VenusTreasuryChanged(address oldTreasury, address newTreasury);
 
+    /// @notice Event emitted when stable token is swapped for VAI
+    event StableForVAISwapped(uint256 stableIn, uint256 vaiOut);
+
+    /// @notice Event emitted when stable token is swapped for VAI
+    event VaiForStableSwapped(uint256 vaiIn, uint256 stableOut);
+
     /**
      * @dev Prevents functions to execute when contract is paused.
      */
@@ -111,6 +117,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         VAI(vaiAddress).burn(msg.sender, stableTknAmount);
         vaiMinted -= stableTknAmount;
         IERC20Upgradeable(stableTokenAddress).safeTransferFrom(address(this), receiver, stableTknAmount);
+        emit VaiForStableSwapped(stableTknAmount + fee, stableTknAmount);
     }
 
     function swapStableForVAI(address receiver, uint256 stableTknAmount) external isActive {
@@ -129,6 +136,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         VAI(vaiAddress).mint(receiver, vaiToMint);
         // mint VAI fee to venus treasury
         VAI(vaiAddress).mint(venusTreasury, fee);
+        emit StableForVAISwapped(stableTknAmount, vaiToMint + fee);
     }
 
     /*** Helper Functions ***/
