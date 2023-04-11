@@ -175,8 +175,8 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
 
     function setFeeIn(uint256 feeIn_) external {
         _checkAccessAllowed("setFeeIn(uint256)");
-        // feeIn = 1000 = 100%
-        require(feeIn < 1000, "Invalid fee");
+        // feeIn = 10000 = 100%
+        require(feeIn_ < BASIS_POINTS_DIVISOR, "Invalid fee");
         uint256 oldFeeIn = feeIn;
         feeIn = feeIn_;
         emit FeeInChanged(oldFeeIn, feeIn_);
@@ -184,8 +184,8 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
 
     function setFeeOut(uint256 feeOut_) external {
         _checkAccessAllowed("setFeeOut(uint256)");
-        // feeOut = 1000 = 100%
-        require(feeOut < 1000, "Invalid fee");
+        // feeOut = 10000 = 100%
+        require(feeOut_ < BASIS_POINTS_DIVISOR, "Invalid fee");
         uint256 oldFeeOut = feeOut;
         feeOut = feeOut_;
         emit FeeOutChanged(oldFeeOut, feeOut_);
