@@ -59,7 +59,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     event VaiMintCapChanged(uint256 oldCap, uint256 newCap);
 
     /// @notice Event emitted when venusTreasury state var is modified
-    event VenusTreasuryChanged(address oldTreasury, address newTreasury);
+    event VenusTreasuryChanged(address indexed oldTreasury, address indexed newTreasury);
 
     /// @notice Event emitted when stable token is swapped for VAI
     event StableForVAISwapped(uint256 stableIn, uint256 vaiOut);
