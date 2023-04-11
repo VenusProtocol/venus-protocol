@@ -8,7 +8,7 @@ import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 import "./VTokenInterfaces.sol";
-import "../../InterestRate/StableRateModel.sol";
+import "../../InterestRateModels/StableRateModel.sol";
 
 /**
  * @title Venus's vToken Contract
