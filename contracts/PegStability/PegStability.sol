@@ -168,7 +168,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
 
     function resume() external {
         _checkAccessAllowed("resume()");
-        require(isPaused == true, "PSM is not paused");
+        require(isPaused == true, "PSM is not resumed");
         isPaused = false;
         emit PSMResumed(msg.sender);
     }
