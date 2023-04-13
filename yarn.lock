@@ -2385,6 +2385,11 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@venusprotocol/governance-contracts@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@venusprotocol/governance-contracts/-/governance-contracts-0.0.1.tgz#d3f10023ef35f861dc79918a958153d892a00a53"
+  integrity sha512-JTI5487zzuYOFI2iJ9mqnuOv36VnwervpgNbRWA1tW5ZRg33YLVdXg5CFU4ou36Us19ckFdifEUX0/Zl0vfYwQ==
+
 "@sindresorhus/is@npm:^0.14.0":
   version: 0.14.0
   resolution: "@sindresorhus/is@npm:0.14.0"
