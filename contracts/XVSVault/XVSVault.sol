@@ -485,7 +485,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     }
 
     // Update reward vairables for all pools. Be careful of gas spending!
-    function massUpdatePools(address _rewardToken) public {
+    function massUpdatePools(address _rewardToken) internal {
         uint256 length = poolInfos[_rewardToken].length;
         for (uint256 pid = 0; pid < length; ++pid) {
             _updatePool(_rewardToken, pid);
