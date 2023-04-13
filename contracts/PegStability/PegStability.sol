@@ -24,7 +24,11 @@ interface VToken {
     function underlying() external view returns (address);
 }
 
-// NOTE: WE ASSUME that VAI and stableToken both have 18 decimal places which is the case for BSC
+/**
+ * @title Peg Stability Contract
+ * @notice Contract for swapping stable token for VAI token and vice versa to maintain the peg stability between them.
+ * @author Venus Protocol
+ */
 contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -78,7 +82,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
      * @dev Prevents functions to execute when contract is paused.
      */
     modifier isActive() {
-        require(isPaused == false, "Contract is paused");
+        require(isPaused == false, "Contract is paused.");
         _;
     }
 
@@ -92,6 +96,15 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         _disableInitializers();
     }
 
+    /**
+     * @notice Initializes the contract via Proxy Contract with the required parameters
+     * @param accessControlManager_ The address of the AccessControlManager contract
+     * @param venusTreasury_ The address where fees will be sent
+     * @param priceOracle_ The address of the PriceOracle contract
+     * @param feeIn_ The percentage of fees to be applied to a stablecoin -> VAI swap
+     * @param feeOut_ The percentage of fees to be applied to a VAI -> stablecoin swap
+     * @param vaiMintCap_ The cap for the total amount of VAI that can be minted
+     */
     function initialize(
         address accessControlManager_,
         address venusTreasury_,
@@ -111,19 +124,28 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         priceOracle = priceOracle_;
     }
 
-    /// @notice Checks the passed address is nonzero
+    /**
+     * @notice Checks that the address is not the zero address
+     * @param someone The address to check
+     */
     function ensureNonzeroAddress(address someone) private pure {
-        require(someone != address(0), "can't be zero address");
+        require(someone != address(0), "Can't be zero address.");
     }
 
     /*** Swap Functions ***/
 
+    /**
+     * @notice Swaps VAI for a stable token
+     * @param receiver The address where the stablecoin will be sent
+     * @param stableTknAmount The amount of stable tokens to receive
+     */
+    // @custom:event Emits VaiForStableSwapped event
     function swapVAIForStable(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
         ensureNonzeroAddress(receiver);
         require(stableTknAmount > 0, "Amount must be greater than zero");
         uint256 stableTknAmountUSD = previewTokenUSDAmount(stableTknAmount, FeeDirection.OUT);
         uint256 fee = _calculateFee(stableTknAmountUSD, FeeDirection.OUT);
-        require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "not enought VAI");
+        require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "Not enought VAI.");
         bool success = VAI(vaiAddress).transferFrom(msg.sender, venusTreasury, fee);
         require(success, "VAI fee transfer failed");
         if (vaiMinted != 0) {
@@ -134,6 +156,12 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         emit VaiForStableSwapped(stableTknAmountUSD, fee, stableTknAmountUSD);
     }
 
+    /**
+     * @notice Swaps stable tokens for VAI with fees.
+     * @param receiver The address that will receive the VAI tokens.
+     * @param stableTknAmount The amount of stable tokens to be swapped.
+     */
+    // @custom:event Emits StableForVAISwapped event
     function swapStableForVAI(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
         ensureNonzeroAddress(receiver);
         require(stableTknAmount > 0, "Amount must be greater than zero");
@@ -145,7 +173,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         //calculate feeIn
         uint256 fee = _calculateFee(actualTransferAmtInUSD, FeeDirection.IN);
         uint256 vaiToMint = actualTransferAmtInUSD - fee;
-        require(vaiMinted + actualTransferAmtInUSD <= vaiMintCap, "VAI mint cap reached");
+        require(vaiMinted + actualTransferAmtInUSD <= vaiMintCap, "VAI mint cap reached.");
         vaiMinted += actualTransferAmtInUSD;
         // mint VAI to receiver
         VAI(vaiAddress).mint(receiver, vaiToMint);
@@ -156,15 +184,25 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
 
     /*** Helper Functions ***/
 
-    // returns the USD value of the given amount of stable tokens scaled by 1e18 depending on the position of the swap
+    /**
+     * @dev Calculates the USD value of the given amount of stable tokens depending on the swap direction.
+     * @param amount The amount of stable tokens.
+     * @param direction The direction of the swap.
+     * @return The USD value of the given amount of stable tokens scaled by 1e18 taking into account the direction of the swap
+     */
     function previewTokenUSDAmount(uint256 amount, FeeDirection direction) internal view returns (uint256) {
         return (amount * getPriceInUSD(direction)) / MANTISSA_ONE;
     }
 
-    // returns the price in USD for 1 token, having in mind the direction of the swap scaled by 1e18
+    /**
+     * @notice Get the price of vToken in USD, based on the selected oracle
+     * @dev This function returns either min(1$,oraclePrice) or max(1$,oraclePrice) depending on the direction of the swap
+     * @param direction The direction of the swap: FeeDirection.IN or FeeDirection.OUT
+     * @return The price in USD, adjusted based on the selected direction
+     */
     function getPriceInUSD(FeeDirection direction) internal view returns (uint256) {
         uint256 price = PriceOracle(priceOracle).getUnderlyingPrice(vTokenAddress);
-        require(price != INVALID_ORACLE_PRICE, "Invalid oracle price");
+        require(price != INVALID_ORACLE_PRICE, "Invalid oracle price.");
         if (direction == FeeDirection.IN) {
             //MIN (1,price)
             return MANTISSA_ONE < price ? MANTISSA_ONE : price;
@@ -174,6 +212,13 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         }
     }
 
+    /**
+     * @notice Calculate the fee amount based on the input amount and fee percentage
+     * @dev Reverts if the fee percentage calculation results in rounding down to 0
+     * @param amount The input amount to calculate the fee from
+     * @param direction The direction of the fee: FeeDirection.IN or FeeDirection.OUT
+     * @return The fee amount
+     */
     function _calculateFee(uint256 amount, FeeDirection direction) internal view returns (uint256) {
         uint256 feePercent;
         if (direction == FeeDirection.IN) {
@@ -185,45 +230,72 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
             return amount;
         } else {
             // checking if the percent calculation will result in rounding down to 0
-            require(amount * feePercent >= BASIS_POINTS_DIVISOR, "amount too small");
+            require(amount * feePercent >= BASIS_POINTS_DIVISOR, "Amount too small.");
             return (amount * feePercent) / BASIS_POINTS_DIVISOR;
         }
     }
 
     /*** Admin Functions ***/
 
+    /**
+     * @notice Pause the PSM contract
+     * @dev Reverts if the contract is already paused
+     */
+    // @custom:event Emits PSMPaused event
     function pause() external {
         _checkAccessAllowed("pause()");
-        require(isPaused == false, "PSM is already paused");
+        require(isPaused == false, "PSM is already paused.");
         isPaused = true;
         emit PSMPaused(msg.sender);
     }
 
+    /**
+     * @notice Resume the PSM contract
+     * @dev Reverts if the contract is not paused
+     */
+    // @custom:event Emits PSMResumed event
     function resume() external {
         _checkAccessAllowed("resume()");
-        require(isPaused == true, "PSM is not paused");
+        require(isPaused == true, "PSM is not paused.");
         isPaused = false;
         emit PSMResumed(msg.sender);
     }
 
+    /**
+     * @notice Set the fee percentage for incoming swaps
+     * @dev Reverts if the new fee percentage is invalid (greater than or equal to BASIS_POINTS_DIVISOR)
+     * @param feeIn_ The new fee percentage for incoming swaps
+     */
+    // @custom:event Emits FeeInChanged event
     function setFeeIn(uint256 feeIn_) external {
         _checkAccessAllowed("setFeeIn(uint256)");
         // feeIn = 10000 = 100%
-        require(feeIn_ < BASIS_POINTS_DIVISOR, "Invalid fee");
+        require(feeIn_ < BASIS_POINTS_DIVISOR, "Invalid fee.");
         uint256 oldFeeIn = feeIn;
         feeIn = feeIn_;
         emit FeeInChanged(oldFeeIn, feeIn_);
     }
 
+    /**
+     * @notice Set the fee percentage for outgoing swaps
+     * @dev Reverts if the new fee percentage is invalid (greater than or equal to BASIS_POINTS_DIVISOR)
+     * @param feeOut_ The new fee percentage for outgoing swaps
+     */
+    // @custom:event Emits FeeOutChanged event
     function setFeeOut(uint256 feeOut_) external {
         _checkAccessAllowed("setFeeOut(uint256)");
         // feeOut = 10000 = 100%
-        require(feeOut_ < BASIS_POINTS_DIVISOR, "Invalid fee");
+        require(feeOut_ < BASIS_POINTS_DIVISOR, "Invalid fee.");
         uint256 oldFeeOut = feeOut;
         feeOut = feeOut_;
         emit FeeOutChanged(oldFeeOut, feeOut_);
     }
 
+    /**
+     * @dev Set the maximum amount of VAI that can be minted through this contract
+     * @param vaiMintCap_ The new maximum amount of VAI that can be minted
+     */
+    // @custom:event Emits VaiMintCapChanged event
     function setVaiMintCap(uint256 vaiMintCap_) external {
         _checkAccessAllowed("setVaiMintCap(uint256)");
         uint256 oldVaiMintCap = vaiMintCap;
@@ -231,6 +303,12 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         emit VaiMintCapChanged(oldVaiMintCap, vaiMintCap);
     }
 
+    /**
+     * @notice Set the address of the Venus Treasury contract
+     * @dev Reverts if the new address is zero
+     * @param venusTreasury_ The new address of the Venus Treasury contract
+     */
+    // @custom:event Emits VenusTreasuryChanged event
     function setVenusTreasury(address venusTreasury_) external {
         _checkAccessAllowed("setVenusTreasury(address)");
         ensureNonzeroAddress(venusTreasury_);
@@ -239,11 +317,17 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         emit VenusTreasuryChanged(oldTreasuryAddress, venusTreasury_);
     }
 
+    /**
+     * @notice Set the address of the PriceOracle contract
+     * @dev Reverts if the new address is zero
+     * @param priceOracle_ The new address of the PriceOracle contract
+     */
+    // @custom:event Emits PriceOracleChanged event
     function setPriceOracle(address priceOracle_) external {
         _checkAccessAllowed("setPriceOracle(address)");
         ensureNonzeroAddress(priceOracle_);
         address oldPriceOracleAddress = priceOracle_;
         priceOracle = priceOracle_;
-        emit VenusTreasuryChanged(oldPriceOracleAddress, priceOracle_);
+        emit PriceOracleChanged(oldPriceOracleAddress, priceOracle_);
     }
 }
