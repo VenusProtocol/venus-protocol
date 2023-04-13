@@ -38,7 +38,7 @@ async function deployVaultFixture(): Promise<VaultFixture> {
   );
   accessControl.isAllowedToCall.returns(true);
 
-  await vrtVault._setAccessControl(accessControl.address);
+  await vrtVault.setAccessControl(accessControl.address);
   await vrtVault.setLastAccruingBlock(lastAccruingBlock);
   return { vrtVault, vrt, user1, user2, initialBlock, lastAccruingBlock };
 }

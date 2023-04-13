@@ -55,7 +55,7 @@ async function deployAndConfigureNewVault() {
   await xvsVaultImpl.connect(admin)._become(xvsVaultProxy.address);
   xvsVault = XVSVault__factory.connect(xvsVaultProxy.address, admin);
 
-  await xvsVault._setAccessControl(ACM);
+  await xvsVault.setAccessControl(ACM);
   accessControlManager = IAccessControlManagerV5__factory.connect(ACM, admin);
 }
 

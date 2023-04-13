@@ -249,7 +249,7 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
      * @dev Admin function to set the access control address
      * @param newAccessControlAddress New address for the access control
      */
-    function _setAccessControl(address newAccessControlAddress) external onlyAdmin {
+    function setAccessControl(address newAccessControlAddress) external onlyAdmin {
         _setAccessControlManager(newAccessControlAddress);
     }
 }

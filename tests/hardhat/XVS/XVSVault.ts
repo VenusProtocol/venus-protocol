@@ -42,7 +42,7 @@ describe("XVSVault", async () => {
 
     const accessControlMock = await smock.fake<IAccessControlManager>("AccessControlManager");
     accessControlMock.isAllowedToCall.returns(true);
-    await xvsVault.connect(deployer)._setAccessControl(accessControlMock.address);
+    await xvsVault.connect(deployer).setAccessControl(accessControlMock.address);
 
     return { xvsVault, xvs, xvsStore };
   }
