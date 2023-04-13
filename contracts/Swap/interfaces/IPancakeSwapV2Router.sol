@@ -15,7 +15,7 @@ interface IPancakeSwapV2Router {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external returns (uint256[] memory amounts);
+    ) external returns (uint256 swapAmount);
 
     function swapExactBNBForTokens(
         uint256 amountOutMin,
@@ -29,7 +29,7 @@ interface IPancakeSwapV2Router {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external payable returns (uint256[] memory amounts);
+    ) external payable returns (uint256 swapAmount);
 
     function swapExactTokensForBNB(
         uint256 amountIn,

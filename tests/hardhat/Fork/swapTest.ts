@@ -604,7 +604,7 @@ describe("Swap Contract", () => {
               SFMUser.address,
               deadline,
             ),
-        ).to.emit(swapRouter, "SwapTokensForTokens");
+        ).to.emit(swapRouter, "SwapTokensForTokensAtSupportingFee");
 
         const currBalance = await BabyDoge.balanceOf(SFMUser.address);
         expect(currBalance).greaterThan(prevBalance);
@@ -626,7 +626,7 @@ describe("Swap Contract", () => {
                 value: parseUnits("0.000001"),
               },
             ),
-        ).to.emit(swapRouter, "SwapBnbForTokens");
+        ).to.emit(swapRouter, "SwapBnbForTokensAtSupportingFee");
 
         const currBalance = await SFM.balanceOf(wBNBUser.address);
         expect(currBalance).greaterThan(prevBalance);
