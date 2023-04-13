@@ -227,7 +227,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
             feePercent = feeOut;
         }
         if (feePercent == 0) {
-            return amount;
+            return 0;
         } else {
             // checking if the percent calculation will result in rounding down to 0
             require(amount * feePercent >= BASIS_POINTS_DIVISOR, "Amount too small.");
