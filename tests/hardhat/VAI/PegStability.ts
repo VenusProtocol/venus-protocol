@@ -1,11 +1,9 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { expect, use } from "chai";
-import exp from "constants";
+import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { getDeployer } from "../../../script/deploy/utils/web3-utils";
 import {
   IAccessControlManager,
   IERC20Upgradeable,
