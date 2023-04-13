@@ -755,14 +755,14 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
     function pause() external {
         _checkAccessAllowed("pause()");
-        require(vaultPaused == false, "Vault is already paused");
+        require(!vaultPaused, "Vault is already paused");
         vaultPaused = true;
         emit VaultPaused(msg.sender);
     }
 
     function resume() external {
         _checkAccessAllowed("resume()");
-        require(vaultPaused == true, "Vault is not paused");
+        require(vaultPaused, "Vault is not paused");
         vaultPaused = false;
         emit VaultResumed(msg.sender);
     }
