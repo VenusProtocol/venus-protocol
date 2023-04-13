@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 interface VAI {
     function balanceOf(address usr) external returns (uint256);
 
@@ -15,8 +16,15 @@ interface VAI {
     function burn(address usr, uint wad) external;
 }
 
-// NOTE: WE ASSUME that VAI and stableToken both have 18 decimal places which is the case for BSC
+interface PriceOracle {
+    function getUnderlyingPrice(address vToken) external view returns (uint256);
+}
 
+interface VToken {
+    function underlying() external view returns (address);
+}
+
+// NOTE: WE ASSUME that VAI and stableToken both have 18 decimal places which is the case for BSC
 contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -27,20 +35,17 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     }
     address public immutable vaiAddress;
     address public immutable stableTokenAddress;
+    address public immutable vTokenAddress; // vToken having as underlying the stableToken
+    address public priceOracle;
     address public venusTreasury;
     uint256 public constant BASIS_POINTS_DIVISOR = 10000; // fee is in basis points
+    uint256 public constant INVALID_ORACLE_PRICE = 0;
+    uint256 public constant MANTISSA_ONE = 1e18;
     uint256 public feeIn; // incoming VAI fee
     uint256 public feeOut; // outgoing VAI fee
     uint256 public vaiMintCap; // max amount of VAI that can be minted through this contract
     uint256 public vaiMinted;
     bool public isPaused;
-
-    /**
-     * @dev This empty reserved space is put in place to allow future versions to add new
-     * variables without shifting down storage in the inheritance chain.
-     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-     */
-    uint256[49] private __gap;
 
     /// @notice Event emitted when contract is paused
     event PSMPaused(address indexed admin);
@@ -60,6 +65,9 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     /// @notice Event emitted when venusTreasury state var is modified
     event VenusTreasuryChanged(address indexed oldTreasury, address indexed newTreasury);
 
+    /// @notice Event emitted when priceOracle state var is modified
+    event PriceOracleChanged(address indexed oldPriceOracle, address indexed newPriceOracle);
+
     /// @notice Event emitted when stable token is swapped for VAI
     event StableForVAISwapped(uint256 stableIn, uint256 vaiOut, uint256 fee);
 
@@ -75,10 +83,11 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address stableTokenAddress_, address vaiAddress_) {
-        ensureNonzeroAddress(stableTokenAddress_);
+    constructor(address vTokenAddress_, address vaiAddress_) {
+        ensureNonzeroAddress(vTokenAddress_);
         ensureNonzeroAddress(vaiAddress_);
-        stableTokenAddress = stableTokenAddress_;
+        vTokenAddress = vTokenAddress_;
+        stableTokenAddress = VToken(vTokenAddress).underlying();
         vaiAddress = vaiAddress_;
         _disableInitializers();
     }
@@ -86,17 +95,20 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     function initialize(
         address accessControlManager_,
         address venusTreasury_,
+        address priceOracle_,
         uint256 feeIn_,
         uint256 feeOut_,
         uint256 vaiMintCap_
     ) external initializer {
         ensureNonzeroAddress(accessControlManager_);
         ensureNonzeroAddress(venusTreasury_);
+        ensureNonzeroAddress(priceOracle_);
         __AccessControlled_init(accessControlManager_);
         feeIn = feeIn_;
         feeOut = feeOut_;
         vaiMintCap = vaiMintCap_;
         venusTreasury = venusTreasury_;
+        priceOracle = priceOracle_;
     }
 
     /// @notice Checks the passed address is nonzero
@@ -109,16 +121,17 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     function swapVAIForStable(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
         ensureNonzeroAddress(receiver);
         require(stableTknAmount > 0, "Amount must be greater than zero");
-        uint256 fee = _calculateFee(stableTknAmount, FeeDirection.OUT);
-        require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmount + fee, "not enought VAI");
+        uint256 stableTknAmountUSD = previewTokenUSDAmount(stableTknAmount, FeeDirection.OUT);
+        uint256 fee = _calculateFee(stableTknAmountUSD, FeeDirection.OUT);
+        require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "not enought VAI");
         bool success = VAI(vaiAddress).transferFrom(msg.sender, venusTreasury, fee);
         require(success, "VAI fee transfer failed");
         if (vaiMinted != 0) {
-            vaiMinted -= stableTknAmount;
+            vaiMinted -= stableTknAmountUSD;
         }
-        VAI(vaiAddress).burn(msg.sender, stableTknAmount);
-        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(address(this), receiver, stableTknAmount);
-        emit VaiForStableSwapped(stableTknAmount, fee, stableTknAmount);
+        VAI(vaiAddress).burn(msg.sender, stableTknAmountUSD);
+        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(address(this), receiver, stableTknAmountUSD);
+        emit VaiForStableSwapped(stableTknAmountUSD, fee, stableTknAmountUSD);
     }
 
     function swapStableForVAI(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
@@ -128,19 +141,38 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         IERC20Upgradeable(stableTokenAddress).safeTransferFrom(msg.sender, address(this), stableTknAmount);
         uint256 balanceAfter = IERC20Upgradeable(stableTokenAddress).balanceOf(address(this));
         uint256 actualTransferAmt = balanceAfter - balanceBefore;
+        uint256 actualTransferAmtInUSD = previewTokenUSDAmount(actualTransferAmt, FeeDirection.IN);
         //calculate feeIn
-        uint256 fee = _calculateFee(actualTransferAmt, FeeDirection.IN);
-        uint256 vaiToMint = actualTransferAmt - fee;
-        require(vaiMinted + actualTransferAmt <= vaiMintCap, "VAI mint cap reached");
-        vaiMinted += actualTransferAmt;
+        uint256 fee = _calculateFee(actualTransferAmtInUSD, FeeDirection.IN);
+        uint256 vaiToMint = actualTransferAmtInUSD - fee;
+        require(vaiMinted + actualTransferAmtInUSD <= vaiMintCap, "VAI mint cap reached");
+        vaiMinted += actualTransferAmtInUSD;
         // mint VAI to receiver
         VAI(vaiAddress).mint(receiver, vaiToMint);
         // mint VAI fee to venus treasury
         VAI(vaiAddress).mint(venusTreasury, fee);
-        emit StableForVAISwapped(stableTknAmount, vaiToMint, fee);
+        emit StableForVAISwapped(actualTransferAmtInUSD, vaiToMint, fee);
     }
 
     /*** Helper Functions ***/
+
+    // returns the USD value of the given amount of stable tokens scaled by 1e18 depending on the position of the swap
+    function previewTokenUSDAmount(uint256 amount, FeeDirection direction) internal view returns (uint256) {
+        return (amount * getPriceInUSD(direction)) / MANTISSA_ONE;
+    }
+
+    // returns the price in USD for 1 token, having in mind the direction of the swap scaled by 1e18
+    function getPriceInUSD(FeeDirection direction) internal view returns (uint256) {
+        uint256 price = PriceOracle(priceOracle).getUnderlyingPrice(vTokenAddress);
+        require(price != INVALID_ORACLE_PRICE, "Invalid oracle price");
+        if (direction == FeeDirection.IN) {
+            //MIN (1,price)
+            return MANTISSA_ONE < price ? MANTISSA_ONE : price;
+        } else {
+            //MAX (1,price)
+            return MANTISSA_ONE > price ? MANTISSA_ONE : price;
+        }
+    }
 
     function _calculateFee(uint256 amount, FeeDirection direction) internal view returns (uint256) {
         uint256 feePercent;
@@ -205,5 +237,13 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         address oldTreasuryAddress = venusTreasury;
         venusTreasury = venusTreasury_;
         emit VenusTreasuryChanged(oldTreasuryAddress, venusTreasury_);
+    }
+
+    function setPriceOracle(address priceOracle_) external {
+        _checkAccessAllowed("setPriceOracle(address)");
+        ensureNonzeroAddress(priceOracle_);
+        address oldPriceOracleAddress = priceOracle_;
+        priceOracle = priceOracle_;
+        emit VenusTreasuryChanged(oldPriceOracleAddress, priceOracle_);
     }
 }
