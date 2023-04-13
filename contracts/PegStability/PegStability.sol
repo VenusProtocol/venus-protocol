@@ -147,7 +147,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         uint256 fee = _calculateFee(stableTknAmountUSD, FeeDirection.OUT);
         require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "Not enought VAI.");
         bool success = VAI(vaiAddress).transferFrom(msg.sender, venusTreasury, fee);
-        require(success, "VAI fee transfer failed");
+        require(success, "VAI fee transfer failed.");
         if (vaiMinted != 0) {
             vaiMinted -= stableTknAmountUSD;
         }
