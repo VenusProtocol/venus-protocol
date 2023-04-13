@@ -223,6 +223,7 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
     }
 
     function setVenusInfo(address _xvs, address _vai) external onlyAdmin {
+        require(_xvs != address(0) && _vai != address(0), "addresses must not be zero");
         xvs = IBEP20(_xvs);
         vai = IBEP20(_vai);
 

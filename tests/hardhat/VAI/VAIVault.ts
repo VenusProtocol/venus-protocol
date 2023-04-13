@@ -1,6 +1,6 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { BigNumber } from "ethers";
+import { BigNumber, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import { VAI, VAIVault, VAIVault__factory, VAI__factory, XVS, XVS__factory } from "../../../typechain";
@@ -26,6 +26,9 @@ describe("VAIVault", async () => {
   it("claim reward", async function () {
     const { vaiVault, vai, xvs, user1, user2 } = await loadFixture(deployVaultFixture);
 
+    await expect(vaiVault.setVenusInfo(constants.AddressZero, constants.AddressZero)).to.be.revertedWith(
+      "addresses must not be zero",
+    );
     await vaiVault.setVenusInfo(xvs.address, vai.address);
     await vai.mint(user1.address, bigNumber18.mul(100));
     await vai.mint(user2.address, bigNumber18.mul(100));
