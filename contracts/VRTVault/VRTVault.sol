@@ -214,7 +214,12 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
             uint256 vrtBalance = vrt.balanceOf(address(this));
             require(vrtBalance >= accruedInterest, "Failed to transfer VRT, Insufficient VRT in Vault.");
             emit Claim(account, accruedInterest);
-            user.accrualStartBlockNumber = getBlockNumber();
+            uint256 currentBlock_ = getBlockNumber();
+            if (lastAccruingBlock > currentBlock_) {
+                user.accrualStartBlockNumber = currentBlock_;
+            } else {
+                user.accrualStartBlockNumber = lastAccruingBlock;
+            }
             vrt.safeTransfer(user.userAddress, accruedInterest);
         }
     }

@@ -1,5 +1,5 @@
 import { FakeContract, smock } from "@defi-wonderland/smock";
-import { loadFixture, mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine, mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
@@ -79,7 +79,7 @@ describe("VRTVault", async () => {
 
   it("should not able to set lastAccuringBlock less than current block", async function () {
     const { vrtVault, lastAccruingBlock } = fixture;
-    await mineUpTo(200);
+    await mine(200);
     await expect(vrtVault.setLastAccruingBlock(lastAccruingBlock - 7)).to.be.revertedWith(
       "Invalid _lastAccruingBlock interest have been accumulated",
     );
