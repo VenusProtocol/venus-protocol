@@ -76,4 +76,12 @@ describe("VRTVault", async () => {
     await vrtVault.connect(user2)["claim(address)"](user1.address);
     expect(await vrt.balanceOf(user1.address)).to.be.equal(bigNumber18.mul(10100));
   });
+
+  it("should not able to set lastAccuringBlock less than current block", async function () {
+    const { vrtVault, lastAccruingBlock } = fixture;
+    await mineUpTo(200);
+    await expect(vrtVault.setLastAccruingBlock(lastAccruingBlock - 7)).to.be.revertedWith(
+      "Invalid _lastAccruingBlock interest have been accumulated",
+    );
+  });
 });

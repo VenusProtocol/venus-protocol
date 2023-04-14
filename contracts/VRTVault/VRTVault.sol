@@ -262,6 +262,10 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     function setLastAccruingBlock(uint256 _lastAccruingBlock) external {
         _checkAccessAllowed("setLastAccruingBlock(uint256)");
         uint256 oldLastAccruingBlock = lastAccruingBlock;
+        uint256 currentBlock = getBlockNumber();
+        if (_lastAccruingBlock < oldLastAccruingBlock) {
+            require(currentBlock < _lastAccruingBlock, "Invalid _lastAccruingBlock interest have been accumulated");
+        }
         lastAccruingBlock = _lastAccruingBlock;
         emit LastAccruingBlockChanged(oldLastAccruingBlock, _lastAccruingBlock);
     }
