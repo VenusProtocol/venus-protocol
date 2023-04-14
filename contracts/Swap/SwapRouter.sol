@@ -1,6 +1,6 @@
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import "./interfaces/IPancakeSwapV2Router.sol";
@@ -16,7 +16,7 @@ import "./interfaces/InterfaceComptroller.sol";
  * @author 0xlucian
  */
 
-contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Router {
+contract SwapRouter is Ownable, RouterHelper, IPancakeSwapV2Router {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     address public comptrollerAddress;
@@ -55,22 +55,12 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address WBNB_, address factory_) RouterHelper(WBNB_, factory_) {
-        // Note that the contract is upgradeable. Use initialize() or reinitializers
-        // to set the state variables.
-        _disableInitializers();
+    constructor(address WBNB_, address factory_, address _comptrollerAddress) RouterHelper(WBNB_, factory_) {
+        comptrollerAddress = _comptrollerAddress;
     }
 
     receive() external payable {
         assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
-    }
-
-    // *********************
-    // **** INITIALIZE *****
-    // *********************
-    function initialize(address _comptrollerAddress) external initializer {
-        __Ownable2Step_init();
-        comptrollerAddress = _comptrollerAddress;
     }
 
     // ****************************

@@ -25,6 +25,7 @@
   "author": "Venus",
   "license": "BSD-3-Clause",
   "dependencies": {
+    "@openzeppelin/contracts": "^4.8.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
     "dotenv": "^16.0.1"
   },

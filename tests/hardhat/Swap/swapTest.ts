@@ -56,10 +56,8 @@ async function deploySwapContract(): Promise<SwapFixture> {
   const comptrollerFactory = await smock.mock<ComptrollerHarness__factory>("ComptrollerHarness");
   const comptroller = await comptrollerFactory.deploy();
 
-  const SwapRouter = await smock.mock<SwapRouter__factory>("SwapRouter");
-  const swapRouter = await upgrades.deployProxy(SwapRouter, [comptroller.address], {
-    constructorArgs: [wBNB.address, pancakeFactory.address],
-  });
+  const SwapRouterFactory = await smock.mock<SwapRouter__factory>("SwapRouter");
+  const swapRouter = await SwapRouterFactory.deploy(wBNB.address, pancakeFactory.address, comptroller.address);
 
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
   const tokenA = await FaucetToken.deploy(parseUnits("10000", 18), "TOKENA", 18, "A");

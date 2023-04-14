@@ -132,10 +132,7 @@ const swapRouterConfigure = async (): Promise<void> => {
     admin,
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
-
-  swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
-    constructorArgs: [wBNB.address, pancakeSwapFactory.address],
-  });
+  swapRouter = await swapRouterFactory.deploy(wBNB.address, pancakeSwapFactory.address, comptroller.address);
   await swapRouter.deployed();
 
   await USDT.connect(usdtUser).approve(swapRouter.address, parseUnits("1"));
@@ -157,9 +154,7 @@ const swapRouterDeflationaryConfigure = async (): Promise<void> => {
     admin,
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
-  swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
-    constructorArgs: [wBNB.address, pancakeSwapFactory.address],
-  });
+  swapRouter = await swapRouterFactory.deploy(wBNB.address, pancakeSwapFactory.address, comptroller.address);
   await swapRouter.deployed();
   await BabyDoge.connect(BabyDogeUser).approve(swapRouter.address, parseUnits("100"));
   await SFM.connect(SFMUser).approve(swapRouter.address, parseUnits("100"));
