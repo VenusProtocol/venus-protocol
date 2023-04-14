@@ -408,7 +408,7 @@ describe("Swap Contract", () => {
         expect(borrowBalance).equal(274);
         await swapRouter
           .connect(busdUser)
-          .swapBNBAndRepay(vUSDT.address, MIN_AMOUNT_OUT, [wBNB.address, USDT.address], deadline, {
+          .swapExactBNBForTokensAndRepay(vUSDT.address, MIN_AMOUNT_OUT, [wBNB.address, USDT.address], deadline, {
             value: 1,
           });
         [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
@@ -716,9 +716,15 @@ describe("Swap Contract", () => {
 
         await swapRouter
           .connect(wBNBUser)
-          .swapBNBAndSupplyAtSupportingFee(vSFM.address, MIN_AMOUNT_OUT, [wBNB.address, SFM.address], deadline, {
-            value: parseUnits("0.000001"),
-          });
+          .swapExactBNBForTokensAndSupplyAtSupportingFee(
+            vSFM.address,
+            MIN_AMOUNT_OUT,
+            [wBNB.address, SFM.address],
+            deadline,
+            {
+              value: parseUnits("0.000001"),
+            },
+          );
 
         const currBalance = await vSFM.balanceOf(wBNBUser.address);
         expect(currBalance).greaterThan(prevBalance);
@@ -762,9 +768,15 @@ describe("Swap Contract", () => {
 
         await swapRouter
           .connect(wBNBUser)
-          .swapBNBAndSupplyAtSupportingFee(vSFM.address, MIN_AMOUNT_OUT, [wBNB.address, SFM.address], deadline, {
-            value: parseUnits("0.000001"),
-          });
+          .swapExactBNBForTokensAndSupplyAtSupportingFee(
+            vSFM.address,
+            MIN_AMOUNT_OUT,
+            [wBNB.address, SFM.address],
+            deadline,
+            {
+              value: parseUnits("0.000001"),
+            },
+          );
 
         await expect(vSFM.connect(wBNBUser).borrow(borrowAmount)).to.emit(vSFM, "Borrow");
         const [, , borrowBalancePrev] = await vSFM.getAccountSnapshot(wBNBUser.address);
@@ -772,9 +784,15 @@ describe("Swap Contract", () => {
 
         await swapRouter
           .connect(wBNBUser)
-          .swapBNBAndRepayAtSupportingFee(vSFM.address, MIN_AMOUNT_OUT, [wBNB.address, SFM.address], deadline, {
-            value: parseUnits("0.000000001"),
-          });
+          .swapExactBNBForTokensAndRepayAtSupportingFee(
+            vSFM.address,
+            MIN_AMOUNT_OUT,
+            [wBNB.address, SFM.address],
+            deadline,
+            {
+              value: parseUnits("0.000000001"),
+            },
+          );
 
         const [, , borrowBalanceAfter] = await vSFM.getAccountSnapshot(wBNBUser.address);
         expect(borrowBalanceAfter).lessThan(borrowBalancePrev);

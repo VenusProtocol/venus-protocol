@@ -362,9 +362,15 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapBNBAndSupplyAtSupportingFee(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, dToken.address], deadline, {
-            value: SWAP_AMOUNT,
-          }),
+          .swapExactBNBForTokensAndSupplyAtSupportingFee(
+            vToken.address,
+            MIN_AMOUNT_OUT,
+            [wBNB.address, dToken.address],
+            deadline,
+            {
+              value: SWAP_AMOUNT,
+            },
+          ),
       );
     });
 
@@ -423,7 +429,7 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapBNBAndRepay(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
+          .swapExactBNBForTokensAndRepay(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
       ).to.emit(swapRouter, "SwapBnbForTokens");
@@ -462,9 +468,15 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapBNBAndRepayAtSupportingFee(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, dToken.address], deadline, {
-            value: SWAP_AMOUNT,
-          }),
+          .swapExactBNBForTokensAndRepayAtSupportingFee(
+            vToken.address,
+            MIN_AMOUNT_OUT,
+            [wBNB.address, dToken.address],
+            deadline,
+            {
+              value: SWAP_AMOUNT,
+            },
+          ),
       );
     });
 
