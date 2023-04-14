@@ -3,7 +3,7 @@ import { impersonateAccount, loadFixture } from "@nomicfoundation/hardhat-networ
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 
 import {
   Comptroller,

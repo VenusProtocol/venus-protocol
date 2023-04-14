@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { BigNumber } from "ethers";
 import { getAddress, keccak256, parseUnits, solidityPack } from "ethers/lib/utils";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 
 import {
   BEP20Harness__factory,
