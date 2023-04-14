@@ -187,7 +187,13 @@ describe("Swap Contract", () => {
   it("revert if vToken address is not listed", async () => {
     const deadline = await getValidDeadline();
     await expect(
-      swapRouter.swapAndSupply(tokenB.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
+      swapRouter.swapExactTokensForTokensAndSupply(
+        tokenB.address,
+        SWAP_AMOUNT,
+        MIN_AMOUNT_OUT,
+        [tokenA.address, tokenB.address],
+        deadline,
+      ),
     ).to.be.revertedWithCustomError(swapRouter, "VTokenNotListed");
   });
 
@@ -286,7 +292,13 @@ describe("Swap Contract", () => {
 
     it("revert if deadline has passed", async () => {
       await expect(
-        swapRouter.swapAndSupply(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], 0),
+        swapRouter.swapExactTokensForTokensAndSupply(
+          vToken.address,
+          SWAP_AMOUNT,
+          MIN_AMOUNT_OUT,
+          [tokenA.address, tokenB.address],
+          0,
+        ),
       ).to.be.revertedWithCustomError(swapRouter, "SwapDeadlineExpire");
     });
 
@@ -295,7 +307,13 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapAndSupply(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
+          .swapExactTokensForTokensAndSupply(
+            vToken.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [tokenA.address, tokenB.address],
+            deadline,
+          ),
       ).to.emit(swapRouter, "SwapTokensForTokens");
     });
 
@@ -305,7 +323,7 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapBnbAndSupply(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
+          .swapExactBNBForTokensAndSupply(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
       ).to.emit(swapRouter, "SwapBnbForTokens");
@@ -313,7 +331,7 @@ describe("Swap Contract", () => {
 
     it("revert if deadline has passed  at supporting fee", async () => {
       await expect(
-        swapRouter.swapAndSupplyAtSupportingFee(
+        swapRouter.swapExactTokensForTokensAndSupplyAtSupportingFee(
           vToken.address,
           SWAP_AMOUNT,
           MIN_AMOUNT_OUT,
@@ -328,7 +346,7 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapAndSupplyAtSupportingFee(
+          .swapExactTokensForTokensAndSupplyAtSupportingFee(
             vToken.address,
             SWAP_AMOUNT,
             MIN_AMOUNT_OUT,

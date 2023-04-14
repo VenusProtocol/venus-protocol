@@ -208,7 +208,13 @@ describe("Swap Contract", () => {
 
       it("revert if deadline has passed", async () => {
         await expect(
-          swapRouter.swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], 0),
+          swapRouter.swapExactTokensForTokensAndSupply(
+            vBUSD.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [USDT.address, BUSD.address],
+            0,
+          ),
         ).to.be.revertedWithCustomError(swapRouter, "SwapDeadlineExpire");
       });
 
@@ -287,7 +293,13 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(usdtUser)
-          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+          .swapExactTokensForTokensAndSupply(
+            vBUSD.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [USDT.address, BUSD.address],
+            deadline,
+          );
         const currBalance = await vBUSD.balanceOf(usdtUser.address);
         expect(currBalance).greaterThan(prevBalance);
       });
@@ -297,7 +309,7 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(usdtUser)
-          .swapBnbAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
+          .swapExactBNBForTokensAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
             value: SWAP_BNB_AMOUNT,
           });
 
@@ -310,9 +322,15 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(usdtUser)
-          .swapBnbAndSupply(vUSDT.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address, USDT.address], deadline, {
-            value: SWAP_BNB_AMOUNT,
-          });
+          .swapExactBNBForTokensAndSupply(
+            vUSDT.address,
+            MIN_AMOUNT_OUT,
+            [wBNB.address, BUSD.address, USDT.address],
+            deadline,
+            {
+              value: SWAP_BNB_AMOUNT,
+            },
+          );
         const currBalance = await vUSDT.balanceOf(usdtUser.address);
         expect(currBalance).greaterThan(prevBalance);
       });
@@ -322,7 +340,13 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(busdUser)
-          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline),
+          .swapExactTokensForTokensAndSupply(
+            vBUSD.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [USDT.address, BUSD.address],
+            deadline,
+          ),
           await expect(vUSDT.connect(busdUser).borrow(BORROW_AMOUNT)).to.emit(vUSDT, "Borrow");
         let borrowBalance;
         [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
@@ -339,7 +363,13 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(busdUser)
-          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+          .swapExactTokensForTokensAndSupply(
+            vBUSD.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [USDT.address, BUSD.address],
+            deadline,
+          );
 
         await expect(vUSDT.connect(busdUser).borrow(BORROW_AMOUNT)).to.emit(vUSDT, "Borrow");
         let borrowBalance;
@@ -363,13 +393,13 @@ describe("Swap Contract", () => {
         let deadline = await getValidDeadline();
         await swapRouter
           .connect(usdtUser)
-          .swapBnbAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
+          .swapExactBNBForTokensAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
             value: SWAP_BNB_AMOUNT,
           }),
           (deadline = await getValidDeadline());
         await swapRouter
           .connect(usdtUser)
-          .swapBnbAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
+          .swapExactBNBForTokensAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
             value: SWAP_BNB_AMOUNT,
           }),
           await expect(vUSDT.connect(busdUser).borrow(274)).to.emit(vUSDT, "Borrow");
@@ -390,13 +420,13 @@ describe("Swap Contract", () => {
         let deadline = await getValidDeadline();
         await swapRouter
           .connect(usdtUser)
-          .swapBnbAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
+          .swapExactBNBForTokensAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
             value: SWAP_BNB_AMOUNT,
           }),
           (deadline = await getValidDeadline());
         await swapRouter
           .connect(usdtUser)
-          .swapBnbAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
+          .swapExactBNBForTokensAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
             value: SWAP_BNB_AMOUNT,
           }),
           await expect(vUSDT.connect(busdUser).borrow(274)).to.emit(vUSDT, "Borrow");
@@ -466,7 +496,13 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(busdUser)
-          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+          .swapExactTokensForTokensAndSupply(
+            vBUSD.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [USDT.address, BUSD.address],
+            deadline,
+          );
         await vBNB.connect(busdUser).borrow(parseUnits("5", 0));
         const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(busdUser.address);
         await swapRouter
@@ -487,7 +523,13 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(busdUser)
-          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+          .swapExactTokensForTokensAndSupply(
+            vBUSD.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [USDT.address, BUSD.address],
+            deadline,
+          );
         await vBNB.connect(busdUser).borrow(parseUnits("5", 0));
         await expect(
           swapRouter
@@ -506,7 +548,13 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(busdUser)
-          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+          .swapExactTokensForTokensAndSupply(
+            vBUSD.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [USDT.address, BUSD.address],
+            deadline,
+          );
         await vBNB.connect(busdUser).borrow(parseUnits("5", 0));
         const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(busdUser.address);
         await swapRouter
@@ -521,7 +569,13 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(busdUser)
-          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+          .swapExactTokensForTokensAndSupply(
+            vBUSD.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [USDT.address, BUSD.address],
+            deadline,
+          );
 
         await expect(vUSDT.connect(busdUser).borrow(BORROW_AMOUNT)).to.emit(vUSDT, "Borrow");
         let borrowBalance;
@@ -538,7 +592,13 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(busdUser)
-          .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+          .swapExactTokensForTokensAndSupply(
+            vBUSD.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [USDT.address, BUSD.address],
+            deadline,
+          );
         await vBNB.connect(busdUser).borrow(parseUnits("1", 0));
         await swapRouter
           .connect(busdUser)
@@ -638,7 +698,7 @@ describe("Swap Contract", () => {
 
         await swapRouter
           .connect(SFMUser)
-          .swapAndSupplyAtSupportingFee(
+          .swapExactTokensForTokensAndSupplyAtSupportingFee(
             vBabyDoge.address,
             parseUnits("0.000001"),
             MIN_AMOUNT_OUT,
@@ -670,7 +730,7 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(SFMUser)
-          .swapAndSupplyAtSupportingFee(
+          .swapExactTokensForTokensAndSupplyAtSupportingFee(
             vBabyDoge.address,
             borrowAmount,
             MIN_AMOUNT_OUT,
@@ -724,7 +784,13 @@ describe("Swap Contract", () => {
         const deadline = await getValidDeadline();
         await swapRouter
           .connect(BabyDogeUser)
-          .swapAndSupplyAtSupportingFee(vSFM.address, 10000000000000, 1000, [BabyDoge.address, SFM.address], deadline);
+          .swapExactTokensForTokensAndSupplyAtSupportingFee(
+            vSFM.address,
+            10000000000000,
+            1000,
+            [BabyDoge.address, SFM.address],
+            deadline,
+          );
         await expect(vBNB.connect(BabyDogeUser).borrow(2)).to.emit(vBNB, "Borrow");
         const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(BabyDogeUser.address);
         await swapRouter

@@ -85,7 +85,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param path Array with addresses of the underlying assets to be swapped
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      */
-    function swapAndSupply(
+    function swapExactTokensForTokensAndSupply(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -107,7 +107,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @param path Array with addresses of the underlying assets to be swapped
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      */
-    function swapAndSupplyAtSupportingFee(
+    function swapExactTokensForTokensAndSupplyAtSupportingFee(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -131,7 +131,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-    function swapBnbAndSupply(
+    function swapExactBNBForTokensAndSupply(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,

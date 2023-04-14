@@ -70,7 +70,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external returns (uint256[] memory amounts);
 
-    function swapAndSupply(
+    function swapExactTokensForTokensAndSupply(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -78,7 +78,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external;
 
-    function swapAndSupplyAtSupportingFee(
+    function swapExactTokensForTokensAndSupplyAtSupportingFee(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -86,7 +86,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external;
 
-    function swapBnbAndSupply(
+    function swapExactBNBForTokensAndSupply(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,
