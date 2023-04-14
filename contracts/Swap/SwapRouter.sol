@@ -356,6 +356,26 @@ contract SwapRouter is Ownable, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
+     * @notice Swap BNB for Exact tokens and repay to a Venus market
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapBNBForFullTokenDebtAndRepay(
+        address vTokenAddress,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 amountOut = IVToken(vTokenAddress).borrowBalanceCurrent(msg.sender);
+        _swapETHForExactTokens(amountOut, path, address(this));
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+    }
+
+    /**
      * @notice Swap Exact tokens for BNB and repay to a Venus market
      * @param vBNBAddress The address of the vToken contract for supplying assets.
      * @param amountIn The amount of tokens to swap.

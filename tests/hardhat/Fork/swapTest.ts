@@ -437,6 +437,27 @@ describe("Swap Contract", () => {
         expect(borrowBalance).equal(0);
       });
 
+      it("Borrow--> swap BNB -> TokenB --> repay full tokenB debt", async () => {
+        await USDT.connect(usdtUser).transfer(vUSDT.address, 1000);
+        let deadline = await getValidDeadline();
+        await swapRouter
+          .connect(usdtUser)
+          .swapExactBNBForTokensAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
+            value: SWAP_BNB_AMOUNT,
+          }),
+          (deadline = await getValidDeadline());
+        await expect(vUSDT.connect(usdtUser).borrow(100)).to.emit(vUSDT, "Borrow");
+        let borrowBalance;
+        [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
+        await swapRouter
+          .connect(usdtUser)
+          .swapBNBForFullTokenDebtAndRepay(vUSDT.address, [wBNB.address, USDT.address], deadline, {
+            value: SWAP_BNB_AMOUNT,
+          }),
+          ([, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address));
+        expect(borrowBalance).equal(0);
+      });
+
       it("should revert USDT -> EXACT BUSD if input is more then required", async () => {
         const deadline = await getValidDeadline();
         const amountRequired = await swapRouter.getAmountsOut(100, [USDT.address, BUSD.address]);

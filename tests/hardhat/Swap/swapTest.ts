@@ -516,6 +516,18 @@ describe("Swap Contract", () => {
       ).to.emit(swapRouter, "SwapBnbForTokens");
     });
 
+    it("swap bnb -> full tokenB debt", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapBNBForFullTokenDebtAndRepay(vToken.address, [wBNB.address, tokenB.address], deadline, {
+            value: SWAP_AMOUNT,
+          }),
+      ).to.emit(swapRouter, "SwapBnbForTokens");
+    });
+
     it("Exact tokens -> BNB", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
