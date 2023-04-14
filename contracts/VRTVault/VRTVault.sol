@@ -142,7 +142,12 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
             }
         }
 
-        user.accrualStartBlockNumber = getBlockNumber();
+        uint256 currentBlock_ = getBlockNumber();
+        if (lastAccruingBlock > currentBlock_) {
+            user.accrualStartBlockNumber = currentBlock_;
+        } else {
+            user.accrualStartBlockNumber = lastAccruingBlock;
+        }
         emit Deposit(userAddress, depositAmount);
         vrt.safeTransferFrom(userAddress, address(this), depositAmount);
     }
