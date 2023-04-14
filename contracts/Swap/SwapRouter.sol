@@ -592,11 +592,11 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external override ensure(deadline) ensurePath(path) returns (uint256[] memory amounts) {
+    ) external override ensure(deadline) ensurePath(path) returns (uint256 swapAmount) {
         uint256 balanceBefore = to.balance;
-        amounts = _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
+        _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = to.balance;
-        uint256 swapAmount = balanceAfter - balanceBefore;
+        swapAmount = balanceAfter - balanceBefore;
         require(swapAmount >= amountOutMin, "SwapRouter: SwapAmount is less than amountOutMin");
     }
 
