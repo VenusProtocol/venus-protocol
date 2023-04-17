@@ -812,12 +812,4 @@ contract VAIControllerTemp is VAIControllerStorageG2, VAIControllerErrorReporter
         _ensureNonzeroAddress(vaiAdmin);
         VAI(getVAIAddress()).rely(vaiAdmin);
     }
-
-    /// @notice Removes the admin in VAI contract
-    /// @param vaiAdmin address of the admin to remove
-    function removeAdmin(address vaiAdmin) external onlyAdmin {
-        _ensureNonzeroAddress(vaiAdmin);
-        require(vaiAdmin != address(this), "can't remove vaiController as a vaiAdmin");
-        VAI(getVAIAddress()).deny(vaiAdmin);
-    }
 }
