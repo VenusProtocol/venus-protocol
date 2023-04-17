@@ -808,16 +808,14 @@ contract VAIControllerTemp is VAIControllerStorageG2, VAIControllerErrorReporter
 
     /// @notice Sets the owner of the admin in VAI contract
     /// @param owner address of the new admin
-    function rely(address owner) external {
-        _ensureAllowed("rely(address)");
+    function addAdmin(address owner) external onlyAdmin {
         require(owner != address(0), "Address must not be zero");
         VAI(getVAIAddress()).rely(owner);
     }
 
     /// @notice Removes the owner of the admin in VAI contract
     /// @param owner address of the admin to remove
-    function deny(address owner) external {
-        _ensureAllowed("deny(address)");
+    function removeAdmin(address owner) external onlyAdmin {
         require(owner != address(0), "Address must not be zero");
         VAI(getVAIAddress()).deny(owner);
     }
