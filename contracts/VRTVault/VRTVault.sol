@@ -142,7 +142,12 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
             }
         }
 
-        user.accrualStartBlockNumber = getBlockNumber();
+        uint256 currentBlock_ = getBlockNumber();
+        if (lastAccruingBlock > currentBlock_) {
+            user.accrualStartBlockNumber = currentBlock_;
+        } else {
+            user.accrualStartBlockNumber = lastAccruingBlock;
+        }
         emit Deposit(userAddress, depositAmount);
         vrt.safeTransferFrom(userAddress, address(this), depositAmount);
     }
@@ -214,7 +219,12 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
             uint256 vrtBalance = vrt.balanceOf(address(this));
             require(vrtBalance >= accruedInterest, "Failed to transfer VRT, Insufficient VRT in Vault.");
             emit Claim(account, accruedInterest);
-            user.accrualStartBlockNumber = getBlockNumber();
+            uint256 currentBlock_ = getBlockNumber();
+            if (lastAccruingBlock > currentBlock_) {
+                user.accrualStartBlockNumber = currentBlock_;
+            } else {
+                user.accrualStartBlockNumber = lastAccruingBlock;
+            }
             vrt.safeTransfer(user.userAddress, accruedInterest);
         }
     }
@@ -262,6 +272,10 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     function setLastAccruingBlock(uint256 _lastAccruingBlock) external {
         _checkAccessAllowed("setLastAccruingBlock(uint256)");
         uint256 oldLastAccruingBlock = lastAccruingBlock;
+        uint256 currentBlock = getBlockNumber();
+        if (_lastAccruingBlock < oldLastAccruingBlock) {
+            require(currentBlock < _lastAccruingBlock, "Invalid _lastAccruingBlock interest have been accumulated");
+        }
         lastAccruingBlock = _lastAccruingBlock;
         emit LastAccruingBlockChanged(oldLastAccruingBlock, _lastAccruingBlock);
     }
