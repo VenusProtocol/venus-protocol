@@ -62,7 +62,7 @@ async function deployAndConfigureNewVault() {
   await vaiVaultImpl.connect(admin)._become(vaiVaultProxy.address);
   vaiVault = VAIVault__factory.connect(vaiVaultProxy.address, admin);
 
-  await vaiVault._setAccessControl(ACM);
+  await vaiVault.setAccessControl(ACM);
   accessControlManager = IAccessControlManagerV5__factory.connect(ACM, admin);
 }
 
@@ -109,7 +109,7 @@ async function deployFreshVaultFixture() {
   const xvsFactory = await ethers.getContractFactory("XVS");
   xvs = await xvsFactory.deploy(deployer.address);
 
-  await vaiVaultFresh._setAccessControl(ACM);
+  await vaiVaultFresh.setAccessControl(ACM);
 }
 
 async function sendGasCost() {

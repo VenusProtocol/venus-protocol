@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
 import "../Utils/ECDSA.sol";
@@ -485,7 +485,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     }
 
     // Update reward vairables for all pools. Be careful of gas spending!
-    function massUpdatePools(address _rewardToken) public {
+    function massUpdatePools(address _rewardToken) internal {
         uint256 length = poolInfos[_rewardToken].length;
         for (uint256 pid = 0; pid < length; ++pid) {
             _updatePool(_rewardToken, pid);
@@ -588,7 +588,14 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @param r Half of the ECDSA signature pair
      * @param s Half of the ECDSA signature pair
      */
-    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s) external {
+    function delegateBySig(
+        address delegatee,
+        uint nonce,
+        uint expiry,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external isActive {
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("XVSVault")), getChainId(), address(this))
         );
@@ -755,14 +762,14 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
     function pause() external {
         _checkAccessAllowed("pause()");
-        require(vaultPaused == false, "Vault is already paused");
+        require(!vaultPaused, "Vault is already paused");
         vaultPaused = true;
         emit VaultPaused(msg.sender);
     }
 
     function resume() external {
         _checkAccessAllowed("resume()");
-        require(vaultPaused == true, "Vault is not paused");
+        require(vaultPaused, "Vault is not paused");
         vaultPaused = false;
         emit VaultResumed(msg.sender);
     }
@@ -772,7 +779,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @dev Admin function to set the access control address
      * @param newAccessControlAddress New address for the access control
      */
-    function _setAccessControl(address newAccessControlAddress) external onlyAdmin {
+    function setAccessControl(address newAccessControlAddress) external onlyAdmin {
         _setAccessControlManager(newAccessControlAddress);
     }
 }

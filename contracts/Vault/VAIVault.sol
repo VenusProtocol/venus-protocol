@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.5.16;
 
 import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
@@ -223,6 +223,7 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
     }
 
     function setVenusInfo(address _xvs, address _vai) external onlyAdmin {
+        require(_xvs != address(0) && _vai != address(0), "addresses must not be zero");
         xvs = IBEP20(_xvs);
         vai = IBEP20(_vai);
 
@@ -231,14 +232,14 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
 
     function pause() external {
         _checkAccessAllowed("pause()");
-        require(vaultPaused == false, "Vault is already paused");
+        require(!vaultPaused, "Vault is already paused");
         vaultPaused = true;
         emit VaultPaused(msg.sender);
     }
 
     function resume() external {
         _checkAccessAllowed("resume()");
-        require(vaultPaused == true, "Vault is not paused");
+        require(vaultPaused, "Vault is not paused");
         vaultPaused = false;
         emit VaultResumed(msg.sender);
     }
@@ -248,7 +249,7 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
      * @dev Admin function to set the access control address
      * @param newAccessControlAddress New address for the access control
      */
-    function _setAccessControl(address newAccessControlAddress) external onlyAdmin {
+    function setAccessControl(address newAccessControlAddress) external onlyAdmin {
         _setAccessControlManager(newAccessControlAddress);
     }
 }

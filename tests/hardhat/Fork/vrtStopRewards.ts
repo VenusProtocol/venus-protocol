@@ -50,7 +50,7 @@ async function deployNewVaultImplementation(): Promise<VRTVaultFixture> {
   await vrtVaultImpl.connect(admin)._become(vrtVaultProxy.address);
 
   const vrtVault: VRTVault = await ethers.getContractAt("VRTVault", vaultProxy);
-  await vrtVault.connect(admin)._setAccessControl(ACM);
+  await vrtVault.connect(admin).setAccessControl(ACM);
   await grantPermissions();
   await vrtVault.connect(admin).setLastAccruingBlock(stopAccruingRewardsAtBlock);
   const vrt: VRT = await ethers.getContractAt("VRT", vrtAddress);

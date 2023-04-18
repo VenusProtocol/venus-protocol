@@ -59,7 +59,7 @@ async function deployAndConfigureNewVault() {
   await vrtVaultImpl.connect(admin)._become(vrtVaultProxy.address);
   vrtVault = VRTVault__factory.connect(vrtVaultProxy.address, admin);
 
-  await vrtVault._setAccessControl(ACM);
+  await vrtVault.setAccessControl(ACM);
   accessControlManager = IAccessControlManagerV5__factory.connect(ACM, admin);
 }
 
@@ -82,7 +82,7 @@ async function deployFreshVaultFixture() {
   const vrtVaultFactory = await ethers.getContractFactory("VRTVault");
   vrtVaultFresh = await vrtVaultFactory.deploy();
   await vrtVaultFresh.initialize(vrt.address, bigNumber18);
-  await vrtVaultFresh._setAccessControl(ACM);
+  await vrtVaultFresh.setAccessControl(ACM);
 }
 
 async function deployAndConfigureOldVault() {

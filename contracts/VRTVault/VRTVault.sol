@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.5.16;
 
 import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
@@ -74,14 +74,14 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
 
     function pause() external {
         _checkAccessAllowed("pause()");
-        require(vaultPaused == false, "Vault is already paused");
+        require(!vaultPaused, "Vault is already paused");
         vaultPaused = true;
         emit VaultPaused(msg.sender);
     }
 
     function resume() external {
         _checkAccessAllowed("resume()");
-        require(vaultPaused == true, "Vault is not paused");
+        require(vaultPaused, "Vault is not paused");
         vaultPaused = false;
         emit VaultResumed(msg.sender);
     }
@@ -142,7 +142,12 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
             }
         }
 
-        user.accrualStartBlockNumber = getBlockNumber();
+        uint256 currentBlock_ = getBlockNumber();
+        if (lastAccruingBlock > currentBlock_) {
+            user.accrualStartBlockNumber = currentBlock_;
+        } else {
+            user.accrualStartBlockNumber = lastAccruingBlock;
+        }
         emit Deposit(userAddress, depositAmount);
         vrt.safeTransferFrom(userAddress, address(this), depositAmount);
     }
@@ -214,7 +219,12 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
             uint256 vrtBalance = vrt.balanceOf(address(this));
             require(vrtBalance >= accruedInterest, "Failed to transfer VRT, Insufficient VRT in Vault.");
             emit Claim(account, accruedInterest);
-            user.accrualStartBlockNumber = getBlockNumber();
+            uint256 currentBlock_ = getBlockNumber();
+            if (lastAccruingBlock > currentBlock_) {
+                user.accrualStartBlockNumber = currentBlock_;
+            } else {
+                user.accrualStartBlockNumber = lastAccruingBlock;
+            }
             vrt.safeTransfer(user.userAddress, accruedInterest);
         }
     }
@@ -262,6 +272,10 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     function setLastAccruingBlock(uint256 _lastAccruingBlock) external {
         _checkAccessAllowed("setLastAccruingBlock(uint256)");
         uint256 oldLastAccruingBlock = lastAccruingBlock;
+        uint256 currentBlock = getBlockNumber();
+        if (_lastAccruingBlock < oldLastAccruingBlock) {
+            require(currentBlock < _lastAccruingBlock, "Invalid _lastAccruingBlock interest have been accumulated");
+        }
         lastAccruingBlock = _lastAccruingBlock;
         emit LastAccruingBlockChanged(oldLastAccruingBlock, _lastAccruingBlock);
     }
@@ -282,7 +296,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
      * @dev Admin function to set the access control address
      * @param newAccessControlAddress New address for the access control
      */
-    function _setAccessControl(address newAccessControlAddress) external onlyAdmin {
+    function setAccessControl(address newAccessControlAddress) external onlyAdmin {
         _setAccessControlManager(newAccessControlAddress);
     }
 }
