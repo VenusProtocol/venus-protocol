@@ -146,14 +146,16 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         uint256 stableTknAmountUSD = previewTokenUSDAmount(stableTknAmount, FeeDirection.OUT);
         uint256 fee = _calculateFee(stableTknAmountUSD, FeeDirection.OUT);
         require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "Not enought VAI.");
-        bool success = VAI(vaiAddress).transferFrom(msg.sender, venusTreasury, fee);
-        require(success, "VAI fee transfer failed.");
+        if (fee != 0) {
+            bool success = VAI(vaiAddress).transferFrom(msg.sender, venusTreasury, fee);
+            require(success, "VAI fee transfer failed.");
+        }
         if (vaiMinted != 0) {
             vaiMinted -= stableTknAmountUSD;
         }
         VAI(vaiAddress).burn(msg.sender, stableTknAmountUSD);
-        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(address(this), receiver, stableTknAmountUSD);
-        emit VaiForStableSwapped(stableTknAmountUSD, fee, stableTknAmountUSD);
+        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(address(this), receiver, stableTknAmount);
+        emit VaiForStableSwapped(stableTknAmountUSD, fee, stableTknAmount);
     }
 
     /**
@@ -178,8 +180,10 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         // mint VAI to receiver
         VAI(vaiAddress).mint(receiver, vaiToMint);
         // mint VAI fee to venus treasury
-        VAI(vaiAddress).mint(venusTreasury, fee);
-        emit StableForVAISwapped(actualTransferAmtInUSD, vaiToMint, fee);
+        if (fee != 0) {
+            VAI(vaiAddress).mint(venusTreasury, fee);
+        }
+        emit StableForVAISwapped(stableTknAmount, vaiToMint, fee);
     }
 
     /*** Helper Functions ***/
