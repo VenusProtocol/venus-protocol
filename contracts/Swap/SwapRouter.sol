@@ -1,6 +1,6 @@
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import "./interfaces/IPancakeSwapV2Router.sol";
@@ -16,10 +16,10 @@ import "./interfaces/InterfaceComptroller.sol";
  * @author 0xlucian
  */
 
-contract SwapRouter is Ownable, RouterHelper, IPancakeSwapV2Router {
+contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    address public comptrollerAddress;
+    address public immutable comptrollerAddress;
 
     // ***************
     // ** MODIFIERS **
@@ -41,7 +41,7 @@ contract SwapRouter is Ownable, RouterHelper, IPancakeSwapV2Router {
 
     modifier ensurePath(address[] calldata path) {
         if (path.length < 2) {
-            revert SwapInvalidAddressesPath(path);
+            revert InvalidPath();
         }
         _;
     }

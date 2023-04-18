@@ -155,7 +155,7 @@ abstract contract RouterHelper is IRouterHelper {
         if (path[path.length - 1] != WBNB) {
             revert WrongAddress(WBNB, path[path.length - 1]);
         }
-        uint256 WBNBWAmount;
+        uint256 WBNBAmount;
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
             amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
             if (amounts[amounts.length - 1] < amountOutMin) {
@@ -168,7 +168,7 @@ abstract contract RouterHelper is IRouterHelper {
                 amounts[0]
             );
             _swap(amounts, path, address(this));
-            WBNBWAmount = amounts[amounts.length - 1];
+            WBNBAmount = amounts[amounts.length - 1];
         } else {
             uint256 balanceBefore = IWBNB(WBNB).balanceOf(address(this));
             TransferHelper.safeTransferFrom(
@@ -179,11 +179,11 @@ abstract contract RouterHelper is IRouterHelper {
             );
             _swapSupportingFeeOnTransferTokens(path, address(this));
             uint256 balanceAfter = IWBNB(WBNB).balanceOf(address(this));
-            WBNBWAmount = balanceAfter - balanceBefore;
+            WBNBAmount = balanceAfter - balanceBefore;
         }
-        IWBNB(WBNB).withdraw(WBNBWAmount);
+        IWBNB(WBNB).withdraw(WBNBAmount);
         if (to != address(this)) {
-            TransferHelper.safeTransferETH(to, WBNBWAmount);
+            TransferHelper.safeTransferETH(to, WBNBAmount);
         }
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
             emit SwapTokensForBnb(msg.sender, path, amounts);
