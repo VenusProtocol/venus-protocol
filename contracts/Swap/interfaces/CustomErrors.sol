@@ -44,6 +44,3 @@ error InvalidPath();
 
 ///@notice Error thrown when invalid vTOken address is passed to swap router.
 error VTokenNotListed(address vToken);
-
-///@notice Error thrown when addresses path length is less than 2.
-error SwapInvalidAddressesPath(address[] path);

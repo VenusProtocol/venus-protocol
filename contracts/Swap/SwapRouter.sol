@@ -1,6 +1,6 @@
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import "./interfaces/IPancakeSwapV2Router.sol";
@@ -16,10 +16,10 @@ import "./interfaces/InterfaceComptroller.sol";
  * @author 0xlucian
  */
 
-contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Router {
+contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    address public comptrollerAddress;
+    address public immutable comptrollerAddress;
 
     // ***************
     // ** MODIFIERS **
@@ -41,7 +41,7 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
 
     modifier ensurePath(address[] calldata path) {
         if (path.length < 2) {
-            revert SwapInvalidAddressesPath(path);
+            revert InvalidPath();
         }
         _;
     }
@@ -55,22 +55,12 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address WBNB_, address factory_) RouterHelper(WBNB_, factory_) {
-        // Note that the contract is upgradeable. Use initialize() or reinitializers
-        // to set the state variables.
-        _disableInitializers();
+    constructor(address WBNB_, address factory_, address _comptrollerAddress) RouterHelper(WBNB_, factory_) {
+        comptrollerAddress = _comptrollerAddress;
     }
 
     receive() external payable {
         assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
-    }
-
-    // *********************
-    // **** INITIALIZE *****
-    // *********************
-    function initialize(address _comptrollerAddress) external initializer {
-        __Ownable2Step_init();
-        comptrollerAddress = _comptrollerAddress;
     }
 
     // ****************************
@@ -359,6 +349,26 @@ contract SwapRouter is Ownable2StepUpgradeable, RouterHelper, IPancakeSwapV2Rout
         uint256 deadline
     ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        _swapETHForExactTokens(amountOut, path, address(this));
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap BNB for Exact tokens and repay to a Venus market
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapBNBForFullTokenDebtAndRepay(
+        address vTokenAddress,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
+        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 amountOut = IVToken(vTokenAddress).borrowBalanceCurrent(msg.sender);
         _swapETHForExactTokens(amountOut, path, address(this));
         uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
         uint256 swapAmount = balanceAfter - balanceBefore;

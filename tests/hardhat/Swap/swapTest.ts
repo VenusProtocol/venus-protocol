@@ -4,7 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { BigNumber } from "ethers";
 import { getAddress, keccak256, parseUnits, solidityPack } from "ethers/lib/utils";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 
 import {
   BEP20Harness__factory,
@@ -56,10 +56,8 @@ async function deploySwapContract(): Promise<SwapFixture> {
   const comptrollerFactory = await smock.mock<ComptrollerHarness__factory>("ComptrollerHarness");
   const comptroller = await comptrollerFactory.deploy();
 
-  const SwapRouter = await smock.mock<SwapRouter__factory>("SwapRouter");
-  const swapRouter = await upgrades.deployProxy(SwapRouter, [comptroller.address], {
-    constructorArgs: [wBNB.address, pancakeFactory.address],
-  });
+  const SwapRouterFactory = await smock.mock<SwapRouter__factory>("SwapRouter");
+  const swapRouter = await SwapRouterFactory.deploy(wBNB.address, pancakeFactory.address, comptroller.address);
 
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
   const tokenA = await FaucetToken.deploy(parseUnits("10000", 18), "TOKENA", 18, "A");
@@ -513,6 +511,18 @@ describe("Swap Contract", () => {
         swapRouter
           .connect(user)
           .swapBNBForExactTokensAndRepay(vToken.address, MIN_AMOUNT_OUT, [wBNB.address, tokenB.address], deadline, {
+            value: SWAP_AMOUNT,
+          }),
+      ).to.emit(swapRouter, "SwapBnbForTokens");
+    });
+
+    it("swap bnb -> full tokenB debt", async () => {
+      const deadline = await getValidDeadline();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapBNBForFullTokenDebtAndRepay(vToken.address, [wBNB.address, tokenB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
       ).to.emit(swapRouter, "SwapBnbForTokens");

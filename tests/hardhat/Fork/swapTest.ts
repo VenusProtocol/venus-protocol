@@ -3,7 +3,7 @@ import { impersonateAccount, loadFixture } from "@nomicfoundation/hardhat-networ
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 
 import {
   Comptroller,
@@ -132,10 +132,7 @@ const swapRouterConfigure = async (): Promise<void> => {
     admin,
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
-
-  swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
-    constructorArgs: [wBNB.address, pancakeSwapFactory.address],
-  });
+  swapRouter = await swapRouterFactory.deploy(wBNB.address, pancakeSwapFactory.address, comptroller.address);
   await swapRouter.deployed();
 
   await USDT.connect(usdtUser).approve(swapRouter.address, parseUnits("1"));
@@ -157,9 +154,7 @@ const swapRouterDeflationaryConfigure = async (): Promise<void> => {
     admin,
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
-  swapRouter = await upgrades.deployProxy(swapRouterFactory, [comptroller.address], {
-    constructorArgs: [wBNB.address, pancakeSwapFactory.address],
-  });
+  swapRouter = await swapRouterFactory.deploy(wBNB.address, pancakeSwapFactory.address, comptroller.address);
   await swapRouter.deployed();
   await BabyDoge.connect(BabyDogeUser).approve(swapRouter.address, parseUnits("100"));
   await SFM.connect(SFMUser).approve(swapRouter.address, parseUnits("100"));
@@ -439,6 +434,27 @@ describe("Swap Contract", () => {
             value: 1,
           });
         [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
+        expect(borrowBalance).equal(0);
+      });
+
+      it("Borrow--> swap BNB -> TokenB --> repay full tokenB debt", async () => {
+        await USDT.connect(usdtUser).transfer(vUSDT.address, 1000);
+        let deadline = await getValidDeadline();
+        await swapRouter
+          .connect(usdtUser)
+          .swapExactBNBForTokensAndSupply(vBUSD.address, MIN_AMOUNT_OUT, [wBNB.address, BUSD.address], deadline, {
+            value: SWAP_BNB_AMOUNT,
+          }),
+          (deadline = await getValidDeadline());
+        await expect(vUSDT.connect(usdtUser).borrow(100)).to.emit(vUSDT, "Borrow");
+        let borrowBalance;
+        [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
+        await swapRouter
+          .connect(usdtUser)
+          .swapBNBForFullTokenDebtAndRepay(vUSDT.address, [wBNB.address, USDT.address], deadline, {
+            value: SWAP_BNB_AMOUNT,
+          }),
+          ([, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address));
         expect(borrowBalance).equal(0);
       });
 
