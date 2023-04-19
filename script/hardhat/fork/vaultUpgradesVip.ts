@@ -104,20 +104,26 @@ export const vip105 = () => {
 
       {
         target: VAI_VAULT_PROXY,
-        signature: "_setAccessControl(address)",
+        signature: "setAccessControl(address)",
         params: [ACM],
       },
 
       {
         target: XVS_VAULT_PROXY,
-        signature: "_setAccessControl(address)",
+        signature: "setAccessControl(address)",
         params: [ACM],
       },
 
       {
         target: VRT_VAULT_PROXY,
-        signature: "_setAccessControl(address)",
+        signature: "setAccessControl(address)",
         params: [ACM],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
+        params: [XVS_VAULT_PROXY, "pause()", NORMAL_TIMELOCK],
       },
 
       {
@@ -135,6 +141,12 @@ export const vip105 = () => {
       {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
+        params: [XVS_VAULT_PROXY, "resume()", NORMAL_TIMELOCK],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
         params: [XVS_VAULT_PROXY, "resume()", FAST_TRACK_TIMELOCK],
       },
 
@@ -142,6 +154,12 @@ export const vip105 = () => {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
         params: [XVS_VAULT_PROXY, "resume()", CRITICAL_TIMELOCK],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
+        params: [VAI_VAULT_PROXY, "pause()", NORMAL_TIMELOCK],
       },
 
       {
@@ -159,6 +177,12 @@ export const vip105 = () => {
       {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
+        params: [VAI_VAULT_PROXY, "resume()", NORMAL_TIMELOCK],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
         params: [VAI_VAULT_PROXY, "resume()", FAST_TRACK_TIMELOCK],
       },
 
@@ -171,6 +195,12 @@ export const vip105 = () => {
       {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
+        params: [VRT_VAULT_PROXY, "pause()", NORMAL_TIMELOCK],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
         params: [VRT_VAULT_PROXY, "pause()", FAST_TRACK_TIMELOCK],
       },
 
@@ -178,6 +208,12 @@ export const vip105 = () => {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
         params: [VRT_VAULT_PROXY, "pause()", CRITICAL_TIMELOCK],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
+        params: [VRT_VAULT_PROXY, "resume()", NORMAL_TIMELOCK],
       },
 
       {
