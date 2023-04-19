@@ -7,7 +7,7 @@ import "../Utils/IBEP20.sol";
 import "./XVSVaultStorage.sol";
 import "./XVSVaultErrorReporter.sol";
 import "../Utils/SafeCast.sol";
-import "../Governance/AccessControlledV5.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
 
 interface IXVSStore {
     function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
