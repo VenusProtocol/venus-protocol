@@ -100,7 +100,6 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
 
     /**
      * @notice Pause vault
-     * @custom:access Only Governance
      */
     function pause() external {
         _checkAccessAllowed("pause()");
@@ -111,7 +110,6 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
 
     /**
      * @notice Resume vault
-     * @custom:access Only Governance
      */
     function resume() external {
         _checkAccessAllowed("resume()");

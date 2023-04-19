@@ -104,7 +104,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
     /**
      * @notice Pauses vault
-     * @custom:access Only Governance
      */
     function pause() external {
         _checkAccessAllowed("pause()");
@@ -115,7 +114,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
     /**
      * @notice Resume vault
-     * @custom:access Only Governance
      */
     function resume() external {
         _checkAccessAllowed("resume()");
