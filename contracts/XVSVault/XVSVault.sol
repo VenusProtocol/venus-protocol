@@ -102,6 +102,28 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         _;
     }
 
+    /**
+     * @notice Pauses vault
+     * @custom:access Only Governance
+     */
+    function pause() external {
+        _checkAccessAllowed("pause()");
+        require(!vaultPaused, "Vault is already paused");
+        vaultPaused = true;
+        emit VaultPaused(msg.sender);
+    }
+
+    /**
+     * @notice Resume vault
+     * @custom:access Only Governance
+     */
+    function resume() external {
+        _checkAccessAllowed("resume()");
+        require(vaultPaused, "Vault is not paused");
+        vaultPaused = false;
+        emit VaultResumed(msg.sender);
+    }
+
     function poolLength(address rewardToken) external view returns (uint256) {
         return poolInfos[rewardToken].length;
     }
@@ -758,20 +780,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         _notEntered = true;
 
         emit StoreUpdated(oldXvsContract, oldStore, _xvs, _xvsStore);
-    }
-
-    function pause() external {
-        _checkAccessAllowed("pause()");
-        require(!vaultPaused, "Vault is already paused");
-        vaultPaused = true;
-        emit VaultPaused(msg.sender);
-    }
-
-    function resume() external {
-        _checkAccessAllowed("resume()");
-        require(vaultPaused, "Vault is not paused");
-        vaultPaused = false;
-        emit VaultResumed(msg.sender);
     }
 
     /**

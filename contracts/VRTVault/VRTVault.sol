@@ -72,20 +72,6 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
         _;
     }
 
-    function pause() external {
-        _checkAccessAllowed("pause()");
-        require(!vaultPaused, "Vault is already paused");
-        vaultPaused = true;
-        emit VaultPaused(msg.sender);
-    }
-
-    function resume() external {
-        _checkAccessAllowed("resume()");
-        require(vaultPaused, "Vault is not paused");
-        vaultPaused = false;
-        emit VaultResumed(msg.sender);
-    }
-
     modifier isActive() {
         require(vaultPaused == false, "Vault is paused");
         _;
@@ -110,6 +96,28 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
         UserInfo storage user = userInfo[userAddress];
         require(user.userAddress != address(0), "User doesnot have any position in the Vault.");
         _;
+    }
+
+    /**
+     * @notice Pause vault
+     * @custom:access Only Governance
+     */
+    function pause() external {
+        _checkAccessAllowed("pause()");
+        require(!vaultPaused, "Vault is already paused");
+        vaultPaused = true;
+        emit VaultPaused(msg.sender);
+    }
+
+    /**
+     * @notice Resume vault
+     * @custom:access Only Governance
+     */
+    function resume() external {
+        _checkAccessAllowed("resume()");
+        require(vaultPaused, "Vault is not paused");
+        vaultPaused = false;
+        emit VaultResumed(msg.sender);
     }
 
     /**

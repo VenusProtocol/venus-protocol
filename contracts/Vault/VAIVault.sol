@@ -61,6 +61,28 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
     }
 
     /**
+     * @notice Pause vault
+     * @custom:access Only Governance
+     */
+    function pause() external {
+        _checkAccessAllowed("pause()");
+        require(!vaultPaused, "Vault is already paused");
+        vaultPaused = true;
+        emit VaultPaused(msg.sender);
+    }
+
+    /**
+     * @notice Resume vault
+     * @custom:access Only Governance
+     */
+    function resume() external {
+        _checkAccessAllowed("resume()");
+        require(vaultPaused, "Vault is not paused");
+        vaultPaused = false;
+        emit VaultResumed(msg.sender);
+    }
+
+    /**
      * @notice Deposit VAI to VAIVault for XVS allocation
      * @param _amount The amount to deposit to vault
      */
@@ -228,20 +250,6 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
         vai = IBEP20(_vai);
 
         _notEntered = true;
-    }
-
-    function pause() external {
-        _checkAccessAllowed("pause()");
-        require(!vaultPaused, "Vault is already paused");
-        vaultPaused = true;
-        emit VaultPaused(msg.sender);
-    }
-
-    function resume() external {
-        _checkAccessAllowed("resume()");
-        require(vaultPaused, "Vault is not paused");
-        vaultPaused = false;
-        emit VaultResumed(msg.sender);
     }
 
     /**
