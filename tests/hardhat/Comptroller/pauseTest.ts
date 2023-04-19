@@ -30,7 +30,7 @@ async function pauseFixture(): Promise<PauseFixture> {
   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
   const comptroller = await ComptrollerFactory.deploy();
   await comptroller._setAccessControl(accessControl.address);
-  const oracle = await smock.fake<PriceOracle>("PriceOracle");
+  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
 
   accessControl.isAllowedToCall.returns(true);
   await comptroller._setPriceOracle(oracle.address);
