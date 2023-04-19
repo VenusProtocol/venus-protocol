@@ -43,7 +43,7 @@ describe("assetListTest", () => {
   beforeEach(async () => {
     [owner, borrower] = await ethers.getSigners();
 
-    priceOracle = await smock.fake<PriceOracle>("PriceOracle");
+    priceOracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
     comptroller = await smock.fake<Comptroller>("Comptroller");
     foo = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
     bar = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");

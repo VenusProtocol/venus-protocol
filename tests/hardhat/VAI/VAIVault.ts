@@ -14,7 +14,7 @@ describe("VAIVault", async () => {
     const VaiVaultFactory: VAIVault__factory = await ethers.getContractFactory("VAIVault");
     const vaiVault: VAIVault = await VaiVaultFactory.deploy();
 
-    const vaiFactory: VAI__factory = await ethers.getContractFactory("VAI");
+    const vaiFactory: VAI__factory = await ethers.getContractFactory("contracts/Tokens/VAI/VAI.sol:VAI");
     const vai: VAI = await vaiFactory.deploy(1);
 
     const xvsFactory: XVS__factory = await ethers.getContractFactory("XVS");
