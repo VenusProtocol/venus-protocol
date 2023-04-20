@@ -154,7 +154,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
             vaiMinted -= stableTknAmountUSD;
         }
         VAI(vaiAddress).burn(msg.sender, stableTknAmountUSD);
-        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(address(this), receiver, stableTknAmount);
+        IERC20Upgradeable(stableTokenAddress).safeTransfer(receiver, stableTknAmount);
         emit VaiForStableSwapped(stableTknAmountUSD, fee, stableTknAmount);
     }
 
