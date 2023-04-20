@@ -117,6 +117,8 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         ensureNonzeroAddress(venusTreasury_);
         ensureNonzeroAddress(priceOracle_);
         __AccessControlled_init(accessControlManager_);
+        require(feeIn_ < BASIS_POINTS_DIVISOR, "Invalid fee in.");
+        require(feeOut_ < BASIS_POINTS_DIVISOR, "Invalid fee out.");
         feeIn = feeIn_;
         feeOut = feeOut_;
         vaiMintCap = vaiMintCap_;
