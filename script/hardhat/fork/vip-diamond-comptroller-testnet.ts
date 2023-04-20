@@ -5,7 +5,7 @@ import { ethers } from "hardhat";
 
 import { VBep20 } from "../../../typechain";
 import { cutParams as params } from "../../deploy/comptroller/cut-params.json";
-import { forking, testVip } from "./vip-framework";
+import { forking, pretendExecutingVip, testVip } from "./vip-framework";
 import { ProposalType } from "./vip-framework/types";
 import { makeProposal } from "./vip-framework/utils";
 
@@ -406,6 +406,50 @@ forking(29043847, async () => {
       });
     });
   });
+});
+
+forking(29043847, async () => {
+  let owner, unitroller;
+  let USDT: ethers.contract;
+  let BUSD: ethers.contract;
+  let usdtHolder: ethers.Signer;
+  let busdHolder: ethers.Signer;
+  let vBUSD: ethers.contract;
+  let vUSDT: ethers.contract;
+  let diamondUnitroller;
+
+  before(async () => {
+    pretendExecutingVip(vipDiamond());
+    unitroller = await ethers.getContractAt("Comptroller", UNITROLLER);
+
+    diamondUnitroller = await ethers.getContractAt("Comptroller", unitroller.address);
+
+    await impersonateAccount(Owner);
+    owner = await ethers.getSigner(Owner);
+    const [signer] = await ethers.getSigners();
+    await signer.sendTransaction({
+      to: owner.address,
+      value: ethers.BigNumber.from("10000000000000000000"),
+      data: undefined,
+    });
+
+    busdHolder = await initMainnetUser("0xC825AD791A6046991e3706b6342970f6d87e4888");
+
+    usdtHolder = await initMainnetUser("0xa0747a72C329377C2CE4F0F3165197B3a5359EfE");
+
+    [vBUSD, vUSDT] = await Promise.all(
+      [VBUSD, VUSDT].map((address: string) => {
+        return ethers.getContractAt("contracts/Tokens/V0.8.13/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
+      }),
+    );
+
+    [BUSD, USDT] = await Promise.all(
+      [vBUSD, vUSDT].map(async (vToken: VBep20) => {
+        const underlying = await vToken.underlying();
+        return ethers.getContractAt("IERC20Upgradeable", underlying);
+      }),
+    );
+  });
 
   describe("Diamond Hooks", () => {
     it("Diamond Unitroller Implementation (comptroller) should match the diamond Proxy Address", async () => {
@@ -430,26 +474,31 @@ forking(29043847, async () => {
 
     it("redeem vToken", async () => {
       const vBUSDUserBal = await vBUSD.connect(busdHolder).balanceOf(busdHolder.address);
+      const BUSDBal = await BUSD.connect(busdHolder).balanceOf(busdHolder.address);
 
-      expect(await vBUSD.connect(busdHolder).redeem(parseUnits("500", 18))).to.emit(vBUSD, "Redeem");
+      expect(await vBUSD.connect(busdHolder).redeem(1000)).to.emit(vBUSD, "Redeem");
 
+      const newBUSDBal = await BUSD.connect(busdHolder).balanceOf(busdHolder.address);
       const newBUSDUserBal = await vBUSD.connect(busdHolder).balanceOf(busdHolder.address);
+
       expect(newBUSDUserBal).to.equal(vBUSDUserBal.sub(1000));
+      expect(newBUSDBal).greaterThan(BUSDBal);
     });
 
     it("borrow vToken", async () => {
       const busdUserBal = await BUSD.balanceOf(busdHolder.address);
-      expect(await vBUSD.connect(busdHolder).borrow(parseUnits("1000", 18))).to.emit(vBUSD, "Borrow");
 
-      expect((await BUSD.balanceOf(busdHolder.address)).toString()).to.equal(busdUserBal.add(parseUnits("1000", 18)));
+      expect(await vBUSD.connect(busdHolder).borrow(1000)).to.emit(vBUSD, "Borrow");
+
+      expect((await BUSD.balanceOf(busdHolder.address)).toString()).to.equal(busdUserBal.add(1000));
     });
 
     it("Repay vToken", async () => {
       const busdUserBal = await BUSD.balanceOf(busdHolder.address);
 
-      expect(await vBUSD.connect(busdHolder).borrow(parseUnits("1", 18))).to.emit(vBUSD, "Borrow");
+      expect(await vBUSD.connect(busdHolder).borrow(1000)).to.emit(vBUSD, "Borrow");
 
-      expect((await BUSD.balanceOf(busdHolder.address)).toString()).to.equal(busdUserBal.add(parseUnits("1000", 18)));
+      expect((await BUSD.balanceOf(busdHolder.address)).toString()).to.equal(busdUserBal.add(1000));
 
       expect(await vBUSD.connect(busdHolder).repayBorrow(1000)).to.emit(vBUSD, "RepayBorrow");
 
