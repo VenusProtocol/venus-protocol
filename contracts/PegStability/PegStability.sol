@@ -330,7 +330,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     function setPriceOracle(address priceOracle_) external {
         _checkAccessAllowed("setPriceOracle(address)");
         ensureNonzeroAddress(priceOracle_);
-        address oldPriceOracleAddress = priceOracle_;
+        address oldPriceOracleAddress = priceOracle;
         priceOracle = priceOracle_;
         emit PriceOracleChanged(oldPriceOracleAddress, priceOracle_);
     }
