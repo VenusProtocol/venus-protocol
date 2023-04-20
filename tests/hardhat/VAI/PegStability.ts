@@ -192,7 +192,7 @@ describe("Peg Stability Module", () => {
         const USER_VAI_BALANCE = convertToUnit(109, 18); // USER NEEDS TO HAVE 110 VAI
         vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
         await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-          "Not enought VAI.",
+          "Not enough VAI.",
         );
       });
       it("should revert if VAI transfer fails ", async () => {

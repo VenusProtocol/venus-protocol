@@ -142,10 +142,10 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     // @custom:event Emits VaiForStableSwapped event
     function swapVAIForStable(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
         ensureNonzeroAddress(receiver);
-        require(stableTknAmount > 0, "Amount must be greater than zero");
+        require(stableTknAmount > 0, "Amount must be greater than zero.");
         uint256 stableTknAmountUSD = previewTokenUSDAmount(stableTknAmount, FeeDirection.OUT);
         uint256 fee = _calculateFee(stableTknAmountUSD, FeeDirection.OUT);
-        require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "Not enought VAI.");
+        require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "Not enough VAI.");
         if (fee != 0) {
             bool success = VAI(vaiAddress).transferFrom(msg.sender, venusTreasury, fee);
             require(success, "VAI fee transfer failed.");
