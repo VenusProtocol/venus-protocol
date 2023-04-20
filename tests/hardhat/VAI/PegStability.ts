@@ -182,6 +182,10 @@ describe("Peg Stability Module", () => {
   });
   describe("Swap functions", () => {
     describe("swapVAIForStable(address,uint256)", () => {
+      beforeEach(async ()=>{
+        const VAI_MINTED = convertToUnit(110,18);
+        await pegStability.setVariable("vaiMinted",VAI_MINTED);
+      });
       it("should revert if receiver is zero address ", async () => {
         await expect(pegStability.swapVAIForStable(ethers.constants.AddressZero, 100)).to.be.revertedWith(
           "Can't be zero address.",
@@ -201,6 +205,15 @@ describe("Peg Stability Module", () => {
         vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
         await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
           "VAI fee transfer failed.",
+        );
+      });
+      it("should revert if VAI to be burnt > vaiMinted ", async () => {
+        const STABLE_TOKEN_AMOUNT = convertToUnit(200, 18);
+        const USER_VAI_BALANCE = convertToUnit(300, 18);
+        vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
+        vai.transferFrom.returns(true);
+        await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+          "Can't burn more VAI than minted.",
         );
       });
       describe("should sucessfully perform the swap", () => {
