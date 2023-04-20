@@ -82,7 +82,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
      * @dev Prevents functions to execute when contract is paused.
      */
     modifier isActive() {
-        require(isPaused == false, "Contract is paused.");
+        require(!isPaused, "Contract is paused.");
         _;
     }
 
@@ -248,7 +248,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     // @custom:event Emits PSMPaused event
     function pause() external {
         _checkAccessAllowed("pause()");
-        require(isPaused == false, "PSM is already paused.");
+        require(!isPaused, "PSM is already paused.");
         isPaused = true;
         emit PSMPaused(msg.sender);
     }
@@ -260,7 +260,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     // @custom:event Emits PSMResumed event
     function resume() external {
         _checkAccessAllowed("resume()");
-        require(isPaused == true, "PSM is not paused.");
+        require(isPaused, "PSM is not paused.");
         isPaused = false;
         emit PSMResumed(msg.sender);
     }
