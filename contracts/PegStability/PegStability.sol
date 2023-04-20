@@ -308,7 +308,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         _checkAccessAllowed("setVaiMintCap(uint256)");
         uint256 oldVaiMintCap = vaiMintCap;
         vaiMintCap = vaiMintCap_;
-        emit VaiMintCapChanged(oldVaiMintCap, vaiMintCap);
+        emit VaiMintCapChanged(oldVaiMintCap, vaiMintCap_);
     }
 
     /**
