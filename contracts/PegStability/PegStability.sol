@@ -178,7 +178,9 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         uint256 fee = _calculateFee(actualTransferAmtInUSD, FeeDirection.IN);
         uint256 vaiToMint = actualTransferAmtInUSD - fee;
         require(vaiMinted + actualTransferAmtInUSD <= vaiMintCap, "VAI mint cap reached.");
-        vaiMinted += actualTransferAmtInUSD;
+        unchecked {
+            vaiMinted += actualTransferAmtInUSD;
+        }
         // mint VAI to receiver
         VAI(vaiAddress).mint(receiver, vaiToMint);
         // mint VAI fee to venus treasury
