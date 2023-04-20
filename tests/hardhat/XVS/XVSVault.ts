@@ -1,9 +1,11 @@
+import { smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Wallet } from "ethers";
 import { ethers } from "hardhat";
 
 import { XVS, XVSStore, XVSVaultScenario } from "../../../typechain";
+import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 const rewardPerBlock = bigNumber18.mul(1);
@@ -38,6 +40,10 @@ describe("XVSVault", async () => {
     const xvsVaultFactory = await ethers.getContractFactory("XVSVaultScenario");
     xvsVault = (await xvsVaultFactory.deploy()) as XVSVaultScenario;
 
+    const accessControlMock = await smock.fake<IAccessControlManager>("AccessControlManager");
+    accessControlMock.isAllowedToCall.returns(true);
+    await xvsVault.connect(deployer).setAccessControl(accessControlMock.address);
+
     return { xvsVault, xvs, xvsStore };
   }
 
@@ -70,6 +76,12 @@ describe("XVSVault", async () => {
     const depositAmount = bigNumber18.mul(100);
 
     await xvs.approve(xvsVault.address, depositAmount);
+
+    // Revert when vault is paused
+    await xvsVault.pause();
+    await expect(xvsVault.deposit(xvs.address, poolId, depositAmount)).to.revertedWith("Vault is paused");
+    await xvsVault.resume();
+
     await xvsVault.deposit(xvs.address, poolId, depositAmount);
 
     expect(await xvs.balanceOf(xvsVault.address)).to.eq(depositAmount);
@@ -89,6 +101,12 @@ describe("XVSVault", async () => {
     await mine(500);
 
     previousXVSBalance = await xvs.balanceOf(deployer.address);
+
+    // Revert when vault is paused
+    await xvsVault.pause();
+    await expect(xvsVault.executeWithdrawal(xvs.address, poolId)).to.revertedWith("Vault is paused");
+    await xvsVault.resume();
+
     await xvsVault.executeWithdrawal(xvs.address, poolId);
     currentXVSBalance = await xvs.balanceOf(deployer.address);
     expect(currentXVSBalance.sub(previousXVSBalance).toString()).to.be.equal(depositAmount.toString());
@@ -180,6 +198,12 @@ describe("XVSVault", async () => {
     previousXVSBalance = currentXVSBalance;
 
     await mine(500);
+
+    // Revert when vault is paused
+    await xvsVault.pause();
+    await expect(xvsVault.executeWithdrawal(xvs.address, poolId)).to.revertedWith("Vault is paused");
+    await xvsVault.resume();
+
     await xvsVault.executeWithdrawal(xvs.address, poolId);
 
     currentXVSBalance = ethers.utils.formatEther((await xvs.balanceOf(deployer.address)).toString());
@@ -196,6 +220,14 @@ describe("XVSVault", async () => {
 
     await mine(1000);
     await xvsVault.requestOldWithdrawal(xvs.address, poolId, bigNumber18.mul(50));
+
+    // Revert when vault is paused
+    await xvsVault.pause();
+    await expect(xvsVault.requestWithdrawal(xvs.address, poolId, bigNumber18.mul(50))).to.revertedWith(
+      "Vault is paused",
+    );
+    await xvsVault.resume();
+
     await expect(xvsVault.requestWithdrawal(xvs.address, poolId, bigNumber18.mul(50))).to.be.revertedWith(
       "execute pending withdrawal",
     );

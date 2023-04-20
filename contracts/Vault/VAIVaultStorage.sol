@@ -51,4 +51,14 @@ contract VAIVaultStorage is VAIVaultAdminStorage {
 
     // Info of each user that stakes tokens.
     mapping(address => UserInfo) public userInfo;
+
+    /// @notice pause indicator for Vault
+    bool public vaultPaused;
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
 }

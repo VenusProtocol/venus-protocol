@@ -1,13 +1,13 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
 import "../Utils/ECDSA.sol";
 import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
-import "./XVSVaultProxy.sol";
 import "./XVSVaultStorage.sol";
 import "./XVSVaultErrorReporter.sol";
 import "../Utils/SafeCast.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
 
 interface IXVSStore {
     function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
@@ -15,7 +15,13 @@ interface IXVSStore {
     function setRewardToken(address _tokenAddress, bool status) external;
 }
 
-contract XVSVault is XVSVaultStorage, ECDSA {
+interface IXVSVaultProxy {
+    function _acceptImplementation() external returns (uint);
+
+    function admin() external returns (address);
+}
+
+contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     using SafeMath for uint256;
     using SafeCast for uint256;
     using SafeBEP20 for IBEP20;
@@ -63,6 +69,12 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     /// @notice Event emitted when reward claimed
     event Claim(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
+    /// @notice Event emitted when vault is paused
+    event VaultPaused(address indexed admin);
+
+    /// @notice Event emitted when vault is resumed after pause
+    event VaultResumed(address indexed admin);
+
     constructor() public {
         admin = msg.sender;
     }
@@ -82,6 +94,34 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         _notEntered = true; // get a gas-refund post-Istanbul
     }
 
+    /**
+     * @dev Prevents functions to execute when vault is paused.
+     */
+    modifier isActive() {
+        require(vaultPaused == false, "Vault is paused");
+        _;
+    }
+
+    /**
+     * @notice Pauses vault
+     */
+    function pause() external {
+        _checkAccessAllowed("pause()");
+        require(!vaultPaused, "Vault is already paused");
+        vaultPaused = true;
+        emit VaultPaused(msg.sender);
+    }
+
+    /**
+     * @notice Resume vault
+     */
+    function resume() external {
+        _checkAccessAllowed("resume()");
+        require(vaultPaused, "Vault is not paused");
+        vaultPaused = false;
+        emit VaultResumed(msg.sender);
+    }
+
     function poolLength(address rewardToken) external view returns (uint256) {
         return poolInfos[rewardToken].length;
     }
@@ -99,7 +139,8 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         IBEP20 _token,
         uint256 _rewardPerBlock,
         uint256 _lockPeriod
-    ) external onlyAdmin {
+    ) external {
+        _checkAccessAllowed("add(address,uint256,address,uint256,uint256)");
         require(address(xvsStore) != address(0), "Store contract addres is empty");
 
         massUpdatePools(_rewardToken);
@@ -131,7 +172,8 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     }
 
     // Update the given pool's reward allocation point. Can only be called by the admin.
-    function set(address _rewardToken, uint256 _pid, uint256 _allocPoint) external onlyAdmin {
+    function set(address _rewardToken, uint256 _pid, uint256 _allocPoint) external {
+        _checkAccessAllowed("set(address,uint256,uint256)");
         _ensureValidPool(_rewardToken, _pid);
         massUpdatePools(_rewardToken);
 
@@ -144,7 +186,8 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     }
 
     // Update the given reward token's amount per block
-    function setRewardAmountPerBlock(address _rewardToken, uint256 _rewardAmount) external onlyAdmin {
+    function setRewardAmountPerBlock(address _rewardToken, uint256 _rewardAmount) external {
+        _checkAccessAllowed("setRewardAmountPerBlock(address,uint256)");
         massUpdatePools(_rewardToken);
         uint256 oldReward = rewardTokenAmountsPerBlock[_rewardToken];
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardAmount;
@@ -153,7 +196,8 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     }
 
     // Update the given reward token's amount per block
-    function setWithdrawalLockingPeriod(address _rewardToken, uint256 _pid, uint256 _newPeriod) external onlyAdmin {
+    function setWithdrawalLockingPeriod(address _rewardToken, uint256 _pid, uint256 _newPeriod) external {
+        _checkAccessAllowed("setWithdrawalLockingPeriod(address,uint256,uint256)");
         _ensureValidPool(_rewardToken, _pid);
         require(_newPeriod > 0, "Invalid new locking period");
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
@@ -169,7 +213,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
      * @param _pid The Pool Index
      * @param _amount The amount to deposit to vault
      */
-    function deposit(address _rewardToken, uint256 _pid, uint256 _amount) external nonReentrant {
+    function deposit(address _rewardToken, uint256 _pid, uint256 _amount) external nonReentrant isActive {
         _ensureValidPool(_rewardToken, _pid);
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
@@ -201,7 +245,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      */
-    function claim(address _account, address _rewardToken, uint256 _pid) external nonReentrant {
+    function claim(address _account, address _rewardToken, uint256 _pid) external nonReentrant isActive {
         _ensureValidPool(_rewardToken, _pid);
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][_account];
@@ -297,7 +341,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      */
-    function executeWithdrawal(address _rewardToken, uint256 _pid) external nonReentrant {
+    function executeWithdrawal(address _rewardToken, uint256 _pid) external nonReentrant isActive {
         _ensureValidPool(_rewardToken, _pid);
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
@@ -357,7 +401,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
      * @param _pid The Pool Index
      * @param _amount The amount to withdraw to vault
      */
-    function requestWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount) external nonReentrant {
+    function requestWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount) external nonReentrant isActive {
         _ensureValidPool(_rewardToken, _pid);
         require(_amount > 0, "requested amount cannot be zero");
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
@@ -461,14 +505,14 @@ contract XVSVault is XVSVaultStorage, ECDSA {
     }
 
     // Update reward vairables for all pools. Be careful of gas spending!
-    function massUpdatePools(address _rewardToken) public {
+    function massUpdatePools(address _rewardToken) internal {
         uint256 length = poolInfos[_rewardToken].length;
         for (uint256 pid = 0; pid < length; ++pid) {
             _updatePool(_rewardToken, pid);
         }
     }
 
-    function updatePool(address _rewardToken, uint256 _pid) external {
+    function updatePool(address _rewardToken, uint256 _pid) external isActive {
         _ensureValidPool(_rewardToken, _pid);
         _updatePool(_rewardToken, _pid);
     }
@@ -551,7 +595,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
      * @notice Delegate votes from `msg.sender` to `delegatee`
      * @param delegatee The address to delegate votes to
      */
-    function delegate(address delegatee) external {
+    function delegate(address delegatee) external isActive {
         return _delegate(msg.sender, delegatee);
     }
 
@@ -564,7 +608,14 @@ contract XVSVault is XVSVaultStorage, ECDSA {
      * @param r Half of the ECDSA signature pair
      * @param s Half of the ECDSA signature pair
      */
-    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s) external {
+    function delegateBySig(
+        address delegatee,
+        uint nonce,
+        uint expiry,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external isActive {
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("XVSVault")), getChainId(), address(this))
         );
@@ -713,7 +764,7 @@ contract XVSVault is XVSVaultStorage, ECDSA {
 
     /*** Admin Functions ***/
 
-    function _become(XVSVaultProxy xvsVaultProxy) external {
+    function _become(IXVSVaultProxy xvsVaultProxy) external {
         require(msg.sender == xvsVaultProxy.admin(), "only proxy admin can change brains");
         require(xvsVaultProxy._acceptImplementation() == 0, "change not authorized");
     }
@@ -727,5 +778,14 @@ contract XVSVault is XVSVaultStorage, ECDSA {
         _notEntered = true;
 
         emit StoreUpdated(oldXvsContract, oldStore, _xvs, _xvsStore);
+    }
+
+    /**
+     * @notice Sets the address of the access control of this contract
+     * @dev Admin function to set the access control address
+     * @param newAccessControlAddress New address for the access control
+     */
+    function setAccessControl(address newAccessControlAddress) external onlyAdmin {
+        _setAccessControlManager(newAccessControlAddress);
     }
 }
