@@ -1,0 +1,166 @@
+{
+  "tokens": [
+    {
+      "name": "",
+      "vToken": "",
+      "vTokenImplementation": "",
+      "interestRateModel": "",
+      "stableRateModel": "",
+      "interestRateModelParameters": {
+        "baseRatePerYear": "",
+        "multiplierPerYear": "",
+        "jumpMultiplierPerYear": "",
+        "kink_": ""
+      },
+      "stableRateModelParameters": {
+        "baseRatePerYear_": "",
+        "stableRatePremium_": "",
+        "optimalStableLoanRatio_": ""
+      }
+    },
+    {
+      "name": "",
+      "vToken": "",
+      "vTokenImplementation": "",
+      "interestRateModel": "",
+      "stableRateModel": "",
+      "interestRateModelParameters": {
+        "baseRatePerYear": "",
+        "multiplierPerYear": "",
+        "jumpMultiplierPerYear": "",
+        "kink_": ""
+      },
+      "stableRateModelParameters": {
+        "baseRatePerYear_": "",
+        "stableRatePremium_": "",
+        "optimalStableLoanRatio_": ""
+      }
+    },
+    {
+      "name": "",
+      "vToken": "",
+      "vTokenImplementation": "",
+      "interestRateModel": "",
+      "stableRateModel": "",
+      "interestRateModelParameters": {
+        "baseRatePerYear": "",
+        "multiplierPerYear": "",
+        "jumpMultiplierPerYear": "",
+        "kink_": ""
+      },
+      "stableRateModelParameters": {
+        "baseRatePerYear_": "",
+        "stableRatePremium_": "",
+        "optimalStableLoanRatio_": ""
+      }
+    },
+    {
+      "name": "",
+      "vToken": "",
+      "vTokenImplementation": "",
+      "interestRateModel": "",
+      "stableRateModel": "",
+      "interestRateModelParameters": {
+        "baseRatePerYear": "",
+        "multiplierPerYear": "",
+        "jumpMultiplierPerYear": "",
+        "kink_": ""
+      },
+      "stableRateModelParameters": {
+        "baseRatePerYear_": "",
+        "stableRatePremium_": "",
+        "optimalStableLoanRatio_": ""
+      }
+    },
+    {
+      "name": "",
+      "vToken": "",
+      "vTokenImplementation": "",
+      "interestRateModel": "",
+      "stableRateModel": "",
+      "interestRateModelParameters": {
+        "baseRatePerYear": "",
+        "multiplierPerYear": "",
+        "jumpMultiplierPerYear": "",
+        "kink_": ""
+      },
+      "stableRateModelParameters": {
+        "baseRatePerYear_": "",
+        "stableRatePremium_": "",
+        "optimalStableLoanRatio_": ""
+      }
+    },
+    {
+      "name": "",
+      "vToken": "",
+      "vTokenImplementation": "",
+      "interestRateModel": "",
+      "stableRateModel": "",
+      "interestRateModelParameters": {
+        "baseRatePerYear": "",
+        "multiplierPerYear": "",
+        "jumpMultiplierPerYear": "",
+        "kink_": ""
+      },
+      "stableRateModelParameters": {
+        "baseRatePerYear_": "",
+        "stableRatePremium_": "",
+        "optimalStableLoanRatio_": ""
+      }
+    },
+    {
+      "name": "",
+      "vToken": "",
+      "vTokenImplementation": "",
+      "interestRateModel": "",
+      "stableRateModel": "",
+      "interestRateModelParameters": {
+        "baseRatePerYear": "",
+        "multiplierPerYear": "",
+        "jumpMultiplierPerYear": "",
+        "kink_": ""
+      },
+      "stableRateModelParameters": {
+        "baseRatePerYear_": "",
+        "stableRatePremium_": "",
+        "optimalStableLoanRatio_": ""
+      }
+    },
+    {
+      "name": "",
+      "vToken": "",
+      "vTokenImplementation": "",
+      "interestRateModel": "",
+      "stableRateModel": "",
+      "interestRateModelParameters": {
+        "baseRatePerYear": "",
+        "multiplierPerYear": "",
+        "jumpMultiplierPerYear": "",
+        "kink_": ""
+      },
+      "stableRateModelParameters": {
+        "baseRatePerYear_": "",
+        "stableRatePremium_": "",
+        "optimalStableLoanRatio_": ""
+      }
+    },
+    {
+      "name": "",
+      "vToken": "",
+      "vTokenImplementation": "",
+      "interestRateModel": "",
+      "stableRateModel": "",
+      "interestRateModelParameters": {
+        "baseRatePerYear": "",
+        "multiplierPerYear": "",
+        "jumpMultiplierPerYear": "",
+        "kink_": ""
+      },
+      "stableRateModelParameters": {
+        "baseRatePerYear_": "",
+        "stableRatePremium_": "",
+        "optimalStableLoanRatio_": ""
+      }
+    }
+  ]
+}

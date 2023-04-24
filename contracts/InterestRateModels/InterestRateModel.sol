@@ -16,13 +16,4 @@ contract InterestRateModel {
      * @return The borrow rate per block (as a percentage, and scaled by 1e18)
      */
     function getBorrowRate(uint cash, uint borrows, uint reserves) external view returns (uint);
-
-    /**
-     * @notice Calculates the utilization rate for the market
-     * @param cash The total amount of cash the market has
-     * @param borrows The total amount of borrows the market has outstanding
-     * @param reserves The total amount of reserves the market has
-     * @return The utilization rate (as a percentage)
-     */
-    function utilizationRate(uint cash, uint borrows, uint reserves) public pure returns (uint);
 }
