@@ -189,7 +189,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         if (fee != 0) {
             VAI(vaiAddress).mint(venusTreasury, fee);
         }
-        emit StableForVAISwapped(stableTknAmount, vaiToMint, fee);
+        emit StableForVAISwapped(actualTransferAmt, vaiToMint, fee);
     }
 
     /*** Helper Functions ***/
