@@ -49,7 +49,7 @@ async function pegStaibilityFixture(): Promise<PegStaibilityFixture> {
     feeOut: TEN_PERCENT,
     vaiMintCap: VAI_MIN_CAP,
   });
-  stableToken.transferFrom.returns(true);
+  stableToken.transfer.returns(true);
   return { pegStability, stableToken, acm, vai, venusTreasury, priceOracle };
 }
 
@@ -182,6 +182,10 @@ describe("Peg Stability Module", () => {
   });
   describe("Swap functions", () => {
     describe("swapVAIForStable(address,uint256)", () => {
+      beforeEach(async ()=>{
+        const VAI_MINTED = convertToUnit(110,18);
+        await pegStability.setVariable("vaiMinted",VAI_MINTED);
+      });
       it("should revert if receiver is zero address ", async () => {
         await expect(pegStability.swapVAIForStable(ethers.constants.AddressZero, 100)).to.be.revertedWith(
           "Can't be zero address.",
@@ -192,7 +196,7 @@ describe("Peg Stability Module", () => {
         const USER_VAI_BALANCE = convertToUnit(109, 18); // USER NEEDS TO HAVE 110 VAI
         vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
         await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-          "Not enought VAI.",
+          "Not enough VAI.",
         );
       });
       it("should revert if VAI transfer fails ", async () => {
@@ -201,6 +205,15 @@ describe("Peg Stability Module", () => {
         vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
         await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
           "VAI fee transfer failed.",
+        );
+      });
+      it("should revert if VAI to be burnt > vaiMinted ", async () => {
+        const STABLE_TOKEN_AMOUNT = convertToUnit(200, 18);
+        const USER_VAI_BALANCE = convertToUnit(300, 18);
+        vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
+        vai.transferFrom.returns(true);
+        await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+          "Can't burn more VAI than minted.",
         );
       });
       describe("should sucessfully perform the swap", () => {
@@ -220,11 +233,7 @@ describe("Peg Stability Module", () => {
               VAI_FEE_TO_TREASURY,
             );
             expect(vai.burn).to.have.been.calledOnceWith(adminAddress, STABLE_TOKEN_AMOUNT);
-            expect(stableToken.transferFrom).to.have.been.calledOnceWith(
-              pegStability.address,
-              receiverAddress,
-              STABLE_TOKEN_AMOUNT,
-            );
+            expect(stableToken.transfer).to.have.been.calledOnceWith(receiverAddress, STABLE_TOKEN_AMOUNT);
             await expect(tx)
               .to.emit(pegStability, "VaiForStableSwapped")
               .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
@@ -246,11 +255,7 @@ describe("Peg Stability Module", () => {
               VAI_FEE_TO_TREASURY,
             );
             expect(vai.burn.atCall(1)).to.have.been.calledWith(adminAddress, STABLE_TOKEN_AMOUNT);
-            expect(stableToken.transferFrom.atCall(1)).to.have.been.calledWith(
-              pegStability.address,
-              receiverAddress,
-              STABLE_TOKEN_AMOUNT,
-            );
+            expect(stableToken.transfer.atCall(1)).to.have.been.calledWith(receiverAddress, STABLE_TOKEN_AMOUNT);
             await expect(tx)
               .to.emit(pegStability, "VaiForStableSwapped")
               .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
@@ -272,11 +277,7 @@ describe("Peg Stability Module", () => {
               VAI_FEE_TO_TREASURY,
             );
             expect(vai.burn.atCall(2)).to.have.been.calledWith(adminAddress, VAI_TO_BURN);
-            expect(stableToken.transferFrom.atCall(2)).to.have.been.calledWith(
-              pegStability.address,
-              receiverAddress,
-              STABLE_TOKEN_AMOUNT,
-            );
+            expect(stableToken.transfer.atCall(2)).to.have.been.calledWith(receiverAddress, STABLE_TOKEN_AMOUNT);
             await expect(tx)
               .to.emit(pegStability, "VaiForStableSwapped")
               .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
@@ -299,11 +300,7 @@ describe("Peg Stability Module", () => {
             vai.transferFrom.whenCalledWith(adminAddress, venusTreasury.address, VAI_FEE_TO_TREASURY).returns(true);
             const tx = await pegStability.swapVAIForStable(receiverAddress, STABLE_TOKEN_AMOUNT);
             expect(vai.burn.atCall(3)).to.have.been.calledWith(adminAddress, STABLE_TOKEN_AMOUNT);
-            expect(stableToken.transferFrom.atCall(3)).to.have.been.calledWith(
-              pegStability.address,
-              receiverAddress,
-              STABLE_TOKEN_AMOUNT,
-            );
+            expect(stableToken.transfer.atCall(3)).to.have.been.calledWith(receiverAddress, STABLE_TOKEN_AMOUNT);
             await expect(tx)
               .to.emit(pegStability, "VaiForStableSwapped")
               .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
@@ -320,11 +317,7 @@ describe("Peg Stability Module", () => {
             vai.transferFrom.whenCalledWith(adminAddress, venusTreasury.address, VAI_FEE_TO_TREASURY).returns(true);
             const tx = await pegStability.swapVAIForStable(receiverAddress, STABLE_TOKEN_AMOUNT);
             expect(vai.burn.atCall(4)).to.have.been.calledWith(adminAddress, STABLE_TOKEN_AMOUNT);
-            expect(stableToken.transferFrom.atCall(2)).to.have.been.calledWith(
-              pegStability.address,
-              receiverAddress,
-              STABLE_TOKEN_AMOUNT,
-            );
+            expect(stableToken.transfer.atCall(2)).to.have.been.calledWith(receiverAddress, STABLE_TOKEN_AMOUNT);
             await expect(tx)
               .to.emit(pegStability, "VaiForStableSwapped")
               .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
@@ -340,11 +333,7 @@ describe("Peg Stability Module", () => {
             vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
             const tx = await pegStability.swapVAIForStable(receiverAddress, STABLE_TOKEN_AMOUNT);
             expect(vai.burn.atCall(5)).to.have.been.calledWith(adminAddress, VAI_TO_BURN);
-            expect(stableToken.transferFrom.atCall(3)).to.have.been.calledWith(
-              pegStability.address,
-              receiverAddress,
-              STABLE_TOKEN_AMOUNT,
-            );
+            expect(stableToken.transfer.atCall(3)).to.have.been.calledWith(receiverAddress, STABLE_TOKEN_AMOUNT);
             await expect(tx)
               .to.emit(pegStability, "VaiForStableSwapped")
               .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);

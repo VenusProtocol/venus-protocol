@@ -82,7 +82,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
      * @dev Prevents functions to execute when contract is paused.
      */
     modifier isActive() {
-        require(isPaused == false, "Contract is paused.");
+        require(!isPaused, "Contract is paused.");
         _;
     }
 
@@ -117,6 +117,8 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         ensureNonzeroAddress(venusTreasury_);
         ensureNonzeroAddress(priceOracle_);
         __AccessControlled_init(accessControlManager_);
+        require(feeIn_ < BASIS_POINTS_DIVISOR, "Invalid fee in.");
+        require(feeOut_ < BASIS_POINTS_DIVISOR, "Invalid fee out.");
         feeIn = feeIn_;
         feeOut = feeOut_;
         vaiMintCap = vaiMintCap_;
@@ -142,19 +144,20 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     // @custom:event Emits VaiForStableSwapped event
     function swapVAIForStable(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
         ensureNonzeroAddress(receiver);
-        require(stableTknAmount > 0, "Amount must be greater than zero");
+        require(stableTknAmount > 0, "Amount must be greater than zero.");
         uint256 stableTknAmountUSD = previewTokenUSDAmount(stableTknAmount, FeeDirection.OUT);
         uint256 fee = _calculateFee(stableTknAmountUSD, FeeDirection.OUT);
-        require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "Not enought VAI.");
+        require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "Not enough VAI.");
+        require(vaiMinted >= stableTknAmountUSD, "Can't burn more VAI than minted.");
         if (fee != 0) {
             bool success = VAI(vaiAddress).transferFrom(msg.sender, venusTreasury, fee);
             require(success, "VAI fee transfer failed.");
         }
-        if (vaiMinted != 0) {
+        unchecked {
             vaiMinted -= stableTknAmountUSD;
         }
         VAI(vaiAddress).burn(msg.sender, stableTknAmountUSD);
-        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(address(this), receiver, stableTknAmount);
+        IERC20Upgradeable(stableTokenAddress).safeTransfer(receiver, stableTknAmount);
         emit VaiForStableSwapped(stableTknAmountUSD, fee, stableTknAmount);
     }
 
@@ -176,7 +179,9 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         uint256 fee = _calculateFee(actualTransferAmtInUSD, FeeDirection.IN);
         uint256 vaiToMint = actualTransferAmtInUSD - fee;
         require(vaiMinted + actualTransferAmtInUSD <= vaiMintCap, "VAI mint cap reached.");
-        vaiMinted += actualTransferAmtInUSD;
+        unchecked {
+            vaiMinted += actualTransferAmtInUSD;
+        }
         // mint VAI to receiver
         VAI(vaiAddress).mint(receiver, vaiToMint);
         // mint VAI fee to venus treasury
@@ -248,7 +253,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     // @custom:event Emits PSMPaused event
     function pause() external {
         _checkAccessAllowed("pause()");
-        require(isPaused == false, "PSM is already paused.");
+        require(!isPaused, "PSM is already paused.");
         isPaused = true;
         emit PSMPaused(msg.sender);
     }
@@ -260,7 +265,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     // @custom:event Emits PSMResumed event
     function resume() external {
         _checkAccessAllowed("resume()");
-        require(isPaused == true, "PSM is not paused.");
+        require(isPaused, "PSM is not paused.");
         isPaused = false;
         emit PSMResumed(msg.sender);
     }
@@ -304,7 +309,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         _checkAccessAllowed("setVaiMintCap(uint256)");
         uint256 oldVaiMintCap = vaiMintCap;
         vaiMintCap = vaiMintCap_;
-        emit VaiMintCapChanged(oldVaiMintCap, vaiMintCap);
+        emit VaiMintCapChanged(oldVaiMintCap, vaiMintCap_);
     }
 
     /**
@@ -330,7 +335,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     function setPriceOracle(address priceOracle_) external {
         _checkAccessAllowed("setPriceOracle(address)");
         ensureNonzeroAddress(priceOracle_);
-        address oldPriceOracleAddress = priceOracle_;
+        address oldPriceOracleAddress = priceOracle;
         priceOracle = priceOracle_;
         emit PriceOracleChanged(oldPriceOracleAddress, priceOracle_);
     }
