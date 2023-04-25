@@ -141,6 +141,12 @@ export const vip105 = () => {
       {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
+        params: [XVS_VAULT_PROXY, "pause()", MULTISIG],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
         params: [XVS_VAULT_PROXY, "resume()", NORMAL_TIMELOCK],
       },
 
@@ -154,6 +160,12 @@ export const vip105 = () => {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
         params: [XVS_VAULT_PROXY, "resume()", CRITICAL_TIMELOCK],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
+        params: [XVS_VAULT_PROXY, "resume()", MULTISIG],
       },
 
       {
@@ -177,6 +189,12 @@ export const vip105 = () => {
       {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
+        params: [VAI_VAULT_PROXY, "pause()", MULTISIG],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
         params: [VAI_VAULT_PROXY, "resume()", NORMAL_TIMELOCK],
       },
 
@@ -190,6 +208,12 @@ export const vip105 = () => {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
         params: [VAI_VAULT_PROXY, "resume()", CRITICAL_TIMELOCK],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
+        params: [VAI_VAULT_PROXY, "resume()", MULTISIG],
       },
 
       {
@@ -213,6 +237,12 @@ export const vip105 = () => {
       {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
+        params: [VRT_VAULT_PROXY, "pause()", MULTISIG],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
         params: [VRT_VAULT_PROXY, "resume()", NORMAL_TIMELOCK],
       },
 
@@ -226,6 +256,12 @@ export const vip105 = () => {
         target: ACM,
         signature: "giveCallPermission(address,string,address)",
         params: [VRT_VAULT_PROXY, "resume()", CRITICAL_TIMELOCK],
+      },
+
+      {
+        target: ACM,
+        signature: "giveCallPermission(address,string,address)",
+        params: [VRT_VAULT_PROXY, "resume()", MULTISIG],
       },
 
       {
@@ -347,6 +383,8 @@ forking(27484902, async () => {
       expect(
         await accessControlManager.connect(xvsVaultSigner).isAllowedToCall(FAST_TRACK_TIMELOCK, "resume()"),
       ).equals(true);
+      expect(await accessControlManager.connect(xvsVaultSigner).isAllowedToCall(MULTISIG, "pause()")).equals(true);
+      expect(await accessControlManager.connect(xvsVaultSigner).isAllowedToCall(MULTISIG, "resume()")).equals(true);
     });
 
     it("VAI VAULT Permissions", async () => {
@@ -362,6 +400,8 @@ forking(27484902, async () => {
       expect(
         await accessControlManager.connect(vaiVaultSigner).isAllowedToCall(FAST_TRACK_TIMELOCK, "resume()"),
       ).equals(true);
+      expect(await accessControlManager.connect(vaiVaultSigner).isAllowedToCall(MULTISIG, "pause()")).equals(true);
+      expect(await accessControlManager.connect(vaiVaultSigner).isAllowedToCall(MULTISIG, "resume()")).equals(true);
     });
 
     it("XVS VAULT Permissions", async () => {
@@ -377,6 +417,8 @@ forking(27484902, async () => {
       expect(
         await accessControlManager.connect(vrtVaultSigner).isAllowedToCall(FAST_TRACK_TIMELOCK, "resume()"),
       ).equals(true);
+      expect(await accessControlManager.connect(vrtVaultSigner).isAllowedToCall(MULTISIG, "pause()")).equals(true);
+      expect(await accessControlManager.connect(vrtVaultSigner).isAllowedToCall(MULTISIG, "resume()")).equals(true);
     });
 
     it("Check VRT VAULT lastAccruingBlock", async () => {
