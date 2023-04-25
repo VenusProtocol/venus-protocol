@@ -136,6 +136,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   await xvsStore.setNewOwner(xvsVault.address);
   await xvsVault.setXvsStore(xvs.address, xvsStore.address);
+  await xvsVault.setAccessControl(accessControl.address);
 
   await xvs.transfer(xvsStore.address, bigNumber18.mul(1000));
   await xvs.transfer(user1.address, bigNumber18.mul(1000000));
