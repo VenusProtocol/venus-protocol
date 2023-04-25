@@ -70,7 +70,7 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
      */
     function updateAlpha(uint128 _alphaNumerator, uint128 _alphaDenominator) external {
         _checkAccessAllowed("updateAlpha(uint128,uint128)");
-        
+
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
 
@@ -86,11 +86,7 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
      * @param _supplyMultiplier new supply multiplier for the market
      * @param _borrowMultiplier new borrow multiplier for the market
      */
-    function updateMultipliers(
-        address market,
-        uint256 _supplyMultiplier,
-        uint256 _borrowMultiplier
-    ) external {
+    function updateMultipliers(address market, uint256 _supplyMultiplier, uint256 _borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
         require(markets[market].lastUpdated != 0, "market is not supported");
 
