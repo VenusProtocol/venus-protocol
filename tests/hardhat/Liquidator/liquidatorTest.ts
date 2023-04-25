@@ -23,6 +23,7 @@ chai.use(smock.matchers);
 
 const repayAmount = 1000n;
 const seizeTokens = 1000n * 4n;
+const minLiquidatableVAI = convertToBigInt("1000", 18);
 const announcedIncentive = convertToBigInt("1.1", 18);
 const treasuryPercent = convertToBigInt("0.05", 18);
 
@@ -340,6 +341,50 @@ describe("Liquidator", () => {
           treasuryDelta,
           liquidatorDelta,
         );
+    });
+  });
+
+  describe("Force VAI Liquidation", () => {
+    beforeEach(async () => {
+      await liquidatorContract.setMinLiquidatableVAI(minLiquidatableVAI);
+      await liquidatorContract.resumeForceVAILiquidate();
+    });
+    async function liquidate() {
+      return liquidatorContract.liquidateBorrow(vBnb.address, borrower.address, repayAmount, vTokenCollateral.address, {
+        value: repayAmount,
+      });
+    }
+    it("Should able to liquidate any token when VAI debt is lower than minLiquidatableVAI", async () => {
+      await expect(liquidate()).to.be.emit(liquidatorContract, "LiquidateBorrowedTokens");
+    });
+
+    it("Should not able to liquidate any token when VAI debt is greater than minLiquidatableVAI", async () => {
+      vaiController.getVAIRepayAmount.returns(2000);
+      await expect(liquidate()).to.be.revertedWithCustomError(liquidatorContract, "VAIDebtTooHigh");
+    });
+
+    it("Should able to liquidate VAI token when VAI debt is greater than minLiquidatableVAI", async () => {
+      vaiController.getVAIRepayAmount.returns(2000);
+      expect(
+        liquidatorContract.liquidateBorrow(
+          vaiController.address,
+          borrower.address,
+          repayAmount,
+          vTokenCollateral.address,
+        ),
+      ).to.be.emit(liquidatorContract, "LiquidateBorrowedTokens");
+    });
+
+    it("Should able to liquidate any token and VAI token when force Liquidation is off", async () => {
+      vaiController.getVAIRepayAmount.returns(2000);
+      expect(
+        liquidatorContract.liquidateBorrow(
+          vTokenBorrowed.address,
+          borrower.address,
+          repayAmount,
+          vTokenCollateral.address,
+        ),
+      ).to.be.emit(liquidatorContract, "LiquidateBorrowedTokens");
     });
   });
 });
