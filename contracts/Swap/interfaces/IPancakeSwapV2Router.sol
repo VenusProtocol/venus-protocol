@@ -15,23 +15,23 @@ interface IPancakeSwapV2Router {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external returns (uint256[] memory amounts);
+    ) external returns (uint256 swapAmount);
 
-    function swapExactETHForTokens(
+    function swapExactBNBForTokens(
         uint256 amountOutMin,
         address[] calldata path,
         address to,
         uint256 deadline
     ) external payable returns (uint256[] memory amounts);
 
-    function swapExactETHForTokensAtSupportingFee(
+    function swapExactBNBForTokensAtSupportingFee(
         uint256 amountOutMin,
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external payable returns (uint256[] memory amounts);
+    ) external payable returns (uint256 swapAmount);
 
-    function swapExactTokensForETH(
+    function swapExactTokensForBNB(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
@@ -39,13 +39,13 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external returns (uint256[] memory amounts);
 
-    function swapExactTokensForETHAtSupportingFee(
+    function swapExactTokensForBNBAtSupportingFee(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external returns (uint256[] memory amounts);
+    ) external returns (uint256 swapAmount);
 
     function swapTokensForExactTokens(
         uint256 amountOut,
@@ -55,14 +55,14 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external returns (uint256[] memory amounts);
 
-    function swapETHForExactTokens(
+    function swapBNBForExactTokens(
         uint256 amountOut,
         address[] calldata path,
         address to,
         uint256 deadline
     ) external payable returns (uint256[] memory amounts);
 
-    function swapTokensForExactETH(
+    function swapTokensForExactBNB(
         uint256 amountOut,
         uint256 amountInMax,
         address[] calldata path,
@@ -70,7 +70,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external returns (uint256[] memory amounts);
 
-    function swapAndSupply(
+    function swapExactTokensForTokensAndSupply(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -78,7 +78,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external;
 
-    function swapAndSupplyAtSupportingFee(
+    function swapExactTokensForTokensAndSupplyAtSupportingFee(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -86,14 +86,14 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external;
 
-    function swapBnbAndSupply(
+    function swapExactBNBForTokensAndSupply(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
     ) external payable;
 
-    function swapBnbAndSupplyAtSupportingFee(
+    function swapExactBNBForTokensAndSupplyAtSupportingFee(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,
@@ -108,9 +108,15 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external;
 
-    function swapETHForExactTokensAndSupply(
+    function swapBNBForExactTokensAndSupply(
         address vTokenAddress,
         uint256 amountOut,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable;
+
+    function swapBNBForFullTokenDebtAndRepay(
+        address vTokenAddress,
         address[] calldata path,
         uint256 deadline
     ) external payable;
@@ -131,14 +137,14 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external;
 
-    function swapBnbAndRepay(
+    function swapExactBNBForTokensAndRepay(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
     ) external payable;
 
-    function swapBnbAndRepayAtSupportingFee(
+    function swapExactBNBForTokensAndRepayAtSupportingFee(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,
@@ -160,14 +166,14 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external;
 
-    function swapETHForExactTokensAndRepay(
+    function swapBNBForExactTokensAndRepay(
         address vTokenAddress,
         uint256 amountOut,
         address[] calldata path,
         uint256 deadline
     ) external payable;
 
-    function swapExactTokensForETHAndRepay(
+    function swapExactTokensForBNBAndRepay(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -175,7 +181,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external payable;
 
-    function swapExactTokensForETHAndRepayAtSupportingFee(
+    function swapExactTokensForBNBAndRepayAtSupportingFee(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -183,7 +189,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external payable;
 
-    function swapTokensForExactETHAndRepay(
+    function swapTokensForExactBNBAndRepay(
         address vTokenAddress,
         uint256 amountOut,
         uint256 amountInMax,
@@ -191,7 +197,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external payable;
 
-    function swapTokensForFullETHDebtAndRepay(
+    function swapTokensForFullBNBDebtAndRepay(
         address vBNBAddress,
         uint256 amountInMax,
         address[] calldata path,

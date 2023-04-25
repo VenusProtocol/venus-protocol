@@ -25,6 +25,7 @@
   "author": "Venus",
   "license": "BSD-3-Clause",
   "dependencies": {
+    "@openzeppelin/contracts": "^4.8.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
     "@venusprotocol/governance-contracts": "^0.0.2",
     "dotenv": "^16.0.1"
@@ -54,6 +55,7 @@
     "@typescript-eslint/eslint-plugin": "^5.40.0",
     "@typescript-eslint/parser": "^5.40.0",
     "@venusprotocol/isolated-pools": "0.0.5",
+    "@venusprotocol/governance-contracts": "^0.0.2",
     "chai": "^4.3.6",
     "eslint": "^8.25.0",
     "eslint-config-prettier": "^8.5.0",
