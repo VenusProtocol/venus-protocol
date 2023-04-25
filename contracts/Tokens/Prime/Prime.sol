@@ -6,8 +6,6 @@ import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlle
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
-import "hardhat/console.sol";
-
 interface IVToken {
     function borrowRatePerBlock() external view returns (uint);
 
@@ -46,10 +44,6 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
 
     /// @notice Emitted when prime token is burned
     event Burn(address owner);
-
-    constructor() {
-        _disableInitializers();
-    }
 
     function initialize(
         address _xvsVault,

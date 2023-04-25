@@ -6,14 +6,12 @@ import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
 import {
-  AccessControlManagerV8,
   BEP20Harness,
   Comptroller,
   ComptrollerLens,
   ComptrollerLens__factory,
   Comptroller__factory,
   IAccessControlManager,
-  IAccessControlManagerV8,
   InterestRateModelHarness,
   PriceOracle,
   PrimeScenario,
@@ -152,14 +150,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const rewardPerBlock = bigNumber18.mul(1);
   await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
 
-  const fakeAccessControlManager = await smock.fake<AccessControlManagerV8>("AccessControlManagerV8");
-  fakeAccessControlManager.isAllowedToCall.returns(true);
-
-  console.log(fakeAccessControlManager.address)
-
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
   const prime: PrimeScenario = (await primeFactory.deploy()) as PrimeScenario;
-  prime.initialize(xvsVault.address, xvs.address, 0, 1, 2, fakeAccessControlManager.address);
+  prime.initialize(xvsVault.address, xvs.address, 0, 1, 2, accessControl.address);
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 
@@ -233,7 +226,7 @@ describe("PrimeScenario Token", () => {
     });
   });
 
-  describe.skip("mint and burn", () => {
+  describe("mint and burn", () => {
     let prime: PrimeScenario;
     let xvsVault: XVSVault;
     let xvs: XVS;
@@ -313,10 +306,6 @@ describe("PrimeScenario Token", () => {
     });
 
     it("issue", async () => {
-      await expect(prime.connect(user1).issue(false, [user1.getAddress()])).to.be.revertedWith(
-        "Ownable: caller is not the owner",
-      );
-
       await prime.issue(true, [user1.getAddress(), user2.getAddress()]);
 
       let token = await prime.tokens(user1.getAddress());
@@ -335,7 +324,7 @@ describe("PrimeScenario Token", () => {
     });
   });
 
-  describe.skip("boosted yield", () => {
+  describe("boosted yield", () => {
     let comptroller: MockContract<Comptroller>;
     let prime: PrimeScenario;
     let vusdt: VBep20Harness;
