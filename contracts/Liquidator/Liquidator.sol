@@ -36,6 +36,8 @@ interface IVAIController {
     ) external returns (uint256, uint256);
 
     function getVAIAddress() external view returns (address);
+
+    function getVAIRepayAmount(address borrower) external view returns (uint256);
 }
 
 contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, AccessControlledV8 {
@@ -66,6 +68,12 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
     /// @notice Whether the liquidations are restricted to enabled allowedLiquidatorsByAccount addresses only
     mapping(address => bool) public liquidationRestricted;
 
+    /// @notice minimum amount of VAI liquidation threshold
+    uint256 public minLiquidatableVAI;
+
+    /// @notice check for liquidation of VAI
+    bool public forceVAILiquidate;
+
     /* Events */
 
     /// @notice Emitted when the percent of the seized amount that goes to treasury changes.
@@ -93,6 +101,15 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
 
     /// @notice Emitted when a liquidator is removed from the allowedLiquidatorsByAccount mapping
     event AllowlistEntryRemoved(address indexed borrower, address indexed liquidator);
+
+    /// @notice Emitted when the amount of minLiquidatableVAI is updated
+    event NewMinLiquidatableVAI(uint256 oldMinLiquidatableVAI, uint256 newMinLiquidatableVAI);
+
+    /// @notice Emitted when force liquidation is paused
+    event ForceVaiLiquidationPaused(address sender);
+
+    /// @notice Emitted when force liquidation is resumed
+    event ForceVaiLiquidationResumed(address sender);
 
     /* Errors */
 
@@ -127,6 +144,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
     /// @notice Thrown if trying to set treasury percent larger than the liquidation profit
     error TreasuryPercentTooHigh(uint256 maxTreasuryPercentMantissa, uint256 treasuryPercentMantissa_);
 
+    /// @notice Thrown if trying to liquidate any token when VAI debt is too high
+    error VAIDebtTooHigh(uint256 repayAmount, uint256 minLiquidatableVAI);
+
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
@@ -148,7 +168,10 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
     /// @notice Initializer for the implementation contract.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
     /// @param accessControlManager_ address of access control manager
-    function initialize(uint256 treasuryPercentMantissa_, address accessControlManager_) external virtual initializer {
+    function initialize(
+        uint256 treasuryPercentMantissa_,
+        address accessControlManager_
+    ) external virtual reinitializer(1) {
         __Liquidator_init(treasuryPercentMantissa_, accessControlManager_);
     }
 
@@ -188,7 +211,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
     /// @dev Does not impact the allowedLiquidatorsByAccount mapping for the borrower, just turns off the check.
     /// @param borrower The address of the borrower
     function unrestrictLiquidation(address borrower) external {
-        _checkAccessAllowed("unrestrictLiquidation(address) ");
+        _checkAccessAllowed("unrestrictLiquidation(address)");
         if (!liquidationRestricted[borrower]) {
             revert NoRestrictionsExist(borrower);
         }
@@ -241,6 +264,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
     ) external payable nonReentrant {
         ensureNonzeroAddress(borrower);
         checkRestrictions(borrower, msg.sender);
+        _checkForceVAILiquidate(vToken, borrower);
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
         if (vToken == address(vBnb)) {
             if (repayAmount != msg.value) {
@@ -363,12 +387,49 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
         }
     }
 
+    function _checkForceVAILiquidate(address vToken, address borrower) private view {
+        uint256 vaiDebt_ = vaiController.getVAIRepayAmount(borrower);
+        if (!forceVAILiquidate || vaiDebt_ * 10 ** 18 < minLiquidatableVAI || vToken == address(vaiController)) return;
+        revert VAIDebtTooHigh(vaiDebt_, minLiquidatableVAI);
+    }
+
     /**
      * @notice Sets the address of the access control of this contract
      * @dev Admin function to set the access control address
      * @param newAccessControlAddress New address for the access control
      */
-    function _setAccessControl(address newAccessControlAddress) external onlyOwner {
+    function setAccessControl(address newAccessControlAddress) external onlyOwner {
         _setAccessControlManager(newAccessControlAddress);
+    }
+
+    /**
+     * @notice Sets the threshold for minimum amount of vaiLiquidate
+     * @param _minLiquidatableVAI New address for the access control
+     */
+    function setMinLiquidatableVAI(uint256 _minLiquidatableVAI) external {
+        _checkAccessAllowed("setMinLiquidatableVAI(uint256)");
+        uint256 oldMinLiquidatableVAI_ = minLiquidatableVAI;
+        minLiquidatableVAI = _minLiquidatableVAI;
+        emit NewMinLiquidatableVAI(oldMinLiquidatableVAI_, _minLiquidatableVAI);
+    }
+
+    /**
+     * @notice Pause Force Liquidation of VAI
+     */
+    function pauseForceVAILiquidate() external {
+        _checkAccessAllowed("pauseForceVAILiquidate()");
+        require(forceVAILiquidate, "Force Liquidation of VAI is already Paused");
+        forceVAILiquidate = false;
+        emit ForceVaiLiquidationPaused(msg.sender);
+    }
+
+    /**
+     * @notice Pause Force Liquidation of VAI
+     */
+    function resumeForceVAILiquidate() external {
+        _checkAccessAllowed("resumeForceVAILiquidate()");
+        require(!forceVAILiquidate, "Force Liquidation of VAI is already resume");
+        forceVAILiquidate = true;
+        emit ForceVaiLiquidationResumed(msg.sender);
     }
 }
