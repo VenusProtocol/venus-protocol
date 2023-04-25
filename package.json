@@ -26,6 +26,7 @@
   "license": "BSD-3-Clause",
   "dependencies": {
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
+    "@venusprotocol/governance-contracts": "^0.0.2",
     "dotenv": "^16.0.1"
   },
   "peerDependencies": {

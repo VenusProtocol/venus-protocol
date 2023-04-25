@@ -2,8 +2,11 @@ pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
+
+import "hardhat/console.sol";
 
 interface IVToken {
     function borrowRatePerBlock() external view returns (uint);
@@ -35,7 +38,7 @@ interface IXVSVault {
     ) external view returns (uint256 amount, uint256 rewardDebt, uint256 pendingWithdrawals);
 }
 
-contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
+contract Prime is AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Emitted when prime token is minted
@@ -44,12 +47,17 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
     /// @notice Emitted when prime token is burned
     event Burn(address owner);
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _xvsVault,
         address _xvsVaultRewardToken,
         uint256 _xvsVaultPoolId,
         uint128 _alphaNumerator,
-        uint128 _alphaDenominator
+        uint128 _alphaDenominator,
+        address accessControlManager_
     ) external virtual initializer {
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
@@ -58,7 +66,7 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         xvsVault = _xvsVault;
         nextScoreUpdateRoundId = 0;
 
-        __Ownable2Step_init();
+        __AccessControlled_init(accessControlManager_);
     }
 
     /**
@@ -66,7 +74,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numberator is 1
      * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then numberator is 2
      */
-    function updateAlpha(uint128 _alphaNumerator, uint128 _alphaDenominator) external onlyOwner {
+    function updateAlpha(uint128 _alphaNumerator, uint128 _alphaDenominator) external {
+        _checkAccessAllowed("updateAlpha(uint128,uint128)");
+        
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
 
@@ -86,7 +96,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
         address market,
         uint256 _supplyMultiplier,
         uint256 _borrowMultiplier
-    ) external onlyOwner {
+    ) external {
+        _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
         require(markets[market].lastUpdated != 0, "market is not supported");
 
         accrueInterest(market);
@@ -102,7 +113,8 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param supplyMultiplier the multiplier for supply cap. It should be converted to 1e18
      * @param borrowMultiplier the multiplier for borrow cap. It should be converted to 1e18
      */
-    function addMarket(address vToken, uint256 supplyMultiplier, uint256 borrowMultiplier) external onlyOwner {
+    function addMarket(address vToken, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
+        _checkAccessAllowed("addMarket(address,uint256,uint256)");
         require(markets[vToken].lastUpdated == 0, "market is already added");
 
         markets[vToken].rewardIndex = 0;
@@ -121,7 +133,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param irrevocableLimit total number of irrevocable tokens that can be minted
      * @param revocableLimit total number of revocable tokens that can be minted
      */
-    function setLimit(uint256 irrevocableLimit, uint256 revocableLimit) external onlyOwner {
+    function setLimit(uint256 irrevocableLimit, uint256 revocableLimit) external {
+        _checkAccessAllowed("setLimit(uint256,uint256)");
+
         require(_totalRevocable <= revocableLimit, "limit is lower than total minted tokens");
         require(_totalIrrevocable <= irrevocableLimit, "limit is lower than total minted tokens");
 
@@ -134,7 +148,9 @@ contract Prime is Ownable2StepUpgradeable, PrimeStorageV1 {
      * @param isIrrevocable is the tokens being issued is irrevocable
      * @param owners list of address to issue tokens to
      */
-    function issue(bool isIrrevocable, address[] memory owners) external onlyOwner {
+    function issue(bool isIrrevocable, address[] memory owners) external {
+        _checkAccessAllowed("issue(bool,address[])");
+
         if (isIrrevocable == true) {
             for (uint i = 0; i < owners.length; i++) {
                 _mint(true, owners[i]);

@@ -1451,6 +1451,11 @@
     "@typescript-eslint/types" "5.43.0"
     eslint-visitor-keys "^3.3.0"
 
+"@venusprotocol/governance-contracts@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@venusprotocol/governance-contracts/-/governance-contracts-0.0.2.tgz#0e85616a95b482e7c2060d4d9a2876b3cea38891"
+  integrity sha512-vXZDXxGGQdw9rWWGGAeCHH8iiHa4s5JP6MQomvt8XaPvOFGBFD4paz473/VI0wGeh+wg0LWYAgQsZjGyn51Bkw==
+
 "@venusprotocol/isolated-pools@0.0.5":
   version "0.0.5"
   resolved "https://registry.npmjs.org/@venusprotocol/isolated-pools/-/isolated-pools-0.0.5.tgz#44d5b9a52340f91cb42e19381f7a1fc9015e551c"
