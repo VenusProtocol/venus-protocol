@@ -105,7 +105,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin);
+        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, address(this));
         _supply(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
@@ -147,7 +147,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin);
+        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, address(this));
         _supply(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
@@ -231,7 +231,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin);
+        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, address(this));
         _repay(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
@@ -271,7 +271,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin);
+        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, address(this));
         _repay(path[path.length - 1], vTokenAddress, swapAmount);
     }
 
@@ -493,7 +493,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     ) external virtual override ensure(deadline) ensurePath(path) returns (uint256 swapAmount) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapExactTokensForTokens(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
-        swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin);
+        swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, to);
     }
 
     /**
@@ -536,7 +536,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     ) external payable virtual override ensure(deadline) ensurePath(path) returns (uint256 swapAmount) {
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapExactETHForTokens(amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
-        swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin);
+        swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, to);
     }
 
     /**
@@ -705,9 +705,10 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     function _checkForAmountOut(
         address[] calldata path,
         uint256 balanceBefore,
-        uint256 amountOutMin
+        uint256 amountOutMin,
+        address to
     ) internal view returns (uint256 swapAmount) {
-        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(to);
         swapAmount = balanceAfter - balanceBefore;
         require(swapAmount >= amountOutMin, "SwapRouter: SwapAmount is less than amountOutMin");
     }
