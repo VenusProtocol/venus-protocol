@@ -7,12 +7,16 @@ import { ethers } from "hardhat";
 import {
   IAccessControlManager,
   IERC20Upgradeable,
+  IPriceOracle,
   PegStability,
   PegStability__factory,
-  VBep20,
   VTreasury,
 } from "../../../typechain";
-import { PriceOracle } from "../../../typechain/contracts/PegStability/PegStability.sol";
+import {
+  IVTokenUnderlying,
+  OracleProviderInterface,
+  PriceOracle,
+} from "../../../typechain/contracts/PegStability/PegStability.sol";
 import { VAI } from "../../../typechain/contracts/Tokens/VAI";
 import { convertToUnit } from "./../../../helpers/utils";
 
@@ -29,28 +33,31 @@ type PegStaibilityFixture = {
   vai: FakeContract<VAI>;
   venusTreasury: FakeContract<VTreasury>;
   priceOracle: FakeContract<PriceOracle>;
+  comptroller: FakeContract<OracleProviderInterface>;
 };
 
 async function pegStaibilityFixture(): Promise<PegStaibilityFixture> {
   const acm = await smock.fake<IAccessControlManager>("IAccessControlManager");
   const venusTreasury = await smock.fake<VTreasury>("VTreasury");
   const stableToken = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
-  const vToken = await smock.fake<VBep20>("VBep20");
+  const vToken = await smock.fake<IVTokenUnderlying>("IVTokenUnderlying");
   vToken.underlying.returns(stableToken.address);
+  const priceOracle = await smock.fake<IPriceOracle>("contracts/PegStability/PegStability.sol:IPriceOracle");
+  const comptroller = await smock.fake<OracleProviderInterface>("OracleProviderInterface");
+  comptroller.oracle.returns(priceOracle.address);
   const vai = await smock.fake<VAI>("contracts/Tokens/VAI/VAI.sol:VAI");
   const PSMFactory = await smock.mock<PegStability__factory>("PegStability");
   const pegStability = await PSMFactory.deploy(vToken.address, vai.address);
-  const priceOracle = await smock.fake<PriceOracle>("contracts/PegStability/PegStability.sol:PriceOracle");
   await pegStability.setVariables({
     _accessControlManager: acm.address,
     venusTreasury: venusTreasury.address,
-    priceOracle: priceOracle.address,
+    comptroller: comptroller.address,
     feeIn: TEN_PERCENT,
     feeOut: TEN_PERCENT,
     vaiMintCap: VAI_MIN_CAP,
   });
   stableToken.transfer.returns(true);
-  return { pegStability, stableToken, acm, vai, venusTreasury, priceOracle };
+  return { pegStability, stableToken, acm, vai, venusTreasury, priceOracle, comptroller };
 }
 
 describe("Peg Stability Module", () => {
@@ -60,11 +67,14 @@ describe("Peg Stability Module", () => {
   let vai: FakeContract<VAI>;
   let venusTreasury: FakeContract<VTreasury>;
   let priceOracle: FakeContract<PriceOracle>;
+  let comptroller: FakeContract<OracleProviderInterface>;
   let admin: SignerWithAddress;
   let user: SignerWithAddress;
   let adminAddress: string;
   beforeEach(async () => {
-    ({ pegStability, stableToken, acm, vai, venusTreasury, priceOracle } = await loadFixture(pegStaibilityFixture));
+    ({ pegStability, stableToken, acm, vai, venusTreasury, priceOracle, comptroller } = await loadFixture(
+      pegStaibilityFixture,
+    ));
     [admin, user] = await ethers.getSigners();
     adminAddress = await admin.getAddress();
     priceOracle.getUnderlyingPrice.returns(PRICE_ONE_USD);
@@ -168,6 +178,37 @@ describe("Peg Stability Module", () => {
         expect(await pegStability.getVariable("venusTreasury")).to.equal(randomAddress);
       });
     });
+    describe("setComptroller(address)", () => {
+      it("should revert if not authorised", async () => {
+        await expect(pegStability.setComptroller(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
+          pegStability,
+          "Unauthorized",
+        );
+      });
+      it("should revert if comptroller is zero address", async () => {
+        acm.isAllowedToCall.whenCalledWith(adminAddress, "setComptroller(address)").returns(true);
+        await expect(pegStability.setComptroller(ethers.constants.AddressZero)).to.be.revertedWith(
+          "Can't be zero address.",
+        );
+      });
+      it("should revert if oracle address is zero", async () => {
+        acm.isAllowedToCall.whenCalledWith(adminAddress, "setComptroller(address)").returns(true);
+        comptroller.oracle.reset();
+        await expect(pegStability.setComptroller(ethers.constants.AddressZero)).to.be.revertedWith(
+          "Can't be zero address.",
+        );
+        comptroller.oracle.returns(priceOracle.address);
+      });
+      it("should set the comptroller", async () => {
+        acm.isAllowedToCall.whenCalledWith(adminAddress, "setComptroller(address)").returns(true);
+        const comptroller2 = await smock.fake<OracleProviderInterface>("OracleProviderInterface");
+        comptroller2.oracle.returns(priceOracle.address);
+        await expect(pegStability.setComptroller(comptroller2.address))
+          .to.emit(pegStability, "ComptrollerChanged")
+          .withArgs(comptroller.address, comptroller2.address);
+        expect(await pegStability.getVariable("comptroller")).to.equal(comptroller2.address);
+      });
+    });
   });
   describe("Pause logic", () => {
     beforeEach(async () => {
@@ -182,9 +223,9 @@ describe("Peg Stability Module", () => {
   });
   describe("Swap functions", () => {
     describe("swapVAIForStable(address,uint256)", () => {
-      beforeEach(async ()=>{
-        const VAI_MINTED = convertToUnit(110,18);
-        await pegStability.setVariable("vaiMinted",VAI_MINTED);
+      beforeEach(async () => {
+        const VAI_MINTED = convertToUnit(110, 18);
+        await pegStability.setVariable("vaiMinted", VAI_MINTED);
       });
       it("should revert if receiver is zero address ", async () => {
         await expect(pegStability.swapVAIForStable(ethers.constants.AddressZero, 100)).to.be.revertedWith(
