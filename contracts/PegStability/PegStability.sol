@@ -117,6 +117,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         ensureNonzeroAddress(venusTreasury_);
         ensureNonzeroAddress(priceOracle_);
         __AccessControlled_init(accessControlManager_);
+        __ReentrancyGuard_init();
         require(feeIn_ < BASIS_POINTS_DIVISOR, "Invalid fee in.");
         require(feeOut_ < BASIS_POINTS_DIVISOR, "Invalid fee out.");
         feeIn = feeIn_;
@@ -188,7 +189,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         if (fee != 0) {
             VAI(vaiAddress).mint(venusTreasury, fee);
         }
-        emit StableForVAISwapped(stableTknAmount, vaiToMint, fee);
+        emit StableForVAISwapped(actualTransferAmt, vaiToMint, fee);
     }
 
     /*** Helper Functions ***/
