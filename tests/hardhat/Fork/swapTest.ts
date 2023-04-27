@@ -62,7 +62,7 @@ const initMainnetUser = async (user: string) => {
 };
 
 async function deploySimpleComptroller() {
-  oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+  oracle = await smock.fake<PriceOracle>("PriceOracle");
   accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
