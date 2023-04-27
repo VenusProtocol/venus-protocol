@@ -170,7 +170,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     // @custom:event Emits StableForVAISwapped event
     function swapStableForVAI(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
         ensureNonzeroAddress(receiver);
-        require(stableTknAmount > 0, "Amount must be greater than zero");
+        require(stableTknAmount > 0, "Amount must be greater than zero.");
         uint256 balanceBefore = IERC20Upgradeable(stableTokenAddress).balanceOf(address(this));
         IERC20Upgradeable(stableTokenAddress).safeTransferFrom(msg.sender, address(this), stableTknAmount);
         uint256 balanceAfter = IERC20Upgradeable(stableTokenAddress).balanceOf(address(this));
