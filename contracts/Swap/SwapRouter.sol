@@ -667,10 +667,10 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice supply token to a Venus market
-     * @param path the addresses of the underlying token
+     * @notice Supply token to a Venus market
+     * @param path The addresses of the underlying token
      * @param vTokenAddress The address of the vToken contract for supplying assets.
-     * @param swapAmount the amount of tokens supply to Venus Market.
+     * @param swapAmount The amount of tokens supply to Venus Market.
      */
     function _supply(address path, address vTokenAddress, uint256 swapAmount) internal {
         TransferHelper.safeApprove(path, vTokenAddress, 0);
@@ -682,10 +682,10 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice repay a borrow from Venus market
-     * @param path the addresses of the underlying token
+     * @notice Repay a borrow from Venus market
+     * @param path The addresses of the underlying token
      * @param vTokenAddress The address of the vToken contract for supplying assets.
-     * @param swapAmount the amount of tokens repay to Venus Market.
+     * @param swapAmount The amount of tokens repay to Venus Market.
      */
     function _repay(address path, address vTokenAddress, uint256 swapAmount) internal {
         TransferHelper.safeApprove(path, vTokenAddress, 0);
@@ -697,10 +697,11 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice check for min amount out.
+     * @notice Check if the balance of to minus the balanceBefore is greater than the amountOutMin.
      * @param path The addresses of the underlying token
      * @param balanceBefore Balance before the swap.
      * @param amountOutMin Min amount out threshold.
+     * @param to Recipient of the output tokens.
      */
     function _checkForAmountOut(
         address[] calldata path,
@@ -714,7 +715,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Get swapped amount
+     * @notice Returns the difference between the balance of this and the balanceBefore
      * @param path The addresses of the underlying token
      * @param balanceBefore Balance before the swap.
      */
