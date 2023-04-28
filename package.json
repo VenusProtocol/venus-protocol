@@ -17,9 +17,10 @@
     "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts .",
     "lint:sol": "solhint \"contracts/**/*.sol\"",
     "lint:sol:fix": "prettier --write \"contracts/**/*.sol\"",
-    "prettier": "prettier --config ./.prettierrc.yaml --write \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
-    "prettier:check": "prettier --check --config ./.prettierrc.yaml \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
-    "docgen": "hardhat docgen"
+    "prettier": "prettier --write \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
+    "prettier:check": "prettier --check \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
+    "docgen": "hardhat docgen",
+    "prepare": "husky install"
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
