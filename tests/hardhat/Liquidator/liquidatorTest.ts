@@ -23,7 +23,7 @@ chai.use(smock.matchers);
 
 const repayAmount = 1000n;
 const seizeTokens = 1000n * 4n;
-const minLiquidatableVAI = convertToBigInt("1000", 18);
+const minLiquidatableVAI = convertToBigInt("500", 0);
 const announcedIncentive = convertToBigInt("1.1", 18);
 const treasuryPercent = convertToBigInt("0.05", 18);
 
