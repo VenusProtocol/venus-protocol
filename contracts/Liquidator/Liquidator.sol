@@ -145,7 +145,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
     error TreasuryPercentTooHigh(uint256 maxTreasuryPercentMantissa, uint256 treasuryPercentMantissa_);
 
     /// @notice Thrown if trying to liquidate any token when VAI debt is too high
-    error VAIDebtTooHigh(uint256 repayAmount, uint256 minLiquidatableVAI);
+    error VAIDebtTooHigh(uint256 vaiDebt, uint256 minLiquidatableVAI);
 
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -199,7 +199,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
     /// @dev Use {addTo,removeFrom}AllowList to configure the allowed addresses.
     /// @param borrower The address of the borrower
     function restrictLiquidation(address borrower) external {
-        _checkAccessAllowed("estrictLiquidation(address)");
+        _checkAccessAllowed("restrictLiquidation(address)");
         if (liquidationRestricted[borrower]) {
             revert AlreadyRestricted(borrower);
         }
@@ -389,7 +389,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
 
     function _checkForceVAILiquidate(address vToken, address borrower) private view {
         uint256 vaiDebt_ = vaiController.getVAIRepayAmount(borrower);
-        if (!forceVAILiquidate || vaiDebt_ * 10 ** 18 < minLiquidatableVAI || vToken == address(vaiController)) return;
+        if (!forceVAILiquidate || vaiDebt_ < minLiquidatableVAI || vToken == address(vaiController)) return;
         revert VAIDebtTooHigh(vaiDebt_, minLiquidatableVAI);
     }
 
@@ -428,7 +428,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
      */
     function resumeForceVAILiquidate() external {
         _checkAccessAllowed("resumeForceVAILiquidate()");
-        require(!forceVAILiquidate, "Force Liquidation of VAI is already resume");
+        require(!forceVAILiquidate, "Force Liquidation of VAI is already resumed");
         forceVAILiquidate = true;
         emit ForceVaiLiquidationResumed(msg.sender);
     }
