@@ -29,7 +29,7 @@ type SimpleComptrollerFixture = {
 };
 
 async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
-  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+  const oracle = await smock.fake<PriceOracle>("PriceOracle");
   const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
@@ -133,7 +133,7 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const newOracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+      const newOracle = await smock.fake<PriceOracle>("PriceOracle");
       return { ...contracts, newOracle };
     }
 
@@ -214,7 +214,7 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const vToken = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+      const vToken = await smock.fake<VToken>("VToken");
       vToken.comptroller.returns(contracts.comptroller.address);
       vToken.isVToken.returns(true);
       return { vToken, ...contracts };
@@ -263,8 +263,8 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const vToken1 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
-      const vToken2 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+      const vToken1 = await smock.fake<VToken>("VToken");
+      const vToken2 = await smock.fake<VToken>("VToken");
       const token = await smock.fake<EIP20Interface>("EIP20Interface");
       return { ...contracts, vToken1, vToken2, token };
     }
@@ -314,7 +314,7 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const vToken = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+      const vToken = await smock.fake<VToken>("VToken");
       await contracts.comptroller._supportMarket(vToken.address);
       return { ...contracts, vToken };
     }
@@ -363,7 +363,7 @@ describe("Comptroller", () => {
       });
 
       it("reverts if market is not listed", async () => {
-        const someVToken = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+        const someVToken = await smock.fake<VToken>("VToken");
         await expect(
           comptroller.mintAllowed(someVToken.address, await root.getAddress(), convertToUnit("1", 18)),
         ).to.be.revertedWith("market not listed");

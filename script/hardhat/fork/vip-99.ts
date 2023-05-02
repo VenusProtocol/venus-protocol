@@ -115,7 +115,7 @@ forking(25918391, () => {
       }),
     );
     const oracleAddress = await comptroller.oracle();
-    oracle = await ethers.getContractAt("contracts/Oracle/PriceOracle.sol:PriceOracle", oracleAddress);
+    oracle = await ethers.getContractAt("PriceOracle", oracleAddress);
     swapDebtDelegate = await ethers.getContractAt("SwapDebtDelegate", SWAP_DEBT_DELEGATE);
     await pretendExecutingVip(vip99());
   });
