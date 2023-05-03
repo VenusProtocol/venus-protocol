@@ -11,6 +11,14 @@
             "release": false
           },
           {
+            "type": "chore",
+            "release": false
+          },
+          {
+            "type": "docs",
+            "release": "patch"
+          },
+          {
             "type": "ci",
             "release": false
           },
