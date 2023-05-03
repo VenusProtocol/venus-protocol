@@ -5,14 +5,12 @@ import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
 import "../ComptrollerStorage.sol";
 import "../Unitroller.sol";
 
-import "hardhat/console.sol";
 
 contract Diamond is ComptrollerV12Storage {
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
 
     function _become(Unitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
-        console.log("-------------------become");
         require(unitroller._acceptImplementation() == 0, "not authorized");
     }
 
@@ -48,7 +46,6 @@ contract Diamond is ComptrollerV12Storage {
         for (uint256 selectorIndex; selectorIndex < _functionSelectors.length; selectorIndex++) {
             bytes4 selector = _functionSelectors[selectorIndex];
             address oldFacetAddress = selectorToFacetAndPosition[selector].facetAddress;
-            console.log("-------------selector", oldFacetAddress, selectorIndex);
             require(oldFacetAddress == address(0), "LibDiamondCut: Can't add function that already exists");
             addFunction(selector, selectorPosition, _facetAddress);
             selectorPosition++;
@@ -140,7 +137,6 @@ contract Diamond is ComptrollerV12Storage {
     // function if a facet is found and return any value.
     function() external payable {
         address facet = selectorToFacetAndPosition[msg.sig].facetAddress;
-        console.log("--------------------facetAddress", facet);
         require(facet != address(0), "Diamond: Function does not exist");
         // Execute public function from facet using delegatecall and return any value.
         assembly {

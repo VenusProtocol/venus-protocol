@@ -15,6 +15,10 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelpe
         return true;
     }
 
+    function getAssetsIn(address account) external view returns (VToken[] memory) {
+        return accountAssets[account];
+    }
+
     /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)

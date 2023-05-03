@@ -1,6 +1,7 @@
 pragma solidity 0.5.16;
 
 import "../../../Tokens/VTokens/VToken.sol";
+import "../../../Oracle/PriceOracle.sol";
 
 interface IMarketFacet {
     function isComptroller() external pure returns (bool);
@@ -18,4 +19,6 @@ interface IMarketFacet {
     function exitMarket(address vToken) external returns (uint);
 
     function _supportMarket(VToken vToken) external returns (uint);
+
+    function getAssetsIn(address account) external view returns (VToken[] memory);
 }

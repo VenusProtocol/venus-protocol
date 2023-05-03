@@ -5,7 +5,6 @@ import "../../../Tokens/VTokens/VToken.sol";
 import "../../../Utils/ErrorReporter.sol";
 import "../../../Governance/IAccessControlManager.sol";
 import "./FacetHelper.sol";
-import "hardhat/console.sol";
 
 contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelper {
     /// @notice Emitted when close factor is changed by admin
@@ -219,7 +218,6 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelpe
      */
     function _setMarketBorrowCaps(VToken[] memory vTokens, uint[] memory newBorrowCaps) public {
         ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");
-        console.log("------------------kitani baar chala");
 
         uint numMarkets = vTokens.length;
         uint numBorrowCaps = newBorrowCaps.length;
