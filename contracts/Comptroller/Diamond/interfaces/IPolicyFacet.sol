@@ -1,4 +1,6 @@
-pragma solidity 0.8.13;
+pragma solidity 0.5.16;
+
+import "../../../Tokens/VTokens/VToken.sol";
 
 interface IPolicyFacet {
     function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint);
@@ -64,4 +66,12 @@ interface IPolicyFacet {
     function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint);
 
     function transferVerify(address vToken, address src, address dst, uint transferTokens) external;
+
+    function getAccountLiquidity(address account) external view returns (uint, uint, uint);
+
+    function _setVenusSpeeds(
+        VToken[] calldata vTokens,
+        uint[] calldata supplySpeeds,
+        uint[] calldata borrowSpeeds
+    ) external;
 }

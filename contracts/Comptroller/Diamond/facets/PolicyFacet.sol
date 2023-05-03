@@ -1,13 +1,10 @@
-pragma solidity 0.8.13;
+pragma solidity 0.5.16;
 
-import "../../Utils/V0.8.13/ErrorReporter.sol";
-import "../libraries/LibAccessCheck.sol";
-import "../libraries/LibHelper.sol";
-import "../libraries/appStorage.sol";
-import "../../Tokens/V0.8.13/VTokens/VToken.sol";
+import "../../../Utils/ErrorReporter.sol";
+import "./FacetHelper.sol";
+import "../../../Tokens/VTokens/VToken.sol";
 
-contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
-    AppStorage internal s;
+contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelper {
     /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
     event VenusBorrowSpeedUpdated(VToken indexed vToken, uint newSpeed);
 
@@ -21,13 +18,13 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @param mintAmount The amount of underlying being supplied to the market in exchange for tokens
      * @return 0 if the mint is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint) {
+    function mintAllowed(address vToken, address minter, uint mintAmount) public returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vToken, LibAccessCheck.Action.MINT);
-        LibAccessCheck.ensureListed(s.markets[vToken]);
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.MINT);
+        ensureListed(markets[vToken]);
 
-        uint256 supplyCap = s.supplyCaps[vToken];
+        uint256 supplyCap = supplyCaps[vToken];
         require(supplyCap != 0, "market supply cap is 0");
 
         uint256 vTokenSupply = VToken(vToken).totalSupply();
@@ -42,7 +39,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         return uint(Error.NO_ERROR);
     }
 
-    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {}
+    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) public {}
 
     /**
      * @notice Checks if the account should be allowed to redeem tokens in the given market
@@ -51,11 +48,11 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @param redeemTokens The number of vTokens to exchange for the underlying asset in the market
      * @return 0 if the redeem is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint) {
-        LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vToken, LibAccessCheck.Action.REDEEM);
+    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) public returns (uint) {
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.REDEEM);
 
-        uint allowed = LibHelper.redeemAllowedInternal(vToken, redeemer, redeemTokens);
+        uint allowed = redeemAllowedInternal(vToken, redeemer, redeemTokens);
         if (allowed != uint(Error.NO_ERROR)) {
             return allowed;
         }
@@ -68,14 +65,14 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     }
 
     /**
-     * @notice Validates redeem and reverts on rejection. May emit logs.
+     * @notice Validates redeem and reverts on rejection. May emit log
      * @param vToken Asset being redeemed
      * @param redeemer The address redeeming the tokens
      * @param redeemAmount The amount of the underlying asset being redeemed
      * @param redeemTokens The number of tokens being redeemed
      */
     // solhint-disable-next-line no-unused-vars
-    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external {
+    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) public {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
     }
 
@@ -86,36 +83,36 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @param borrowAmount The amount of underlying the account would borrow
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint) {
+    function borrowAllowed(address vToken, address borrower, uint borrowAmount) public returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vToken, LibAccessCheck.Action.BORROW);
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.BORROW);
 
-        LibAccessCheck.ensureListed(s.markets[vToken]);
+        ensureListed(markets[vToken]);
 
-        if (!s.markets[vToken].accountMembership[borrower]) {
+        if (!markets[vToken].accountMembership[borrower]) {
             // only vTokens may call borrowAllowed if borrower not in market
             require(msg.sender == vToken, "sender must be vToken");
 
             // attempt to add borrower to the market
-            Error err = LibHelper.addToMarketInternal(VToken(vToken), borrower);
+            Error err = addToMarketInternal(VToken(vToken), borrower);
             if (err != Error.NO_ERROR) {
                 return uint(err);
             }
         }
 
-        if (s.oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
+        if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
             return uint(Error.PRICE_ERROR);
         }
 
-        uint borrowCap = s.borrowCaps[vToken];
+        uint borrowCap = borrowCaps[vToken];
         // Borrow cap of 0 corresponds to unlimited borrowing
         if (borrowCap != 0) {
             uint nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
             require(nextTotalBorrows < borrowCap, "market borrow cap reached");
         }
 
-        (Error err, , uint shortfall) = LibHelper.getHypotheticalAccountLiquidityInternal(
+        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(
             borrower,
             VToken(vToken),
             0,
@@ -137,13 +134,13 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     }
 
     /**
-     * @notice Validates borrow and reverts on rejection. May emit logs.
+     * @notice Validates borrow and reverts on rejection. May emit log
      * @param vToken Asset whose underlying is being borrowed
      * @param borrower The address borrowing the underlying
      * @param borrowAmount The amount of the underlying asset requested to borrow
      */
     // solhint-disable-next-line no-unused-vars
-    function borrowVerify(address vToken, address borrower, uint borrowAmount) external {}
+    function borrowVerify(address vToken, address borrower, uint borrowAmount) public {}
 
     /**
      * @notice Checks if the account should be allowed to repay a borrow in the given market
@@ -160,10 +157,10 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         address borrower,
         // solhint-disable-next-line no-unused-vars
         uint repayAmount
-    ) external returns (uint) {
-        LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vToken, LibAccessCheck.Action.REPAY);
-        LibAccessCheck.ensureListed(s.markets[vToken]);
+    ) public returns (uint) {
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.REPAY);
+        ensureListed(markets[vToken]);
 
         // Keep the flywheel moving
         Exp memory borrowIndex = Exp({ mantissa: VToken(vToken).borrowIndex() });
@@ -174,7 +171,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     }
 
     /**
-     * @notice Validates repayBorrow and reverts on rejection. May emit logs.
+     * @notice Validates repayBorrow and reverts on rejection. May emit log
      * @param vToken Asset being repaid
      * @param payer The address repaying the borrow
      * @param borrower The address of the borrower
@@ -186,7 +183,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         address borrower,
         uint actualRepayAmount,
         uint borrowerIndex
-    ) external {}
+    ) public {}
 
     /**
      * @notice Checks if the liquidation should be allowed to occur
@@ -202,23 +199,23 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         address liquidator,
         address borrower,
         uint repayAmount
-    ) external returns (uint) {
-        LibAccessCheck.checkProtocolPauseState();
+    ) public returns (uint) {
+        checkProtocolPauseState();
 
         // if we want to pause liquidating to vTokenCollateral, we should pause seizing
-        LibAccessCheck.checkActionPauseState(vTokenBorrowed, LibAccessCheck.Action.LIQUIDATE);
+        checkActionPauseState(vTokenBorrowed, Action.LIQUIDATE);
 
-        if (s.liquidatorContract != address(0) && liquidator != s.liquidatorContract) {
+        if (liquidatorContract != address(0) && liquidator != liquidatorContract) {
             return uint(Error.UNAUTHORIZED);
         }
 
-        LibAccessCheck.ensureListed(s.markets[vTokenCollateral]);
-        if (address(vTokenBorrowed) != address(s.vaiController)) {
-            LibAccessCheck.ensureListed(s.markets[vTokenBorrowed]);
+        ensureListed(markets[vTokenCollateral]);
+        if (address(vTokenBorrowed) != address(vaiController)) {
+            ensureListed(markets[vTokenBorrowed]);
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint shortfall) = LibHelper.getHypotheticalAccountLiquidityInternal(
+        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(
             borrower,
             VToken(address(0)),
             0,
@@ -233,13 +230,13 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
 
         /* The liquidator may not repay more than what is allowed by the closeFactor */
         uint borrowBalance;
-        if (address(vTokenBorrowed) != address(s.vaiController)) {
+        if (address(vTokenBorrowed) != address(vaiController)) {
             borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
         } else {
-            borrowBalance = s.vaiController.getVAIRepayAmount(borrower);
+            borrowBalance = vaiController.getVAIRepayAmount(borrower);
         }
         //-- maxClose = multipy of closeFactorMantissa and borrowBalance
-        if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: s.closeFactorMantissa }), borrowBalance)) {
+        if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactorMantissa }), borrowBalance)) {
             return uint(Error.TOO_MUCH_REPAY);
         }
 
@@ -253,7 +250,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         address borrower,
         uint actualRepayAmount,
         uint seizeTokens
-    ) external {}
+    ) public {}
 
     /**
      * @notice Checks if the seizing of assets should be allowed to occur
@@ -269,15 +266,15 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         address liquidator,
         address borrower,
         uint seizeTokens // solhint-disable-line no-unused-vars
-    ) external returns (uint) {
+    ) public returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vTokenCollateral, LibAccessCheck.Action.SEIZE);
+        checkProtocolPauseState();
+        checkActionPauseState(vTokenCollateral, Action.SEIZE);
 
         // We've added VAIController as a borrowed token list check for seize
-        LibAccessCheck.ensureListed(s.markets[vTokenCollateral]);
-        if (address(vTokenBorrowed) != address(s.vaiController)) {
-            LibAccessCheck.ensureListed(s.markets[vTokenBorrowed]);
+        ensureListed(markets[vTokenCollateral]);
+        if (address(vTokenBorrowed) != address(vaiController)) {
+            ensureListed(markets[vTokenBorrowed]);
         }
 
         if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
@@ -293,7 +290,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     }
 
     /**
-     * @notice Validates seize and reverts on rejection. May emit logs.
+     * @notice Validates seize and reverts on rejection. May emit log
      * @param vTokenCollateral Asset which was used as collateral and will be seized
      * @param vTokenBorrowed Asset which was borrowed by the borrower
      * @param liquidator The address repaying the borrow and seizing the collateral
@@ -307,7 +304,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         address liquidator,
         address borrower,
         uint seizeTokens
-    ) external {}
+    ) public {}
 
     /**
      * @notice Checks if the account should be allowed to transfer tokens in the given market
@@ -317,14 +314,14 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @param transferTokens The number of vTokens to transfer
      * @return 0 if the transfer is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint) {
+    function transferAllowed(address vToken, address src, address dst, uint transferTokens) public returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
-        LibAccessCheck.checkProtocolPauseState();
-        LibAccessCheck.checkActionPauseState(vToken, LibAccessCheck.Action.TRANSFER);
+        checkProtocolPauseState();
+        checkActionPauseState(vToken, Action.TRANSFER);
 
         // Currently the only consideration is whether or not
         //  the src is allowed to redeem this many tokens
-        uint allowed = LibHelper.redeemAllowedInternal(vToken, src, transferTokens);
+        uint allowed = redeemAllowedInternal(vToken, src, transferTokens);
         if (allowed != uint(Error.NO_ERROR)) {
             return allowed;
         }
@@ -338,14 +335,14 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
     }
 
     /**
-     * @notice Validates transfer and reverts on rejection. May emit logs.
+     * @notice Validates transfer and reverts on rejection. May emit log
      * @param vToken Asset being transferred
      * @param src The account which sources the tokens
      * @param dst The account which receives the tokens
      * @param transferTokens The number of vTokens to transfer
      */
     // solhint-disable-next-line no-unused-vars
-    function transferVerify(address vToken, address src, address dst, uint transferTokens) external {}
+    function transferVerify(address vToken, address src, address dst, uint transferTokens) public {}
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
@@ -353,8 +350,8 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
                 account liquidity in excess of collateral requirements,
      *          account shortfall below collateral requirements)
      */
-    function getAccountLiquidity(address account) external view returns (uint, uint, uint) {
-        (Error err, uint liquidity, uint shortfall) = LibHelper.getHypotheticalAccountLiquidityInternal(
+    function getAccountLiquidity(address account) public view returns (uint, uint, uint) {
+        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(address(0)),
             0,
@@ -372,11 +369,11 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @param borrowSpeeds New XVS speed for borrow
      */
     function _setVenusSpeeds(
-        VToken[] calldata vTokens,
-        uint[] calldata supplySpeeds,
-        uint[] calldata borrowSpeeds
-    ) external {
-        LibAccessCheck.ensureAdminOr(s.comptrollerImplementation);
+        VToken[] memory vTokens,
+        uint[] memory supplySpeeds,
+        uint[] memory borrowSpeeds
+    ) public {
+        ensureAdminOr(comptrollerImplementation);
 
         uint numTokens = vTokens.length;
         require(
@@ -385,26 +382,26 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         );
 
         for (uint i; i < numTokens; ++i) {
-            LibAccessCheck.ensureNonzeroAddress(address(vTokens[i]));
+            ensureNonzeroAddress(address(vTokens[i]));
             setVenusSpeedInternal(vTokens[i], supplySpeeds[i], borrowSpeeds[i]);
         }
     }
 
     function setVenusSpeedInternal(VToken vToken, uint supplySpeed, uint borrowSpeed) internal {
-        LibAccessCheck.ensureListed(s.markets[address(vToken)]);
+        ensureListed(markets[address(vToken)]);
 
-        if (s.venusSupplySpeeds[address(vToken)] != supplySpeed) {
+        if (venusSupplySpeeds[address(vToken)] != supplySpeed) {
             // Supply speed updated so let's update supply state to ensure that
             //  1. XVS accrued properly for the old speed, and
             //  2. XVS accrued at the new speed starts after this block.
 
             updateVenusSupplyIndex(address(vToken));
             // Update speed and emit event
-            s.venusSupplySpeeds[address(vToken)] = supplySpeed;
+            venusSupplySpeeds[address(vToken)] = supplySpeed;
             emit VenusSupplySpeedUpdated(vToken, supplySpeed);
         }
 
-        if (s.venusBorrowSpeeds[address(vToken)] != borrowSpeed) {
+        if (venusBorrowSpeeds[address(vToken)] != borrowSpeed) {
             // Borrow speed updated so let's update borrow state to ensure that
             //  1. XVS accrued properly for the old speed, and
             //  2. XVS accrued at the new speed starts after this block.
@@ -412,7 +409,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
             updateVenusBorrowIndex(address(vToken), borrowIndex);
 
             // Update speed and emit event
-            s.venusBorrowSpeeds[address(vToken)] = borrowSpeed;
+            venusBorrowSpeeds[address(vToken)] = borrowSpeed;
             emit VenusBorrowSpeedUpdated(vToken, borrowSpeed);
         }
     }
@@ -422,8 +419,8 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @param vToken The market whose borrow index to update
      */
     function updateVenusBorrowIndex(address vToken, ExponentialNoError.Exp memory marketBorrowIndex) internal {
-        VenusMarketState storage borrowState = s.venusBorrowState[vToken];
-        uint borrowSpeed = s.venusBorrowSpeeds[vToken];
+        VenusMarketState storage borrowState = venusBorrowState[vToken];
+        uint borrowSpeed = venusBorrowSpeeds[vToken];
         uint blockNumber = block.number;
         uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
@@ -434,9 +431,9 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
                 add_(Double({ mantissa: borrowState.index }), ratio).mantissa,
                 "new index exceeds 224 bits"
             );
-            borrowState.block = blockNumber;
+            borrowState.block = uint32(blockNumber);
         } else if (deltaBlocks > 0) {
-            borrowState.block = blockNumber;
+            borrowState.block = uint32(blockNumber);
         }
     }
 
@@ -445,8 +442,8 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @param vToken The market whose supply index to update
      */
     function updateVenusSupplyIndex(address vToken) internal {
-        VenusMarketState storage supplyState = s.venusSupplyState[vToken];
-        uint supplySpeed = s.venusSupplySpeeds[vToken];
+        VenusMarketState storage supplyState = venusSupplyState[vToken];
+        uint supplySpeed = venusSupplySpeeds[vToken];
         uint blockNumber = block.number;
 
         uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
@@ -458,9 +455,9 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
                 add_(Double({ mantissa: supplyState.index }), ratio).mantissa,
                 "new index exceeds 224 bits"
             );
-            supplyState.block = blockNumber;
+            supplyState.block = uint32(blockNumber);
         } else if (deltaBlocks > 0) {
-            supplyState.block = blockNumber;
+            supplyState.block = uint32(blockNumber);
         }
     }
 
@@ -470,25 +467,25 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
      * @param supplier The address of the supplier to distribute XVS to
      */
     function distributeSupplierVenus(address vToken, address supplier) internal {
-        if (address(s.vaiVaultAddress) != address(0)) {
+        if (address(vaiVaultAddress) != address(0)) {
             // releaseToVault();
         }
-        uint supplyIndex = s.venusSupplyState[vToken].index;
-        uint supplierIndex = s.venusSupplierIndex[vToken][supplier];
+        uint supplyIndex = venusSupplyState[vToken].index;
+        uint supplierIndex = venusSupplierIndex[vToken][supplier];
         // Update supplier's index to the current index since we are distributing accrued XVS
-        s.venusSupplierIndex[vToken][supplier] = supplyIndex;
-        if (supplierIndex == 0 && supplyIndex >= LibHelper.venusInitialIndex) {
+        venusSupplierIndex[vToken][supplier] = supplyIndex;
+        if (supplierIndex == 0 && supplyIndex >= venusInitialIndex) {
             // Covers the case where users supplied tokens before the market's supply state index was set.
             // Rewards the user with XVS accrued from the start of when supplier rewards were first
             // set for the market.
-            supplierIndex = LibHelper.venusInitialIndex;
+            supplierIndex = venusInitialIndex;
         }
         // Calculate change in the cumulative sum of the XVS per vToken accrued
         Double memory deltaIndex = Double({ mantissa: sub_(supplyIndex, supplierIndex) });
         // Multiply of supplierTokens and supplierDelta
         uint supplierDelta = mul_(VToken(vToken).balanceOf(supplier), deltaIndex);
         // Addition of supplierAccrued and supplierDelta
-        s.venusAccrued[supplier] = add_(s.venusAccrued[supplier], supplierDelta);
+        venusAccrued[supplier] = add_(venusAccrued[supplier], supplierDelta);
         // emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex);
     }
 
@@ -503,23 +500,23 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError {
         address borrower,
         ExponentialNoError.Exp memory marketBorrowIndex
     ) internal {
-        if (address(s.vaiVaultAddress) != address(0)) {
+        if (address(vaiVaultAddress) != address(0)) {
             // releaseToVault();
         }
-        uint borrowIndex = s.venusBorrowState[vToken].index;
-        uint borrowerIndex = s.venusBorrowerIndex[vToken][borrower];
+        uint borrowIndex = venusBorrowState[vToken].index;
+        uint borrowerIndex = venusBorrowerIndex[vToken][borrower];
         // Update borrowers's index to the current index since we are distributing accrued XVS
-        s.venusBorrowerIndex[vToken][borrower] = borrowIndex;
-        if (borrowerIndex == 0 && borrowIndex >= LibHelper.venusInitialIndex) {
+        venusBorrowerIndex[vToken][borrower] = borrowIndex;
+        if (borrowerIndex == 0 && borrowIndex >= venusInitialIndex) {
             // Covers the case where users borrowed tokens before the market's borrow state index was set.
             // Rewards the user with XVS accrued from the start of when borrower rewards were first
             // set for the market.
-            borrowerIndex = LibHelper.venusInitialIndex;
+            borrowerIndex = venusInitialIndex;
         }
         // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
         Double memory deltaIndex = Double({ mantissa: sub_(borrowIndex, borrowerIndex) });
         uint borrowerDelta = mul_(div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
-        s.venusAccrued[borrower] = add_(s.venusAccrued[borrower], borrowerDelta);
+        venusAccrued[borrower] = add_(venusAccrued[borrower], borrowerDelta);
         // emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
     }
 }
