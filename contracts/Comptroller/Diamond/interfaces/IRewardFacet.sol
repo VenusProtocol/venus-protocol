@@ -24,7 +24,7 @@ interface IRewardFacet {
 
     function claimVenusAsCollateral(address holder) external;
 
-    function _grantXVS(address recipient, uint amount) external ;
+    function _grantXVS(address recipient, uint amount) external;
 
     function getBlockNumber() external view returns (uint);
 

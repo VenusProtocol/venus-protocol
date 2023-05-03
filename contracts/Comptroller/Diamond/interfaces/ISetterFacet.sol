@@ -37,11 +37,7 @@ interface ISetterFacet {
 
     function _setProtocolPaused(bool state) external returns (bool);
 
-    function _setActionsPaused(
-        address[] calldata markets,
-        Action[] calldata actions,
-        bool paused
-    ) external;
+    function _setActionsPaused(address[] calldata markets, Action[] calldata actions, bool paused) external;
 
     function _setVAIController(VAIControllerInterface vaiController_) external returns (uint);
 

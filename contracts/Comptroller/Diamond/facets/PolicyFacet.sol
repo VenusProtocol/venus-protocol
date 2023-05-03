@@ -215,12 +215,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelpe
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(
-            borrower,
-            VToken(address(0)),
-            0,
-            0
-        );
+        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
         if (err != Error.NO_ERROR) {
             return uint(err);
         }
@@ -368,11 +363,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelpe
      * @param supplySpeeds New XVS speed for supply
      * @param borrowSpeeds New XVS speed for borrow
      */
-    function _setVenusSpeeds(
-        VToken[] memory vTokens,
-        uint[] memory supplySpeeds,
-        uint[] memory borrowSpeeds
-    ) public {
+    function _setVenusSpeeds(VToken[] memory vTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) public {
         ensureAdminOr(comptrollerImplementation);
 
         uint numTokens = vTokens.length;

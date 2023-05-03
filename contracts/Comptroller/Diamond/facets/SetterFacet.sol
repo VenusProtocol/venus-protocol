@@ -269,11 +269,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelpe
      * @param actions List of action ids to pause/unpause
      * @param paused The new paused state (true=paused, false=unpaused)
      */
-    function _setActionsPaused(
-        address[] memory markets,
-        Action[] memory actions,
-        bool paused
-    ) public {
+    function _setActionsPaused(address[] memory markets, Action[] memory actions, bool paused) public {
         ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
 
         uint256 numMarkets = markets.length;

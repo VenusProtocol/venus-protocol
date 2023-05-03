@@ -90,15 +90,10 @@ contract Diamond is ComptrollerV12Storage {
         facetAddresses.push(_facetAddress);
     }
 
-    function addFunction(
-        bytes4 _selector,
-        uint96 _selectorPosition,
-        address _facetAddress
-    ) internal {
+    function addFunction(bytes4 _selector, uint96 _selectorPosition, address _facetAddress) internal {
         selectorToFacetAndPosition[_selector].functionSelectorPosition = _selectorPosition;
         facetFunctionSelectors[_facetAddress].functionSelectors.push(_selector);
         selectorToFacetAndPosition[_selector].facetAddress = _facetAddress;
-
     }
 
     function removeFunction(address _facetAddress, bytes4 _selector) internal {
@@ -143,7 +138,7 @@ contract Diamond is ComptrollerV12Storage {
 
     // Find facet for function that is called and execute the
     // function if a facet is found and return any value.
-    function() external payable  {
+    function() external payable {
         address facet = selectorToFacetAndPosition[msg.sig].facetAddress;
         console.log("--------------------facetAddress", facet);
         require(facet != address(0), "Diamond: Function does not exist");

@@ -123,7 +123,7 @@ forking(26713742, () => {
 
       [vBUSD, vUSDT] = await Promise.all(
         [VBUSD, VUSDT].map((address: string) => {
-          return ethers.getContractAt("contracts/Tokens/V0.8.13/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
+          return ethers.getContractAt("contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
         }),
       );
       [BUSD, USDT] = await Promise.all(

@@ -234,3 +234,21 @@ contract ComptrollerV11Storage is ComptrollerV10Storage {
     //mapping(address borrower => mapping (address delegate => bool approved)) public approvedDelegates;
     mapping(address => mapping(address => bool)) public approvedDelegates;
 }
+
+contract ComptrollerV12Storage is ComptrollerV11Storage {
+    struct FacetAddressAndPosition {
+        address facetAddress;
+        uint96 functionSelectorPosition; // position in facetFunctionSelectors.functionSelectors array
+    }
+
+    struct FacetFunctionSelectors {
+        bytes4[] functionSelectors;
+        uint256 facetAddressPosition; // position of facetAddress in facetAddresses array
+    }
+
+    mapping(bytes4 => FacetAddressAndPosition) public selectorToFacetAndPosition;
+    // maps facet addresses to function selectors
+    mapping(address => FacetFunctionSelectors) public facetFunctionSelectors;
+    // facet addresses
+    address[] public facetAddresses;
+}
