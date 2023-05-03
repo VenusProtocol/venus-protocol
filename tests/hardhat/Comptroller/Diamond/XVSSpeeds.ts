@@ -22,10 +22,10 @@ describe("Comptroller", () => {
 
     comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
     accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
     );
-    vToken1 = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
-    vToken2 = await smock.fake<VToken>("contracts/Tokens/V0.8.13/VTokens/VToken.sol:VToken");
+    vToken1 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+    vToken2 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
 
     accessControl.isAllowedToCall.returns(true);
     vToken1.isVToken.returns(true);

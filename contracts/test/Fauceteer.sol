@@ -1,6 +1,6 @@
-pragma solidity 0.8.13;
+pragma solidity 0.5.16;
 
-import "../Tokens/V0.8.13/EIP20NonStandardInterface.sol";
+import "../Tokens/EIP20NonStandardInterface.sol";
 
 /**
  * @title Fauceteer

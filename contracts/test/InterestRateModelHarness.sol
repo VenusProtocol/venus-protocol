@@ -1,6 +1,6 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
-import "../InterestRateModels/V0.8.13/InterestRateModel.sol";
+import "../InterestRateModels/InterestRateModel.sol";
 
 /**
  * @title An Interest Rate Model for tests that can be instructed to return a failure instead of doing a calculation
@@ -23,7 +23,7 @@ contract InterestRateModelHarness is InterestRateModel {
         borrowRate = borrowRate_;
     }
 
-    function getBorrowRate(uint _cash, uint _borrows, uint _reserves) public view override returns (uint) {
+    function getBorrowRate(uint _cash, uint _borrows, uint _reserves) public view returns (uint) {
         _cash; // unused
         _borrows; // unused
         _reserves; // unused
@@ -36,7 +36,7 @@ contract InterestRateModelHarness is InterestRateModel {
         uint _borrows,
         uint _reserves,
         uint _reserveFactor
-    ) external view override returns (uint) {
+    ) external view returns (uint) {
         _cash; // unused
         _borrows; // unused
         _reserves; // unused

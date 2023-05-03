@@ -21,7 +21,7 @@ describe("Comptroller", () => {
     user = signers[1];
     userAddress = await user.getAddress();
     accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
     );
     const result = await deployDiamond("");
     comptroller = result.unitroller;

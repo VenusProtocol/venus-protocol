@@ -59,7 +59,7 @@ describe("Comptroller", () => {
 
   async function liquidateFixture(): Promise<LiquidateFixture> {
     const accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
     );
     // const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
@@ -67,7 +67,7 @@ describe("Comptroller", () => {
     const comptroller = result.unitroller;
     comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-    const oracle = await smock.fake<PriceOracle>("contracts/Oracle/V0.8.13/PriceOracle.sol:PriceOracle");
+    const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);
     await comptrollerProxy._setAccessControl(accessControl.address);
     await comptrollerProxy._setComptrollerLens(comptrollerLens.address);

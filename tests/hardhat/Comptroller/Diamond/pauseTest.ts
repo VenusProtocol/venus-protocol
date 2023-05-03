@@ -24,13 +24,13 @@ type PauseFixture = {
 
 async function pauseFixture(): Promise<PauseFixture> {
   const accessControl = await smock.fake<IAccessControlManager>(
-    "contracts/Governance/V0.8.13/IAccessControlManager.sol:IAccessControlManager",
+    "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
   );
   const result = await deployDiamond("");
   const comptrollerDeployment = result.unitroller;
   const comptroller = await ethers.getContractAt("Comptroller", comptrollerDeployment.address);
   await comptroller._setAccessControl(accessControl.address);
-  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/V0.8.13/PriceOracle.sol:PriceOracle");
+  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
 
   accessControl.isAllowedToCall.returns(true);
   await comptroller._setPriceOracle(oracle.address);

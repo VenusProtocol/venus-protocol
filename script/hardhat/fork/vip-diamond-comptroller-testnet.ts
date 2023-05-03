@@ -129,7 +129,7 @@ forking(29043847, async () => {
 
     [vBUSD, vUSDT] = await Promise.all(
       [VBUSD, VUSDT].map((address: string) => {
-        return ethers.getContractAt("contracts/Tokens/V0.8.13/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
+        return ethers.getContractAt("contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
       }),
     );
 
@@ -439,7 +439,7 @@ forking(29043847, async () => {
 
     [vBUSD, vUSDT] = await Promise.all(
       [VBUSD, VUSDT].map((address: string) => {
-        return ethers.getContractAt("contracts/Tokens/V0.8.13/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
+        return ethers.getContractAt("contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
       }),
     );
 

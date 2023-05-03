@@ -5,7 +5,6 @@ import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
 import "../ComptrollerStorage.sol";
 import "../Unitroller.sol";
 
-
 contract Diamond is ComptrollerV12Storage {
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
 
