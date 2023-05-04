@@ -14,9 +14,10 @@ contract LiquidatorHarness is Liquidator {
 
     function initialize(
         uint256 liquidationIncentiveMantissa_,
-        address accessControlManager_
+        address accessControlManager_,
+        address payable protocolShareReserve_
     ) external override initializer {
-        __Liquidator_init(liquidationIncentiveMantissa_, accessControlManager_);
+        __Liquidator_init(liquidationIncentiveMantissa_, accessControlManager_, protocolShareReserve_);
     }
 
     event DistributeLiquidationIncentive(uint256 seizeTokensForTreasury, uint256 seizeTokensForLiquidator);
