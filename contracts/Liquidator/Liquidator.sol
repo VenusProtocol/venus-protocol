@@ -171,7 +171,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 treasuryPercentMantissa_,
         address accessControlManager_,
         address payable protocolShareReserve_
-    ) external virtual reinitializer(1) {
+    ) external virtual reinitializer(2) {
         __Liquidator_init(treasuryPercentMantissa_, accessControlManager_, protocolShareReserve_);
     }
 
