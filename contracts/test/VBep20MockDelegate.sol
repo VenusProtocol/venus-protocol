@@ -1,4 +1,4 @@
-pragma solidity 0.5.16;
+pragma solidity ^0.5.16;
 
 import "../Tokens/VTokens/VToken.sol";
 
@@ -121,7 +121,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function borrow(uint borrowAmount) external returns (uint) {
-        return borrowInternal(borrowAmount);
+        return borrowInternal(msg.sender, msg.sender, borrowAmount);
     }
 
     /**

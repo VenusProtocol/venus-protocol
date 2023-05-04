@@ -6,7 +6,7 @@
  *Submitted for verification at Bscscan.com on 2020-09-03
  */
 
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 contract WBNB {
     string public name = "Wrapped BNB";
@@ -21,7 +21,7 @@ contract WBNB {
     mapping(address => uint) public balanceOf;
     mapping(address => mapping(address => uint)) public allowance;
 
-    receive() external payable {
+    function() external payable {
         deposit();
     }
 
@@ -33,7 +33,7 @@ contract WBNB {
     function withdraw(uint wad) public {
         require(balanceOf[msg.sender] >= wad);
         balanceOf[msg.sender] -= wad;
-        payable(msg.sender).transfer(wad);
+        msg.sender.transfer(wad);
         emit Withdrawal(msg.sender, wad);
     }
 
@@ -50,7 +50,7 @@ contract WBNB {
     function transferFrom(address src, address dst, uint wad) public returns (bool) {
         require(balanceOf[src] >= wad);
 
-        if (src != msg.sender && allowance[src][msg.sender] != type(uint).max) {
+        if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
             require(allowance[src][msg.sender] >= wad);
             allowance[src][msg.sender] -= wad;
         }

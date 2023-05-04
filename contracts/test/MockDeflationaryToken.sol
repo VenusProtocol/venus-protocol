@@ -1,6 +1,10 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
+
+import "../Utils/SafeMath.sol";
 
 contract DeflatingERC20 {
+    using SafeMath for uint;
+
     string public constant name = "Deflating Test Token";
     string public constant symbol = "DTT";
     uint8 public constant decimals = 18;
@@ -16,7 +20,7 @@ contract DeflatingERC20 {
     event Approval(address indexed owner, address indexed spender, uint value);
     event Transfer(address indexed from, address indexed to, uint value);
 
-    constructor(uint _totalSupply) {
+    constructor(uint _totalSupply) public {
         uint chainId;
         assembly {
             chainId := chainid()
@@ -34,14 +38,14 @@ contract DeflatingERC20 {
     }
 
     function _mint(address to, uint value) internal {
-        totalSupply = totalSupply + value;
-        balanceOf[to] = balanceOf[to] + value;
+        totalSupply = totalSupply.add(value);
+        balanceOf[to] = balanceOf[to].add(value);
         emit Transfer(address(0), to, value);
     }
 
     function _burn(address from, uint value) internal {
-        balanceOf[from] = balanceOf[from] - value;
-        totalSupply = totalSupply - value;
+        balanceOf[from] = balanceOf[from].sub(value);
+        totalSupply = totalSupply.sub(value);
         emit Transfer(from, address(0), value);
     }
 
@@ -53,9 +57,9 @@ contract DeflatingERC20 {
     function _transfer(address from, address to, uint value) private {
         uint burnAmount = value / 100;
         _burn(from, burnAmount);
-        uint transferAmount = value - burnAmount;
-        balanceOf[from] = balanceOf[from] - transferAmount;
-        balanceOf[to] = balanceOf[to] + transferAmount;
+        uint transferAmount = value.sub(burnAmount);
+        balanceOf[from] = balanceOf[from].sub(transferAmount);
+        balanceOf[to] = balanceOf[to].add(transferAmount);
         emit Transfer(from, to, transferAmount);
     }
 
@@ -70,8 +74,8 @@ contract DeflatingERC20 {
     }
 
     function transferFrom(address from, address to, uint value) external returns (bool) {
-        if (allowance[from][msg.sender] != type(uint).max) {
-            allowance[from][msg.sender] = allowance[from][msg.sender] - value;
+        if (allowance[from][msg.sender] != uint(-1)) {
+            allowance[from][msg.sender] = allowance[from][msg.sender].sub(value);
         }
         _transfer(from, to, value);
         return true;

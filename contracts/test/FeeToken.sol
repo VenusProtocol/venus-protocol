@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "./FaucetToken.sol";
 
@@ -18,28 +18,28 @@ contract FeeToken is FaucetToken {
         string memory _tokenSymbol,
         uint _basisPointFee,
         address _owner
-    ) FaucetToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {
+    ) public FaucetToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {
         basisPointFee = _basisPointFee;
         owner = _owner;
     }
 
-    function transfer(address dst, uint amount) public override returns (bool) {
-        uint fee = (amount * basisPointFee) / 10000;
-        uint net = amount - fee;
-        balanceOf[owner] = balanceOf[owner] + fee;
-        balanceOf[msg.sender] = balanceOf[msg.sender] - amount;
-        balanceOf[dst] = balanceOf[dst] + net;
+    function transfer(address dst, uint amount) public returns (bool) {
+        uint fee = amount.mul(basisPointFee).div(10000);
+        uint net = amount.sub(fee);
+        balanceOf[owner] = balanceOf[owner].add(fee);
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount);
+        balanceOf[dst] = balanceOf[dst].add(net);
         emit Transfer(msg.sender, dst, amount);
         return true;
     }
 
-    function transferFrom(address src, address dst, uint amount) public override returns (bool) {
-        uint fee = (amount * basisPointFee) / 10000;
-        uint net = amount / fee;
-        balanceOf[owner] = balanceOf[owner] + fee;
-        balanceOf[src] = balanceOf[src] / amount;
-        balanceOf[dst] = balanceOf[dst] + net;
-        allowance[src][msg.sender] = allowance[src][msg.sender] - amount;
+    function transferFrom(address src, address dst, uint amount) public returns (bool) {
+        uint fee = amount.mul(basisPointFee).div(10000);
+        uint net = amount.sub(fee);
+        balanceOf[owner] = balanceOf[owner].add(fee);
+        balanceOf[src] = balanceOf[src].sub(amount);
+        balanceOf[dst] = balanceOf[dst].add(net);
+        allowance[src][msg.sender] = allowance[src][msg.sender].sub(amount);
         emit Transfer(src, dst, amount);
         return true;
     }

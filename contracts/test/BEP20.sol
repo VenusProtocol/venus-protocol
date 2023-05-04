@@ -1,4 +1,6 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
+
+import "../Utils/SafeMath.sol";
 
 interface BEP20Base {
     event Approval(address indexed owner, address indexed spender, uint256 value);
@@ -13,16 +15,16 @@ interface BEP20Base {
     function balanceOf(address who) external view returns (uint256);
 }
 
-abstract contract BEP20 is BEP20Base {
-    function transfer(address to, uint256 value) external virtual returns (bool);
+contract BEP20 is BEP20Base {
+    function transfer(address to, uint256 value) external returns (bool);
 
-    function transferFrom(address from, address to, uint256 value) external virtual returns (bool);
+    function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
-abstract contract BEP20NS is BEP20Base {
-    function transfer(address to, uint256 value) external virtual;
+contract BEP20NS is BEP20Base {
+    function transfer(address to, uint256 value) external;
 
-    function transferFrom(address from, address to, uint256 value) external virtual;
+    function transferFrom(address from, address to, uint256 value) external;
 }
 
 /**
@@ -31,6 +33,8 @@ abstract contract BEP20NS is BEP20Base {
  *  See https://github.com/ethereum/EIPs/issues/20
  */
 contract StandardToken is BEP20 {
+    using SafeMath for uint256;
+
     string public name;
     string public symbol;
     uint8 public decimals;
@@ -38,7 +42,12 @@ contract StandardToken is BEP20 {
     mapping(address => mapping(address => uint256)) public allowance;
     mapping(address => uint256) public balanceOf;
 
-    constructor(uint256 _initialAmount, string memory _tokenName, uint8 _decimalUnits, string memory _tokenSymbol) {
+    constructor(
+        uint256 _initialAmount,
+        string memory _tokenName,
+        uint8 _decimalUnits,
+        string memory _tokenSymbol
+    ) public {
         totalSupply = _initialAmount;
         balanceOf[msg.sender] = _initialAmount;
         name = _tokenName;
@@ -46,17 +55,17 @@ contract StandardToken is BEP20 {
         decimals = _decimalUnits;
     }
 
-    function transfer(address dst, uint256 amount) external virtual override returns (bool) {
-        balanceOf[msg.sender] = balanceOf[msg.sender] - amount;
-        balanceOf[dst] = balanceOf[dst] + amount;
+    function transfer(address dst, uint256 amount) external returns (bool) {
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount, "Insufficient balance");
+        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
         emit Transfer(msg.sender, dst, amount);
         return true;
     }
 
-    function transferFrom(address src, address dst, uint256 amount) external virtual override returns (bool) {
-        allowance[src][msg.sender] = allowance[src][msg.sender] - amount;
-        balanceOf[src] = balanceOf[src] - amount;
-        balanceOf[dst] = balanceOf[dst] + amount;
+    function transferFrom(address src, address dst, uint256 amount) external returns (bool) {
+        allowance[src][msg.sender] = allowance[src][msg.sender].sub(amount, "Insufficient allowance");
+        balanceOf[src] = balanceOf[src].sub(amount, "Insufficient balance");
+        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
         emit Transfer(src, dst, amount);
         return true;
     }
@@ -74,6 +83,8 @@ contract StandardToken is BEP20 {
  *  See https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
  */
 contract NonStandardToken is BEP20NS {
+    using SafeMath for uint256;
+
     string public name;
     uint8 public decimals;
     string public symbol;
@@ -81,7 +92,12 @@ contract NonStandardToken is BEP20NS {
     mapping(address => mapping(address => uint256)) public allowance;
     mapping(address => uint256) public balanceOf;
 
-    constructor(uint256 _initialAmount, string memory _tokenName, uint8 _decimalUnits, string memory _tokenSymbol) {
+    constructor(
+        uint256 _initialAmount,
+        string memory _tokenName,
+        uint8 _decimalUnits,
+        string memory _tokenSymbol
+    ) public {
         totalSupply = _initialAmount;
         balanceOf[msg.sender] = _initialAmount;
         name = _tokenName;
@@ -89,16 +105,16 @@ contract NonStandardToken is BEP20NS {
         decimals = _decimalUnits;
     }
 
-    function transfer(address dst, uint256 amount) external override {
-        balanceOf[msg.sender] = balanceOf[msg.sender] - amount;
-        balanceOf[dst] = balanceOf[dst] + amount;
+    function transfer(address dst, uint256 amount) external {
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount, "Insufficient balance");
+        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
         emit Transfer(msg.sender, dst, amount);
     }
 
-    function transferFrom(address src, address dst, uint256 amount) external override {
-        allowance[src][msg.sender] = allowance[src][msg.sender] - amount;
-        balanceOf[src] = balanceOf[src] - amount;
-        balanceOf[dst] = balanceOf[dst] + amount;
+    function transferFrom(address src, address dst, uint256 amount) external {
+        allowance[src][msg.sender] = allowance[src][msg.sender].sub(amount, "Insufficient allowance");
+        balanceOf[src] = balanceOf[src].sub(amount, "Insufficient balance");
+        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
         emit Transfer(src, dst, amount);
     }
 
@@ -135,25 +151,25 @@ contract BEP20Harness is StandardToken {
         balanceOf[_account] = _amount;
     }
 
-    function transfer(address dst, uint256 amount) external override returns (bool success) {
+    function transfer(address dst, uint256 amount) external returns (bool success) {
         // Added for testing purposes
         if (failTransferToAddresses[dst]) {
             return false;
         }
-        balanceOf[msg.sender] = balanceOf[msg.sender] - amount;
-        balanceOf[dst] = balanceOf[dst] + amount;
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount, "Insufficient balance");
+        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
         emit Transfer(msg.sender, dst, amount);
         return true;
     }
 
-    function transferFrom(address src, address dst, uint256 amount) external override returns (bool success) {
+    function transferFrom(address src, address dst, uint256 amount) external returns (bool success) {
         // Added for testing purposes
         if (failTransferFromAddresses[src]) {
             return false;
         }
-        allowance[src][msg.sender] = allowance[src][msg.sender] - amount;
-        balanceOf[src] = balanceOf[src] - amount;
-        balanceOf[dst] = balanceOf[dst] + amount;
+        allowance[src][msg.sender] = allowance[src][msg.sender].sub(amount, "Insufficient allowance");
+        balanceOf[src] = balanceOf[src].sub(amount, "Insufficient balance");
+        balanceOf[dst] = balanceOf[dst].add(amount, "Balance overflow");
         emit Transfer(src, dst, amount);
         return true;
     }
