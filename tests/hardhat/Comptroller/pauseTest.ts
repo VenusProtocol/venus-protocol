@@ -26,20 +26,18 @@ type PauseFixture = {
 };
 
 async function pauseFixture(): Promise<PauseFixture> {
-  const accessControl = await smock.fake<IAccessControlManager>(
-    "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-  );
+  const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
   const comptroller = await ComptrollerFactory.deploy();
   await comptroller._setAccessControl(accessControl.address);
-  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+  const oracle = await smock.fake<PriceOracle>("PriceOracle");
 
   accessControl.isAllowedToCall.returns(true);
   await comptroller._setPriceOracle(oracle.address);
   const names = ["OMG", "ZRX", "BAT", "sketch"];
   const [OMG, ZRX, BAT, SKT] = await Promise.all(
     names.map(async name => {
-      const vToken = await smock.fake<VBep20Immutable>("contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable");
+      const vToken = await smock.fake<VBep20Immutable>("VBep20Immutable");
       if (name !== "sketch") {
         await comptroller._supportMarket(vToken.address);
       }

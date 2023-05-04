@@ -33,9 +33,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const comptroller = await smock.fake<Comptroller>("Comptroller");
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
-  const vTokenCollateral = await smock.fake<VBep20Immutable>(
-    "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
-  );
+  const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
   const Liquidator = await smock.mock<LiquidatorHarness__factory>("LiquidatorHarness");
   const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercent], {

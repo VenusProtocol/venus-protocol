@@ -55,26 +55,20 @@ describe("Comptroller", () => {
   }
 
   async function liquidateFixture(): Promise<LiquidateFixture> {
-    const accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-    );
+    const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const comptroller = await ComptrollerFactory.deploy();
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-    const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+    const oracle = await smock.fake<PriceOracle>("PriceOracle");
     accessControl.isAllowedToCall.returns(true);
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
     await comptroller._setLiquidationIncentive(convertToUnit("1.1", 18));
 
-    const vTokenBorrowed = await smock.fake<VBep20Immutable>(
-      "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
-    );
-    const vTokenCollateral = await smock.fake<VBep20Immutable>(
-      "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
-    );
+    const vTokenBorrowed = await smock.fake<VBep20Immutable>("VBep20Immutable");
+    const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
     return { comptroller, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
   }
@@ -113,13 +107,16 @@ describe("Comptroller", () => {
     });
 
     it("fails if the repayAmount causes overflow ", async () => {
-      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, constants.MaxUint256)).to.be
-        .reverted;
+      await expect(
+        calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, constants.MaxUint256),
+      ).to.be.revertedWith("multiplication overflow");
     });
 
     it("fails if the borrowed asset price causes overflow ", async () => {
       setOraclePrice(vTokenBorrowed, constants.MaxUint256);
-      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)).to.be.reverted;
+      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)).to.be.revertedWith(
+        "multiplication overflow",
+      );
     });
 
     it("reverts if it fails to calculate the exchange rate", async () => {

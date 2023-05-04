@@ -4,7 +4,7 @@ import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { VBep20 } from "../../../typechain";
-import { cutParams as params } from "../../deploy/comptroller/cut-params.json";
+import { cutParams as params } from "../../deploy/comptroller/cut-params-testnet.json";
 import { forking, pretendExecutingVip, testVip } from "./vip-framework";
 import { ProposalType } from "./vip-framework/types";
 import { makeProposal } from "./vip-framework/utils";

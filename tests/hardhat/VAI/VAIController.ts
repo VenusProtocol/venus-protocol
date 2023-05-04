@@ -536,9 +536,7 @@ describe("VAIController", async () => {
     });
 
     it("emits NewAccessControl event", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>(
-        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-      );
+      const newAccessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
       const tx = await vaiController.setAccessControl(newAccessControl.address);
       await expect(tx)
         .to.emit(vaiController, "NewAccessControl")

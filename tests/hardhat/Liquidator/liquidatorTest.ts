@@ -48,12 +48,8 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const borrowedUnderlying = await FaucetToken.deploy(convertToBigInt("100", 18), "USD", 18, "USD");
   const vai = await FaucetToken.deploy(convertToBigInt("100", 18), "VAI", 18, "VAI");
   const vaiController = await smock.fake<VAIController>("VAIController");
-  const vTokenBorrowed = await smock.fake<VBep20Immutable>(
-    "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
-  );
-  const vTokenCollateral = await smock.fake<VBep20Immutable>(
-    "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
-  );
+  const vTokenBorrowed = await smock.fake<VBep20Immutable>("VBep20Immutable");
+  const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
   comptroller.vaiController.returns(vaiController.address);

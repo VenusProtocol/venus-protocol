@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity ^0.5.16;
 
 import "../Tokens/VTokens/VBNB.sol";
 import "./ComptrollerScenario.sol";
@@ -19,19 +19,19 @@ contract VBNBHarness is VBNB {
         address payable admin_
     ) public VBNB(comptroller_, interestRateModel_, initialExchangeRateMantissa, name_, symbol_, decimals_, admin_) {}
 
-    function doTransferOut(address payable to, uint amount) internal override {
+    function doTransferOut(address payable to, uint amount) internal {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
         return super.doTransferOut(to, amount);
     }
 
-    function exchangeRateStoredInternal() internal view override returns (MathError, uint) {
+    function exchangeRateStoredInternal() internal view returns (MathError, uint) {
         if (harnessExchangeRate != 0) {
             return (MathError.NO_ERROR, harnessExchangeRate);
         }
         return super.exchangeRateStoredInternal();
     }
 
-    function getBlockNumber() internal view override returns (uint) {
+    function getBlockNumber() internal view returns (uint) {
         return blockNumber;
     }
 
@@ -188,7 +188,7 @@ contract VBNBScenario is VBNB {
         // no-op
     }
 
-    function getBlockNumber() internal view override returns (uint) {
+    function getBlockNumber() internal view returns (uint) {
         ComptrollerScenario comptrollerScenario = ComptrollerScenario(address(comptroller));
         return comptrollerScenario.blockNumber();
     }

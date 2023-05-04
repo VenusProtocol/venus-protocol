@@ -1,11 +1,10 @@
 import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { VBep20 } from "../../../typechain";
-import { cutParams as params } from "../../deploy/comptroller/cut-params.json";
-import { forking, pretendExecutingVip, testVip } from "./vip-framework";
+import { cutParams as params } from "../../deploy/comptroller/cut-params-mainnet.json";
+import { forking, testVip } from "./vip-framework";
 import { ProposalType } from "./vip-framework/types";
 import { makeProposal } from "./vip-framework/utils";
 
