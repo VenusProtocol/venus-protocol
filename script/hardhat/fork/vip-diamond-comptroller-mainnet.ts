@@ -105,9 +105,7 @@ const initMainnetUser = async (user: string) => {
 };
 
 forking(29043847, async () => {
-  let USDT: ethers.contract;
   let BUSD: ethers.contract;
-  let usdtHolder: ethers.Signer;
   let busdHolder: ethers.Signer;
   let vBUSD: ethers.contract;
   let vUSDT: ethers.contract;
@@ -135,14 +133,13 @@ forking(29043847, async () => {
       diamondUnitroller = await ethers.getContractAt("Comptroller", unitroller.address);
 
       busdHolder = await initMainnetUser("0xf977814e90da44bfa03b6295a0616a897441acec");
-      usdtHolder = await initMainnetUser("0xc444949e0054A23c44Fc45789738bdF64aed2391");
 
       [vBUSD, vUSDT] = await Promise.all(
         [VBUSD, VUSDT].map((address: string) => {
           return ethers.getContractAt("contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
         }),
       );
-      [BUSD, USDT] = await Promise.all(
+      [BUSD] = await Promise.all(
         [vBUSD, vUSDT].map(async (vToken: VBep20) => {
           const underlying = await vToken.underlying();
           return ethers.getContractAt("IERC20Upgradeable", underlying);

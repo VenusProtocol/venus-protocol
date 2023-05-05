@@ -101,7 +101,6 @@ forking(29043847, async () => {
     venusBorrowSpeeds,
     venusSupplySpeeds;
 
-  let USDT: ethers.contract;
   let BUSD: ethers.contract;
   let usdtHolder: ethers.Signer;
   let busdHolder: ethers.Signer;
@@ -133,7 +132,7 @@ forking(29043847, async () => {
       }),
     );
 
-    [BUSD, USDT] = await Promise.all(
+    [BUSD] = await Promise.all(
       [vBUSD, vUSDT].map(async (vToken: VBep20) => {
         const underlying = await vToken.underlying();
         return ethers.getContractAt("IERC20Upgradeable", underlying);
@@ -410,9 +409,7 @@ forking(29043847, async () => {
 
 forking(29043847, async () => {
   let owner, unitroller;
-  let USDT: ethers.contract;
   let BUSD: ethers.contract;
-  let usdtHolder: ethers.Signer;
   let busdHolder: ethers.Signer;
   let vBUSD: ethers.contract;
   let vUSDT: ethers.contract;
@@ -435,15 +432,13 @@ forking(29043847, async () => {
 
     busdHolder = await initMainnetUser("0xC825AD791A6046991e3706b6342970f6d87e4888");
 
-    usdtHolder = await initMainnetUser("0xa0747a72C329377C2CE4F0F3165197B3a5359EfE");
-
     [vBUSD, vUSDT] = await Promise.all(
       [VBUSD, VUSDT].map((address: string) => {
         return ethers.getContractAt("contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate", address);
       }),
     );
 
-    [BUSD, USDT] = await Promise.all(
+    [BUSD] = await Promise.all(
       [vBUSD, vUSDT].map(async (vToken: VBep20) => {
         const underlying = await vToken.underlying();
         return ethers.getContractAt("IERC20Upgradeable", underlying);

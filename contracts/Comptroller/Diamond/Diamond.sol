@@ -119,8 +119,9 @@ contract Diamond is ComptrollerV12Storage {
 
     /**
      * @notice Add function selector to the facet's address mapping.
+     * @param _selector funciton selector need to be added.
+     * @param _selectorPosition funciton selector position.
      * @param _facetAddress Address of the facet.
-     * @param _functionSelectors Array of function selectors need to add in the mapping.
      */
     function addFunction(bytes4 _selector, uint96 _selectorPosition, address _facetAddress) internal {
         selectorToFacetAndPosition[_selector].functionSelectorPosition = _selectorPosition;
@@ -131,7 +132,7 @@ contract Diamond is ComptrollerV12Storage {
     /**
      * @notice Remove function selector to the facet's address mapping.
      * @param _facetAddress Address of the facet.
-     * @param _functionSelectors Array of function selectors need to remove in the mapping.
+     * @param _selector function selectors need to remove in the mapping.
      */
     function removeFunction(address _facetAddress, bytes4 _selector) internal {
         require(_facetAddress != address(0), "LibDiamondCut: Can't remove function that doesn't exist");
