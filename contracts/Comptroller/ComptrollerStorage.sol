@@ -246,9 +246,9 @@ contract ComptrollerV12Storage is ComptrollerV11Storage {
         uint256 facetAddressPosition; // position of facetAddress in facetAddresses array
     }
 
-    mapping(bytes4 => FacetAddressAndPosition) public selectorToFacetAndPosition;
+    mapping(bytes4 => FacetAddressAndPosition) selectorToFacetAndPosition;
     // maps facet addresses to function selectors
-    mapping(address => FacetFunctionSelectors) public facetFunctionSelectors;
+    mapping(address => FacetFunctionSelectors) facetFunctionSelectors;
     // facet addresses
-    address[] public facetAddresses;
+    address[] facetAddresses;
 }

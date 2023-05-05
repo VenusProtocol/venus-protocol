@@ -8,16 +8,28 @@ import "../Unitroller.sol";
 contract Diamond is ComptrollerV12Storage {
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
 
+    /**
+     * @notice Call _acceptImplementation to accept the diamond proxy as new implementaion.
+     * @param unitroller Address of the unitroller.
+     */
     function _become(Unitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
         require(unitroller._acceptImplementation() == 0, "not authorized");
     }
 
+    /**
+     * @notice To add function selectors to the facets' mapping.
+     * @param _diamondCut IDiamondCut contains facets address, action and function selectors.
+     */
     function diamondCut(IDiamondCut.FacetCut[] memory _diamondCut) public {
         require(msg.sender == admin, "only unitroller admin can");
         libDiamondCut(_diamondCut);
     }
 
+    /**
+     * @notice To add function selectors to the facets' mapping.
+     * @param _diamondCut IDiamondCut contains facets address, action and function selectors.
+     */
     function libDiamondCut(IDiamondCut.FacetCut[] memory _diamondCut) internal {
         for (uint256 facetIndex; facetIndex < _diamondCut.length; facetIndex++) {
             IDiamondCut.FacetCutAction action = _diamondCut[facetIndex].action;
@@ -34,6 +46,11 @@ contract Diamond is ComptrollerV12Storage {
         emit DiamondCut(_diamondCut);
     }
 
+    /**
+     * @notice Add function selectors to the facet's address mapping.
+     * @param _facetAddress Address of the facet.
+     * @param _functionSelectors Array of function selectors need to add in the mapping.
+     */
     function addFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
         require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
         require(_facetAddress != address(0), "LibDiamondCut: Add facet can't be address(0)");
@@ -51,6 +68,11 @@ contract Diamond is ComptrollerV12Storage {
         }
     }
 
+    /**
+     * @notice Replace function selectors to the facet's address mapping.
+     * @param _facetAddress Address of the facet.
+     * @param _functionSelectors Array of function selectors need to replace in the mapping.
+     */
     function replaceFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
         require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
         require(_facetAddress != address(0), "LibDiamondCut: Add facet can't be address(0)");
@@ -69,6 +91,11 @@ contract Diamond is ComptrollerV12Storage {
         }
     }
 
+    /**
+     * @notice Remove function selectors to the facet's address mapping.
+     * @param _facetAddress Address of the facet.
+     * @param _functionSelectors Array of function selectors need to remove in the mapping.
+     */
     function removeFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
         require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
         // if function does not exist then do nothing and return
@@ -80,18 +107,32 @@ contract Diamond is ComptrollerV12Storage {
         }
     }
 
+    /**
+     * @notice Add new facet to the proxy.
+     * @param _facetAddress Address of the facet.
+     */
     function addFacet(address _facetAddress) internal {
         enforceHasContractCode(_facetAddress, "Diamond: New facet has no code");
         facetFunctionSelectors[_facetAddress].facetAddressPosition = facetAddresses.length;
         facetAddresses.push(_facetAddress);
     }
 
+    /**
+     * @notice Add function selector to the facet's address mapping.
+     * @param _facetAddress Address of the facet.
+     * @param _functionSelectors Array of function selectors need to add in the mapping.
+     */
     function addFunction(bytes4 _selector, uint96 _selectorPosition, address _facetAddress) internal {
         selectorToFacetAndPosition[_selector].functionSelectorPosition = _selectorPosition;
         facetFunctionSelectors[_facetAddress].functionSelectors.push(_selector);
         selectorToFacetAndPosition[_selector].facetAddress = _facetAddress;
     }
 
+    /**
+     * @notice Remove function selector to the facet's address mapping.
+     * @param _facetAddress Address of the facet.
+     * @param _functionSelectors Array of function selectors need to remove in the mapping.
+     */
     function removeFunction(address _facetAddress, bytes4 _selector) internal {
         require(_facetAddress != address(0), "LibDiamondCut: Can't remove function that doesn't exist");
         // an immutable function is a function defined directly in a diamond
