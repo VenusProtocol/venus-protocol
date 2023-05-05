@@ -17,7 +17,7 @@ describe("Evil Token test", async () => {
     accessControlMock.isAllowedToCall.returns(true);
 
     const stableInterestRateModel = await smock.fake<StableRateModel>(
-      "contracts/InterestRateModels/V0.8.13/StableRateModel.sol:StableRateModel",
+      "contracts/InterestRateModels/StableRateModel.sol:StableRateModel",
     );
     stableInterestRateModel.isInterestRateModel.returns(true);
 

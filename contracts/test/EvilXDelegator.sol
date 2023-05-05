@@ -455,7 +455,7 @@ contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface
         return abi.decode(data, (uint256));
     }
 
-    function setStableInterestRateModel(StableRateModel newStableInterestRateModel) public override returns (uint256) {
+    function setStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256) {
         bytes memory data = delegateToImplementation(
             abi.encodeWithSignature("setStableInterestRateModel(address)", newStableInterestRateModel)
         );

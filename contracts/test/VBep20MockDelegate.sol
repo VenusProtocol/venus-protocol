@@ -183,7 +183,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
         return token.balanceOf(address(this));
     }
 
-    function setStableInterestRateModel(StableRateModel newStableInterestRateModel) public override returns (uint256) {
+    function setStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256) {
         return _setStableInterestRateModelFresh(newStableInterestRateModel);
     }
 
