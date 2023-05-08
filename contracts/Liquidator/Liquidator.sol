@@ -75,10 +75,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IVAIController public immutable vaiController;
 
-    /// @notice Address of Venus Treasury.
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable treasury;
-
     /// @notice Address of wBNB contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable wBNB;
@@ -170,19 +166,16 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @param comptroller_ The address of the Comptroller contract
     /// @param vBnb_ The address of the VBNB
-    /// @param treasury_ The address of Venus treasury
     /// @param wBNB_ The address of wBNB
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address comptroller_, address payable vBnb_, address treasury_, address wBNB_) {
+    constructor(address comptroller_, address payable vBnb_, address wBNB_) {
         ensureNonzeroAddress(vBnb_);
         ensureNonzeroAddress(comptroller_);
-        ensureNonzeroAddress(treasury_);
         ensureNonzeroAddress(wBNB_);
         vBnb = IVBNB(vBnb_);
         wBNB = wBNB_;
         comptroller = IComptroller(comptroller_);
         vaiController = IVAIController(IComptroller(comptroller_).vaiController());
-        treasury = treasury_;
         _disableInitializers();
     }
 
@@ -352,7 +345,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     function _reduceReservesInternal() internal {
-        for (uint256 index = pendingRedeem.length - 1; index >= 0; index--) {
+        uint256 pendingReedemLength_ = pendingRedeem.length;
+        if (pendingReedemLength_ == 0) return;
+        for (uint256 index = pendingReedemLength_ - 1; index >= 0; index--) {
             address vToken = pendingRedeem[index];
             uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
             if (IVToken(vToken).redeem(vTokenBalance_) != 0) {
@@ -361,7 +356,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
                 } else {
                     _reduceVTokenReserves(vToken);
                 }
-                pendingRedeem[index] = pendingRedeem[pendingRedeem.length - 1];
+                pendingRedeem[index] = pendingRedeem[pendingReedemLength_ - 1];
                 pendingRedeem.pop();
             }
         }
@@ -428,9 +423,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     function _reduceVTokenReserves(address vToken) private {
         address underlying = IVBep20(vToken).underlying();
         uint256 underlyingBalance = IERC20Upgradeable(underlying).balanceOf((address(this)));
-        if (!IERC20Upgradeable(underlying).transfer(protocolShareReserve, underlyingBalance)) {
-            revert UnderlyingTransferFailed(vToken, underlying);
-        }
+        IERC20Upgradeable(underlying).safeTransfer(protocolShareReserve, underlyingBalance);
         IProtocolShareReserve(protocolShareReserve).updateAssetsState(
             address(comptroller),
             underlying,

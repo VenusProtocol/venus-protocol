@@ -6,12 +6,7 @@ import "../Liquidator/Liquidator.sol";
 
 contract LiquidatorHarness is Liquidator {
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(
-        address comptroller_,
-        address payable vBnb_,
-        address treasury_,
-        address wBnb_
-    ) Liquidator(comptroller_, vBnb_, treasury_, wBnb_) {}
+    constructor(address comptroller_, address payable vBnb_, address wBnb_) Liquidator(comptroller_, vBnb_, wBnb_) {}
 
     function initialize(
         uint256 liquidationIncentiveMantissa_,
