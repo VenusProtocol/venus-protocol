@@ -9,7 +9,9 @@ WORKDIR /venus-protocol
 # First add deps
 ADD ./package.json /venus-protocol
 ADD ./yarn.lock /venus-protocol
-RUN yarn install --lock-file
+ADD ./.yarn /venus-protocol/.yarn
+ADD ./.yarnrc.yml /venus-protocol
+RUN yarn install
 
 # Then rest of code and build
 ADD . /venus-protocol
