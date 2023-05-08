@@ -67,6 +67,8 @@ interface IPolicyFacet {
 
     function transferVerify(address vToken, address src, address dst, uint transferTokens) external;
 
+    function swapBorrowRateModeAllowed(address vToken) external view;
+
     function getAccountLiquidity(address account) external view returns (uint, uint, uint);
 
     function _setVenusSpeeds(

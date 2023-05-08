@@ -1459,7 +1459,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function _swapBorrowRateModePreCalculation(address account) internal returns (uint256, uint256) {
         /* Fail if swapBorrowRateMode not allowed */
-        comptroller.preSwapBorrowRateModeHook(address(this));
+        comptroller.swapBorrowRateModeAllowed(address(this));
 
         accrueInterest();
 

@@ -72,7 +72,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelpe
      * @param redeemTokens The number of tokens being redeemed
      */
     // solhint-disable-next-line no-unused-vars
-    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) public {
+    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) public pure {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
     }
 
@@ -199,7 +199,7 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelpe
         address liquidator,
         address borrower,
         uint repayAmount
-    ) public returns (uint) {
+    ) public view returns (uint) {
         checkProtocolPauseState();
 
         // if we want to pause liquidating to vTokenCollateral, we should pause seizing
@@ -338,6 +338,14 @@ contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelpe
      */
     // solhint-disable-next-line no-unused-vars
     function transferVerify(address vToken, address src, address dst, uint transferTokens) public {}
+
+    /**
+     * @notice Check for the borrow rate swap is allowed.
+     * @param vToken Address of the vToken, borrow rate swap has to perform.
+     */
+    function swapBorrowRateModeAllowed(address vToken) external view {
+        checkActionPauseState(vToken, Action.SWAP_RATE_MODE);
+    }
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
