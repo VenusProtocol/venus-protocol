@@ -9,8 +9,9 @@ contract LiquidatorHarness is Liquidator {
     constructor(
         address comptroller_,
         address payable vBnb_,
-        address treasury_
-    ) Liquidator(comptroller_, vBnb_, treasury_) {}
+        address treasury_,
+        address wBnb_
+    ) Liquidator(comptroller_, vBnb_, treasury_, wBnb_) {}
 
     function initialize(
         uint256 liquidationIncentiveMantissa_,

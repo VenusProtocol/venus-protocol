@@ -7,13 +7,20 @@ import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "./LiquidatorStorage.sol";
 
+enum IncomeType {
+    SPREAD,
+    LIQUIDATION
+}
+
 interface IComptroller {
     function liquidationIncentiveMantissa() external view returns (uint256);
 
     function vaiController() external view returns (IVAIController);
 }
 
-interface IVToken is IERC20Upgradeable {}
+interface IVToken is IERC20Upgradeable {
+    function redeem(uint256 redeemTokens) external returns (uint256);
+}
 
 interface IVBep20 is IVToken {
     function underlying() external view returns (address);
@@ -23,8 +30,6 @@ interface IVBep20 is IVToken {
         uint256 repayAmount,
         IVToken vTokenCollateral
     ) external returns (uint256);
-
-    function redeem(uint256 redeemTokens) external returns (uint256);
 }
 
 interface IVBNB is IVToken {
@@ -44,7 +49,17 @@ interface IVAIController {
 }
 
 interface IProtocolShareReserve {
-    function updateAssetsState(address comptroller, address asset, uint256 kind) external;
+    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
+}
+
+interface IWBNB {
+    function deposit() external payable;
+
+    function transfer(address to, uint value) external returns (bool);
+
+    function withdraw(uint) external;
+
+    function balanceOf(address owner) external view returns (uint256 balance);
 }
 
 contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
@@ -63,6 +78,10 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @notice Address of Venus Treasury.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable treasury;
+
+    /// @notice Address of wBNB contract
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable wBNB;
 
     /* Events */
 
@@ -96,15 +115,15 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     event NewMinLiquidatableVAI(uint256 oldMinLiquidatableVAI, uint256 newMinLiquidatableVAI);
 
     /// @notice Emitted when force liquidation is paused
-    event ForceVaiLiquidationPaused(address indexed sender);
+    event ForceVAILiquidationPaused(address indexed sender);
 
     /// @notice Emitted when force liquidation is resumed
-    event ForceVaiLiquidationResumed(address indexed sender);
+    event ForceVAILiquidationResumed(address indexed sender);
 
     /// @notice Emitted when new address of protocol share reserve is set
     event NewProtocolShareReserve(address indexed oldProtocolShareReserve, address indexed newProtocolShareReserves);
 
-    /// @notice Emitted when reserves is reduced from liquidtor contract to protocol share reserves
+    /// @notice Emitted when reserves are reduced from liquidator contract to protocol share reserves
     event ReservesReduced(address indexed sender, address indexed token, uint256 reducedAmount);
 
     /* Errors */
@@ -152,12 +171,15 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @param comptroller_ The address of the Comptroller contract
     /// @param vBnb_ The address of the VBNB
     /// @param treasury_ The address of Venus treasury
+    /// @param wBNB_ The address of wBNB
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address comptroller_, address payable vBnb_, address treasury_) {
+    constructor(address comptroller_, address payable vBnb_, address treasury_, address wBNB_) {
         ensureNonzeroAddress(vBnb_);
         ensureNonzeroAddress(comptroller_);
         ensureNonzeroAddress(treasury_);
+        ensureNonzeroAddress(wBNB_);
         vBnb = IVBNB(vBnb_);
+        wBNB = wBNB_;
         comptroller = IComptroller(comptroller_);
         vaiController = IVAIController(IComptroller(comptroller_).vaiController());
         treasury = treasury_;
@@ -167,6 +189,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @notice Initializer for the implementation contract.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
     /// @param accessControlManager_ address of access control manager
+    /// @param protocolShareReserve_ The address of the protocol share reserve contract
     function initialize(
         uint256 treasuryPercentMantissa_,
         address accessControlManager_,
@@ -178,6 +201,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @dev Liquidator initializer for derived contracts.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
     /// @param accessControlManager_ address of access control manager
+    /// @param protocolShareReserve_ The address of the protocol share reserve contract
     function __Liquidator_init(
         uint256 treasuryPercentMantissa_,
         address accessControlManager_,
@@ -315,8 +339,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
      * @notice Sets protocol share reserve contract address
      * @param protocolShareReserve_ The address of the protocol share reserve contract
      */
-    function setProtocolShareReserve(address payable protocolShareReserve_) external {
-        _checkAccessAllowed("setProtocolShareReserve(address)");
+    function setProtocolShareReserve(address payable protocolShareReserve_) external onlyOwner {
         _setProtocolShareReserve(protocolShareReserve_);
     }
 
@@ -328,22 +351,17 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     function _reduceReservesInternal() internal {
-        for (uint256 index = pendingRedeem.length - 1; index > 0; index--) {
+        for (uint256 index = pendingRedeem.length - 1; index >= 0; index--) {
             address vToken = pendingRedeem[index];
-            uint256 vTokenBalance = IVToken(vToken).balanceOf(address(this));
-            uint256 redeemResponse = IVBep20(vToken).redeem(vTokenBalance);
-            address underlying = IVBep20(vToken).underlying();
-
-            if (redeemResponse == 0) {
-                uint256 underlyingBalance = IVToken(underlying).balanceOf((address(this)));
-                if (!IVToken(underlying).transfer(protocolShareReserve, underlyingBalance)) {
-                    revert UnderlyingTransferFailed(vToken, underlying);
+            uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
+            if (IVToken(vToken).redeem(vTokenBalance_) != 0) {
+                if (vToken == address(vBnb)) {
+                    _reduceBnbReserves();
+                } else {
+                    _reduceVTokenReserves(vToken);
                 }
-
-                IProtocolShareReserve(protocolShareReserve).updateAssetsState(address(comptroller), underlying, 1);
                 pendingRedeem[index] = pendingRedeem[pendingRedeem.length - 1];
                 pendingRedeem.pop();
-                emit ReservesReduced(msg.sender, vToken, vTokenBalance);
             }
         }
     }
@@ -368,7 +386,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         requireNoError(err);
     }
 
-    /// @dev Splits the received vTokens between the liquidator and treasury.
     function _distributeLiquidationIncentive(
         IVToken vTokenCollateral,
         uint256 siezedAmount
@@ -381,15 +398,41 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         if (IVBep20(address(vTokenCollateral)).redeem(ours) != 0) {
             pendingRedeem.push(address(vTokenCollateral));
         } else {
-            address underlying = IVBep20(address(vTokenCollateral)).underlying();
-            uint256 underlyingBalance = IVToken(underlying).balanceOf((address(this)));
-            if (!IVToken(underlying).transfer(protocolShareReserve, underlyingBalance)) {
-                revert UnderlyingTransferFailed(address(vTokenCollateral), underlying);
+            if (address(vTokenCollateral) == address(vBnb)) {
+                _reduceBnbReserves();
+            } else {
+                _reduceVTokenReserves(address(vTokenCollateral));
             }
-            IProtocolShareReserve(protocolShareReserve).updateAssetsState(address(comptroller), underlying, 1);
-            emit ReservesReduced(msg.sender, address(vTokenCollateral), ours);
         }
         return (ours, theirs);
+    }
+
+    function _reduceBnbReserves() private {
+        uint256 bnbBalance = address(this).balance;
+        IWBNB(wBNB).deposit{ value: bnbBalance }();
+        IWBNB(wBNB).withdraw(bnbBalance);
+        uint256 wBnbBalance = IWBNB(wBNB).balanceOf(address(this));
+        IWBNB(wBNB).transfer(protocolShareReserve, wBnbBalance);
+        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
+            address(comptroller),
+            address(vBnb),
+            IncomeType.LIQUIDATION
+        );
+        emit ReservesReduced(msg.sender, address(wBNB), wBnbBalance);
+    }
+
+    function _reduceVTokenReserves(address vToken) private {
+        address underlying = IVBep20(vToken).underlying();
+        uint256 underlyingBalance = IERC20Upgradeable(underlying).balanceOf((address(this)));
+        if (!IERC20Upgradeable(underlying).transfer(protocolShareReserve, underlyingBalance)) {
+            revert UnderlyingTransferFailed(vToken, underlying);
+        }
+        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
+            address(comptroller),
+            underlying,
+            IncomeType.LIQUIDATION
+        );
+        emit ReservesReduced(msg.sender, underlying, underlyingBalance);
     }
 
     /// @dev Transfers tokens and returns the actual transfer amount
@@ -479,7 +522,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         _checkAccessAllowed("pauseForceVAILiquidate()");
         require(forceVAILiquidate, "Force Liquidation of VAI is already Paused");
         forceVAILiquidate = false;
-        emit ForceVaiLiquidationPaused(msg.sender);
+        emit ForceVAILiquidationPaused(msg.sender);
     }
 
     /**
@@ -489,6 +532,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         _checkAccessAllowed("resumeForceVAILiquidate()");
         require(!forceVAILiquidate, "Force Liquidation of VAI is already resumed");
         forceVAILiquidate = true;
-        emit ForceVaiLiquidationResumed(msg.sender);
+        emit ForceVAILiquidationResumed(msg.sender);
     }
 }
