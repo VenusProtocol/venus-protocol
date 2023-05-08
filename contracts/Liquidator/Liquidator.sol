@@ -193,7 +193,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     function initialize(
         uint256 treasuryPercentMantissa_,
         address accessControlManager_,
-        address payable protocolShareReserve_
+        address protocolShareReserve_
     ) external virtual reinitializer(2) {
         __Liquidator_init(treasuryPercentMantissa_, accessControlManager_, protocolShareReserve_);
     }
@@ -205,7 +205,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     function __Liquidator_init(
         uint256 treasuryPercentMantissa_,
         address accessControlManager_,
-        address payable protocolShareReserve_
+        address protocolShareReserve_
     ) internal onlyInitializing {
         __Ownable2Step_init();
         __ReentrancyGuard_init();
@@ -215,9 +215,10 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     /// @dev Liquidator initializer for derived contracts that doesn't call parent initializers.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
+    /// @param protocolShareReserve_ The address of the protocol share reserve contract
     function __Liquidator_init_unchained(
         uint256 treasuryPercentMantissa_,
-        address payable protocolShareReserve_
+        address protocolShareReserve_
     ) internal onlyInitializing {
         validateTreasuryPercentMantissa(treasuryPercentMantissa_);
         treasuryPercentMantissa = treasuryPercentMantissa_;
@@ -395,7 +396,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }
 
-        if (IVBep20(address(vTokenCollateral)).redeem(ours) != 0) {
+        if (IVToken(address(vTokenCollateral)).redeem(ours) != 0) {
             pendingRedeem.push(address(vTokenCollateral));
         } else {
             if (address(vTokenCollateral) == address(vBnb)) {
@@ -412,7 +413,10 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         IWBNB(wBNB).deposit{ value: bnbBalance }();
         IWBNB(wBNB).withdraw(bnbBalance);
         uint256 wBnbBalance = IWBNB(wBNB).balanceOf(address(this));
-        IWBNB(wBNB).transfer(protocolShareReserve, wBnbBalance);
+
+        if (!IWBNB(wBNB).transfer(protocolShareReserve, wBnbBalance)) {
+            revert UnderlyingTransferFailed(address(vBnb), wBNB);
+        }
         IProtocolShareReserve(protocolShareReserve).updateAssetsState(
             address(comptroller),
             address(vBnb),
@@ -488,11 +492,11 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         revert VAIDebtTooHigh(vaiDebt_, minLiquidatableVAI);
     }
 
-    function _setProtocolShareReserve(address payable protocolShareReserve_) internal {
+    function _setProtocolShareReserve(address protocolShareReserve_) internal {
         ensureNonzeroAddress(protocolShareReserve_);
-        address oldProtocolShareReserve = address(protocolShareReserve);
+        address oldProtocolShareReserve = protocolShareReserve;
         protocolShareReserve = protocolShareReserve_;
-        emit NewProtocolShareReserve(oldProtocolShareReserve, address(protocolShareReserve_));
+        emit NewProtocolShareReserve(oldProtocolShareReserve, protocolShareReserve_);
     }
 
     /**

@@ -23,7 +23,7 @@ contract LiquidatorStorage {
     address[] public pendingRedeem;
 
     /// @notice protocol share reserve contract address
-    address payable public protocolShareReserve;
+    address public protocolShareReserve;
 
     /// @notice gap to prevent collision in inheritence
     uint256[49] private __gap;
