@@ -31,4 +31,13 @@ contract InterestRateModel {
         uint reserves,
         uint reserveFactorMantissa
     ) external view returns (uint);
+
+    /**
+     * @notice Calculates the utilization rate of the market: `borrows / (cash + borrows - reserves)`
+     * @param cash The amount of cash in the market
+     * @param borrows The amount of borrows in the market
+     * @param reserves The amount of reserves in the market (currently unused)
+     * @return The utilization rate as a mantissa between [0, 1e18]
+     */
+    function utilizationRate(uint cash, uint borrows, uint reserves) public pure returns (uint);
 }

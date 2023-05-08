@@ -42,4 +42,11 @@ contract InterestRateModelHarness is InterestRateModel {
         _reserves; // unused
         return borrowRate * (1 - _reserveFactor);
     }
+
+    function utilizationRate(uint cash, uint borrows, uint reserves) public pure returns (uint) {
+        cash; // unused
+        borrows; // unused
+        reserves; // unused
+        return 200000000000000000;
+    }
 }
