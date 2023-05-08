@@ -414,7 +414,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         }
         IProtocolShareReserve(protocolShareReserve).updateAssetsState(
             address(comptroller),
-            address(vBnb),
+            wBNB,
             IncomeType.LIQUIDATION
         );
         emit ReservesReduced(msg.sender, address(wBNB), wBnbBalance);
