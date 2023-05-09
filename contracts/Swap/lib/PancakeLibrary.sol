@@ -65,7 +65,7 @@ library PancakeLibrary {
     ) internal pure returns (uint256 amountOut) {
         if (amountIn == 0) {
             revert InsufficientInputAmount();
-        } else if (reserveIn == 0 && reserveOut == 0) {
+        } else if (reserveIn == 0 || reserveOut == 0) {
             revert InsufficientLiquidity();
         }
         uint256 amountInWithFee = amountIn * 9975;
@@ -82,7 +82,7 @@ library PancakeLibrary {
     ) internal pure returns (uint256 amountIn) {
         if (amountOut == 0) {
             revert InsufficientOutputAmount();
-        } else if (reserveIn == 0 && reserveOut == 0) {
+        } else if (reserveIn == 0 || reserveOut == 0) {
             revert InsufficientLiquidity();
         }
         uint256 numerator = reserveIn * amountOut * 10000;
