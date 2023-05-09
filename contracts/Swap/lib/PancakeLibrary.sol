@@ -68,9 +68,9 @@ library PancakeLibrary {
         } else if (reserveIn == 0 && reserveOut == 0) {
             revert InsufficientLiquidity();
         }
-        uint256 amountInWithFee = amountIn * 998;
+        uint256 amountInWithFee = amountIn * 9975;
         uint256 numerator = amountInWithFee * reserveOut;
-        uint256 denominator = (reserveIn * 1000) + amountInWithFee;
+        uint256 denominator = (reserveIn * 10000) + amountInWithFee;
         amountOut = numerator / denominator;
     }
 
@@ -85,8 +85,8 @@ library PancakeLibrary {
         } else if (reserveIn == 0 && reserveOut == 0) {
             revert InsufficientLiquidity();
         }
-        uint256 numerator = reserveIn * amountOut * 1000;
-        uint256 denominator = (reserveOut - amountOut) * 998;
+        uint256 numerator = reserveIn * amountOut * 10000;
+        uint256 denominator = (reserveOut - amountOut) * 9975;
         amountIn = (numerator / denominator) + 1;
     }
 
