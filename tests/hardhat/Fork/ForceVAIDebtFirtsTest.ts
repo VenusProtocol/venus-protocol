@@ -107,7 +107,7 @@ async function configure() {
 }
 
 if (FORK_MAINNET) {
-  describe.only("LIQUIDATOR FORK TEST", async () => {
+  describe("FORCE VAI DEBT FIRST TEST", async () => {
     it("Should match storage slots", async () => {
       const blockNumber = 27670044;
       await setForkBlock(blockNumber);
