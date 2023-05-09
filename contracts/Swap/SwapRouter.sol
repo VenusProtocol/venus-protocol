@@ -656,7 +656,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to admin (timelock)
+     * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to address - to provided in input (timelock)
      * @param token The address of the ERC-20 token to sweep
      * @param sweepAmount The ampunt of the tokens to sweep
      * @custom:access Only Governance
