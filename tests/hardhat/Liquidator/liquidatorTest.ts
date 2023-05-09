@@ -5,17 +5,19 @@ import chai from "chai";
 import { constants } from "ethers";
 import { ethers, upgrades } from "hardhat";
 
-import { convertToBigInt } from "../../../helpers/utils";
+import { convertToBigInt, convertToUnit } from "../../../helpers/utils";
 import {
   Comptroller,
   FaucetToken,
   FaucetToken__factory,
   IAccessControlManager,
+  IProtocolShareReserve,
   Liquidator,
   Liquidator__factory,
   MockVBNB,
   VAIController,
   VBep20Immutable,
+  WBNB,
 } from "../../../typechain";
 
 const { expect } = chai;
@@ -40,11 +42,10 @@ type LiquidatorFixture = {
   liquidator: MockContract<Liquidator>;
   vBnb: FakeContract<MockVBNB>;
   accessControlManager: FakeContract<IAccessControlManager>;
+  collateralUnderlying: FakeContract<FaucetToken>;
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
-  const [, treasury] = await ethers.getSigners();
-
   const comptroller = await smock.fake<Comptroller>("Comptroller");
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
@@ -53,7 +54,12 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const vaiController = await smock.fake<VAIController>("VAIController");
   const vTokenBorrowed = await smock.fake<VBep20Immutable>("VBep20Immutable");
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
-
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  const wBnb = await smock.fake<WBNB>("WBNB");
+  const collateralUnderlying = await smock.fake<FaucetToken>("FaucetToken");
+  collateralUnderlying.balanceOf.returns(convertToUnit(1, 10));
+  collateralUnderlying.transfer.returns(true);
+  vTokenCollateral.underlying.returns(collateralUnderlying.address);
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
   comptroller.vaiController.returns(vaiController.address);
   vaiController.getVAIAddress.returns(vai.address);
@@ -62,9 +68,13 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   accessControlManager.isAllowedToCall.returns(true);
 
   const Liquidator = await smock.mock<Liquidator__factory>("Liquidator");
-  const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercent, accessControlManager.address], {
-    constructorArgs: [comptroller.address, vBnb.address, treasury.address],
-  });
+  const liquidator = await upgrades.deployProxy(
+    Liquidator,
+    [treasuryPercent, accessControlManager.address, protocolShareReserve.address],
+    {
+      constructorArgs: [comptroller.address, vBnb.address, wBnb.address],
+    },
+  );
   await borrowedUnderlying.approve(liquidator.address, repayAmount);
   await vai.approve(liquidator.address, repayAmount);
 
@@ -78,6 +88,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
     vTokenCollateral,
     liquidator,
     accessControlManager,
+    collateralUnderlying,
   };
 }
 
@@ -102,7 +113,6 @@ function configure(fixture: LiquidatorFixture) {
 
 describe("Liquidator", () => {
   let liquidator: SignerWithAddress;
-  let treasury: SignerWithAddress;
   let borrower: SignerWithAddress;
   let borrowedUnderlying: MockContract<FaucetToken>;
   let vai: MockContract<FaucetToken>;
@@ -112,9 +122,10 @@ describe("Liquidator", () => {
   let vBnb: FakeContract<MockVBNB>;
   let liquidatorContract: MockContract<Liquidator>;
   let accessControlManager: FakeContract<IAccessControlManager>;
+  let collateralUnderlying: FakeContract<FaucetToken>;
 
   beforeEach(async () => {
-    [liquidator, treasury, borrower] = await ethers.getSigners();
+    [liquidator, borrower] = await ethers.getSigners();
     const contracts = await loadFixture(deployLiquidator);
     configure(contracts);
     ({
@@ -126,6 +137,7 @@ describe("Liquidator", () => {
       vBnb,
       liquidator: liquidatorContract,
       accessControlManager,
+      collateralUnderlying,
     } = contracts);
   });
 
@@ -161,6 +173,13 @@ describe("Liquidator", () => {
         await expect(tx).to.be.revertedWithCustomError(liquidatorContract, "WrongTransactionAmount").withArgs(0n, 1n);
       });
 
+      it("transfers the seized collateral to liquidator and protocolShareReserve", async () => {
+        await liquidate();
+        expect(vTokenCollateral.transfer).to.have.been.calledOnce;
+        expect(collateralUnderlying.transfer).to.have.been.calledOnce;
+        expect(vTokenCollateral.transfer).to.have.been.calledWith(liquidator.address, liquidatorShare);
+      });
+
       it("transfers tokens from the liquidator", async () => {
         const tx = await liquidate();
         await expect(tx).to.changeTokenBalance(borrowedUnderlying, liquidator.address, -repayAmount);
@@ -181,13 +200,6 @@ describe("Liquidator", () => {
           repayAmount,
           vTokenCollateral.address,
         );
-      });
-
-      it("transfers the seized collateral to liquidator and treasury", async () => {
-        await liquidate();
-        expect(vTokenCollateral.transfer).to.have.been.calledTwice;
-        expect(vTokenCollateral.transfer).to.have.been.calledWith(liquidator.address, liquidatorShare);
-        expect(vTokenCollateral.transfer).to.have.been.calledWith(treasury.address, treasuryShare);
       });
 
       it("emits LiquidateBorrowedTokens event", async () => {

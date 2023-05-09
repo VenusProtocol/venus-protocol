@@ -8,10 +8,12 @@ import { convertToBigInt } from "../../../helpers/utils";
 import {
   Comptroller,
   IAccessControlManager,
+  IProtocolShareReserve,
   Liquidator,
   Liquidator__factory,
   MockVBNB,
   VBep20Immutable,
+  WBNB,
 } from "../../../typechain";
 
 const { expect } = chai;
@@ -26,7 +28,6 @@ type LiquidatorFixture = {
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
-  const [, treasury] = await ethers.getSigners();
   const treasuryPercentMantissa = convertToBigInt("0.05", 18);
 
   const comptroller = await smock.fake<Comptroller>("Comptroller");
@@ -34,13 +35,19 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  const wBnb = await smock.fake<WBNB>("WBNB");
   const accessControlManager = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControlManager.isAllowedToCall.returns(true);
 
   const Liquidator = await smock.mock<Liquidator__factory>("Liquidator");
-  const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercentMantissa, accessControlManager.address], {
-    constructorArgs: [comptroller.address, vBnb.address, treasury.address],
-  });
+  const liquidator = await upgrades.deployProxy(
+    Liquidator,
+    [treasuryPercentMantissa, accessControlManager.address, protocolShareReserve.address],
+    {
+      constructorArgs: [comptroller.address, vBnb.address, wBnb.address],
+    },
+  );
 
   return { comptroller, vBnb, vBep20, liquidator, accessControlManager };
 }
