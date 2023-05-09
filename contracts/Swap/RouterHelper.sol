@@ -131,7 +131,7 @@ abstract contract RouterHelper is IRouterHelper {
             revert WrongAddress(wBNBAddress, path[0]);
         }
         IWBNB(wBNBAddress).deposit{ value: msg.value }();
-        assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), msg.value));
+        TransferHelper.safeTransfer(wBNBAddress, PancakeLibrary.pairFor(factory, path[0], path[1]), msg.value);
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
             amounts = PancakeLibrary.getAmountsOut(factory, msg.value, path);
             if (amounts[amounts.length - 1] < amountOutMin) {
@@ -225,7 +225,7 @@ abstract contract RouterHelper is IRouterHelper {
             revert ExcessiveInputAmount(amounts[0], msg.value);
         }
         IWBNB(WBNB).deposit{ value: amounts[0] }();
-        assert(IWBNB(WBNB).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        TransferHelper.safeTransfer(WBNB, PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
         _swap(amounts, path, to);
         // refund dust eth, if any
         if (msg.value > amounts[0]) TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);
