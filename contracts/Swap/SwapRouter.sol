@@ -92,7 +92,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Swap token A for token B and supply to a Venus market
+     * @notice Swap Deflationary (a small amount of fee is deducted at the time of transfer of token) token A for token B and supply to a Venus market.
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
@@ -134,7 +134,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Swap BNB for another token and supply to a Venus market
+     * @notice Swap BNB for another deflationary token (a small amount of fee is deducted at the time of transfer of token) and supply to a Venus market
      * @dev The amount to be swapped is obtained from the msg.value, since we are swapping BNB
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountOutMin Minimum amount of tokens to receive.
@@ -218,7 +218,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Swap token A for token B and repay a borrow from a Venus market
+     * @notice Swap deflationary token (a small amount of fee is deducted at the time of transfer of token) token A for token B and repay a borrow from a Venus market
      * @param vTokenAddress The address of the vToken contract to repay.
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
@@ -259,7 +259,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Swap BNB for another token and repay a borrow from a Venus market
+     * @notice Swap BNB for another deflationary token (a small amount of fee is deducted at the time of transfer of token) and repay a borrow from a Venus market
      * @dev The amount to be swapped is obtained from the msg.value, since we are swapping BNB
      * @param vTokenAddress The address of the vToken contract to repay.
      * @param amountOutMin Minimum amount of tokens to receive.
@@ -384,7 +384,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Swap Exact tokens for BNB and repay to a Venus market
+     * @notice Swap Exact deflationary tokens (a small amount of fee is deducted at the time of transfer of tokens) for BNB and repay to a Venus market
      * @param vBNBAddress The address of the vToken contract for supplying assets.
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
