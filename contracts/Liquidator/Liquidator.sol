@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import "./LiquidatorStorage.sol";
 
 interface IComptroller {
     function liquidationIncentiveMantissa() external view returns (uint256);
@@ -40,7 +41,7 @@ interface IVAIController {
     function getVAIRepayAmount(address borrower) external view returns (uint256);
 }
 
-contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, AccessControlledV8 {
+contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
     /// @notice Address of vBNB contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IVBNB public immutable vBnb;
@@ -56,23 +57,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
     /// @notice Address of Venus Treasury.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable treasury;
-
-    /* State */
-
-    /// @notice Percent of seized amount that goes to treasury.
-    uint256 public treasuryPercentMantissa;
-
-    /// @notice Mapping of addresses allowed to liquidate an account if liquidationRestricted[borrower] == true
-    mapping(address => mapping(address => bool)) public allowedLiquidatorsByAccount;
-
-    /// @notice Whether the liquidations are restricted to enabled allowedLiquidatorsByAccount addresses only
-    mapping(address => bool) public liquidationRestricted;
-
-    /// @notice minimum amount of VAI liquidation threshold
-    uint256 public minLiquidatableVAI;
-
-    /// @notice check for liquidation of VAI
-    bool public forceVAILiquidate;
 
     /* Events */
 
@@ -171,7 +155,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acce
     function initialize(
         uint256 treasuryPercentMantissa_,
         address accessControlManager_
-    ) external virtual reinitializer(1) {
+    ) external virtual reinitializer(2) {
         __Liquidator_init(treasuryPercentMantissa_, accessControlManager_);
     }
 
