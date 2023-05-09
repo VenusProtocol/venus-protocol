@@ -3,6 +3,7 @@
 pragma solidity 0.8.13;
 
 import "../Liquidator/Liquidator.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 contract LiquidatorHarness is Liquidator {
     /// @custom:oz-upgrades-unsafe-allow constructor

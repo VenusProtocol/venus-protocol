@@ -31,11 +31,20 @@ abstract contract RouterHelper is IRouterHelper {
     /// @notice This event is emitted whenever a successful swap (tokenA -> tokenB) occurs
     event SwapTokensForTokens(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
 
+    /// @notice This event is emitted whenever a successful swap (tokenA -> tokenB) occurs
+    event SwapTokensForTokensAtSupportingFee(address indexed swapper, address[] indexed path);
+
     /// @notice This event is emitted whenever a successful swap (BNB -> token) occurs
     event SwapBnbForTokens(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
 
+    /// @notice This event is emitted whenever a successful swap (BNB -> token) occurs
+    event SwapBnbForTokensAtSupportingFee(address indexed swapper, address[] indexed path);
+
     /// @notice This event is emitted whenever a successful swap (token -> BNB) occurs
     event SwapTokensForBnb(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
+
+    /// @notice This event is emitted whenever a successful swap (token -> BNB) occurs
+    event SwapTokensForBnbAtSupportingFee(address indexed swapper, address[] indexed path);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address WBNB_, address factory_) {
@@ -63,7 +72,7 @@ abstract contract RouterHelper is IRouterHelper {
     // **** SWAP (supporting fee-on-transfer tokens) ****
     // requires the initial amount to have already been sent to the first pair
     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
-        for (uint256 i; i < path.length - 1; i++) {
+        for (uint256 i; i < path.length - 1; ++i) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0, ) = PancakeLibrary.sortTokens(input, output);
             IPancakePair pair = IPancakePair(PancakeLibrary.pairFor(factory, input, output));
@@ -95,18 +104,20 @@ abstract contract RouterHelper is IRouterHelper {
         address to,
         TypesOfTokens swapFor
     ) internal returns (uint256[] memory amounts) {
-        amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
-        if (amounts[amounts.length - 1] < amountOutMin) {
-            revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
-        }
         address pairAddress = PancakeLibrary.pairFor(factory, path[0], path[1]);
-        TransferHelper.safeTransferFrom(path[0], msg.sender, pairAddress, amounts[0]);
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
+            amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
+            if (amounts[amounts.length - 1] < amountOutMin) {
+                revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
+            }
+            TransferHelper.safeTransferFrom(path[0], msg.sender, pairAddress, amounts[0]);
             _swap(amounts, path, to);
+            emit SwapTokensForTokens(msg.sender, path, amounts);
         } else {
+            TransferHelper.safeTransferFrom(path[0], msg.sender, pairAddress, amountIn);
             _swapSupportingFeeOnTransferTokens(path, to);
+            emit SwapTokensForTokensAtSupportingFee(msg.sender, path);
         }
-        emit SwapTokensForTokens(msg.sender, path, amounts);
     }
 
     function _swapExactETHForTokens(
@@ -119,18 +130,19 @@ abstract contract RouterHelper is IRouterHelper {
         if (path[0] != wBNBAddress) {
             revert WrongAddress(wBNBAddress, path[0]);
         }
-        amounts = PancakeLibrary.getAmountsOut(factory, msg.value, path);
-        if (amounts[amounts.length - 1] < amountOutMin) {
-            revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
-        }
-        IWBNB(wBNBAddress).deposit{ value: amounts[0] }();
-        assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        IWBNB(wBNBAddress).deposit{ value: msg.value }();
+        assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), msg.value));
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
+            amounts = PancakeLibrary.getAmountsOut(factory, msg.value, path);
+            if (amounts[amounts.length - 1] < amountOutMin) {
+                revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
+            }
             _swap(amounts, path, to);
+            emit SwapBnbForTokens(msg.sender, path, amounts);
         } else {
             _swapSupportingFeeOnTransferTokens(path, to);
+            emit SwapBnbForTokensAtSupportingFee(msg.sender, path);
         }
-        emit SwapBnbForTokens(msg.sender, path, amounts);
     }
 
     function _swapExactTokensForETH(
@@ -143,26 +155,41 @@ abstract contract RouterHelper is IRouterHelper {
         if (path[path.length - 1] != WBNB) {
             revert WrongAddress(WBNB, path[path.length - 1]);
         }
-        amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
-        if (amounts[amounts.length - 1] < amountOutMin) {
-            revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
-        }
-        TransferHelper.safeTransferFrom(
-            path[0],
-            msg.sender,
-            PancakeLibrary.pairFor(factory, path[0], path[1]),
-            amounts[0]
-        );
+        uint256 WBNBAmount;
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
+            amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
+            if (amounts[amounts.length - 1] < amountOutMin) {
+                revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
+            }
+            TransferHelper.safeTransferFrom(
+                path[0],
+                msg.sender,
+                PancakeLibrary.pairFor(factory, path[0], path[1]),
+                amounts[0]
+            );
             _swap(amounts, path, address(this));
+            WBNBAmount = amounts[amounts.length - 1];
         } else {
+            uint256 balanceBefore = IWBNB(WBNB).balanceOf(address(this));
+            TransferHelper.safeTransferFrom(
+                path[0],
+                msg.sender,
+                PancakeLibrary.pairFor(factory, path[0], path[1]),
+                amountIn
+            );
             _swapSupportingFeeOnTransferTokens(path, address(this));
+            uint256 balanceAfter = IWBNB(WBNB).balanceOf(address(this));
+            WBNBAmount = balanceAfter - balanceBefore;
         }
-        IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
+        IWBNB(WBNB).withdraw(WBNBAmount);
         if (to != address(this)) {
-            TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+            TransferHelper.safeTransferETH(to, WBNBAmount);
         }
-        emit SwapTokensForBnb(msg.sender, path, amounts);
+        if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
+            emit SwapTokensForBnb(msg.sender, path, amounts);
+        } else {
+            emit SwapTokensForBnbAtSupportingFee(msg.sender, path);
+        }
     }
 
     function _swapTokensForExactTokens(

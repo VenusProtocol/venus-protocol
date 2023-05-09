@@ -1,3 +1,5 @@
+import "module-alias/register";
+
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-ethers";
@@ -76,7 +78,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000,
+            runs: 200,
           },
           outputSelection: {
             "*": {
@@ -147,7 +149,7 @@ function isFork() {
         allowUnlimitedContractSize: false,
         loggingEnabled: false,
         forking: {
-          url: `https://wild-blissful-dawn.bsc.discover.quiknode.pro/${process.env.QUICK_NODE_KEY}/`,
+          url: process.env.BSC_ARCHIVE_NODE || "",
           blockNumber: 21068448,
         },
         accounts: {

@@ -534,7 +534,9 @@ describe("VAIController", async () => {
     });
 
     it("emits NewAccessControl event", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+      const newAccessControl = await smock.fake<IAccessControlManager>(
+        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
+      );
       const tx = await vaiController.setAccessControl(newAccessControl.address);
       await expect(tx)
         .to.emit(vaiController, "NewAccessControl")
@@ -542,7 +544,9 @@ describe("VAIController", async () => {
     });
 
     it("sets ACM address in storage", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+      const newAccessControl = await smock.fake<IAccessControlManager>(
+        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
+      );
       await vaiController.setAccessControl(newAccessControl.address);
       expect(await vaiController.getVariable("accessControl")).to.equal(newAccessControl.address);
     });
