@@ -150,7 +150,7 @@ function isFork() {
         allowUnlimitedContractSize: false,
         loggingEnabled: false,
         forking: {
-          url: process.env.BSC_ARCHIVE_NODE || "",
+          url: process.env.QUICK_NODE_URL || "",
           blockNumber: 21068448,
         },
         accounts: {
