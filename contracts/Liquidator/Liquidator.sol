@@ -179,6 +179,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         _disableInitializers();
     }
 
+    receive() external payable {}
+
     /// @notice Initializer for the implementation contract.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
     /// @param accessControlManager_ address of access control manager
@@ -406,10 +408,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     function _reduceBnbReserves() private {
         uint256 bnbBalance = address(this).balance;
         IWBNB(wBNB).deposit{ value: bnbBalance }();
-        IWBNB(wBNB).withdraw(bnbBalance);
-        uint256 wBnbBalance = IWBNB(wBNB).balanceOf(address(this));
-
-        if (!IWBNB(wBNB).transfer(protocolShareReserve, wBnbBalance)) {
+        if (!IWBNB(wBNB).transfer(protocolShareReserve, bnbBalance)) {
             revert UnderlyingTransferFailed(address(vBnb), wBNB);
         }
         IProtocolShareReserve(protocolShareReserve).updateAssetsState(
@@ -417,7 +416,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             wBNB,
             IncomeType.LIQUIDATION
         );
-        emit ReservesReduced(msg.sender, address(wBNB), wBnbBalance);
+        emit ReservesReduced(msg.sender, address(wBNB), bnbBalance);
     }
 
     function _reduceVTokenReserves(address vToken) private {
