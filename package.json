@@ -6,20 +6,28 @@
     "artifacts",
     "networks",
     "deploy",
-    "contracts"
+    "contracts",
+    "deployments"
   ],
+  "exports": {
+    "deploy": "./dist/deploy",
+    "artifacts": "./artifacts",
+    "networks": "./dist/networks",
+    "contracts": "./contracts",
+    "deployments": "./deployments"
+  },
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "build": "rm -rf dist && tsc --declaration && hardhat compile && cp -r ./{package.json,yarn.lock,artifacts,contracts,networks} dist/",
-    "publish:dist": "yarn build && cd dist && yarn publish --access public",
+    "build": "rm -rf dist && tsc --declaration && hardhat compile",
     "lint": "yarn lint:ts && yarn lint:sol && yarn prettier:check",
-    "lint:ts": "eslint --config ./.eslintrc.yaml --ignore-path ./.eslintignore --ext .js,.ts .",
+    "lint:ts": "eslint --ignore-path ./.eslintignore --ext .js,.ts .",
     "lint:sol": "solhint \"contracts/**/*.sol\"",
     "lint:sol:fix": "prettier --write \"contracts/**/*.sol\"",
-    "prettier": "prettier --config ./.prettierrc.yaml --write \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
-    "prettier:check": "prettier --check --config ./.prettierrc.yaml \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
-    "docgen": "hardhat docgen"
+    "prettier": "prettier --write \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
+    "prettier:check": "prettier --check \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
+    "docgen": "hardhat docgen",
+    "prepare": "husky install"
   },
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
@@ -27,12 +35,15 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
-    "dotenv": "^16.0.1"
+    "dotenv": "^16.0.1",
+    "module-alias": "^2.2.2"
   },
   "peerDependencies": {
     "hardhat": "^2.10.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^17.0.3",
+    "@commitlint/config-conventional": "^17.0.3",
     "@defi-wonderland/smock": "^2.2.0",
     "@ethersproject/abi": "^5.6.4",
     "@ethersproject/abstract-provider": "^5",
@@ -42,9 +53,11 @@
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.2",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.4",
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
-    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@openzeppelin/hardhat-upgrades": "^1.21.0",
+    "@semantic-release/changelog": "^6.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^9.0.1",
     "@trivago/prettier-plugin-sort-imports": "^3.3.1",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
@@ -53,8 +66,8 @@
     "@types/node": "^18.7.1",
     "@typescript-eslint/eslint-plugin": "^5.40.0",
     "@typescript-eslint/parser": "^5.40.0",
-    "@venusprotocol/isolated-pools": "0.0.5",
     "@venusprotocol/governance-contracts": "^0.0.2",
+    "@venusprotocol/isolated-pools": "0.0.5",
     "chai": "^4.3.6",
     "eslint": "^8.25.0",
     "eslint-config-prettier": "^8.5.0",
@@ -62,9 +75,12 @@
     "ethers": "^5.6.9",
     "hardhat": "^2.10.1",
     "hardhat-deploy": "^0.11.14",
+    "hardhat-deploy-ethers": "^0.3.0-beta.13",
     "hardhat-gas-reporter": "^1.0.8",
+    "husky": "^8.0.1",
     "prettier": "^2.7.1",
     "prettier-plugin-solidity": "^1.0.0-beta.24",
+    "semantic-release": "^19.0.3",
     "solhint": "^3.3.7",
     "solidity-coverage": "^0.7.21",
     "solidity-docgen": "^0.6.0-beta.30",
@@ -72,5 +88,14 @@
     "typechain": "^8.1.0",
     "typescript": "^4.7.4",
     "web3-utils": "^1.7.5"
+  },
+  "_moduleAliases": {
+    "@nomiclabs/hardhat-ethers": "node_modules/hardhat-deploy-ethers",
+    "@nomiclabs/hardhat-ethers/types": "hardhat-deploy-ethers/types"
+  },
+  "packageManager": "yarn@3.5.1",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

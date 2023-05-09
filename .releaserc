@@ -1,0 +1,88 @@
+{
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          {"breaking": true, "release": "major"},
+          {
+            "type": "build",
+            "release": false
+          },
+          {
+            "type": "chore",
+            "release": false
+          },
+          {
+            "type": "docs",
+            "release": "patch"
+          },
+          {
+            "type": "ci",
+            "release": false
+          },
+          {
+            "type": "feat",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "release": "patch"
+          },
+          {
+            "type": "refactor",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "release": false
+          }
+        ],
+        "parserOpts": {
+          "noteKeywords": [
+            "BREAKING CHANGE",
+            "BREAKING CHANGES"
+          ]
+        }
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits"
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": true
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "package.json",
+          "CHANGELOG.md"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ]
+  ],
+  "branches": [
+    {
+      "name": "main"
+    },
+    {
+      "name": "develop",
+      "prerelease": "dev"
+    }
+  ]
+}
