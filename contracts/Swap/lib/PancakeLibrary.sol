@@ -50,10 +50,9 @@ library PancakeLibrary {
     function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
         if (amountA == 0) {
             revert InsufficientInputAmount();
-        } else if (reserveA == 0 && reserveB == 0) {
+        } else if (reserveA == 0 || reserveB == 0) {
             revert InsufficientLiquidity();
         }
-        require(reserveA > 0 && reserveB > 0, "PancakeLibrary: INSUFFICIENT_LIQUIDITY");
         amountB = (amountA * reserveB) / reserveA;
     }
 
