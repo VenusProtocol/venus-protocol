@@ -56,6 +56,9 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address WBNB_, address factory_, address _comptrollerAddress) RouterHelper(WBNB_, factory_) {
+        if (_comptrollerAddress == address(0)) {
+            revert ZeroAddress();
+        }
         comptrollerAddress = _comptrollerAddress;
     }
 
