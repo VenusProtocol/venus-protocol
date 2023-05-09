@@ -100,9 +100,12 @@ library PancakeLibrary {
         }
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
-        for (uint256 i; i < path.length - 1; i++) {
+        for (uint256 i; i < path.length - 1; ) {
             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
             amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
+            unchecked {
+                i += 1;
+            }
         }
     }
 
@@ -117,9 +120,12 @@ library PancakeLibrary {
         }
         amounts = new uint256[](path.length);
         amounts[amounts.length - 1] = amountOut;
-        for (uint256 i = path.length - 1; i > 0; i--) {
+        for (uint256 i = path.length - 1; i > 0; ) {
             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);
             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
+            unchecked {
+                i -= 1;
+            }
         }
     }
 }
