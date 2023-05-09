@@ -26,6 +26,8 @@ const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 
 // Address of the VAI_UNITROLLER
 const VAI_CONTROLLER = "0x004065D34C6b18cE4370ced1CeBDE94865DbFAFE";
+// Address of VAI token contract
+const VAI_HOLDER = "0xce74a760b754f7717e7a62e389d4b153aa753e0e";
 // Address of already deployed access control manager
 const ACM = "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555";
 // Owner of the ACM
@@ -105,7 +107,7 @@ async function configure() {
 }
 
 if (FORK_MAINNET) {
-  describe("LIQUIDATOR FORK TEST", async () => {
+  describe("FORCE VAI DEBT FIRST TEST", async () => {
     it("Should match storage slots", async () => {
       const blockNumber = 27670044;
       await setForkBlock(blockNumber);
