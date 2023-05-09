@@ -1,4 +1,4 @@
-import { FakeContract, smock } from "@defi-wonderland/smock";
+import { smock } from "@defi-wonderland/smock";
 import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { Signer } from "ethers";
@@ -26,8 +26,6 @@ const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 
 // Address of the VAI_UNITROLLER
 const VAI_CONTROLLER = "0x004065D34C6b18cE4370ced1CeBDE94865DbFAFE";
-// User VAI debt is low than threoshold
-const USER2 = "0x1cde2e75ae472aa31875da7c921fe3c4196fa256";
 // Address of VAI token contract
 const VAI_HOLDER = "0xce74a760b754f7717e7a62e389d4b153aa753e0e";
 // Address of already deployed access control manager
@@ -135,7 +133,6 @@ if (FORK_MAINNET) {
     it("Should be able to liquidate any token when VAI debt is less than minLiquidatableVAI", async () => {
       const borrower = "0x6B7a803BB85C7D1F67470C50358d11902d3169e0";
       const liquidator = "0x2237ca42fe3522848dcb5a2f13571f5a4e2c5c14";
-      const amount = "29220000000000000";
       const blockNumber = 27670044;
       await setForkBlock(blockNumber);
       await configure();
@@ -156,8 +153,7 @@ if (FORK_MAINNET) {
       await vai.connect(liquidatorSigner).approve(LIQUIDATOR, 10000000000000);
 
       // Manipulate price to decrease liquidity and introdue shortfall
-      let priceOracle: FakeContract<PriceOracle>;
-      priceOracle = await smock.fake<PriceOracle>("PriceOracle");
+      const priceOracle = await smock.fake<PriceOracle>("PriceOracle");
       priceOracle.getUnderlyingPrice.returns(1);
       await comptroller.connect(impersonatedTimelock)._setPriceOracle(priceOracle.address);
 
