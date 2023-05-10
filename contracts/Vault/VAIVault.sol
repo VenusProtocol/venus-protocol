@@ -208,13 +208,6 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
         pendingRewards = 0;
     }
 
-    /**
-     * @dev Returns the address of the current admin
-     */
-    function getAdmin() external view returns (address) {
-        return admin;
-    }
-
     /*** Admin Functions ***/
 
     function _become(IVAIVaultProxy vaiVaultProxy) external {
