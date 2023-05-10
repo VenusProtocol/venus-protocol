@@ -106,7 +106,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Swap Deflationary (a small amount of fee is deducted at the time of transfer of token) token A for token B and supply to a Venus market.
+     * @notice Swap deflationary (a small amount of fee is deducted at the time of transfer of token) token A for token B and supply to a Venus market.
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
@@ -741,7 +741,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to address - to provided in input (timelock)
+     * @notice A public function to sweep accidental BEP-20 transfers to this contract. Tokens are sent to the address `to`, provided in input
      * @param token The address of the ERC-20 token to sweep
      * @param to Recipient of the output tokens.
      * @param sweepAmount The ampunt of the tokens to sweep
@@ -835,7 +835,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      */
     function _isVTokenListed(address vToken) internal view {
         bool isListed = InterfaceComptroller(comptrollerAddress).markets(vToken);
-        if (isListed != true) {
+        if (!isListed) {
             revert VTokenNotListed(vToken);
         }
     }
