@@ -69,6 +69,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      */
     function swapExactTokensForTokensAndSupply(
@@ -92,6 +93,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      */
     function swapExactTokensForTokensAndSupplyAtSupportingFee(
@@ -115,6 +117,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -138,6 +141,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -161,6 +165,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param amountOut The amount of the tokens needs to be as output token.
      * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -184,6 +189,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountOut The amount of the tokens needs to be as output token.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -207,6 +213,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive (and repay)
      */
     function swapAndRepay(
@@ -230,6 +237,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive (and repay)
      */
     function swapAndRepayAtSupportingFee(
@@ -253,6 +261,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param vTokenAddress The address of the vToken contract to repay.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered so the swap path tokens are listed first and last asset is the token we receive
      */
     function swapExactBNBForTokensAndRepay(
@@ -275,6 +284,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param vTokenAddress The address of the vToken contract to repay.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered so the swap path tokens are listed first and last asset is the token we receive
      */
     function swapExactBNBForTokensAndRepayAtSupportingFee(
@@ -297,6 +307,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param amountOut The amount of the tokens needs to be as output token.
      * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -320,6 +331,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -343,6 +355,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountOut The amount of the tokens needs to be as output token.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -364,6 +377,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @notice Swap BNB for Exact tokens and repay to a Venus market
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -387,6 +401,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -411,6 +426,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -436,6 +452,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param amountOut The amount of the tokens needs to be as output token.
      * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -459,6 +476,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param vBNBAddress The address of the vToken contract for supplying assets.
      * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
@@ -685,6 +703,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     /**
      * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to address - to provided in input (timelock)
      * @param token The address of the ERC-20 token to sweep
+     * @param to Recipient of the output tokens.
      * @param sweepAmount The ampunt of the tokens to sweep
      * @custom:access Only Governance
      */
@@ -767,7 +786,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Check for vToken is listed in the pool.
+     * @notice Check is vToken listed in the pool.
      * @param vToken Address of the vToken.
      */
     function _isVTokenListed(address vToken) internal view {
