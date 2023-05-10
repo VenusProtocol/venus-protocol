@@ -65,3 +65,6 @@ error TransferFromFailed();
 
 ///@notice Error thrown when safeTransferETH failed
 error SafeTransferETHFailed();
+
+///@notice Error thrown when reentrant check fails
+error ReentrantCheck();
