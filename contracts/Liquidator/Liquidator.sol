@@ -8,9 +8,23 @@ import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlle
 import "./LiquidatorStorage.sol";
 
 interface IComptroller {
+    enum Action {
+        MINT,
+        REDEEM,
+        BORROW,
+        REPAY,
+        SEIZE,
+        LIQUIDATE,
+        TRANSFER,
+        ENTER_MARKET,
+        EXIT_MARKET
+    }
+
     function liquidationIncentiveMantissa() external view returns (uint256);
 
     function vaiController() external view returns (IVAIController);
+
+    function actionPaused(address market, Action action) external view returns (bool);
 }
 
 interface IVToken is IERC20Upgradeable {}
@@ -373,7 +387,13 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     function _checkForceVAILiquidate(address vToken, address borrower) private view {
         uint256 vaiDebt_ = vaiController.getVAIRepayAmount(borrower);
-        if (!forceVAILiquidate || vaiDebt_ < minLiquidatableVAI || vToken == address(vaiController)) return;
+        bool isVAILiquidationPaused_ = comptroller.actionPaused(address(vaiController), IComptroller.Action.LIQUIDATE);
+        if (
+            isVAILiquidationPaused_ ||
+            !forceVAILiquidate ||
+            vaiDebt_ < minLiquidatableVAI ||
+            vToken == address(vaiController)
+        ) return;
         revert VAIDebtTooHigh(vaiDebt_, minLiquidatableVAI);
     }
 
