@@ -22,9 +22,6 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
     /// @notice Event emitted when VAI withrawal
     event Withdraw(address indexed user, uint256 amount);
 
-    /// @notice Event emitted when admin changed
-    event AdminTransfered(address indexed oldAdmin, address indexed newAdmin);
-
     /// @notice Event emitted when vault is paused
     event VaultPaused(address indexed admin);
 
@@ -216,15 +213,6 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
      */
     function getAdmin() external view returns (address) {
         return admin;
-    }
-
-    /**
-     * @dev Set the current admin to new address
-     */
-    function setNewAdmin(address newAdmin) external onlyAdmin {
-        require(newAdmin != address(0), "new owner is the zero address");
-        emit AdminTransfered(admin, newAdmin);
-        admin = newAdmin;
     }
 
     /*** Admin Functions ***/
