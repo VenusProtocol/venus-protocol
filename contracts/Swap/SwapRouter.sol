@@ -442,7 +442,9 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
-        require(swapAmount >= amountOutMin, "SwapRouter: SwapAmount is less than amountOutMin");
+        if (swapAmount < amountOutMin) {
+            revert SwapAmountLessThanAmountOutMin(swapAmount, amountOutMin);
+        }
         IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
     }
 
@@ -633,7 +635,9 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = to.balance;
         swapAmount = balanceAfter - balanceBefore;
-        require(swapAmount >= amountOutMin, "SwapRouter: SwapAmount is less than amountOutMin");
+        if (swapAmount < amountOutMin) {
+            revert SwapAmountLessThanAmountOutMin(swapAmount, amountOutMin);
+        }
     }
 
     /**
@@ -709,7 +713,9 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      */
     function sweepToken(IERC20 token, address to, uint256 sweepAmount) external onlyOwner {
         uint256 balance = token.balanceOf(address(this));
-        require(sweepAmount <= balance, "SwapRouter::insufficient balance");
+        if (sweepAmount > balance) {
+            revert InsufficientBalance(sweepAmount, balance);
+        }
         token.safeTransfer(to, sweepAmount);
 
         emit SweepToken(address(token), to, sweepAmount);
@@ -760,7 +766,9 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     ) internal view returns (uint256 swapAmount) {
         uint256 balanceAfter = IERC20(asset).balanceOf(to);
         swapAmount = balanceAfter - balanceBefore;
-        require(swapAmount >= amountOutMin, "SwapRouter: SwapAmount is less than amountOutMin");
+        if (swapAmount < amountOutMin) {
+            revert SwapAmountLessThanAmountOutMin(swapAmount, amountOutMin);
+        }
     }
 
     /**
@@ -781,7 +789,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     function _ensureVTokenChecks(address vTokenAddress, address underlying) internal {
         _isVTokenListed(vTokenAddress);
         if (IVToken(vTokenAddress).underlying() != underlying) {
-            revert VTokenUnderlyingInvalid(vTokenAddress);
+            revert VTokenUnderlyingInvalid(underlying);
         }
     }
 
