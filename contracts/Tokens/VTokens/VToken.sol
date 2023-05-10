@@ -7,13 +7,15 @@ import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 import "./VTokenInterfaces.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
+import "hardhat/console.sol";
 
 /**
  * @title Venus's vToken Contract
  * @notice Abstract base for vTokens
  * @author Venus
  */
-contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
+contract VToken is VTokenInterface, AccessControlledV5, Exponential, TokenErrorReporter {
     struct MintLocalVars {
         MathError mathErr;
         uint exchangeRateMantissa;
@@ -208,6 +210,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     // @custom:event Emits NewReserveFactor event
     function _setReserveFactor(uint newReserveFactorMantissa) external nonReentrant returns (uint) {
+        console.log("HEREEEEEEEEEEEEE");
+        _checkAccessAllowed("_setReserveFactor(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reserve factor change failed.
@@ -218,12 +222,23 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
+     * @notice Sets the address of the access control of this contract
+     * @dev Admin function to set the access control address
+     * @param newAccessControlAddress New address for the access control
+     */
+    function setAccessControl(address newAccessControlAddress) external {
+        require(msg.sender == admin, "only admin can set new accessControlAddress");
+        _setAccessControlManager(newAccessControlAddress);
+    }
+
+    /**
      * @notice Accrues interest and reduces reserves by transferring to admin
      * @param reduceAmount Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits ReservesReduced event
     function _reduceReserves(uint reduceAmount) external nonReentrant returns (uint) {
+        _checkAccessAllowed("_reduceReserves(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
@@ -502,6 +517,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint) {
+        _checkAccessAllowed("_setInterestRateModel(address)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted change of interest rate model failed
@@ -1371,11 +1387,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setReserveFactorFresh(uint newReserveFactorMantissa) internal returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_RESERVE_FACTOR_ADMIN_CHECK);
-        }
-
         // Verify market's block number equals current block number
         if (accrualBlockNumber != getBlockNumber()) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_RESERVE_FACTOR_FRESH_CHECK);
@@ -1466,11 +1477,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // totalReserves - reduceAmount
         uint totalReservesNew;
 
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.REDUCE_RESERVES_ADMIN_CHECK);
-        }
-
         // We fail gracefully unless market's block number equals current block number
         if (accrualBlockNumber != getBlockNumber()) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.REDUCE_RESERVES_FRESH_CHECK);
@@ -1512,12 +1518,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function _setInterestRateModelFresh(InterestRateModel newInterestRateModel) internal returns (uint) {
         // Used to store old model for use in the event that is emitted on success
         InterestRateModel oldInterestRateModel;
-
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_INTEREST_RATE_MODEL_OWNER_CHECK);
-        }
-
         // We fail gracefully unless market's block number equals current block number
         if (accrualBlockNumber != getBlockNumber()) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_INTEREST_RATE_MODEL_FRESH_CHECK);
