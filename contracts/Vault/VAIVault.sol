@@ -219,14 +219,6 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
     }
 
     /**
-     * @dev Burn the current admin
-     */
-    function burnAdmin() external onlyAdmin {
-        emit AdminTransfered(admin, address(0));
-        admin = address(0);
-    }
-
-    /**
      * @dev Set the current admin to new address
      */
     function setNewAdmin(address newAdmin) external onlyAdmin {
