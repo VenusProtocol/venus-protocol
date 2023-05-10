@@ -229,6 +229,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
             return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
         }
+        uint currentBlock = getBlockNumber();
+        if (reduceReservesBlockNumber == currentBlock) return (uint(Error.NO_ERROR));
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
         return _reduceReservesFresh(reduceAmount);
     }
@@ -300,6 +302,46 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function getCash() external view returns (uint) {
         return getCashPrior();
+    }
+
+    /**
+     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @param _newReduceReservesBlockDelta block difference value
+     */
+    function setReduceReservesBlockDelta(uint256 _newReduceReservesBlockDelta) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_REDUCE_RESERVES_BLOCK_DELTA_OWNER_CHECK);
+        }
+        uint256 oldReduceReservesBlockDelta_ = reduceReservesBlockDelta;
+        reduceReservesBlockDelta = _newReduceReservesBlockDelta;
+        emit NewReduceReservesBlockDelta(oldReduceReservesBlockDelta_, _newReduceReservesBlockDelta);
+    }
+
+    /**
+     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @param protcolShareReserve_ The address of protocol share reserve contract
+     */
+    function setProtcolShareReserve(address payable protcolShareReserve_) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PROTOCOL_SHARE_RESERVES_OWNER_CHECK);
+        }
+        address oldProtocolShareReserve_ = protocolShareReserve;
+        protocolShareReserve = protcolShareReserve_;
+        emit NewProtocolShareReserve(oldProtocolShareReserve_, protcolShareReserve_);
+    }
+
+    /**
+     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @param underlying_ The address of underlying asset contract
+     */
+    function setUnderlyingAsset(address underlying_) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_UNDERLYING_OWNER_CHECK);
+        }
+        underlying = underlying_;
     }
 
     /**
@@ -463,6 +505,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         borrowIndex = borrowIndexNew;
         totalBorrows = totalBorrowsNew;
         totalReserves = totalReservesNew;
+
+        if (currentBlockNumber - reduceReservesBlockNumber >= reduceReservesBlockDelta) {
+            reduceReservesBlockNumber = currentBlockNumber;
+            _reduceReservesFresh(totalReservesNew);
+        }
 
         /* We emit an AccrueInterest event */
         emit AccrueInterest(cashPrior, interestAccumulated, borrowIndexNew, totalBorrowsNew);
@@ -1466,11 +1513,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // totalReserves - reduceAmount
         uint totalReservesNew;
 
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.REDUCE_RESERVES_ADMIN_CHECK);
-        }
-
         // We fail gracefully unless market's block number equals current block number
         if (accrualBlockNumber != getBlockNumber()) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.REDUCE_RESERVES_FRESH_CHECK);
@@ -1496,7 +1538,13 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalReserves = totalReservesNew;
 
         // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
-        doTransferOut(admin, reduceAmount);
+        doTransferOut(protocolShareReserve, reduceAmount);
+
+        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
+            address(comptroller),
+            underlying,
+            IProtocolShareReserve.IncomeType.SPREAD
+        );
 
         emit ReservesReduced(admin, reduceAmount, totalReservesNew);
 

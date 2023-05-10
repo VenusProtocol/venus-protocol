@@ -3,6 +3,15 @@ pragma solidity ^0.5.16;
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 
+interface IProtocolShareReserve {
+    enum IncomeType {
+        SPREAD,
+        LIQUIDATION
+    }
+
+    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
+}
+
 contract VTokenStorage {
     /**
      * @notice Container for borrow balance information
@@ -114,6 +123,26 @@ contract VTokenStorage {
      * @notice Mapping of account addresses to outstanding borrow balances
      */
     mapping(address => BorrowSnapshot) internal accountBorrows;
+
+    /**
+     * @notice delta block after which reserves will be reduced
+     */
+    uint public reduceReservesBlockDelta;
+
+    /**
+     * @notice last block number at which reserves were reduced
+     */
+    uint public reduceReservesBlockNumber;
+
+    /**
+     * @notice address of protocol share reserve contract
+     */
+    address payable public protocolShareReserve;
+
+    /**
+     * @notice address of underlying asset contrcat
+     */
+    address public underlying;
 }
 
 contract VTokenInterface is VTokenStorage {
@@ -221,6 +250,16 @@ contract VTokenInterface is VTokenStorage {
      * @notice Failure event
      */
     event Failure(uint error, uint info, uint detail);
+
+    /**
+     * @notice Event emitted when block delta for reduce reserves get updated
+     */
+    event NewReduceReservesBlockDelta(uint256 oldReduceReservesBlockDelta, uint256 newReduceReservesBlockDelta);
+
+    /**
+     * @notice Event emitted when address of ProtocolShareReserve contract get updated
+     */
+    event NewProtocolShareReserve(address indexed oldProtocolShareReserve, address indexed newProtocolShareReserve);
 
     /*** User Interface ***/
 
