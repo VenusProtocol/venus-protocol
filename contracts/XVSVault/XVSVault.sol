@@ -35,9 +35,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     /// @notice Event emitted when request withrawal
     event RequestedWithdrawal(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
-    /// @notice Event emitted when admin changed
-    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
-
     /// @notice An event thats emitted when an account changes its delegate
     event DelegateChangedV2(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
@@ -745,21 +742,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
             }
         }
         return checkpoints[account][lower].votes;
-    }
-
-    /**
-     * @dev Returns the address of the current admin
-     */
-    function getAdmin() external view returns (address) {
-        return admin;
-    }
-
-    /**
-     * @dev Burn the current admin
-     */
-    function burnAdmin() external onlyAdmin {
-        emit AdminTransferred(admin, address(0));
-        admin = address(0);
     }
 
     /*** Admin Functions ***/
