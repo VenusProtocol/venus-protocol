@@ -352,16 +352,16 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     function _reduceReservesInternal() internal {
         uint256 pendingReedemLength_ = pendingRedeem.length;
         if (pendingReedemLength_ == 0) return;
-        for (uint256 index = pendingReedemLength_ - 1; index >= 0; index--) {
-            address vToken = pendingRedeem[index];
+        for (int256 index = int256(pendingReedemLength_) - 1; index >= 0; index--) {
+            address vToken = pendingRedeem[uint256(index)];
             uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
-            if (IVToken(vToken).redeem(vTokenBalance_) == NO_ERROR) {
+            if (_redeemUnderlying(vToken, vTokenBalance_)) {
                 if (vToken == address(vBnb)) {
                     _reduceBnbReserves();
                 } else {
                     _reduceVTokenReserves(vToken);
                 }
-                pendingRedeem[index] = pendingRedeem[pendingRedeem.length - 1];
+                pendingRedeem[uint256(index)] = pendingRedeem[pendingRedeem.length - 1];
                 pendingRedeem.pop();
             }
         }
@@ -396,7 +396,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }
 
-        if (IVToken(address(vTokenCollateral)).redeem(ours) != NO_ERROR) {
+        if (!_redeemUnderlying(address(vTokenCollateral), ours)) {
             pendingRedeem.push(address(vTokenCollateral));
         } else {
             if (address(vTokenCollateral) == address(vBnb)) {
@@ -420,6 +420,18 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             IProtocolShareReserve.IncomeType.LIQUIDATION
         );
         emit ProtocolLiquidationIncentiveTransferred(msg.sender, address(wBNB), bnbBalance);
+    }
+
+    function _redeemUnderlying(address vToken, uint256 amount) private returns (bool) {
+        try IVToken(address(vToken)).redeem(amount) returns (uint256 response) {
+            if (response == 0) {
+                return true;
+            } else {
+                return false;
+            }
+        } catch {
+            return false;
+        }
     }
 
     function _reduceVTokenReserves(address vToken) private {

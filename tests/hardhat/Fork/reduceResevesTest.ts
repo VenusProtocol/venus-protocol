@@ -6,6 +6,8 @@ import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
 import {
+  Comptroller,
+  Comptroller__factory,
   IProtocolShareReserve,
   IVBep20__factory,
   Liquidator,
@@ -33,6 +35,7 @@ const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
 let impersonatedTimelock: Signer;
 let liquidator: Liquidator;
 let protocolShareReserve: FakeContract<IProtocolShareReserve>;
+let comptroller: Comptroller;
 
 async function deployAndConfigureLiquidator() {
   /*
@@ -153,6 +156,35 @@ if (FORK_MAINNET) {
 
       expect(liquidatorBalanceAfter).to.be.greaterThan(liquidatorBalanceBefore);
       expect(protocolShareReserveBalanceAfter).to.be.greaterThan(protocolShareReserveBalanceBefore);
+    });
+
+    it("Should seize split tokens between liquidator user and liquidator contract, vSXP-->vADA", async () => {
+      const blockNumber = 27032460;
+      const repayAmount = "47000000000000000286";
+      const borrower = "0xA461db6d21568E97E040C4Ab57Ff38708a4F0F67";
+      const liquidatorAccount = "0x85ac420773116e916e9671cb4ac1059635606cf2";
+      const borrowedToken = "0x2fF3d0F6990a40261c66E1ff2017aCBc282EB6d0";
+      const borrowedUnderlying = "0x47BEAd2563dCBf3bF2c9407fEa4dC236fAbA485A";
+      const collateralToken = "0x9A0AF7FDb2065Ce470D72664DE73cAE409dA28Ec";
+
+      await setForkBlock(blockNumber);
+      await configure();
+      comptroller = Comptroller__factory.connect(UNITROLLER, impersonatedTimelock);
+      await comptroller._setActionsPaused([collateralToken], [1], true);
+
+      const borrowedUnderlyingToken = IBEP20__factory.connect(borrowedUnderlying, impersonatedTimelock);
+      const seizedVToken = IVBep20__factory.connect(collateralToken, impersonatedTimelock);
+
+      const liquidatorSigner = await initMainnetUser(liquidatorAccount, ethers.utils.parseEther("2"));
+      const liquidatorContractBeforeBal = await seizedVToken.balanceOf(LIQUIDATOR);
+
+      await borrowedUnderlyingToken.connect(liquidatorSigner).approve(LIQUIDATOR, repayAmount);
+      await expect(
+        liquidator.connect(liquidatorSigner).liquidateBorrow(borrowedToken, borrower, repayAmount, collateralToken),
+      ).to.be.emit(liquidator, "LiquidateBorrowedTokens");
+
+      const liquidatorContractAfterBal = await seizedVToken.balanceOf(LIQUIDATOR);
+      expect(liquidatorContractAfterBal).to.be.greaterThan(liquidatorContractBeforeBal);
     });
   });
 }
