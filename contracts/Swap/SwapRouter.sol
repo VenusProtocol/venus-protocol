@@ -7,6 +7,7 @@ import "./interfaces/IPancakeSwapV2Router.sol";
 import "./interfaces/IVtoken.sol";
 import "./RouterHelper.sol";
 import "./interfaces/IVBNB.sol";
+import "./interfaces/IVtoken.sol";
 import "./interfaces/InterfaceComptroller.sol";
 
 /**
@@ -27,14 +28,6 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     modifier ensure(uint256 deadline) {
         if (deadline < block.timestamp) {
             revert SwapDeadlineExpire(deadline, block.timestamp);
-        }
-        _;
-    }
-
-    modifier ensureVTokenListed(address vTokenAddress) {
-        bool isListed = InterfaceComptroller(comptrollerAddress).markets(vTokenAddress);
-        if (isListed != true) {
-            revert VTokenNotListed(vTokenAddress);
         }
         _;
     }
@@ -84,11 +77,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
-        uint256 swapAmount = _getSwapAmount(path, balanceBefore);
-        _supply(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _supply(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -105,11 +100,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, address(this));
-        _supply(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, address(this));
+        _supply(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -126,11 +123,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external payable override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
-        uint256 swapAmount = _getSwapAmount(path, balanceBefore);
-        _supply(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _supply(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -147,11 +146,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external payable override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, address(this));
-        _supply(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, address(this));
+        _supply(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -169,11 +170,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
-        uint256 swapAmount = _getSwapAmount(path, balanceBefore);
-        _supply(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _supply(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -189,11 +192,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOut,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external payable override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapETHForExactTokens(amountOut, path, address(this));
-        uint256 swapAmount = _getSwapAmount(path, balanceBefore);
-        _supply(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _supply(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -210,11 +215,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
-        uint256 swapAmount = _getSwapAmount(path, balanceBefore);
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -231,11 +238,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, address(this));
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, address(this));
+        _repay(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -251,11 +260,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external payable override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
-        uint256 swapAmount = _getSwapAmount(path, balanceBefore);
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -271,11 +282,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external payable override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
-        uint256 swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, address(this));
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, address(this));
+        _repay(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -293,11 +306,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
-        uint256 swapAmount = _getSwapAmount(path, balanceBefore);
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -313,12 +328,14 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         uint256 amountOut = IVToken(vTokenAddress).borrowBalanceCurrent(msg.sender);
         _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
-        uint256 swapAmount = _getSwapAmount(path, balanceBefore);
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -334,11 +351,13 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOut,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external payable override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         _swapETHForExactTokens(amountOut, path, address(this));
-        uint256 swapAmount = _getSwapAmount(path, balanceBefore);
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -352,12 +371,14 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         address vTokenAddress,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) ensureVTokenListed(vTokenAddress) ensurePath(path) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(address(this));
+    ) external payable override ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         uint256 amountOut = IVToken(vTokenAddress).borrowBalanceCurrent(msg.sender);
         _swapETHForExactTokens(amountOut, path, address(this));
-        uint256 swapAmount = _getSwapAmount(path, balanceBefore);
-        _repay(path[path.length - 1], vTokenAddress, swapAmount);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -376,6 +397,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) ensurePath(path) {
+        _isVTokenListed(vBNBAddress);
         uint256 balanceBefore = address(this).balance;
         _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = address(this).balance;
@@ -399,6 +421,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) ensurePath(path) {
+        _isVTokenListed(vBNBAddress);
         uint256 balanceBefore = address(this).balance;
         _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = address(this).balance;
@@ -423,6 +446,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) ensurePath(path) {
+        _isVTokenListed(vBNBAddress);
         uint256 balanceBefore = address(this).balance;
         _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = address(this).balance;
@@ -444,6 +468,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         address[] calldata path,
         uint256 deadline
     ) external payable override ensure(deadline) ensurePath(path) {
+        _isVTokenListed(vBNBAddress);
         uint256 balanceBefore = address(this).balance;
         uint256 amountOut = IVToken(vBNBAddress).borrowBalanceCurrent(msg.sender);
         _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
@@ -494,9 +519,10 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) ensurePath(path) returns (uint256 swapAmount) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(to);
         _swapExactTokensForTokens(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
-        swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, to);
+        swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, to);
     }
 
     /**
@@ -537,9 +563,10 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         address to,
         uint256 deadline
     ) external payable virtual override ensure(deadline) ensurePath(path) returns (uint256 swapAmount) {
-        uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(to);
         _swapExactETHForTokens(amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
-        swapAmount = _checkForAmountOut(path, balanceBefore, amountOutMin, to);
+        swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, to);
     }
 
     /**
@@ -701,29 +728,52 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
 
     /**
      * @notice Check if the balance of to minus the balanceBefore is greater than the amountOutMin.
-     * @param path The addresses of the underlying token
+     * @param asset The address of the underlying token
      * @param balanceBefore Balance before the swap.
      * @param amountOutMin Min amount out threshold.
      * @param to Recipient of the output tokens.
      */
     function _checkForAmountOut(
-        address[] calldata path,
+        address asset,
         uint256 balanceBefore,
         uint256 amountOutMin,
         address to
     ) internal view returns (uint256 swapAmount) {
-        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(to);
+        uint256 balanceAfter = IERC20(asset).balanceOf(to);
         swapAmount = balanceAfter - balanceBefore;
         require(swapAmount >= amountOutMin, "SwapRouter: SwapAmount is less than amountOutMin");
     }
 
     /**
      * @notice Returns the difference between the balance of this and the balanceBefore
-     * @param path The addresses of the underlying token
+     * @param asset The address of the underlying token
      * @param balanceBefore Balance before the swap.
      */
-    function _getSwapAmount(address[] calldata path, uint256 balanceBefore) internal view returns (uint256 swapAmount) {
-        uint256 balanceAfter = IERC20(path[path.length - 1]).balanceOf(address(this));
+    function _getSwapAmount(address asset, uint256 balanceBefore) internal view returns (uint256 swapAmount) {
+        uint256 balanceAfter = IERC20(asset).balanceOf(address(this));
         swapAmount = balanceAfter - balanceBefore;
+    }
+
+    /**
+     * @notice Check isVTokenListed and last address in the path should be vToken underlying.
+     * @param vTokenAddress Address of the vToken.
+     * @param underlying Address of the underlying asset.
+     */
+    function _ensureVTokenChecks(address vTokenAddress, address underlying) internal {
+        _isVTokenListed(vTokenAddress);
+        if (IVToken(vTokenAddress).underlying() != underlying) {
+            revert VTokenUnderlyingInvalid(vTokenAddress);
+        }
+    }
+
+    /**
+     * @notice Check for vToken is listed in the pool.
+     * @param vToken Address of the vToken.
+     */
+    function _isVTokenListed(address vToken) internal view {
+        bool isListed = InterfaceComptroller(comptrollerAddress).markets(vToken);
+        if (isListed != true) {
+            revert VTokenNotListed(vToken);
+        }
     }
 }

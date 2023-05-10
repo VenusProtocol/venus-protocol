@@ -302,6 +302,7 @@ describe("Swap Contract", () => {
 
     it("swap tokenA -> tokenB --> supply tokenB", async () => {
       const deadline = await getValidDeadline();
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -318,6 +319,7 @@ describe("Swap Contract", () => {
     it("swap BNB -> token --> supply token", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -341,6 +343,7 @@ describe("Swap Contract", () => {
 
     it("swap tokenA -> tokenB --> supply tokenB at supporting fee", async () => {
       const deadline = await getValidDeadline();
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -357,6 +360,7 @@ describe("Swap Contract", () => {
     it("swap BNB -> token --> supply token at supporting fee", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(dToken.address);
       await expect(
         swapRouter
           .connect(user)
@@ -375,6 +379,7 @@ describe("Swap Contract", () => {
     it("swap tokenA -> exact tokenB", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -391,6 +396,7 @@ describe("Swap Contract", () => {
     it("swap bnb -> exact tokenB", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -407,6 +413,7 @@ describe("Swap Contract", () => {
     });
 
     it("revert if deadline has passed", async () => {
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter.swapAndRepay(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], 0),
       ).to.be.revertedWithCustomError(swapRouter, "SwapDeadlineExpire");
@@ -424,6 +431,7 @@ describe("Swap Contract", () => {
     it("swap BNB -> token --> supply token", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -434,6 +442,7 @@ describe("Swap Contract", () => {
     });
 
     it("revert if deadline has passed at supporting fee", async () => {
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter.swapAndRepayAtSupportingFee(
           vToken.address,
@@ -447,6 +456,7 @@ describe("Swap Contract", () => {
 
     it("swap tokenA -> tokenB --> supply tokenB at supporting fee", async () => {
       const deadline = await getValidDeadline();
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -463,6 +473,7 @@ describe("Swap Contract", () => {
     it("swap BNB -> token --> supply token at supporting fee", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(dToken.address);
       await expect(
         swapRouter
           .connect(user)
@@ -481,6 +492,7 @@ describe("Swap Contract", () => {
     it("swap tokenA -> exact tokenB", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -497,6 +509,7 @@ describe("Swap Contract", () => {
     it("swap tokenA -> full debt of tokenB", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -507,6 +520,7 @@ describe("Swap Contract", () => {
     it("swap bnb -> exact tokenB", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -519,6 +533,7 @@ describe("Swap Contract", () => {
     it("swap bnb -> full tokenB debt", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(tokenB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -531,6 +546,7 @@ describe("Swap Contract", () => {
     it("Exact tokens -> BNB", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(wBNB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -547,6 +563,7 @@ describe("Swap Contract", () => {
     it("Exact tokens -> BNB at supporting fee", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(wBNB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -563,6 +580,7 @@ describe("Swap Contract", () => {
     it("Tokens -> Exact BNB", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(wBNB.address);
       await expect(
         swapRouter
           .connect(user)
@@ -582,6 +600,7 @@ describe("Swap Contract", () => {
     it("Tokens -> full debt of BNB", async () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      vToken.underlying.returns(wBNB.address);
       await expect(
         swapRouter
           .connect(user)

@@ -6,4 +6,6 @@ interface IVToken {
     function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint);
 
     function borrowBalanceCurrent(address account) external returns (uint);
+
+    function underlying() external returns (address);
 }
