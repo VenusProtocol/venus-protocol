@@ -7,11 +7,6 @@ import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "./LiquidatorStorage.sol";
 
-enum IncomeType {
-    SPREAD,
-    LIQUIDATION
-}
-
 interface IComptroller {
     function liquidationIncentiveMantissa() external view returns (uint256);
 
@@ -49,6 +44,11 @@ interface IVAIController {
 }
 
 interface IProtocolShareReserve {
+    enum IncomeType {
+        SPREAD,
+        LIQUIDATION
+    }
+
     function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
 }
 
@@ -78,6 +78,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @notice Address of wBNB contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable wBNB;
+
+    /// @dev VToken return value signalling about successful execution
+    uint256 internal constant NO_ERROR = 0;
 
     /* Events */
 
@@ -120,7 +123,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     event NewProtocolShareReserve(address indexed oldProtocolShareReserve, address indexed newProtocolShareReserves);
 
     /// @notice Emitted when reserves are reduced from liquidator contract to protocol share reserves
-    event ReservesReduced(address indexed sender, address indexed token, uint256 reducedAmount);
+    event ProtocolLiquidationIncentiveTransferred(address indexed sender, address indexed token, uint256 reducedAmount);
 
     /* Errors */
 
@@ -352,13 +355,13 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         for (uint256 index = pendingReedemLength_ - 1; index >= 0; index--) {
             address vToken = pendingRedeem[index];
             uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
-            if (IVToken(vToken).redeem(vTokenBalance_) != 0) {
+            if (IVToken(vToken).redeem(vTokenBalance_) == NO_ERROR) {
                 if (vToken == address(vBnb)) {
                     _reduceBnbReserves();
                 } else {
                     _reduceVTokenReserves(vToken);
                 }
-                pendingRedeem[index] = pendingRedeem[pendingReedemLength_ - 1];
+                pendingRedeem[index] = pendingRedeem[pendingRedeem.length - 1];
                 pendingRedeem.pop();
             }
         }
@@ -393,7 +396,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }
 
-        if (IVToken(address(vTokenCollateral)).redeem(ours) != 0) {
+        if (IVToken(address(vTokenCollateral)).redeem(ours) != NO_ERROR) {
             pendingRedeem.push(address(vTokenCollateral));
         } else {
             if (address(vTokenCollateral) == address(vBnb)) {
@@ -414,21 +417,21 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         IProtocolShareReserve(protocolShareReserve).updateAssetsState(
             address(comptroller),
             wBNB,
-            IncomeType.LIQUIDATION
+            IProtocolShareReserve.IncomeType.LIQUIDATION
         );
-        emit ReservesReduced(msg.sender, address(wBNB), bnbBalance);
+        emit ProtocolLiquidationIncentiveTransferred(msg.sender, address(wBNB), bnbBalance);
     }
 
     function _reduceVTokenReserves(address vToken) private {
         address underlying = IVBep20(vToken).underlying();
-        uint256 underlyingBalance = IERC20Upgradeable(underlying).balanceOf((address(this)));
+        uint256 underlyingBalance = IERC20Upgradeable(underlying).balanceOf(address(this));
         IERC20Upgradeable(underlying).safeTransfer(protocolShareReserve, underlyingBalance);
         IProtocolShareReserve(protocolShareReserve).updateAssetsState(
             address(comptroller),
             underlying,
-            IncomeType.LIQUIDATION
+            IProtocolShareReserve.IncomeType.LIQUIDATION
         );
-        emit ReservesReduced(msg.sender, underlying, underlyingBalance);
+        emit ProtocolLiquidationIncentiveTransferred(msg.sender, underlying, underlyingBalance);
     }
 
     /// @dev Transfers tokens and returns the actual transfer amount
