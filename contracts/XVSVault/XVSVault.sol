@@ -229,10 +229,12 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
             uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
                 user.rewardDebt
             );
-            IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
-            emit Claim(msg.sender, _rewardToken, _pid, pending);
+            if (pending > 0) {
+                IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+                emit Claim(msg.sender, _rewardToken, _pid, pending);
+            }
         }
-        pool.token.safeTransferFrom(address(msg.sender), address(this), _amount);
+        pool.token.safeTransferFrom(msg.sender, address(this), _amount);
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
