@@ -149,6 +149,10 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
             require(poolInfo[pid].token != _token, "Pool already added");
         }
 
+        // We use balanceOf to get the supply amount, so shouldn't be possible to
+        // configure pools with different reward token but the same staked token
+        require(!isStakedToken[address(_token)], "Token exists in other pool");
+
         totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken].add(_allocPoint);
 
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardPerBlock;
@@ -162,6 +166,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
                 lockPeriod: _lockPeriod
             })
         );
+        isStakedToken[address(_token)] = true;
 
         IXVSStore(xvsStore).setRewardToken(_rewardToken, true);
 

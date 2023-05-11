@@ -88,6 +88,12 @@ describe("XVSVault", async () => {
       );
     });
 
+    it("reverts if staked token exists in another pool", async () => {
+      await expect(xvsVault.add(token.address, 100, xvs.address, rewardPerBlock, lockPeriod)).to.be.revertedWith(
+        "Token exists in other pool",
+      );
+    });
+
     it("emits PoolAdded event", async () => {
       const tx = await xvsVault.add(token.address, 100, token.address, rewardPerBlock, lockPeriod);
       await expect(tx)

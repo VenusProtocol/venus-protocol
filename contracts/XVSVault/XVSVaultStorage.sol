@@ -116,6 +116,9 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
     /// @notice pause indicator for Vault
     bool public vaultPaused;
 
+    /// @notice if the token is added to any of the pools
+    mapping(address => bool) public isStakedToken;
+
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
