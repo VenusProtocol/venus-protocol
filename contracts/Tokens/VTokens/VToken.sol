@@ -229,8 +229,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
             return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
         }
-        uint currentBlock = getBlockNumber();
-        if (reduceReservesBlockNumber == currentBlock) return (uint(Error.NO_ERROR));
+        if (!_checkSpreadReservesTransferable()) return (uint(Error.NO_ERROR));
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
         return _reduceReservesFresh(reduceAmount);
     }
@@ -506,11 +505,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalBorrows = totalBorrowsNew;
         totalReserves = totalReservesNew;
 
-        if (currentBlockNumber - reduceReservesBlockNumber >= reduceReservesBlockDelta) {
-            reduceReservesBlockNumber = currentBlockNumber;
+        if (_isProtocolShareReseveTransferrable()) {
             _reduceReservesFresh(totalReservesNew);
         }
-
         /* We emit an AccrueInterest event */
         emit AccrueInterest(cashPrior, interestAccumulated, borrowIndexNew, totalBorrowsNew);
 
@@ -1538,7 +1535,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalReserves = totalReservesNew;
 
         // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
-        doTransferOut(protocolShareReserve, reduceAmount);
+        doTransferOut(getProtocolShareReserve(), reduceAmount);
 
         IProtocolShareReserve(protocolShareReserve).updateAssetsState(
             address(comptroller),
@@ -1691,4 +1688,12 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return The quantity of underlying owned by this contract
      */
     function getCashPrior() internal view returns (uint);
+
+    function _notifyProtocolShareReserve(address _protocolShareReserve, address _comptroller) internal;
+
+    function _checkSpreadReservesTransferable() internal view returns (bool);
+
+    function _isProtocolShareReseveTransferrable() internal returns (bool);
+
+    function getProtocolShareReserve() internal view returns (address payable);
 }
