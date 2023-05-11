@@ -22,10 +22,14 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
 
     address public immutable comptrollerAddress;
 
+    uint256 private constant _NOT_ENTERED = 1;
+
+    uint256 private constant _ENTERED = 2;
+
     /**
      * @dev Guard variable for re-entrancy checks
      */
-    bool internal _entered;
+    uint256 internal _status;
 
     // ***************
     // ** MODIFIERS **
@@ -48,12 +52,12 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @dev Prevents a contract from calling itself, directly or indirectly.
      */
     modifier nonReentrant() {
-        if (_entered) {
+        if (_status == _ENTERED) {
             revert ReentrantCheck();
         }
-        _entered = true;
+        _status = _ENTERED;
         _;
-        _entered = false; // get a gas-refund post-Istanbul
+        _status = _NOT_ENTERED;
     }
 
     /// @notice event emitted on sweep token success
@@ -70,7 +74,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
             revert ZeroAddress();
         }
         comptrollerAddress = _comptrollerAddress;
-        _entered = false;
+        _status = _NOT_ENTERED;
     }
 
     receive() external payable {
