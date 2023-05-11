@@ -245,9 +245,10 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         emit AllowlistEntryRemoved(borrower, liquidator);
     }
 
-    /// @notice Liquidates a borrow and splits the seized amount between treasury and
+    /// @notice Liquidates a borrow and splits the seized amount between protocol share reserve and
     ///         liquidator. The liquidators should use this interface instead of calling
     ///         vToken.liquidateBorrow(...) directly.
+    /// @notice Checks force VAI liquidation first; vToken should be address of vaiController if vaiDebt is greater than threshold
     /// @notice For BNB borrows msg.value should be equal to repayAmount; otherwise msg.value
     ///      should be zero.
     /// @param vToken Borrowed vToken
@@ -385,6 +386,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         }
     }
 
+    /// @dev Checks liquidation action in comptroller and vaiDebt with minLiquidatableVAI threshold
     function _checkForceVAILiquidate(address vToken, address borrower) private view {
         uint256 vaiDebt_ = vaiController.getVAIRepayAmount(borrower);
         bool isVAILiquidationPaused_ = comptroller.actionPaused(address(vaiController), IComptroller.Action.LIQUIDATE);
