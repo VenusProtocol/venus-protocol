@@ -8,6 +8,8 @@ import { convertToUnit } from "../../../helpers/utils";
 import {
   Comptroller,
   Comptroller__factory,
+  IAccessControlManagerV8,
+  IAccessControlManagerV8__factory,
   IProtocolShareReserve,
   IVBep20__factory,
   Liquidator,
@@ -36,6 +38,7 @@ let impersonatedTimelock: Signer;
 let liquidator: Liquidator;
 let protocolShareReserve: FakeContract<IProtocolShareReserve>;
 let comptroller: Comptroller;
+let accessControlManager: IAccessControlManagerV8;
 
 async function deployAndConfigureLiquidator() {
   /*
@@ -57,6 +60,10 @@ async function deployAndConfigureLiquidator() {
   await proxyAdmin.connect(impersonatedTimelock).upgradeAndCall(LIQUIDATOR, liquidatorNewImpl.address, data),
     { value: "1000000000" };
   liquidator = Liquidator__factory.connect(LIQUIDATOR, impersonatedTimelock);
+
+  accessControlManager = IAccessControlManagerV8__factory.connect(ACM, impersonatedTimelock);
+  await accessControlManager.giveCallPermission(LIQUIDATOR, "setPendingRedeemChunkLength(uint256)", NORMAL_TIMELOCK);
+  await liquidator.connect(impersonatedTimelock).setPendingRedeemChunkLength(5);
 }
 
 async function configure() {

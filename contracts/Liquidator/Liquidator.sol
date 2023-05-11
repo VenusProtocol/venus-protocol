@@ -113,6 +113,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @notice Emitted when the amount of minLiquidatableVAI is updated
     event NewMinLiquidatableVAI(uint256 oldMinLiquidatableVAI, uint256 newMinLiquidatableVAI);
 
+    /// @notice Emitted when the length of chunk gets updated
+    event NewPendingRedeemChunkLength(uint256 oldPendingRedeemChunkLength, uint256 newPendingRedeemChunkLength);
+
     /// @notice Emitted when force liquidation is paused
     event ForceVAILiquidationPaused(address indexed sender);
 
@@ -351,9 +354,11 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     function _reduceReservesInternal() internal {
         uint256 pendingReedemLength_ = pendingRedeem.length;
-        uint256 chunk = pendingReedemLength_ >= 10 ? 10 : pendingReedemLength_;
+        uint256 range = pendingReedemLength_ >= pendingRedeemChunkLength
+            ? pendingRedeemChunkLength
+            : pendingReedemLength_;
         if (pendingReedemLength_ == 0) return;
-        for (int256 index = int256(chunk) - 1; index >= 0; index--) {
+        for (int256 index = int256(range) - 1; index >= 0; index--) {
             address vToken = pendingRedeem[uint256(index)];
             uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
             if (_redeemUnderlying(vToken, vTokenBalance_)) {
@@ -529,6 +534,17 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 oldMinLiquidatableVAI_ = minLiquidatableVAI;
         minLiquidatableVAI = _minLiquidatableVAI;
         emit NewMinLiquidatableVAI(oldMinLiquidatableVAI_, _minLiquidatableVAI);
+    }
+
+    /**
+     * @notice Length of the pendingRedeem array to be consider while redeeming in Liquidation transaction
+     * @param newLength_ Length of the chunk
+     */
+    function setPendingRedeemChunkLength(uint256 newLength_) external {
+        _checkAccessAllowed("setPendingRedeemChunkLength(uint256)");
+        uint256 oldPendingRedeemChunkLength_ = pendingRedeemChunkLength;
+        pendingRedeemChunkLength = newLength_;
+        emit NewPendingRedeemChunkLength(oldPendingRedeemChunkLength_, pendingRedeemChunkLength);
     }
 
     /**

@@ -25,6 +25,9 @@ contract LiquidatorStorage {
     /// @notice protocol share reserve contract address
     address public protocolShareReserve;
 
+    /// @dev Size of chunk to consider when redeeming underlying at the time of liquidation
+    uint256 internal pendingRedeemChunkLength;
+
     /// @notice gap to prevent collision in inheritence
     uint256[49] private __gap;
 }
