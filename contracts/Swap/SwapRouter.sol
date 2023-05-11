@@ -26,6 +26,8 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
 
     uint256 private constant _ENTERED = 2;
 
+    address public vBNBAddress;
+
     /**
      * @dev Guard variable for re-entrancy checks
      */
@@ -63,18 +65,27 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     /// @notice event emitted on sweep token success
     event SweepToken(address indexed token, address indexed to, uint256 sweepAmount);
 
+    /// @notice event emitted on vBNBAddress update
+    event VBNBAddressUpdated(address indexed oldAddress, address indexed newAddress);
+
     // *********************
     // **** CONSTRUCTOR ****
     // *********************
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address WBNB_, address factory_, address _comptrollerAddress) RouterHelper(WBNB_, factory_) {
-        if (_comptrollerAddress == address(0)) {
+    constructor(
+        address WBNB_,
+        address factory_,
+        address _comptrollerAddress,
+        address _vBNBAddress
+    ) RouterHelper(WBNB_, factory_) {
+        if (_comptrollerAddress == address(0) || _vBNBAddress == address(0)) {
             revert ZeroAddress();
         }
         comptrollerAddress = _comptrollerAddress;
         _status = _NOT_ENTERED;
+        vBNBAddress = _vBNBAddress;
     }
 
     receive() external payable {
@@ -84,6 +95,23 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     // ****************************
     // **** EXTERNAL FUNCTIONS ****
     // ****************************
+
+    /**
+     * @notice Setter for the vBNB address.
+     * @param _vBNBAddress Address of the BNB vToken to update.
+     */
+    function setVBNBAddress(address _vBNBAddress) external onlyOwner {
+        if (_vBNBAddress == address(0)) {
+            revert ZeroAddress();
+        }
+
+        _isVTokenListed(_vBNBAddress);
+
+        address oldAddress = vBNBAddress;
+        vBNBAddress = _vBNBAddress;
+
+        emit VBNBAddressUpdated(oldAddress, vBNBAddress);
+    }
 
     /**
      * @notice Swap token A for token B and supply to a Venus market
@@ -419,7 +447,6 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
 
     /**
      * @notice Swap Exact tokens for BNB and repay to a Venus market
-     * @param vBNBAddress The address of the vToken contract for supplying assets.
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
@@ -428,13 +455,11 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
     function swapExactTokensForBNBAndRepay(
-        address vBNBAddress,
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
     ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
-        _isVTokenListed(vBNBAddress);
         uint256 balanceBefore = address(this).balance;
         _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = address(this).balance;
@@ -444,7 +469,6 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
 
     /**
      * @notice Swap Exact deflationary tokens (a small amount of fee is deducted at the time of transfer of tokens) for BNB and repay to a Venus market
-     * @param vBNBAddress The address of the vToken contract for supplying assets.
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
@@ -453,13 +477,11 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
     function swapExactTokensForBNBAndRepayAtSupportingFee(
-        address vBNBAddress,
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
     ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
-        _isVTokenListed(vBNBAddress);
         uint256 balanceBefore = address(this).balance;
         _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = address(this).balance;
@@ -472,7 +494,6 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
 
     /**
      * @notice Swap tokens for Exact BNB and repay to a Venus market
-     * @param vBNBAddress The address of the vToken contract for supplying assets.
      * @param amountOut The amount of the tokens needs to be as output token.
      * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
      * @param path Array with addresses of the underlying assets to be swapped
@@ -481,13 +502,11 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
     function swapTokensForExactBNBAndRepay(
-        address vBNBAddress,
         uint256 amountOut,
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
     ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
-        _isVTokenListed(vBNBAddress);
         uint256 balanceBefore = address(this).balance;
         _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = address(this).balance;
@@ -497,7 +516,6 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
 
     /**
      * @notice Swap tokens for Exact BNB and repay to a Venus market
-     * @param vBNBAddress The address of the vToken contract for supplying assets.
      * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
      * @param path Array with addresses of the underlying assets to be swapped
      * @param deadline Unix timestamp after which the transaction will revert.
@@ -505,12 +523,10 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
     function swapTokensForFullBNBDebtAndRepay(
-        address vBNBAddress,
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
     ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
-        _isVTokenListed(vBNBAddress);
         uint256 balanceBefore = address(this).balance;
         uint256 amountOut = IVToken(vBNBAddress).borrowBalanceCurrent(msg.sender);
         _swapTokensForExactETH(amountOut, amountInMax, path, address(this));

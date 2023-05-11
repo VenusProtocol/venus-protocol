@@ -174,7 +174,6 @@ interface IPancakeSwapV2Router {
     ) external payable;
 
     function swapExactTokensForBNBAndRepay(
-        address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
@@ -182,7 +181,6 @@ interface IPancakeSwapV2Router {
     ) external payable;
 
     function swapExactTokensForBNBAndRepayAtSupportingFee(
-        address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
@@ -190,7 +188,6 @@ interface IPancakeSwapV2Router {
     ) external payable;
 
     function swapTokensForExactBNBAndRepay(
-        address vTokenAddress,
         uint256 amountOut,
         uint256 amountInMax,
         address[] calldata path,
@@ -198,7 +195,6 @@ interface IPancakeSwapV2Router {
     ) external payable;
 
     function swapTokensForFullBNBDebtAndRepay(
-        address vBNBAddress,
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline

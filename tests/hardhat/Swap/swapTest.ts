@@ -57,7 +57,12 @@ async function deploySwapContract(): Promise<SwapFixture> {
   const comptroller = await comptrollerFactory.deploy();
 
   const SwapRouterFactory = await smock.mock<SwapRouter__factory>("SwapRouter");
-  const swapRouter = await SwapRouterFactory.deploy(wBNB.address, pancakeFactory.address, comptroller.address);
+  const swapRouter = await SwapRouterFactory.deploy(
+    wBNB.address,
+    pancakeFactory.address,
+    comptroller.address,
+    vToken.address,
+  );
 
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
   const tokenA = await FaucetToken.deploy(parseUnits("10000", 18), "TOKENA", 18, "A");
@@ -551,7 +556,6 @@ describe("Swap Contract", () => {
         swapRouter
           .connect(user)
           .swapExactTokensForBNBAndRepayAtSupportingFee(
-            vToken.address,
             SWAP_AMOUNT,
             MIN_AMOUNT_OUT,
             [dToken.address, wBNB.address],
@@ -567,13 +571,7 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapExactTokensForBNBAndRepay(
-            vToken.address,
-            SWAP_AMOUNT,
-            MIN_AMOUNT_OUT,
-            [tokenA.address, wBNB.address],
-            deadline,
-          ),
+          .swapExactTokensForBNBAndRepay(SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, wBNB.address], deadline),
       ).to.emit(swapRouter, "SwapTokensForBnb");
     });
 
@@ -584,16 +582,9 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapTokensForExactBNBAndRepay(
-            vToken.address,
-            MIN_AMOUNT_OUT,
-            SWAP_AMOUNT,
-            [tokenA.address, wBNB.address],
-            deadline,
-            {
-              value: SWAP_AMOUNT,
-            },
-          ),
+          .swapTokensForExactBNBAndRepay(MIN_AMOUNT_OUT, SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline, {
+            value: SWAP_AMOUNT,
+          }),
       ).to.emit(swapRouter, "SwapTokensForBnb");
     });
 
@@ -604,7 +595,7 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapTokensForFullBNBDebtAndRepay(vToken.address, SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline, {
+          .swapTokensForFullBNBDebtAndRepay(SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline, {
             value: SWAP_AMOUNT,
           }),
       ).to.emit(swapRouter, "SwapTokensForBnb");
