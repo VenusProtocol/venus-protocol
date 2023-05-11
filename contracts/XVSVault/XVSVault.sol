@@ -149,7 +149,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
         uint256 length = poolInfo.length;
         for (uint256 pid = 0; pid < length; ++pid) {
-            require(poolInfo[pid].token != _token, "Error pool already added");
+            require(poolInfo[pid].token != _token, "Pool already added");
         }
 
         totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken].add(_allocPoint);
