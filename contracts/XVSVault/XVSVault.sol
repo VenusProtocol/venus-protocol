@@ -13,6 +13,8 @@ interface IXVSStore {
     function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
 
     function setRewardToken(address _tokenAddress, bool status) external;
+
+    function rewardTokens(address _tokenAddress) external view returns (bool);
 }
 
 interface IXVSVaultProxy {
@@ -190,6 +192,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     // Update the given reward token's amount per block
     function setRewardAmountPerBlock(address _rewardToken, uint256 _rewardAmount) external {
         _checkAccessAllowed("setRewardAmountPerBlock(address,uint256)");
+        require(IXVSStore(xvsStore).rewardTokens(_rewardToken), "Invalid reward token");
         massUpdatePools(_rewardToken);
         uint256 oldReward = rewardTokenAmountsPerBlock[_rewardToken];
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardAmount;

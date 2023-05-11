@@ -125,6 +125,29 @@ describe("XVSVault", async () => {
     });
   });
 
+  describe("setRewardAmountPerBlock", async () => {
+    it("reverts if ACM does not allow the call", async () => {
+      accessControl.isAllowedToCall.returns(false);
+      await expect(xvsVault.setRewardAmountPerBlock(xvs.address, 100)).to.be.revertedWith("Unauthorized");
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("reverts if the token is not configured in XVSStore", async () => {
+      await xvsStore.setRewardToken(xvs.address, false);
+      await expect(xvsVault.setRewardAmountPerBlock(xvs.address, 100)).to.be.revertedWith("Invalid reward token");
+    });
+
+    it("emits RewardAmountPerBlockUpdated event", async () => {
+      const tx = await xvsVault.setRewardAmountPerBlock(xvs.address, 111);
+      await expect(tx).to.emit(xvsVault, "RewardAmountUpdated").withArgs(xvs.address, rewardPerBlock, 111);
+    });
+
+    it("updates reward amount per block", async () => {
+      await xvsVault.setRewardAmountPerBlock(xvs.address, 111);
+      expect(await xvsVault.rewardTokenAmountsPerBlock(xvs.address)).to.equal(111);
+    });
+  });
+
   it("check xvs balance", async () => {
     expect(await xvs.balanceOf(xvsStore.address)).to.eq(bigNumber18.mul(10000));
   });
