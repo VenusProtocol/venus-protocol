@@ -351,8 +351,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     function _reduceReservesInternal() internal {
         uint256 pendingReedemLength_ = pendingRedeem.length;
+        uint256 chunk = pendingReedemLength_ >= 10 ? 10 : pendingReedemLength_;
         if (pendingReedemLength_ == 0) return;
-        for (int256 index = int256(pendingReedemLength_) - 1; index >= 0; index--) {
+        for (int256 index = int256(chunk) - 1; index >= 0; index--) {
             address vToken = pendingRedeem[uint256(index)];
             uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
             if (_redeemUnderlying(vToken, vTokenBalance_)) {
@@ -387,6 +388,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         requireNoError(err);
     }
 
+    /// @dev Distribute seized collateral between liquidator and protocol share reserve
     function _distributeLiquidationIncentive(
         IVToken vTokenCollateral,
         uint256 siezedAmount
@@ -408,6 +410,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         return (ours, theirs);
     }
 
+    /// @dev Wrap BNB to wBNB and sends to protocol share reserve
     function _reduceBnbReserves() private {
         uint256 bnbBalance = address(this).balance;
         IWBNB(wBNB).deposit{ value: bnbBalance }();
@@ -422,6 +425,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         emit ProtocolLiquidationIncentiveTransferred(msg.sender, address(wBNB), bnbBalance);
     }
 
+    /// @dev Redeem seized collateral to underlying assets
     function _redeemUnderlying(address vToken, uint256 amount) private returns (bool) {
         try IVToken(address(vToken)).redeem(amount) returns (uint256 response) {
             if (response == 0) {
@@ -434,6 +438,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         }
     }
 
+    /// @dev Transfers seized collateral other than BNB to protocol share reserve
     function _reduceVTokenReserves(address vToken) private {
         address underlying = IVBep20(vToken).underlying();
         uint256 underlyingBalance = IERC20Upgradeable(underlying).balanceOf(address(this));
