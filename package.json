@@ -5,17 +5,10 @@
   "files": [
     "artifacts",
     "networks",
-    "deploy",
+    "dist",
     "contracts",
     "deployments"
   ],
-  "exports": {
-    "deploy": "./dist/deploy",
-    "artifacts": "./artifacts",
-    "networks": "./dist/networks",
-    "contracts": "./contracts",
-    "deployments": "./deployments"
-  },
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
