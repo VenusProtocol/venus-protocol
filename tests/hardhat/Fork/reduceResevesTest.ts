@@ -235,7 +235,7 @@ if (FORK_MAINNET) {
           .liquidateBorrow(borrowedToken2, borrower2, repayAmount2, collateralToken2, { value: repayAmount2 }),
       ).to.be.emit(liquidator, "LiquidateBorrowedTokens");
 
-      await comptroller._setActionsPaused([collateralToken1, collateralToken2], [1, 1], false);
+      await comptroller._setActionsPaused([collateralToken1, collateralToken2], [1], false);
 
       expect(await liquidator.pendingRedeem(0)).to.be.equal(collateralToken1);
       expect(await liquidator.pendingRedeem(1)).to.be.equal(collateralToken2);
