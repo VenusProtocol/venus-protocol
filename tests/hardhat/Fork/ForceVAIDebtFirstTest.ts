@@ -1,4 +1,4 @@
-import { smock } from "@defi-wonderland/smock";
+import { FakeContract, smock } from "@defi-wonderland/smock";
 import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { Signer } from "ethers";
@@ -8,6 +8,7 @@ import {
   Comptroller,
   Comptroller__factory,
   IAccessControlManagerV8__factory,
+  IProtocolShareReserve,
   Liquidator,
   Liquidator__factory,
   PriceOracle,
@@ -36,9 +37,10 @@ const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
 const LIQUIDATOR = "0x0870793286aada55d39ce7f82fb2766e8004cf43";
 // Address of comptroller proxy
 const UNITROLLER = "0xfD36E2c2a6789Db23113685031d7F16329158384";
-// Vtoken treasury
-const VTREASURY = "0xF322942f644A996A617BD29c16bd7d231d9F35E9";
+// VBNB contract address
 const VBNB = "0xA07c5b74C9B40447a954e1466938b865b6BBea36";
+// WBNB contrat Address
+const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
 
 let impersonatedTimelock: Signer;
 let accessControlManager: IAccessControlManager;
@@ -47,6 +49,7 @@ let liquidatorNew: Liquidator;
 let comptroller: Comptroller;
 let vaiController: VAIController;
 let vai: VAI;
+let protocolShareReserve: FakeContract<IProtocolShareReserve>;
 
 async function deployAndConfigureLiquidator() {
   /*
@@ -57,10 +60,16 @@ async function deployAndConfigureLiquidator() {
   await setBalance(NORMAL_TIMELOCK, ethers.utils.parseEther("2"));
 
   const liquidatorNewFactory = await ethers.getContractFactory("Liquidator");
-  const liquidatorNewImpl = await liquidatorNewFactory.deploy(UNITROLLER, VBNB, VTREASURY);
+  const liquidatorNewImpl = await liquidatorNewFactory.deploy(UNITROLLER, VBNB, WBNB);
 
   const proxyAdmin = ProxyAdmin__factory.connect("0x2b40B43AC5F7949905b0d2Ed9D6154a8ce06084a", impersonatedTimelock);
-  const data = liquidatorNewImpl.interface.encodeFunctionData("initialize", [convertToUnit(5, 16), ACM]);
+  protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+
+  const data = liquidatorNewImpl.interface.encodeFunctionData("initialize", [
+    convertToUnit(5, 16),
+    ACM,
+    protocolShareReserve.address,
+  ]);
   await proxyAdmin.connect(impersonatedTimelock).upgradeAndCall(LIQUIDATOR, liquidatorNewImpl.address, data),
     { value: "1000000000" };
 
@@ -85,6 +94,11 @@ async function grantPermissions() {
   tx = await accessControlManager
     .connect(impersonatedTimelock)
     .giveCallPermission(UNITROLLER, "_setActionsPaused(address[],address[],bool),", NORMAL_TIMELOCK);
+  await tx.wait();
+  tx = await accessControlManager
+    .connect(impersonatedTimelock)
+    .giveCallPermission(LIQUIDATOR, "setPendingRedeemChunkLength(uint256)", NORMAL_TIMELOCK);
+  await tx.wait();
 }
 
 async function configureOldliquidator() {
@@ -102,6 +116,7 @@ async function configure() {
   vai = VAI__factory.connect("0x4bd17003473389a42daf6a0a729f6fdb328bbbd7", impersonatedTimelock);
   comptroller = Comptroller__factory.connect(UNITROLLER, impersonatedTimelock);
   vaiController = VAIController__factory.connect(VAI_CONTROLLER, impersonatedTimelock);
+  await liquidatorNew.connect(impersonatedTimelock).setPendingRedeemChunkLength(5);
   await liquidatorNew.connect(impersonatedTimelock).resumeForceVAILiquidate();
   await liquidatorNew.connect(impersonatedTimelock).setMinLiquidatableVAI(convertToUnit(1, 18));
 }
