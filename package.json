@@ -90,8 +90,7 @@
     "web3-utils": "^1.7.5"
   },
   "_moduleAliases": {
-    "@nomiclabs/hardhat-ethers": "node_modules/hardhat-deploy-ethers",
-    "@nomiclabs/hardhat-ethers/types": "hardhat-deploy-ethers/types"
+    "@nomiclabs/hardhat-ethers": "node_modules/hardhat-deploy-ethers"
   },
   "packageManager": "yarn@3.5.1",
   "publishConfig": {
