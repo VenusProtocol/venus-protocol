@@ -229,8 +229,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
             return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
         }
-        uint currentBlock = getBlockNumber();
-        if (reduceReservesBlockNumber == currentBlock) return (uint(Error.NO_ERROR));
+        if (!_checkSpreadReservesTransferable()) return (uint(Error.NO_ERROR));
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
         return _reduceReservesFresh(reduceAmount);
     }
@@ -330,18 +329,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         address oldProtocolShareReserve_ = protocolShareReserve;
         protocolShareReserve = protcolShareReserve_;
         emit NewProtocolShareReserve(oldProtocolShareReserve_, protcolShareReserve_);
-    }
-
-    /**
-     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
-     * @param underlying_ The address of underlying asset contract
-     */
-    function setUnderlyingAsset(address underlying_) external returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_UNDERLYING_OWNER_CHECK);
-        }
-        underlying = underlying_;
     }
 
     /**
@@ -506,11 +493,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalBorrows = totalBorrowsNew;
         totalReserves = totalReservesNew;
 
-        if (currentBlockNumber - reduceReservesBlockNumber >= reduceReservesBlockDelta) {
-            reduceReservesBlockNumber = currentBlockNumber;
+        if (_isProtocolShareReseveTransferrable()) {
             _reduceReservesFresh(totalReservesNew);
         }
-
         /* We emit an AccrueInterest event */
         emit AccrueInterest(cashPrior, interestAccumulated, borrowIndexNew, totalBorrowsNew);
 
@@ -1538,13 +1523,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalReserves = totalReservesNew;
 
         // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
-        doTransferOut(protocolShareReserve, reduceAmount);
+        doTransferOut(getProtocolShareReserve(), reduceAmount);
 
-        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
-            address(comptroller),
-            underlying,
-            IProtocolShareReserve.IncomeType.SPREAD
-        );
+        _notifyProtocolShareReserve();
 
         emit ReservesReduced(admin, reduceAmount, totalReservesNew);
 
@@ -1691,4 +1672,12 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return The quantity of underlying owned by this contract
      */
     function getCashPrior() internal view returns (uint);
+
+    function _notifyProtocolShareReserve() internal;
+
+    function _checkSpreadReservesTransferable() internal view returns (bool);
+
+    function _isProtocolShareReseveTransferrable() internal returns (bool);
+
+    function getProtocolShareReserve() internal view returns (address payable);
 }
