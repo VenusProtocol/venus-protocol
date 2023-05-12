@@ -3,6 +3,9 @@ pragma solidity 0.5.16;
 import "../../../Utils/ExponentialNoError.sol";
 import "./FacetBase.sol";
 
+/**
+ * @dev This contract contains internal functions used in RewardFacet and PolicyFacet
+ */
 contract FacetHelper is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
     /**
      * @notice Accrue XVS to the market by updating the borrow index

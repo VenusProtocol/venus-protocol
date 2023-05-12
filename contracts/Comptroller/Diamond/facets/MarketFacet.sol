@@ -3,6 +3,9 @@ pragma solidity 0.5.16;
 import "./FacetBase.sol";
 import "../../../Tokens/VTokens/VToken.sol";
 
+/**
+ * @dev This facet contains all the methods related to the market's management in the pool
+ */
 contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken vToken, address account);

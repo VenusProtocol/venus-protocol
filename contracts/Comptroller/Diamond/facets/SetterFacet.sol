@@ -6,6 +6,9 @@ import "../../../Utils/ErrorReporter.sol";
 import "../../../Governance/IAccessControlManager.sol";
 import "./FacetBase.sol";
 
+/**
+ * @dev This facet contains all the setters for the states
+ */
 contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
     /// @notice Emitted when close factor is changed by admin
     event NewCloseFactor(uint oldCloseFactorMantissa, uint newCloseFactorMantissa);

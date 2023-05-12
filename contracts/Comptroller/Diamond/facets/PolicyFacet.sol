@@ -4,6 +4,9 @@ import "../../../Utils/ErrorReporter.sol";
 import "./FacetHelper.sol";
 import "../../../Tokens/VTokens/VToken.sol";
 
+/**
+ * @dev This facet contains all the hooks used while transferring the assets
+ */
 contract PolicyFacet is FacetHelper {
     /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
     event VenusBorrowSpeedUpdated(VToken indexed vToken, uint newSpeed);
