@@ -9,14 +9,12 @@ import {
   Comptroller,
   ComptrollerLens,
   ComptrollerLens__factory,
-  Comptroller__factory,
   IAccessControlManager,
   PriceOracle,
   VBep20Immutable,
 } from "../../../../typechain";
 import { ComptrollerErrorReporter } from "../../util/Errors";
-
-const { deployDiamond } = require("../../../../script/diamond/deploy");
+import { deployDiamond } from "./scripts/deploy";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -26,12 +24,12 @@ const collateralPrice = convertToUnit(1, 18);
 const repayAmount = convertToUnit(1, 18);
 
 async function calculateSeizeTokens(
-  comptrollerProxy: MockContract<Comptroller>,
+  comptroller: Comptroller,
   vTokenBorrowed: FakeContract<VBep20Immutable>,
   vTokenCollateral: FakeContract<VBep20Immutable>,
   repayAmount: BigNumberish,
 ) {
-  return comptrollerProxy.liquidateCalculateSeizeTokens(vTokenBorrowed.address, vTokenCollateral.address, repayAmount);
+  return comptroller.liquidateCalculateSeizeTokens(vTokenBorrowed.address, vTokenCollateral.address, repayAmount);
 }
 
 function rando(min: number, max: number): number {
@@ -39,14 +37,13 @@ function rando(min: number, max: number): number {
 }
 
 describe("Comptroller", () => {
-  let comptroller: MockContract<Comptroller>; //eslint-disable-line
-  let comptrollerProxy: MockContract<Comptroller>;
+  let comptroller: Comptroller;
   let oracle: FakeContract<PriceOracle>;
   let vTokenBorrowed: FakeContract<VBep20Immutable>;
   let vTokenCollateral: FakeContract<VBep20Immutable>;
 
   type LiquidateFixture = {
-    comptrollerProxy: MockContract<Comptroller>;
+    comptroller: Comptroller;
     comptrollerLens: MockContract<ComptrollerLens>;
     oracle: FakeContract<PriceOracle>;
     vTokenBorrowed: FakeContract<VBep20Immutable>;
@@ -62,15 +59,15 @@ describe("Comptroller", () => {
     // const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const result = await deployDiamond("");
-    const comptroller = result.unitroller;
-    comptrollerProxy = await ethers.getContractAt("Comptroller", comptroller.address);
+    const unitroller = result.unitroller;
+    comptroller = await ethers.getContractAt("Comptroller", unitroller.address);
     const comptrollerLens = await ComptrollerLensFactory.deploy();
     const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);
-    await comptrollerProxy._setAccessControl(accessControl.address);
-    await comptrollerProxy._setComptrollerLens(comptrollerLens.address);
-    await comptrollerProxy._setPriceOracle(oracle.address);
-    await comptrollerProxy._setLiquidationIncentive(convertToUnit("1.1", 18));
+    await comptroller._setAccessControl(accessControl.address);
+    await comptroller._setComptrollerLens(comptrollerLens.address);
+    await comptroller._setPriceOracle(oracle.address);
+    await comptroller._setLiquidationIncentive(convertToUnit("1.1", 18));
 
     const vTokenBorrowed = await smock.fake<VBep20Immutable>(
       "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
@@ -79,13 +76,13 @@ describe("Comptroller", () => {
       "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
     );
 
-    return { comptrollerProxy, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
+    return { comptroller, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
   }
 
-  async function configure({ comptrollerProxy, vTokenCollateral, oracle, vTokenBorrowed }: LiquidateFixture) {
+  async function configure({ comptroller, vTokenCollateral, oracle, vTokenBorrowed }: LiquidateFixture) {
     oracle.getUnderlyingPrice.returns(0);
     for (const vToken of [vTokenBorrowed, vTokenCollateral]) {
-      vToken.comptroller.returns(comptrollerProxy.address);
+      vToken.comptroller.returns(comptroller.address);
       vToken.isVToken.returns(true);
     }
 
@@ -97,33 +94,32 @@ describe("Comptroller", () => {
   beforeEach(async () => {
     const contracts = await loadFixture(liquidateFixture);
     await configure(contracts);
-    ({ comptrollerProxy, vTokenBorrowed, oracle, vTokenCollateral } = contracts);
+    ({ comptroller, vTokenBorrowed, oracle, vTokenCollateral } = contracts);
   });
 
   describe("liquidateCalculateAmountSeize", () => {
     it("fails if borrowed asset price is 0", async () => {
       setOraclePrice(vTokenBorrowed, 0);
-      const [err, result] = await calculateSeizeTokens(comptrollerProxy, vTokenBorrowed, vTokenCollateral, repayAmount);
+      const [err, result] = await calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount);
       expect(err).to.equal(ComptrollerErrorReporter.Error.PRICE_ERROR);
       expect(result).to.equal(0);
     });
 
     it("fails if collateral asset price is 0", async () => {
       setOraclePrice(vTokenCollateral, 0);
-      const [err, result] = await calculateSeizeTokens(comptrollerProxy, vTokenBorrowed, vTokenCollateral, repayAmount);
+      const [err, result] = await calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount);
       expect(err).to.equal(ComptrollerErrorReporter.Error.PRICE_ERROR);
       expect(result).to.equal(0);
     });
 
     it("fails if the repayAmount causes overflow ", async () => {
-      await expect(calculateSeizeTokens(comptrollerProxy, vTokenBorrowed, vTokenCollateral, constants.MaxUint256)).to.be
+      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, constants.MaxUint256)).to.be
         .reverted;
     });
 
     it("fails if the borrowed asset price causes overflow ", async () => {
       setOraclePrice(vTokenBorrowed, constants.MaxUint256);
-      await expect(calculateSeizeTokens(comptrollerProxy, vTokenBorrowed, vTokenCollateral, repayAmount)).to.be
-        .reverted;
+      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)).to.be.reverted;
     });
 
     it("reverts if it fails to calculate the exchange rate", async () => {
@@ -131,7 +127,7 @@ describe("Comptroller", () => {
       ethers.provider.getBlockNumber();
       /// TODO: Somehow the error message does not get propagated into the resulting tx. Smock bug?
       await expect(
-        comptrollerProxy.liquidateCalculateSeizeTokens(vTokenBorrowed.address, vTokenCollateral.address, repayAmount),
+        comptroller.liquidateCalculateSeizeTokens(vTokenBorrowed.address, vTokenCollateral.address, repayAmount),
       ).to.be.reverted; // revertedWith("exchangeRateStored: exchangeRateStoredInternal failed");
     });
 
@@ -150,18 +146,13 @@ describe("Comptroller", () => {
 
         setOraclePrice(vTokenCollateral, collateralPrice);
         setOraclePrice(vTokenBorrowed, borrowedPrice);
-        await comptrollerProxy._setLiquidationIncentive(liquidationIncentive);
+        await comptroller._setLiquidationIncentive(liquidationIncentive);
         vTokenCollateral.exchangeRateStored.returns(exchangeRate);
 
         const seizeAmount = (repayAmount * liquidationIncentive * borrowedPrice) / collateralPrice;
         const seizeTokens = seizeAmount / exchangeRate;
 
-        const [err, result] = await calculateSeizeTokens(
-          comptrollerProxy,
-          vTokenBorrowed,
-          vTokenCollateral,
-          repayAmount,
-        );
+        const [err, result] = await calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount);
         expect(err).to.equal(ComptrollerErrorReporter.Error.NO_ERROR);
         expect(Number(result)).to.be.approximately(Number(seizeTokens), 1e7);
       });

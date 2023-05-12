@@ -3,7 +3,7 @@ pragma solidity 0.5.16;
 import "../../../Oracle/PriceOracle.sol";
 import "../../../Tokens/VTokens/VToken.sol";
 import "../../../Utils/ErrorReporter.sol";
-import "./FacetHelper.sol";
+import "./FacetBase.sol";
 import "../../../Governance/IAccessControlManager.sol";
 
 interface IXVS {
@@ -14,7 +14,7 @@ interface IXVS {
     function approve(address spender, uint rawAmount) external returns (bool);
 }
 
-contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelper {
+contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address recipient, uint amount);
 
@@ -139,17 +139,6 @@ contract RewardFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelpe
     function getXVSVTokenAddress() public pure returns (address) {
         return 0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D;
     }
-
-    /**
-     * @notice Checks if a certain action is paused on a market
-     * @param action Action id
-     * @param market vToken address
-     */
-    function actionPaused(address market, Action action) public view returns (bool) {
-        return _actionPaused[market][uint(action)];
-    }
-
-    /*** VAI functions ***/
 
     /**
      * @notice Transfer XVS to VAI Vault

@@ -1,10 +1,10 @@
 pragma solidity 0.5.16;
 
 import "../../../Utils/ErrorReporter.sol";
-import "./FacetHelper.sol";
+import "./FacetBase.sol";
 import "../../../Tokens/VTokens/VToken.sol";
 
-contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelper {
+contract PolicyFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
     /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
     event VenusBorrowSpeedUpdated(VToken indexed vToken, uint newSpeed);
 

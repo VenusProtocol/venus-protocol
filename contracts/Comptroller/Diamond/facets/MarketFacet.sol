@@ -1,9 +1,9 @@
 pragma solidity 0.5.16;
 
-import "./FacetHelper.sol";
+import "./FacetBase.sol";
 import "../../../Tokens/VTokens/VToken.sol";
 
-contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelper {
+contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken vToken, address account);
 

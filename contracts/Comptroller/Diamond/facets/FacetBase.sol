@@ -5,7 +5,7 @@ import "../../../Utils/ExponentialNoError.sol";
 import "../../../Comptroller/ComptrollerStorage.sol";
 import "../../../Governance/IAccessControlManager.sol";
 
-contract FacetHelper is ComptrollerV12Storage {
+contract FacetBase is ComptrollerV12Storage {
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
     // closeFactorMantissa must be strictly greater than this value

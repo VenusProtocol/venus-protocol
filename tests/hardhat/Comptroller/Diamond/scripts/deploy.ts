@@ -1,10 +1,11 @@
-const hre = require("hardhat");
-const { impersonateAccount } = require("@nomicfoundation/hardhat-network-helpers");
+import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
+import hre from "hardhat";
+
+import { Unitroller__factory } from "../../../../../typechain";
+import { FacetCutAction, getSelectors } from "./diamond";
 
 require("dotenv").config();
 
-const { Unitroller__factory } = require("../../typechain");
-const { getSelectors, FacetCutAction } = require("./diamond.js");
 const ethers = hre.ethers;
 
 const Owner = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
@@ -17,7 +18,7 @@ async function deployFacets() {
 
   // deploy facets
   const FacetNames = ["MarketFacet", "PolicyFacet", "RewardFacet", "SetterFacet"];
-  const cut = [];
+  const cut: any = [];
 
   for (const FacetName of FacetNames) {
     const Facet = await ethers.getContractFactory(FacetName);
@@ -54,7 +55,7 @@ async function deployDiamond(unitrollerAddress) {
     unitrollerAdmin = signer[0];
   }
 
-  const { diamond, cut } = await deployFacets(unitroller.address);
+  const { diamond, cut } = await deployFacets();
   await unitroller.connect(unitrollerAdmin)._setPendingImplementation(diamond.address);
   await diamond.connect(unitrollerAdmin)._become(unitroller.address);
 
@@ -73,7 +74,7 @@ async function deployDiamond(unitrollerAddress) {
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 if (require.main === module) {
-  deployDiamond()
+  deployDiamond("")
     .then(() => process.exit(0))
     .catch(error => {
       console.error(error);

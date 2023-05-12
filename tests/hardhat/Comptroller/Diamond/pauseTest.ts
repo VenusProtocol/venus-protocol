@@ -4,15 +4,14 @@ import chai from "chai";
 import { ethers } from "hardhat";
 
 import { Comptroller, IAccessControlManager, PriceOracle, VBep20Immutable } from "../../../../typechain";
-
-const { deployDiamond } = require("../../../../script/diamond/deploy");
+import { deployDiamond } from "./scripts/deploy";
 
 const { expect } = chai;
 chai.use(smock.matchers);
 
 type PauseFixture = {
   accessControl: FakeContract<IAccessControlManager>;
-  comptroller: MockContract<Comptroller>;
+  comptroller: Comptroller;
   oracle: FakeContract<PriceOracle>;
   OMG: FakeContract<VBep20Immutable>;
   ZRX: FakeContract<VBep20Immutable>;
@@ -25,8 +24,8 @@ type PauseFixture = {
 async function pauseFixture(): Promise<PauseFixture> {
   const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   const result = await deployDiamond("");
-  const comptrollerDeployment = result.unitroller;
-  const comptroller = await ethers.getContractAt("Comptroller", comptrollerDeployment.address);
+  const unitroller = result.unitroller;
+  const comptroller = await ethers.getContractAt("Comptroller", unitroller.address);
   await comptroller._setAccessControl(accessControl.address);
   const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
 

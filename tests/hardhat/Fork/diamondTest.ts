@@ -5,9 +5,8 @@ import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 
-import { VBep20, VToken__factory, XVS__factory } from "../../../typechain";
-
-const { deployDiamond } = require("../../../script/diamond/deploy");
+import { VBep20 } from "../../../typechain";
+import { deployDiamond } from "../Comptroller/Diamond/scripts/deploy";
 
 const { expect } = chai;
 chai.use(smock.matchers);

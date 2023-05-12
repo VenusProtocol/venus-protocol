@@ -4,9 +4,9 @@ import "../../../Oracle/PriceOracle.sol";
 import "../../../Tokens/VTokens/VToken.sol";
 import "../../../Utils/ErrorReporter.sol";
 import "../../../Governance/IAccessControlManager.sol";
-import "./FacetHelper.sol";
+import "./FacetBase.sol";
 
-contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetHelper {
+contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
     /// @notice Emitted when close factor is changed by admin
     event NewCloseFactor(uint oldCloseFactorMantissa, uint newCloseFactorMantissa);
 
