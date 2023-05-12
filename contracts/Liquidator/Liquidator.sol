@@ -357,7 +357,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 range = pendingReedemLength_ >= pendingRedeemChunkLength
             ? pendingRedeemChunkLength
             : pendingReedemLength_;
-        if (pendingReedemLength_ == 0) return;
+        if (range == 0) return;
         for (int256 index = int256(range) - 1; index >= 0; index--) {
             address vToken = pendingRedeem[uint256(index)];
             uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
