@@ -57,7 +57,7 @@ abstract contract RouterHelper is IRouterHelper {
 
     // requires the initial amount to have already been sent to the first pair
     function _swap(uint256[] memory amounts, address[] memory path, address _to) internal virtual {
-        for (uint256 i; i < path.length - 1; ++i) {
+        for (uint256 i; i < path.length - 1; ) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0, ) = PancakeLibrary.sortTokens(input, output);
             uint256 amountOut = amounts[i + 1];
@@ -66,13 +66,16 @@ abstract contract RouterHelper is IRouterHelper {
                 : (amountOut, uint256(0));
             address to = i < path.length - 2 ? PancakeLibrary.pairFor(factory, output, path[i + 2]) : _to;
             IPancakePair(PancakeLibrary.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
+            unchecked {
+                i += 1;
+            }
         }
     }
 
     // **** SWAP (supporting fee-on-transfer tokens) ****
     // requires the initial amount to have already been sent to the first pair
     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
-        for (uint256 i; i < path.length - 1; ++i) {
+        for (uint256 i; i < path.length - 1; ) {
             (address input, address output) = (path[i], path[i + 1]);
             (address token0, ) = PancakeLibrary.sortTokens(input, output);
             IPancakePair pair = IPancakePair(PancakeLibrary.pairFor(factory, input, output));
@@ -94,6 +97,9 @@ abstract contract RouterHelper is IRouterHelper {
                 : (amountOutput, uint256(0));
             address to = i < path.length - 2 ? PancakeLibrary.pairFor(factory, output, path[i + 2]) : _to;
             pair.swap(amount0Out, amount1Out, to, new bytes(0));
+            unchecked {
+                i += 1;
+            }
         }
     }
 
@@ -131,7 +137,7 @@ abstract contract RouterHelper is IRouterHelper {
             revert WrongAddress(wBNBAddress, path[0]);
         }
         IWBNB(wBNBAddress).deposit{ value: msg.value }();
-        assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), msg.value));
+        TransferHelper.safeTransfer(wBNBAddress, PancakeLibrary.pairFor(factory, path[0], path[1]), msg.value);
         if (swapFor == TypesOfTokens.NON_SUPPORTING_FEE) {
             amounts = PancakeLibrary.getAmountsOut(factory, msg.value, path);
             if (amounts[amounts.length - 1] < amountOutMin) {
@@ -225,7 +231,7 @@ abstract contract RouterHelper is IRouterHelper {
             revert ExcessiveInputAmount(amounts[0], msg.value);
         }
         IWBNB(WBNB).deposit{ value: amounts[0] }();
-        assert(IWBNB(WBNB).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        TransferHelper.safeTransfer(WBNB, PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
         _swap(amounts, path, to);
         // refund dust eth, if any
         if (msg.value > amounts[0]) TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);
