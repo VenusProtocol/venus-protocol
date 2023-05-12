@@ -4,14 +4,17 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { ethers, upgrades } from "hardhat";
 
-import { convertToBigInt } from "../../../helpers/utils";
+import { convertToBigInt, convertToUnit } from "../../../helpers/utils";
 import {
   Comptroller,
+  FaucetToken,
   IAccessControlManager,
+  IProtocolShareReserve,
   LiquidatorHarness,
   LiquidatorHarness__factory,
   MockVBNB,
   VBep20Immutable,
+  WBNB,
 } from "../../../typechain";
 
 const { expect } = chai;
@@ -26,24 +29,34 @@ type LiquidatorFixture = {
   vTokenCollateral: FakeContract<VBep20Immutable>;
   liquidator: MockContract<LiquidatorHarness>;
   vBnb: FakeContract<MockVBNB>;
+  wBnb: FakeContract<WBNB>;
+  underlying: FakeContract<FaucetToken>;
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
-  const [, treasury] = await ethers.getSigners();
-
   const accessControlManager = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControlManager.isAllowedToCall.returns(true);
   const comptroller = await smock.fake<Comptroller>("Comptroller");
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
+  const wBnb = await smock.fake<WBNB>("WBNB");
+  const underlying = await smock.fake<FaucetToken>("FaucetToken");
+  underlying.balanceOf.returns(convertToUnit(1, 10));
+  underlying.transfer.returns(true);
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
+  vTokenCollateral.underlying.returns(underlying.address);
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
 
   const Liquidator = await smock.mock<LiquidatorHarness__factory>("LiquidatorHarness");
-  const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercent, accessControlManager.address], {
-    constructorArgs: [comptroller.address, vBnb.address, treasury.address],
-  });
+  const liquidator = await upgrades.deployProxy(
+    Liquidator,
+    [treasuryPercent, accessControlManager.address, protocolShareReserve.address],
+    {
+      constructorArgs: [comptroller.address, vBnb.address, wBnb.address],
+    },
+  );
 
-  return { comptroller, vBnb, vTokenCollateral, liquidator };
+  return { comptroller, vBnb, vTokenCollateral, liquidator, wBnb, underlying };
 }
 
 function configure(fixture: LiquidatorFixture) {
@@ -62,15 +75,14 @@ function calculateSplitSeizedTokens(amount: bigint) {
 
 describe("Liquidator", () => {
   let liquidator: SignerWithAddress;
-  let treasury: SignerWithAddress;
   let vTokenCollateral: FakeContract<VBep20Immutable>;
   let liquidatorContract: MockContract<LiquidatorHarness>;
-
+  let underlying: FakeContract<FaucetToken>;
   beforeEach(async () => {
-    [liquidator, treasury] = await ethers.getSigners();
+    [liquidator] = await ethers.getSigners();
     const contracts = await loadFixture(deployLiquidator);
     configure(contracts);
-    ({ vTokenCollateral, liquidator: liquidatorContract } = contracts);
+    ({ vTokenCollateral, liquidator: liquidatorContract, underlying } = contracts);
   });
 
   describe("splitLiquidationIncentive", () => {
@@ -87,7 +99,7 @@ describe("Liquidator", () => {
       const tx = await liquidatorContract.distributeLiquidationIncentive(vTokenCollateral.address, seizeTokens);
       const expectedData = calculateSplitSeizedTokens(seizeTokens);
       expect(vTokenCollateral.transfer).to.have.been.calledWith(liquidator.address, expectedData.liquidatorDelta);
-      expect(vTokenCollateral.transfer).to.have.been.calledWith(treasury.address, expectedData.treasuryDelta);
+      expect(underlying.transfer).to.have.been.calledOnce;
       await expect(tx)
         .to.emit(liquidatorContract, "DistributeLiquidationIncentive")
         .withArgs(expectedData.treasuryDelta, expectedData.liquidatorDelta);
@@ -101,12 +113,11 @@ describe("Liquidator", () => {
         .withArgs(liquidatorContract.address, liquidator.address, expectedData.liquidatorDelta);
     });
 
-    it("reverts if transfer to treasury fails", async () => {
-      vTokenCollateral.transfer.returnsAtCall(1, false);
-      const expectedData = calculateSplitSeizedTokens(seizeTokens);
-      await expect(liquidatorContract.distributeLiquidationIncentive(vTokenCollateral.address, seizeTokens))
-        .to.be.revertedWithCustomError(liquidatorContract, "VTokenTransferFailed")
-        .withArgs(liquidatorContract.address, treasury.address, expectedData.treasuryDelta);
+    it("reverts if underlying transfer to protocol share reserves fails", async () => {
+      underlying.transfer.returns(false);
+      await expect(
+        liquidatorContract.distributeLiquidationIncentive(vTokenCollateral.address, seizeTokens),
+      ).to.be.revertedWith("SafeERC20: ERC20 operation did not succeed");
     });
   });
 });

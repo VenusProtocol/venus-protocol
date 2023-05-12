@@ -19,6 +19,15 @@ contract LiquidatorStorage {
     /// @notice check for liquidation of VAI
     bool public forceVAILiquidate;
 
+    /// @notice assests whose redeem is pending to reduce reserves
+    address[] public pendingRedeem;
+
+    /// @notice protocol share reserve contract address
+    address public protocolShareReserve;
+
+    /// @dev Size of chunk to consider when redeeming underlying at the time of liquidation
+    uint256 internal pendingRedeemChunkLength;
+
     /// @notice gap to prevent collision in inheritence
     uint256[49] private __gap;
 }
