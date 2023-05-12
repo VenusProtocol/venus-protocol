@@ -2,20 +2,9 @@ pragma solidity 0.5.16;
 
 import "../../../Oracle/PriceOracle.sol";
 import "../../../Tokens/VTokens/VToken.sol";
+import "../../ComptrollerStorage.sol";
 
 interface IRewardFacet {
-    enum Action {
-        MINT,
-        REDEEM,
-        BORROW,
-        REPAY,
-        SEIZE,
-        LIQUIDATE,
-        TRANSFER,
-        ENTER_MARKET,
-        EXIT_MARKET
-    }
-
     function claimVenus(address holder) external;
 
     function claimVenus(address holder, VToken[] calldata vTokens) external;
@@ -32,7 +21,7 @@ interface IRewardFacet {
 
     function getXVSVTokenAddress() external pure returns (address);
 
-    function actionPaused(address market, Action action) external view returns (bool);
+    function actionPaused(address market, ComptrollerV12Storage.Action action) external view returns (bool);
 
     function releaseToVault() external;
 

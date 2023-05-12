@@ -3,20 +3,9 @@ pragma solidity 0.5.16;
 import "../../../Oracle/PriceOracle.sol";
 import "../../../Comptroller/ComptrollerLensInterface.sol";
 import "../../../Tokens/VAI/VAIController.sol";
+import "../../ComptrollerStorage.sol";
 
 interface ISetterFacet {
-    enum Action {
-        MINT,
-        REDEEM,
-        BORROW,
-        REPAY,
-        SEIZE,
-        LIQUIDATE,
-        TRANSFER,
-        ENTER_MARKET,
-        EXIT_MARKET
-    }
-
     function _setPriceOracle(PriceOracle newOracle) external returns (uint);
 
     function _setCloseFactor(uint newCloseFactorMantissa) external returns (uint);
@@ -37,7 +26,11 @@ interface ISetterFacet {
 
     function _setProtocolPaused(bool state) external returns (bool);
 
-    function _setActionsPaused(address[] calldata markets, Action[] calldata actions, bool paused) external;
+    function _setActionsPaused(
+        address[] calldata markets,
+        ComptrollerV12Storage.Action[] calldata actions,
+        bool paused
+    ) external;
 
     function _setVAIController(VAIControllerInterface vaiController_) external returns (uint);
 
