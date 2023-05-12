@@ -193,5 +193,58 @@ if (FORK_MAINNET) {
       const liquidatorContractAfterBal = await seizedVToken.balanceOf(LIQUIDATOR);
       expect(liquidatorContractAfterBal).to.be.greaterThan(liquidatorContractBeforeBal);
     });
+
+    it("Should success at last if initially redeem fails", async () => {
+      const blockNumber = 27669447;
+      const repayAmount1 = "30000000000000000";
+      const borrower1 = "0x352fEdA6aeaa578dD03bdA444F6fF307b7D94121";
+      const liquidatorAccount1 = "0xec641b5afa871cf097f3b375d8c77284b5ae235c";
+      const borrowedToken1 = "0xA07c5b74C9B40447a954e1466938b865b6BBea36";
+      const collateralToken1 = "0xfD5840Cd36d94D7229439859C0112a4185BC0255";
+
+      const repayAmount2 = "29220000000000000";
+      const borrower2 = "0x6B7a803BB85C7D1F67470C50358d11902d3169e0";
+      const liquidatorAccount2 = "0x2237ca42fe3522848dcb5a2f13571f5a4e2c5c14";
+      const borrowedToken2 = "0xA07c5b74C9B40447a954e1466938b865b6BBea36";
+      const collateralToken2 = "0xA07c5b74C9B40447a954e1466938b865b6BBea36";
+
+      const repayAmount3 = "75070613988531896";
+      const borrower3 = "0x45E017b467a38f5D83094e60a1494d19655bec22";
+      const liquidatorAccount3 = "0x6e7c90c493f253f574887bfc9731b151125a723f";
+      const borrowedToken3 = "0xA07c5b74C9B40447a954e1466938b865b6BBea36";
+      const collateralToken3 = "0x95c78222B3D6e262426483D42CfA53685A67Ab9D";
+
+      await setForkBlock(blockNumber);
+      await configure();
+      comptroller = Comptroller__factory.connect(UNITROLLER, impersonatedTimelock);
+      await comptroller._setActionsPaused([collateralToken1, collateralToken2], [1], true);
+
+      const liquidatorSigner1 = await initMainnetUser(liquidatorAccount1, ethers.utils.parseEther("2"));
+      const liquidatorSigner2 = await initMainnetUser(liquidatorAccount2, ethers.utils.parseEther("2"));
+      const liquidatorSigner3 = await initMainnetUser(liquidatorAccount3, ethers.utils.parseEther("2"));
+
+      await expect(
+        liquidator
+          .connect(liquidatorSigner1)
+          .liquidateBorrow(borrowedToken1, borrower1, repayAmount1, collateralToken1, { value: repayAmount1 }),
+      ).to.be.emit(liquidator, "LiquidateBorrowedTokens");
+
+      await expect(
+        liquidator
+          .connect(liquidatorSigner2)
+          .liquidateBorrow(borrowedToken2, borrower2, repayAmount2, collateralToken2, { value: repayAmount2 }),
+      ).to.be.emit(liquidator, "LiquidateBorrowedTokens");
+
+      await comptroller._setActionsPaused([collateralToken1, collateralToken2], [1, 1], false);
+
+      expect(await liquidator.pendingRedeem(0)).to.be.equal(collateralToken1);
+      expect(await liquidator.pendingRedeem(1)).to.be.equal(collateralToken2);
+
+      await expect(
+        liquidator
+          .connect(liquidatorSigner3)
+          .liquidateBorrow(borrowedToken3, borrower3, repayAmount3, collateralToken3, { value: repayAmount3 }),
+      ).to.be.emit(liquidator, "LiquidateBorrowedTokens");
+    });
   });
 }
