@@ -251,9 +251,9 @@ contract VBep20 is VToken, VBep20Interface {
         return token.balanceOf(address(this));
     }
 
-    function _notifyProtocolShareReserve(address _protcolShareReserve, address _comptroller) internal {
-        IProtocolShareReserve(_protcolShareReserve).updateAssetsState(
-            _comptroller,
+    function _notifyProtocolShareReserve() internal {
+        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
+            address(comptroller),
             underlying,
             IProtocolShareReserve.IncomeType.SPREAD
         );

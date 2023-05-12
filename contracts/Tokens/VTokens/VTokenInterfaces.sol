@@ -123,26 +123,6 @@ contract VTokenStorage {
      * @notice Mapping of account addresses to outstanding borrow balances
      */
     mapping(address => BorrowSnapshot) internal accountBorrows;
-
-    /**
-     * @notice delta block after which reserves will be reduced
-     */
-    uint public reduceReservesBlockDelta;
-
-    /**
-     * @notice last block number at which reserves were reduced
-     */
-    uint public reduceReservesBlockNumber;
-
-    /**
-     * @notice address of protocol share reserve contract
-     */
-    address payable public protocolShareReserve;
-
-    /**
-     * @notice address of underlying asset contrcat
-     */
-    address public underlying;
 }
 
 contract VTokenInterface is VTokenStorage {

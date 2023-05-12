@@ -304,46 +304,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
-     * @param _newReduceReservesBlockDelta block difference value
-     */
-    function setReduceReservesBlockDelta(uint256 _newReduceReservesBlockDelta) external returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_REDUCE_RESERVES_BLOCK_DELTA_OWNER_CHECK);
-        }
-        uint256 oldReduceReservesBlockDelta_ = reduceReservesBlockDelta;
-        reduceReservesBlockDelta = _newReduceReservesBlockDelta;
-        emit NewReduceReservesBlockDelta(oldReduceReservesBlockDelta_, _newReduceReservesBlockDelta);
-    }
-
-    /**
-     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
-     * @param protcolShareReserve_ The address of protocol share reserve contract
-     */
-    function setProtcolShareReserve(address payable protcolShareReserve_) external returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PROTOCOL_SHARE_RESERVES_OWNER_CHECK);
-        }
-        address oldProtocolShareReserve_ = protocolShareReserve;
-        protocolShareReserve = protcolShareReserve_;
-        emit NewProtocolShareReserve(oldProtocolShareReserve_, protcolShareReserve_);
-    }
-
-    /**
-     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
-     * @param underlying_ The address of underlying asset contract
-     */
-    function setUnderlyingAsset(address underlying_) external returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_UNDERLYING_OWNER_CHECK);
-        }
-        underlying = underlying_;
-    }
-
-    /**
      * @notice Initialize the money market
      * @param comptroller_ The address of the Comptroller
      * @param interestRateModel_ The address of the interest rate model
@@ -1537,11 +1497,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
         doTransferOut(getProtocolShareReserve(), reduceAmount);
 
-        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
-            address(comptroller),
-            underlying,
-            IProtocolShareReserve.IncomeType.SPREAD
-        );
+        _notifyProtocolShareReserve();
 
         emit ReservesReduced(admin, reduceAmount, totalReservesNew);
 
@@ -1582,8 +1538,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         return uint(Error.NO_ERROR);
     }
-
-    /*** Safe Token ***/
 
     /**
      * @dev Performs a transfer in, reverting upon failure. Returns the amount actually transferred to the protocol, in case of a fee.
@@ -1689,7 +1643,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function getCashPrior() internal view returns (uint);
 
-    function _notifyProtocolShareReserve(address _protocolShareReserve, address _comptroller) internal;
+    function _notifyProtocolShareReserve() internal;
 
     function _checkSpreadReservesTransferable() internal view returns (bool);
 
