@@ -132,14 +132,6 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         comptroller = comptroller_;
     }
 
-    /**
-     * @notice Checks that the address is not the zero address
-     * @param someone The address to check
-     */
-    function ensureNonzeroAddress(address someone) private pure {
-        require(someone != address(0), "Can't be zero address.");
-    }
-
     /*** Swap Functions ***/
 
     /**
@@ -196,60 +188,6 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
             VAI(vaiAddress).mint(venusTreasury, fee);
         }
         emit StableForVAISwapped(actualTransferAmt, vaiToMint, fee);
-    }
-
-    /*** Helper Functions ***/
-
-    /**
-     * @dev Calculates the USD value of the given amount of stable tokens depending on the swap direction.
-     * @param amount The amount of stable tokens.
-     * @param direction The direction of the swap.
-     * @return The USD value of the given amount of stable tokens scaled by 1e18 taking into account the direction of the swap
-     */
-    function previewTokenUSDAmount(uint256 amount, FeeDirection direction) internal view returns (uint256) {
-        return (amount * getPriceInUSD(direction)) / MANTISSA_ONE;
-    }
-
-    /**
-     * @notice Get the price of stable token in USD, based on the selected oracle
-     * @dev This function returns either min(1$,oraclePrice) or max(1$,oraclePrice) depending on the direction of the swap
-     * @param direction The direction of the swap: FeeDirection.IN or FeeDirection.OUT
-     * @return The price in USD, adjusted based on the selected direction
-     */
-    function getPriceInUSD(FeeDirection direction) internal view returns (uint256) {
-        address priceOracleAddress = OracleProviderInterface(comptroller).oracle();
-        uint256 price = IPriceOracle(priceOracleAddress).getUnderlyingPrice(vTokenAddress);
-        require(price != INVALID_ORACLE_PRICE, "Invalid oracle price.");
-        if (direction == FeeDirection.IN) {
-            //MIN (1,price)
-            return MANTISSA_ONE < price ? MANTISSA_ONE : price;
-        } else {
-            //MAX (1,price)
-            return MANTISSA_ONE > price ? MANTISSA_ONE : price;
-        }
-    }
-
-    /**
-     * @notice Calculate the fee amount based on the input amount and fee percentage
-     * @dev Reverts if the fee percentage calculation results in rounding down to 0
-     * @param amount The input amount to calculate the fee from
-     * @param direction The direction of the fee: FeeDirection.IN or FeeDirection.OUT
-     * @return The fee amount
-     */
-    function _calculateFee(uint256 amount, FeeDirection direction) internal view returns (uint256) {
-        uint256 feePercent;
-        if (direction == FeeDirection.IN) {
-            feePercent = feeIn;
-        } else {
-            feePercent = feeOut;
-        }
-        if (feePercent == 0) {
-            return 0;
-        } else {
-            // checking if the percent calculation will result in rounding down to 0
-            require(amount * feePercent >= BASIS_POINTS_DIVISOR, "Amount too small.");
-            return (amount * feePercent) / BASIS_POINTS_DIVISOR;
-        }
     }
 
     /*** Admin Functions ***/
@@ -347,5 +285,67 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         address oldComptrollerAddress = comptroller;
         comptroller = comptroller_;
         emit ComptrollerChanged(oldComptrollerAddress, comptroller_);
+    }
+
+    /*** Helper Functions ***/
+
+    /**
+     * @dev Calculates the USD value of the given amount of stable tokens depending on the swap direction.
+     * @param amount The amount of stable tokens.
+     * @param direction The direction of the swap.
+     * @return The USD value of the given amount of stable tokens scaled by 1e18 taking into account the direction of the swap
+     */
+    function previewTokenUSDAmount(uint256 amount, FeeDirection direction) internal view returns (uint256) {
+        return (amount * getPriceInUSD(direction)) / MANTISSA_ONE;
+    }
+
+    /**
+     * @notice Get the price of stable token in USD, based on the selected oracle
+     * @dev This function returns either min(1$,oraclePrice) or max(1$,oraclePrice) depending on the direction of the swap
+     * @param direction The direction of the swap: FeeDirection.IN or FeeDirection.OUT
+     * @return The price in USD, adjusted based on the selected direction
+     */
+    function getPriceInUSD(FeeDirection direction) internal view returns (uint256) {
+        address priceOracleAddress = OracleProviderInterface(comptroller).oracle();
+        uint256 price = IPriceOracle(priceOracleAddress).getUnderlyingPrice(vTokenAddress);
+        require(price != INVALID_ORACLE_PRICE, "Invalid oracle price.");
+        if (direction == FeeDirection.IN) {
+            //MIN (1,price)
+            return MANTISSA_ONE < price ? MANTISSA_ONE : price;
+        } else {
+            //MAX (1,price)
+            return MANTISSA_ONE > price ? MANTISSA_ONE : price;
+        }
+    }
+
+    /**
+     * @notice Calculate the fee amount based on the input amount and fee percentage
+     * @dev Reverts if the fee percentage calculation results in rounding down to 0
+     * @param amount The input amount to calculate the fee from
+     * @param direction The direction of the fee: FeeDirection.IN or FeeDirection.OUT
+     * @return The fee amount
+     */
+    function _calculateFee(uint256 amount, FeeDirection direction) internal view returns (uint256) {
+        uint256 feePercent;
+        if (direction == FeeDirection.IN) {
+            feePercent = feeIn;
+        } else {
+            feePercent = feeOut;
+        }
+        if (feePercent == 0) {
+            return 0;
+        } else {
+            // checking if the percent calculation will result in rounding down to 0
+            require(amount * feePercent >= BASIS_POINTS_DIVISOR, "Amount too small.");
+            return (amount * feePercent) / BASIS_POINTS_DIVISOR;
+        }
+    }
+
+    /**
+     * @notice Checks that the address is not the zero address
+     * @param someone The address to check
+     */
+    function ensureNonzeroAddress(address someone) private pure {
+        require(someone != address(0), "Can't be zero address.");
     }
 }
