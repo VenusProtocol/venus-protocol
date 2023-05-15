@@ -263,7 +263,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     function liquidateVAI(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceV2 vTokenCollateral
     ) external nonReentrant returns (uint, uint) {
         require(!ComptrollerImplInterface(address(comptroller)).protocolPaused(), "protocol is paused");
 
@@ -290,7 +290,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         address liquidator,
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceV2 vTokenCollateral
     ) internal returns (uint, uint) {
         if (address(comptroller) != address(0)) {
             accrueVAIInterest();
