@@ -1,13 +1,13 @@
 pragma solidity ^0.5.16;
 
-import "./VToken.sol";
+import "./VTokenV2.sol";
 
 /**
  * @title Venus's VBep20 Contract
  * @notice vTokens which wrap an EIP-20 underlying
  * @author Venus
  */
-contract VBep20 is VToken, VBep20Interface {
+contract VBep20 is VTokenV2, VBep20InterfaceV2 {
     /*** User Interface ***/
 
     /**
@@ -124,7 +124,7 @@ contract VBep20 is VToken, VBep20Interface {
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceV2 vTokenCollateral
     ) external returns (uint) {
         (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;

@@ -182,7 +182,7 @@ contract EvilXToken is VBep20Delegate {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VToken vTokenCollateral
+        VTokenV2 vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
