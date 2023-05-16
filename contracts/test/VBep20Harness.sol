@@ -142,7 +142,7 @@ contract VBep20Harness is VBep20Immutable {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VTokenV2 vTokenCollateral
+        VToken vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
@@ -394,7 +394,7 @@ contract VBep20DelegateHarness is VBep20Delegate {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VTokenV2 vTokenCollateral
+        VToken vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateBorrowFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;

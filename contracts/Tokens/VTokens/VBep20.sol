@@ -1,13 +1,13 @@
 pragma solidity ^0.5.16;
 
-import "./VTokenV2.sol";
+import "./VToken.sol";
 
 /**
  * @title Venus's VBep20 Contract
  * @notice vTokens which wrap an EIP-20 underlying
  * @author Venus
  */
-contract VBep20 is VTokenV2, VBep20InterfaceV2 {
+contract VBep20 is VToken, VBep20InterfaceV2 {
     /*** User Interface ***/
 
     /**
