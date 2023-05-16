@@ -7,7 +7,7 @@ import "../Tokens/VTokens/VToken.sol";
  * @notice VTokens which wrap an EIP-20 underlying
  * @author Venus
  */
-contract VBep20MockDelegate is VToken, VBep20Interface {
+contract VBep20MockDelegate is VToken, VBep20InterfaceV2 {
     address public implementation;
     uint internal blockNumber = 100000;
 
@@ -150,13 +150,13 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      *  The collateral seized is transferred to the liquidator.
      * @param borrower The borrower of this vToken to be liquidated
      * @param repayAmount The amount of the underlying borrowed asset to repay
-     * @param vTokenCollateral The market in which to seize collateral from the borrower
+     * @param vTokenCollateral The market in VBep20InterfaceV2which to seize collateral from the borrower
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceV2 vTokenCollateral
     ) external returns (uint) {
         (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;
