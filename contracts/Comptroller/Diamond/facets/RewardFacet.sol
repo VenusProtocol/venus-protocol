@@ -13,8 +13,9 @@ interface IXVS {
 
     function approve(address spender, uint rawAmount) external returns (bool);
 }
+
 /**
- * @dev This facet contains all the methods related to the reward functionality 
+ * @dev This facet contains all the methods related to the reward functionality
  */
 contract RewardFacet is FacetHelper {
     /// @notice Emitted when Venus is granted by admin
