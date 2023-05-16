@@ -42,6 +42,26 @@ async function deployPegStability(vTokenStable: string): Promise<PegStability> {
   return psm;
 }
 
+async function validateInitialization(psm: PegStability, vTokenStable: string, stableToken: string) {
+  expect(await psm.vaiAddress()).to.equal(Contracts.VAI);
+  expect(await psm.comptroller()).to.equal(Contracts.Unitroller);
+  expect((await psm.vTokenAddress()).toLocaleLowerCase()).to.equal(vTokenStable.toLocaleLowerCase());
+  expect((await psm.stableTokenAddress()).toLocaleLowerCase()).to.equal(stableToken.toLocaleLowerCase());
+  expect((await psm.venusTreasury()).toLocaleLowerCase()).to.equal(venusTreasury);
+  expect(await psm.feeIn()).to.equal(feeIn);
+  expect(await psm.feeOut()).to.equal(feeOut);
+  expect(await psm.vaiMintCap()).to.equal(vaiMintCap);
+  expect(await psm.vaiMinted()).to.equal(0);
+  expect(await psm.isPaused()).to.be.false;
+  expect(await psm.accessControlManager()).to.equal(acmAddress);
+}
+
+async function validateReInitialization(psm: PegStability) {
+  await expect(
+    psm.initialize(acmAddress, venusTreasury, Contracts.Unitroller, feeIn, feeOut, vaiMintCap),
+  ).to.be.rejectedWith("Initializable: contract is already initialized");
+}
+
 if (FORK_MAINNET) {
   const blockNumber = 28052615;
   forking(blockNumber, () => {
@@ -57,6 +77,7 @@ if (FORK_MAINNET) {
     let USDC: FaucetToken;
     let oracle: PriceOracle;
     let price: BigNumber;
+
     describe("Peg Stability USDT", () => {
       before(async () => {
         defaultSigner = (await ethers.getSigners())[0];
@@ -80,23 +101,11 @@ if (FORK_MAINNET) {
         await VAI.rely(psmUSDT.address);
       });
       describe("Initialization", () => {
-        it("Validate initialization parameters", async () => {
-          expect(await psmUSDT.vaiAddress()).to.equal(Contracts.VAI);
-          expect(await psmUSDT.comptroller()).to.equal(Contracts.Unitroller);
-          expect((await psmUSDT.vTokenAddress()).toLocaleLowerCase()).to.equal(Contracts.vUSDT.toLocaleLowerCase());
-          expect((await psmUSDT.stableTokenAddress()).toLocaleLowerCase()).to.equal(Contracts.USDT.toLocaleLowerCase());
-          expect((await psmUSDT.venusTreasury()).toLocaleLowerCase()).to.equal(venusTreasury);
-          expect(await psmUSDT.feeIn()).to.equal(feeIn);
-          expect(await psmUSDT.feeOut()).to.equal(feeOut);
-          expect(await psmUSDT.vaiMintCap()).to.equal(vaiMintCap);
-          expect(await psmUSDT.vaiMinted()).to.equal(0);
-          expect(await psmUSDT.isPaused()).to.be.false;
-          expect(await psmUSDT.accessControlManager()).to.equal(acmAddress);
+        it("Validate initialization parameters", () => {
+          return validateInitialization(psmUSDT, Contracts.vUSDT, Contracts.USDT);
         });
         it("Should not be able to re-initialize", async () => {
-          await expect(
-            psmUSDT.initialize(acmAddress, venusTreasury, Contracts.Unitroller, feeIn, feeOut, vaiMintCap),
-          ).to.be.rejectedWith("Initializable: contract is already initialized");
+          return validateReInitialization(psmUSDT);
         });
       });
       describe("Swap", () => {
@@ -104,8 +113,13 @@ if (FORK_MAINNET) {
           const token_amount = BigNumber.from(convertToUnit(1000, 18));
           const fee = token_amount.mul(feeIn).div(BASIS_POINT_DIVISOR);
           const vai_to_mint = token_amount.sub(fee);
+          const signerAddress = usdtSigner.getAddress();
           await USDT.connect(usdtSigner).approve(psmUSDT.address, token_amount);
+          const vaiBalanceBefore = await VAI.balanceOf(signerAddress);
           const tx = await psmUSDT.connect(usdtSigner).swapStableForVAI(USDT_HOLDER, convertToUnit(1000, 18));
+          const vaiBalanceAfter = await VAI.balanceOf(signerAddress);
+          const vaiBalance = vaiBalanceAfter.sub(vaiBalanceBefore);
+          expect(vaiBalance).to.equal(vai_to_mint);
           await expect(tx).to.emit(psmUSDT, "StableForVAISwapped").withArgs(token_amount, vai_to_mint, fee);
         });
         it("VAI -> USDT", async () => {
@@ -136,23 +150,11 @@ if (FORK_MAINNET) {
         await VAI.rely(psmUSDC.address);
       });
       describe("Initialization", () => {
-        it("Validate initialization parameters", async () => {
-          expect(await psmUSDC.vaiAddress()).to.equal(Contracts.VAI);
-          expect(await psmUSDC.comptroller()).to.equal(Contracts.Unitroller);
-          expect((await psmUSDC.vTokenAddress()).toLocaleLowerCase()).to.equal(Contracts.vUSDC.toLocaleLowerCase());
-          expect((await psmUSDC.stableTokenAddress()).toLocaleLowerCase()).to.equal(Contracts.USDC.toLocaleLowerCase());
-          expect((await psmUSDC.venusTreasury()).toLocaleLowerCase()).to.equal(venusTreasury);
-          expect(await psmUSDC.feeIn()).to.equal(feeIn);
-          expect(await psmUSDC.feeOut()).to.equal(feeOut);
-          expect(await psmUSDC.vaiMintCap()).to.equal(vaiMintCap);
-          expect(await psmUSDC.vaiMinted()).to.equal(0);
-          expect(await psmUSDC.isPaused()).to.be.false;
-          expect(await psmUSDC.accessControlManager()).to.equal(acmAddress);
+        it("Validate initialization parameters", () => {
+          return validateInitialization(psmUSDC, Contracts.vUSDC, Contracts.USDC);
         });
         it("Should not be able to re-initialize", async () => {
-          await expect(
-            psmUSDC.initialize(acmAddress, venusTreasury, Contracts.Unitroller, feeIn, feeOut, vaiMintCap),
-          ).to.be.rejectedWith("Initializable: contract is already initialized");
+          return validateReInitialization(psmUSDC);
         });
       });
       describe("Swap", () => {
