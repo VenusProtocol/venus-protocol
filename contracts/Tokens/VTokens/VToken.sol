@@ -6,14 +6,14 @@ import "../../Utils/Exponential.sol";
 import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
-import "./VTokenInterfaces.sol";
+import "./VTokenInterfacesV2.sol";
 
 /**
  * @title Venus's vToken Contract
  * @notice Abstract base for vTokens
  * @author Venus
  */
-contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
+contract VToken is VTokenInterfaceV2, VTokenStorageV2, Exponential, TokenErrorReporter {
     struct MintLocalVars {
         MathError mathErr;
         uint exchangeRateMantissa;
@@ -229,7 +229,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
             return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
         }
-        if (!_checkSpreadReservesTransferable()) return (uint(Error.NO_ERROR));
+        if (reduceReservesBlockNumber == getBlockNumber()) return (uint(Error.NO_ERROR));
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
         return _reduceReservesFresh(reduceAmount);
     }
@@ -301,6 +301,34 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function getCash() external view returns (uint) {
         return getCashPrior();
+    }
+
+    /**
+     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @param _newReduceReservesBlockDelta block difference value
+     */
+    function setReduceReservesBlockDelta(uint256 _newReduceReservesBlockDelta) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_REDUCE_RESERVES_BLOCK_DELTA_OWNER_CHECK);
+        }
+        uint256 oldReduceReservesBlockDelta_ = reduceReservesBlockDelta;
+        reduceReservesBlockDelta = _newReduceReservesBlockDelta;
+        emit NewReduceReservesBlockDelta(oldReduceReservesBlockDelta_, _newReduceReservesBlockDelta);
+    }
+
+    /**
+     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @param protcolShareReserve_ The address of protocol share reserve contract
+     */
+    function setProtcolShareReserve(address payable protcolShareReserve_) external returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PROTOCOL_SHARE_RESERVES_OWNER_CHECK);
+        }
+        address oldProtocolShareReserve_ = protocolShareReserve;
+        protocolShareReserve = protcolShareReserve_;
+        emit NewProtocolShareReserve(oldProtocolShareReserve_, protcolShareReserve_);
     }
 
     /**
@@ -465,9 +493,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalBorrows = totalBorrowsNew;
         totalReserves = totalReservesNew;
 
-        if (_isProtocolShareReseveTransferrable()) {
+        if (currentBlockNumber - reduceReservesBlockNumber >= reduceReservesBlockDelta) {
+            reduceReservesBlockNumber = currentBlockNumber;
             _reduceReservesFresh(totalReservesNew);
         }
+
         /* We emit an AccrueInterest event */
         emit AccrueInterest(cashPrior, interestAccumulated, borrowIndexNew, totalBorrowsNew);
 
@@ -1187,7 +1217,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function liquidateBorrowInternal(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceV2 vTokenCollateral
     ) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -1219,7 +1249,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceV2 vTokenCollateral
     ) internal returns (uint, uint) {
         /* Fail if liquidate not allowed */
         uint allowed = comptroller.liquidateBorrowAllowed(
@@ -1495,9 +1525,13 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalReserves = totalReservesNew;
 
         // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
-        doTransferOut(getProtocolShareReserve(), reduceAmount);
+        doTransferOut(protocolShareReserve, reduceAmount);
 
-        _notifyProtocolShareReserve();
+        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
+            address(comptroller),
+            underlying,
+            IProtocolShareReserve.IncomeType.SPREAD
+        );
 
         emit ReservesReduced(admin, reduceAmount, totalReservesNew);
 
@@ -1642,12 +1676,4 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return The quantity of underlying owned by this contract
      */
     function getCashPrior() internal view returns (uint);
-
-    function _notifyProtocolShareReserve() internal;
-
-    function _checkSpreadReservesTransferable() internal view returns (bool);
-
-    function _isProtocolShareReseveTransferrable() internal returns (bool);
-
-    function getProtocolShareReserve() internal view returns (address payable);
 }

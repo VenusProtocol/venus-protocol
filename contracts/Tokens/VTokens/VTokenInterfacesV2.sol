@@ -3,7 +3,16 @@ pragma solidity ^0.5.16;
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 
-contract VTokenStorage {
+interface IProtocolShareReserve {
+    enum IncomeType {
+        SPREAD,
+        LIQUIDATION
+    }
+
+    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
+}
+
+contract VTokenStorageV2 {
     /**
      * @notice Container for borrow balance information
      * @member principal Total balance (with accrued interest), after applying the most recent balance-changing action
@@ -114,9 +123,34 @@ contract VTokenStorage {
      * @notice Mapping of account addresses to outstanding borrow balances
      */
     mapping(address => BorrowSnapshot) internal accountBorrows;
+
+    /**
+     * @notice Underlying asset for this VToken
+     */
+    address public underlying;
+
+    /**
+     * @notice Implementation address for this contract
+     */
+    address public implementation;
+
+    /**
+     * @notice delta block after which reserves will be reduced
+     */
+    uint public reduceReservesBlockDelta;
+
+    /**
+     * @notice last block number at which reserves were reduced
+     */
+    uint public reduceReservesBlockNumber;
+
+    /**
+     * @notice address of protocol share reserve contract
+     */
+    address payable public protocolShareReserve;
 }
 
-contract VTokenInterface is VTokenStorage {
+contract VTokenInterfaceV2 {
     /**
      * @notice Indicator that this is a vToken contract (for inspection)
      */
@@ -218,6 +252,16 @@ contract VTokenInterface is VTokenStorage {
     event Approval(address indexed owner, address indexed spender, uint amount);
 
     /**
+     * @notice Event emitted when block delta for reduce reserves get updated
+     */
+    event NewReduceReservesBlockDelta(uint256 oldReduceReservesBlockDelta, uint256 newReduceReservesBlockDelta);
+
+    /**
+     * @notice Event emitted when address of ProtocolShareReserve contract get updated
+     */
+    event NewProtocolShareReserve(address indexed oldProtocolShareReserve, address indexed newProtocolShareReserve);
+
+    /**
      * @notice Failure event
      */
     event Failure(uint error, uint info, uint detail);
@@ -275,16 +319,11 @@ contract VTokenInterface is VTokenStorage {
     function borrowBalanceStored(address account) public view returns (uint);
 
     function exchangeRateStored() public view returns (uint);
+
+    function accrualBlockNumber() external returns (uint);
 }
 
-contract VBep20Storage {
-    /**
-     * @notice Underlying asset for this VToken
-     */
-    address public underlying;
-}
-
-contract VBep20Interface is VBep20Storage {
+contract VBep20InterfaceV2 {
     /*** User Interface ***/
 
     function mint(uint mintAmount) external returns (uint);
@@ -304,7 +343,7 @@ contract VBep20Interface is VBep20Storage {
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceV2 vTokenCollateral
     ) external returns (uint);
 
     /*** Admin Functions ***/
@@ -312,14 +351,7 @@ contract VBep20Interface is VBep20Storage {
     function _addReserves(uint addAmount) external returns (uint);
 }
 
-contract VDelegationStorage {
-    /**
-     * @notice Implementation address for this contract
-     */
-    address public implementation;
-}
-
-contract VDelegatorInterface is VDelegationStorage {
+contract VDelegatorInterfaceV2 {
     /**
      * @notice Emitted when implementation is changed
      */
@@ -338,7 +370,7 @@ contract VDelegatorInterface is VDelegationStorage {
     ) public;
 }
 
-contract VDelegateInterface is VDelegationStorage {
+contract VDelegateInterfaceV2 {
     /**
      * @notice Called by the delegator on a delegate to initialize it for duty
      * @dev Should revert if any issues arise which make it unfit for delegation

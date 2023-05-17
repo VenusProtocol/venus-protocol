@@ -14,7 +14,7 @@ contract VAIControllerInterface {
     function liquidateVAI(
         address borrower,
         uint repayAmount,
-        VTokenInterface vTokenCollateral
+        VTokenInterfaceV2 vTokenCollateral
     ) external returns (uint, uint);
 
     function _initializeVenusVAIState(uint blockNumber) external returns (uint);
