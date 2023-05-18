@@ -92,4 +92,7 @@ contract PrimeStorageV1 {
 
     /// @notice total number of accounts whose score is yet to be updated
     uint256 public pendingScoreUpdates;
+
+    /// @notice mapping used to find if an asset is part of prime markets
+    mapping (address => bool) public isPrime;
 }
