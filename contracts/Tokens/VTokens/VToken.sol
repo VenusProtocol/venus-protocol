@@ -229,6 +229,8 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, Exponential, TokenErrorRe
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
             return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
         }
+
+        // If reserves were reduced in accrueInterest
         if (reduceReservesBlockNumber == getBlockNumber()) return (uint(Error.NO_ERROR));
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
         return _reduceReservesFresh(reduceAmount);
@@ -304,7 +306,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, Exponential, TokenErrorRe
     }
 
     /**
-     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @notice A admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
      * @param _newReduceReservesBlockDelta block difference value
      */
     function setReduceReservesBlockDelta(uint256 _newReduceReservesBlockDelta) external returns (uint) {
@@ -318,7 +320,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, Exponential, TokenErrorRe
     }
 
     /**
-     * @notice A public function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @notice A admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
      * @param protcolShareReserve_ The address of protocol share reserve contract
      */
     function setProtcolShareReserve(address payable protcolShareReserve_) external returns (uint) {
@@ -1491,7 +1493,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, Exponential, TokenErrorRe
     }
 
     /**
-     * @notice Reduces reserves by transferring to admin
+     * @notice Reduces reserves by transferring to protocol share reserve contract
      * @dev Requires fresh interest accrual
      * @param reduceAmount Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
@@ -1572,6 +1574,8 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, Exponential, TokenErrorRe
 
         return uint(Error.NO_ERROR);
     }
+
+    /*** Safe Token ***/
 
     /**
      * @dev Performs a transfer in, reverting upon failure. Returns the amount actually transferred to the protocol, in case of a fee.
