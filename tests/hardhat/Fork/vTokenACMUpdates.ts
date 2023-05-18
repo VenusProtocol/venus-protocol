@@ -50,7 +50,7 @@ async function configure() {
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 
 if (FORK_MAINNET) {
-  describe("Tokens And BNB", () => {
+  describe("VToken ACM Upgrade", () => {
     let fakeInterestRateModel: FakeContract<InterestRateModel>;
     before(async () => {
       await setForkBlock(28089329);

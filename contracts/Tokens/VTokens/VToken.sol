@@ -204,11 +204,11 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
 
     /**
      * @notice accrues interest and sets a new reserve factor for the protocol using `_setReserveFactorFresh`
-     * @dev Admin function to accrue interest and set a new reserve factor
+     * @dev Governor function to accrue interest and set a new reserve factor
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits NewReserveFactor event
-    function _setReserveFactor(uint newReserveFactorMantissa) external nonReentrant returns (uint) {
+    function _setReserveFactor(uint _newReserveFactorMantissa) external nonReentrant returns (uint) {
         _checkAccessAllowed("_setReserveFactor(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -216,26 +216,31 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
             return fail(Error(error), FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
         }
         // _setReserveFactorFresh emits reserve-factor-specific logs on errors, so we don't need to.
-        return _setReserveFactorFresh(newReserveFactorMantissa);
+        return _setReserveFactorFresh(_newReserveFactorMantissa);
     }
 
     /**
      * @notice Sets the address of the access control of this contract
      * @dev Admin function to set the access control address
-     * @param newAccessControlAddress New address for the access control
+     * @param _newAccessControlAddress New address for the access control
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function setAccessControl(address newAccessControlAddress) external {
-        require(msg.sender == admin, "only admin can set new accessControlAddress");
-        _setAccessControlManager(newAccessControlAddress);
+    // @custom:event Emits NewAccessControlManager event
+    function setAccessControl(address _newAccessControlAddress) external returns (uint) {
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_ACCESS_CONTROL_OWNER_CHECK);
+        }
+        _setAccessControlManager(_newAccessControlAddress);
+        return uint(Error.NO_ERROR);
     }
 
     /**
      * @notice Accrues interest and reduces reserves by transferring to admin
-     * @param reduceAmount Amount of reduction to reserves
+     * @param _reduceAmount Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits ReservesReduced event
-    function _reduceReserves(uint reduceAmount) external nonReentrant returns (uint) {
+    function _reduceReserves(uint _reduceAmount) external nonReentrant returns (uint) {
         _checkAccessAllowed("_reduceReserves(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -243,7 +248,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
             return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
         }
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
-        return _reduceReservesFresh(reduceAmount);
+        return _reduceReservesFresh(_reduceAmount);
     }
 
     /**
@@ -511,10 +516,10 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
     /**
      * @notice Accrues interest and updates the interest rate model using _setInterestRateModelFresh
      * @dev Admin function to accrue interest and update the interest rate model
-     * @param newInterestRateModel The new interest rate model to use
+     * @param _newInterestRateModel The new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint) {
+    function _setInterestRateModel(InterestRateModel _newInterestRateModel) public returns (uint) {
         _checkAccessAllowed("_setInterestRateModel(address)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -522,7 +527,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
             return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
         }
         // _setInterestRateModelFresh emits interest-rate-model-update-specific logs on errors, so we don't need to.
-        return _setInterestRateModelFresh(newInterestRateModel);
+        return _setInterestRateModelFresh(_newInterestRateModel);
     }
 
     /**
@@ -1381,7 +1386,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
 
     /**
      * @notice Sets a new reserve factor for the protocol (requires fresh interest accrual)
-     * @dev Admin function to set a new reserve factor
+     * @dev Governance function to set a new reserve factor
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setReserveFactorFresh(uint newReserveFactorMantissa) internal returns (uint) {
@@ -1509,7 +1514,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
 
     /**
      * @notice updates the interest rate model (requires fresh interest accrual)
-     * @dev Admin function to update the interest rate model
+     * @dev Governance function to update the interest rate model
      * @param newInterestRateModel the new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
