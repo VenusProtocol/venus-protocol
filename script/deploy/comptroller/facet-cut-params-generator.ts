@@ -3,6 +3,11 @@ import { ethers } from "hardhat";
 
 import { FacetCutAction, getSelectors } from "../../../tests/hardhat/Comptroller/Diamond/scripts/diamond";
 
+/**
+ * This script is used to generate the cut-params which will be used in diamond proxy vip
+ * to add diamond facets
+ */
+
 // Insert the addresses of the deployed facets to generate thecut params according for the same.
 const facetsAddresses = {
   MarketFacet: "",
