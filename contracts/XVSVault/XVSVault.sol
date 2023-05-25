@@ -263,7 +263,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
         // Update Delegate Amount
-        if (address(pool.token) == address(xvsAddress)) {
+        if (address(pool.token) == xvsAddress) {
             _moveDelegates(address(0), delegates[msg.sender], uint96(_amount));
         }
 
@@ -462,7 +462,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
         // Update Delegate Amount
-        if (_rewardToken == address(xvsAddress)) {
+        if (address(pool.token) == xvsAddress) {
             _moveDelegates(delegates[msg.sender], address(0), uint96(_amount));
         }
 
