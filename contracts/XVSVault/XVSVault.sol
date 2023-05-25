@@ -825,6 +825,8 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
         address oldXvsContract = xvsAddress;
         address oldStore = xvsStore;
+        require(oldXvsContract == address(0), "already initialized");
+
         xvsAddress = _xvs;
         xvsStore = _xvsStore;
 

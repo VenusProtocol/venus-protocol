@@ -77,6 +77,10 @@ describe("XVSVault", async () => {
         "zero address not allowed",
       );
     });
+
+    it("fails if the vault is already initialized", async () => {
+      await expect(xvsVault.setXvsStore(xvs.address, xvsStore.address)).to.be.revertedWith("already initialized");
+    });
   });
 
   describe("add", async () => {
