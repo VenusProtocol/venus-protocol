@@ -281,7 +281,11 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
         _checkAccessAllowed("setLastAccruingBlock(uint256)");
         uint256 oldLastAccruingBlock = lastAccruingBlock;
         uint256 currentBlock = getBlockNumber();
-        if (_lastAccruingBlock < oldLastAccruingBlock) {
+        if (oldLastAccruingBlock != 0) {
+            require(currentBlock < oldLastAccruingBlock, "Cannot change at this point");
+        }
+        if (oldLastAccruingBlock == 0 || _lastAccruingBlock < oldLastAccruingBlock) {
+            // Must be in future
             require(currentBlock < _lastAccruingBlock, "Invalid _lastAccruingBlock interest have been accumulated");
         }
         lastAccruingBlock = _lastAccruingBlock;
