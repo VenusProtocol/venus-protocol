@@ -146,6 +146,7 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
     /**
      * @notice View function to see pending XVS on frontend
      * @param _user The user to see pending XVS
+     * @return Amount of XVS the user can claim
      */
     function pendingXVS(address _user) public view returns (uint256) {
         UserInfo storage user = userInfo[_user];
