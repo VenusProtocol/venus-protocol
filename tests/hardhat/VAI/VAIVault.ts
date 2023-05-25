@@ -1,4 +1,5 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import { ethers } from "hardhat";
@@ -7,25 +8,64 @@ import { VAI, VAIVault, VAIVault__factory, VAI__factory, XVS, XVS__factory } fro
 
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 
+interface VAIVaultFixture {
+  vaiVault: VAIVault;
+  vai: VAI;
+  xvs: XVS;
+  user1: SignerWithAddress;
+  user2: SignerWithAddress;
+}
+
+const deployVaultFixture = async (): Promise<VAIVaultFixture> => {
+  const [deployer, user1, user2] = await ethers.getSigners();
+
+  const VaiVaultFactory: VAIVault__factory = await ethers.getContractFactory("VAIVault");
+  const vaiVault: VAIVault = await VaiVaultFactory.deploy();
+
+  const vaiFactory: VAI__factory = await ethers.getContractFactory("VAI");
+  const vai: VAI = await vaiFactory.deploy(1);
+
+  const xvsFactory: XVS__factory = await ethers.getContractFactory("XVS");
+  const xvs: XVS = await xvsFactory.deploy(deployer.address);
+
+  return { vaiVault, vai, xvs, user1, user2 };
+};
+
 describe("VAIVault", async () => {
-  async function deployVaultFixture() {
-    const [deployer, user1, user2] = await ethers.getSigners();
+  let vaiVault: VAIVault;
+  let vai: VAI;
+  let xvs: XVS;
+  let user1: SignerWithAddress;
+  let user2: SignerWithAddress;
 
-    const VaiVaultFactory: VAIVault__factory = await ethers.getContractFactory("VAIVault");
-    const vaiVault: VAIVault = await VaiVaultFactory.deploy();
+  beforeEach(async () => {
+    ({ vaiVault, vai, xvs, user1, user2 } = await loadFixture(deployVaultFixture));
+  });
 
-    const vaiFactory: VAI__factory = await ethers.getContractFactory("VAI");
-    const vai: VAI = await vaiFactory.deploy(1);
+  describe("setVenusInfo", async () => {
+    it("fails if called by a non-admin", async () => {
+      await expect(vaiVault.connect(user1).setVenusInfo(xvs.address, vai.address)).to.be.revertedWith("only admin can");
+    });
 
-    const xvsFactory: XVS__factory = await ethers.getContractFactory("XVS");
-    const xvs: XVS = await xvsFactory.deploy(deployer.address);
+    it("fails if XVS address is zero", async () => {
+      await expect(vaiVault.setVenusInfo(constants.AddressZero, vai.address)).to.be.revertedWith(
+        "addresses must not be zero",
+      );
+    });
 
-    return { vaiVault, vai, xvs, user1, user2 };
-  }
+    it("fails if VAI address is zero", async () => {
+      await expect(vaiVault.setVenusInfo(xvs.address, constants.AddressZero)).to.be.revertedWith(
+        "addresses must not be zero",
+      );
+    });
 
-  it("claim reward", async function () {
-    const { vaiVault, vai, xvs, user1, user2 } = await loadFixture(deployVaultFixture);
+    it("disallows configuring tokens twice", async () => {
+      await vaiVault.setVenusInfo(xvs.address, vai.address);
+      await expect(vaiVault.setVenusInfo(xvs.address, vai.address)).to.be.revertedWith("addresses already set");
+    });
+  });
 
+  it("claim reward", async () => {
     await expect(vaiVault.setVenusInfo(constants.AddressZero, constants.AddressZero)).to.be.revertedWith(
       "addresses must not be zero",
     );

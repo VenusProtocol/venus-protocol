@@ -1,10 +1,10 @@
-import { smock } from "@defi-wonderland/smock";
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { BigNumber, Wallet } from "ethers";
+import { BigNumber, BigNumberish, Wallet } from "ethers";
 import { ethers } from "hardhat";
 
-import { XVS, XVSStore, XVSVaultScenario } from "../../../typechain";
+import { IERC20Upgradeable, XVS, XVSStore, XVSVaultScenario, XVSVaultScenario__factory } from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
@@ -14,16 +14,18 @@ const allocPoint = 100;
 const poolId = 0;
 
 interface XVSVaultFixture {
-  xvsVault: XVSVaultScenario;
+  xvsVault: MockContract<XVSVaultScenario>;
   xvs: XVS;
+  accessControl: FakeContract<IAccessControlManager>;
   xvsStore: XVSStore;
 }
 
 describe("XVSVault", async () => {
   let deployer: Wallet;
   let user: Wallet;
+  let xvsVault: MockContract<XVSVaultScenario>;
   let xvs: XVS;
-  let xvsVault: XVSVaultScenario;
+  let accessControl: FakeContract<IAccessControlManager>;
   let xvsStore: XVSStore;
 
   before("get signers", async () => {
@@ -37,18 +39,18 @@ describe("XVSVault", async () => {
     const xvsStoreFactory = await ethers.getContractFactory("XVSStore");
     xvsStore = (await xvsStoreFactory.deploy()) as XVSStore;
 
-    const xvsVaultFactory = await ethers.getContractFactory("XVSVaultScenario");
-    xvsVault = (await xvsVaultFactory.deploy()) as XVSVaultScenario;
+    const xvsVaultFactory = await smock.mock<XVSVaultScenario__factory>("XVSVaultScenario");
+    xvsVault = await xvsVaultFactory.deploy();
 
-    const accessControlMock = await smock.fake<IAccessControlManager>("AccessControlManager");
-    accessControlMock.isAllowedToCall.returns(true);
-    await xvsVault.connect(deployer).setAccessControl(accessControlMock.address);
+    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+    accessControl.isAllowedToCall.returns(true);
+    await xvsVault.connect(deployer).setAccessControl(accessControl.address);
 
-    return { xvsVault, xvs, xvsStore };
+    return { xvsVault, accessControl, xvs, xvsStore };
   }
 
   beforeEach("deploy and configure XVSVault contracts", async () => {
-    ({ xvsVault, xvs, xvsStore } = await loadFixture(deployXVSVaultFixture));
+    ({ xvsVault, xvs, accessControl, xvsStore } = await loadFixture(deployXVSVaultFixture));
 
     await xvsStore.setNewOwner(xvsVault.address);
     await xvsVault.setXvsStore(xvs.address, xvsStore.address);
@@ -58,6 +60,92 @@ describe("XVSVault", async () => {
     await xvsStore.setRewardToken(xvs.address, true);
 
     await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
+  });
+
+  describe("add", async () => {
+    let token: FakeContract<IERC20Upgradeable>;
+    let poolParams: [string, BigNumberish, string, BigNumberish, BigNumberish];
+
+    beforeEach(async () => {
+      token = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
+      poolParams = [token.address, 100, token.address, rewardPerBlock, lockPeriod];
+    });
+
+    it("reverts if ACM does not allow the call", async () => {
+      accessControl.isAllowedToCall.returns(false);
+      await expect(xvsVault.add(...poolParams)).to.be.revertedWith("Unauthorized");
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("reverts if xvsStore is not set", async () => {
+      xvsVault.setVariable("xvsStore", ethers.constants.AddressZero);
+      await expect(xvsVault.add(...poolParams)).to.be.revertedWith("Store contract addres is empty");
+    });
+
+    it("reverts if a pool with this (staked token, reward token) combination already exists", async () => {
+      await expect(xvsVault.add(xvs.address, 100, xvs.address, rewardPerBlock, lockPeriod)).to.be.revertedWith(
+        "Pool already added",
+      );
+    });
+
+    it("reverts if staked token exists in another pool", async () => {
+      await expect(xvsVault.add(token.address, 100, xvs.address, rewardPerBlock, lockPeriod)).to.be.revertedWith(
+        "Token exists in other pool",
+      );
+    });
+
+    it("emits PoolAdded event", async () => {
+      const tx = await xvsVault.add(token.address, 100, token.address, rewardPerBlock, lockPeriod);
+      await expect(tx)
+        .to.emit(xvsVault, "PoolAdded")
+        .withArgs(token.address, 0, token.address, 100, rewardPerBlock, lockPeriod);
+    });
+
+    it("adds a second pool to an existing rewardToken", async () => {
+      const tx = await xvsVault.add(xvs.address, 100, token.address, rewardPerBlock, lockPeriod);
+      const expectedPoolId = 1;
+      await expect(tx)
+        .to.emit(xvsVault, "PoolAdded")
+        .withArgs(xvs.address, expectedPoolId, token.address, 100, rewardPerBlock, lockPeriod);
+    });
+
+    it("sets pool info", async () => {
+      await xvsVault.add(token.address, 100, token.address, rewardPerBlock, lockPeriod);
+
+      const poolInfo = await xvsVault.poolInfos(token.address, 0);
+      expect(poolInfo.token).to.equal(token.address);
+      expect(poolInfo.allocPoint).to.equal("100");
+      expect(poolInfo.accRewardPerShare).to.equal("0");
+      expect(poolInfo.lockPeriod).to.equal(lockPeriod);
+    });
+
+    it("configures reward token in XVSStore", async () => {
+      await xvsVault.add(token.address, 100, token.address, rewardPerBlock, lockPeriod);
+      expect(await xvsStore.rewardTokens(token.address)).to.equal(true);
+    });
+  });
+
+  describe("setRewardAmountPerBlock", async () => {
+    it("reverts if ACM does not allow the call", async () => {
+      accessControl.isAllowedToCall.returns(false);
+      await expect(xvsVault.setRewardAmountPerBlock(xvs.address, 100)).to.be.revertedWith("Unauthorized");
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("reverts if the token is not configured in XVSStore", async () => {
+      await xvsStore.setRewardToken(xvs.address, false);
+      await expect(xvsVault.setRewardAmountPerBlock(xvs.address, 100)).to.be.revertedWith("Invalid reward token");
+    });
+
+    it("emits RewardAmountPerBlockUpdated event", async () => {
+      const tx = await xvsVault.setRewardAmountPerBlock(xvs.address, 111);
+      await expect(tx).to.emit(xvsVault, "RewardAmountUpdated").withArgs(xvs.address, rewardPerBlock, 111);
+    });
+
+    it("updates reward amount per block", async () => {
+      await xvsVault.setRewardAmountPerBlock(xvs.address, 111);
+      expect(await xvsVault.rewardTokenAmountsPerBlock(xvs.address)).to.equal(111);
+    });
   });
 
   it("check xvs balance", async () => {

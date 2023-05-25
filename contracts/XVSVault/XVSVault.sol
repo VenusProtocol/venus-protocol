@@ -13,6 +13,8 @@ interface IXVSStore {
     function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
 
     function setRewardToken(address _tokenAddress, bool status) external;
+
+    function rewardTokens(address _tokenAddress) external view returns (bool);
 }
 
 interface IXVSVaultProxy {
@@ -34,9 +36,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
     /// @notice Event emitted when request withrawal
     event RequestedWithdrawal(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
-
-    /// @notice Event emitted when admin changed
-    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
 
     /// @notice An event thats emitted when an account changes its delegate
     event DelegateChangedV2(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
@@ -149,8 +148,12 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
         uint256 length = poolInfo.length;
         for (uint256 pid = 0; pid < length; ++pid) {
-            require(poolInfo[pid].token != _token, "Error pool already added");
+            require(poolInfo[pid].token != _token, "Pool already added");
         }
+
+        // We use balanceOf to get the supply amount, so shouldn't be possible to
+        // configure pools with different reward token but the same staked token
+        require(!isStakedToken[address(_token)], "Token exists in other pool");
 
         totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken].add(_allocPoint);
 
@@ -165,6 +168,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
                 lockPeriod: _lockPeriod
             })
         );
+        isStakedToken[address(_token)] = true;
 
         IXVSStore(xvsStore).setRewardToken(_rewardToken, true);
 
@@ -188,6 +192,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     // Update the given reward token's amount per block
     function setRewardAmountPerBlock(address _rewardToken, uint256 _rewardAmount) external {
         _checkAccessAllowed("setRewardAmountPerBlock(address,uint256)");
+        require(IXVSStore(xvsStore).rewardTokens(_rewardToken), "Invalid reward token");
         massUpdatePools(_rewardToken);
         uint256 oldReward = rewardTokenAmountsPerBlock[_rewardToken];
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardAmount;
@@ -224,10 +229,12 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
             uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
                 user.rewardDebt
             );
-            IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
-            emit Claim(msg.sender, _rewardToken, _pid, pending);
+            if (pending > 0) {
+                IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+                emit Claim(msg.sender, _rewardToken, _pid, pending);
+            }
         }
-        pool.token.safeTransferFrom(address(msg.sender), address(this), _amount);
+        pool.token.safeTransferFrom(msg.sender, address(this), _amount);
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
@@ -352,6 +359,9 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
         (beforeUpgradeWithdrawalAmount, afterUpgradeWithdrawalAmount) = popEligibleWithdrawalRequests(user, requests);
         require(beforeUpgradeWithdrawalAmount > 0 || afterUpgradeWithdrawalAmount > 0, "nothing to withdraw");
+
+        // Having both old-style and new-style requests is not allowed and shouldn't be possible
+        require(beforeUpgradeWithdrawalAmount == 0 || afterUpgradeWithdrawalAmount == 0, "inconsistent state");
 
         if (beforeUpgradeWithdrawalAmount > 0) {
             _updatePool(_rewardToken, _pid);
@@ -745,21 +755,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
             }
         }
         return checkpoints[account][lower].votes;
-    }
-
-    /**
-     * @dev Returns the address of the current admin
-     */
-    function getAdmin() external view returns (address) {
-        return admin;
-    }
-
-    /**
-     * @dev Burn the current admin
-     */
-    function burnAdmin() external onlyAdmin {
-        emit AdminTransferred(admin, address(0));
-        admin = address(0);
     }
 
     /*** Admin Functions ***/
