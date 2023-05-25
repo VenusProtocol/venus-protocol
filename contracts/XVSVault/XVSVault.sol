@@ -534,7 +534,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][_user];
         uint256 accRewardPerShare = pool.accRewardPerShare;
-        uint256 supply = pool.token.balanceOf(address(this));
+        uint256 supply = pool.token.balanceOf(address(this)).sub(totalPendingWithdrawals[_rewardToken][_pid]);
         uint256 curBlockNumber = block.number;
         uint256 rewardTokenPerBlock = rewardTokenAmountsPerBlock[_rewardToken];
         if (curBlockNumber > pool.lastRewardBlock && supply != 0) {
@@ -544,7 +544,9 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
             );
             accRewardPerShare = accRewardPerShare.add(reward.mul(1e12).div(supply));
         }
-        return user.amount.mul(accRewardPerShare).div(1e12).sub(user.rewardDebt);
+        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][_user];
+        (, uint256 afterUpgradeWithdrawalAmount) = getRequestedWithdrawalAmount(requests);
+        return user.amount.sub(afterUpgradeWithdrawalAmount).mul(accRewardPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!

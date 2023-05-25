@@ -2,6 +2,7 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, BigNumberish, Wallet } from "ethers";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { IERC20Upgradeable, XVS, XVSStore, XVSVaultScenario, XVSVaultScenario__factory } from "../../../typechain";
@@ -145,6 +146,54 @@ describe("XVSVault", async () => {
     it("updates reward amount per block", async () => {
       await xvsVault.setRewardAmountPerBlock(xvs.address, 111);
       expect(await xvsVault.rewardTokenAmountsPerBlock(xvs.address)).to.equal(111);
+    });
+  });
+
+  describe("pendingReward", async () => {
+    it("includes the old withdrawal requests in the rewards computation", async () => {
+      const otherGuy = deployer;
+      const depositAmount = parseUnits("100", 18);
+      const requestedAmount = parseUnits("50", 18);
+
+      await xvs.connect(user).approve(xvsVault.address, depositAmount);
+      await xvs.connect(otherGuy).approve(xvsVault.address, depositAmount);
+
+      await ethers.provider.send("evm_setAutomine", [false]);
+      await xvsVault.connect(user).deposit(xvs.address, poolId, depositAmount);
+      await xvsVault.connect(otherGuy).deposit(xvs.address, poolId, depositAmount);
+
+      await mine();
+
+      await xvsVault.connect(user).requestOldWithdrawal(xvs.address, poolId, requestedAmount);
+
+      await mine(100);
+
+      const expectedUserShare = parseUnits("50", 18); // Half of the rewards
+      expect(await xvsVault.pendingReward(xvs.address, poolId, user.address)).to.equal(expectedUserShare);
+      await ethers.provider.send("evm_setAutomine", [true]);
+    });
+
+    it("excludes the new withdrawal requests from the rewards computation", async () => {
+      const otherGuy = deployer;
+      const depositAmount = parseUnits("100", 18);
+      const requestedAmount = parseUnits("50", 18);
+
+      await xvs.connect(user).approve(xvsVault.address, depositAmount);
+      await xvs.connect(otherGuy).approve(xvsVault.address, depositAmount);
+
+      await ethers.provider.send("evm_setAutomine", [false]);
+      await xvsVault.connect(user).deposit(xvs.address, poolId, depositAmount);
+      await xvsVault.connect(otherGuy).deposit(xvs.address, poolId, depositAmount);
+
+      await mine();
+
+      await xvsVault.connect(user).requestWithdrawal(xvs.address, poolId, requestedAmount);
+
+      await mine(100);
+
+      const expectedUserShare = parseUnits("33", 18); // 1/3 of the rewards
+      expect(await xvsVault.pendingReward(xvs.address, poolId, user.address)).to.equal(expectedUserShare);
+      await ethers.provider.send("evm_setAutomine", [true]);
     });
   });
 
