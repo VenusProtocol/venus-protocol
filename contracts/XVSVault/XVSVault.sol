@@ -150,7 +150,9 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         uint256 _lockPeriod
     ) external {
         _checkAccessAllowed("add(address,uint256,address,uint256,uint256)");
-        require(address(xvsStore) != address(0), "Store contract addres is empty");
+        _ensureNonzeroAddress(_rewardToken);
+        _ensureNonzeroAddress(address(_token));
+        require(address(xvsStore) != address(0), "Store contract address is empty");
 
         massUpdatePools(_rewardToken);
 
@@ -818,6 +820,9 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     }
 
     function setXvsStore(address _xvs, address _xvsStore) external onlyAdmin {
+        _ensureNonzeroAddress(_xvs);
+        _ensureNonzeroAddress(_xvsStore);
+
         address oldXvsContract = xvsAddress;
         address oldStore = xvsStore;
         xvsAddress = _xvs;
@@ -835,5 +840,13 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      */
     function setAccessControl(address newAccessControlAddress) external onlyAdmin {
         _setAccessControlManager(newAccessControlAddress);
+    }
+
+    /**
+     * @dev Reverts if the provided address is a zero address
+     * @param address_ Address to check
+     */
+    function _ensureNonzeroAddress(address address_) internal pure {
+        require(address_ != address(0), "zero address not allowed");
     }
 }

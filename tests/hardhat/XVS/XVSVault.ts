@@ -63,6 +63,22 @@ describe("XVSVault", async () => {
     await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
   });
 
+  describe("setXvsStore", async () => {
+    it("fails if XVS is a zero address", async () => {
+      ({ xvsVault, xvsStore } = await loadFixture(deployXVSVaultFixture));
+      await expect(xvsVault.setXvsStore(ethers.constants.AddressZero, xvsStore.address)).to.be.revertedWith(
+        "zero address not allowed",
+      );
+    });
+
+    it("fails if XVSStore is a zero address", async () => {
+      ({ xvsVault, xvs } = await loadFixture(deployXVSVaultFixture));
+      await expect(xvsVault.setXvsStore(xvs.address, ethers.constants.AddressZero)).to.be.revertedWith(
+        "zero address not allowed",
+      );
+    });
+  });
+
   describe("add", async () => {
     let token: FakeContract<IERC20Upgradeable>;
     let poolParams: [string, BigNumberish, string, BigNumberish, BigNumberish];
@@ -80,7 +96,7 @@ describe("XVSVault", async () => {
 
     it("reverts if xvsStore is not set", async () => {
       xvsVault.setVariable("xvsStore", ethers.constants.AddressZero);
-      await expect(xvsVault.add(...poolParams)).to.be.revertedWith("Store contract addres is empty");
+      await expect(xvsVault.add(...poolParams)).to.be.revertedWith("Store contract address is empty");
     });
 
     it("reverts if a pool with this (staked token, reward token) combination already exists", async () => {
@@ -93,6 +109,18 @@ describe("XVSVault", async () => {
       await expect(xvsVault.add(token.address, 100, xvs.address, rewardPerBlock, lockPeriod)).to.be.revertedWith(
         "Token exists in other pool",
       );
+    });
+
+    it("reverts if reward token is a zero address", async () => {
+      await expect(
+        xvsVault.add(ethers.constants.AddressZero, 100, xvs.address, rewardPerBlock, lockPeriod),
+      ).to.be.revertedWith("zero address not allowed");
+    });
+
+    it("reverts if staked token is a zero address", async () => {
+      await expect(
+        xvsVault.add(xvs.address, 100, ethers.constants.AddressZero, rewardPerBlock, lockPeriod),
+      ).to.be.revertedWith("zero address not allowed");
     });
 
     it("emits PoolAdded event", async () => {
