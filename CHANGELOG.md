@@ -1,3 +1,33 @@
+## [3.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v2.1.0-dev.1...v3.0.0-dev.1) (2023-05-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* [XVSVault-1] remove burnAdmin and getAdmin
+* [VAIVault-7] remove getAdmin
+* [VAIVault-5] remove setNewAdmin
+* [VAIVault-2] remove burnAdmin
+
+### Features
+
+* [VAIVault-2] remove burnAdmin ([cc46efa](https://github.com/VenusProtocol/venus-protocol/commit/cc46efac3e06db507c49ba891b76851dfd69f7c3))
+* [VAIVault-5] remove setNewAdmin ([c2779f0](https://github.com/VenusProtocol/venus-protocol/commit/c2779f0c87b9da7bf7f62f09026f93a3e49c78a7))
+* [VAIVault-7] remove getAdmin ([3551342](https://github.com/VenusProtocol/venus-protocol/commit/3551342205ce0752452fd0437e7dba1c0ea74c31))
+* [XVSVault-1] remove burnAdmin and getAdmin ([734201b](https://github.com/VenusProtocol/venus-protocol/commit/734201b06e1655f9a0ba36760d16823659db7bd8))
+
+
+### Bug Fixes
+
+* [VAIVault-1] disallow re-configuring token addresses in VAIVault ([53d1156](https://github.com/VenusProtocol/venus-protocol/commit/53d11560f8a836b999b76405f3842757ebb6fb82))
+* [XVSVault-2] disallow adding two pools with the same staked token ([4404d27](https://github.com/VenusProtocol/venus-protocol/commit/4404d27c57d40bea97320a86437ba662e26b85ec))
+* [XVSVault-4.1] check that reward token is configured in XVSStore ([8e715b2](https://github.com/VenusProtocol/venus-protocol/commit/8e715b26da6e6f5e6075ca8686f78ae92de5af21))
+* remove the word Error from error message ([41e8623](https://github.com/VenusProtocol/venus-protocol/commit/41e86237965a19757d7c568bbe78cdccd57904f6))
+
+
+### Performance Improvements
+
+* [XVSVault-4.2] pay out pending only if the amount is nonzero ([31dc837](https://github.com/VenusProtocol/venus-protocol/commit/31dc837fa59fb25976c6f861f8a8513422eca319))
+
 ## [2.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v2.0.1...v2.1.0-dev.1) (2023-05-12)
 
 
