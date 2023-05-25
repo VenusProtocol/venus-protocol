@@ -264,7 +264,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
         // Update Delegate Amount
         if (address(pool.token) == xvsAddress) {
-            _moveDelegates(address(0), delegates[msg.sender], uint96(_amount));
+            _moveDelegates(address(0), delegates[msg.sender], safe96(_amount, "XVSVault::deposit: votes overflow"));
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
@@ -463,7 +463,11 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
         // Update Delegate Amount
         if (address(pool.token) == xvsAddress) {
-            _moveDelegates(delegates[msg.sender], address(0), uint96(_amount));
+            _moveDelegates(
+                delegates[msg.sender],
+                address(0),
+                safe96(_amount, "XVSVault::requestWithdrawal: votes overflow")
+            );
         }
 
         emit Claim(msg.sender, _rewardToken, _pid, pending);
@@ -644,7 +648,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         for (uint256 pid = 0; pid < length; ++pid) {
             if (address(poolInfo[pid].token) == address(xvsAddress)) {
                 UserInfo storage user = userInfos[xvsAddress][pid][account];
-                return uint96(user.amount.sub(user.pendingWithdrawals));
+                return safe96(user.amount.sub(user.pendingWithdrawals), "XVSVault::getStakeAmount: votes overflow");
             }
         }
         return uint96(0);
