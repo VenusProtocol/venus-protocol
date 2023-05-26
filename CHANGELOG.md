@@ -1,3 +1,16 @@
+## [3.0.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.1...v3.0.0-dev.2) (2023-05-26)
+
+
+### Bug Fixes
+
+* [QS-12] fix pending reward computation in XVSVault ([8d547ac](https://github.com/VenusProtocol/venus-protocol/commit/8d547ac656c33618125733e00d4ae237a16b82be))
+* [QS-19] validate addresses in XVSVault ([9048e50](https://github.com/VenusProtocol/venus-protocol/commit/9048e507043aac4c488220401da1bfb61434a449))
+* [QS-2] use safe96 to compute voting power ([1be65cc](https://github.com/VenusProtocol/venus-protocol/commit/1be65cc5362ee7717fb2eddacf761becb754d382))
+* [QS-3] update voting power based on staked token ([bad686c](https://github.com/VenusProtocol/venus-protocol/commit/bad686c0ebd7c24e6f13cd7115a521c2a436bed2))
+* [QS-4][QS-25] restrict setting lastAccruingBlock ([b0a896c](https://github.com/VenusProtocol/venus-protocol/commit/b0a896c88bef287c6a58e1fe51aa63e8cb4f2dab))
+* [QS-5][QS-6] update pending reward upon user interactions ([49db8b4](https://github.com/VenusProtocol/venus-protocol/commit/49db8b4151768ec3fb76c429386f0e544572ee03))
+* [QS-7][QS-8] disable initializer in XVSVault ([c02ccb8](https://github.com/VenusProtocol/venus-protocol/commit/c02ccb8e0bad620ede890c9bf411f98d2c2e8e75))
+
 ## [3.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v2.1.0-dev.1...v3.0.0-dev.1) (2023-05-25)
 
 
