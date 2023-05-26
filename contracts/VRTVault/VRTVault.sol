@@ -161,6 +161,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     /**
      * @notice get accruedInterest of the user's VRTDeposits in the Vault
      * @param userAddress Address of User in the the Vault
+     * @return The interest accrued, in VRT
      */
     function getAccruedInterest(
         address userAddress
@@ -177,6 +178,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
      * @notice get accruedInterest of the user's VRTDeposits in the Vault
      * @param totalPrincipalAmount of the User
      * @param accrualStartBlockNumber of the User
+     * @return The interest accrued, in VRT
      */
     function computeAccruedInterest(
         uint256 totalPrincipalAmount,
@@ -193,7 +195,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
             return 0;
         }
 
-        //number of blocks Since Deposit
+        // Number of blocks since deposit
         uint256 blockDelta = blockNumber.sub(accrualStartBlockNumber);
         uint256 accruedInterest = (totalPrincipalAmount.mul(interestRatePerBlock).mul(blockDelta)).div(1e18);
         return accruedInterest;
@@ -279,7 +281,11 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
         _checkAccessAllowed("setLastAccruingBlock(uint256)");
         uint256 oldLastAccruingBlock = lastAccruingBlock;
         uint256 currentBlock = getBlockNumber();
-        if (_lastAccruingBlock < oldLastAccruingBlock) {
+        if (oldLastAccruingBlock != 0) {
+            require(currentBlock < oldLastAccruingBlock, "Cannot change at this point");
+        }
+        if (oldLastAccruingBlock == 0 || _lastAccruingBlock < oldLastAccruingBlock) {
+            // Must be in future
             require(currentBlock < _lastAccruingBlock, "Invalid _lastAccruingBlock interest have been accumulated");
         }
         lastAccruingBlock = _lastAccruingBlock;

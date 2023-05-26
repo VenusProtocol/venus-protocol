@@ -2,6 +2,7 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, BigNumberish, Wallet } from "ethers";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { IERC20Upgradeable, XVS, XVSStore, XVSVaultScenario, XVSVaultScenario__factory } from "../../../typechain";
@@ -62,6 +63,26 @@ describe("XVSVault", async () => {
     await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
   });
 
+  describe("setXvsStore", async () => {
+    it("fails if XVS is a zero address", async () => {
+      ({ xvsVault, xvsStore } = await loadFixture(deployXVSVaultFixture));
+      await expect(xvsVault.setXvsStore(ethers.constants.AddressZero, xvsStore.address)).to.be.revertedWith(
+        "zero address not allowed",
+      );
+    });
+
+    it("fails if XVSStore is a zero address", async () => {
+      ({ xvsVault, xvs } = await loadFixture(deployXVSVaultFixture));
+      await expect(xvsVault.setXvsStore(xvs.address, ethers.constants.AddressZero)).to.be.revertedWith(
+        "zero address not allowed",
+      );
+    });
+
+    it("fails if the vault is already initialized", async () => {
+      await expect(xvsVault.setXvsStore(xvs.address, xvsStore.address)).to.be.revertedWith("already initialized");
+    });
+  });
+
   describe("add", async () => {
     let token: FakeContract<IERC20Upgradeable>;
     let poolParams: [string, BigNumberish, string, BigNumberish, BigNumberish];
@@ -79,7 +100,7 @@ describe("XVSVault", async () => {
 
     it("reverts if xvsStore is not set", async () => {
       xvsVault.setVariable("xvsStore", ethers.constants.AddressZero);
-      await expect(xvsVault.add(...poolParams)).to.be.revertedWith("Store contract addres is empty");
+      await expect(xvsVault.add(...poolParams)).to.be.revertedWith("Store contract address is empty");
     });
 
     it("reverts if a pool with this (staked token, reward token) combination already exists", async () => {
@@ -92,6 +113,18 @@ describe("XVSVault", async () => {
       await expect(xvsVault.add(token.address, 100, xvs.address, rewardPerBlock, lockPeriod)).to.be.revertedWith(
         "Token exists in other pool",
       );
+    });
+
+    it("reverts if reward token is a zero address", async () => {
+      await expect(
+        xvsVault.add(ethers.constants.AddressZero, 100, xvs.address, rewardPerBlock, lockPeriod),
+      ).to.be.revertedWith("zero address not allowed");
+    });
+
+    it("reverts if staked token is a zero address", async () => {
+      await expect(
+        xvsVault.add(xvs.address, 100, ethers.constants.AddressZero, rewardPerBlock, lockPeriod),
+      ).to.be.revertedWith("zero address not allowed");
     });
 
     it("emits PoolAdded event", async () => {
@@ -145,6 +178,54 @@ describe("XVSVault", async () => {
     it("updates reward amount per block", async () => {
       await xvsVault.setRewardAmountPerBlock(xvs.address, 111);
       expect(await xvsVault.rewardTokenAmountsPerBlock(xvs.address)).to.equal(111);
+    });
+  });
+
+  describe("pendingReward", async () => {
+    it("includes the old withdrawal requests in the rewards computation", async () => {
+      const otherGuy = deployer;
+      const depositAmount = parseUnits("100", 18);
+      const requestedAmount = parseUnits("50", 18);
+
+      await xvs.connect(user).approve(xvsVault.address, depositAmount);
+      await xvs.connect(otherGuy).approve(xvsVault.address, depositAmount);
+
+      await ethers.provider.send("evm_setAutomine", [false]);
+      await xvsVault.connect(user).deposit(xvs.address, poolId, depositAmount);
+      await xvsVault.connect(otherGuy).deposit(xvs.address, poolId, depositAmount);
+
+      await mine();
+
+      await xvsVault.connect(user).requestOldWithdrawal(xvs.address, poolId, requestedAmount);
+
+      await mine(100);
+
+      const expectedUserShare = parseUnits("50", 18); // Half of the rewards
+      expect(await xvsVault.pendingReward(xvs.address, poolId, user.address)).to.equal(expectedUserShare);
+      await ethers.provider.send("evm_setAutomine", [true]);
+    });
+
+    it("excludes the new withdrawal requests from the rewards computation", async () => {
+      const otherGuy = deployer;
+      const depositAmount = parseUnits("100", 18);
+      const requestedAmount = parseUnits("50", 18);
+
+      await xvs.connect(user).approve(xvsVault.address, depositAmount);
+      await xvs.connect(otherGuy).approve(xvsVault.address, depositAmount);
+
+      await ethers.provider.send("evm_setAutomine", [false]);
+      await xvsVault.connect(user).deposit(xvs.address, poolId, depositAmount);
+      await xvsVault.connect(otherGuy).deposit(xvs.address, poolId, depositAmount);
+
+      await mine();
+
+      await xvsVault.connect(user).requestWithdrawal(xvs.address, poolId, requestedAmount);
+
+      await mine(100);
+
+      const expectedUserShare = parseUnits("33", 18); // 1/3 of the rewards
+      expect(await xvsVault.pendingReward(xvs.address, poolId, user.address)).to.equal(expectedUserShare);
+      await ethers.provider.send("evm_setAutomine", [true]);
     });
   });
 

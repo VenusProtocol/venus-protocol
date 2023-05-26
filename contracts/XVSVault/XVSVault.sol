@@ -121,16 +121,26 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         emit VaultResumed(msg.sender);
     }
 
+    /**
+     * @notice Returns the number of pools with the specified reward token
+     * @param rewardToken Reward token address
+     * @return Number of pools that distribute the specified token as a reward
+     */
     function poolLength(address rewardToken) external view returns (uint256) {
         return poolInfos[rewardToken].length;
     }
 
     /**
-     * @notice Add a new token pool. Can only be called by the admin.
+     * @notice Add a new token pool
      * @dev This vault DOES NOT support deflationary tokens — it expects that
      *   the amount of transferred tokens would equal the actually deposited
      *   amount. In practice this means that this vault DOES NOT support USDT
      *   and similar tokens (that do not provide these guarantees).
+     * @param _rewardToken Reward token address
+     * @param _allocPoint Number of allocation points assigned to this pool
+     * @param _token Staked token
+     * @param _rewardPerBlock Initial reward per block, in terms of _rewardToken
+     * @param _lockPeriod A period between withdrawal request and a moment when it's executable
      */
     function add(
         address _rewardToken,
@@ -140,7 +150,9 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         uint256 _lockPeriod
     ) external {
         _checkAccessAllowed("add(address,uint256,address,uint256,uint256)");
-        require(address(xvsStore) != address(0), "Store contract addres is empty");
+        _ensureNonzeroAddress(_rewardToken);
+        _ensureNonzeroAddress(address(_token));
+        require(address(xvsStore) != address(0), "Store contract address is empty");
 
         massUpdatePools(_rewardToken);
 
@@ -175,7 +187,12 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         emit PoolAdded(_rewardToken, poolInfo.length - 1, address(_token), _allocPoint, _rewardPerBlock, _lockPeriod);
     }
 
-    // Update the given pool's reward allocation point. Can only be called by the admin.
+    /**
+     * @notice Update the given pool's reward allocation point
+     * @param _rewardToken Reward token address
+     * @param _pid Pool index
+     * @param _allocPoint Number of allocation points assigned to this pool
+     */
     function set(address _rewardToken, uint256 _pid, uint256 _allocPoint) external {
         _checkAccessAllowed("set(address,uint256,uint256)");
         _ensureValidPool(_rewardToken, _pid);
@@ -189,7 +206,11 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         emit PoolUpdated(_rewardToken, _pid, oldAllocPoints, _allocPoint);
     }
 
-    // Update the given reward token's amount per block
+    /**
+     * @notice Update the given reward token's amount per block
+     * @param _rewardToken Reward token address
+     * @param _rewardAmount Number of allocation points assigned to this pool
+     */
     function setRewardAmountPerBlock(address _rewardToken, uint256 _rewardAmount) external {
         _checkAccessAllowed("setRewardAmountPerBlock(address,uint256)");
         require(IXVSStore(xvsStore).rewardTokens(_rewardToken), "Invalid reward token");
@@ -200,7 +221,12 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         emit RewardAmountUpdated(_rewardToken, oldReward, _rewardAmount);
     }
 
-    // Update the given reward token's amount per block
+    /**
+     * @notice Update the lock period after which a requested withdrawal can be executed
+     * @param _rewardToken Reward token address
+     * @param _pid Pool index
+     * @param _newPeriod New lock period
+     */
     function setWithdrawalLockingPeriod(address _rewardToken, uint256 _pid, uint256 _newPeriod) external {
         _checkAccessAllowed("setWithdrawalLockingPeriod(address,uint256,uint256)");
         _ensureValidPool(_rewardToken, _pid);
@@ -239,8 +265,8 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
         // Update Delegate Amount
-        if (address(pool.token) == address(xvsAddress)) {
-            _moveDelegates(address(0), delegates[msg.sender], uint96(_amount));
+        if (address(pool.token) == xvsAddress) {
+            _moveDelegates(address(0), delegates[msg.sender], safe96(_amount, "XVSVault::deposit: votes overflow"));
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
@@ -409,7 +435,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @notice Request withdrawal to XVSVault for XVS allocation
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
-     * @param _amount The amount to withdraw to vault
+     * @param _amount The amount to withdraw from the vault
      */
     function requestWithdrawal(address _rewardToken, uint256 _pid, uint256 _amount) external nonReentrant isActive {
         _ensureValidPool(_rewardToken, _pid);
@@ -438,8 +464,12 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
 
         // Update Delegate Amount
-        if (_rewardToken == address(xvsAddress)) {
-            _moveDelegates(delegates[msg.sender], address(0), uint96(_amount));
+        if (address(pool.token) == xvsAddress) {
+            _moveDelegates(
+                delegates[msg.sender],
+                address(0),
+                safe96(_amount, "XVSVault::requestWithdrawal: votes overflow")
+            );
         }
 
         emit Claim(msg.sender, _rewardToken, _pid, pending);
@@ -451,6 +481,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _user The User Address
+     * @return withdrawalAmount Amount that the user can withdraw
      */
     function getEligibleWithdrawalAmount(
         address _rewardToken,
@@ -473,6 +504,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _user The User Address
+     * @return Total amount of requested but not yet executed withdrawals (including both executable and locked ones)
      */
     function getRequestedAmount(address _rewardToken, uint256 _pid, address _user) external view returns (uint256) {
         _ensureValidPool(_rewardToken, _pid);
@@ -485,6 +517,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _user The User Address
+     * @return An array of withdrawal requests
      */
     function getWithdrawalRequests(
         address _rewardToken,
@@ -495,13 +528,19 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         return withdrawalRequests[_rewardToken][_pid][_user];
     }
 
-    // View function to see pending XVSs on frontend.
+    /**
+     * @notice View function to see pending XVSs on frontend
+     * @param _rewardToken Reward token address
+     * @param _pid Pool index
+     * @param _user User address
+     * @return Reward the user is eligible for in this pool, in terms of _rewardToken
+     */
     function pendingReward(address _rewardToken, uint256 _pid, address _user) external view returns (uint256) {
         _ensureValidPool(_rewardToken, _pid);
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][_user];
         uint256 accRewardPerShare = pool.accRewardPerShare;
-        uint256 supply = pool.token.balanceOf(address(this));
+        uint256 supply = pool.token.balanceOf(address(this)).sub(totalPendingWithdrawals[_rewardToken][_pid]);
         uint256 curBlockNumber = block.number;
         uint256 rewardTokenPerBlock = rewardTokenAmountsPerBlock[_rewardToken];
         if (curBlockNumber > pool.lastRewardBlock && supply != 0) {
@@ -511,10 +550,12 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
             );
             accRewardPerShare = accRewardPerShare.add(reward.mul(1e12).div(supply));
         }
-        return user.amount.mul(accRewardPerShare).div(1e12).sub(user.rewardDebt);
+        WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][_user];
+        (, uint256 afterUpgradeWithdrawalAmount) = getRequestedWithdrawalAmount(requests);
+        return user.amount.sub(afterUpgradeWithdrawalAmount).mul(accRewardPerShare).div(1e12).sub(user.rewardDebt);
     }
 
-    // Update reward vairables for all pools. Be careful of gas spending!
+    // Update reward variables for all pools. Be careful of gas spending!
     function massUpdatePools(address _rewardToken) internal {
         uint256 length = poolInfos[_rewardToken].length;
         for (uint256 pid = 0; pid < length; ++pid) {
@@ -522,6 +563,11 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         }
     }
 
+    /**
+     * @notice Update reward variables of the given pool to be up-to-date
+     * @param _rewardToken Reward token address
+     * @param _pid Pool index
+     */
     function updatePool(address _rewardToken, uint256 _pid) external isActive {
         _ensureValidPool(_rewardToken, _pid);
         _updatePool(_rewardToken, _pid);
@@ -552,7 +598,15 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         require(pid < poolInfos[rewardToken].length, "vault: pool exists?");
     }
 
-    // Get user info with reward token address and pid
+    /**
+     * @notice Get user info with reward token address and pid
+     * @param _rewardToken Reward token address
+     * @param _pid Pool index
+     * @param _user User address
+     * @return amount Deposited amount
+     * @return rewardDebt Reward debt (technical value used to track past payouts)
+     * @return pendingWithdrawals Requested but not yet executed withdrawals
+     */
     function getUserInfo(
         address _rewardToken,
         uint256 _pid,
@@ -570,6 +624,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _user The address of the user
+     * @return beforeUpgradeWithdrawalAmount Total pending withdrawal amount in requests made before the vault upgrade
      */
     function pendingWithdrawalsBeforeUpgrade(
         address _rewardToken,
@@ -595,7 +650,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         for (uint256 pid = 0; pid < length; ++pid) {
             if (address(poolInfo[pid].token) == address(xvsAddress)) {
                 UserInfo storage user = userInfos[xvsAddress][pid][account];
-                return uint96(user.amount.sub(user.pendingWithdrawals));
+                return safe96(user.amount.sub(user.pendingWithdrawals), "XVSVault::getStakeAmount: votes overflow");
             }
         }
         return uint96(0);
@@ -765,8 +820,13 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     }
 
     function setXvsStore(address _xvs, address _xvsStore) external onlyAdmin {
+        _ensureNonzeroAddress(_xvs);
+        _ensureNonzeroAddress(_xvsStore);
+
         address oldXvsContract = xvsAddress;
         address oldStore = xvsStore;
+        require(oldXvsContract == address(0), "already initialized");
+
         xvsAddress = _xvs;
         xvsStore = _xvsStore;
 
@@ -782,5 +842,13 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      */
     function setAccessControl(address newAccessControlAddress) external onlyAdmin {
         _setAccessControlManager(newAccessControlAddress);
+    }
+
+    /**
+     * @dev Reverts if the provided address is a zero address
+     * @param address_ Address to check
+     */
+    function _ensureNonzeroAddress(address address_) internal pure {
+        require(address_ != address(0), "zero address not allowed");
     }
 }
