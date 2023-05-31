@@ -40,7 +40,7 @@ describe("admin / _setPendingAdmin / _acceptAdmin", () => {
 
   describe("_setPendingAdmin()", () => {
     it("should only be callable by admin", async () => {
-      expect(await unitroller.connect(accounts[0])._setPendingAdmin(await accounts[0].getAddress()))
+      await expect(await unitroller.connect(accounts[0])._setPendingAdmin(await accounts[0].getAddress()))
         .to.emit(unitroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.UNAUTHORIZED,
@@ -71,13 +71,13 @@ describe("admin / _setPendingAdmin / _acceptAdmin", () => {
 
     it("should emit event", async () => {
       const result = await unitroller._setPendingAdmin(await accounts[0].getAddress());
-      expect(result).to.emit(unitroller, "NewPendingAdmin").withArgs(constants.AddressZero, constants.AddressZero);
+      await expect(result).to.emit(unitroller, "NewPendingAdmin").withArgs(constants.AddressZero, constants.AddressZero);
     });
   });
 
   describe("_acceptAdmin()", () => {
     it("should fail when pending admin is zero", async () => {
-      expect(await unitroller._acceptAdmin())
+      await expect(await unitroller._acceptAdmin())
         .to.emit(unitroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.UNAUTHORIZED,
@@ -91,7 +91,7 @@ describe("admin / _setPendingAdmin / _acceptAdmin", () => {
 
     it("should fail when called by another account (e.g. root)", async () => {
       expect(await unitroller._setPendingAdmin(await accounts[0].getAddress())); //.toSucceed();
-      expect(await unitroller._acceptAdmin())
+      await expect(await unitroller._acceptAdmin())
         .to.emit(unitroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.UNAUTHORIZED,
@@ -115,10 +115,10 @@ describe("admin / _setPendingAdmin / _acceptAdmin", () => {
     it("should emit log on success", async () => {
       expect(await unitroller._setPendingAdmin(await accounts[0].getAddress())); //..toSucceed();
       const result = await unitroller.connect(accounts[0])._acceptAdmin();
-      expect(result)
+      await expect(result)
         .to.emit(unitroller, "NewAdmin")
         .withArgs(await root.getAddress(), await accounts[0].getAddress());
-      expect(result)
+      await expect(result)
         .to.emit(unitroller, "NewPendingAdmin")
         .withArgs(await accounts[0].getAddress(), constants.AddressZero);
     });

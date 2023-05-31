@@ -2,7 +2,6 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { BigNumberish, constants } from "ethers";
-import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
 import {
@@ -50,7 +49,7 @@ describe("Comptroller", () => {
     vTokenCollateral: FakeContract<VBep20Immutable>;
   };
 
-  async function setOraclePrice(vToken: FakeContract<VBep20Immutable>, price: BigNumberish) {
+  function setOraclePrice(vToken: FakeContract<VBep20Immutable>, price: BigNumberish) {
     oracle.getUnderlyingPrice.whenCalledWith(vToken.address).returns(price);
   }
 
@@ -121,7 +120,6 @@ describe("Comptroller", () => {
 
     it("reverts if it fails to calculate the exchange rate", async () => {
       vTokenCollateral.exchangeRateStored.reverts("exchangeRateStored: exchangeRateStoredInternal failed");
-      ethers.provider.getBlockNumber();
       /// TODO: Somehow the error message does not get propagated into the resulting tx. Smock bug?
       await expect(
         comptroller.liquidateCalculateSeizeTokens(vTokenBorrowed.address, vTokenCollateral.address, repayAmount),

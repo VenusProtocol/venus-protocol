@@ -60,7 +60,7 @@ describe("Unitroller", () => {
       });
 
       it("emits a failure log", async () => {
-        expect(result)
+        await expect(result)
           .to.emit(unitroller, "Failure")
           .withArgs(
             ComptrollerErrorReporter.Error.UNAUTHORIZED,
@@ -80,7 +80,7 @@ describe("Unitroller", () => {
       });
 
       it("emits NewPendingImplementation event", async () => {
-        expect(await unitroller._setPendingImplementation(brains.address))
+        await expect(await unitroller._setPendingImplementation(brains.address))
           .to.emit(unitroller, "NewPendingImplementation")
           .withArgs(constants.AddressZero, brains.address);
       });
@@ -96,7 +96,7 @@ describe("Unitroller", () => {
       });
 
       it("emits a failure log", async () => {
-        expect(result)
+        await expect(result)
           .to.emit(unitroller, "Failure")
           .withArgs(
             ComptrollerErrorReporter.Error.UNAUTHORIZED,
@@ -126,22 +126,13 @@ describe("Unitroller", () => {
       });
 
       it("Emit NewImplementation(oldImplementation, newImplementation)", async () => {
-        expect(result)
+        await expect(result)
           .to.emit(unitroller, "NewImplementation")
           .withArgs(brains.address, "0x0000000000000000000000000000000000000000");
-        // TODO:
-        // Does our log decoder expect it to come from the same contract?
-        // assert.toHaveLog(
-        //   result,
-        //   "NewImplementation",
-        //   {
-        //     newImplementation: brains.address,
-        //     oldImplementation: "0x0000000000000000000000000000000000000000"
-        //   });
       });
 
       it("Emit NewPendingImplementation(oldPendingImplementation, 0)", async () => {
-        expect(result)
+        await expect(result)
           .to.emit(unitroller, "NewPendingImplementation")
           .withArgs(brains.address, "0x0000000000000000000000000000000000000000");
       });

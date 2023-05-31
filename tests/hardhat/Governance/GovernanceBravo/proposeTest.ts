@@ -224,7 +224,7 @@ describe("Governor Bravo Propose Tests", () => {
       const proposeStartBlock = currentBlockNumber + proposalConfigs[2].votingDelay;
       const proposeEndBlock = proposeStartBlock + proposalConfigs[2].votingPeriod;
 
-      expect(
+      await expect(
         await governorBravoDelegate
           .connect(customer)
           .propose(targets, values, signatures, callDatas, "second proposal", ProposalType.CRITICAL),

@@ -91,7 +91,7 @@ describe("Comptroller", () => {
       expect(await comptroller.callStatic._setLiquidationIncentive(validIncentive)).to.equal(
         ComptrollerErrorReporter.Error.NO_ERROR,
       );
-      expect(await comptroller._setLiquidationIncentive(validIncentive))
+      await expect(await comptroller._setLiquidationIncentive(validIncentive))
         .to.emit(comptroller, "NewLiquidationIncentive")
         .withArgs(initialIncentive, validIncentive);
       expect(await comptroller.liquidationIncentiveMantissa()).to.equal(validIncentive);
@@ -149,7 +149,7 @@ describe("Comptroller", () => {
     });
 
     it("accepts a valid price oracle and emits a NewPriceOracle event", async () => {
-      expect(await comptroller._setPriceOracle(newOracle.address))
+      await expect(await comptroller._setPriceOracle(newOracle.address))
         .to.emit(comptroller, "NewPriceOracle")
         .withArgs(oracle.address, newOracle.address);
       expect(await comptroller.oracle()).to.equal(newOracle.address);
@@ -186,7 +186,7 @@ describe("Comptroller", () => {
     it("should fire an event", async () => {
       const { comptroller, comptrollerLens } = await loadFixture(deploy);
       const oldComptrollerLensAddress = await comptroller.comptrollerLens();
-      expect(await comptroller._setComptrollerLens(comptrollerLens.address))
+      await expect(await comptroller._setComptrollerLens(comptrollerLens.address))
         .to.emit(comptroller, "NewComptrollerLens")
         .withArgs(oldComptrollerLensAddress, comptrollerLens.address);
     });
@@ -232,7 +232,7 @@ describe("Comptroller", () => {
     it("fails if factor is set without an underlying price", async () => {
       await comptroller._supportMarket(vToken.address);
       oracle.getUnderlyingPrice.returns(0);
-      expect(await comptroller._setCollateralFactor(vToken.address, half))
+      await expect(await comptroller._setCollateralFactor(vToken.address, half))
         .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.PRICE_ERROR,
@@ -242,7 +242,7 @@ describe("Comptroller", () => {
 
     it("succeeds and sets market", async () => {
       await comptroller._supportMarket(vToken.address);
-      expect(await comptroller._setCollateralFactor(vToken.address, half))
+      await expect(await comptroller._setCollateralFactor(vToken.address, half))
         .to.emit(comptroller, "NewCollateralFactor")
         .withArgs(vToken.address, "0", half);
     });
@@ -281,7 +281,7 @@ describe("Comptroller", () => {
     });
 
     it("succeeds and sets market", async () => {
-      expect(await comptroller._supportMarket(vToken1.address))
+      await expect(await comptroller._supportMarket(vToken1.address))
         .to.emit(comptroller, "MarketListed")
         .withArgs(vToken1.address);
     });
@@ -289,8 +289,8 @@ describe("Comptroller", () => {
     it("cannot list a market a second time", async () => {
       const tx1 = await comptroller._supportMarket(vToken1.address);
       const tx2 = await comptroller._supportMarket(vToken1.address);
-      expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
-      expect(tx2)
+      await expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
+      await expect(tx2)
         .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.MARKET_ALREADY_LISTED,
@@ -301,8 +301,8 @@ describe("Comptroller", () => {
     it("can list two different markets", async () => {
       const tx1 = await comptroller._supportMarket(vToken1.address);
       const tx2 = await comptroller._supportMarket(vToken2.address);
-      expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
-      expect(tx2).to.emit(comptroller, "MarketListed").withArgs(vToken2.address);
+      await expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
+      await expect(tx2).to.emit(comptroller, "MarketListed").withArgs(vToken2.address);
     });
   });
 

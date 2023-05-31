@@ -108,7 +108,7 @@ describe("assetListTest", () => {
       expect(tokenReply).to.equal(expectedErrors_[i]);
     });
 
-    expect(receipt).to.emit(comptroller, "MarketEntered");
+    await expect(receipt).to.emit(comptroller, "MarketEntered");
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
 
     await checkMarkets(expectedTokens);
@@ -140,7 +140,7 @@ describe("assetListTest", () => {
     it("properly emits events", async () => {
       const tx1 = await enterAndCheckMarkets([OMG], [OMG]);
       const tx2 = await enterAndCheckMarkets([OMG], [OMG]);
-      expect(tx1).to.emit(comptroller, "MarketEntered").withArgs(OMG.address, customer);
+      await expect(tx1).to.emit(comptroller, "MarketEntered").withArgs(OMG.address, customer);
       expect((await tx2.wait()).events).to.be.empty;
     });
 

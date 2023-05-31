@@ -456,7 +456,7 @@ describe("VAIController", async () => {
   describe("#setBaseRate", async () => {
     it("fails if access control does not allow the call", async () => {
       accessControl.isAllowedToCall.whenCalledWith(user1.address, "setBaseRate(uint256)").returns(false);
-      expect(vaiController.setBaseRate(42)).to.be.revertedWith("access denied");
+      await expect(vaiController.setBaseRate(42)).to.be.revertedWith("access denied");
     });
 
     it("emits NewVAIBaseRate event", async () => {
@@ -473,7 +473,7 @@ describe("VAIController", async () => {
   describe("#setFloatRate", async () => {
     it("fails if access control does not allow the call", async () => {
       accessControl.isAllowedToCall.whenCalledWith(user1.address, "setFloatRate(uint256)").returns(false);
-      expect(vaiController.setFloatRate(42)).to.be.revertedWith("access denied");
+      await expect(vaiController.setFloatRate(42)).to.be.revertedWith("access denied");
     });
 
     it("emits NewVAIFloatRate event", async () => {
@@ -490,7 +490,7 @@ describe("VAIController", async () => {
   describe("#setMintCap", async () => {
     it("fails if access control does not allow the call", async () => {
       accessControl.isAllowedToCall.whenCalledWith(user1.address, "setMintCap(uint256)").returns(false);
-      expect(vaiController.setMintCap(42)).to.be.revertedWith("access denied");
+      await expect(vaiController.setMintCap(42)).to.be.revertedWith("access denied");
     });
 
     it("emits NewVAIMintCap event", async () => {
@@ -506,11 +506,11 @@ describe("VAIController", async () => {
 
   describe("#setReceiver", async () => {
     it("fails if called by a non-admin", async () => {
-      expect(vaiController.connect(user1).setReceiver(user1.address)).to.be.revertedWith("only admin can");
+      await expect(vaiController.connect(user1).setReceiver(user1.address)).to.be.revertedWith("only admin can");
     });
 
     it("reverts if the receiver is zero address", async () => {
-      expect(vaiController.setReceiver(constants.AddressZero)).to.be.revertedWith("invalid receiver address");
+      await expect(vaiController.setReceiver(constants.AddressZero)).to.be.revertedWith("invalid receiver address");
     });
 
     it("emits NewVAIReceiver event", async () => {
@@ -526,11 +526,11 @@ describe("VAIController", async () => {
 
   describe("#setAccessControl", async () => {
     it("reverts if called by non-admin", async () => {
-      expect(vaiController.connect(user1).setAccessControl(accessControl.address)).to.be.revertedWith("only admin can");
+      await expect(vaiController.connect(user1).setAccessControl(accessControl.address)).to.be.revertedWith("only admin can");
     });
 
     it("reverts if ACM is zero address", async () => {
-      expect(vaiController.setAccessControl(constants.AddressZero)).to.be.revertedWith("can't be zero address");
+      await expect(vaiController.setAccessControl(constants.AddressZero)).to.be.revertedWith("can't be zero address");
     });
 
     it("emits NewAccessControl event", async () => {
