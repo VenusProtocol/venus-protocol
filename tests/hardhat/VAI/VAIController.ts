@@ -455,7 +455,7 @@ describe("VAIController", async () => {
 
   describe("#setBaseRate", async () => {
     it("fails if access control does not allow the call", async () => {
-      accessControl.isAllowedToCall.whenCalledWith(user1.address, "setBaseRate(uint256)").returns(false);
+      accessControl.isAllowedToCall.whenCalledWith(wallet.address, "setBaseRate(uint256)").returns(false);
       await expect(vaiController.setBaseRate(42)).to.be.revertedWith("access denied");
     });
 
@@ -472,7 +472,7 @@ describe("VAIController", async () => {
 
   describe("#setFloatRate", async () => {
     it("fails if access control does not allow the call", async () => {
-      accessControl.isAllowedToCall.whenCalledWith(user1.address, "setFloatRate(uint256)").returns(false);
+      accessControl.isAllowedToCall.whenCalledWith(wallet.address, "setFloatRate(uint256)").returns(false);
       await expect(vaiController.setFloatRate(42)).to.be.revertedWith("access denied");
     });
 
@@ -489,7 +489,7 @@ describe("VAIController", async () => {
 
   describe("#setMintCap", async () => {
     it("fails if access control does not allow the call", async () => {
-      accessControl.isAllowedToCall.whenCalledWith(user1.address, "setMintCap(uint256)").returns(false);
+      accessControl.isAllowedToCall.whenCalledWith(wallet.address, "setMintCap(uint256)").returns(false);
       await expect(vaiController.setMintCap(42)).to.be.revertedWith("access denied");
     });
 
@@ -526,7 +526,9 @@ describe("VAIController", async () => {
 
   describe("#setAccessControl", async () => {
     it("reverts if called by non-admin", async () => {
-      await expect(vaiController.connect(user1).setAccessControl(accessControl.address)).to.be.revertedWith("only admin can");
+      await expect(vaiController.connect(user1).setAccessControl(accessControl.address)).to.be.revertedWith(
+        "only admin can",
+      );
     });
 
     it("reverts if ACM is zero address", async () => {
