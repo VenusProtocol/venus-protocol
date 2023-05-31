@@ -1,7 +1,8 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { BigNumber, Signer } from "ethers";
+import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../../helpers/utils";
@@ -13,9 +14,9 @@ chai.use(smock.matchers);
 
 const { encodeParameters } = require("../../../Utils/BSC");
 
-let root: Signer;
-let customer: Signer;
-let accounts: Signer[];
+let root: SignerWithAddress;
+let customer: SignerWithAddress;
+let accounts: SignerWithAddress[];
 let governorBravoDelegate: MockContract<GovernorBravoDelegate>;
 let xvsVault: FakeContract<XVSVault>;
 let xvsToken: FakeContract<XVS>;
@@ -58,21 +59,20 @@ const proposalConfigs = {
 };
 
 let targets: any[], values: string | any[], signatures: string | any[], callDatas: string | any[];
+
 describe("Governor Bravo Propose Tests", () => {
-  let rootAddress: string;
   let proposalId: BigNumber;
   let trivialProposal: any;
   let proposalBlock: number;
   beforeEach(async () => {
     [root, customer, ...accounts] = await ethers.getSigners();
-    rootAddress = await root.getAddress();
-    targets = [rootAddress];
+    targets = [root.address];
     values = ["0"];
     signatures = ["getBalanceOf(address)"];
-    callDatas = [encodeParameters(["address"], [rootAddress])];
+    callDatas = [encodeParameters(["address"], [root.address])];
     const contracts = await loadFixture(governorBravoFixture);
     ({ governorBravoDelegate, xvsVault, xvsToken } = contracts);
-    await governorBravoDelegate.setVariable("admin", await root.getAddress());
+    await governorBravoDelegate.setVariable("admin", root.address);
     await governorBravoDelegate.setVariable("initialProposalId", 1);
     await governorBravoDelegate.setVariable("proposalCount", 1);
     await governorBravoDelegate.setVariable("xvsVault", xvsVault.address);
@@ -82,16 +82,17 @@ describe("Governor Bravo Propose Tests", () => {
     await governorBravoDelegate.setVariable("proposalConfigs", proposalConfigs);
     await governorBravoDelegate.propose(targets, values, signatures, callDatas, "do nothing", ProposalType.CRITICAL);
     proposalBlock = (await ethers.provider.getBlock("latest")).number;
-    proposalId = await governorBravoDelegate.latestProposalIds(rootAddress);
+    proposalId = await governorBravoDelegate.latestProposalIds(root.address);
     trivialProposal = await governorBravoDelegate.proposals(proposalId);
   });
+
   describe("simple initialization", () => {
     it("ID is set to a globally unique identifier", async () => {
       expect(trivialProposal.id).to.equal(proposalId);
     });
 
     it("Proposer is set to the sender", async () => {
-      expect(trivialProposal.proposer).to.equal(rootAddress);
+      expect(trivialProposal.proposer).to.equal(root.address);
     });
 
     it("Start block is set to the current block number plus vote delay", async () => {
@@ -120,7 +121,7 @@ describe("Governor Bravo Propose Tests", () => {
 
     it("Targets, Values, Signatures, Calldatas are set according to parameters", async () => {
       const dynamicFields = await governorBravoDelegate.getActions(trivialProposal.id);
-      expect(dynamicFields.targets).to.deep.equal([rootAddress]);
+      expect(dynamicFields.targets).to.deep.equal([root.address]);
       // values cannot be get with .values since it is reserved word and returns function
       expect(dynamicFields[1]).to.deep.equal(values);
       expect(dynamicFields.signatures).to.deep.equal(signatures);
@@ -131,7 +132,7 @@ describe("Governor Bravo Propose Tests", () => {
       it("the length of the values, signatures or calldatas arrays are not the same length,", async () => {
         await expect(
           governorBravoDelegate.propose(
-            targets.concat(rootAddress),
+            targets.concat(root.address),
             values,
             signatures,
             callDatas,
@@ -143,7 +144,7 @@ describe("Governor Bravo Propose Tests", () => {
         await expect(
           governorBravoDelegate.propose(
             targets,
-            values.concat(rootAddress.toString()),
+            values.concat(root.address.toString()),
             signatures,
             callDatas,
             "do nothing",
@@ -155,7 +156,7 @@ describe("Governor Bravo Propose Tests", () => {
           governorBravoDelegate.propose(
             targets,
             values,
-            signatures.concat(rootAddress.toString()),
+            signatures.concat(root.address.toString()),
             callDatas,
             "do nothing",
             ProposalType.CRITICAL,
@@ -164,7 +165,7 @@ describe("Governor Bravo Propose Tests", () => {
 
         await expect(
           governorBravoDelegate.propose(
-            targets.concat(rootAddress.toString()),
+            targets.concat(root.address.toString()),
             values,
             signatures,
             callDatas,
@@ -208,7 +209,7 @@ describe("Governor Bravo Propose Tests", () => {
         .connect(customer)
         .propose(targets, values, signatures, callDatas, "yoot", ProposalType.CRITICAL);
 
-      const nextProposalId = await governorBravoDelegate.latestProposalIds(await customer.getAddress());
+      const nextProposalId = await governorBravoDelegate.latestProposalIds(customer.address);
       expect(+nextProposalId).to.be.equal(+trivialProposal.id + 1);
     });
 
@@ -218,10 +219,11 @@ describe("Governor Bravo Propose Tests", () => {
         .connect(accounts[3])
         .propose(targets, values, signatures, callDatas, "yoot", ProposalType.CRITICAL);
 
-      const nextProposalId = await governorBravoDelegate.latestProposalIds(await customer.getAddress());
+      const lastProposalId = await governorBravoDelegate.latestProposalIds(accounts[3].address);
+      const nextProposalId = lastProposalId.add(1);
 
-      const currentBlockNumber = (await ethers.provider.getBlock("latest")).number;
-      const proposeStartBlock = currentBlockNumber + proposalConfigs[2].votingDelay;
+      const submissionBlockNumber = (await ethers.provider.getBlock("latest")).number + 1;
+      const proposeStartBlock = submissionBlockNumber + proposalConfigs[2].votingDelay;
       const proposeEndBlock = proposeStartBlock + proposalConfigs[2].votingPeriod;
 
       await expect(
@@ -232,6 +234,7 @@ describe("Governor Bravo Propose Tests", () => {
         .to.emit(governorBravoDelegate, "ProposalCreated")
         .withArgs(
           nextProposalId,
+          customer.address,
           targets,
           values,
           signatures,
@@ -239,7 +242,7 @@ describe("Governor Bravo Propose Tests", () => {
           proposeStartBlock,
           proposeEndBlock,
           "second proposal",
-          customer,
+          ProposalType.CRITICAL,
         );
     });
   });
