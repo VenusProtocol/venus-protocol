@@ -286,6 +286,21 @@ describe("XVSVault", async () => {
 
       expect(currentUserInfo.amount).to.equal(previousUserInfo.amount.add(depositAmount));
     });
+
+    it("uses the safe _transferReward under the hood", async () => {
+      const initialStoreBalance = parseUnits("500", 18);
+      await xvs.connect(deployer).transfer(xvsStore.address, initialStoreBalance);
+      await xvs.approve(xvsVault.address, depositAmount);
+      await xvsVault.deposit(xvs.address, poolId, depositAmount);
+
+      await mine(1000);
+
+      const expectedReward = parseUnits("1001", 18);
+      const expectedDebt = expectedReward.sub(parseUnits("500", 18)); // 501 XVS
+      const tx = await xvsVault.deposit(xvs.address, poolId, 0);
+      await expect(tx).to.changeTokenBalance(xvs, deployer.address, initialStoreBalance);
+      await expect(tx).to.emit(xvsVault, "VaultDebtUpdated").withArgs(xvs.address, deployer.address, 0, expectedDebt);
+    });
   });
 
   describe("executeWithdrawal", async () => {
@@ -391,6 +406,21 @@ describe("XVSVault", async () => {
       );
     });
 
+    it("uses the safe _transferReward under the hood", async () => {
+      const initialStoreBalance = parseUnits("500", 18);
+      await xvs.connect(deployer).transfer(xvsStore.address, initialStoreBalance);
+      await xvs.approve(xvsVault.address, depositAmount);
+      await xvsVault.deposit(xvs.address, poolId, depositAmount);
+
+      await mine(1000);
+
+      const expectedReward = parseUnits("1001", 18);
+      const expectedDebt = expectedReward.sub(parseUnits("500", 18)); // 501 XVS
+      const tx = await xvsVault.requestWithdrawal(xvs.address, poolId, depositAmount);
+      await expect(tx).to.changeTokenBalance(xvs, deployer.address, initialStoreBalance);
+      await expect(tx).to.emit(xvsVault, "VaultDebtUpdated").withArgs(xvs.address, deployer.address, 0, expectedDebt);
+    });
+
     it("fails if there's a pre-upgrade withdrawal request", async () => {
       await xvs.approve(xvsVault.address, depositAmount);
       await xvsVault.deposit(xvs.address, poolId, depositAmount);
@@ -404,9 +434,10 @@ describe("XVSVault", async () => {
 
   describe("claim", async () => {
     const depositAmount = parseUnits("100", 18);
+    const initialStoreBalance = parseUnits("10000", 18);
 
     beforeEach(async () => {
-      await xvs.connect(deployer).transfer(xvsStore.address, parseUnits("10000", 18));
+      await xvs.connect(deployer).transfer(xvsStore.address, initialStoreBalance);
       await xvs.approve(xvsVault.address, depositAmount);
       await xvsVault.deposit(xvs.address, poolId, depositAmount);
       await mine(1000);
@@ -465,6 +496,110 @@ describe("XVSVault", async () => {
         deployer.address,
         rewardForPreviousBlocks.add(rewardForNewBlocks),
       );
+    });
+
+    it("uses the safe _transferReward under the hood", async () => {
+      await mine(9005); // 1000 in before hook + 9005 here + 1 block for claim = 10006 blocks total
+      const expectedReward = parseUnits("10006", 18);
+      const expectedDebt = expectedReward.sub(initialStoreBalance); // 6 XVS
+      const tx = await xvsVault.claim(deployer.address, xvs.address, poolId);
+      await expect(tx).to.changeTokenBalance(xvs, deployer.address, initialStoreBalance);
+      await expect(tx).to.emit(xvsVault, "VaultDebtUpdated").withArgs(xvs.address, deployer.address, 0, expectedDebt);
+    });
+  });
+
+  describe("_transferReward", async () => {
+    const initialStoreBalance = parseUnits("333", 18);
+    const initialDepositAmount = parseUnits("100", 18);
+
+    beforeEach(async () => {
+      await xvs.connect(deployer).transfer(xvsStore.address, initialStoreBalance);
+      await xvs.approve(xvsVault.address, initialDepositAmount);
+      await xvsVault.deposit(xvs.address, poolId, initialDepositAmount);
+    });
+
+    it("sends the available funds to the user", async () => {
+      const reward = parseUnits("1001", 18);
+      await expect(xvsVault.transferReward(xvs.address, deployer.address, reward)).to.changeTokenBalance(
+        xvs,
+        deployer.address,
+        initialStoreBalance,
+      );
+    });
+
+    it("emits VaultDebtUpdated event if vault debt is updated", async () => {
+      const reward = parseUnits("1001", 18);
+      const expectedDebt = reward.sub(initialStoreBalance);
+      const tx = await xvsVault.transferReward(xvs.address, deployer.address, reward);
+      await expect(tx).to.emit(xvsVault, "VaultDebtUpdated").withArgs(xvs.address, deployer.address, 0, expectedDebt);
+    });
+
+    it("does not emit VaultDebtUpdated event if vault debt is not updated", async () => {
+      const tx = await xvsVault.transferReward(xvs.address, deployer.address, initialStoreBalance);
+      await expect(tx).to.not.emit(xvsVault, "VaultDebtUpdated");
+      expect(await xvsVault.pendingRewardTransfers(xvs.address, deployer.address)).to.equal(0);
+    });
+
+    it("records the pending transfer", async () => {
+      const reward = parseUnits("1001", 18);
+      const expectedDebt = reward.sub(initialStoreBalance);
+      await xvsVault.transferReward(xvs.address, deployer.address, reward);
+      expect(await xvsVault.pendingRewardTransfers(xvs.address, deployer.address)).to.equal(expectedDebt);
+    });
+
+    it("records several pending transfers", async () => {
+      const reward1 = parseUnits("1001", 18);
+      const tx1 = await xvsVault.transferReward(xvs.address, deployer.address, reward1);
+      const expectedDebt1 = reward1.sub(initialStoreBalance);
+      await expect(tx1).to.emit(xvsVault, "VaultDebtUpdated").withArgs(xvs.address, deployer.address, 0, expectedDebt1);
+      expect(await xvsVault.pendingRewardTransfers(xvs.address, deployer.address)).to.equal(expectedDebt1);
+
+      const reward2 = parseUnits("5001", 18);
+      const tx2 = await xvsVault.transferReward(xvs.address, deployer.address, reward2);
+      const expectedDebt2 = expectedDebt1.add(reward2);
+      await expect(tx2)
+        .to.emit(xvsVault, "VaultDebtUpdated")
+        .withArgs(xvs.address, deployer.address, expectedDebt1, expectedDebt2);
+      expect(await xvsVault.pendingRewardTransfers(xvs.address, deployer.address)).to.equal(expectedDebt2);
+    });
+
+    it("sends out the pending transfers in addition to reward if full amount <= funds available", async () => {
+      const reward1 = parseUnits("1001", 18);
+      await xvsVault.transferReward(xvs.address, deployer.address, reward1);
+      const reward2 = parseUnits("5001", 18);
+      await xvsVault.transferReward(xvs.address, deployer.address, reward2);
+
+      const expectedDebt = reward1.add(reward2).sub(initialStoreBalance);
+      const reward3 = parseUnits("222", 18);
+      const debtWithReward = expectedDebt.add(reward3);
+
+      expect(await xvsVault.pendingRewardTransfers(xvs.address, deployer.address)).to.equal(expectedDebt);
+      // Add money to the store
+      await xvs.connect(deployer).transfer(xvsStore.address, debtWithReward);
+      const tx = await xvsVault.transferReward(xvs.address, deployer.address, reward3);
+      await expect(tx).to.changeTokenBalance(xvs, deployer.address, debtWithReward);
+      await expect(tx).to.emit(xvsVault, "VaultDebtUpdated").withArgs(xvs.address, deployer.address, expectedDebt, 0);
+      expect(await xvsVault.pendingRewardTransfers(xvs.address, deployer.address)).to.equal(0);
+    });
+
+    it("sends a part of the pending transfers and reward if full amount > funds available", async () => {
+      const reward1 = parseUnits("1001", 18);
+      await xvsVault.transferReward(xvs.address, deployer.address, reward1);
+      const reward2 = parseUnits("5001", 18);
+      await xvsVault.transferReward(xvs.address, deployer.address, reward2);
+
+      const oldDebt = reward1.add(reward2).sub(initialStoreBalance);
+      const reward3 = parseUnits("222", 18);
+      const newDebt = parseUnits("11", 18);
+
+      // Add money to the store
+      const transferredAmount = oldDebt.add(reward3).sub(newDebt);
+      await xvs.connect(deployer).transfer(xvsStore.address, transferredAmount);
+
+      const tx = await xvsVault.transferReward(xvs.address, deployer.address, reward3);
+      await expect(tx).to.emit(xvsVault, "VaultDebtUpdated").withArgs(xvs.address, deployer.address, oldDebt, newDebt);
+      await expect(tx).to.changeTokenBalance(xvs, deployer.address, transferredAmount);
+      expect(await xvsVault.pendingRewardTransfers(xvs.address, deployer.address)).to.equal(newDebt);
     });
   });
 
