@@ -125,7 +125,7 @@ describe("Governor Bravo State Tests", () => {
     expect(await governorBravoDelegate.state(newProposalId)).to.equal(ProposalState.Canceled);
   });
   it("Canceled by Guardian", async () => {
-    governorBravoDelegate.setVariable("guardian", rootAddress);
+    await governorBravoDelegate.setVariable("guardian", rootAddress);
     await governorBravoDelegate
       .connect(customer)
       .propose(targets, values, signatures, calldatas, "do nothing", ProposalType.CRITICAL);

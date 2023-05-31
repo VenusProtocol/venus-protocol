@@ -150,7 +150,7 @@ describe("XVSVault", async () => {
       const withdrawalAmount = formatEther(amountDifference.add(reward));
       const balanceDifference = formatEther(BigNumber.from(balanceAfter).sub(BigNumber.from(balanceBefore)));
 
-      expect(tx)
+      await expect(tx)
         .to.emit(xvsVault, "ExecutedWithdrawal")
         .withArgs(affectedUserAddress, tokenAddress, poolId, Number(balanceDifference).toFixed(2));
       expect(Number(withdrawalAmount).toFixed(2)).equals(Number(balanceDifference).toFixed(2));
