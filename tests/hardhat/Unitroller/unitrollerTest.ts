@@ -1,7 +1,8 @@
 import { MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { ContractTransaction, Signer, constants } from "ethers";
+import { ContractTransaction, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import {
@@ -18,8 +19,8 @@ const { expect } = chai;
 chai.use(smock.matchers);
 
 describe("Unitroller", () => {
-  let root: Signer;
-  let accounts: Signer[];
+  let root: SignerWithAddress;
+  let accounts: SignerWithAddress[];
   let unitroller: MockContract<Unitroller>;
   let brains: MockContract<Comptroller>;
 
@@ -38,14 +39,14 @@ describe("Unitroller", () => {
 
   async function setPending<Impl extends { address: string }>(
     implementation: Impl,
-    from: Signer,
+    from: SignerWithAddress,
   ): Promise<ContractTransaction> {
     return unitroller.connect(from)._setPendingImplementation(implementation.address);
   }
 
   describe("constructor", () => {
     it("sets admin to caller and addresses to 0", async () => {
-      expect(await unitroller.admin()).to.equal(await root.getAddress());
+      expect(await unitroller.admin()).to.equal(root.address);
       expect(await unitroller.pendingAdmin()).to.equal(constants.AddressZero);
       expect(await unitroller.pendingComptrollerImplementation()).to.equal(constants.AddressZero);
       expect(await unitroller.comptrollerImplementation()).to.equal(constants.AddressZero);
@@ -65,6 +66,7 @@ describe("Unitroller", () => {
           .withArgs(
             ComptrollerErrorReporter.Error.UNAUTHORIZED,
             ComptrollerErrorReporter.FailureInfo.SET_PENDING_IMPLEMENTATION_OWNER_CHECK,
+            0,
           );
       });
 
@@ -101,6 +103,7 @@ describe("Unitroller", () => {
           .withArgs(
             ComptrollerErrorReporter.Error.UNAUTHORIZED,
             ComptrollerErrorReporter.FailureInfo.ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK,
+            0,
           );
       });
 
@@ -126,15 +129,13 @@ describe("Unitroller", () => {
       });
 
       it("Emit NewImplementation(oldImplementation, newImplementation)", async () => {
-        await expect(result)
-          .to.emit(unitroller, "NewImplementation")
-          .withArgs(brains.address, "0x0000000000000000000000000000000000000000");
+        await expect(result).to.emit(unitroller, "NewImplementation").withArgs(constants.AddressZero, brains.address);
       });
 
       it("Emit NewPendingImplementation(oldPendingImplementation, 0)", async () => {
         await expect(result)
           .to.emit(unitroller, "NewPendingImplementation")
-          .withArgs(brains.address, "0x0000000000000000000000000000000000000000");
+          .withArgs(brains.address, constants.AddressZero);
       });
     });
 
