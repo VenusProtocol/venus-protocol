@@ -25,7 +25,9 @@ describe("Comptroller", () => {
 
   describe("_setAccessControlManager", () => {
     it("Reverts if called by non-admin", async () => {
-      await expect(comptroller.connect(user)._setAccessControl(accessControl.address)).to.be.revertedWith("only admin can");
+      await expect(comptroller.connect(user)._setAccessControl(accessControl.address)).to.be.revertedWith(
+        "only admin can",
+      );
     });
 
     it("Reverts if ACM is zero address", async () => {

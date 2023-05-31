@@ -288,7 +288,7 @@ describe("VAIController", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
 
       const TEMP_BLOCKS_PER_YEAR = 100000;
-      vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
+      await vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
 
       await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
