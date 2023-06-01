@@ -607,8 +607,8 @@ describe("Swap Contract", () => {
     let token;
     let accounts;
     let userAddress;
-    let TOTAL_SUPPLY = 100000000;
-    let SWEEP_AMOUNT = 1000;
+    const TOTAL_SUPPLY = 100000000;
+    const SWEEP_AMOUNT = 1000;
 
     beforeEach(async () => {
       accounts = await ethers.getSigners();
