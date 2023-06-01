@@ -28,6 +28,7 @@ import {
 const { expect } = chai;
 chai.use(smock.matchers);
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const SWAP_AMOUNT = parseUnits("100", 18);
 const MIN_AMOUNT_OUT = parseUnits("80", 18);
 const DEFAULT_RESERVE = parseUnits("1000", 18);
@@ -603,23 +604,33 @@ describe("Swap Contract", () => {
   });
 
   describe("Sweep Token", async () => {
-    it("Sweep ERC-20 tokens", async () => {
-      const accounts = await ethers.getSigners();
-      const userAddress = await accounts[0].getAddress();
+    let token;
+    let accounts;
+    let userAddress;
+    let TOTAL_SUPPLY = 100000000;
+    let SWEEP_AMOUNT = 1000;
 
-      const sweepAmount = 1000;
-      const totalSupply = 100000000;
+    beforeEach(async () => {
+      accounts = await ethers.getSigners();
+      userAddress = await accounts[0].getAddress();
 
       const Bep20Factory = await smock.mock<BEP20Harness__factory>("BEP20Harness");
-      const token = await Bep20Factory.deploy(totalSupply, "sweep", 4, "SWP");
+      token = await Bep20Factory.deploy(TOTAL_SUPPLY, "sweep", 4, "SWP");
+    });
 
+    it("Should be reverted if get zero address", async () => {
+      await expect(swapRouter.sweepToken(token.address, ZERO_ADDRESS, SWEEP_AMOUNT)).to.be.reverted;
+    });
+
+    it("Sweep ERC-20 tokens", async () => {
       await token.transfer(swapRouter.address, 1000);
-      expect(await token.balanceOf(swapRouter.address)).equal(sweepAmount);
-      expect(await token.balanceOf(userAddress)).equal(totalSupply - sweepAmount);
+      expect(await token.balanceOf(swapRouter.address)).equal(SWEEP_AMOUNT);
+      expect(await token.balanceOf(userAddress)).equal(TOTAL_SUPPLY - SWEEP_AMOUNT);
 
-      await swapRouter.sweepToken(token.address, userAddress, sweepAmount);
+      await swapRouter.sweepToken(token.address, userAddress, SWEEP_AMOUNT);
+
       expect(await token.balanceOf(swapRouter.address)).equal(0);
-      expect(await token.balanceOf(userAddress)).equal(totalSupply);
+      expect(await token.balanceOf(userAddress)).equal(TOTAL_SUPPLY);
     });
   });
 });
