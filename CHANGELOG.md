@@ -1,3 +1,10 @@
+## [3.0.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.2...v3.0.0-dev.3) (2023-06-01)
+
+
+### Features
+
+* handle insufficient rewards case ([78c9731](https://github.com/VenusProtocol/venus-protocol/commit/78c97315c0850b9fe429e8475a66642ab04f2f4b))
+
 ## [3.0.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.1...v3.0.0-dev.2) (2023-05-26)
 
 
