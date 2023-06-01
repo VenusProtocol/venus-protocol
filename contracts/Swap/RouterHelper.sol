@@ -270,7 +270,7 @@ abstract contract RouterHelper is IRouterHelper {
         uint256 amountA,
         uint256 reserveA,
         uint256 reserveB
-    ) public pure virtual override returns (uint256 amountB) {
+    ) external pure virtual override returns (uint256 amountB) {
         return PancakeLibrary.quote(amountA, reserveA, reserveB);
     }
 
@@ -278,7 +278,7 @@ abstract contract RouterHelper is IRouterHelper {
         uint256 amountIn,
         uint256 reserveIn,
         uint256 reserveOut
-    ) public pure virtual override returns (uint256 amountOut) {
+    ) external pure virtual override returns (uint256 amountOut) {
         return PancakeLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
     }
 
@@ -286,21 +286,21 @@ abstract contract RouterHelper is IRouterHelper {
         uint256 amountOut,
         uint256 reserveIn,
         uint256 reserveOut
-    ) public pure virtual override returns (uint256 amountIn) {
+    ) external pure virtual override returns (uint256 amountIn) {
         return PancakeLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
     function getAmountsOut(
         uint256 amountIn,
         address[] memory path
-    ) public view virtual override returns (uint256[] memory amounts) {
+    ) external view virtual override returns (uint256[] memory amounts) {
         return PancakeLibrary.getAmountsOut(factory, amountIn, path);
     }
 
     function getAmountsIn(
         uint256 amountOut,
         address[] memory path
-    ) public view virtual override returns (uint256[] memory amounts) {
+    ) external view virtual override returns (uint256[] memory amounts) {
         return PancakeLibrary.getAmountsIn(factory, amountOut, path);
     }
 }
