@@ -1,7 +1,7 @@
 import { impersonateAccount, reset } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Signer } from "ethers";
-import { formatEther } from "ethers/lib/utils";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { XVSVaultProxy__factory, XVSVault__factory, XVS__factory } from "../../../typechain";
@@ -14,7 +14,7 @@ const poolId = 0;
 // Address of the vault proxy
 const vaultProxy = "0x051100480289e704d20e9DB4804837068f3f9204";
 // User who has multiple withdraw requests and affected because of afterUpgrade parameter in struct
-const affectedUserAddress = "0xddbc1841be23b2ab55501deb4d6bc39e3f8aa2d7";
+const affectedUserAddress = "0xddbc1841BE23b2ab55501Deb4d6bc39E3f8AA2d7";
 // User who has single withdraw request, partially affected.
 const affectedUserAddress2 = "0x3c7ea3ae7c47bd817c63c47e9ecee89452471a9e";
 // User who has single withdraw request, partially affected.
@@ -24,7 +24,7 @@ const vaultUser = "0xc09a9a0533a0b247c8bb672b2d37cd2c58394768";
 // Address of vault owner
 const Owner = "0x1c2cac6ec528c20800b2fe734820d87b581eaa6b";
 // Address of reward token
-const tokenAddress = "0xcf6bb5389c92bdda8a3747ddb454cb7a64626c63";
+const tokenAddress = "0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63";
 // Address of xvs token contract
 const xvsAddress = "0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63";
 let admin: Signer;
@@ -137,23 +137,25 @@ describe("XVSVault", async () => {
       const beforeUpgradeResult = await xvsVault.getUserInfo(tokenAddress, poolId, affectedUserAddress);
       const poolInfo = await xvsVault.poolInfos(tokenAddress, 0);
       const poolShare = poolInfo[3];
-      const reward = BigNumber.from(beforeUpgradeResult[0])
+      const reward = beforeUpgradeResult.amount
         .mul(poolShare)
         .div(BigNumber.from(1e12))
-        .sub(beforeUpgradeResult[1]);
+        .sub(beforeUpgradeResult.rewardDebt);
       const tx = await xvsVault.connect(affectedUser1Signer).executeWithdrawal(tokenAddress, poolId);
 
       const result = await xvsVault.getWithdrawalRequests(tokenAddress, poolId, affectedUserAddress);
       const balanceAfter = await XVS.balanceOf(affectedUserAddress);
       const afterUpgradeResult = await xvsVault.getUserInfo(tokenAddress, poolId, affectedUserAddress);
-      const amountDifference = BigNumber.from(beforeUpgradeResult[0]).sub(BigNumber.from(afterUpgradeResult[0]));
-      const withdrawalAmount = formatEther(amountDifference.add(reward));
-      const balanceDifference = formatEther(BigNumber.from(balanceAfter).sub(BigNumber.from(balanceBefore)));
+      const amountDifference = beforeUpgradeResult.amount.sub(afterUpgradeResult.amount);
+      const withdrawalAmount = amountDifference.add(reward);
+      const balanceDifference = balanceAfter.sub(balanceBefore);
 
       await expect(tx)
         .to.emit(xvsVault, "ExecutedWithdrawal")
-        .withArgs(affectedUserAddress, tokenAddress, poolId, Number(balanceDifference).toFixed(2));
-      expect(Number(withdrawalAmount).toFixed(2)).equals(Number(balanceDifference).toFixed(2));
+        .withArgs(affectedUserAddress, tokenAddress, poolId, amountDifference);
+
+      // We need some margin here because our reward calculation above is not precise
+      expect(withdrawalAmount).to.be.closeTo(balanceDifference, parseUnits("0.001", 18));
       expect(result.length).equals(0);
     });
 
