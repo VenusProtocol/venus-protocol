@@ -119,6 +119,9 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
     /// @notice if the token is added to any of the pools
     mapping(address => bool) public isStakedToken;
 
+    /// @notice Amount we owe to users because of failed transfer attempts
+    mapping(address => mapping(address => uint256)) public pendingRewardTransfers;
+
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.

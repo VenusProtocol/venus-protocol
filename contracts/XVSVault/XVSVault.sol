@@ -74,6 +74,14 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     /// @notice Event emitted when vault is resumed after pause
     event VaultResumed(address indexed admin);
 
+    /// @notice Event emitted when protocol logs a debt to a user due to insufficient funds for pending reward distribution
+    event VaultDebtUpdated(
+        address indexed rewardToken,
+        address indexed userAddress,
+        uint256 oldOwedAmount,
+        uint256 newOwedAmount
+    );
+
     constructor() public {
         admin = msg.sender;
     }
@@ -252,17 +260,15 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         require(pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, msg.sender) == 0, "execute pending withdrawal");
 
         if (user.amount > 0) {
-            uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
-                user.rewardDebt
-            );
+            uint256 pending = _computeReward(user, pool);
             if (pending > 0) {
-                IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+                _transferReward(_rewardToken, msg.sender, pending);
                 emit Claim(msg.sender, _rewardToken, _pid, pending);
             }
         }
         pool.token.safeTransferFrom(msg.sender, address(this), _amount);
         user.amount = user.amount.add(_amount);
-        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+        user.rewardDebt = _cumulativeReward(user, pool);
 
         // Update Delegate Amount
         if (address(pool.token) == xvsAddress) {
@@ -286,14 +292,12 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         require(pendingWithdrawalsBeforeUpgrade(_rewardToken, _pid, _account) == 0, "execute pending withdrawal");
 
         if (user.amount > 0) {
-            uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
-                user.rewardDebt
-            );
+            uint256 pending = _computeReward(user, pool);
 
             if (pending > 0) {
-                user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+                user.rewardDebt = _cumulativeReward(user, pool);
 
-                IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, _account, pending);
+                _transferReward(_rewardToken, _account, pending);
                 emit Claim(_account, _rewardToken, _pid, pending);
             }
         }
@@ -452,16 +456,14 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         require(beforeUpgradeWithdrawalAmount == 0, "execute pending withdrawal");
 
         _updatePool(_rewardToken, _pid);
-        uint256 pending = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12).sub(
-            user.rewardDebt
-        );
-        IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+        uint256 pending = _computeReward(user, pool);
+        _transferReward(_rewardToken, msg.sender, pending);
 
         uint lockedUntil = pool.lockPeriod.add(block.timestamp);
 
         pushWithdrawalRequest(user, requests, _amount, lockedUntil);
         totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].add(_amount);
-        user.rewardDebt = user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+        user.rewardDebt = _cumulativeReward(user, pool);
 
         // Update Delegate Amount
         if (address(pool.token) == xvsAddress) {
@@ -850,5 +852,52 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      */
     function _ensureNonzeroAddress(address address_) internal pure {
         require(address_ != address(0), "zero address not allowed");
+    }
+
+    /**
+     * @dev Transfers the reward to the user, taking into account the rewards store
+     *   balance and the previous debt. If there are not enough rewards in the store,
+     *   transfers the available funds and records the debt amount in pendingRewardTransfers.
+     * @param rewardToken Reward token address
+     * @param userAddress User address
+     * @param amount Reward amount, in reward tokens
+     */
+    function _transferReward(address rewardToken, address userAddress, uint256 amount) internal {
+        address xvsStore_ = xvsStore;
+        uint256 storeBalance = IBEP20(rewardToken).balanceOf(xvsStore_);
+        uint256 debtDueToFailedTransfers = pendingRewardTransfers[rewardToken][userAddress];
+        uint256 fullAmount = amount.add(debtDueToFailedTransfers);
+
+        if (fullAmount <= storeBalance) {
+            if (debtDueToFailedTransfers != 0) {
+                pendingRewardTransfers[rewardToken][userAddress] = 0;
+                emit VaultDebtUpdated(rewardToken, userAddress, debtDueToFailedTransfers, 0);
+            }
+            IXVSStore(xvsStore_).safeRewardTransfer(rewardToken, userAddress, fullAmount);
+            return;
+        }
+        // Overflow isn't possible due to the check above
+        uint256 newOwedAmount = fullAmount - storeBalance;
+        pendingRewardTransfers[rewardToken][userAddress] = newOwedAmount;
+        emit VaultDebtUpdated(rewardToken, userAddress, debtDueToFailedTransfers, newOwedAmount);
+        IXVSStore(xvsStore_).safeRewardTransfer(rewardToken, userAddress, storeBalance);
+    }
+
+    /**
+     * @dev Computes cumulative reward for all user's shares
+     * @param user UserInfo storage struct
+     * @param pool PoolInfo storage struct
+     */
+    function _cumulativeReward(UserInfo storage user, PoolInfo storage pool) internal view returns (uint256) {
+        return user.amount.sub(user.pendingWithdrawals).mul(pool.accRewardPerShare).div(1e12);
+    }
+
+    /**
+     * @dev Computes the reward for all user's shares
+     * @param user UserInfo storage struct
+     * @param pool PoolInfo storage struct
+     */
+    function _computeReward(UserInfo storage user, PoolInfo storage pool) internal view returns (uint256) {
+        return _cumulativeReward(user, pool).sub(user.rewardDebt);
     }
 }
