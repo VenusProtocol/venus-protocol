@@ -28,6 +28,10 @@ interface OracleProviderInterface {
     function oracle() external view returns (address);
 }
 
+interface DecimalProvider {
+    function decimals() external view returns (uint8);
+}
+
 /**
  * @title Peg Stability Contract
  * @notice Contract for swapping stable token for VAI token and vice versa to maintain the peg stability between them.
@@ -41,14 +45,14 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         IN,
         OUT
     }
-    address public immutable vaiAddress;
-    address public immutable stableTokenAddress;
-    address public immutable vTokenAddress; // vToken having as underlying the stableToken
-    address public comptroller;
-    address public venusTreasury;
     uint256 public constant BASIS_POINTS_DIVISOR = 10000; // fee is in basis points
-    uint256 public constant INVALID_ORACLE_PRICE = 0;
     uint256 public constant MANTISSA_ONE = 1e18;
+    uint256 public immutable ONE_DOLLAR; // Our oracle is returning amount depending on the number of decimals of the stable token. (36 - asset_decimals). E.g. 8 decimal asset = 1e28
+    address public immutable VAI_ADDRESS;
+    address public immutable STABLE_TOKEN_ADDRESS;
+    address public immutable VTOKEN_ADDRESS; // vToken having as underlying the stableToken
+    address public comptroller; // used as a single point of truth for oracle address
+    address public venusTreasury;
     uint256 public feeIn; // incoming VAI fee
     uint256 public feeOut; // outgoing VAI fee
     uint256 public vaiMintCap; // max amount of VAI that can be minted through this contract
@@ -94,9 +98,15 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     constructor(address vTokenAddress_, address vaiAddress_) {
         ensureNonzeroAddress(vTokenAddress_);
         ensureNonzeroAddress(vaiAddress_);
-        vTokenAddress = vTokenAddress_;
-        stableTokenAddress = IVTokenUnderlying(vTokenAddress_).underlying();
-        vaiAddress = vaiAddress_;
+
+        address stableTokenAddress_ = IVTokenUnderlying(vTokenAddress_).underlying();
+        uint256 decimals_ = DecimalProvider(stableTokenAddress_).decimals();
+        require(decimals_ <= 18, "too much decimals");
+        ONE_DOLLAR = 10 ** (36 - decimals_); // 1$ scaled to the decimals returned by our Oracle
+
+        VTOKEN_ADDRESS = vTokenAddress_;
+        STABLE_TOKEN_ADDRESS = stableTokenAddress_;
+        VAI_ADDRESS = vaiAddress_;
         _disableInitializers();
     }
 
@@ -123,8 +133,10 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         ensureNonzeroAddress(OracleProviderInterface(comptroller_).oracle());
         __AccessControlled_init(accessControlManager_);
         __ReentrancyGuard_init();
+
         require(feeIn_ < BASIS_POINTS_DIVISOR, "Invalid fee in.");
         require(feeOut_ < BASIS_POINTS_DIVISOR, "Invalid fee out.");
+
         feeIn = feeIn_;
         feeOut = feeOut_;
         vaiMintCap = vaiMintCap_;
@@ -143,19 +155,25 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     function swapVAIForStable(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
         ensureNonzeroAddress(receiver);
         require(stableTknAmount > 0, "Amount must be greater than zero.");
+
+        // calculate USD value of the stable token amount scaled in 18 decimals
         uint256 stableTknAmountUSD = previewTokenUSDAmount(stableTknAmount, FeeDirection.OUT);
         uint256 fee = _calculateFee(stableTknAmountUSD, FeeDirection.OUT);
-        require(VAI(vaiAddress).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "Not enough VAI.");
+
+        require(VAI(VAI_ADDRESS).balanceOf(msg.sender) >= stableTknAmountUSD + fee, "Not enough VAI.");
         require(vaiMinted >= stableTknAmountUSD, "Can't burn more VAI than minted.");
+
         unchecked {
             vaiMinted -= stableTknAmountUSD;
         }
+
         if (fee != 0) {
-            bool success = VAI(vaiAddress).transferFrom(msg.sender, venusTreasury, fee);
+            bool success = VAI(VAI_ADDRESS).transferFrom(msg.sender, venusTreasury, fee);
             require(success, "VAI fee transfer failed.");
         }
-        VAI(vaiAddress).burn(msg.sender, stableTknAmountUSD);
-        IERC20Upgradeable(stableTokenAddress).safeTransfer(receiver, stableTknAmount);
+
+        VAI(VAI_ADDRESS).burn(msg.sender, stableTknAmountUSD);
+        IERC20Upgradeable(STABLE_TOKEN_ADDRESS).safeTransfer(receiver, stableTknAmount);
         emit VaiForStableSwapped(stableTknAmountUSD, fee, stableTknAmount);
     }
 
@@ -169,24 +187,35 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     function swapStableForVAI(address receiver, uint256 stableTknAmount) external isActive nonReentrant {
         ensureNonzeroAddress(receiver);
         require(stableTknAmount > 0, "Amount must be greater than zero.");
-        uint256 balanceBefore = IERC20Upgradeable(stableTokenAddress).balanceOf(address(this));
-        IERC20Upgradeable(stableTokenAddress).safeTransferFrom(msg.sender, address(this), stableTknAmount);
-        uint256 balanceAfter = IERC20Upgradeable(stableTokenAddress).balanceOf(address(this));
+
+        // transfer IN, supporting fee-on-transfer tokens
+        uint256 balanceBefore = IERC20Upgradeable(STABLE_TOKEN_ADDRESS).balanceOf(address(this));
+        IERC20Upgradeable(STABLE_TOKEN_ADDRESS).safeTransferFrom(msg.sender, address(this), stableTknAmount);
+        uint256 balanceAfter = IERC20Upgradeable(STABLE_TOKEN_ADDRESS).balanceOf(address(this));
+
+        //calculate actual transfered amount (in case of fee-on-transfer tokens)
         uint256 actualTransferAmt = balanceAfter - balanceBefore;
+
+        // calculate USD value of the stable token amount scaled in 18 decimals
         uint256 actualTransferAmtInUSD = previewTokenUSDAmount(actualTransferAmt, FeeDirection.IN);
+
         //calculate feeIn
         uint256 fee = _calculateFee(actualTransferAmtInUSD, FeeDirection.IN);
         uint256 vaiToMint = actualTransferAmtInUSD - fee;
+
         require(vaiMinted + actualTransferAmtInUSD <= vaiMintCap, "VAI mint cap reached.");
         unchecked {
             vaiMinted += actualTransferAmtInUSD;
         }
+
         // mint VAI to receiver
-        VAI(vaiAddress).mint(receiver, vaiToMint);
+        VAI(VAI_ADDRESS).mint(receiver, vaiToMint);
+
         // mint VAI fee to venus treasury
         if (fee != 0) {
-            VAI(vaiAddress).mint(venusTreasury, fee);
+            VAI(VAI_ADDRESS).mint(venusTreasury, fee);
         }
+
         emit StableForVAISwapped(actualTransferAmt, vaiToMint, fee);
     }
 
@@ -300,21 +329,22 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @notice Get the price of stable token in USD, based on the selected oracle
-     * @dev This function returns either min(1$,oraclePrice) or max(1$,oraclePrice) depending on the direction of the swap
+     * @notice Get the price of stable token in USD
+     * @dev This function returns either min(1$,oraclePrice) or max(1$,oraclePrice) with a decimal scale (36 - asset_decimals). E.g. for 8 decimal token 1$ will be 1e28
      * @param direction The direction of the swap: FeeDirection.IN or FeeDirection.OUT
      * @return The price in USD, adjusted based on the selected direction
      */
     function getPriceInUSD(FeeDirection direction) internal view returns (uint256) {
         address priceOracleAddress = OracleProviderInterface(comptroller).oracle();
-        uint256 price = IPriceOracle(priceOracleAddress).getUnderlyingPrice(vTokenAddress);
-        require(price != INVALID_ORACLE_PRICE, "Invalid oracle price.");
+        // get price with a scale = (36 - asset_decimals)
+        uint256 price = IPriceOracle(priceOracleAddress).getUnderlyingPrice(VTOKEN_ADDRESS);
+
         if (direction == FeeDirection.IN) {
-            //MIN (1,price)
-            return MANTISSA_ONE < price ? MANTISSA_ONE : price;
+            // MIN(1, price)
+            return price < ONE_DOLLAR ? price : ONE_DOLLAR;
         } else {
-            //MAX (1,price)
-            return MANTISSA_ONE > price ? MANTISSA_ONE : price;
+            // MAX(1, price)
+            return price > ONE_DOLLAR ? price : ONE_DOLLAR;
         }
     }
 
