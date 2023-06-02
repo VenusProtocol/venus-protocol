@@ -161,7 +161,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
 
     /**
      * @notice Swaps stable tokens for VAI with fees.
-     * @dev This function adds support to deflationary token. The actualTransferAmt is calculated, by recording token balance state before and after the transfer.
+     * @dev This function adds support to fee-on-transfer tokens. The actualTransferAmt is calculated, by recording token balance state before and after the transfer.
      * @param receiver The address that will receive the VAI tokens.
      * @param stableTknAmount The amount of stable tokens to be swapped.
      */
