@@ -7,8 +7,8 @@ import { BigNumber, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import {
+  ERC20Upgradeable,
   IAccessControlManager,
-  IERC20Upgradeable,
   IPriceOracle,
   PegStability,
   PegStability__factory,
@@ -30,7 +30,7 @@ const MAX_UINT_8: BigNumber = BigNumber.from(255);
 
 type PegStaibilityFixture = {
   pegStability: MockContract<PegStability>;
-  stableToken: FakeContract<IERC20Upgradeable>;
+  stableToken: FakeContract<ERC20Upgradeable>;
   acm: FakeContract<IAccessControlManager>;
   vai: FakeContract<VAI>;
   venusTreasury: FakeContract<VTreasury>;
@@ -41,7 +41,8 @@ type PegStaibilityFixture = {
 async function pegStaibilityFixture(): Promise<PegStaibilityFixture> {
   const acm = await smock.fake<IAccessControlManager>("IAccessControlManager");
   const venusTreasury = await smock.fake<VTreasury>("VTreasury");
-  const stableToken = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
+  const stableToken = await smock.fake<ERC20Upgradeable>("ERC20Upgradeable");
+  stableToken.decimals.returns(18);
   const vToken = await smock.fake<IVTokenUnderlying>("IVTokenUnderlying");
   vToken.underlying.returns(stableToken.address);
   const priceOracle = await smock.fake<IPriceOracle>("contracts/PegStability/PegStability.sol:IPriceOracle");
@@ -64,7 +65,7 @@ async function pegStaibilityFixture(): Promise<PegStaibilityFixture> {
 
 describe("Peg Stability Module:main", () => {
   let pegStability: MockContract<PegStability>;
-  let stableToken: FakeContract<IERC20Upgradeable>;
+  let stableToken: FakeContract<ERC20Upgradeable>;
   let acm: FakeContract<IAccessControlManager>;
   let vai: FakeContract<VAI>;
   let venusTreasury: FakeContract<VTreasury>;
