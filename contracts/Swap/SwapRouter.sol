@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
@@ -768,6 +769,9 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @custom:access Only Governance
      */
     function sweepToken(IERC20 token, address to, uint256 sweepAmount) external onlyOwner nonReentrant {
+        if (to == address(0)) {
+            revert ZeroAddress();
+        }
         uint256 balance = token.balanceOf(address(this));
         if (sweepAmount > balance) {
             revert InsufficientBalance(sweepAmount, balance);
