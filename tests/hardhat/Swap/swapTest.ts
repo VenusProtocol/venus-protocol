@@ -590,7 +590,13 @@ describe("Swap Contract", () => {
     it("revert if deadline has passed", async () => {
       vToken.underlying.returns(tokenB.address);
       await expect(
-        swapRouter.swapExactTokensForTokensAndRepay(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], 0),
+        swapRouter.swapExactTokensForTokensAndRepay(
+          vToken.address,
+          SWAP_AMOUNT,
+          MIN_AMOUNT_OUT,
+          [tokenA.address, tokenB.address],
+          0,
+        ),
       ).to.be.revertedWithCustomError(swapRouter, "SwapDeadlineExpire");
     });
 
@@ -599,7 +605,13 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapExactTokensForTokensAndRepay(vToken.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [tokenA.address, tokenB.address], deadline),
+          .swapExactTokensForTokensAndRepay(
+            vToken.address,
+            SWAP_AMOUNT,
+            MIN_AMOUNT_OUT,
+            [tokenA.address, tokenB.address],
+            deadline,
+          ),
       ).to.emit(swapRouter, "SwapTokensForTokens");
     });
 

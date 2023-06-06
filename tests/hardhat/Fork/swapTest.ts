@@ -377,7 +377,13 @@ if (FORK_MAINNET) {
             expect(borrowBalance).equal(BORROW_AMOUNT);
             await swapRouter
               .connect(busdUser)
-              .swapExactTokensForTokensAndRepay(vUSDT.address, BORROW_AMOUNT + 1, BORROW_AMOUNT, [BUSD.address, USDT.address], deadline);
+              .swapExactTokensForTokensAndRepay(
+                vUSDT.address,
+                BORROW_AMOUNT + 1,
+                BORROW_AMOUNT,
+                [BUSD.address, USDT.address],
+                deadline,
+              );
             [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
             expect(borrowBalance).equal(0);
           });

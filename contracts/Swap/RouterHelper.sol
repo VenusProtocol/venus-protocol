@@ -126,7 +126,7 @@ abstract contract RouterHelper is IRouterHelper {
         }
     }
 
-    function _swapExactETHForTokens(
+    function _swapExactBNBForTokens(
         uint256 amountOutMin,
         address[] calldata path,
         address to,
@@ -151,7 +151,7 @@ abstract contract RouterHelper is IRouterHelper {
         }
     }
 
-    function _swapExactTokensForETH(
+    function _swapExactTokensForBNB(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
@@ -218,7 +218,7 @@ abstract contract RouterHelper is IRouterHelper {
         emit SwapTokensForTokens(msg.sender, path, amounts);
     }
 
-    function _swapETHForExactTokens(
+    function _swapBNBForExactTokens(
         uint256 amountOut,
         address[] calldata path,
         address to
@@ -238,7 +238,7 @@ abstract contract RouterHelper is IRouterHelper {
         emit SwapBnbForTokens(msg.sender, path, amounts);
     }
 
-    function _swapTokensForExactETH(
+    function _swapTokensForExactBNB(
         uint256 amountOut,
         uint256 amountInMax,
         address[] calldata path,
