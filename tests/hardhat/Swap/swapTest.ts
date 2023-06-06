@@ -752,9 +752,7 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapTokensForExactBNBAndRepay(MIN_AMOUNT_OUT, SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline, {
-            value: SWAP_AMOUNT,
-          }),
+          .swapTokensForExactBNBAndRepay(MIN_AMOUNT_OUT, SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline),
       ).to.emit(swapRouter, "SwapTokensForBnb");
     });
 
@@ -765,9 +763,7 @@ describe("Swap Contract", () => {
       await expect(
         swapRouter
           .connect(user)
-          .swapTokensForFullBNBDebtAndRepay(SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline, {
-            value: SWAP_AMOUNT,
-          }),
+          .swapTokensForFullBNBDebtAndRepay(SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline),
       ).to.emit(swapRouter, "SwapTokensForBnb");
     });
   });

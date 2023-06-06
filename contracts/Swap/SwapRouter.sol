@@ -460,7 +460,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
         uint256 balanceBefore = address(this).balance;
         _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = address(this).balance;
@@ -482,7 +482,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
         uint256 balanceBefore = address(this).balance;
         _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = address(this).balance;
@@ -507,7 +507,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
         uint256 balanceBefore = address(this).balance;
         _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = address(this).balance;
@@ -527,7 +527,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
         uint256 balanceBefore = address(this).balance;
         uint256 amountOut = IVToken(vBNBAddress).borrowBalanceCurrent(msg.sender);
         _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
