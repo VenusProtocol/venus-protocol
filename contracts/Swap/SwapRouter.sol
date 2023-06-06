@@ -812,7 +812,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Check if the balance of to minus the balanceBefore is greater than the amountOutMin.
+     * @notice Check if the balance of to minus the balanceBefore is greater or equal to the amountOutMin.
      * @param asset The address of the underlying token
      * @param balanceBefore Balance before the swap.
      * @param amountOutMin Min amount out threshold.
