@@ -14,7 +14,7 @@ error RepayError(address repayer, address vToken, uint256 errorCode);
 error WrongAddress(address expectedAdddress, address passedAddress);
 
 ///@notice Error thrown when deadline for swap has expired
-error SwapDeadlineExpire(uint256 deadline, uint256 currentBlock);
+error SwapDeadlineExpire(uint256 deadline, uint256 timestemp);
 
 ///@notice Error thrown where the input amount parameter for a token is 0
 error InsufficientInputAmount();
@@ -62,7 +62,7 @@ error SafeApproveFailed();
 error SafeTransferFailed();
 
 ///@notice Error thrown when transferFrom failed
-error TransferFromFailed();
+error SafeTransferFromFailed();
 
 ///@notice Error thrown when safeTransferETH failed
 error SafeTransferETHFailed();

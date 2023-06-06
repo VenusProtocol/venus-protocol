@@ -122,7 +122,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external payable;
 
-    function swapAndRepay(
+    function swapExactTokensForTokensAndRepay(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -130,7 +130,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external;
 
-    function swapAndRepayAtSupportingFee(
+    function swapExactTokensForTokensAndRepayAtSupportingFee(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,

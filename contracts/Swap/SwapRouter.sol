@@ -267,7 +267,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive (and repay)
      */
-    function swapAndRepay(
+    function swapExactTokensForTokensAndRepay(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -291,7 +291,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive (and repay)
      */
-    function swapAndRepayAtSupportingFee(
+    function swapExactTokensForTokensAndRepayAtSupportingFee(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
