@@ -94,5 +94,5 @@ contract PrimeStorageV1 {
     uint256 public pendingScoreUpdates;
 
     /// @notice mapping used to find if an asset is part of prime markets
-    mapping (address => bool) public isPrime;
+    mapping (address => address) public vTokenForAsset;
 }

@@ -114,7 +114,7 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
         markets[vToken].score = 0;
         markets[vToken].indexMultiplier = 0;
 
-        isPrime[IVToken(vToken).underlying()] = true;
+        vTokenForAsset[IVToken(vToken).underlying()] = vToken;
 
         allMarkets.push(vToken);
         _startScoreUpdateRound();
