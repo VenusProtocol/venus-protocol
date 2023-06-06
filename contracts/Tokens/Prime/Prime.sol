@@ -525,4 +525,9 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
             pendingScoreUpdates++;
         }
     }
+
+    /**
+     * @notice This prevents updateAssetsState from ProtocolShareReserve from reverting
+     */
+    fallback() external {}
 }
