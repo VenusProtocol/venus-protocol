@@ -290,6 +290,11 @@ abstract contract RouterHelper is IRouterHelper {
         return PancakeLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
+    /**
+     * @notice performs chained getAmountOut calculations on any number of pairs.
+     * @param amountIn The amount of tokens to swap.
+     * @param path Array with addresses of the underlying assets to be swapped.
+     */
     function getAmountsOut(
         uint256 amountIn,
         address[] memory path
@@ -297,6 +302,11 @@ abstract contract RouterHelper is IRouterHelper {
         return PancakeLibrary.getAmountsOut(factory, amountIn, path);
     }
 
+    /**
+     * @notice performs chained getAmountIn calculations on any number of pairs.
+     * @param amountOut amountOut The amount of the tokens needs to be as output token.
+     * @param path Array with addresses of the underlying assets to be swapped.
+     */
     function getAmountsIn(
         uint256 amountOut,
         address[] memory path
