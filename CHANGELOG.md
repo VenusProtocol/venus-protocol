@@ -1,3 +1,15 @@
+## [3.0.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.3...v3.0.0-dev.4) (2023-06-07)
+
+
+### Bug Fixes
+
+* forbid zero alloc points in XVSVault ([43a77f3](https://github.com/VenusProtocol/venus-protocol/commit/43a77f346a8cda5cc03e985ef66a1dd569f67e0f))
+* i01 license identifier not provided ([8b08294](https://github.com/VenusProtocol/venus-protocol/commit/8b08294d68a580b15690e62bb801526818d880ab))
+* i02 floating pragma ([9120a0d](https://github.com/VenusProtocol/venus-protocol/commit/9120a0d589c3b90c55fc1722d2df80795db9b4bc))
+* i03 public function that should be external ([27d5402](https://github.com/VenusProtocol/venus-protocol/commit/27d5402d0f33952f4fcbac5600258e7018f42d20))
+* l01 missing zero address validation ([6c4dbb2](https://github.com/VenusProtocol/venus-protocol/commit/6c4dbb24c45083a44fdcf80fd2b5cba4edff242d))
+* lint issues ([b125ad7](https://github.com/VenusProtocol/venus-protocol/commit/b125ad7ca997e88682f35763709bfdafea64c1b8))
+
 ## [3.0.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.2...v3.0.0-dev.3) (2023-06-01)
 
 
