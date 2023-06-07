@@ -125,6 +125,12 @@ describe("XVSVault", async () => {
       ).to.be.revertedWith("zero address not allowed");
     });
 
+    it("reverts if alloc points parameter is zero", async () => {
+      await expect(xvsVault.add(xvs.address, 0, token.address, rewardPerBlock, lockPeriod)).to.be.revertedWith(
+        "Alloc points must not be zero",
+      );
+    });
+
     it("emits PoolAdded event", async () => {
       const tx = await xvsVault.add(token.address, 100, token.address, rewardPerBlock, lockPeriod);
       await expect(tx)
@@ -153,6 +159,39 @@ describe("XVSVault", async () => {
     it("configures reward token in XVSStore", async () => {
       await xvsVault.add(token.address, 100, token.address, rewardPerBlock, lockPeriod);
       expect(await xvsStore.rewardTokens(token.address)).to.equal(true);
+    });
+  });
+
+  describe("set", async () => {
+    it("reverts if ACM does not allow the call", async () => {
+      accessControl.isAllowedToCall.returns(false);
+      await expect(xvsVault.set(xvs.address, 0, 100)).to.be.revertedWith("Unauthorized");
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("reverts if pool is not found", async () => {
+      await expect(xvsVault.set(xvs.address, 100, 100)).to.be.revertedWith("vault: pool exists?");
+    });
+
+    it("reverts if total alloc points after the call is zero", async () => {
+      await expect(xvsVault.set(xvs.address, 0, 0)).to.be.revertedWith(
+        "Alloc points per reward token must not be zero",
+      );
+    });
+
+    it("succeeds if the pool alloc points is zero but total alloc points is nonzero", async () => {
+      const token = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
+      // Adding a new pool with 99 alloc points, reward per block is unchanged
+      await xvsVault.add(xvs.address, 99, token.address, rewardPerBlock, lockPeriod);
+      await expect(xvsVault.set(xvs.address, 0, 0)).to.not.be.reverted;
+      expect(await xvsVault.totalAllocPoints(xvs.address)).to.equal(99);
+      const poolInfo = await xvsVault.poolInfos(xvs.address, 0);
+      expect(poolInfo.allocPoint).to.equal(0);
+    });
+
+    it("emits PoolUpdated event", async () => {
+      const tx = await xvsVault.set(xvs.address, 0, 1000);
+      await expect(tx).to.emit(xvsVault, "PoolUpdated").withArgs(xvs.address, 0, 100, 1000);
     });
   });
 
