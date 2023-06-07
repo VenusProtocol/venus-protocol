@@ -1,13 +1,13 @@
 pragma solidity 0.5.16;
 
 import "../../../Utils/ErrorReporter.sol";
-import "./FacetHelper.sol";
+import "./XVSRewardsHelper.sol";
 import "../../../Tokens/VTokens/VToken.sol";
 
 /**
  * @dev This facet contains all the hooks used while transferring the assets
  */
-contract PolicyFacet is FacetHelper {
+contract PolicyFacet is XVSRewardsHelper {
     /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
     event VenusBorrowSpeedUpdated(VToken indexed vToken, uint newSpeed);
 

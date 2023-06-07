@@ -1,12 +1,32 @@
 pragma solidity 0.5.16;
 
 import "../../../Utils/ExponentialNoError.sol";
+import "../interfaces/IXVS.sol";
 import "./FacetBase.sol";
 
 /**
  * @dev This contract contains internal functions used in RewardFacet and PolicyFacet
  */
-contract FacetHelper is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
+contract XVSRewardsHelper is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
+    /// @notice Emitted when XVS is distributed to VAI Vault
+    event DistributedVAIVaultVenus(uint amount);
+
+    /// @notice Emitted when XVS is distributed to a borrower
+    event DistributedBorrowerVenus(
+        VToken indexed vToken,
+        address indexed borrower,
+        uint venusDelta,
+        uint venusBorrowIndex
+    );
+
+    /// @notice Emitted when XVS is distributed to a supplier
+    event DistributedSupplierVenus(
+        VToken indexed vToken,
+        address indexed supplier,
+        uint venusDelta,
+        uint venusSupplyIndex
+    );
+
     /**
      * @notice Accrue XVS to the market by updating the borrow index
      * @param vToken The market whose borrow index to update
@@ -61,7 +81,7 @@ contract FacetHelper is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      */
     function distributeSupplierVenus(address vToken, address supplier) internal {
         if (address(vaiVaultAddress) != address(0)) {
-            // releaseToVault();
+            releaseToVault();
         }
         uint supplyIndex = venusSupplyState[vToken].index;
         uint supplierIndex = venusSupplierIndex[vToken][supplier];
@@ -79,7 +99,7 @@ contract FacetHelper is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         uint supplierDelta = mul_(VToken(vToken).balanceOf(supplier), deltaIndex);
         // Addition of supplierAccrued and supplierDelta
         venusAccrued[supplier] = add_(venusAccrued[supplier], supplierDelta);
-        // emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex);
+        emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex);
     }
 
     /**
@@ -94,7 +114,7 @@ contract FacetHelper is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         ExponentialNoError.Exp memory marketBorrowIndex
     ) internal {
         if (address(vaiVaultAddress) != address(0)) {
-            // releaseToVault();
+            releaseToVault();
         }
         uint borrowIndex = venusBorrowState[vToken].index;
         uint borrowerIndex = venusBorrowerIndex[vToken][borrower];
@@ -110,6 +130,50 @@ contract FacetHelper is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         Double memory deltaIndex = Double({ mantissa: sub_(borrowIndex, borrowerIndex) });
         uint borrowerDelta = mul_(div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
         venusAccrued[borrower] = add_(venusAccrued[borrower], borrowerDelta);
-        // emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
+        emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
+    }
+
+    /**
+     * @notice Transfer XVS to VAI Vault
+     */
+    function releaseToVault() public {
+        if (releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
+            return;
+        }
+
+        uint256 xvsBalance = IXVS(getXVSAddress()).balanceOf(address(this));
+        if (xvsBalance == 0) {
+            return;
+        }
+
+        uint256 actualAmount;
+        uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
+        // releaseAmount = venusVAIVaultRate * deltaBlocks
+        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
+
+        if (xvsBalance >= _releaseAmount) {
+            actualAmount = _releaseAmount;
+        } else {
+            actualAmount = xvsBalance;
+        }
+
+        if (actualAmount < minReleaseAmount) {
+            return;
+        }
+
+        releaseStartBlock = getBlockNumber();
+
+        IXVS(getXVSAddress()).transfer(vaiVaultAddress, actualAmount);
+        emit DistributedVAIVaultVenus(actualAmount);
+
+        IVAIVault(vaiVaultAddress).updatePendingRewards();
+    }
+
+    /**
+     * @notice Return the address of the XVS token
+     * @return The address of XVS
+     */
+    function getXVSAddress() public pure returns (address) {
+        return 0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63;
     }
 }

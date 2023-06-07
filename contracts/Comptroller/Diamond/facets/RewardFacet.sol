@@ -4,25 +4,15 @@ import "../../../Oracle/PriceOracle.sol";
 import "../../../Tokens/VTokens/VToken.sol";
 import "../../../Utils/ErrorReporter.sol";
 import "../../../Governance/IAccessControlManager.sol";
-import "./FacetHelper.sol";
-
-interface IXVS {
-    function balanceOf(address account) external view returns (uint);
-
-    function transfer(address dst, uint rawAmount) external returns (bool);
-
-    function approve(address spender, uint rawAmount) external returns (bool);
-}
+import "./XVSRewardsHelper.sol";
+import "../interfaces/IXVS.sol";
 
 /**
  * @dev This facet contains all the methods related to the reward functionality
  */
-contract RewardFacet is FacetHelper {
+contract RewardFacet is XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address recipient, uint amount);
-
-    /// @notice Emitted when XVS is distributed to VAI Vault
-    event DistributedVAIVaultVenus(uint amount);
 
     /**
      * @notice Claim all the xvs accrued by holder in all markets and VAI
@@ -128,55 +118,11 @@ contract RewardFacet is FacetHelper {
     }
 
     /**
-     * @notice Return the address of the XVS token
-     * @return The address of XVS
-     */
-    function getXVSAddress() public pure returns (address) {
-        return 0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63;
-    }
-
-    /**
      * @notice Return the address of the XVS vToken
      * @return The address of XVS vToken
      */
     function getXVSVTokenAddress() public pure returns (address) {
         return 0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D;
-    }
-
-    /**
-     * @notice Transfer XVS to VAI Vault
-     */
-    function releaseToVault() public {
-        if (releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
-            return;
-        }
-
-        uint256 xvsBalance = IXVS(getXVSAddress()).balanceOf(address(this));
-        if (xvsBalance == 0) {
-            return;
-        }
-
-        uint256 actualAmount;
-        uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
-        // releaseAmount = venusVAIVaultRate * deltaBlocks
-        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
-
-        if (xvsBalance >= _releaseAmount) {
-            actualAmount = _releaseAmount;
-        } else {
-            actualAmount = xvsBalance;
-        }
-
-        if (actualAmount < minReleaseAmount) {
-            return;
-        }
-
-        releaseStartBlock = getBlockNumber();
-
-        IXVS(getXVSAddress()).transfer(vaiVaultAddress, actualAmount);
-        emit DistributedVAIVaultVenus(actualAmount);
-
-        IVAIVault(vaiVaultAddress).updatePendingRewards();
     }
 
     /**
