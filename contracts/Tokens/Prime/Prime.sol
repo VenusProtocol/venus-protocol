@@ -6,6 +6,8 @@ import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlle
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
+import "hardhat/console.sol";
+
 interface IVToken {
     function borrowRatePerBlock() external view returns (uint);
 
@@ -112,7 +114,6 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
         markets[vToken].supplyMultiplier = supplyMultiplier;
         markets[vToken].borrowMultiplier = borrowMultiplier;
         markets[vToken].score = 0;
-        markets[vToken].indexMultiplier = 0;
 
         vTokenForAsset[IVToken(vToken).underlying()] = vToken;
 
@@ -207,7 +208,6 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
             accrueInterest(market);
 
             interests[market][account].rewardIndex = markets[market].rewardIndex;
-            interests[market][account].indexMultiplier = markets[market].indexMultiplier;
 
             uint score = _calculateScore(market, account);
             interests[market][account].score = score;
@@ -371,7 +371,6 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
         accrueInterest(vToken);
         interests[vToken][account].accrued = _interestAccrued(vToken, account);
         interests[vToken][account].rewardIndex = markets[vToken].rewardIndex;
-        interests[vToken][account].indexMultiplier = markets[vToken].indexMultiplier;
     }
 
     /**
@@ -419,7 +418,6 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
         }
 
         markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;
-        markets[vToken].indexMultiplier = markets[vToken].indexMultiplier + 1;
         markets[vToken].lastUpdated = block.number;
     }
 
@@ -449,10 +447,11 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
 
     function _interestAccrued(address vToken, address account) internal returns (uint256) {
         uint256 index = markets[vToken].rewardIndex - interests[vToken][account].rewardIndex;
-        uint256 indexMultiplier = markets[vToken].indexMultiplier - interests[vToken][account].indexMultiplier;
         uint256 score = interests[vToken][account].score;
 
-        return (index * indexMultiplier * score) / EXP_SCALE;
+        console.log(index, score);
+
+        return (index * score) / EXP_SCALE;
     }
 
     /**
@@ -462,7 +461,6 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
     function claimInterest(address vToken) external {
         uint256 amount = getInterestAccrued(vToken, msg.sender);
         interests[vToken][msg.sender].rewardIndex = markets[vToken].rewardIndex;
-        interests[vToken][msg.sender].indexMultiplier = markets[vToken].indexMultiplier;
         interests[vToken][msg.sender].accrued = 0;
 
         IERC20Upgradeable asset = IERC20Upgradeable(IVToken(vToken).underlying());

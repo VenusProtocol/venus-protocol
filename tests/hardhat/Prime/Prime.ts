@@ -382,7 +382,6 @@ describe("PrimeScenario Token", () => {
       expect(interest.score).to.be.equal("223606797749979014552");
       expect(interest.accrued).to.be.equal(0);
       expect(interest.rewardIndex).to.be.equal(0);
-      expect(interest.indexMultiplier).to.be.equal(2);
 
       let market = await prime.markets(vusdt.address);
       expect(market.score).to.be.equal("223606797749979014552");
@@ -391,7 +390,6 @@ describe("PrimeScenario Token", () => {
       await mine(24 * 60 * 20);
       await prime.accrueInterest(vusdt.address);
       market = await prime.markets(vusdt.address);
-      expect(market.indexMultiplier).to.be.equal(3);
       expect(market.score).to.be.equal("223606797749979014552");
       /**
        * PastBlocks = (24 * 60 * 20) + 2 = 28802
@@ -405,9 +403,8 @@ describe("PrimeScenario Token", () => {
 
       /**
        * index = 2318 - 0
-       * indexMultiplier = 3 - 2
        * score = 223606797749979014552 (223.606797749979014552)
-       * interest = index * indexMultiplier * score = 2318 * 1 * 223.606797749979014552 = 518320
+       * interest = index * score = 2318 * 1 * 223.606797749979014552 = 518320
        */
       expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(518320);
 
@@ -420,7 +417,6 @@ describe("PrimeScenario Token", () => {
       expect(interest.score).to.be.equal(bigNumber18.mul(100));
       expect(interest.accrued).to.be.equal(0);
       expect(interest.rewardIndex).to.be.equal("2318");
-      expect(interest.indexMultiplier).to.be.equal(4);
     });
 
     it("claim interest", async () => {
@@ -507,7 +503,6 @@ describe("PrimeScenario Token", () => {
         let interest = await prime.interests(vbnb.address, user3.getAddress());
         expect(interest.accrued).to.be.equal(0);
         expect(interest.score).to.be.equal(0);
-        expect(interest.indexMultiplier).to.be.equal(0);
         expect(interest.rewardIndex).to.be.equal(0);
 
         let market = await prime.markets(vbnb.address);
@@ -516,7 +511,6 @@ describe("PrimeScenario Token", () => {
         expect(market.rewardIndex).to.be.equal(0);
         expect(market.lastUpdated).to.be.not.equal(0);
         expect(market.score).to.be.equal(0);
-        expect(market.indexMultiplier).to.be.equal(0);
 
         await bnb.connect(user3).approve(vbnb.address, bigNumber18.mul(90));
         await vbnb.connect(user3).mint(bigNumber18.mul(1));
@@ -527,7 +521,6 @@ describe("PrimeScenario Token", () => {
          * score = 2000^0.5 * 91^0.5 = 426.6145802
          */
         expect(interest.score).to.be.equal("426614580154030858642");
-        expect(interest.indexMultiplier).to.be.equal(1);
         expect(interest.rewardIndex).to.be.equal(0);
 
         market = await prime.markets(vbnb.address);
@@ -536,7 +529,6 @@ describe("PrimeScenario Token", () => {
         expect(market.rewardIndex).to.be.equal(0);
         expect(market.lastUpdated).to.be.not.equal(0);
         expect(market.score).to.be.equal("426614580154030858642");
-        expect(market.indexMultiplier).to.be.equal(1);
 
         await mine(24 * 60 * 20);
         await prime.accrueInterest(vbnb.address);
@@ -553,13 +545,11 @@ describe("PrimeScenario Token", () => {
         expect(market.rewardIndex).to.be.equal(243);
         expect(market.lastUpdated).to.be.not.equal(0);
         expect(market.score).to.be.equal("426614580154030858642");
-        expect(market.indexMultiplier).to.be.equal(2);
 
         /**
          * index = 243
-         * indexMultiplier = 1
          * score = 426614580154030858642 (426.614580154030858642)
-         * interest = index * indexMultiplier * score = 243 * 1 * 426.614580154030858642 = 1037088
+         * interest = index * score = 243 * 1 * 426.614580154030858642 = 1037088
          */
         expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(1037088);
 
@@ -571,7 +561,6 @@ describe("PrimeScenario Token", () => {
         expect(market.rewardIndex).to.be.equal(486);
         expect(market.lastUpdated).to.be.not.equal(0);
         expect(market.score).to.be.equal("426614580154030858642");
-        expect(market.indexMultiplier).to.be.equal(3);
 
         /**
          * 1037088 * 2 = 2074176
@@ -589,7 +578,6 @@ describe("PrimeScenario Token", () => {
         let interest = await prime.interests(vbnb.address, user3.getAddress());
         expect(interest.accrued).to.be.equal(0);
         expect(interest.score).to.be.equal(0);
-        expect(interest.indexMultiplier).to.be.equal(0);
         expect(interest.rewardIndex).to.be.equal(0);
 
         let market = await prime.markets(vbnb.address);
@@ -598,7 +586,6 @@ describe("PrimeScenario Token", () => {
         expect(market.rewardIndex).to.be.equal(0);
         expect(market.lastUpdated).to.be.not.equal(0);
         expect(market.score).to.be.equal(0);
-        expect(market.indexMultiplier).to.be.equal(0);
 
         let nextScoreUpdateRoundId = await prime.nextScoreUpdateRoundId();
         let totalScoreUpdatesRequired = await prime.totalScoreUpdatesRequired();
@@ -628,7 +615,6 @@ describe("PrimeScenario Token", () => {
          * score = 2000^0.5 * 90^0.5 = 424.2640687
          */
         expect(interest.score).to.be.equal("424264068711928538075");
-        expect(interest.indexMultiplier).to.be.equal(0);
         expect(interest.rewardIndex).to.be.equal(0);
 
         market = await prime.markets(vbnb.address);
@@ -637,7 +623,6 @@ describe("PrimeScenario Token", () => {
         expect(market.rewardIndex).to.be.equal(0);
         expect(market.lastUpdated).to.be.not.equal(0);
         expect(market.score).to.be.equal("424264068711928538075");
-        expect(market.indexMultiplier).to.be.equal(0);
 
         await mine(24 * 60 * 20);
         await prime.accrueInterest(vbnb.address);
@@ -654,15 +639,16 @@ describe("PrimeScenario Token", () => {
         expect(market.rewardIndex).to.be.equal(244);
         expect(market.lastUpdated).to.be.not.equal(0);
         expect(market.score).to.be.equal("424264068711928538075");
-        expect(market.indexMultiplier).to.be.equal(1);
 
         /**
-         * index = 244
-         * indexMultiplier = 1
-         * score = 424264068711928538075 (424.264068711928538075)
-         * interest = index * indexMultiplier * score = 244 * 1 * 424.264068711928538075 = 1037088
+         * index = 2319
+         * user score = 223.606797749979014552
+         * interest = index * user score = 2319 * 223.606797749979014552 = 1037088
          */
-        expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(1037088);
+        await prime.accrueInterest(vusdt.address);
+        expect((await prime.interests(vusdt.address, user1.getAddress())).score).to.be.equal("223606797749979014552")
+        expect((await prime.interests(vusdt.address, user1.getAddress())).rewardIndex).to.be.equal("0")
+        expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(518544);
 
         await mine(24 * 60 * 20);
         await prime.accrueInterest(vbnb.address);
@@ -679,12 +665,11 @@ describe("PrimeScenario Token", () => {
         expect(market.rewardIndex).to.be.equal(488);
         expect(market.lastUpdated).to.be.not.equal(0);
         expect(market.score).to.be.equal("424264068711928538075");
-        expect(market.indexMultiplier).to.be.equal(2);
 
         /**
-         * 1037088 * 2 = 2074176
+         * 4637 * 223.606797749979014552 = 1036864
          */
-        expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(2074176);
+        expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(1036864);
       });
     });
   });

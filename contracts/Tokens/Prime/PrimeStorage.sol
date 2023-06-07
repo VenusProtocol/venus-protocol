@@ -12,13 +12,11 @@ contract PrimeStorageV1 {
         uint256 rewardIndex;
         uint256 lastUpdated;
         uint256 score;
-        uint256 indexMultiplier;
     }
 
     struct Interest {
         uint256 accrued;
         uint256 score;
-        uint256 indexMultiplier;
         uint256 rewardIndex;
     }
 
