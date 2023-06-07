@@ -27,17 +27,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await deploy("SwapRouter", {
     contract: "SwapRouter",
     from: deployer,
-    args: [WBNBAddress, pancakeFactoryAddress],
+    args: [WBNBAddress, pancakeFactoryAddress, ADDRESSES[networkName].Unitroller],
     log: true,
     autoMine: true,
-    proxy: {
-      owner: deployer,
-      proxyContract: "OpenZeppelinTransparentProxy",
-      execute: {
-        methodName: "initialize",
-        args: [ADDRESSES[networkName].Unitroller],
-      },
-    },
   });
 };
 

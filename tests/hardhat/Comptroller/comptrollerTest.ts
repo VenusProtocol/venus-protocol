@@ -1,7 +1,8 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { Signer, constants } from "ethers";
+import { constants } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
@@ -11,7 +12,6 @@ import {
   ComptrollerLens__factory,
   Comptroller__factory,
   EIP20Interface,
-  EIP20Interface__factory,
   IAccessControlManager,
   PriceOracle,
   VToken,
@@ -56,8 +56,8 @@ function configureVToken(vToken: FakeContract<VToken>, comptroller: MockContract
 }
 
 describe("Comptroller", () => {
-  let root: Signer;
-  let accounts: Signer[];
+  let root: SignerWithAddress;
+  let accounts: SignerWithAddress[];
 
   before(async () => {
     [root, ...accounts] = await ethers.getSigners();
@@ -66,7 +66,7 @@ describe("Comptroller", () => {
   describe("constructor", () => {
     it("on success it sets admin to creator and pendingAdmin is unset", async () => {
       const { comptroller } = await loadFixture(deploySimpleComptroller);
-      expect(await comptroller.admin()).to.equal(await root.getAddress());
+      expect(await comptroller.admin()).to.equal(root.address);
       expect(await comptroller.pendingAdmin()).to.equal(constants.AddressZero);
     });
   });
@@ -91,7 +91,7 @@ describe("Comptroller", () => {
       expect(await comptroller.callStatic._setLiquidationIncentive(validIncentive)).to.equal(
         ComptrollerErrorReporter.Error.NO_ERROR,
       );
-      expect(await comptroller._setLiquidationIncentive(validIncentive))
+      await expect(await comptroller._setLiquidationIncentive(validIncentive))
         .to.emit(comptroller, "NewLiquidationIncentive")
         .withArgs(initialIncentive, validIncentive);
       expect(await comptroller.liquidationIncentiveMantissa()).to.equal(validIncentive);
@@ -149,7 +149,7 @@ describe("Comptroller", () => {
     });
 
     it("accepts a valid price oracle and emits a NewPriceOracle event", async () => {
-      expect(await comptroller._setPriceOracle(newOracle.address))
+      await expect(await comptroller._setPriceOracle(newOracle.address))
         .to.emit(comptroller, "NewPriceOracle")
         .withArgs(oracle.address, newOracle.address);
       expect(await comptroller.oracle()).to.equal(newOracle.address);
@@ -186,7 +186,7 @@ describe("Comptroller", () => {
     it("should fire an event", async () => {
       const { comptroller, comptrollerLens } = await loadFixture(deploy);
       const oldComptrollerLensAddress = await comptroller.comptrollerLens();
-      expect(await comptroller._setComptrollerLens(comptrollerLens.address))
+      await expect(await comptroller._setComptrollerLens(comptrollerLens.address))
         .to.emit(comptroller, "NewComptrollerLens")
         .withArgs(oldComptrollerLensAddress, comptrollerLens.address);
     });
@@ -232,17 +232,18 @@ describe("Comptroller", () => {
     it("fails if factor is set without an underlying price", async () => {
       await comptroller._supportMarket(vToken.address);
       oracle.getUnderlyingPrice.returns(0);
-      expect(await comptroller._setCollateralFactor(vToken.address, half))
+      await expect(await comptroller._setCollateralFactor(vToken.address, half))
         .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.PRICE_ERROR,
           ComptrollerErrorReporter.FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE,
+          0,
         );
     });
 
     it("succeeds and sets market", async () => {
       await comptroller._supportMarket(vToken.address);
-      expect(await comptroller._setCollateralFactor(vToken.address, half))
+      await expect(await comptroller._setCollateralFactor(vToken.address, half))
         .to.emit(comptroller, "NewCollateralFactor")
         .withArgs(vToken.address, "0", half);
     });
@@ -281,7 +282,7 @@ describe("Comptroller", () => {
     });
 
     it("succeeds and sets market", async () => {
-      expect(await comptroller._supportMarket(vToken1.address))
+      await expect(await comptroller._supportMarket(vToken1.address))
         .to.emit(comptroller, "MarketListed")
         .withArgs(vToken1.address);
     });
@@ -289,20 +290,21 @@ describe("Comptroller", () => {
     it("cannot list a market a second time", async () => {
       const tx1 = await comptroller._supportMarket(vToken1.address);
       const tx2 = await comptroller._supportMarket(vToken1.address);
-      expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
-      expect(tx2)
+      await expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
+      await expect(tx2)
         .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.MARKET_ALREADY_LISTED,
           ComptrollerErrorReporter.FailureInfo.SUPPORT_MARKET_EXISTS,
+          0,
         );
     });
 
     it("can list two different markets", async () => {
       const tx1 = await comptroller._supportMarket(vToken1.address);
       const tx2 = await comptroller._supportMarket(vToken2.address);
-      expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
-      expect(tx2).to.emit(comptroller, "MarketListed").withArgs(vToken2.address);
+      await expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
+      await expect(tx2).to.emit(comptroller, "MarketListed").withArgs(vToken2.address);
     });
   });
 
@@ -340,11 +342,7 @@ describe("Comptroller", () => {
         vToken.exchangeRateStored.returns(exchangeRate);
         await comptroller._setMarketSupplyCaps([vToken.address], [cap]);
         expect(
-          await comptroller.callStatic.mintAllowed(
-            vToken.address,
-            await root.getAddress(),
-            convertToUnit("0.9999", 18),
-          ),
+          await comptroller.callStatic.mintAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
         ).to.equal(0); // 0 means "no error"
       });
 
@@ -358,29 +356,29 @@ describe("Comptroller", () => {
         vToken.exchangeRateStored.returns(exchangeRate);
         await comptroller._setMarketSupplyCaps([vToken.address], [cap]);
         await expect(
-          comptroller.mintAllowed(vToken.address, await root.getAddress(), convertToUnit("1.01", 18)),
+          comptroller.mintAllowed(vToken.address, root.address, convertToUnit("1.01", 18)),
         ).to.be.revertedWith("market supply cap reached");
       });
 
       it("reverts if market is not listed", async () => {
         const someVToken = await smock.fake<VToken>("VToken");
         await expect(
-          comptroller.mintAllowed(someVToken.address, await root.getAddress(), convertToUnit("1", 18)),
+          comptroller.mintAllowed(someVToken.address, root.address, convertToUnit("1", 18)),
         ).to.be.revertedWith("market not listed");
       });
     });
 
     describe("redeemVerify", () => {
       it("should allow you to redeem 0 underlying for 0 tokens", async () => {
-        await comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 0, 0);
+        await comptroller.redeemVerify(vToken.address, accounts[0].address, 0, 0);
       });
 
       it("should allow you to redeem 5 underlyig for 5 tokens", async () => {
-        await comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 5);
+        await comptroller.redeemVerify(vToken.address, accounts[0].address, 5, 5);
       });
 
       it("should not allow you to redeem 5 underlying for 0 tokens", async () => {
-        await expect(comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 0)).to.be.revertedWith(
+        await expect(comptroller.redeemVerify(vToken.address, accounts[0].address, 5, 0)).to.be.revertedWith(
           "redeemTokens zero",
         );
       });

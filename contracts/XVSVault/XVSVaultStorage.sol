@@ -1,4 +1,5 @@
 pragma solidity ^0.5.16;
+
 import "../Utils/SafeMath.sol";
 import "../Utils/IBEP20.sol";
 
@@ -111,4 +112,20 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
 
     /// @notice Tracks pending withdrawals for all users for a particular reward token and pool id
     mapping(address => mapping(uint256 => uint256)) internal totalPendingWithdrawals;
+
+    /// @notice pause indicator for Vault
+    bool public vaultPaused;
+
+    /// @notice if the token is added to any of the pools
+    mapping(address => bool) public isStakedToken;
+
+    /// @notice Amount we owe to users because of failed transfer attempts
+    mapping(address => mapping(address => uint256)) public pendingRewardTransfers;
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
 }

@@ -1,11 +1,18 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.5.16;
+
 import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
-import "./VAIVaultProxy.sol";
 import "./VAIVaultStorage.sol";
 import "./VAIVaultErrorReporter.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
 
-contract VAIVault is VAIVaultStorage {
+interface IVAIVaultProxy {
+    function _acceptImplementation() external returns (uint);
+
+    function admin() external returns (address);
+}
+
+contract VAIVault is VAIVaultStorage, AccessControlledV5 {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -15,8 +22,11 @@ contract VAIVault is VAIVaultStorage {
     /// @notice Event emitted when VAI withrawal
     event Withdraw(address indexed user, uint256 amount);
 
-    /// @notice Event emitted when admin changed
-    event AdminTransfered(address indexed oldAdmin, address indexed newAdmin);
+    /// @notice Event emitted when vault is paused
+    event VaultPaused(address indexed admin);
+
+    /// @notice Event emitted when vault is resumed after pause
+    event VaultResumed(address indexed admin);
 
     constructor() public {
         admin = msg.sender;
@@ -40,10 +50,38 @@ contract VAIVault is VAIVaultStorage {
     }
 
     /**
+     * @dev Prevents functions to execute when vault is paused.
+     */
+    modifier isActive() {
+        require(vaultPaused == false, "Vault is paused");
+        _;
+    }
+
+    /**
+     * @notice Pause vault
+     */
+    function pause() external {
+        _checkAccessAllowed("pause()");
+        require(!vaultPaused, "Vault is already paused");
+        vaultPaused = true;
+        emit VaultPaused(msg.sender);
+    }
+
+    /**
+     * @notice Resume vault
+     */
+    function resume() external {
+        _checkAccessAllowed("resume()");
+        require(vaultPaused, "Vault is not paused");
+        vaultPaused = false;
+        emit VaultResumed(msg.sender);
+    }
+
+    /**
      * @notice Deposit VAI to VAIVault for XVS allocation
      * @param _amount The amount to deposit to vault
      */
-    function deposit(uint256 _amount) public nonReentrant {
+    function deposit(uint256 _amount) external nonReentrant isActive {
         UserInfo storage user = userInfo[msg.sender];
 
         updateVault();
@@ -65,14 +103,14 @@ contract VAIVault is VAIVaultStorage {
      * @notice Withdraw VAI from VAIVault
      * @param _amount The amount to withdraw from vault
      */
-    function withdraw(uint256 _amount) public nonReentrant {
+    function withdraw(uint256 _amount) external nonReentrant isActive {
         _withdraw(msg.sender, _amount);
     }
 
     /**
      * @notice Claim XVS from VAIVault
      */
-    function claim() public nonReentrant {
+    function claim() external nonReentrant isActive {
         _withdraw(msg.sender, 0);
     }
 
@@ -80,7 +118,7 @@ contract VAIVault is VAIVaultStorage {
      * @notice Claim XVS from VAIVault
      * @param account The account for which to claim XVS
      */
-    function claim(address account) external nonReentrant {
+    function claim(address account) external nonReentrant isActive {
         _withdraw(account, 0);
     }
 
@@ -108,6 +146,7 @@ contract VAIVault is VAIVaultStorage {
     /**
      * @notice View function to see pending XVS on frontend
      * @param _user The user to see pending XVS
+     * @return Amount of XVS the user can claim
      */
     function pendingXVS(address _user) public view returns (uint256) {
         UserInfo storage user = userInfo[_user];
@@ -147,7 +186,7 @@ contract VAIVault is VAIVaultStorage {
     /**
      * @notice Function that updates pending rewards
      */
-    function updatePendingRewards() public {
+    function updatePendingRewards() public isActive {
         uint256 newRewards = xvs.balanceOf(address(this)).sub(xvsBalance);
 
         if (newRewards > 0) {
@@ -160,6 +199,8 @@ contract VAIVault is VAIVaultStorage {
      * @notice Update reward variables to be up-to-date
      */
     function updateVault() internal {
+        updatePendingRewards();
+
         uint256 vaiBalance = vai.balanceOf(address(this));
         if (vaiBalance == 0) {
             // avoids division by 0 errors
@@ -170,41 +211,28 @@ contract VAIVault is VAIVaultStorage {
         pendingRewards = 0;
     }
 
-    /**
-     * @dev Returns the address of the current admin
-     */
-    function getAdmin() public view returns (address) {
-        return admin;
-    }
-
-    /**
-     * @dev Burn the current admin
-     */
-    function burnAdmin() public onlyAdmin {
-        emit AdminTransfered(admin, address(0));
-        admin = address(0);
-    }
-
-    /**
-     * @dev Set the current admin to new address
-     */
-    function setNewAdmin(address newAdmin) public onlyAdmin {
-        require(newAdmin != address(0), "new owner is the zero address");
-        emit AdminTransfered(admin, newAdmin);
-        admin = newAdmin;
-    }
-
     /*** Admin Functions ***/
 
-    function _become(VAIVaultProxy vaiVaultProxy) public {
+    function _become(IVAIVaultProxy vaiVaultProxy) external {
         require(msg.sender == vaiVaultProxy.admin(), "only proxy admin can change brains");
         require(vaiVaultProxy._acceptImplementation() == 0, "change not authorized");
     }
 
-    function setVenusInfo(address _xvs, address _vai) public onlyAdmin {
+    function setVenusInfo(address _xvs, address _vai) external onlyAdmin {
+        require(_xvs != address(0) && _vai != address(0), "addresses must not be zero");
+        require(address(xvs) == address(0) && address(vai) == address(0), "addresses already set");
         xvs = IBEP20(_xvs);
         vai = IBEP20(_vai);
 
         _notEntered = true;
+    }
+
+    /**
+     * @notice Sets the address of the access control of this contract
+     * @dev Admin function to set the access control address
+     * @param newAccessControlAddress New address for the access control
+     */
+    function setAccessControl(address newAccessControlAddress) external onlyAdmin {
+        _setAccessControlManager(newAccessControlAddress);
     }
 }

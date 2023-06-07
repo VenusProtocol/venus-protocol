@@ -4,6 +4,8 @@ pragma experimental ABIEncoderV2;
 import "../XVSVault/XVSVault.sol";
 
 contract XVSVaultScenario is XVSVault {
+    using SafeMath for uint256;
+
     function pushOldWithdrawalRequest(
         UserInfo storage _user,
         WithdrawalRequest[] storage _requests,
@@ -38,5 +40,9 @@ contract XVSVaultScenario is XVSVault {
         }
 
         emit RequestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
+    }
+
+    function transferReward(address rewardToken, address user, uint256 amount) external {
+        _transferReward(rewardToken, user, amount);
     }
 }
