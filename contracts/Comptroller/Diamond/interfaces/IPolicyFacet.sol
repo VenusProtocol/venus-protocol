@@ -9,7 +9,7 @@ interface IPolicyFacet {
 
     function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint);
 
-    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external;
+    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external pure;
 
     function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint);
 

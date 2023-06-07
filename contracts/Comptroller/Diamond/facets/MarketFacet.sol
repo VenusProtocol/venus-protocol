@@ -7,6 +7,9 @@ import "../../../Tokens/VTokens/VToken.sol";
  * @dev This facet contains all the methods related to the market's management in the pool
  */
 contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
+    /// @notice Emitted when an admin supports a market
+    event MarketListed(VToken vToken);
+
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken vToken, address account);
 
@@ -34,7 +37,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         address vTokenBorrowed,
         address vTokenCollateral,
         uint actualRepayAmount
-    ) public view returns (uint, uint) {
+    ) external view returns (uint, uint) {
         (uint err, uint seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
             address(this),
             vTokenBorrowed,
@@ -50,7 +53,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param vToken The vToken to check
      * @return True if the account is in the asset, otherwise false.
      */
-    function checkMembership(address account, VToken vToken) public view returns (bool) {
+    function checkMembership(address account, VToken vToken) external view returns (bool) {
         return markets[address(vToken)].accountMembership[account];
     }
 
@@ -59,7 +62,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param vTokens The list of addresses of the vToken markets to be enabled
      * @return Success indicator for whether each corresponding market was entered
      */
-    function enterMarkets(address[] memory vTokens) public returns (uint[] memory) {
+    function enterMarkets(address[] calldata vTokens) external returns (uint[] memory) {
         uint len = vTokens.length;
 
         uint[] memory results = new uint[](len);
@@ -80,7 +83,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param vTokenAddress The address of the asset to be removed
      * @return Whether or not the account successfully exited the market
      */
-    function exitMarket(address vTokenAddress) public returns (uint) {
+    function exitMarket(address vTokenAddress) external returns (uint) {
         checkActionPauseState(vTokenAddress, Action.EXIT_MARKET);
 
         VToken vToken = VToken(vTokenAddress);
@@ -117,7 +120,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         for (; i < len; ++i) {
             if (userAssetList[i] == vToken) {
                 userAssetList[i] = userAssetList[len - 1];
-                userAssetList.pop();
+                userAssetList.length--;
                 break;
             }
         }
@@ -136,22 +139,25 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param vToken The address of the market (token) to list
      * @return uint 0=success, otherwise a failure. (See enum Error for details)
      */
-    function _supportMarket(VToken vToken) public returns (uint) {
+    function _supportMarket(VToken vToken) external returns (uint) {
         ensureAllowed("_supportMarket(address)");
 
         if (markets[address(vToken)].isListed) {
             return fail(Error.MARKET_ALREADY_LISTED, FailureInfo.SUPPORT_MARKET_EXISTS);
         }
 
+        vToken.isVToken(); // Sanity check to make sure its really a VToken
+
         // Note that isVenus is not in active use anymore
         Market storage newMarket = markets[address(vToken)];
         newMarket.isListed = true;
         newMarket.isVenus = false;
         newMarket.collateralFactorMantissa = 0;
+
         _addMarketInternal(vToken);
         _initializeMarket(address(vToken));
 
-        //emit MarketListed(vToken);
+        emit MarketListed(vToken);
 
         return uint(Error.NO_ERROR);
     }

@@ -1,7 +1,7 @@
 pragma solidity 0.5.16;
+
 import "../../../Tokens/VTokens/VToken.sol";
 import "../../../Utils/ErrorReporter.sol";
-import "../../../Utils/ExponentialNoError.sol";
 import "../../../Comptroller/ComptrollerStorage.sol";
 import "../../../Governance/IAccessControlManager.sol";
 
@@ -47,16 +47,6 @@ contract FacetBase is ComptrollerV12Storage {
 
     function ensureAllowed(string memory functionSig) internal view {
         require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
-    }
-
-    /**
-     * @notice Returns whether the given account is entered in the given asset
-     * @param account The address of the account to check
-     * @param vToken The vToken to check
-     * @return True if the account is in the asset, otherwise false.
-     */
-    function checkMembership(address account, VToken vToken) external view returns (bool) {
-        return markets[address(vToken)].accountMembership[account];
     }
 
     /**

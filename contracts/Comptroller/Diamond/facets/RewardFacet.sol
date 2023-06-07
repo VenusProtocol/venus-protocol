@@ -1,9 +1,6 @@
 pragma solidity 0.5.16;
 
-import "../../../Oracle/PriceOracle.sol";
 import "../../../Tokens/VTokens/VToken.sol";
-import "../../../Utils/ErrorReporter.sol";
-import "../../../Governance/IAccessControlManager.sol";
 import "./XVSRewardsHelper.sol";
 import "../interfaces/IXVS.sol";
 
@@ -48,7 +45,7 @@ contract RewardFacet is XVSRewardsHelper {
      * @notice Claim all the xvs accrued by holder in all markets, a shorthand for `claimVenus` with collateral set to `true`
      * @param holder The address to claim XVS for
      */
-    function claimVenusAsCollateral(address holder) public {
+    function claimVenusAsCollateral(address holder) external {
         address[] memory holders = new address[](1);
         holders[0] = holder;
         claimVenus(holders, allMarkets, true, true, true);
@@ -106,15 +103,11 @@ contract RewardFacet is XVSRewardsHelper {
      * @param recipient The address of the recipient to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      */
-    function _grantXVS(address recipient, uint amount) public {
+    function _grantXVS(address recipient, uint amount) external {
         ensureAdminOr(comptrollerImplementation);
         uint amountLeft = grantXVSInternal(recipient, amount, 0, false);
         require(amountLeft == 0, "insufficient xvs for grant");
         emit VenusGranted(recipient, amount);
-    }
-
-    function getBlockNumber() public view returns (uint) {
-        return block.number;
     }
 
     /**

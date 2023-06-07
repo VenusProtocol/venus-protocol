@@ -101,7 +101,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address recipient, uint amount);
 
-    /// @notice Emitted whe ComptrollerLens address is changed
+    /// @notice Emitted when ComptrollerLens address is changed
     event NewComptrollerLens(address oldComptrollerLens, address newComptrollerLens);
 
     /// @notice Emitted when supply cap for a vToken is changed

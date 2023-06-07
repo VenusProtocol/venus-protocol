@@ -21,7 +21,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param mintAmount The amount of underlying being supplied to the market in exchange for tokens
      * @return 0 if the mint is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function mintAllowed(address vToken, address minter, uint mintAmount) public returns (uint) {
+    function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.MINT);
@@ -42,7 +42,7 @@ contract PolicyFacet is XVSRewardsHelper {
         return uint(Error.NO_ERROR);
     }
 
-    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) public {}
+    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {}
 
     /**
      * @notice Checks if the account should be allowed to redeem tokens in the given market
@@ -51,7 +51,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param redeemTokens The number of vTokens to exchange for the underlying asset in the market
      * @return 0 if the redeem is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) public returns (uint) {
+    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REDEEM);
 
@@ -75,7 +75,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param redeemTokens The number of tokens being redeemed
      */
     // solhint-disable-next-line no-unused-vars
-    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) public pure {
+    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external pure {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
     }
 
@@ -86,7 +86,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param borrowAmount The amount of underlying the account would borrow
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function borrowAllowed(address vToken, address borrower, uint borrowAmount) public returns (uint) {
+    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.BORROW);
@@ -143,7 +143,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param borrowAmount The amount of the underlying asset requested to borrow
      */
     // solhint-disable-next-line no-unused-vars
-    function borrowVerify(address vToken, address borrower, uint borrowAmount) public {}
+    function borrowVerify(address vToken, address borrower, uint borrowAmount) external {}
 
     /**
      * @notice Checks if the account should be allowed to repay a borrow in the given market
@@ -160,7 +160,7 @@ contract PolicyFacet is XVSRewardsHelper {
         address borrower,
         // solhint-disable-next-line no-unused-vars
         uint repayAmount
-    ) public returns (uint) {
+    ) external returns (uint) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REPAY);
         ensureListed(markets[vToken]);
@@ -186,7 +186,7 @@ contract PolicyFacet is XVSRewardsHelper {
         address borrower,
         uint actualRepayAmount,
         uint borrowerIndex
-    ) public {}
+    ) external {}
 
     /**
      * @notice Checks if the liquidation should be allowed to occur
@@ -202,7 +202,7 @@ contract PolicyFacet is XVSRewardsHelper {
         address liquidator,
         address borrower,
         uint repayAmount
-    ) public view returns (uint) {
+    ) external view returns (uint) {
         checkProtocolPauseState();
 
         // if we want to pause liquidating to vTokenCollateral, we should pause seizing
@@ -248,7 +248,7 @@ contract PolicyFacet is XVSRewardsHelper {
         address borrower,
         uint actualRepayAmount,
         uint seizeTokens
-    ) public {}
+    ) external {}
 
     /**
      * @notice Checks if the seizing of assets should be allowed to occur
@@ -264,7 +264,7 @@ contract PolicyFacet is XVSRewardsHelper {
         address liquidator,
         address borrower,
         uint seizeTokens // solhint-disable-line no-unused-vars
-    ) public returns (uint) {
+    ) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vTokenCollateral, Action.SEIZE);
@@ -302,7 +302,7 @@ contract PolicyFacet is XVSRewardsHelper {
         address liquidator,
         address borrower,
         uint seizeTokens
-    ) public {}
+    ) external {}
 
     /**
      * @notice Checks if the account should be allowed to transfer tokens in the given market
@@ -312,7 +312,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param transferTokens The number of vTokens to transfer
      * @return 0 if the transfer is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function transferAllowed(address vToken, address src, address dst, uint transferTokens) public returns (uint) {
+    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.TRANSFER);
@@ -340,7 +340,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param transferTokens The number of vTokens to transfer
      */
     // solhint-disable-next-line no-unused-vars
-    function transferVerify(address vToken, address src, address dst, uint transferTokens) public {}
+    function transferVerify(address vToken, address src, address dst, uint transferTokens) external {}
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements
@@ -348,7 +348,7 @@ contract PolicyFacet is XVSRewardsHelper {
                 account liquidity in excess of collateral requirements,
      *          account shortfall below collateral requirements)
      */
-    function getAccountLiquidity(address account) public view returns (uint, uint, uint) {
+    function getAccountLiquidity(address account) external view returns (uint, uint, uint) {
         (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(address(0)),
@@ -366,7 +366,11 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param supplySpeeds New XVS speed for supply
      * @param borrowSpeeds New XVS speed for borrow
      */
-    function _setVenusSpeeds(VToken[] memory vTokens, uint[] memory supplySpeeds, uint[] memory borrowSpeeds) public {
+    function _setVenusSpeeds(
+        VToken[] calldata vTokens,
+        uint[] calldata supplySpeeds,
+        uint[] calldata borrowSpeeds
+    ) external {
         ensureAdminOr(comptrollerImplementation);
 
         uint numTokens = vTokens.length;
