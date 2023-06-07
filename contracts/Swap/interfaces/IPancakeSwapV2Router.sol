@@ -116,6 +116,27 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external payable;
 
+    function swapExactTokensForBNBAndSupply(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external;
+
+    function swapExactTokensForBNBAndSupplyAtSupportingFee(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external;
+
+    function swapTokensForExactBNBAndSupply(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external;
+
     function swapBNBForFullTokenDebtAndRepay(
         address vTokenAddress,
         address[] calldata path,

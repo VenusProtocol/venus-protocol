@@ -259,6 +259,78 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
+     * @notice Swap Exact tokens for BNB and supply to a Venus market
+     * @param amountIn The amount of tokens to swap.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+
+    function swapExactTokensForBNBAndSupply(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        uint256 balanceBefore = address(this).balance;
+        _swapExactTokensForBNB(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _mintVBNBandTransfer(swapAmount);
+    }
+
+    /**
+     * @notice Swap Exact deflationary tokens (a small amount of fee is deducted at the time of transfer of tokens) for BNB and supply to a Venus market
+     * @param amountIn The amount of tokens to swap.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+
+    function swapExactTokensForBNBAndSupplyAtSupportingFee(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        uint256 balanceBefore = address(this).balance;
+        _swapExactTokensForBNB(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        if (swapAmount < amountOutMin) {
+            revert SwapAmountLessThanAmountOutMin(swapAmount, amountOutMin);
+        }
+        _mintVBNBandTransfer(swapAmount);
+    }
+
+    /**
+     * @notice Swap tokens for Exact BNB and supply to a Venus market
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+
+    function swapTokensForExactBNBAndSupply(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        uint256 balanceBefore = address(this).balance;
+        _swapTokensForExactBNB(amountOut, amountInMax, path, address(this));
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _mintVBNBandTransfer(swapAmount);
+    }
+
+    /**
      * @notice Swap token A for token B and repay a borrow from a Venus market
      * @param vTokenAddress The address of the vToken contract to repay.
      * @param amountIn The amount of tokens to swap.
@@ -862,5 +934,17 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         if (!isListed) {
             revert VTokenNotListed(vToken);
         }
+    }
+
+    /**
+     * @notice Mint vBNB tokens to the market then transfer them to user
+     * @param swapAmount Swapped BNB amount
+     */
+
+    function _mintVBNBandTransfer(uint256 swapAmount) internal {
+        uint256 vBNBBalanceBefore = IVBNB(vBNBAddress).balanceOf(address(this));
+        IVBNB(vBNBAddress).mint{ value: swapAmount }();
+        uint256 vBNBBalanceAfter = IVBNB(vBNBAddress).balanceOf(address(this));
+        IVBNB(vBNBAddress).transfer(msg.sender, (vBNBBalanceAfter - vBNBBalanceBefore));
     }
 }
