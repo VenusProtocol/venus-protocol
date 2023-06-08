@@ -162,7 +162,7 @@ if (FORK_MAINNET) {
         };
       }
 
-      it("Should match mint operations in vTokenAddresses.vETH", async () => {
+      it("Should match mint operations vETH", async () => {
         // txHash = 0x9da5697b0fecf99e24051267543f45c687b6c66a2ab841f2ba0f1c40ae26f039
         const result = await simulateOldAndNewVToken(
           28288084,
@@ -174,7 +174,7 @@ if (FORK_MAINNET) {
         expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
       });
 
-      it("Should match mint operations in vTokenAddresses.vXVS", async () => {
+      it("Should match mint operations vXVS", async () => {
         // txHash = 0xf3c5bf0d356cd58a2f6974f70ab6260577baba26e9a761dd7f0d0051952aae07
         const result = await simulateOldAndNewVToken(
           28274639,
@@ -186,7 +186,7 @@ if (FORK_MAINNET) {
         expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
       });
 
-      it("Should match mint operations in vTokenAddresses.vBTC", async () => {
+      it("Should match mint operations vBTC", async () => {
         // txHash = 0x36e3c54c3b7ec399a1e402fd2a66d225a684ac852c371c6fcacb66d069e5be57
         const result = await simulateOldAndNewVToken(
           28288129,
@@ -198,7 +198,7 @@ if (FORK_MAINNET) {
         expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
       });
 
-      it("Should match mint operations in vTokenAddresses.vCAKE", async () => {
+      it("Should match mint operations vCAKE", async () => {
         // txHash = 0x9b8a1ff142df57e48081d8ecadf4d023b267dad583841dcd518e2b6bdc361044
         const result = await simulateOldAndNewVToken(
           28287186,
@@ -210,7 +210,7 @@ if (FORK_MAINNET) {
         expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
       });
 
-      it("Should match mint operations in vTokenAddresses.vMATIC", async () => {
+      it("Should match mint operations vMATIC", async () => {
         // txHash = 0xce1e4f6206451a10477e4b7680be91c72d8bd4224a56eb0f629a11a0ea37e6e9
         const result = await simulateOldAndNewVToken(
           28238030,
@@ -218,6 +218,222 @@ if (FORK_MAINNET) {
           underlyingAddresses.MATIC,
           mintUserAddresses.vMATIC_MINT_USER,
           "7297776682419663617007",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vUSDC", async () => {
+        // txHash = 0xce1cef93a9532473613ff08c18f498f8f906cb01e935d9a4d48b3cecf876a7ad
+        const result = await simulateOldAndNewVToken(
+          28862143,
+          vTokenAddresses.vUSDC,
+          underlyingAddresses.USDC,
+          mintUserAddresses.vUSDC_MINT_USER,
+          "185269000000000000000000",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vUSDT", async () => {
+        // txHash = 0xc48a8bf848545c01a4e16b14c7d722461887ccc393dc18c56e012b4698fd11e0
+        const result = await simulateOldAndNewVToken(
+          28862313,
+          vTokenAddresses.vUSDT,
+          underlyingAddresses.USDT,
+          mintUserAddresses.vUSDT_MINT_USER,
+          "3564102652542115585213",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vBUSD", async () => {
+        // txHash = 0x8beaf2ce29019ccf69d51c14d8ac5233596d639f748507d40278b748e357a157
+        const result = await simulateOldAndNewVToken(
+          28861605,
+          vTokenAddresses.vBUSD,
+          underlyingAddresses.BUSD,
+          mintUserAddresses.vBUSD_MINT_USER,
+          "150116755100514265056034",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vSXP", async () => {
+        // txHash = 0xa021526e19e7a50033bebfca0eb41d60fb51d2b6aecf8e1843e5e31218f33edf
+        const result = await simulateOldAndNewVToken(
+          25491507,
+          vTokenAddresses.vSXP,
+          underlyingAddresses.SXP,
+          mintUserAddresses.vSXP_MINT_USER,
+          "631261366600000000000",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vLTC", async () => {
+        // txHash = 0x6acd7cb94545c438919d73c5ba752e44f2a657ad53f5471775c031ee6fa7103e
+        const result = await simulateOldAndNewVToken(
+          28861083,
+          vTokenAddresses.vLTC,
+          underlyingAddresses.LTC,
+          mintUserAddresses.vLTC_MINT_USER,
+          "2531207127434988340",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vXRP", async () => {
+        // txHash = 0x22bd1adc5096017664fc74a62c4de43f82697ded207a937cd33e4adf3ad63bbd
+        const result = await simulateOldAndNewVToken(
+          28859483,
+          vTokenAddresses.vXRP,
+          underlyingAddresses.XRP,
+          mintUserAddresses.vXRP_MINT_USER,
+          "32105996528311261106",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vTRX", async () => {
+        // txHash = 0xcdfbc0948db95daaf077c0d04f8648667e4c6c5846b129af2d0fa1b8f7b07bc5
+        const result = await simulateOldAndNewVToken(
+          28851154,
+          vTokenAddresses.vTRX,
+          underlyingAddresses.TRX,
+          mintUserAddresses.vTRX_MINT_USER,
+          "198501072",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vTRXOLD", async () => {
+        // txHash = 0x4247173d095156dbb49d03685fb54f22301b68acd236679eb8b3ded6b3a020e5
+        const result = await simulateOldAndNewVToken(
+          25978263,
+          vTokenAddresses.vTRXOLD,
+          underlyingAddresses.TRXOLD,
+          mintUserAddresses.vTRXOLD_MINT_USER,
+          "351446489299990000000000",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vBCH", async () => {
+        // txHash = 0x6d5ab81f576e972198082e8ad43bcb8dda3176f80adcd1feee07987ae8516c32
+        const result = await simulateOldAndNewVToken(
+          28858258,
+          vTokenAddresses.vBCH,
+          underlyingAddresses.BCH,
+          mintUserAddresses.vBCH_MINT_USER,
+          "1798618263428792528",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vDOT", async () => {
+        // txHash = 0xd0a02f1783d954d0a59c0ae1ea5d97901c38ec67202c911c17ad3ddea35b3392
+        const result = await simulateOldAndNewVToken(
+          28861317,
+          vTokenAddresses.vDOT,
+          underlyingAddresses.DOT,
+          mintUserAddresses.vDOT_MINT_USER,
+          "26446390309000000000",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vLINK", async () => {
+        // txHash = 0x85e6ade791560293ab1aafbfa61e579ce23704f2d805d51faeff327c9b7dd067
+        const result = await simulateOldAndNewVToken(
+          28863770,
+          vTokenAddresses.vLINK,
+          underlyingAddresses.LINK,
+          mintUserAddresses.vLINK_MINT_USER,
+          "118156087000000000000",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vDAI", async () => {
+        // txHash = 0x61e0083960ffc78bf1075e4eeacdc420e490e5183be289b751fd630e3bf6d6a4
+        const result = await simulateOldAndNewVToken(
+          28862866,
+          vTokenAddresses.vDAI,
+          underlyingAddresses.DAI,
+          mintUserAddresses.vDAI_MINT_USER,
+          "95305700899464838020",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vFIL", async () => {
+        // txHash = 0xddd8986f2e3d77ab0d7b39d3efd42db516d647ee66cd0a348cd88936583245c0
+        const result = await simulateOldAndNewVToken(
+          28844468,
+          vTokenAddresses.vFIL,
+          underlyingAddresses.FIL,
+          mintUserAddresses.vFIL_MINT_USER,
+          "5867617290477094445",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vBETH", async () => {
+        // txHash = 0xe34318c8a6dcbd7806cdc7e6037002c87708ee9c3de3238bc0e7f573ec86db60
+        const result = await simulateOldAndNewVToken(
+          28847293,
+          vTokenAddresses.vBETH,
+          underlyingAddresses.BETH,
+          mintUserAddresses.vBETH_MINT_USER,
+          "1275700000000000",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it("Should match mint operations vADA", async () => {
+        // txHash = 0x873a926f2c18192e8eb7e43f6cf6603ab01737598f5c24bb3391fc5cba673108
+        const result = await simulateOldAndNewVToken(
+          28862166,
+          vTokenAddresses.vADA,
+          underlyingAddresses.ADA,
+          mintUserAddresses.vADA_MINT_USER,
+          "199941113730000000000",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it.only("Should match mint operations vDOGE", async () => {
+        // txHash = 0xfa0f2b3a77c8be678deee863327cc6d66190ab535c305807789c67eedae52573
+        const result = await simulateOldAndNewVToken(
+          28860690,
+          vTokenAddresses.vDOGE,
+          underlyingAddresses.DOGE,
+          mintUserAddresses.vDOGE_MINT_USER,
+          "149578782454",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it.only("Should match mint operations vAAVE", async () => {
+        // txHash = 0x3b32241195820ad89f095d7c6b179e55670d88a68ea08c54898f5052d759ccb5
+        const result = await simulateOldAndNewVToken(
+          28853051,
+          vTokenAddresses.vAAVE,
+          underlyingAddresses.AAVE,
+          mintUserAddresses.vAAVE_MINT_USER,
+          "7129334050885325208",
+        );
+        expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
+      });
+
+      it.only("Should match mint operations vTUSD", async () => {
+        // txHash = 0x3b32241195820ad89f095d7c6b179e55670d88a68ea08c54898f5052d759ccb5
+        const result = await simulateOldAndNewVToken(
+          28854387,
+          vTokenAddresses.vTUSD,
+          underlyingAddresses.TUSD,
+          mintUserAddresses.vTUSD_MINT_USER,
+          "1000000000000000000000",
         );
         expect(result.newVTokenBalance).equals(result.oldVTokenBalance);
       });
@@ -256,7 +472,7 @@ if (FORK_MAINNET) {
         };
       }
 
-      it("Should match borrow operations in vTokenAddresses.vETH", async () => {
+      it("Should match borrow operations vETH", async () => {
         // txHash 0x772fbf3e4b5f860b135bd5e897144b30f49538a62256b8cac640d428f9d89e9c
         const result = await simulateOldAndNewVToken(
           28310736,
@@ -267,7 +483,7 @@ if (FORK_MAINNET) {
         expect(result.oldUnderlyingBal).equals(result.newUnderlyingBal);
       });
 
-      it("Should match borrow operations in vTokenAddresses.vBTC", async () => {
+      it("Should match borrow operations vBTC", async () => {
         // txHash = 0x36e3c54c3b7ec399a1e402fd2a66d225a684ac852c371c6fcacb66d069e5be57
         const result = await simulateOldAndNewVToken(
           28314219,
@@ -278,7 +494,7 @@ if (FORK_MAINNET) {
         expect(result.oldUnderlyingBal).equals(result.newUnderlyingBal);
       });
 
-      it("Should match borrow operations in vTokenAddresses.vCAKE", async () => {
+      it("Should match borrow operations vCAKE", async () => {
         // txHash = 0x9be37c0744f1105c203f1ecc2007b5b47992987b41a6f57eceac9004271f870f
         const result = await simulateOldAndNewVToken(
           28310476,
@@ -289,7 +505,7 @@ if (FORK_MAINNET) {
         expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
       });
 
-      it("Should match borrow operations in vTokenAddresses.vMATIC", async () => {
+      it("Should match borrow operations vMATIC", async () => {
         // txHash = 0x632575e89de5275efff05861c4d8cce3a49cdb2d53b71bf68e72b9cdbc4a0aae
         const result = await simulateOldAndNewVToken(
           28294567,
@@ -336,7 +552,7 @@ if (FORK_MAINNET) {
         };
       }
 
-      it("Should match redeem operations in vTokenAddresses.vETH", async () => {
+      it("Should match redeem operations vETH", async () => {
         // txHash 0xd37176f09ed5de929a796f6933c2c40befcc9f61dc9f8b3def26df7596ad69bb
         const result = await simulateOldAndNewVToken(
           28315289,
@@ -348,7 +564,7 @@ if (FORK_MAINNET) {
         expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
       });
 
-      it("Should match redeem operations in vTokenAddresses.vXVS", async () => {
+      it("Should match redeem operations vXVS", async () => {
         // txHash = 0xeb754c57b39dedd0b8bacacfa9c2ec1d006b34d7e6adc14207c44fa19f8d5530
         const result = await simulateOldAndNewVToken(
           28306020,
@@ -360,7 +576,7 @@ if (FORK_MAINNET) {
         expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
       });
 
-      it("Should match redeem operations in vTokenAddresses.vBTC", async () => {
+      it("Should match redeem operations vBTC", async () => {
         // txHash = 0x3a097f3494ceace00f752a690453946b4f11ac858c6d0bbe37d5fd766754287d
         const result = await simulateOldAndNewVToken(
           28314646,
@@ -372,7 +588,7 @@ if (FORK_MAINNET) {
         expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
       });
 
-      it("Should match redeem operations in vTokenAddresses.vCAKE", async () => {
+      it("Should match redeem operations vCAKE", async () => {
         // txHash = 0xe46a1d391b2bbae2536b36baf69aa3abc79a22fb9572352335dc545f768e61bb
         const result = await simulateOldAndNewVToken(
           28312626,
@@ -384,7 +600,7 @@ if (FORK_MAINNET) {
         expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
       });
 
-      it("Should match redeem operations in vTokenAddresses.vMATIC", async () => {
+      it("Should match redeem operations vMATIC", async () => {
         // txHash = 0xcd69bc4f78039f9eb242841e372a2fe198a107d91560f0d98745907b43b96f51
         const result = await simulateOldAndNewVToken(
           28246996,
@@ -437,7 +653,7 @@ if (FORK_MAINNET) {
         };
       }
 
-      it("Should match repay operations in vTokenAddresses.vETH", async () => {
+      it("Should match repay operations vETH", async () => {
         // txHash = 0x1fcd907ee836ce7ba682c24e625e99df6ad864e260fa3ce2cea384204463a624
         const result = await simulateOldAndNewVToken(
           28314545,
@@ -449,7 +665,7 @@ if (FORK_MAINNET) {
         expect(result.oldBorrowBalance).equals(result.newBorrowBalance);
       });
 
-      it("Should match repay operations in vTokenAddresses.vBTC", async () => {
+      it("Should match repay operations vBTC", async () => {
         // txHash = 0xed46b1c4824e66790fb79f30ddb8524973c2df87397532d7df9a7d62baf4057e
         const result = await simulateOldAndNewVToken(
           28312371,
@@ -461,7 +677,7 @@ if (FORK_MAINNET) {
         expect(result.oldBorrowBalance).equals(result.newBorrowBalance);
       });
 
-      it("Should match repay operations in vTokenAddresses.vCAKE", async () => {
+      it("Should match repay operations vCAKE", async () => {
         // txHash = 0xb962b2b067acccfadd87e2c5554d8dc745c34d67f6e64f3baf961b074ec8f803
         const result = await simulateOldAndNewVToken(
           28314251,
@@ -473,7 +689,7 @@ if (FORK_MAINNET) {
         expect(result.oldBorrowBalance).equals(result.newBorrowBalance);
       });
 
-      it("Should match repay operations in vTokenAddresses.vMATIC", async () => {
+      it("Should match repay operations vMATIC", async () => {
         // txHash = 0x21c186d5d6a725062ed7d5cd7dd1644f9830d49a67cacd0b546fcc29c6721e56
         const result = await simulateOldAndNewVToken(
           28306890,
