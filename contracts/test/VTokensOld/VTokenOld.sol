@@ -6,15 +6,14 @@ import "../../Utils/Exponential.sol";
 import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
-import "./VTokenInterfacesV2.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
+import "./VTokenInterfacesOld.sol";
 
 /**
  * @title Venus's vToken Contract
  * @notice Abstract base for vTokens
  * @author Venus
  */
-contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Exponential, TokenErrorReporter {
+contract VTokenOld is VTokenInterface, Exponential, TokenErrorReporter {
     struct MintLocalVars {
         MathError mathErr;
         uint exchangeRateMantissa;
@@ -204,54 +203,34 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
 
     /**
      * @notice accrues interest and sets a new reserve factor for the protocol using `_setReserveFactorFresh`
-     * @dev Governor function to accrue interest and set a new reserve factor
+     * @dev Admin function to accrue interest and set a new reserve factor
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits NewReserveFactor event
-    function _setReserveFactor(uint _newReserveFactorMantissa) external nonReentrant returns (uint) {
-        _checkAccessAllowed("_setReserveFactor(uint256)");
+    function _setReserveFactor(uint newReserveFactorMantissa) external nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reserve factor change failed.
             return fail(Error(error), FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
         }
         // _setReserveFactorFresh emits reserve-factor-specific logs on errors, so we don't need to.
-        return _setReserveFactorFresh(_newReserveFactorMantissa);
-    }
-
-    /**
-     * @notice Sets the address of the access control of this contract
-     * @dev Admin function to set the access control address
-     * @param _newAccessControlAddress New address for the access control
-     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
-     */
-    // @custom:event Emits NewAccessControlManager event
-    function setAccessControl(address _newAccessControlAddress) external returns (uint) {
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_ACCESS_CONTROL_OWNER_CHECK);
-        }
-        _setAccessControlManager(_newAccessControlAddress);
-        return uint(Error.NO_ERROR);
+        return _setReserveFactorFresh(newReserveFactorMantissa);
     }
 
     /**
      * @notice Accrues interest and reduces reserves by transferring to admin
-     * @param _reduceAmount Amount of reduction to reserves
+     * @param reduceAmount Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits ReservesReduced event
-    function _reduceReserves(uint _reduceAmount) external nonReentrant returns (uint) {
-        _checkAccessAllowed("_reduceReserves(uint256)");
+    function _reduceReserves(uint reduceAmount) external nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
             return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
         }
-
-        // If reserves were reduced in accrueInterest
-        if (reduceReservesBlockNumber == getBlockNumber()) return (uint(Error.NO_ERROR));
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
-        return _reduceReservesFresh(_reduceAmount);
+        return _reduceReservesFresh(reduceAmount);
     }
 
     /**
@@ -321,34 +300,6 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      */
     function getCash() external view returns (uint) {
         return getCashPrior();
-    }
-
-    /**
-     * @notice A admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
-     * @param _newReduceReservesBlockDelta block difference value
-     */
-    function setReduceReservesBlockDelta(uint256 _newReduceReservesBlockDelta) external returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_REDUCE_RESERVES_BLOCK_DELTA_OWNER_CHECK);
-        }
-        uint256 oldReduceReservesBlockDelta_ = reduceReservesBlockDelta;
-        reduceReservesBlockDelta = _newReduceReservesBlockDelta;
-        emit NewReduceReservesBlockDelta(oldReduceReservesBlockDelta_, _newReduceReservesBlockDelta);
-    }
-
-    /**
-     * @notice A admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
-     * @param protcolShareReserve_ The address of protocol share reserve contract
-     */
-    function setProtcolShareReserve(address payable protcolShareReserve_) external returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PROTOCOL_SHARE_RESERVES_OWNER_CHECK);
-        }
-        address oldProtocolShareReserve_ = protocolShareReserve;
-        protocolShareReserve = protcolShareReserve_;
-        emit NewProtocolShareReserve(oldProtocolShareReserve_, protcolShareReserve_);
     }
 
     /**
@@ -513,11 +464,6 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
         totalBorrows = totalBorrowsNew;
         totalReserves = totalReservesNew;
 
-        if (currentBlockNumber - reduceReservesBlockNumber >= reduceReservesBlockDelta) {
-            reduceReservesBlockNumber = currentBlockNumber;
-            _reduceReservesFresh(totalReservesNew);
-        }
-
         /* We emit an AccrueInterest event */
         emit AccrueInterest(cashPrior, interestAccumulated, borrowIndexNew, totalBorrowsNew);
 
@@ -552,18 +498,17 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
     /**
      * @notice Accrues interest and updates the interest rate model using _setInterestRateModelFresh
      * @dev Admin function to accrue interest and update the interest rate model
-     * @param _newInterestRateModel The new interest rate model to use
+     * @param newInterestRateModel The new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function _setInterestRateModel(InterestRateModel _newInterestRateModel) public returns (uint) {
-        _checkAccessAllowed("_setInterestRateModel(address)");
+    function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted change of interest rate model failed
             return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
         }
         // _setInterestRateModelFresh emits interest-rate-model-update-specific logs on errors, so we don't need to.
-        return _setInterestRateModelFresh(_newInterestRateModel);
+        return _setInterestRateModelFresh(newInterestRateModel);
     }
 
     /**
@@ -1238,7 +1183,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
     function liquidateBorrowInternal(
         address borrower,
         uint repayAmount,
-        VTokenInterfaceV2 vTokenCollateral
+        VTokenInterface vTokenCollateral
     ) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -1270,7 +1215,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
         address liquidator,
         address borrower,
         uint repayAmount,
-        VTokenInterfaceV2 vTokenCollateral
+        VTokenInterface vTokenCollateral
     ) internal returns (uint, uint) {
         /* Fail if liquidate not allowed */
         uint allowed = comptroller.liquidateBorrowAllowed(
@@ -1422,10 +1367,15 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
 
     /**
      * @notice Sets a new reserve factor for the protocol (requires fresh interest accrual)
-     * @dev Governance function to set a new reserve factor
+     * @dev Admin function to set a new reserve factor
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setReserveFactorFresh(uint newReserveFactorMantissa) internal returns (uint) {
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_RESERVE_FACTOR_ADMIN_CHECK);
+        }
+
         // Verify market's block number equals current block number
         if (accrualBlockNumber != getBlockNumber()) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_RESERVE_FACTOR_FRESH_CHECK);
@@ -1507,7 +1457,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
     }
 
     /**
-     * @notice Reduces reserves by transferring to protocol share reserve contract
+     * @notice Reduces reserves by transferring to admin
      * @dev Requires fresh interest accrual
      * @param reduceAmount Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
@@ -1515,6 +1465,11 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
     function _reduceReservesFresh(uint reduceAmount) internal returns (uint) {
         // totalReserves - reduceAmount
         uint totalReservesNew;
+
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.REDUCE_RESERVES_ADMIN_CHECK);
+        }
 
         // We fail gracefully unless market's block number equals current block number
         if (accrualBlockNumber != getBlockNumber()) {
@@ -1541,13 +1496,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
         totalReserves = totalReservesNew;
 
         // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
-        doTransferOut(protocolShareReserve, reduceAmount);
-
-        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
-            address(comptroller),
-            underlying,
-            IProtocolShareReserve.IncomeType.SPREAD
-        );
+        doTransferOut(admin, reduceAmount);
 
         emit ReservesReduced(admin, reduceAmount, totalReservesNew);
 
@@ -1556,13 +1505,19 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
 
     /**
      * @notice updates the interest rate model (requires fresh interest accrual)
-     * @dev Governance function to update the interest rate model
+     * @dev Admin function to update the interest rate model
      * @param newInterestRateModel the new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setInterestRateModelFresh(InterestRateModel newInterestRateModel) internal returns (uint) {
         // Used to store old model for use in the event that is emitted on success
         InterestRateModel oldInterestRateModel;
+
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.SET_INTEREST_RATE_MODEL_OWNER_CHECK);
+        }
+
         // We fail gracefully unless market's block number equals current block number
         if (accrualBlockNumber != getBlockNumber()) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_INTEREST_RATE_MODEL_FRESH_CHECK);

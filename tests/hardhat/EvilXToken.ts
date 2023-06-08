@@ -168,6 +168,7 @@ describe("Evil Token test", async () => {
     await unitroller.connect(user).enterMarkets([vToken1.address, vToken2.address, vToken3.address]);
     await underlying1.harnessSetBalance(user.address, convertToUnit(1, 8));
     await underlying1.connect(user).approve(vToken1.address, convertToUnit(1, 10));
+    await vToken1.setReduceReservesBlockDelta(10000);
     await vToken1.connect(user).mint(convertToUnit(1, 4));
     await underlying3.harnessSetBalance(vToken3.address, convertToUnit(1, 8));
   });

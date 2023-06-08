@@ -7,6 +7,7 @@ import { convertToUnit } from "../../../helpers/utils";
 import {
   IAccessControlManager,
   IAccessControlManagerV5__factory,
+  IProtocolShareReserve,
   InterestRateModel,
   VBep20Delegate,
   VBep20Delegate__factory,
@@ -45,6 +46,9 @@ async function configure() {
   await vBusdProxy.connect(impersonatedTimelock)._setImplementation(vBusdImpl.address, true, "0x00");
   vBusd = VBep20Delegate__factory.connect(VBUSD, impersonatedTimelock);
   await vBusd.setAccessControl(ACM);
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  await vBusd.connect(impersonatedTimelock).setReduceReservesBlockDelta(1000);
+  await vBusd.connect(impersonatedTimelock).setProtcolShareReserve(protocolShareReserve.address);
 }
 
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
@@ -80,7 +84,7 @@ if (FORK_MAINNET) {
 
     it("should success if permission is granted for reduce reserves", async () => {
       await grantPermission("_reduceReserves(uint256)");
-      const reduceAmount = convertToUnit(1, 17);
+      const reduceAmount = await vBusd.totalReserves();
       await expect(vBusd.connect(impersonatedTimelock)._reduceReserves(reduceAmount)).to.be.emit(
         vBusd,
         "ReservesReduced",

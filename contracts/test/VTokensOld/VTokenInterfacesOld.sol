@@ -3,16 +3,7 @@ pragma solidity ^0.5.16;
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 
-interface IProtocolShareReserve {
-    enum IncomeType {
-        SPREAD,
-        LIQUIDATION
-    }
-
-    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
-}
-
-contract VTokenStorageV2 {
+contract VTokenStorageOld {
     /**
      * @notice Container for borrow balance information
      * @member principal Total balance (with accrued interest), after applying the most recent balance-changing action
@@ -123,41 +114,9 @@ contract VTokenStorageV2 {
      * @notice Mapping of account addresses to outstanding borrow balances
      */
     mapping(address => BorrowSnapshot) internal accountBorrows;
-
-    /**
-     * @notice Underlying asset for this VToken
-     */
-    address public underlying;
-
-    /**
-     * @notice Implementation address for this contract
-     */
-    address public implementation;
-
-    /**
-     * @notice delta block after which reserves will be reduced
-     */
-    uint public reduceReservesBlockDelta;
-
-    /**
-     * @notice last block number at which reserves were reduced
-     */
-    uint public reduceReservesBlockNumber;
-
-    /**
-     * @notice address of protocol share reserve contract
-     */
-    address payable public protocolShareReserve;
-
-    /**
-     * @dev This empty reserved space is put in place to allow future versions to add new
-     * variables without shifting down storage in the inheritance chain.
-     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-     */
-    uint256[50] private __gap;
 }
 
-contract VTokenInterfaceV2 {
+contract VTokenInterface is VTokenStorageOld {
     /**
      * @notice Indicator that this is a vToken contract (for inspection)
      */
@@ -259,16 +218,6 @@ contract VTokenInterfaceV2 {
     event Approval(address indexed owner, address indexed spender, uint amount);
 
     /**
-     * @notice Event emitted when block delta for reduce reserves get updated
-     */
-    event NewReduceReservesBlockDelta(uint256 oldReduceReservesBlockDelta, uint256 newReduceReservesBlockDelta);
-
-    /**
-     * @notice Event emitted when address of ProtocolShareReserve contract get updated
-     */
-    event NewProtocolShareReserve(address indexed oldProtocolShareReserve, address indexed newProtocolShareReserve);
-
-    /**
      * @notice Failure event
      */
     event Failure(uint error, uint info, uint detail);
@@ -326,11 +275,16 @@ contract VTokenInterfaceV2 {
     function borrowBalanceStored(address account) public view returns (uint);
 
     function exchangeRateStored() public view returns (uint);
-
-    function accrualBlockNumber() external returns (uint);
 }
 
-contract VBep20InterfaceV2 {
+contract VBep20Storage {
+    /**
+     * @notice Underlying asset for this VToken
+     */
+    address public underlying;
+}
+
+contract VBep20Interface is VBep20Storage {
     /*** User Interface ***/
 
     function mint(uint mintAmount) external returns (uint);
@@ -350,7 +304,7 @@ contract VBep20InterfaceV2 {
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterfaceV2 vTokenCollateral
+        VTokenInterface vTokenCollateral
     ) external returns (uint);
 
     /*** Admin Functions ***/
@@ -358,7 +312,14 @@ contract VBep20InterfaceV2 {
     function _addReserves(uint addAmount) external returns (uint);
 }
 
-contract VDelegatorInterfaceV2 {
+contract VDelegationStorage {
+    /**
+     * @notice Implementation address for this contract
+     */
+    address public implementation;
+}
+
+contract VDelegatorInterface is VDelegationStorage {
     /**
      * @notice Emitted when implementation is changed
      */
@@ -377,7 +338,7 @@ contract VDelegatorInterfaceV2 {
     ) public;
 }
 
-contract VDelegateInterfaceV2 {
+contract VDelegateInterface is VDelegationStorage {
     /**
      * @notice Called by the delegator on a delegate to initialize it for duty
      * @dev Should revert if any issues arise which make it unfit for delegation
