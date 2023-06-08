@@ -9,8 +9,6 @@ import {
   FaucetToken__factory,
   IProtocolShareReserve,
   VBep20Delegate,
-  VBep20DelegateOld,
-  VBep20DelegateOld__factory,
   VBep20Delegate__factory,
   VBep20Delegator__factory,
 } from "../../../typechain";
@@ -60,11 +58,11 @@ async function configureNew(vTokenAddress: string) {
 
 async function configureOld(vTokenAddress: string) {
   await configureTimelock();
-  const vToken = VBep20DelegateOld__factory.connect(vTokenAddress, impersonatedTimelock);
+  const vToken = VBep20Delegate__factory.connect(vTokenAddress, impersonatedTimelock);
   return vToken;
 }
 
-async function fetchStorage(vToken: VBep20Delegate | VBep20DelegateOld, mintUser: string, borrowUser: string) {
+async function fetchStorage(vToken: VBep20Delegate, mintUser: string, borrowUser: string) {
   const name = await vToken.name();
   const symbol = await vToken.symbol();
   const decimals = await vToken.decimals();

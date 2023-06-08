@@ -146,7 +146,7 @@ const config: HardhatUserConfig = {
 function isFork() {
   return process.env.FORK_MAINNET === "true"
     ? {
-        allowUnlimitedContractSize: false,
+        allowUnlimitedContractSize: true,
         loggingEnabled: false,
         forking: {
           url: process.env.BSC_ARCHIVE_NODE || "",
