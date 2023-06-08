@@ -1549,7 +1549,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
             IProtocolShareReserve.IncomeType.SPREAD
         );
 
-        emit ReservesReduced(admin, reduceAmount, totalReservesNew);
+        emit ReservesReduced(msg.sender, reduceAmount, totalReservesNew);
 
         return uint(Error.NO_ERROR);
     }
