@@ -5,7 +5,6 @@ import { Signer } from "ethers";
 import { ethers } from "hardhat";
 
 import {
-  FaucetToken,
   FaucetToken__factory,
   IProtocolShareReserve,
   VBep20Delegate,
@@ -14,11 +13,17 @@ import {
 } from "../../../typechain";
 import { initMainnetUser, setForkBlock } from "./utils";
 import {
+  borrowAmounts,
+  borrowBlocks,
   borrowUserAddresses,
   mintAmounts,
   mintBlocks,
   mintUserAddresses,
+  redeemAmounts,
+  redeemBlocks,
   redeemUserAddresses,
+  repayAmounts,
+  repayBlocks,
   repayUserAddresses,
   underlyingAddresses,
   vTokenAddresses,
@@ -30,12 +35,6 @@ chai.use(smock.matchers);
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
-
-let vEthNew: VBep20Delegate;
-let vXvsNew: VBep20Delegate;
-let vBtcNew: VBep20Delegate;
-let vCakeNew: VBep20Delegate;
-let vMaticNew: VBep20Delegate;
 
 let impersonatedTimelock: Signer;
 let protocolShareReserve: FakeContract<IProtocolShareReserve>;
@@ -124,8 +123,8 @@ if (FORK_MAINNET) {
       });
     });
 
-    describe("Mint Operations", async () => {
-      let vTokenMintuser: Signer;
+    describe("User Operations", async () => {
+      let signer: Signer;
       async function configureUserAndTokens(
         vTokenAddress: string,
         userAddress: string,
@@ -133,9 +132,9 @@ if (FORK_MAINNET) {
         amount: string,
       ) {
         await configureTimelock();
-        vTokenMintuser = await initMainnetUser(userAddress, ethers.utils.parseUnits("2"));
+        signer = await initMainnetUser(userAddress, ethers.utils.parseUnits("2"));
         const underlying = FaucetToken__factory.connect(underlyingAddress, impersonatedTimelock);
-        await underlying.connect(vTokenMintuser).approve(vTokenAddress, amount);
+        await underlying.connect(signer).approve(vTokenAddress, amount);
       }
 
       async function simulateOldAndNewMintOperations(
@@ -149,18 +148,111 @@ if (FORK_MAINNET) {
         await mine(4);
         const vTokenOld = await configureOld(vTokenContract);
         await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
-        await vTokenOld.connect(vTokenMintuser).mint(amount);
+        await vTokenOld.connect(signer).mint(amount);
         const totalReservesAfterMint = await vTokenOld.totalReserves();
         const oldState = await fetchStorage(vTokenOld, userAddress, userAddress);
 
         await setForkBlock(blockNumber);
         const vTokenNew = await configureNew(vTokenContract);
         await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
-        const result = await vTokenNew.connect(vTokenMintuser).mint(amount);
+        const result = await vTokenNew.connect(signer).mint(amount);
         const totalReservesnew = await vTokenNew.totalReserves();
         expect(result)
           .to.be.emit(vTokenNew, "ReservesReduced")
           .withArgs(userAddress, totalReservesAfterMint, totalReservesnew);
+        const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
+
+        return {
+          oldState: oldState,
+          newState: newState,
+        };
+      }
+
+      async function simulateOldAndNewBorrowOperations(
+        blockNumber: number,
+        vTokenContract: string,
+        underlyingAddress: string,
+        userAddress: string,
+        amount: string,
+      ) {
+        await setForkBlock(blockNumber);
+        await mine(4);
+        const vTokenOld = await configureOld(vTokenContract);
+        await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
+        await vTokenOld.connect(signer).borrow(amount);
+        const totalReservesAfterBorrow = await vTokenOld.totalReserves();
+        const oldState = await fetchStorage(vTokenOld, userAddress, userAddress);
+
+        await setForkBlock(blockNumber);
+        const vTokenNew = await configureNew(vTokenContract);
+        await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
+        const result = await vTokenNew.connect(signer).borrow(amount);
+        const totalReservesnew = await vTokenNew.totalReserves();
+        expect(result)
+          .to.be.emit(vTokenNew, "ReservesReduced")
+          .withArgs(userAddress, totalReservesAfterBorrow, totalReservesnew);
+        const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
+
+        return {
+          oldState: oldState,
+          newState: newState,
+        };
+      }
+
+      async function simulateOldAndNewRedeemOperations(
+        blockNumber: number,
+        vTokenContract: string,
+        underlyingAddress: string,
+        userAddress: string,
+        amount: string,
+      ) {
+        await setForkBlock(blockNumber);
+        await mine(4);
+        const vTokenOld = await configureOld(vTokenContract);
+        await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
+        await vTokenOld.connect(signer).redeem(amount);
+        const totalReservesAfterRedeem = await vTokenOld.totalReserves();
+        const oldState = await fetchStorage(vTokenOld, userAddress, userAddress);
+
+        await setForkBlock(blockNumber);
+        const vTokenNew = await configureNew(vTokenContract);
+        await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
+        const result = await vTokenNew.connect(signer).redeem(amount);
+        const totalReservesnew = await vTokenNew.totalReserves();
+        expect(result)
+          .to.be.emit(vTokenNew, "ReservesReduced")
+          .withArgs(userAddress, totalReservesAfterRedeem, totalReservesnew);
+        const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
+
+        return {
+          oldState: oldState,
+          newState: newState,
+        };
+      }
+
+      async function simulateOldAndNewRepayOperations(
+        blockNumber: number,
+        vTokenContract: string,
+        underlyingAddress: string,
+        userAddress: string,
+        amount: string,
+      ) {
+        await setForkBlock(blockNumber);
+        await mine(4);
+        const vTokenOld = await configureOld(vTokenContract);
+        await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
+        await vTokenOld.connect(signer).repayBorrow(amount);
+        const totalReservesAfterRepayBorrow = await vTokenOld.totalReserves();
+        const oldState = await fetchStorage(vTokenOld, userAddress, userAddress);
+
+        await setForkBlock(blockNumber);
+        const vTokenNew = await configureNew(vTokenContract);
+        await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
+        const result = await vTokenNew.connect(signer).repayBorrow(amount);
+        const totalReservesnew = await vTokenNew.totalReserves();
+        expect(result)
+          .to.be.emit(vTokenNew, "ReservesReduced")
+          .withArgs(userAddress, totalReservesAfterRepayBorrow, totalReservesnew);
         const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
 
         return {
@@ -177,7 +269,6 @@ if (FORK_MAINNET) {
           const blockNumber = mintBlocks[`${market}_MINT_BLOCK`];
           const amount = mintAmounts[`${market}_MINT_AMOUNT`];
           const underlying = underlyingAddresses[`${market}_UNDERLYING`];
-          console.log(marketAddress, mintUserAddress, blockNumber, amount, underlying);
 
           const result = await simulateOldAndNewMintOperations(
             blockNumber,
@@ -193,342 +284,127 @@ if (FORK_MAINNET) {
           expect(result.oldState).to.be.deep.equal(result.newState);
         }
       });
-    });
 
-    describe("Borrow Operations", async () => {
-      let vTokenBorrowUser: Signer;
-      async function configureSigner(userAddress: string) {
-        await configureTimelock();
-        vTokenBorrowUser = await initMainnetUser(userAddress, ethers.utils.parseUnits("2"));
-      }
+      it("Should match borrow operations in all markets", async () => {
+        const markets = Object.keys(vTokenAddresses);
+        for (const market of markets) {
+          const marketAddress = vTokenAddresses[market];
+          if (market == "vXVS") {
+            continue;
+          }
 
-      async function simulateOldAndNewVToken(
-        blockNumber: number,
-        vTokenContract: string,
-        userAddress: string,
-        amount: string,
-      ) {
-        await setForkBlock(blockNumber);
-        await mine(4);
-        const vTokenOld = await configureOld(vTokenContract);
+          const borrowUserAddress = borrowUserAddresses[`${market}_BORROW_USER`];
+          const blockNumber = borrowBlocks[`${market}_BORROW_BLOCK`];
+          const amount = borrowAmounts[`${market}_BORROW_AMOUNT`];
+          const underlying = underlyingAddresses[`${market}_UNDERLYING`];
 
-        await configureSigner(userAddress);
-        await vTokenOld.connect(vTokenBorrowUser).borrow(amount);
-        const oldUnderlyingBal = await vTokenOld.borrowBalanceStored(userAddress);
+          const result = await simulateOldAndNewBorrowOperations(
+            blockNumber,
+            marketAddress,
+            underlying,
+            borrowUserAddress,
+            amount,
+          );
+          // Upgrades will reduce reserves in very first operation of accrue interest
+          delete result.oldState["totalReserves"];
+          delete result.newState["totalReserves"];
 
-        await setForkBlock(blockNumber);
-        const vTokenNew = await configureNew(vTokenContract);
-        await configureSigner(userAddress);
-        await vTokenNew.connect(vTokenBorrowUser).borrow(amount);
-        const newUnderlyingBal = await vTokenNew.borrowBalanceStored(userAddress);
-
-        return {
-          oldUnderlyingBal: oldUnderlyingBal,
-          newUnderlyingBal: newUnderlyingBal,
-        };
-      }
-
-      it("Should match borrow operations vETH", async () => {
-        // txHash 0x772fbf3e4b5f860b135bd5e897144b30f49538a62256b8cac640d428f9d89e9c
-        const result = await simulateOldAndNewVToken(
-          28310736,
-          vTokenAddresses.vETH,
-          borrowUserAddresses.vETH_BORROW_USER,
-          "10069060513008479",
-        );
-        expect(result.oldUnderlyingBal).equals(result.newUnderlyingBal);
+          expect(result.oldState).to.be.deep.equal(result.newState);
+        }
       });
 
-      it("Should match borrow operations vBTC", async () => {
-        // txHash = 0x36e3c54c3b7ec399a1e402fd2a66d225a684ac852c371c6fcacb66d069e5be57
-        const result = await simulateOldAndNewVToken(
-          28314219,
-          vTokenAddresses.vBTC,
-          borrowUserAddresses.vBTC_BORROW_USER,
-          "6500000000000000",
-        );
-        expect(result.oldUnderlyingBal).equals(result.newUnderlyingBal);
+      it("Should match redeem operations in all markets", async () => {
+        const markets = Object.keys(vTokenAddresses);
+        for (const market of markets) {
+          const marketAddress = vTokenAddresses[market];
+          const redeemUserAddress = redeemUserAddresses[`${market}_REDEEM_USER`];
+          const blockNumber = redeemBlocks[`${market}_REDEEM_BLOCK`];
+          const amount = redeemAmounts[`${market}_REDEEM_AMOUNT`];
+          const underlying = underlyingAddresses[`${market}_UNDERLYING`];
+
+          const result = await simulateOldAndNewRedeemOperations(
+            blockNumber,
+            marketAddress,
+            underlying,
+            redeemUserAddress,
+            amount,
+          );
+          // Upgrades will reduce reserves in very first operation of accrue interest
+          delete result.oldState["totalReserves"];
+          delete result.newState["totalReserves"];
+
+          expect(result.oldState).to.be.deep.equal(result.newState);
+        }
       });
 
-      it("Should match borrow operations vCAKE", async () => {
-        // txHash = 0x9be37c0744f1105c203f1ecc2007b5b47992987b41a6f57eceac9004271f870f
-        const result = await simulateOldAndNewVToken(
-          28310476,
-          vTokenAddresses.vCAKE,
-          borrowUserAddresses.vCAKE_BORROW_USER,
-          "112673000000000000000000",
-        );
-        expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
-      });
+      it("Should match repay operations in all markets", async () => {
+        const markets = Object.keys(vTokenAddresses);
+        for (const market of markets) {
+          const marketAddress = vTokenAddresses[market];
+          if (market == "vXVS") {
+            continue;
+          }
 
-      it("Should match borrow operations vMATIC", async () => {
-        // txHash = 0x632575e89de5275efff05861c4d8cce3a49cdb2d53b71bf68e72b9cdbc4a0aae
-        const result = await simulateOldAndNewVToken(
-          28294567,
-          vTokenAddresses.vMATIC,
-          borrowUserAddresses.vMATIC_BORROW_USER,
-          "265729340605496347043",
-        );
-        expect(result.oldUnderlyingBal).equals(result.newUnderlyingBal);
-      });
-    });
+          const repayUserAddress = repayUserAddresses[`${market}_REPAY_USER`];
+          const blockNumber = repayBlocks[`${market}_REPAY_BLOCK`];
+          const amount = repayAmounts[`${market}_REPAY_AMOUNT`];
+          const underlying = underlyingAddresses[`${market}_UNDERLYING`];
 
-    describe("Redeem Operations", async () => {
-      let vTokenRedeemUser: Signer;
-      let underlying: FaucetToken;
-      async function configureSignerAndToken(userAddress: string, underlyingAddress: string) {
-        await configureTimelock();
-        vTokenRedeemUser = await initMainnetUser(userAddress, ethers.utils.parseUnits("2"));
-        underlying = FaucetToken__factory.connect(underlyingAddress, impersonatedTimelock);
-      }
+          const result = await simulateOldAndNewRepayOperations(
+            blockNumber,
+            marketAddress,
+            underlying,
+            repayUserAddress,
+            amount,
+          );
+          // Upgrades will reduce reserves in very first operation of accrue interest
+          delete result.oldState["totalReserves"];
+          delete result.newState["totalReserves"];
 
-      async function simulateOldAndNewVToken(
-        blockNumber: number,
-        vTokenContract: string,
-        underlyingAddress: string,
-        userAddress: string,
-        amount: string,
-      ) {
-        await setForkBlock(blockNumber);
-        await mine(4);
-        const vTokenOld = await configureOld(vTokenContract);
-        await configureSignerAndToken(userAddress, underlyingAddress);
-        await vTokenOld.connect(vTokenRedeemUser).redeem(amount);
-        const oldUnderlyingBal = await underlying.balanceOf(userAddress);
-
-        await setForkBlock(blockNumber);
-        const vTokenNew = await configureNew(vTokenContract);
-        await configureSignerAndToken(userAddress, underlyingAddress);
-        await vTokenNew.connect(vTokenRedeemUser).redeem(amount);
-        const newUnderlyingBal = await underlying.balanceOf(userAddress);
-
-        return {
-          oldUnderlyingBal: oldUnderlyingBal,
-          newUnderlyingBal: newUnderlyingBal,
-        };
-      }
-
-      it("Should match redeem operations vETH", async () => {
-        // txHash 0xd37176f09ed5de929a796f6933c2c40befcc9f61dc9f8b3def26df7596ad69bb
-        const result = await simulateOldAndNewVToken(
-          28315289,
-          vTokenAddresses.vETH,
-          underlyingAddresses.ETH,
-          redeemUserAddresses.vETH_REDEEM_USER,
-          "33768973094",
-        );
-        expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
-      });
-
-      it("Should match redeem operations vXVS", async () => {
-        // txHash = 0xeb754c57b39dedd0b8bacacfa9c2ec1d006b34d7e6adc14207c44fa19f8d5530
-        const result = await simulateOldAndNewVToken(
-          28306020,
-          vTokenAddresses.vXVS,
-          underlyingAddresses.XVS,
-          redeemUserAddresses.vXVS_REDEEM_USER,
-          "99073591812",
-        );
-        expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
-      });
-
-      it("Should match redeem operations vBTC", async () => {
-        // txHash = 0x3a097f3494ceace00f752a690453946b4f11ac858c6d0bbe37d5fd766754287d
-        const result = await simulateOldAndNewVToken(
-          28314646,
-          vTokenAddresses.vBTC,
-          underlyingAddresses.BTCB,
-          redeemUserAddresses.vBTC_REDEEM_USER,
-          "6136924144",
-        );
-        expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
-      });
-
-      it("Should match redeem operations vCAKE", async () => {
-        // txHash = 0xe46a1d391b2bbae2536b36baf69aa3abc79a22fb9572352335dc545f768e61bb
-        const result = await simulateOldAndNewVToken(
-          28312626,
-          vTokenAddresses.vCAKE,
-          underlyingAddresses.CAKE,
-          redeemUserAddresses.vCAKE_REDEEM_USER,
-          "632306904357",
-        );
-        expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
-      });
-
-      it("Should match redeem operations vMATIC", async () => {
-        // txHash = 0xcd69bc4f78039f9eb242841e372a2fe198a107d91560f0d98745907b43b96f51
-        const result = await simulateOldAndNewVToken(
-          28246996,
-          vTokenAddresses.vMATIC,
-          underlyingAddresses.MATIC,
-          redeemUserAddresses.vMATIC_REDEEM_USER,
-          "2400827094395",
-        );
-        expect(result.newUnderlyingBal).equals(result.oldUnderlyingBal);
-      });
-    });
-
-    describe("Repay Operations", async () => {
-      let vTokenRepayuser: Signer;
-      async function configureUserAndTokens(
-        vTokenAddress: string,
-        userAddress: string,
-        underlyingAddress: string,
-        amount: string,
-      ) {
-        await configureTimelock();
-        vTokenRepayuser = await initMainnetUser(userAddress, ethers.utils.parseUnits("2"));
-        const underlying = FaucetToken__factory.connect(underlyingAddress, impersonatedTimelock);
-        await underlying.connect(vTokenRepayuser).approve(vTokenAddress, amount);
-      }
-
-      async function simulateOldAndNewVToken(
-        blockNumber: number,
-        vTokenContract: string,
-        underlyingAddress: string,
-        userAddress: string,
-        amount: string,
-      ) {
-        await setForkBlock(blockNumber);
-        await mine(4);
-        const vTokenOld = await configureOld(vTokenContract);
-        await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
-        await vTokenOld.connect(vTokenRepayuser).repayBorrow(amount);
-        const oldBorrowBalance = await vTokenOld.borrowBalanceStored(userAddress);
-
-        await setForkBlock(blockNumber);
-        const vTokenNew = await configureNew(vTokenContract);
-        await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
-        await vTokenNew.connect(vTokenRepayuser).repayBorrow(amount);
-        const newBorrowBalance = await vTokenNew.borrowBalanceStored(userAddress);
-
-        return {
-          oldBorrowBalance: oldBorrowBalance,
-          newBorrowBalance: newBorrowBalance,
-        };
-      }
-
-      it("Should match repay operations vETH", async () => {
-        // txHash = 0x1fcd907ee836ce7ba682c24e625e99df6ad864e260fa3ce2cea384204463a624
-        const result = await simulateOldAndNewVToken(
-          28314545,
-          vTokenAddresses.vETH,
-          underlyingAddresses.ETH,
-          repayUserAddresses.vETH_REPAY_USER,
-          "555168819651190415",
-        );
-        expect(result.oldBorrowBalance).equals(result.newBorrowBalance);
-      });
-
-      it("Should match repay operations vBTC", async () => {
-        // txHash = 0xed46b1c4824e66790fb79f30ddb8524973c2df87397532d7df9a7d62baf4057e
-        const result = await simulateOldAndNewVToken(
-          28312371,
-          vTokenAddresses.vBTC,
-          underlyingAddresses.BTCB,
-          repayUserAddresses.vBTC_REPAY_USER,
-          "14636312800657773",
-        );
-        expect(result.oldBorrowBalance).equals(result.newBorrowBalance);
-      });
-
-      it("Should match repay operations vCAKE", async () => {
-        // txHash = 0xb962b2b067acccfadd87e2c5554d8dc745c34d67f6e64f3baf961b074ec8f803
-        const result = await simulateOldAndNewVToken(
-          28314251,
-          vTokenAddresses.vCAKE,
-          underlyingAddresses.CAKE,
-          repayUserAddresses.vCAKE_REPAY_USER,
-          "46908112902328408569",
-        );
-        expect(result.oldBorrowBalance).equals(result.newBorrowBalance);
-      });
-
-      it("Should match repay operations vMATIC", async () => {
-        // txHash = 0x21c186d5d6a725062ed7d5cd7dd1644f9830d49a67cacd0b546fcc29c6721e56
-        const result = await simulateOldAndNewVToken(
-          28306890,
-          vTokenAddresses.vMATIC,
-          underlyingAddresses.MATIC,
-          repayUserAddresses.vMATIC_REPAY_USER,
-          "14400000000000000000",
-        );
-        expect(result.oldBorrowBalance).equals(result.newBorrowBalance);
+          expect(result.oldState).to.be.deep.equal(result.newState);
+        }
       });
     });
 
     describe("Accrue Interest Operations", async () => {
-      let eth: FaucetToken;
-      let xvs: FaucetToken;
-      let btc: FaucetToken;
-      let cake: FaucetToken;
-      let matic: FaucetToken;
+      async function checkTokenBalances(vTokenAddress: string, underlying: string) {
+        const vToken = await configureNew(vTokenAddress);
+        const underlyingToken = FaucetToken__factory.connect(underlying, impersonatedTimelock);
+        const balancePre = await underlyingToken.balanceOf(protocolShareReserve.address);
+
+        await vToken.accrueInterest();
+
+        const balancePost = await underlyingToken.balanceOf(protocolShareReserve.address);
+        return { balancePre: balancePre, balancePost: balancePost };
+      }
 
       before(async () => {
-        await setForkBlock(28319285);
-        vEthNew = await configureNew(vTokenAddresses.vETH);
-        vXvsNew = await configureNew(vTokenAddresses.vXVS);
-        vBtcNew = await configureNew(vTokenAddresses.vBTC);
-        vCakeNew = await configureNew(vTokenAddresses.vCAKE);
-        vMaticNew = await configureNew(vTokenAddresses.vMATIC);
-
-        eth = FaucetToken__factory.connect(underlyingAddresses.ETH, impersonatedTimelock);
-        xvs = FaucetToken__factory.connect(underlyingAddresses.XVS, impersonatedTimelock);
-        btc = FaucetToken__factory.connect(underlyingAddresses.BTCB, impersonatedTimelock);
-        cake = FaucetToken__factory.connect(underlyingAddresses.CAKE, impersonatedTimelock);
-        matic = FaucetToken__factory.connect(underlyingAddresses.MATIC, impersonatedTimelock);
+        await setForkBlock(28950790);
+        await configureTimelock();
       });
+
       it("Should reduce reserves if reduceReservesBlockDelta > lastReduceBlockDelta", async () => {
-        const ethBalPre = await eth.balanceOf(protocolShareReserve.address);
-        const xvsBalPre = await xvs.balanceOf(protocolShareReserve.address);
-        const btcBalPre = await btc.balanceOf(protocolShareReserve.address);
-        const cakeBalPre = await cake.balanceOf(protocolShareReserve.address);
-        const maticBalPre = await matic.balanceOf(protocolShareReserve.address);
+        const markets = Object.keys(vTokenAddresses);
+        for (const market of markets) {
+          const marketAddress = vTokenAddresses[market];
+          const underlying = underlyingAddresses[`${market}_UNDERLYING`];
 
-        await vEthNew.accrueInterest();
-        await vXvsNew.accrueInterest();
-        await vBtcNew.accrueInterest();
-        await vCakeNew.accrueInterest();
-        await vMaticNew.accrueInterest();
+          const result = await checkTokenBalances(marketAddress, underlying);
 
-        const ethBalPost = await eth.balanceOf(protocolShareReserve.address);
-        const xvsBalPost = await xvs.balanceOf(protocolShareReserve.address);
-        const btcBalPost = await btc.balanceOf(protocolShareReserve.address);
-        const cakeBalPost = await cake.balanceOf(protocolShareReserve.address);
-        const maticBalPost = await matic.balanceOf(protocolShareReserve.address);
-
-        expect(ethBalPost).greaterThanOrEqual(ethBalPre);
-        expect(xvsBalPost).greaterThanOrEqual(xvsBalPre);
-        expect(btcBalPost).greaterThanOrEqual(btcBalPre);
-        expect(cakeBalPost).greaterThanOrEqual(cakeBalPre);
-        expect(maticBalPost).greaterThanOrEqual(maticBalPre);
+          expect(result.balancePost).greaterThan(result.balancePre);
+        }
       });
 
       it("Should not reduce reserves if reduceReservesBlockDelta < currentBlock - lastReduceBlockDelta", async () => {
-        const ethBalPre = await eth.balanceOf(protocolShareReserve.address);
-        const xvsBalPre = await xvs.balanceOf(protocolShareReserve.address);
-        const btcBalPre = await btc.balanceOf(protocolShareReserve.address);
-        const cakeBalPre = await cake.balanceOf(protocolShareReserve.address);
-        const maticBalPre = await matic.balanceOf(protocolShareReserve.address);
+        const markets = Object.keys(vTokenAddresses);
+        for (const market of markets) {
+          const marketAddress = vTokenAddresses[market];
+          const underlying = underlyingAddresses[`${market}_UNDERLYING`];
 
-        await vEthNew.accrueInterest();
-        await vXvsNew.accrueInterest();
-        await vBtcNew.accrueInterest();
-        await vCakeNew.accrueInterest();
-        await vMaticNew.accrueInterest();
+          const result = await checkTokenBalances(marketAddress, underlying);
 
-        const ethBalPost = await eth.balanceOf(protocolShareReserve.address);
-        const xvsBalPost = await xvs.balanceOf(protocolShareReserve.address);
-        const btcBalPost = await btc.balanceOf(protocolShareReserve.address);
-        const cakeBalPost = await cake.balanceOf(protocolShareReserve.address);
-        const maticBalPost = await matic.balanceOf(protocolShareReserve.address);
-
-        expect(ethBalPost).equals(ethBalPre);
-        expect(xvsBalPost).equals(xvsBalPre);
-        expect(btcBalPost).equals(btcBalPre);
-        expect(cakeBalPost).equals(cakeBalPre);
-        expect(maticBalPost).equals(maticBalPre);
+          expect(result.balancePre).equals(result.balancePost);
+        }
       });
     });
   });
