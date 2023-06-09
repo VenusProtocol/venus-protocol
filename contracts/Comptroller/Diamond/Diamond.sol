@@ -69,7 +69,7 @@ contract Diamond is ComptrollerV12Storage {
     }
 
     /**
-     * @notice Replace function selectors to the facet's address mapping.
+     * @notice Replace facet's address mapping for function selectors i.e selectors already associate to any other existing facet.
      * @param _facetAddress Address of the facet.
      * @param _functionSelectors Array of function selectors need to replace in the mapping.
      */
@@ -162,7 +162,7 @@ contract Diamond is ComptrollerV12Storage {
                 facetFunctionSelectors[lastFacetAddress].facetAddressPosition = facetAddressPosition;
             }
             facetAddresses.pop();
-            delete facetFunctionSelectors[_facetAddress].facetAddressPosition;
+            delete facetFunctionSelectors[_facetAddress];
         }
     }
 
