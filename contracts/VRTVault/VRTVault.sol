@@ -70,7 +70,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     }
 
     modifier isActive() {
-        require(vaultPaused == false, "Vault is paused");
+        require(!vaultPaused, "Vault is paused");
         _;
     }
 
