@@ -28,6 +28,9 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     using SafeCast for uint256;
     using SafeBEP20 for IBEP20;
 
+    /// @notice The upper bound for the lock period in a pool, 10 years
+    uint256 public constant MAX_LOCK_PERIOD = 60 * 60 * 24 * 365 * 10;
+
     /// @notice Event emitted when deposit
     event Deposit(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
@@ -243,7 +246,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     function setWithdrawalLockingPeriod(address _rewardToken, uint256 _pid, uint256 _newPeriod) external {
         _checkAccessAllowed("setWithdrawalLockingPeriod(address,uint256,uint256)");
         _ensureValidPool(_rewardToken, _pid);
-        require(_newPeriod > 0, "Invalid new locking period");
+        require(_newPeriod > 0 && _newPeriod < MAX_LOCK_PERIOD, "Invalid new locking period");
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         uint256 oldPeriod = pool.lockPeriod;
         pool.lockPeriod = _newPeriod;

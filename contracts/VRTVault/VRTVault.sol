@@ -15,6 +15,9 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
+    /// @notice The upper bound for lastAccruingBlock. Close to year 3,000, considering 3 seconds per block. Used to avoid a value absurdly high
+    uint256 public constant MAX_LAST_ACCRUING_BLOCK = 9999999999;
+
     /// @notice Event emitted when vault is paused
     event VaultPaused(address indexed admin);
 
@@ -276,6 +279,8 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
 
     function setLastAccruingBlock(uint256 _lastAccruingBlock) external {
         _checkAccessAllowed("setLastAccruingBlock(uint256)");
+        require(_lastAccruingBlock < MAX_LAST_ACCRUING_BLOCK, "_lastAccruingBlock is absurdly high");
+
         uint256 oldLastAccruingBlock = lastAccruingBlock;
         uint256 currentBlock = getBlockNumber();
         if (oldLastAccruingBlock != 0) {
