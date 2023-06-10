@@ -15,9 +15,6 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
-    /// @notice Event emitted when admin changed
-    event AdminTransfered(address indexed oldAdmin, address indexed newAdmin);
-
     /// @notice Event emitted when vault is paused
     event VaultPaused(address indexed admin);
 
