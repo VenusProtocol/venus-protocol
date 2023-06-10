@@ -94,7 +94,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
 
     modifier userHasPosition(address userAddress) {
         UserInfo storage user = userInfo[userAddress];
-        require(user.userAddress != address(0), "User doesnot have any position in the Vault.");
+        require(user.userAddress != address(0), "User does not have any position in the Vault.");
         _;
     }
 
