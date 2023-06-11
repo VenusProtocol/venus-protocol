@@ -38,7 +38,20 @@ interface IXVSVault {
     ) external view returns (uint256 amount, uint256 rewardDebt, uint256 pendingWithdrawals);
 }
 
-contract Prime is AccessControlledV8, PrimeStorageV1 {
+interface IProtocolShareReserve {
+    enum Schema {
+        ONE,
+        TWO
+    }
+
+    function getUnreleasedFunds(address comptroller, Schema schema, address destination, address asset) external view returns (uint256);
+}
+
+interface IIncomeDestination {
+    function updateAssetsState(address comptroller, address asset) external;
+}
+
+contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Emitted when prime token is minted
@@ -47,13 +60,18 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
     /// @notice Emitted when prime token is burned
     event Burn(address owner);
 
+    /// @notice Emitted asset state is update by protocol share reserve
+    event UpdatedAssetsState(address comptroller, address asset);
+
     function initialize(
         address _xvsVault,
         address _xvsVaultRewardToken,
         uint256 _xvsVaultPoolId,
         uint128 _alphaNumerator,
         uint128 _alphaDenominator,
-        address accessControlManager_
+        address _accessControlManager,
+        address _protocolShareReserve,
+        address _comptroller
     ) external virtual initializer {
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
@@ -61,8 +79,10 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
         xvsVaultPoolId = _xvsVaultPoolId;
         xvsVault = _xvsVault;
         nextScoreUpdateRoundId = 0;
+        protocolShareReserve = _protocolShareReserve;
+        comptroller = _comptroller;
 
-        __AccessControlled_init(accessControlManager_);
+        __AccessControlled_init(_accessControlManager);
     }
 
     /**
@@ -90,7 +110,7 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
      */
     function updateMultipliers(address market, uint256 _supplyMultiplier, uint256 _borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
-        require(markets[market].lastUpdated != 0, "market is not supported");
+        require(markets[market].exists == true, "market is not supported");
 
         accrueInterest(market);
         markets[market].supplyMultiplier = _supplyMultiplier;
@@ -107,13 +127,13 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
      */
     function addMarket(address vToken, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
-        require(markets[vToken].lastUpdated == 0, "market is already added");
+        require(markets[vToken].exists == false, "market is already added");
 
         markets[vToken].rewardIndex = 0;
-        markets[vToken].lastUpdated = block.number;
         markets[vToken].supplyMultiplier = supplyMultiplier;
         markets[vToken].borrowMultiplier = borrowMultiplier;
         markets[vToken].score = 0;
+        markets[vToken].exists = true;
 
         vTokenForAsset[IVToken(vToken).underlying()] = vToken;
 
@@ -360,7 +380,7 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
      * @param vToken the market for which we need to accrue rewards
      */
     function executeBoost(address account, address vToken) public {
-        if (markets[vToken].lastUpdated == 0) {
+        if (markets[vToken].exists == false) {
             return;
         }
 
@@ -379,7 +399,7 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
      * @param market the market for which we need to score
      */
     function updateScore(address account, address market) public {
-        if (markets[market].lastUpdated == 0) {
+        if (markets[market].exists == false) {
             return;
         }
 
@@ -398,19 +418,23 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
      * @param vToken the market for which to distribute the income
      */
     function accrueInterest(address vToken) public {
-        require(markets[vToken].lastUpdated != 0, "market is not supported");
+        require(markets[vToken].exists == true, "market is not supported");
 
         IVToken market = IVToken(vToken);
 
-        if (block.number == markets[vToken].lastUpdated) {
+        uint totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
+            comptroller,
+            IProtocolShareReserve.Schema.ONE,
+            address(this),
+            market.underlying()
+        );
+
+        uint256 distributionIncome = totalIncomeUnreleased - unreleasedIncome[market.underlying()];
+        unreleasedIncome[market.underlying()] = totalIncomeUnreleased;
+
+        if (distributionIncome == 0) {
             return;
         }
-
-        uint256 pastBlocks = block.number - markets[vToken].lastUpdated;
-        uint256 protocolIncomePerBlock = (((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) *
-            market.reserveFactorMantissa()) / EXP_SCALE;
-        uint256 accumulatedIncome = protocolIncomePerBlock * pastBlocks;
-        uint256 distributionIncome = (accumulatedIncome * INCOME_DISTRIBUTION_BPS) / MAXIMUM_BPS;
 
         uint256 delta;
         if (markets[vToken].score > 0) {
@@ -418,7 +442,6 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
         }
 
         markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;
-        markets[vToken].lastUpdated = block.number;
     }
 
     function getMarketDecimals(address vToken) internal returns (uint256) {
@@ -465,6 +488,18 @@ contract Prime is AccessControlledV8, PrimeStorageV1 {
 
         IERC20Upgradeable asset = IERC20Upgradeable(IVToken(vToken).underlying());
         asset.safeTransfer(msg.sender, amount);
+    }
+
+    function updateAssetsState(address comptroller, address asset) external {
+        require(msg.sender == protocolShareReserve, "only protocol share reserve can call this function");
+        
+        address vToken = vTokenForAsset[asset];
+        require(vToken != address(0), "asset is not supported");
+
+        IVToken market = IVToken(vToken);
+        unreleasedIncome[market.underlying()] = 0;
+
+        emit UpdatedAssetsState(comptroller, asset);
     }
 
     /**

@@ -10,8 +10,8 @@ contract PrimeStorageV1 {
         uint256 supplyMultiplier;
         uint256 borrowMultiplier;
         uint256 rewardIndex;
-        uint256 lastUpdated;
         uint256 score;
+        bool exists;
     }
 
     struct Interest {
@@ -93,4 +93,14 @@ contract PrimeStorageV1 {
 
     /// @notice mapping used to find if an asset is part of prime markets
     mapping (address => address) public vTokenForAsset;
+
+    /// @notice address of protocol share reserve contract
+    address public protocolShareReserve;
+
+    /// @notice address of core pool comptroller contract
+    address public comptroller;
+
+    /// @notice unreleased income from reserve that's already distributed to prime holders
+    /// @dev mapping of asset adress => amount  
+    mapping (address => uint256) unreleasedIncome;
 }
