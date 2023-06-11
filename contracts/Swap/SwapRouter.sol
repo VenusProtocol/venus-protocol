@@ -267,7 +267,6 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-
     function swapExactTokensForBNBAndSupply(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -290,7 +289,6 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-
     function swapExactTokensForBNBAndSupplyAtSupportingFee(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -316,7 +314,6 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-
     function swapTokensForExactBNBAndSupply(
         uint256 amountOut,
         uint256 amountInMax,
@@ -940,7 +937,6 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @notice Mint vBNB tokens to the market then transfer them to user
      * @param swapAmount Swapped BNB amount
      */
-
     function _mintVBNBandTransfer(uint256 swapAmount) internal {
         uint256 vBNBBalanceBefore = IVBNB(vBNBAddress).balanceOf(address(this));
         IVBNB(vBNBAddress).mint{ value: swapAmount }();

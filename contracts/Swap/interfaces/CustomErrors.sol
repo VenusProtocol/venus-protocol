@@ -64,8 +64,8 @@ error SafeTransferFailed();
 ///@notice Error thrown when transferFrom failed
 error SafeTransferFromFailed();
 
-///@notice Error thrown when safeTransferETH failed
-error SafeTransferETHFailed();
+///@notice Error thrown when safeTransferBNB failed
+error SafeTransferBNBFailed();
 
 ///@notice Error thrown when reentrant check fails
 error ReentrantCheck();
