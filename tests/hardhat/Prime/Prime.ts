@@ -1,5 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { impersonateAccount, loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
@@ -156,7 +156,16 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
   const prime: PrimeScenario = (await primeFactory.deploy()) as PrimeScenario;
-  prime.initialize(xvsVault.address, xvs.address, 0, 1, 2, accessControl.address, protocolShareReserve.address, comptroller.address);
+  prime.initialize(
+    xvsVault.address,
+    xvs.address,
+    0,
+    1,
+    2,
+    accessControl.address,
+    protocolShareReserve.address,
+    comptroller.address,
+  );
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 
@@ -183,7 +192,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     xvs,
     xvsStore,
     prime,
-    protocolShareReserve
+    protocolShareReserve,
   };
 }
 
@@ -342,7 +351,9 @@ describe("PrimeScenario Token", () => {
     let protocolShareReserve: FakeContract<IProtocolShareReserve>;
 
     beforeEach(async () => {
-      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, oracle, protocolShareReserve } = await loadFixture(deployProtocol));
+      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, oracle, protocolShareReserve } = await loadFixture(
+        deployProtocol,
+      ));
 
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));
@@ -564,7 +575,7 @@ describe("PrimeScenario Token", () => {
         expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(207283);
       });
 
-      it.only("add existing market after issuing prime tokens - update score manually", async () => {
+      it("add existing market after issuing prime tokens - update score manually", async () => {
         await xvs.connect(user3).approve(xvsVault.address, bigNumber18.mul(2000));
         await xvsVault.connect(user3).deposit(xvs.address, 0, bigNumber18.mul(2000));
         await prime.issue(false, [user3.getAddress()]);
@@ -634,8 +645,8 @@ describe("PrimeScenario Token", () => {
          * interest = index * user score = 463 * 223.606797749979014552 = 103529
          */
         await prime.accrueInterest(vusdt.address);
-        expect((await prime.interests(vusdt.address, user1.getAddress())).score).to.be.equal("223606797749979014552")
-        expect((await prime.interests(vusdt.address, user1.getAddress())).rewardIndex).to.be.equal("0")
+        expect((await prime.interests(vusdt.address, user1.getAddress())).score).to.be.equal("223606797749979014552");
+        expect((await prime.interests(vusdt.address, user1.getAddress())).rewardIndex).to.be.equal("0");
         expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(103529);
 
         await protocolShareReserve.getUnreleasedFunds.returns(103687 * 2);
@@ -655,6 +666,26 @@ describe("PrimeScenario Token", () => {
          */
         expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(207059);
       });
+    });
+
+    it("track asset state", async () => {
+      await protocolShareReserve.getUnreleasedFunds.returns("518436");
+      await prime.accrueInterest(vusdt.address);
+      expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(518320);
+
+      await protocolShareReserve.getUnreleasedFunds.returns(518436 * 2);
+      await prime.accrueInterest(vusdt.address);
+      expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(1036641);
+
+      impersonateAccount(protocolShareReserve.address);
+      const protocolShareReserveSigner = await ethers.provider.getSigner(protocolShareReserve.address);
+      await user1.sendTransaction({ to: protocolShareReserve.address, value: ethers.utils.parseEther("10") });
+      await prime.connect(protocolShareReserveSigner).updateAssetsState(comptroller.address, usdt.address);
+
+      await protocolShareReserve.getUnreleasedFunds.returns("518436");
+      await prime.accrueInterest(vusdt.address);
+      // 1036641 + 518320
+      expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(1554961);
     });
   });
 });

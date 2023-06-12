@@ -92,7 +92,7 @@ contract PrimeStorageV1 {
     uint256 public pendingScoreUpdates;
 
     /// @notice mapping used to find if an asset is part of prime markets
-    mapping (address => address) public vTokenForAsset;
+    mapping(address => address) public vTokenForAsset;
 
     /// @notice address of protocol share reserve contract
     address public protocolShareReserve;
@@ -101,6 +101,6 @@ contract PrimeStorageV1 {
     address public comptroller;
 
     /// @notice unreleased income from reserve that's already distributed to prime holders
-    /// @dev mapping of asset adress => amount  
-    mapping (address => uint256) unreleasedIncome;
+    /// @dev mapping of asset adress => amount
+    mapping(address => uint256) public unreleasedIncome;
 }

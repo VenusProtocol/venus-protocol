@@ -42,7 +42,12 @@ interface IProtocolShareReserve {
         TWO
     }
 
-    function getUnreleasedFunds(address comptroller, Schema schema, address destination, address asset) external view returns (uint256);
+    function getUnreleasedFunds(
+        address comptroller,
+        Schema schema,
+        address destination,
+        address asset
+    ) external view returns (uint256);
 }
 
 interface IIncomeDestination {
@@ -494,7 +499,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     function updateAssetsState(address _comptroller, address asset) external {
         require(msg.sender == protocolShareReserve, "only protocol share reserve can call this function");
         require(_comptroller == comptroller, "comptroller is not supported");
-        
+
         address vToken = vTokenForAsset[asset];
         require(vToken != address(0), "asset is not supported");
 
