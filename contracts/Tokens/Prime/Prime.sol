@@ -6,8 +6,6 @@ import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlle
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
-import "hardhat/console.sol";
-
 interface IVToken {
     function borrowRatePerBlock() external view returns (uint);
 
@@ -472,8 +470,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint256 index = markets[vToken].rewardIndex - interests[vToken][account].rewardIndex;
         uint256 score = interests[vToken][account].score;
 
-        console.log(index, score);
-
         return (index * score) / EXP_SCALE;
     }
 
@@ -490,8 +486,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         asset.safeTransfer(msg.sender, amount);
     }
 
-    function updateAssetsState(address comptroller, address asset) external {
+    /**
+     * @notice Callback by ProtocolShareReserve to update assets state when funds are released to this contract
+     * @param _comptroller The address of the Comptroller whose income is distributed
+     * @param asset The address of the asset whose income is distributed
+     */
+    function updateAssetsState(address _comptroller, address asset) external {
         require(msg.sender == protocolShareReserve, "only protocol share reserve can call this function");
+        require(_comptroller == comptroller, "comptroller is not supported");
         
         address vToken = vTokenForAsset[asset];
         require(vToken != address(0), "asset is not supported");
@@ -558,9 +560,4 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             pendingScoreUpdates++;
         }
     }
-
-    /**
-     * @notice This prevents updateAssetsState from ProtocolShareReserve from reverting
-     */
-    fallback() external {}
 }
