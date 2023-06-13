@@ -1,3 +1,10 @@
+## [3.0.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.4...v3.0.0-dev.5) (2023-06-13)
+
+
+### Bug Fixes
+
+* escape notice when rendering page template ([643f0c2](https://github.com/VenusProtocol/venus-protocol/commit/643f0c219379dd94cb3c8bc1a131520006914919))
+
 ## [3.0.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.3...v3.0.0-dev.4) (2023-06-07)
 
 
