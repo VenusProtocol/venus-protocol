@@ -24,11 +24,13 @@ const TEN_PERCENT = 1000; // in bps
 const TWENTY_PERCENT = 2000;
 const HUNDERD_PERCENT = 10000;
 const VAI_MINT_CAP = convertToUnit(1000, 18);
-const PRICE_ONE_USD = convertToUnit(1, 18);
+const PRICE_ONE_USD_18_DECIMALS = convertToUnit(1, 18); // 1$ oracle price scaled for 18 decimals stabletoken
+const PRICE_ONE_USD_8_DECIMALS = convertToUnit(1, 28); // 1$ oracle price scaled for 8 decimals stabletoken
 const ZERO_ADDRESS = constants.AddressZero;
 const MAX_UINT_8: BigNumber = BigNumber.from(255);
 
-type PegStaibilityFixture = {
+type ResetAllFakes = () => void;
+type PegStabilityFixture = {
   pegStability: MockContract<PegStability>;
   stableToken: FakeContract<ERC20Upgradeable>;
   acm: FakeContract<IAccessControlManager>;
@@ -38,11 +40,13 @@ type PegStaibilityFixture = {
   comptroller: FakeContract<OracleProviderInterface>;
 };
 
-async function pegStaibilityFixture(): Promise<PegStaibilityFixture> {
+type DeployFixture = (stableTokenDecimals: number) => Promise<PegStabilityFixture>;
+
+const deployFixture: DeployFixture = async (stableTokenDecimals: number) => {
   const acm = await smock.fake<IAccessControlManager>("IAccessControlManager");
   const venusTreasury = await smock.fake<VTreasury>("VTreasury");
   const stableToken = await smock.fake<ERC20Upgradeable>("ERC20Upgradeable");
-  stableToken.decimals.returns(18);
+  stableToken.decimals.returns(stableTokenDecimals);
   const vToken = await smock.fake<IVTokenUnderlying>("IVTokenUnderlying");
   vToken.underlying.returns(stableToken.address);
   const priceOracle = await smock.fake<IPriceOracle>("contracts/PegStability/PegStability.sol:IPriceOracle");
@@ -61,6 +65,63 @@ async function pegStaibilityFixture(): Promise<PegStaibilityFixture> {
   });
   stableToken.transfer.returns(true);
   return { pegStability, stableToken, acm, vai, venusTreasury, priceOracle, comptroller };
+};
+
+async function pegStabilityFixture18Decimals(): Promise<PegStabilityFixture> {
+  const fixture: PegStabilityFixture = await deployFixture(18);
+  return fixture;
+}
+
+async function pegStabilityFixture8Decimals(): Promise<PegStabilityFixture> {
+  const fixture: PegStabilityFixture = await deployFixture(8);
+  return fixture;
+}
+
+async function swapStableForVaiAndVerify(
+  stableToken: FakeContract<ERC20Upgradeable>,
+  adminAddress: string,
+  pegStability: MockContract<PegStability>,
+  STABLE_TOKEN_AMOUNT: string,
+  receiverAddress: string,
+  vai: FakeContract<VAI>,
+  VAI_TO_SEND: string,
+  venusTreasury: FakeContract<VTreasury>,
+  VAI_FEE: string,
+) {
+  stableToken.balanceOf.returnsAtCall(0, 0);
+  stableToken.transferFrom.whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT).returns(true);
+  stableToken.balanceOf.returnsAtCall(1, STABLE_TOKEN_AMOUNT);
+  const tx = await pegStability.swapStableForVAI(receiverAddress, STABLE_TOKEN_AMOUNT);
+  expect(vai.mint.atCall(0)).to.have.been.calledWith(receiverAddress, VAI_TO_SEND);
+  if (VAI_FEE !== "0") {
+    expect(vai.mint.atCall(1)).to.have.been.calledWith(venusTreasury.address, VAI_FEE);
+  }
+  await expect(tx).to.emit(pegStability, "StableForVAISwapped").withArgs(STABLE_TOKEN_AMOUNT, VAI_TO_SEND, VAI_FEE);
+}
+
+async function swapVaiForStableAndVerify(
+  vai: FakeContract<VAI>,
+  adminAddress: string,
+  USER_VAI_BALANCE: string,
+  venusTreasury: FakeContract<VTreasury>,
+  VAI_FEE_TO_TREASURY: string,
+  pegStability: MockContract<PegStability>,
+  receiverAddress: string,
+  STABLE_TOKEN_AMOUNT: string,
+  stableToken: FakeContract<ERC20Upgradeable>,
+  VAI_TO_BURN: string,
+) {
+  vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
+  vai.transferFrom.whenCalledWith(adminAddress, venusTreasury.address, VAI_FEE_TO_TREASURY).returns(true);
+  const tx = await pegStability.swapVAIForStable(receiverAddress, STABLE_TOKEN_AMOUNT);
+  if (VAI_FEE_TO_TREASURY !== "0") {
+    expect(vai.transferFrom).to.have.been.calledOnceWith(adminAddress, venusTreasury.address, VAI_FEE_TO_TREASURY);
+  }
+  expect(vai.burn).to.have.been.calledOnceWith(adminAddress, VAI_TO_BURN);
+  expect(stableToken.transfer).to.have.been.calledOnceWith(receiverAddress, STABLE_TOKEN_AMOUNT);
+  await expect(tx)
+    .to.emit(pegStability, "VaiForStableSwapped")
+    .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
 }
 
 describe("Peg Stability Module:main", () => {
@@ -74,13 +135,23 @@ describe("Peg Stability Module:main", () => {
   let admin: SignerWithAddress;
   let user: SignerWithAddress;
   let adminAddress: string;
+  let resetAllFakes: ResetAllFakes;
   beforeEach(async () => {
     ({ pegStability, stableToken, acm, vai, venusTreasury, priceOracle, comptroller } = await loadFixture(
-      pegStaibilityFixture,
+      pegStabilityFixture18Decimals,
     ));
+    resetAllFakes = () => {
+      vai.burn.reset();
+      vai.mint.reset();
+      vai.transferFrom.reset();
+      vai.transferFrom.returns(true);
+      stableToken.transfer.reset();
+      stableToken.transfer.returns(true);
+      stableToken.balanceOf.reset();
+    };
     [admin, user] = await ethers.getSigners();
     adminAddress = await admin.getAddress();
-    priceOracle.getUnderlyingPrice.returns(PRICE_ONE_USD);
+    priceOracle.getUnderlyingPrice.returns(PRICE_ONE_USD_18_DECIMALS);
   });
   describe("initialization", () => {
     beforeEach(async () => {
@@ -329,311 +400,603 @@ describe("Peg Stability Module:main", () => {
     });
   });
   describe("Swap functions", () => {
-    describe("swapVAIForStable(address,uint256)", () => {
-      beforeEach(async () => {
-        const VAI_MINTED = convertToUnit(110, 18);
-        await pegStability.setVariable("vaiMinted", VAI_MINTED);
-      });
-      it("should revert if receiver is zero address ", async () => {
-        await expect(pegStability.swapVAIForStable(ethers.constants.AddressZero, 100)).to.be.revertedWith(
-          "Can't be zero address.",
-        );
-      });
-      it("should revert if sender has insufficient VAI balance ", async () => {
-        const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-        const USER_VAI_BALANCE = convertToUnit(109, 18); // USER NEEDS TO HAVE 110 VAI
-        vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-        await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-          "Not enough VAI.",
-        );
-      });
-      it("should revert if VAI transfer fails ", async () => {
-        const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-        const USER_VAI_BALANCE = convertToUnit(110, 18);
-        vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-        await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-          "VAI fee transfer failed.",
-        );
-      });
-      it("should revert if VAI to be burnt > vaiMinted ", async () => {
-        const STABLE_TOKEN_AMOUNT = convertToUnit(200, 18);
-        const USER_VAI_BALANCE = convertToUnit(300, 18);
-        vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-        vai.transferFrom.returns(true);
-        await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-          "Can't burn more VAI than minted.",
-        );
-      });
-      describe("should sucessfully perform the swap", () => {
-        describe("Fees: 10%", () => {
-          it("stable token = 1$ ", async () => {
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const USER_VAI_BALANCE = convertToUnit(110, 18);
-            const VAI_FEE_TO_TREASURY = convertToUnit(10, 18);
-            const VAI_TO_BURN = convertToUnit(100, 18);
-            const receiverAddress = await user.getAddress();
-            vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-            vai.transferFrom.whenCalledWith(adminAddress, venusTreasury.address, VAI_FEE_TO_TREASURY).returns(true);
-            const tx = await pegStability.swapVAIForStable(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.transferFrom.atCall(1)).to.have.been.calledWith(
-              adminAddress,
-              venusTreasury.address,
-              VAI_FEE_TO_TREASURY,
-            );
-            expect(vai.burn).to.have.been.calledOnceWith(adminAddress, STABLE_TOKEN_AMOUNT);
-            expect(stableToken.transfer).to.have.been.calledOnceWith(receiverAddress, STABLE_TOKEN_AMOUNT);
-            await expect(tx)
-              .to.emit(pegStability, "VaiForStableSwapped")
-              .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
-          });
-          it("stable token < 1$ ", async () => {
-            const STABLE_TOKEN_PRICE = convertToUnit(0.9, 18); // 0.9$
-            priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const USER_VAI_BALANCE = convertToUnit(110, 18);
-            const VAI_FEE_TO_TREASURY = convertToUnit(10, 18);
-            const VAI_TO_BURN = convertToUnit(100, 18);
-            const receiverAddress = await user.getAddress();
-            vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-            vai.transferFrom.whenCalledWith(adminAddress, venusTreasury.address, VAI_FEE_TO_TREASURY).returns(true);
-            const tx = await pegStability.swapVAIForStable(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.transferFrom.atCall(2)).to.have.been.calledWith(
-              adminAddress,
-              venusTreasury.address,
-              VAI_FEE_TO_TREASURY,
-            );
-            expect(vai.burn.atCall(1)).to.have.been.calledWith(adminAddress, STABLE_TOKEN_AMOUNT);
-            expect(stableToken.transfer.atCall(1)).to.have.been.calledWith(receiverAddress, STABLE_TOKEN_AMOUNT);
-            await expect(tx)
-              .to.emit(pegStability, "VaiForStableSwapped")
-              .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
-          });
-          it("stable token > 1$ ", async () => {
-            const STABLE_TOKEN_PRICE = convertToUnit(1.1, 18); // 1.1$
-            priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const USER_VAI_BALANCE = convertToUnit(121, 18); // 121 (110 VAI + 11 VAI fee)
-            const VAI_FEE_TO_TREASURY = convertToUnit(11, 18);
-            const VAI_TO_BURN = convertToUnit(110, 18);
-            const receiverAddress = await user.getAddress();
-            vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-            vai.transferFrom.whenCalledWith(adminAddress, venusTreasury.address, VAI_FEE_TO_TREASURY).returns(true);
-            const tx = await pegStability.swapVAIForStable(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.transferFrom.atCall(3)).to.have.been.calledWith(
-              adminAddress,
-              venusTreasury.address,
-              VAI_FEE_TO_TREASURY,
-            );
-            expect(vai.burn.atCall(2)).to.have.been.calledWith(adminAddress, VAI_TO_BURN);
-            expect(stableToken.transfer.atCall(2)).to.have.been.calledWith(receiverAddress, STABLE_TOKEN_AMOUNT);
-            await expect(tx)
-              .to.emit(pegStability, "VaiForStableSwapped")
-              .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
-          });
+    let receiverAddress: string;
+    before(async () => {
+      receiverAddress = await user.getAddress();
+    });
+    describe("Stable Token Decimals: 18", () => {
+      const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
+      describe("swapVAIForStable(address,uint256)", () => {
+        beforeEach(async () => {
+          const VAI_MINTED = convertToUnit(110, 18);
+          await pegStability.setVariable("vaiMinted", VAI_MINTED);
         });
-        describe("Fees: 0%", () => {
+        it("should revert if receiver is zero address ", async () => {
+          await expect(pegStability.swapVAIForStable(ethers.constants.AddressZero, 100)).to.be.revertedWith(
+            "Can't be zero address.",
+          );
+        });
+        it("should revert if sender has insufficient VAI balance ", async () => {
+          const USER_VAI_BALANCE = convertToUnit(109, 18); // USER NEEDS TO HAVE 110 VAI
+          vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
+          await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+            "Not enough VAI.",
+          );
+        });
+        it("should revert if VAI transfer fails ", async () => {
+          const USER_VAI_BALANCE = convertToUnit(110, 18);
+          vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
+          await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+            "VAI fee transfer failed.",
+          );
+        });
+        it("should revert if VAI to be burnt > vaiMinted ", async () => {
+          const STABLE_TOKEN_AMOUNT = convertToUnit(200, 18);
+          const USER_VAI_BALANCE = convertToUnit(300, 18);
+          vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
+          vai.transferFrom.returns(true);
+          await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+            "Can't burn more VAI than minted.",
+          );
+        });
+        describe("should sucessfully perform the swap", () => {
           beforeEach(async () => {
-            await pegStability.setVariables({
-              feeIn: 0,
-              feeOut: 0,
+            resetAllFakes();
+          });
+          describe("Fees: 10%", () => {
+            const USER_VAI_BALANCE = convertToUnit(110, 18);
+            const VAI_FEE_TO_TREASURY = convertToUnit(10, 18);
+            const VAI_TO_BURN = convertToUnit(100, 18);
+            it("stable token = 1$ ", async () => {
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
+            });
+            it("stable token < 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(0.9, 18); // 0.9$
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
+            });
+            it("stable token > 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(1.1, 18); // 1.1$
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              const USER_VAI_BALANCE = convertToUnit(121, 18); // 121 (110 VAI + 11 VAI fee)
+              const VAI_FEE_TO_TREASURY = convertToUnit(11, 18);
+              const VAI_TO_BURN = convertToUnit(110, 18);
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
             });
           });
-          it("stable token = 1$ ", async () => {
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
+          describe("Fees: 0%", () => {
+            const VAI_FEE_TO_TREASURY = "0";
             const USER_VAI_BALANCE = convertToUnit(100, 18);
-            const VAI_FEE_TO_TREASURY = 0;
             const VAI_TO_BURN = convertToUnit(100, 18);
-            const receiverAddress = await user.getAddress();
-            vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-            vai.transferFrom.whenCalledWith(adminAddress, venusTreasury.address, VAI_FEE_TO_TREASURY).returns(true);
-            const tx = await pegStability.swapVAIForStable(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.burn.atCall(3)).to.have.been.calledWith(adminAddress, STABLE_TOKEN_AMOUNT);
-            expect(stableToken.transfer.atCall(3)).to.have.been.calledWith(receiverAddress, STABLE_TOKEN_AMOUNT);
-            await expect(tx)
-              .to.emit(pegStability, "VaiForStableSwapped")
-              .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
+            beforeEach(async () => {
+              await pegStability.setVariables({
+                feeIn: 0,
+                feeOut: 0,
+              });
+            });
+            it("stable token = 1$ ", async () => {
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
+            });
+            it("stable token < 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(0.9, 18); // 0.9$
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
+            });
+            it("stable token > 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(1.1, 18); // 1.1$
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              const USER_VAI_BALANCE = convertToUnit(121, 18); // 121 (110 VAI + 11 VAI fee)
+              const VAI_FEE_TO_TREASURY = "0";
+              const VAI_TO_BURN = convertToUnit(110, 18);
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
+            });
           });
-          it("stable token < 1$ ", async () => {
-            const STABLE_TOKEN_PRICE = convertToUnit(0.9, 18); // 0.9$
-            priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const USER_VAI_BALANCE = convertToUnit(100, 18);
-            const VAI_FEE_TO_TREASURY = 0;
-            const VAI_TO_BURN = convertToUnit(100, 18);
-            const receiverAddress = await user.getAddress();
-            vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-            vai.transferFrom.whenCalledWith(adminAddress, venusTreasury.address, VAI_FEE_TO_TREASURY).returns(true);
-            const tx = await pegStability.swapVAIForStable(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.burn.atCall(4)).to.have.been.calledWith(adminAddress, STABLE_TOKEN_AMOUNT);
-            expect(stableToken.transfer.atCall(2)).to.have.been.calledWith(receiverAddress, STABLE_TOKEN_AMOUNT);
-            await expect(tx)
-              .to.emit(pegStability, "VaiForStableSwapped")
-              .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
+        });
+      });
+      describe("swapStableForVAI(address,uint256)", () => {
+        beforeEach(async () => {
+          resetAllFakes();
+        });
+        it("should revert if receiver is zero address ", async () => {
+          await expect(pegStability.swapStableForVAI(ethers.constants.AddressZero, 100)).to.be.revertedWith(
+            "Can't be zero address.",
+          );
+        });
+        it("should revert if VAI mint cap will be reached ", async () => {
+          const MINT_CAP = convertToUnit(99, 18);
+
+          await pegStability.setVariable("vaiMintCap", MINT_CAP);
+          stableToken.balanceOf.returnsAtCall(0, 0);
+          stableToken.transferFrom
+            .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
+            .returns(true);
+          stableToken.balanceOf.returnsAtCall(1, STABLE_TOKEN_AMOUNT);
+          await expect(pegStability.swapStableForVAI(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+            "VAI mint cap reached.",
+          );
+        });
+        it("should revert if amount after transfer is too small  ", async () => {
+          const TOO_SMALL_AMOUNT = 9;
+
+          stableToken.balanceOf.returnsAtCall(0, 0);
+          stableToken.transferFrom
+            .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
+            .returns(true);
+          stableToken.balanceOf.returnsAtCall(1, TOO_SMALL_AMOUNT);
+          await expect(pegStability.swapStableForVAI(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+            "Amount too small.",
+          );
+        });
+        describe("should sucessfully perform the swap", () => {
+          beforeEach(async () => {
+            resetAllFakes();
           });
-          it("stable token > 1$ ", async () => {
-            const STABLE_TOKEN_PRICE = convertToUnit(1.1, 18); // 1.1$
-            priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const USER_VAI_BALANCE = convertToUnit(121, 18); // 121 (110 VAI + 11 VAI fee)
-            const VAI_FEE_TO_TREASURY = 0;
-            const VAI_TO_BURN = convertToUnit(110, 18);
-            const receiverAddress = await user.getAddress();
-            vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-            const tx = await pegStability.swapVAIForStable(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.burn.atCall(5)).to.have.been.calledWith(adminAddress, VAI_TO_BURN);
-            expect(stableToken.transfer.atCall(3)).to.have.been.calledWith(receiverAddress, STABLE_TOKEN_AMOUNT);
-            await expect(tx)
-              .to.emit(pegStability, "VaiForStableSwapped")
-              .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
+          describe("Fees: 10%", () => {
+            const VAI_FEE = convertToUnit(10, 18);
+            const VAI_TO_SEND = convertToUnit(90, 18);
+            it("stable token = 1$ ", async () => {
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
+            it("stable token > 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(1.5, 18);
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
+            it("stable token < 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(0.9, 18);
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              const VAI_FEE = convertToUnit(9, 18);
+              const VAI_TO_SEND = convertToUnit(81, 18);
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
+          });
+          describe("Fees: 0%", () => {
+            const VAI_FEE = "0";
+            const VAI_TO_SEND = convertToUnit(100, 18);
+            beforeEach(async () => {
+              await pegStability.setVariables({
+                feeIn: 0,
+                feeOut: 0,
+              });
+              stableToken.balanceOf.reset();
+              vai.mint.reset();
+            });
+            it("stable token = 1$ ", async () => {
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
+            it("stable token > 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(1.5, 18);
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
+            it("stable token < 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(0.9, 18);
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              const VAI_TO_SEND = convertToUnit(90, 18);
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
           });
         });
       });
     });
-    describe("swapStableForVAI(address,uint256)", () => {
-      it("should revert if receiver is zero address ", async () => {
-        await expect(pegStability.swapStableForVAI(ethers.constants.AddressZero, 100)).to.be.revertedWith(
-          "Can't be zero address.",
-        );
+    describe("Stable Token Decimals: 8", () => {
+      const STABLE_TOKEN_AMOUNT = convertToUnit(100, 8);
+      beforeEach(async () => {
+        ({ pegStability, stableToken, acm, vai, venusTreasury, priceOracle, comptroller } = await loadFixture(
+          pegStabilityFixture8Decimals,
+        ));
+        priceOracle.getUnderlyingPrice.returns(PRICE_ONE_USD_8_DECIMALS);
       });
-      it("should revert if VAI mint cap will be reached ", async () => {
-        const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-        const MINT_CAP = convertToUnit(99, 18);
-
-        await pegStability.setVariable("vaiMintCap", MINT_CAP);
-        stableToken.balanceOf.returnsAtCall(0, 0);
-        stableToken.transferFrom.whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT).returns(true);
-        stableToken.balanceOf.returnsAtCall(1, STABLE_TOKEN_AMOUNT);
-        await expect(pegStability.swapStableForVAI(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-          "VAI mint cap reached.",
-        );
-      });
-      it("should revert if amount after transfer is too small  ", async () => {
-        const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-        const TOO_SMALL_AMOUNT = 9;
-
-        stableToken.balanceOf.returnsAtCall(2, 0);
-        stableToken.transferFrom.whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT).returns(true);
-        stableToken.balanceOf.returnsAtCall(3, TOO_SMALL_AMOUNT);
-        await expect(pegStability.swapStableForVAI(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-          "Amount too small.",
-        );
-      });
-      describe("should sucessfully perform the swap", () => {
-        describe("Fees: 10%", () => {
-          it("stable token = 1$ ", async () => {
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const VAI_FEE = convertToUnit(10, 18);
-            const VAI_TO_SEND = convertToUnit(90, 18);
-            const receiverAddress = await user.getAddress();
-            stableToken.balanceOf.returnsAtCall(4, 0);
-            stableToken.transferFrom
-              .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
-              .returns(true);
-            stableToken.balanceOf.returnsAtCall(5, STABLE_TOKEN_AMOUNT);
-            const tx = await pegStability.swapStableForVAI(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.mint.atCall(0)).to.have.been.calledWith(receiverAddress, VAI_TO_SEND);
-            expect(vai.mint.atCall(1)).to.have.been.calledWith(venusTreasury.address, VAI_FEE);
-            await expect(tx)
-              .to.emit(pegStability, "StableForVAISwapped")
-              .withArgs(STABLE_TOKEN_AMOUNT, VAI_TO_SEND, VAI_FEE);
-          });
-          it("stable token > 1$ ", async () => {
-            const STABLE_TOKEN_PRICE = convertToUnit(1.5, 18);
-            priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const VAI_FEE = convertToUnit(10, 18);
-            const VAI_TO_SEND = convertToUnit(90, 18);
-            const receiverAddress = await user.getAddress();
-            stableToken.balanceOf.returnsAtCall(6, 0);
-            stableToken.transferFrom
-              .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
-              .returns(true);
-            stableToken.balanceOf.returnsAtCall(7, STABLE_TOKEN_AMOUNT);
-            const tx = await pegStability.swapStableForVAI(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.mint.atCall(2)).to.have.been.calledWith(receiverAddress, VAI_TO_SEND);
-            expect(vai.mint.atCall(3)).to.have.been.calledWith(venusTreasury.address, VAI_FEE);
-            await expect(tx)
-              .to.emit(pegStability, "StableForVAISwapped")
-              .withArgs(STABLE_TOKEN_AMOUNT, VAI_TO_SEND, VAI_FEE);
-          });
-          it("stable token < 1$ ", async () => {
-            const STABLE_TOKEN_PRICE = convertToUnit(0.9, 18);
-            priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const VAI_FEE = convertToUnit(9, 18);
-            const VAI_TO_SEND = convertToUnit(81, 18);
-            const receiverAddress = await user.getAddress();
-            stableToken.balanceOf.returnsAtCall(8, 0);
-            stableToken.transferFrom
-              .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
-              .returns(true);
-            stableToken.balanceOf.returnsAtCall(9, STABLE_TOKEN_AMOUNT);
-            const tx = await pegStability.swapStableForVAI(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.mint.atCall(4)).to.have.been.calledWith(receiverAddress, VAI_TO_SEND);
-            expect(vai.mint.atCall(5)).to.have.been.calledWith(venusTreasury.address, VAI_FEE);
-            await expect(tx)
-              .to.emit(pegStability, "StableForVAISwapped")
-              .withArgs(STABLE_TOKEN_AMOUNT, VAI_TO_SEND, VAI_FEE);
-          });
+      describe("swapVAIForStable(address,uint256)", () => {
+        beforeEach(async () => {
+          const VAI_MINTED = convertToUnit(110, 18);
+          await pegStability.setVariable("vaiMinted", VAI_MINTED);
         });
-        describe("Fees: 0%", () => {
+        it("should revert if receiver is zero address ", async () => {
+          await expect(pegStability.swapVAIForStable(ethers.constants.AddressZero, 100)).to.be.revertedWith(
+            "Can't be zero address.",
+          );
+        });
+        it("should revert if sender has insufficient VAI balance ", async () => {
+          const USER_VAI_BALANCE = convertToUnit(109, 18); // USER NEEDS TO HAVE 110 VAI
+          vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
+          await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+            "Not enough VAI.",
+          );
+        });
+        it("should revert if VAI transfer fails ", async () => {
+          const USER_VAI_BALANCE = convertToUnit(110, 18);
+          vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
+          vai.transferFrom.returns(false);
+          await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+            "VAI fee transfer failed.",
+          );
+        });
+        it("should revert if VAI to be burnt > vaiMinted ", async () => {
+          const STABLE_TOKEN_AMOUNT = convertToUnit(200, 8);
+          const USER_VAI_BALANCE = convertToUnit(300, 18);
+          vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
+          vai.transferFrom.returns(true);
+          await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+            "Can't burn more VAI than minted.",
+          );
+        });
+        describe("should sucessfully perform the swap", () => {
           beforeEach(async () => {
-            await pegStability.setVariables({
-              feeIn: 0,
-              feeOut: 0,
+            resetAllFakes();
+          });
+          describe("Fees: 10%", () => {
+            const USER_VAI_BALANCE = convertToUnit(110, 18);
+            const VAI_FEE_TO_TREASURY = convertToUnit(10, 18);
+            const VAI_TO_BURN = convertToUnit(100, 18);
+            it("stable token = 1$ ", async () => {
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
+            });
+            it("stable token < 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(0.9, 28); // 0.9$
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
+            });
+            it("stable token > 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(1.1, 28); // 1.1$
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              const USER_VAI_BALANCE = convertToUnit(121, 18); // 121 (110 VAI + 11 VAI fee)
+              const VAI_FEE_TO_TREASURY = convertToUnit(11, 18);
+              const VAI_TO_BURN = convertToUnit(110, 18);
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
             });
           });
-          it("stable token = 1$ ", async () => {
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const VAI_FEE = 0;
-            const VAI_TO_SEND = convertToUnit(100, 18);
-            const receiverAddress = await user.getAddress();
-            stableToken.balanceOf.returnsAtCall(10, 0);
-            stableToken.transferFrom
-              .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
-              .returns(true);
-            stableToken.balanceOf.returnsAtCall(11, STABLE_TOKEN_AMOUNT);
-            const tx = await pegStability.swapStableForVAI(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.mint.atCall(6)).to.have.been.calledWith(receiverAddress, VAI_TO_SEND);
-            await expect(tx)
-              .to.emit(pegStability, "StableForVAISwapped")
-              .withArgs(STABLE_TOKEN_AMOUNT, VAI_TO_SEND, VAI_FEE);
+          describe("Fees: 0%", () => {
+            const VAI_FEE_TO_TREASURY = "0";
+            const USER_VAI_BALANCE = convertToUnit(100, 18);
+            const VAI_TO_BURN = convertToUnit(100, 18);
+            beforeEach(async () => {
+              await pegStability.setVariables({
+                feeIn: 0,
+                feeOut: 0,
+              });
+            });
+            it("stable token = 1$ ", async () => {
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
+            });
+            it("stable token < 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(0.9, 28); // 0.9$
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
+            });
+            it("stable token > 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(1.1, 28); // 1.1$
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              const USER_VAI_BALANCE = convertToUnit(121, 18); // 121 (110 VAI + 11 VAI fee)
+              const VAI_FEE_TO_TREASURY = "0";
+              const VAI_TO_BURN = convertToUnit(110, 18);
+              await swapVaiForStableAndVerify(
+                vai,
+                adminAddress,
+                USER_VAI_BALANCE,
+                venusTreasury,
+                VAI_FEE_TO_TREASURY,
+                pegStability,
+                receiverAddress,
+                STABLE_TOKEN_AMOUNT,
+                stableToken,
+                VAI_TO_BURN,
+              );
+            });
           });
-          it("stable token > 1$ ", async () => {
-            const STABLE_TOKEN_PRICE = convertToUnit(1.5, 18);
-            priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const VAI_FEE = 0;
-            const VAI_TO_SEND = convertToUnit(100, 18);
-            const receiverAddress = await user.getAddress();
-            stableToken.balanceOf.returnsAtCall(12, 0);
-            stableToken.transferFrom
-              .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
-              .returns(true);
-            stableToken.balanceOf.returnsAtCall(13, STABLE_TOKEN_AMOUNT);
-            const tx = await pegStability.swapStableForVAI(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.mint.atCall(7)).to.have.been.calledWith(receiverAddress, VAI_TO_SEND);
-            await expect(tx)
-              .to.emit(pegStability, "StableForVAISwapped")
-              .withArgs(STABLE_TOKEN_AMOUNT, VAI_TO_SEND, VAI_FEE);
+        });
+      });
+      describe("swapStableForVAI(address,uint256)", () => {
+        beforeEach(async () => {
+          resetAllFakes();
+        });
+        it("should revert if receiver is zero address ", async () => {
+          await expect(pegStability.swapStableForVAI(ethers.constants.AddressZero, 100)).to.be.revertedWith(
+            "Can't be zero address.",
+          );
+        });
+        it("should revert if VAI mint cap will be reached ", async () => {
+          const MINT_CAP = convertToUnit(99, 18);
+
+          await pegStability.setVariable("vaiMintCap", MINT_CAP);
+          stableToken.balanceOf.returnsAtCall(0, 0);
+          stableToken.transferFrom
+            .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
+            .returns(true);
+          stableToken.balanceOf.returnsAtCall(1, STABLE_TOKEN_AMOUNT);
+          await expect(pegStability.swapStableForVAI(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
+            "VAI mint cap reached.",
+          );
+        });
+        describe("should sucessfully perform the swap", () => {
+          beforeEach(async () => {
+            resetAllFakes();
           });
-          it("stable token < 1$ ", async () => {
-            const STABLE_TOKEN_PRICE = convertToUnit(0.9, 18);
-            priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
-            const STABLE_TOKEN_AMOUNT = convertToUnit(100, 18);
-            const VAI_FEE = 0;
+          describe("Fees: 10%", () => {
+            const VAI_FEE = convertToUnit(10, 18);
             const VAI_TO_SEND = convertToUnit(90, 18);
-            const receiverAddress = await user.getAddress();
-            stableToken.balanceOf.returnsAtCall(14, 0);
-            stableToken.transferFrom
-              .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
-              .returns(true);
-            stableToken.balanceOf.returnsAtCall(15, STABLE_TOKEN_AMOUNT);
-            const tx = await pegStability.swapStableForVAI(receiverAddress, STABLE_TOKEN_AMOUNT);
-            expect(vai.mint.atCall(8)).to.have.been.calledWith(receiverAddress, VAI_TO_SEND);
-            await expect(tx)
-              .to.emit(pegStability, "StableForVAISwapped")
-              .withArgs(STABLE_TOKEN_AMOUNT, VAI_TO_SEND, VAI_FEE);
+            it("stable token = 1$ ", async () => {
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
+            it("stable token > 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(1.5, 28); // $1.5
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
+            it("stable token < 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(0.9, 28); // $0.9
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              const VAI_FEE = convertToUnit(9, 18);
+              const VAI_TO_SEND = convertToUnit(81, 18);
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
+          });
+          describe("Fees: 0%", () => {
+            const VAI_FEE = "0";
+            const VAI_TO_SEND = convertToUnit(100, 18);
+            beforeEach(async () => {
+              await pegStability.setVariables({
+                feeIn: 0,
+                feeOut: 0,
+              });
+              stableToken.balanceOf.reset();
+              vai.mint.reset();
+            });
+            it("stable token = 1$ ", async () => {
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
+            it("stable token > 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(1.5, 28);
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
+            it("stable token < 1$ ", async () => {
+              const STABLE_TOKEN_PRICE = convertToUnit(0.9, 28);
+              priceOracle.getUnderlyingPrice.returns(STABLE_TOKEN_PRICE);
+              const VAI_TO_SEND = convertToUnit(90, 18);
+              await swapStableForVaiAndVerify(
+                stableToken,
+                adminAddress,
+                pegStability,
+                STABLE_TOKEN_AMOUNT,
+                receiverAddress,
+                vai,
+                VAI_TO_SEND,
+                venusTreasury,
+                VAI_FEE,
+              );
+            });
           });
         });
       });
