@@ -7,6 +7,4 @@ interface IVBNB {
     function mint() external payable;
 
     function balanceOf(address owner) external view returns (uint256);
-
-    function transfer(address dst, uint256 amount) external returns (bool);
 }

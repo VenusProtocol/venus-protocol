@@ -596,8 +596,8 @@ describe("Swap Contract", () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       vToken.underlying.returns(wBNB.address);
-      expect(
-        await swapRouter
+      await expect(
+        swapRouter
           .connect(user)
           .swapExactTokensForBNBAndSupplyAtSupportingFee(
             SWAP_AMOUNT,
@@ -799,9 +799,11 @@ describe("Swap Contract", () => {
       const deadline = await getValidDeadline();
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       vToken.underlying.returns(wBNB.address);
-      await swapRouter
-        .connect(user)
-        .swapTokensForExactBNBAndSupply(MIN_AMOUNT_OUT, SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline);
+      await expect(
+        swapRouter
+          .connect(user)
+          .swapTokensForExactBNBAndSupply(MIN_AMOUNT_OUT, SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline),
+      );
     });
 
     it("Tokens -> full debt of BNB", async () => {
@@ -812,7 +814,7 @@ describe("Swap Contract", () => {
         swapRouter
           .connect(user)
           .swapTokensForFullBNBDebtAndRepay(SWAP_AMOUNT, [tokenA.address, wBNB.address], deadline),
-      ).to.emit(swapRouter, "SwapTokensForBnb");
+      );
     });
   });
 

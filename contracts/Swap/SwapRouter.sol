@@ -941,6 +941,6 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 vBNBBalanceBefore = IVBNB(vBNBAddress).balanceOf(address(this));
         IVBNB(vBNBAddress).mint{ value: swapAmount }();
         uint256 vBNBBalanceAfter = IVBNB(vBNBAddress).balanceOf(address(this));
-        IVBNB(vBNBAddress).transfer(msg.sender, (vBNBBalanceAfter - vBNBBalanceBefore));
+        IERC20(vBNBAddress).safeTransfer(msg.sender, (vBNBBalanceAfter - vBNBBalanceBefore));
     }
 }
