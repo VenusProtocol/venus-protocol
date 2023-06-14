@@ -2,6 +2,7 @@ pragma solidity ^0.5.16;
 
 import "../Tokens/VTokens/VToken.sol";
 import "../Oracle/PriceOracle.sol";
+import "../Tokens/VAI/VAIControllerInterface.sol";
 
 contract ComptrollerInterfaceG1 {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
@@ -138,6 +139,10 @@ contract ComptrollerInterface is ComptrollerInterfaceG4 {
     function venusSupplyState(address) external view returns (uint224, uint32);
 
     function approvedDelegates(address borrower, address delegate) external view returns (bool);
+
+    function vaiController() external view returns (VAIControllerInterface);
+
+    function liquidationIncentiveMantissa() external view returns (uint);
 }
 
 interface IVAIVault {

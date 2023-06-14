@@ -4,7 +4,7 @@ import "../../Oracle/PriceOracle.sol";
 import "../../Utils/ErrorReporter.sol";
 import "../../Utils/Exponential.sol";
 import "../../Comptroller/ComptrollerStorage.sol";
-import "../../Comptroller/Comptroller.sol";
+import "../../Comptroller/ComptrollerInterface.sol";
 import "../../Governance/IAccessControlManager.sol";
 import "../VTokens/VToken.sol";
 import "./VAIControllerStorage.sol";
@@ -455,7 +455,9 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
                 return (uint(Error.MATH_ERROR), 0);
             }
 
-            (, uint collateralFactorMantissa, ) = Comptroller(address(comptroller)).markets(address(enteredMarkets[i]));
+            (, uint collateralFactorMantissa) = ComptrollerInterface(address(comptroller)).markets(
+                address(enteredMarkets[i])
+            );
             (vars.mErr, vars.marketSupply) = mulUInt(vars.marketSupply, collateralFactorMantissa);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
