@@ -286,7 +286,7 @@ abstract contract RouterHelper is IRouterHelper {
         IWBNB(WBNB).deposit{ value: amounts[0] }();
         TransferHelper.safeTransfer(WBNB, PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]);
         _swap(amounts, path, to);
-        // refund dust eth, if any
+        // refund dust BNB, if any
         if (msg.value > amounts[0]) TransferHelper.safeTransferBNB(msg.sender, msg.value - amounts[0]);
         emit SwapBnbForTokens(msg.sender, path, amounts);
     }

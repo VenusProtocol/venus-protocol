@@ -654,7 +654,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Swaps an exact amount of ETH for as many output tokens as possible,
+     * @notice Swaps an exact amount of BNB for as many output tokens as possible,
      *         along the route determined by the path. The first element of path must be WBNB,
      *         the last is the output token, and any intermediate elements represent
      *         intermediate pairs to trade through (if, for example, a direct pair does not exist).
