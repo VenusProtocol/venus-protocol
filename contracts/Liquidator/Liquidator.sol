@@ -93,9 +93,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable wBNB;
 
-    /// @dev VToken return value signalling about successful execution
-    uint256 internal constant NO_ERROR = 0;
-
     /* Events */
 
     /// @notice Emitted when the percent of the seized amount that goes to treasury changes.
