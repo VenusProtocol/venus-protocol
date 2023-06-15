@@ -12,6 +12,11 @@ interface IMarketFacet {
         uint actualRepayAmount
     ) external view returns (uint, uint);
 
+    function liquidateVAICalculateSeizeTokens(
+        address vTokenCollateral,
+        uint actualRepayAmount
+    ) external view returns (uint, uint);
+
     function checkMembership(address account, VToken vToken) external view returns (bool);
 
     function enterMarkets(address[] calldata vTokens) external returns (uint[] memory);
@@ -21,4 +26,6 @@ interface IMarketFacet {
     function _supportMarket(VToken vToken) external returns (uint);
 
     function getAssetsIn(address account) external view returns (VToken[] memory);
+
+    function getAllMarkets() external view returns (VToken[] memory);
 }

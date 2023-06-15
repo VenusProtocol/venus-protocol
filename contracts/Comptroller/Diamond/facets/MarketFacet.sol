@@ -26,6 +26,15 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     }
 
     /**
+     * @notice Return all of the markets
+     * @dev The automatic getter may be used to access an individual market.
+     * @return The list of market addresses
+     */
+    function getAllMarkets() external view returns (VToken[] memory) {
+        return allMarkets;
+    }
+
+    /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
      * @param vTokenBorrowed The address of the borrowed vToken
@@ -41,6 +50,25 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         (uint err, uint seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
             address(this),
             vTokenBorrowed,
+            vTokenCollateral,
+            actualRepayAmount
+        );
+        return (err, seizeTokens);
+    }
+
+    /**
+     * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
+     * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
+     * @param vTokenCollateral The address of the collateral vToken
+     * @param actualRepayAmount The amount of vTokenBorrowed underlying to convert into vTokenCollateral tokens
+     * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
+     */
+    function liquidateVAICalculateSeizeTokens(
+        address vTokenCollateral,
+        uint actualRepayAmount
+    ) external view returns (uint, uint) {
+        (uint err, uint seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
+            address(this),
             vTokenCollateral,
             actualRepayAmount
         );

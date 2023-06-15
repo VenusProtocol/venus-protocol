@@ -69,6 +69,13 @@ interface IPolicyFacet {
 
     function getAccountLiquidity(address account) external view returns (uint, uint, uint);
 
+    function getHypotheticalAccountLiquidity(
+        address account,
+        address vTokenModify,
+        uint redeemTokens,
+        uint borrowAmount
+    ) external view returns (uint, uint, uint);
+
     function _setVenusSpeeds(
         VToken[] calldata vTokens,
         uint[] calldata supplySpeeds,

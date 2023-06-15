@@ -359,6 +359,31 @@ contract PolicyFacet is XVSRewardsHelper {
         return (uint(err), liquidity, shortfall);
     }
 
+    /**
+     * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed
+     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @param account The account to determine liquidity for
+     * @param redeemTokens The number of tokens to hypothetically redeem
+     * @param borrowAmount The amount of underlying to hypothetically borrow
+     * @return (possible error code (semi-opaque),
+                hypothetical account liquidity in excess of collateral requirements,
+     *          hypothetical account shortfall below collateral requirements)
+     */
+    function getHypotheticalAccountLiquidity(
+        address account,
+        address vTokenModify,
+        uint redeemTokens,
+        uint borrowAmount
+    ) external view returns (uint, uint, uint) {
+        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(
+            account,
+            VToken(vTokenModify),
+            redeemTokens,
+            borrowAmount
+        );
+        return (uint(err), liquidity, shortfall);
+    }
+
     // setter functionality
     /**
      * @notice Set XVS speed for a single market
