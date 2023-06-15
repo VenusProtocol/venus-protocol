@@ -365,10 +365,10 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     function _reduceReservesInternal() internal {
-        uint256 pendingReedemLength_ = pendingRedeem.length;
-        uint256 range = pendingReedemLength_ >= pendingRedeemChunkLength
+        uint256 pendingRedeemLength_ = pendingRedeem.length;
+        uint256 range = pendingRedeemLength_ >= pendingRedeemChunkLength
             ? pendingRedeemChunkLength
-            : pendingReedemLength_;
+            : pendingRedeemLength_;
         if (range == 0) return;
         for (int256 index = int256(range) - 1; index >= 0; index--) {
             address vToken = pendingRedeem[uint256(index)];
