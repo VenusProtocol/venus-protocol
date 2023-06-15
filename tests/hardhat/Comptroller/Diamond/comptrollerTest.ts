@@ -6,9 +6,9 @@ import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../../helpers/utils";
 import {
-  Comptroller,
   ComptrollerLens,
   ComptrollerLens__factory,
+  ComptrollerMock,
   EIP20Interface,
   IAccessControlManager,
   PriceOracle,
@@ -26,7 +26,7 @@ type SimpleComptrollerFixture = {
   accessControl: FakeContract<IAccessControlManager>;
   comptrollerLens: MockContract<ComptrollerLens>;
   unitroller: Unitroller;
-  comptroller: Comptroller;
+  comptroller: ComptrollerMock;
 };
 
 async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
@@ -36,10 +36,10 @@ async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   );
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
-  //   const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+  //   const ComptrollerFactory = await smock.mock<Comptroller__factory>("ComptrollerMock");
   const result = await deployDiamond("");
   const unitroller = result.unitroller;
-  const comptroller = await ethers.getContractAt("Comptroller", unitroller.address);
+  const comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
   const comptrollerLens = await ComptrollerLensFactory.deploy();
   await comptroller._setAccessControl(accessControl.address);
   await comptroller._setComptrollerLens(comptrollerLens.address);
@@ -52,7 +52,7 @@ function configureOracle(oracle: FakeContract<PriceOracle>) {
   oracle.getUnderlyingPrice.returns(convertToUnit(1, 18));
 }
 
-async function configureVToken(vToken: FakeContract<VToken>, unitroller: MockContract<Comptroller>) {
+async function configureVToken(vToken: FakeContract<VToken>, unitroller: MockContract<ComptrollerMock>) {
   const result = await deployDiamond("");
   unitroller = result.unitroller;
   vToken.comptroller.returns(unitroller.address);
@@ -80,14 +80,14 @@ describe("Comptroller", () => {
 
   describe("_setLiquidationIncentive", () => {
     let unitroller: Unitroller;
-    let comptroller: Comptroller;
+    let comptroller: ComptrollerMock;
     const initialIncentive = convertToUnit("1", 18);
     const validIncentive = convertToUnit("1.1", 18);
     const tooSmallIncentive = convertToUnit("0.99999", 18);
 
     beforeEach(async () => {
       ({ unitroller } = await loadFixture(deploySimpleComptroller));
-      comptroller = await ethers.getContractAt("Comptroller", unitroller.address);
+      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     });
 
     it("fails if incentive is less than 1e18", async () => {
@@ -109,16 +109,16 @@ describe("Comptroller", () => {
 
   describe("Non zero address check", () => {
     let unitroller: Unitroller;
-    let comptroller: Comptroller;
+    let comptroller: ComptrollerMock;
 
     beforeEach(async () => {
       ({ unitroller } = await loadFixture(deploySimpleComptroller));
-      comptroller = await ethers.getContractAt("Comptroller", unitroller.address);
+      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     });
 
-    type FuncNames = keyof Comptroller["functions"];
+    type FuncNames = keyof ComptrollerMock["functions"];
 
-    function testZeroAddress<Func extends FuncNames>(funcName: Func, args: Parameters<Comptroller[Func]>) {
+    function testZeroAddress<Func extends FuncNames>(funcName: Func, args: Parameters<ComptrollerMock[Func]>) {
       it(funcName, async () => {
         await expect(comptroller[funcName](...args)).to.be.revertedWith("can't be zero address");
       });
@@ -135,7 +135,7 @@ describe("Comptroller", () => {
 
   describe("_setPriceOracle", () => {
     let unitroller: Unitroller;
-    let comptroller: Comptroller;
+    let comptroller: ComptrollerMock;
     let oracle: FakeContract<PriceOracle>;
     let newOracle: FakeContract<PriceOracle>;
 
@@ -146,7 +146,7 @@ describe("Comptroller", () => {
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
       const newOracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
-      // comptroller = await ethers.getContractAt("Comptroller", contracts.unitroller);
+      // comptroller = await ethers.getContractAt("ComptrollerMock", contracts.unitroller);
       return { ...contracts, newOracle };
     }
 
@@ -171,20 +171,20 @@ describe("Comptroller", () => {
 
   describe("_setComptrollerLens", () => {
     let unitroller: Unitroller;
-    let comptroller: Comptroller;
+    let comptroller: ComptrollerMock;
     let comptrollerLens: MockContract<ComptrollerLens>;
 
     type Contracts = {
       unitroller: Unitroller;
-      comptroller: Comptroller;
+      comptroller: ComptrollerMock;
       comptrollerLens: MockContract<ComptrollerLens>;
     };
 
     async function deploy(): Promise<Contracts> {
-      // const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+      // const ComptrollerFactory = await smock.mock<Comptroller__factory>("ComptrollerMock");
       const result = await deployDiamond("");
       unitroller = result.unitroller;
-      const comptroller = await ethers.getContractAt("Comptroller", unitroller.address);
+      const comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
       const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
       const comptrollerLens = await ComptrollerLensFactory.deploy();
       return { unitroller, comptroller, comptrollerLens };
@@ -210,7 +210,7 @@ describe("Comptroller", () => {
   });
 
   describe("_setCloseFactor", () => {
-    let comptroller: Comptroller;
+    let comptroller: ComptrollerMock;
 
     beforeEach(async () => {
       ({ comptroller } = await loadFixture(deploySimpleComptroller));
@@ -224,7 +224,7 @@ describe("Comptroller", () => {
   describe("_setCollateralFactor", () => {
     const half = convertToUnit("0.5", 18);
     let unitroller: Unitroller;
-    let comptroller: Comptroller;
+    let comptroller: ComptrollerMock;
     let vToken: FakeContract<VToken>;
     let oracle: FakeContract<PriceOracle>;
 
@@ -268,7 +268,7 @@ describe("Comptroller", () => {
 
   describe("_supportMarket", () => {
     let unitroller: Unitroller;
-    let comptroller: Comptroller;
+    let comptroller: ComptrollerMock;
     let oracle: FakeContract<PriceOracle>;
     let vToken1: FakeContract<VToken>;
     let vToken2: FakeContract<VToken>;
@@ -327,7 +327,7 @@ describe("Comptroller", () => {
 
   describe("Hooks", () => {
     let unitroller: Unitroller;
-    let comptroller: Comptroller;
+    let comptroller: ComptrollerMock;
     let vToken: FakeContract<VToken>;
 
     type Contracts = SimpleComptrollerFixture & { vToken: FakeContract<VToken> };

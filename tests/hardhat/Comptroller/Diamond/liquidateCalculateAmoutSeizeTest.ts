@@ -6,9 +6,9 @@ import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../../helpers/utils";
 import {
-  Comptroller,
   ComptrollerLens,
   ComptrollerLens__factory,
+  ComptrollerMock,
   IAccessControlManager,
   PriceOracle,
   VBep20Immutable,
@@ -24,7 +24,7 @@ const collateralPrice = convertToUnit(1, 18);
 const repayAmount = convertToUnit(1, 18);
 
 async function calculateSeizeTokens(
-  comptroller: Comptroller,
+  comptroller: ComptrollerMock,
   vTokenBorrowed: FakeContract<VBep20Immutable>,
   vTokenCollateral: FakeContract<VBep20Immutable>,
   repayAmount: BigNumberish,
@@ -37,13 +37,13 @@ function rando(min: number, max: number): number {
 }
 
 describe("Comptroller", () => {
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerMock;
   let oracle: FakeContract<PriceOracle>;
   let vTokenBorrowed: FakeContract<VBep20Immutable>;
   let vTokenCollateral: FakeContract<VBep20Immutable>;
 
   type LiquidateFixture = {
-    comptroller: Comptroller;
+    comptroller: ComptrollerMock;
     comptrollerLens: MockContract<ComptrollerLens>;
     oracle: FakeContract<PriceOracle>;
     vTokenBorrowed: FakeContract<VBep20Immutable>;
@@ -56,11 +56,10 @@ describe("Comptroller", () => {
 
   async function liquidateFixture(): Promise<LiquidateFixture> {
     const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
-    // const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const result = await deployDiamond("");
     const unitroller = result.unitroller;
-    comptroller = await ethers.getContractAt("Comptroller", unitroller.address);
+    comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     const comptrollerLens = await ComptrollerLensFactory.deploy();
     const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);

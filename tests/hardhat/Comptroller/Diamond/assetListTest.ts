@@ -6,9 +6,9 @@ import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../../helpers/utils";
 import {
-  Comptroller,
   ComptrollerLens,
   ComptrollerLens__factory,
+  ComptrollerMock,
   IAccessControlManager,
   PriceOracle,
   Unitroller,
@@ -26,7 +26,7 @@ describe("Comptroller: assetListTest", () => {
   let root: Signer; // eslint-disable-line @typescript-eslint/no-unused-vars
   let customer: Signer;
   let unitroller: Unitroller;
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerMock;
   let OMG: FakeContract<VBep20Immutable>;
   let ZRX: FakeContract<VBep20Immutable>;
   let BAT: FakeContract<VBep20Immutable>;
@@ -34,7 +34,7 @@ describe("Comptroller: assetListTest", () => {
   let allTokens: FakeContract<VBep20Immutable>[];
 
   type AssetListFixture = {
-    unitroller: MockContract<Comptroller>;
+    unitroller: MockContract<ComptrollerMock>;
     comptrollerLens: MockContract<ComptrollerLens>;
     oracle: FakeContract<PriceOracle>;
     OMG: FakeContract<VBep20Immutable>;
@@ -49,14 +49,14 @@ describe("Comptroller: assetListTest", () => {
     const accessControl = await smock.fake<IAccessControlManager>(
       "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
     );
-    // const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+    // const ComptrollerFactory = await smock.mock<Comptroller__factory>("ComptrollerMock");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const result = await deployDiamond("");
     unitroller = result.unitroller;
     const comptrollerLens = await ComptrollerLensFactory.deploy();
     const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);
-    comptroller = await ethers.getContractAt("Comptroller", unitroller.address);
+    comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);

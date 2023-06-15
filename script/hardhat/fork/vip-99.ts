@@ -5,7 +5,7 @@ import { parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import {
-  Comptroller,
+  ComptrollerMock,
   IERC20Upgradeable,
   PriceOracle,
   SwapDebtDelegate,
@@ -89,7 +89,7 @@ forking(25918391, () => {
 
 // Ressetting the fork to prevent oracle prices from getting stale
 forking(25918391, () => {
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerMock;
   let busd: IERC20Upgradeable;
   let usdt: IERC20Upgradeable;
   let btc: IERC20Upgradeable;
@@ -102,7 +102,7 @@ forking(25918391, () => {
   let oracle: PriceOracle;
 
   before(async () => {
-    comptroller = await ethers.getContractAt("Comptroller", COMPTROLLER);
+    comptroller = await ethers.getContractAt("ComptrollerMock", COMPTROLLER);
     [vBUSD, vUSDC, vUSDT, vBTC, vETH] = await Promise.all(
       [VBUSD, VUSDC, VUSDT, VBTC, VETH].map((address: string) => {
         return ethers.getContractAt("VBep20Delegate", address);

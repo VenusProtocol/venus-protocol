@@ -69,7 +69,7 @@ export const setMaxStalePeriodInOracle = async (
   comptrollerAddress: string,
   maxStalePeriodInSeconds: number = 31536000 /* 1 year */,
 ) => {
-  const comptroller = await ethers.getContractAt("Comptroller", comptrollerAddress);
+  const comptroller = await ethers.getContractAt("ComptrollerInterface", comptrollerAddress);
   const oracle = await ethers.getContractAt("VenusChainlinkOracle", await comptroller.oracle());
   const oracleAdmin = await initMainnetUser(await oracle.admin(), ethers.utils.parseEther("1.0"));
 

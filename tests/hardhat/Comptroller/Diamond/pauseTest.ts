@@ -3,7 +3,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { ethers } from "hardhat";
 
-import { Comptroller, IAccessControlManager, PriceOracle, VBep20Immutable } from "../../../../typechain";
+import { ComptrollerMock, IAccessControlManager, PriceOracle, VBep20Immutable } from "../../../../typechain";
 import { deployDiamond } from "./scripts/deploy";
 
 const { expect } = chai;
@@ -11,7 +11,7 @@ chai.use(smock.matchers);
 
 type PauseFixture = {
   accessControl: FakeContract<IAccessControlManager>;
-  comptroller: Comptroller;
+  comptroller: ComptrollerMock;
   oracle: FakeContract<PriceOracle>;
   OMG: FakeContract<VBep20Immutable>;
   ZRX: FakeContract<VBep20Immutable>;
@@ -25,7 +25,7 @@ async function pauseFixture(): Promise<PauseFixture> {
   const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   const result = await deployDiamond("");
   const unitroller = result.unitroller;
-  const comptroller = await ethers.getContractAt("Comptroller", unitroller.address);
+  const comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
   await comptroller._setAccessControl(accessControl.address);
   const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
 
@@ -56,8 +56,8 @@ function configure({ accessControl, allTokens, names }: PauseFixture) {
   });
 }
 
-describe("Comptroller", () => {
-  let comptroller: MockContract<Comptroller>;
+describe("ComptrollerMock", () => {
+  let comptroller: MockContract<ComptrollerMock>;
   let OMG: FakeContract<VBep20Immutable>;
   let ZRX: FakeContract<VBep20Immutable>;
   let BAT: FakeContract<VBep20Immutable>;

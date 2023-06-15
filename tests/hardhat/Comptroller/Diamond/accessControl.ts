@@ -3,7 +3,7 @@ import chai from "chai";
 import { Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
-import { Comptroller, Comptroller__factory, IAccessControlManager } from "../../../typechain";
+import { ComptrollerMock, IAccessControlManager } from "../../../typechain";
 import { deployDiamond } from "./scripts/deploy";
 
 const { expect } = chai;
@@ -12,9 +12,9 @@ chai.use(smock.matchers);
 describe("Comptroller", () => {
   let user: Signer;
   let userAddress: string;
-  let unitroller: Comptroller;
+  let unitroller: ComptrollerMock;
   let accessControl: FakeContract<IAccessControlManager>;
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerMock;
 
   beforeEach(async () => {
     const signers = await ethers.getSigners();
@@ -25,7 +25,7 @@ describe("Comptroller", () => {
     );
     const result = await deployDiamond("");
     unitroller = result.unitroller;
-    comptroller = await ethers.getContractAt("Comptroller", unitroller.address);
+    comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
   });
 
   describe("_setAccessControlManager", () => {

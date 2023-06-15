@@ -6,7 +6,7 @@ import { ethers, upgrades } from "hardhat";
 
 import { convertToBigInt } from "../../../helpers/utils";
 import {
-  Comptroller,
+  ComptrollerMock,
   LiquidatorHarness,
   LiquidatorHarness__factory,
   MockVBNB,
@@ -21,7 +21,7 @@ const announcedIncentive = convertToBigInt("1.1", 18);
 const treasuryPercent = convertToBigInt("0.05", 18);
 
 type LiquidatorFixture = {
-  comptroller: FakeContract<Comptroller>;
+  comptroller: FakeContract<ComptrollerMock>;
   vTokenCollateral: FakeContract<VBep20Immutable>;
   liquidator: MockContract<LiquidatorHarness>;
   vBnb: FakeContract<MockVBNB>;
@@ -30,7 +30,7 @@ type LiquidatorFixture = {
 async function deployLiquidator(): Promise<LiquidatorFixture> {
   const [, treasury] = await ethers.getSigners();
 
-  const comptroller = await smock.fake<Comptroller>("Comptroller");
+  const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");

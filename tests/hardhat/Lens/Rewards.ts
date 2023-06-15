@@ -1,13 +1,16 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
-import { expect } from "chai";
+import chai from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
-import { Comptroller, FaucetToken, VToken, VenusLens, VenusLens__factory } from "../../../typechain";
+import { ComptrollerMock, FaucetToken, VToken, VenusLens, VenusLens__factory } from "../../../typechain";
 
-let comptroller: FakeContract<Comptroller>;
+const { expect } = chai;
+chai.use(smock.matchers);
+
+let comptroller: FakeContract<ComptrollerMock>;
 let vBUSD: FakeContract<VToken>;
 let vWBTC: FakeContract<VToken>;
 let XVS: FakeContract<FaucetToken>;
@@ -18,7 +21,7 @@ let startBlock: number;
 const VENUS_ACCRUED = convertToUnit(10, 18);
 
 type RewardsFixtire = {
-  comptroller: FakeContract<Comptroller>;
+  comptroller: FakeContract<ComptrollerMock>;
   vBUSD: FakeContract<VToken>;
   vWBTC: FakeContract<VToken>;
   XVS: FakeContract<FaucetToken>;
@@ -32,7 +35,7 @@ const rewardsFixture = async (): Promise<RewardsFixtire> => {
   XVS = await smock.fake<FaucetToken>("FaucetToken");
   const venusLensFactory = await smock.mock<VenusLens__factory>("VenusLens");
   venusLens = await venusLensFactory.deploy();
-  comptroller = await smock.fake<Comptroller>("Comptroller");
+  comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
 
   const startBlock = await ethers.provider.getBlockNumber();
 

@@ -78,7 +78,7 @@ forking(26544741, () => {
   let comptroller: any;
 
   before(async () => {
-    comptroller = await ethers.getContractAt("Comptroller", COMPTROLLER);
+    comptroller = await ethers.getContractAt("ComptrollerInterface", COMPTROLLER);
     await pretendExecutingVip(vip103());
   });
 

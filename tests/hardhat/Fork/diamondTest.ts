@@ -107,7 +107,7 @@ forking(26713742, () => {
       });
 
       // unitroller without diamond
-      unitroller = await ethers.getContractAt("Comptroller", UNITROLLER);
+      unitroller = await ethers.getContractAt("ComptrollerMock", UNITROLLER);
 
       // deploy Diamond
       const result = await deployDiamond(UNITROLLER);
@@ -115,7 +115,7 @@ forking(26713742, () => {
       diamondProxy = result.diamond;
 
       // unitroller with diamond
-      diamondUnitroller = await ethers.getContractAt("Comptroller", diamondUnitroller.address);
+      diamondUnitroller = await ethers.getContractAt("ComptrollerMock", diamondUnitroller.address);
 
       busdHolder = await initMainnetUser("0xf977814e90da44bfa03b6295a0616a897441acec");
       usdtHolder = await initMainnetUser("0xc444949e0054A23c44Fc45789738bdF64aed2391");

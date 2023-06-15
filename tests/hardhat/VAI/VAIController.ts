@@ -5,9 +5,9 @@ import { BigNumber, Wallet, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import {
-  Comptroller,
   ComptrollerLens__factory,
-  Comptroller__factory,
+  ComptrollerMock,
+  ComptrollerMock__factory,
   IAccessControlManager,
   VAIControllerHarness__factory,
 } from "../../../typechain";
@@ -31,7 +31,7 @@ const BLOCKS_PER_YEAR = 1000;
 interface ComptrollerFixture {
   usdt: BEP20Harness;
   accessControl: FakeContract<IAccessControlManager>;
-  comptroller: MockContract<Comptroller>;
+  comptroller: MockContract<ComptrollerMock>;
   priceOracle: SimplePriceOracle;
   vai: VAIScenario;
   vaiController: MockContract<VAIControllerHarness>;
@@ -45,7 +45,7 @@ describe("VAIController", async () => {
   let treasuryGuardian: Wallet;
   let treasuryAddress: Wallet;
   let accessControl: FakeContract<IAccessControlManager>;
-  let comptroller: MockContract<Comptroller>;
+  let comptroller: MockContract<ComptrollerMock>;
   let priceOracle: SimplePriceOracle;
   let vai: VAIScenario;
   let vaiController: MockContract<VAIControllerHarness>;
@@ -70,7 +70,7 @@ describe("VAIController", async () => {
     );
     accessControl.isAllowedToCall.returns(true);
 
-    const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+    const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
     const comptroller = await ComptrollerFactory.deploy();
 
     const priceOracleFactory = await ethers.getContractFactory("SimplePriceOracle");
@@ -90,7 +90,6 @@ describe("VAIController", async () => {
 
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setVAIController(vaiController.address);

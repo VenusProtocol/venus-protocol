@@ -6,10 +6,10 @@ import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import {
-  Comptroller,
   ComptrollerLens,
   ComptrollerLens__factory,
-  Comptroller__factory,
+  ComptrollerMock,
+  ComptrollerMock__factory,
   FaucetToken,
   FaucetToken__factory,
   IAccessControlManager,
@@ -47,7 +47,7 @@ let admin: SignerWithAddress;
 let oracle: FakeContract<PriceOracle>;
 let accessControl: FakeContract<IAccessControlManager>;
 let comptrollerLens: MockContract<ComptrollerLens>;
-let comptroller: MockContract<Comptroller>;
+let comptroller: MockContract<ComptrollerMock>;
 
 const SWAP_AMOUNT = 100;
 const MIN_AMOUNT_OUT = 90;
@@ -66,7 +66,7 @@ async function deploySimpleComptroller() {
   accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
-  const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+  const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
   comptroller = await ComptrollerFactory.deploy();
   comptrollerLens = await ComptrollerLensFactory.deploy();
   await comptroller._setAccessControl(accessControl.address);
