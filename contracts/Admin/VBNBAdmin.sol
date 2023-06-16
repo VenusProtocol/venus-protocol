@@ -7,6 +7,8 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./VBNBAdminStorage.sol";
 
+import "hardhat/console.sol";
+
 contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, VBNBAdminStorage {
     using SafeERC20Upgradeable for IWBNB;
 
@@ -16,12 +18,13 @@ contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, VBNBA
         WBNB = _WBNB;
         comptroller = _comptroller;
 
+        
+
         __Ownable2Step_init();
         __ReentrancyGuard_init();
     }
 
-    function reduceReserves(uint reduceAmount) external nonReentrant  returns (uint) {
-        require(msg.sender == owner(), "only owner can reduce reserves");
+    function reduceReserves(uint reduceAmount) external nonReentrant returns (uint) {
         return vBNB._reduceReserves(reduceAmount);
     }
 
@@ -32,16 +35,25 @@ contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, VBNBA
 
     function _wrapBNB() internal {
         uint256 bnbBalance = address(this).balance;
-        WBNB.deposit{ value: bnbBalance }();
+        
+        // WBNB.deposit{ value: bnbBalance }();
     }
 
-    fallback() external payable{
-        require(msg.sender == owner(), "only admin of vBNBAdmin can send BNB to this contract");
-        
+    receive() external payable{
+        require(msg.sender == address(vBNB), "only vBNB can send BNB to this contract");
+        console.log(address(WBNB));
         _wrapBNB();
 
-        uint256 balance = WBNB.balanceOf(address(this));
-        WBNB.safeTransfer(address(protocolShareReserve), balance);
-        protocolShareReserve.updateAssetsState(comptroller, address(WBNB), IProtocolShareReserve.IncomeType.SPREAD);
+        // uint256 balance = WBNB.balanceOf(address(this));
+        // WBNB.safeTransfer(address(protocolShareReserve), balance);
+        // protocolShareReserve.updateAssetsState(comptroller, address(WBNB), IProtocolShareReserve.IncomeType.SPREAD);
+    }
+
+    fallback(bytes calldata data) external payable returns (bytes memory) {
+        require(msg.sender == owner(), "only owner can call vBNB admin functions");
+
+        (bool ok, bytes memory res) = address(vBNB).call{value: msg.value}(data);
+        require(ok, "call failed");
+        return res;
     }
 }

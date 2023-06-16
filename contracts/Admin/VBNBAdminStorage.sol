@@ -25,7 +25,7 @@ contract VBNBAdminStorage {
     VTokenInterface public vBNB;
     IWBNB public WBNB;
     IProtocolShareReserve public protocolShareReserve;
-    address comptroller;
+    address public comptroller;
 
     /// @notice gap to prevent collision in inheritence
     uint256[49] private __gap;
