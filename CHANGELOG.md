@@ -1,3 +1,10 @@
+## [3.0.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.6...v3.0.0-dev.7) (2023-06-16)
+
+
+### Features
+
+* add total supply to mint and redeem events ([a094294](https://github.com/VenusProtocol/venus-protocol/commit/a09429400035edf609b4d3544705ac7450afc1ad))
+
 ## [3.0.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.5...v3.0.0-dev.6) (2023-06-15)
 
 ## [3.0.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.4...v3.0.0-dev.5) (2023-06-13)
