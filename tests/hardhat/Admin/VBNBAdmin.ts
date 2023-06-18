@@ -99,10 +99,17 @@ describe("VBNBAdmin", () => {
     it("reduce BNB reserves", async () => {
       const amount = ethers.utils.parseEther("1000");
       await vBNB.setTotalReserves(amount, { value: amount });
-      const balanceOfVBNB = await ethers.provider.getBalance(vBNB.address);
-      expect(balanceOfVBNB).to.be.equal(amount);
+      let balance = await ethers.provider.getBalance(vBNB.address);
+      expect(balance).to.be.equal(amount);
 
       await VBNBAdmin.reduceReserves(amount);
+
+      balance = await ethers.provider.getBalance(vBNB.address);
+      expect(balance).to.be.equal(0);
+      balance = await ethers.provider.getBalance(VBNBAdmin.address);
+      expect(balance).to.be.equal(0);
+      balance = await WBNB.balanceOf(protocolShareReserve.address);
+      expect(balance).to.be.equal(amount);
     })
   })
 })

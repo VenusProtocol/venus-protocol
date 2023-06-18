@@ -18,14 +18,17 @@ contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, VBNBA
         WBNB = _WBNB;
         comptroller = _comptroller;
 
-        
-
         __Ownable2Step_init();
         __ReentrancyGuard_init();
     }
 
-    function reduceReserves(uint reduceAmount) external nonReentrant returns (uint) {
-        return vBNB._reduceReserves(reduceAmount);
+    function reduceReserves(uint reduceAmount) external nonReentrant {
+        require(vBNB._reduceReserves(reduceAmount) == 0, "reduceReserves failed");
+        _wrapBNB();
+
+        uint256 balance = WBNB.balanceOf(address(this));
+        WBNB.safeTransfer(address(protocolShareReserve), balance);
+        protocolShareReserve.updateAssetsState(comptroller, address(WBNB), IProtocolShareReserve.IncomeType.SPREAD);
     }
 
     function acceptVBNBAdmin() external nonReentrant returns (uint) {
@@ -35,18 +38,11 @@ contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, VBNBA
 
     function _wrapBNB() internal {
         uint256 bnbBalance = address(this).balance;
-        
-        // WBNB.deposit{ value: bnbBalance }();
+        WBNB.deposit{ value: bnbBalance }();
     }
 
     receive() external payable{
-        require(msg.sender == address(vBNB), "only vBNB can send BNB to this contract");
-        console.log(address(WBNB));
-        _wrapBNB();
-
-        // uint256 balance = WBNB.balanceOf(address(this));
-        // WBNB.safeTransfer(address(protocolShareReserve), balance);
-        // protocolShareReserve.updateAssetsState(comptroller, address(WBNB), IProtocolShareReserve.IncomeType.SPREAD);
+        require(msg.sender == address(vBNB), "only vBNB can send BNB to this contract");       
     }
 
     fallback(bytes calldata data) external payable returns (bytes memory) {
