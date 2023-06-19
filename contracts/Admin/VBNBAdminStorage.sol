@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 
 interface VTokenInterface {
     function _reduceReserves(uint reduceAmount) external returns (uint);
+
     function _acceptAdmin() external returns (uint);
 }
 

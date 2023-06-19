@@ -1,8 +1,19 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { ComptrollerHarness, ComptrollerHarness__factory, ComptrollerLens, IAccessControlManager, IProtocolShareReserve, InterestRateModelHarness, MockVBNB, MockVBNB__factory, PriceOracle, VBNBAdmin, VBNBAdmin__factory, WBNB, WBNB__factory } from "../../../typechain";
-import { BigNumber, Signer } from "ethers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
+import { BigNumber, Signer } from "ethers";
+
+import {
+  ComptrollerHarness,
+  ComptrollerHarness__factory,
+  IProtocolShareReserve,
+  InterestRateModelHarness,
+  MockVBNB,
+  MockVBNB__factory,
+  VBNBAdmin,
+  WBNB,
+  WBNB__factory,
+} from "../../../typechain";
 
 export const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 
@@ -36,26 +47,21 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
     "vBNB",
     18,
     admin.address,
-  )
+  );
 
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
 
   const WBNBFactory = await smock.mock<WBNB__factory>("WBNB");
   const WBNB = await WBNBFactory.deploy();
 
-  console.log(WBNB.address)
+  console.log(WBNB.address);
 
   const VBNBAdminFactory = await ethers.getContractFactory("VBNBAdmin");
-  const VBNBAdmin:VBNBAdmin  = await VBNBAdminFactory.deploy();
+  const VBNBAdmin: VBNBAdmin = await VBNBAdminFactory.deploy();
 
-  await VBNBAdmin.initialize(
-    mockVBNB.address,
-    protocolShareReserve.address,
-    WBNB.address,
-    comptroller.address,
-  )
+  await VBNBAdmin.initialize(mockVBNB.address, protocolShareReserve.address, WBNB.address, comptroller.address);
 
-  const VBNBAdminAsVBNB = await hre.ethers.getContractAt("MockVBNB", VBNBAdmin.address)
+  const VBNBAdminAsVBNB = await hre.ethers.getContractAt("MockVBNB", VBNBAdmin.address);
 
   return {
     comptroller,
@@ -63,22 +69,21 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
     protocolShareReserve,
     WBNB,
     VBNBAdmin,
-    VBNBAdminAsVBNB
-  }
-}
+    VBNBAdminAsVBNB,
+  };
+};
 
 describe("VBNBAdmin", () => {
-  let comptroller: MockContract<ComptrollerHarness>;
   let vBNB: MockContract<MockVBNB>;
   let protocolShareReserve: FakeContract<IProtocolShareReserve>;
   let WBNB: MockContract<WBNB>;
-  let VBNBAdmin: MockContract<VBNBAdmin>;
+  let VBNBAdmin: VBNBAdmin;
   let admin: Signer;
   let VBNBAdminAsVBNB: MockContract<MockVBNB>;
 
   beforeEach(async () => {
     [admin] = await ethers.getSigners();
-    ({ comptroller, vBNB, protocolShareReserve, WBNB, VBNBAdmin, VBNBAdminAsVBNB } = await loadFixture(setupMarketFixture));
+    ({ vBNB, protocolShareReserve, WBNB, VBNBAdmin, VBNBAdminAsVBNB } = await loadFixture(setupMarketFixture));
   });
 
   it("set VBNBAdmin as vBNB admin", async () => {
@@ -88,13 +93,13 @@ describe("VBNBAdmin", () => {
 
     await VBNBAdminAsVBNB._acceptAdmin();
     expect(await vBNB.admin()).to.be.equal(VBNBAdmin.address);
-  })
+  });
 
   describe("harvest income", () => {
     beforeEach(async () => {
       await vBNB._setPendingAdmin(VBNBAdmin.address);
       await VBNBAdminAsVBNB._acceptAdmin();
-    })
+    });
 
     it("reduce BNB reserves", async () => {
       const amount = ethers.utils.parseEther("1000");
@@ -110,6 +115,6 @@ describe("VBNBAdmin", () => {
       expect(balance).to.be.equal(0);
       balance = await WBNB.balanceOf(protocolShareReserve.address);
       expect(balance).to.be.equal(amount);
-    })
-  })
-})
+    });
+  });
+});
