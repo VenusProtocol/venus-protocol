@@ -1,3 +1,13 @@
+## [3.0.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.7...v3.0.0-dev.8) (2023-06-19)
+
+
+### Bug Fixes
+
+* VPB-02 | Comparison to Boolean Constant ([1a47e51](https://github.com/VenusProtocol/venus-protocol/commit/1a47e51eae5cf2180b0034f61159cf1fa412e37f))
+* VPB-05 | Missing Upper Bound ([a158f8c](https://github.com/VenusProtocol/venus-protocol/commit/a158f8c335d0cfad71f1d2c27af6b0d92f4abe41))
+* VRT-03 | Unused Event ([df23556](https://github.com/VenusProtocol/venus-protocol/commit/df23556727d2b5f13326e6deffcec7637270f642))
+* VRT-05 | Typo ([6b7b8b7](https://github.com/VenusProtocol/venus-protocol/commit/6b7b8b71f9a93613b11ff881cf5a52ff8ef6931b))
+
 ## [3.0.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.6...v3.0.0-dev.7) (2023-06-16)
 
 

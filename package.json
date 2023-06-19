@@ -1,6 +1,6 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "3.0.0-dev.7",
+  "version": "3.0.0-dev.8",
   "description": "The Venus Money Market",
   "files": [
     "artifacts",
