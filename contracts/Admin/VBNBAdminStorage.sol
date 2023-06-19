@@ -23,9 +23,16 @@ interface IProtocolShareReserve {
 }
 
 contract VBNBAdminStorage {
+    /// @notice address of vBNB contract
     VTokenInterface public vBNB;
+
+    /// @notice address of WBNB contract
     IWBNB public WBNB;
+
+    /// @notice address of protocol share reserve contract
     IProtocolShareReserve public protocolShareReserve;
+
+    /// @notice address of comptroller contract
     address public comptroller;
 
     /// @notice gap to prevent collision in inheritence
