@@ -181,7 +181,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
         address lastAsset = path[path.length - 1];
         uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
-        _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        _swapExactBNBForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
         _supply(lastAsset, vTokenAddress, swapAmount);
     }
@@ -205,7 +205,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
         address lastAsset = path[path.length - 1];
         uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
-        _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        _swapExactBNBForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, address(this));
         _supply(lastAsset, vTokenAddress, swapAmount);
     }
@@ -253,9 +253,78 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
         address lastAsset = path[path.length - 1];
         uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
-        _swapETHForExactTokens(amountOut, path, address(this));
+        _swapBNBForExactTokens(amountOut, path, address(this));
         uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
         _supply(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap Exact tokens for BNB and supply to a Venus market
+     * @param amountIn The amount of tokens to swap.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapExactTokensForBNBAndSupply(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        uint256 balanceBefore = address(this).balance;
+        _swapExactTokensForBNB(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _mintVBNBandTransfer(swapAmount);
+    }
+
+    /**
+     * @notice Swap Exact deflationary tokens (a small amount of fee is deducted at the time of transfer of tokens) for BNB and supply to a Venus market
+     * @param amountIn The amount of tokens to swap.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapExactTokensForBNBAndSupplyAtSupportingFee(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        uint256 balanceBefore = address(this).balance;
+        _swapExactTokensForBNB(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        if (swapAmount < amountOutMin) {
+            revert SwapAmountLessThanAmountOutMin(swapAmount, amountOutMin);
+        }
+        _mintVBNBandTransfer(swapAmount);
+    }
+
+    /**
+     * @notice Swap tokens for Exact BNB and supply to a Venus market
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForExactBNBAndSupply(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        uint256 balanceBefore = address(this).balance;
+        _swapTokensForExactBNB(amountOut, amountInMax, path, address(this));
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        _mintVBNBandTransfer(swapAmount);
     }
 
     /**
@@ -267,7 +336,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive (and repay)
      */
-    function swapAndRepay(
+    function swapExactTokensForTokensAndRepay(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -291,7 +360,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
      * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive (and repay)
      */
-    function swapAndRepayAtSupportingFee(
+    function swapExactTokensForTokensAndRepayAtSupportingFee(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -324,7 +393,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
         address lastAsset = path[path.length - 1];
         uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
-        _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        _swapExactBNBForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
         _repay(lastAsset, vTokenAddress, swapAmount);
     }
@@ -347,7 +416,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
         address lastAsset = path[path.length - 1];
         uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
-        _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        _swapExactBNBForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, address(this));
         _repay(lastAsset, vTokenAddress, swapAmount);
     }
@@ -419,7 +488,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
         address lastAsset = path[path.length - 1];
         uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
-        _swapETHForExactTokens(amountOut, path, address(this));
+        _swapBNBForExactTokens(amountOut, path, address(this));
         uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
         _repay(lastAsset, vTokenAddress, swapAmount);
     }
@@ -441,7 +510,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         address lastAsset = path[path.length - 1];
         uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
         uint256 amountOut = IVToken(vTokenAddress).borrowBalanceCurrent(msg.sender);
-        _swapETHForExactTokens(amountOut, path, address(this));
+        _swapBNBForExactTokens(amountOut, path, address(this));
         uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
         _repay(lastAsset, vTokenAddress, swapAmount);
     }
@@ -460,9 +529,9 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
         uint256 balanceBefore = address(this).balance;
-        _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        _swapExactTokensForBNB(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
         uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
         IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
@@ -482,9 +551,9 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
         uint256 balanceBefore = address(this).balance;
-        _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        _swapExactTokensForBNB(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
         if (swapAmount < amountOutMin) {
@@ -507,9 +576,9 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
         uint256 balanceBefore = address(this).balance;
-        _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
+        _swapTokensForExactBNB(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
         IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
@@ -527,10 +596,10 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
         uint256 balanceBefore = address(this).balance;
         uint256 amountOut = IVToken(vBNBAddress).borrowBalanceCurrent(msg.sender);
-        _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
+        _swapTokensForExactBNB(amountOut, amountInMax, path, address(this));
         uint256 balanceAfter = address(this).balance;
         uint256 swapAmount = balanceAfter - balanceBefore;
         IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
@@ -585,7 +654,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Swaps an exact amount of ETH for as many output tokens as possible,
+     * @notice Swaps an exact amount of BNB for as many output tokens as possible,
      *         along the route determined by the path. The first element of path must be WBNB,
      *         the last is the output token, and any intermediate elements represent
      *         intermediate pairs to trade through (if, for example, a direct pair does not exist).
@@ -610,7 +679,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         ensurePath(path)
         returns (uint256[] memory amounts)
     {
-        amounts = _swapExactETHForTokens(amountOutMin, path, to, TypesOfTokens.NON_SUPPORTING_FEE);
+        amounts = _swapExactBNBForTokens(amountOutMin, path, to, TypesOfTokens.NON_SUPPORTING_FEE);
     }
 
     /**
@@ -633,7 +702,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     ) external payable virtual override nonReentrant ensure(deadline) ensurePath(path) returns (uint256 swapAmount) {
         address lastAsset = path[path.length - 1];
         uint256 balanceBefore = IERC20(lastAsset).balanceOf(to);
-        _swapExactETHForTokens(amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
+        _swapExactBNBForTokens(amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
         swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, to);
     }
 
@@ -656,7 +725,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         address to,
         uint256 deadline
     ) external override nonReentrant ensure(deadline) ensurePath(path) returns (uint256[] memory amounts) {
-        amounts = _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.NON_SUPPORTING_FEE);
+        amounts = _swapExactTokensForBNB(amountIn, amountOutMin, path, to, TypesOfTokens.NON_SUPPORTING_FEE);
     }
 
     /**
@@ -680,7 +749,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         uint256 deadline
     ) external override nonReentrant ensure(deadline) ensurePath(path) returns (uint256 swapAmount) {
         uint256 balanceBefore = to.balance;
-        _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
+        _swapExactTokensForBNB(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
         uint256 balanceAfter = to.balance;
         swapAmount = balanceAfter - balanceBefore;
         if (swapAmount < amountOutMin) {
@@ -736,7 +805,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         ensurePath(path)
         returns (uint256[] memory amounts)
     {
-        amounts = _swapETHForExactTokens(amountOut, path, to);
+        amounts = _swapBNBForExactTokens(amountOut, path, to);
     }
 
     /**
@@ -758,7 +827,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         address to,
         uint256 deadline
     ) external virtual override nonReentrant ensure(deadline) ensurePath(path) returns (uint256[] memory amounts) {
-        amounts = _swapTokensForExactETH(amountOut, amountInMax, path, to);
+        amounts = _swapTokensForExactBNB(amountOut, amountInMax, path, to);
     }
 
     /**
@@ -812,7 +881,7 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
     }
 
     /**
-     * @notice Check if the balance of to minus the balanceBefore is greater than the amountOutMin.
+     * @notice Check if the balance of to minus the balanceBefore is greater or equal to the amountOutMin.
      * @param asset The address of the underlying token
      * @param balanceBefore Balance before the swap.
      * @param amountOutMin Min amount out threshold.
@@ -862,5 +931,16 @@ contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
         if (!isListed) {
             revert VTokenNotListed(vToken);
         }
+    }
+
+    /**
+     * @notice Mint vBNB tokens to the market then transfer them to user
+     * @param swapAmount Swapped BNB amount
+     */
+    function _mintVBNBandTransfer(uint256 swapAmount) internal {
+        uint256 vBNBBalanceBefore = IVBNB(vBNBAddress).balanceOf(address(this));
+        IVBNB(vBNBAddress).mint{ value: swapAmount }();
+        uint256 vBNBBalanceAfter = IVBNB(vBNBAddress).balanceOf(address(this));
+        IERC20(vBNBAddress).safeTransfer(msg.sender, (vBNBBalanceAfter - vBNBBalanceBefore));
     }
 }
