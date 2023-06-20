@@ -1,4 +1,5 @@
 import { parseUnits } from "ethers/lib/utils";
+import { artifacts, ethers } from "hardhat";
 import { Address, DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -16,20 +17,6 @@ const ADDRESSES: AddressConfig = {
   bscmainnet: Mainnet,
 };
 
-const treasuryAddresses: { [network: string]: string } = {
-  bsctestnet: "0xFEA1c651A47FE29dB9b1bf3cC1f224d8D9CFF68C", // one of testnet admin accounts
-  bscmainnet: "0xF322942f644A996A617BD29c16bd7d231d9F35E9", // Venus Treasury
-};
-
-const acmAddresses: { [network: string]: string } = {
-  bsctestnet: "0x45f8a08F534f34A97187626E05d4b6648Eeaa9AA",
-  bscmainnet: "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555",
-};
-
-const FEE_IN = 0;
-const FEE_OUT = 10; // 10bps
-const VAI_MINT_CAP = parseUnits("5000000", 18); // 5M
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
   const { deploy } = deployments;
@@ -38,6 +25,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
   const vUSDTAddress = ADDRESSES[networkName].vUSDT;
   const VAIAddress = ADDRESSES[networkName].VAI;
+  const FEE_IN = 0;
+  const FEE_OUT = 10; // 10bps
+  const VAI_MINT_CAP = parseUnits("5000000", 18); // 5M
+
+  const treasuryAddresses: { [network: string]: string } = {
+    bsctestnet: "0xFEA1c651A47FE29dB9b1bf3cC1f224d8D9CFF68C", // one of testnet admin accounts
+    bscmainnet: "0xF322942f644A996A617BD29c16bd7d231d9F35E9", // Venus Treasury
+  };
+
+  const acmAddresses: { [network: string]: string } = {
+    bsctestnet: "0x45f8a08F534f34A97187626E05d4b6648Eeaa9AA",
+    bscmainnet: "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555",
+  };
 
   await deploy("PegStability_USDT", {
     contract: "PegStability",
@@ -46,7 +46,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
     proxy: {
-      owner: deployer,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
@@ -61,8 +60,30 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       },
     },
   });
+  const psm = await ethers.getContract("PegStability_USDT");
+
+  // Set Contract owner Deployer --> NORMAL_TIMELOCK
+  if (network.name !== "hardhat") {
+    const timelockAddress = ADDRESSES[networkName].Timelock;
+    await psm.transferOwnership(timelockAddress);
+    console.log(`PSM Contract (${psm.address}) owner changed from ${deployer} to ${timelockAddress}`);
+  }
+
+  // Transfer proxy admin  DefaultProxyAdmin --> TimelockProxyAdmin
+  const defaultProxyAdmin = await ethers.getContract("DefaultProxyAdmin");
+  const timelockProxyAdmin = await ethers.getContract("TimelockProxyAdmin");
+
+  const currentProxyAdminAddress = await defaultProxyAdmin.getProxyAdmin(psm.address);
+
+  if (currentProxyAdminAddress == defaultProxyAdmin.address) {
+    await defaultProxyAdmin.changeProxyAdmin(psm.address, timelockProxyAdmin.address);
+    console.log(
+      `Proxy admin for PSM (${psm.address}) changed from ${defaultProxyAdmin.address} to ${timelockProxyAdmin.address}`,
+    );
+  }
 };
 
 func.tags = ["PSM"];
+func.dependencies = ["TimelockProxyAdmin"];
 
 export default func;
