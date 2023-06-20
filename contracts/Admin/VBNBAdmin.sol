@@ -7,8 +7,6 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./VBNBAdminStorage.sol";
 
-import "hardhat/console.sol";
-
 contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, VBNBAdminStorage {
     using SafeERC20Upgradeable for IWBNB;
 
