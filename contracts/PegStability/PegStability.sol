@@ -45,14 +45,6 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         IN,
         OUT
     }
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable vaiAddress;
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable stableTokenAddress;
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable vTokenAddress; // vToken having as underlying the stableToken
-    address public comptroller;
-    address public venusTreasury;
     uint256 public constant BASIS_POINTS_DIVISOR = 10000; // fee is in basis points
     uint256 public constant MANTISSA_ONE = 1e18;
     uint256 public immutable ONE_DOLLAR; // Our oracle is returning amount depending on the number of decimals of the stable token. (36 - asset_decimals). E.g. 8 decimal asset = 1e28
