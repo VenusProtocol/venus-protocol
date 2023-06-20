@@ -147,7 +147,7 @@ function isFork() {
         allowUnlimitedContractSize: false,
         loggingEnabled: false,
         forking: {
-          url: `https://wild-blissful-dawn.bsc.discover.quiknode.pro/${process.env.QUICK_NODE_KEY}/`,
+          url: process.env.QUICK_NODE_URL || "",
           blockNumber: 21068448,
         },
         accounts: {
