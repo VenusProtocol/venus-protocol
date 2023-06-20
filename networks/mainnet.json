@@ -85,7 +85,8 @@
     "XVSVestingProxy": "0xb28Dec7C7Ac80f4D0B6a1B711c39e444cDE8B2cE",
     "ComptrollerLens": "0x50F618A2EAb0fB55e87682BbFd89e38acb2735cD",
     "Liquidator": "0x0870793286aaDA55D39CE7f82fb2766e8004cF43",
-    "VenusChainlinkOracle": "0x7FabdD617200C9CB4dcf3dd2C41273e60552068A"
+    "VenusChainlinkOracle": "0x7FabdD617200C9CB4dcf3dd2C41273e60552068A",
+    "SwapRouterCorePool": "0x8938E6dA30b59c1E27d5f70a94688A89F7c815a4"
   },
   "Accounts": {
     "admin": "0x0000000000000000000000000000000000000000",
