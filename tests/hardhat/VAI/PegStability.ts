@@ -1,45 +1,48 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import chai from "chai";
 import { expect } from "chai";
+import { BigNumber, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import {
+  ERC20Upgradeable,
   IAccessControlManager,
-  IERC20Upgradeable,
   IPriceOracle,
   PegStability,
   PegStability__factory,
   VTreasury,
 } from "../../../typechain";
-import {
-  IVTokenUnderlying,
-  OracleProviderInterface,
-  PriceOracle,
-} from "../../../typechain/contracts/PegStability/PegStability.sol";
+import { IVTokenUnderlying, OracleProviderInterface } from "../../../typechain/contracts/PegStability/PegStability.sol";
 import { VAI } from "../../../typechain/contracts/Tokens/VAI";
 import { convertToUnit } from "./../../../helpers/utils";
+
+chai.use(smock.matchers);
 
 const TEN_PERCENT = 1000; // in bps
 const TWENTY_PERCENT = 2000;
 const HUNDERD_PERCENT = 10000;
-const VAI_MIN_CAP = convertToUnit(1000, 18);
+const VAI_MINT_CAP = convertToUnit(1000, 18);
 const PRICE_ONE_USD = convertToUnit(1, 18);
+const ZERO_ADDRESS = constants.AddressZero;
+const MAX_UINT_8: BigNumber = BigNumber.from(255);
 
 type PegStaibilityFixture = {
   pegStability: MockContract<PegStability>;
-  stableToken: FakeContract<IERC20Upgradeable>;
+  stableToken: FakeContract<ERC20Upgradeable>;
   acm: FakeContract<IAccessControlManager>;
   vai: FakeContract<VAI>;
   venusTreasury: FakeContract<VTreasury>;
-  priceOracle: FakeContract<PriceOracle>;
+  priceOracle: FakeContract<IPriceOracle>;
   comptroller: FakeContract<OracleProviderInterface>;
 };
 
 async function pegStaibilityFixture(): Promise<PegStaibilityFixture> {
   const acm = await smock.fake<IAccessControlManager>("IAccessControlManager");
   const venusTreasury = await smock.fake<VTreasury>("VTreasury");
-  const stableToken = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
+  const stableToken = await smock.fake<ERC20Upgradeable>("ERC20Upgradeable");
+  stableToken.decimals.returns(18);
   const vToken = await smock.fake<IVTokenUnderlying>("IVTokenUnderlying");
   vToken.underlying.returns(stableToken.address);
   const priceOracle = await smock.fake<IPriceOracle>("contracts/PegStability/PegStability.sol:IPriceOracle");
@@ -54,19 +57,19 @@ async function pegStaibilityFixture(): Promise<PegStaibilityFixture> {
     comptroller: comptroller.address,
     feeIn: TEN_PERCENT,
     feeOut: TEN_PERCENT,
-    vaiMintCap: VAI_MIN_CAP,
+    vaiMintCap: VAI_MINT_CAP,
   });
   stableToken.transfer.returns(true);
   return { pegStability, stableToken, acm, vai, venusTreasury, priceOracle, comptroller };
 }
 
-describe("Peg Stability Module", () => {
+describe("Peg Stability Module:main", () => {
   let pegStability: MockContract<PegStability>;
-  let stableToken: FakeContract<IERC20Upgradeable>;
+  let stableToken: FakeContract<ERC20Upgradeable>;
   let acm: FakeContract<IAccessControlManager>;
   let vai: FakeContract<VAI>;
   let venusTreasury: FakeContract<VTreasury>;
-  let priceOracle: FakeContract<PriceOracle>;
+  let priceOracle: FakeContract<IPriceOracle>;
   let comptroller: FakeContract<OracleProviderInterface>;
   let admin: SignerWithAddress;
   let user: SignerWithAddress;
@@ -78,6 +81,110 @@ describe("Peg Stability Module", () => {
     [admin, user] = await ethers.getSigners();
     adminAddress = await admin.getAddress();
     priceOracle.getUnderlyingPrice.returns(PRICE_ONE_USD);
+  });
+  describe("initialization", () => {
+    beforeEach(async () => {
+      await pegStability.setVariables({
+        _accessControlManager: ZERO_ADDRESS,
+        venusTreasury: ZERO_ADDRESS,
+        comptroller: ZERO_ADDRESS,
+        feeIn: 0,
+        feeOut: 0,
+        vaiMintCap: 0,
+        _initialized: 0, // Initilising is locked after constructor execution of the implementation
+      });
+    });
+    it("should revert if contract already deployed", async () => {
+      await pegStability.setVariables({
+        _initialized: MAX_UINT_8, // lock initialisation
+      });
+      await expect(
+        pegStability.initialize(
+          acm.address,
+          venusTreasury.address,
+          comptroller.address,
+          TEN_PERCENT,
+          TEN_PERCENT,
+          VAI_MINT_CAP,
+        ),
+      ).to.be.rejectedWith("Initializable: contract is already initialized");
+    });
+    describe("reverts if init address = 0x0:", () => {
+      it("acm", async () => {
+        await expect(
+          pegStability.initialize(
+            ZERO_ADDRESS,
+            venusTreasury.address,
+            comptroller.address,
+            TEN_PERCENT,
+            TEN_PERCENT,
+            VAI_MINT_CAP,
+          ),
+        ).to.be.rejectedWith("Can't be zero address");
+      });
+      it("treasury", async () => {
+        await expect(
+          pegStability.initialize(
+            acm.address,
+            ZERO_ADDRESS,
+            comptroller.address,
+            TEN_PERCENT,
+            TEN_PERCENT,
+            VAI_MINT_CAP,
+          ),
+        ).to.be.rejectedWith("Can't be zero address");
+      });
+      it("comptroller", async () => {
+        await expect(
+          pegStability.initialize(
+            acm.address,
+            venusTreasury.address,
+            ZERO_ADDRESS,
+            TEN_PERCENT,
+            TEN_PERCENT,
+            VAI_MINT_CAP,
+          ),
+        ).to.be.rejectedWith("Can't be zero address");
+      });
+    });
+    describe("reverts is fee init value is invalid", () => {
+      it("feeIn", async () => {
+        await expect(
+          pegStability.initialize(
+            acm.address,
+            venusTreasury.address,
+            comptroller.address,
+            HUNDERD_PERCENT, //invalid
+            TEN_PERCENT,
+            VAI_MINT_CAP,
+          ),
+        ).to.be.rejectedWith("Invalid fee in");
+      });
+      it("feeOut", async () => {
+        await expect(
+          pegStability.initialize(
+            acm.address,
+            venusTreasury.address,
+            comptroller.address,
+            TEN_PERCENT,
+            HUNDERD_PERCENT, //invalid
+            VAI_MINT_CAP,
+          ),
+        ).to.be.rejectedWith("Invalid fee out");
+      });
+    });
+    it("should initialize sucessfully", async () => {
+      await expect(
+        pegStability.initialize(
+          acm.address,
+          venusTreasury.address,
+          comptroller.address,
+          TEN_PERCENT,
+          TEN_PERCENT,
+          VAI_MINT_CAP,
+        ),
+      );
+    });
   });
   describe("Admin functions", () => {
     describe("pause()", () => {
