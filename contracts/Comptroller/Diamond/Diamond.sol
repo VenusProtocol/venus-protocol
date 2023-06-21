@@ -2,10 +2,10 @@ pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
-import "../ComptrollerStorage.sol";
+import "./DiamondLens.sol";
 import "../Unitroller.sol";
 
-contract Diamond is ComptrollerV12Storage {
+contract Diamond is DiamondLens {
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
 
     /**

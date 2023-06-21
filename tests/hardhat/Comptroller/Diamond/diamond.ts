@@ -61,6 +61,29 @@ describe("Comptroller", async () => {
     expect(await diamondHarness.getFacetAddress("0xc488847b")).to.equal(facet.address);
   });
 
+  it("Get all facet function selectors by facet address", async () => {
+    const functionSelectors = await diamondHarness.getFacetFunctionSelectors(facetCutParams[0].facetAddress);
+    expect(functionSelectors).to.deep.equal(facetCutParams[0].functionSelectors);
+  });
+
+  it("Get facet position by facet address", async () => {
+    const facetPosition = await diamondHarness.getFacetPosition(facetCutParams[0].facetAddress);
+    expect(facetPosition).to.equal(0);
+  });
+
+  it("Get all facet addresses", async () => {
+    const facetsAddress = await diamondHarness.getAllFacetAddresses();
+    expect(facetsAddress[0]).to.equal(facetCutParams[0].facetAddress);
+  });
+
+  it("Get facet address and position by function selector", async () => {
+    const facetsAddressAndPosition = await diamondHarness.getFacetAddressAndPosition(
+      facetCutParams[0].functionSelectors[1],
+    );
+    expect(facetsAddressAndPosition.facetAddress).to.equal(facetCutParams[0].facetAddress);
+    expect(facetsAddressAndPosition.functionSelectorPosition).to.equal(1);
+  });
+
   it("Remove function selector from facet mapping", async () => {
     facetCutParams = [
       {

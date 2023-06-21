@@ -14,7 +14,22 @@ contract DiamondHarnessInterface {
         bytes4[] functionSelectors;
     }
 
+    struct FacetAddressAndPosition {
+        address facetAddress;
+        uint96 functionSelectorPosition;
+    }
+
     function getFacetAddress(bytes4 sig) public view returns (address);
 
     function diamondCut(FacetCut[] calldata _diamondCut) external;
+
+    function getFacetFunctionSelectors(address _facet) external view returns (bytes4[] memory _facetFunctionSelectors);
+
+    function getFacetPosition(address _facet) external view returns (uint256);
+
+    function getAllFacetAddresses() external view returns (address[] memory facetAddresses_);
+
+    function getFacetAddressAndPosition(
+        bytes4 _functionSelector
+    ) external view returns (FacetAddressAndPosition memory);
 }
