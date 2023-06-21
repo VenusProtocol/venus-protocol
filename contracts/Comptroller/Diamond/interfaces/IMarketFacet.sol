@@ -28,4 +28,6 @@ interface IMarketFacet {
     function getAssetsIn(address account) external view returns (VToken[] memory);
 
     function getAllMarkets() external view returns (VToken[] memory);
+
+    function updateDelegate(address delegate, bool allowBorrows) external;
 }

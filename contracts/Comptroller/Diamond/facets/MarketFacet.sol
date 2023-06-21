@@ -16,6 +16,9 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     /// @notice Emitted when an account exits a market
     event MarketExited(VToken vToken, address account);
 
+    /// @notice Emitted when the borrowing delegate rights are updated for an account
+    event DelegateUpdated(address borrower, address delegate, bool allowDelegatedBorrows);
+
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     function isComptroller() public pure returns (bool) {
         return true;
@@ -188,6 +191,23 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         emit MarketListed(vToken);
 
         return uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Grants or revokes the borrowing delegate rights to / from an account.
+     *  If allowed, the delegate will be able to borrow funds on behalf of the sender.
+     *  Upon a delegated borrow, the delegate will receive the funds, and the borrower
+     *  will see the debt on their account.
+     * @param delegate The address to update the rights for
+     * @param allowBorrows Whether to grant (true) or revoke (false) the rights
+     */
+    function updateDelegate(address delegate, bool allowBorrows) external {
+        _updateDelegate(msg.sender, delegate, allowBorrows);
+    }
+
+    function _updateDelegate(address borrower, address delegate, bool allowBorrows) internal {
+        approvedDelegates[borrower][delegate] = allowBorrows;
+        emit DelegateUpdated(borrower, delegate, allowBorrows);
     }
 
     function _addMarketInternal(VToken vToken) internal {
