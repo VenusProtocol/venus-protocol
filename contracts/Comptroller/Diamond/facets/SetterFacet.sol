@@ -265,18 +265,18 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
     /**
      * @notice Pause/unpause certain actions
-     * @param markets Markets to pause/unpause the actions on
-     * @param actions List of action ids to pause/unpause
-     * @param paused The new paused state (true=paused, false=unpaused)
+     * @param markets_ Markets to pause/unpause the actions on
+     * @param actions_ List of action ids to pause/unpause
+     * @param paused_ The new paused state (true=paused, false=unpaused)
      */
-    function _setActionsPaused(address[] calldata markets, Action[] calldata actions, bool paused) external {
+    function _setActionsPaused(address[] calldata markets_, Action[] calldata actions_, bool paused_) external {
         ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
 
-        uint256 numMarkets = markets.length;
-        uint256 numActions = actions.length;
+        uint256 numMarkets = markets_.length;
+        uint256 numActions = actions_.length;
         for (uint marketIdx; marketIdx < numMarkets; ++marketIdx) {
             for (uint actionIdx; actionIdx < numActions; ++actionIdx) {
-                setActionPausedInternal(markets[marketIdx], actions[actionIdx], paused);
+                setActionPausedInternal(markets_[marketIdx], actions_[actionIdx], paused_);
             }
         }
     }
