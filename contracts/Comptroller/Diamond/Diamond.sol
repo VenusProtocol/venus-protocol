@@ -136,8 +136,7 @@ contract Diamond is ComptrollerV12Storage {
      */
     function removeFunction(address _facetAddress, bytes4 _selector) internal {
         require(_facetAddress != address(0), "LibDiamondCut: Can't remove function that doesn't exist");
-        // an immutable function is a function defined directly in a diamond
-        require(_facetAddress != address(this), "LibDiamondCut: Can't remove immutable function");
+
         // replace selector with last selector, then delete last selector
         uint256 selectorPosition = selectorToFacetAndPosition[_selector].functionSelectorPosition;
         uint256 lastSelectorPosition = facetFunctionSelectors[_facetAddress].functionSelectors.length - 1;
