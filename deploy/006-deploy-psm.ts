@@ -46,6 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
     proxy: {
+      owner: ADDRESSES[networkName].Timelock,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
@@ -60,30 +61,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       },
     },
   });
+
   const psm = await ethers.getContract("PegStability_USDT");
 
-  // Set Contract owner Deployer --> NORMAL_TIMELOCK
   if (network.name !== "hardhat") {
     const timelockAddress = ADDRESSES[networkName].Timelock;
     await psm.transferOwnership(timelockAddress);
     console.log(`PSM Contract (${psm.address}) owner changed from ${deployer} to ${timelockAddress}`);
   }
-
-  // Transfer proxy admin  DefaultProxyAdmin --> TimelockProxyAdmin
-  const defaultProxyAdmin = await ethers.getContract("DefaultProxyAdmin");
-  const timelockProxyAdmin = await ethers.getContract("TimelockProxyAdmin");
-
-  const currentProxyAdminAddress = await defaultProxyAdmin.getProxyAdmin(psm.address);
-
-  if (currentProxyAdminAddress == defaultProxyAdmin.address) {
-    await defaultProxyAdmin.changeProxyAdmin(psm.address, timelockProxyAdmin.address);
-    console.log(
-      `Proxy admin for PSM (${psm.address}) changed from ${defaultProxyAdmin.address} to ${timelockProxyAdmin.address}`,
-    );
-  }
 };
 
 func.tags = ["PSM"];
-func.dependencies = ["TimelockProxyAdmin"];
 
 export default func;
