@@ -218,6 +218,10 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
 
         emit StableForVAISwapped(actualTransferAmt, vaiToMint, fee);
     }
+    
+    function getVersion() public pure returns (uint256) {
+        return 1;
+    }
 
     /*** Admin Functions ***/
 
