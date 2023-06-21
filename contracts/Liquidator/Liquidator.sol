@@ -66,14 +66,8 @@ interface IProtocolShareReserve {
     function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
 }
 
-interface IWBNB {
+interface IWBNB is IERC20PermitUpgradeable {
     function deposit() external payable;
-
-    function transfer(address to, uint value) external returns (bool);
-
-    function withdraw(uint) external;
-
-    function balanceOf(address owner) external view returns (uint256 balance);
 }
 
 contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
@@ -431,9 +425,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     function _reduceBnbReserves() private {
         uint256 bnbBalance = address(this).balance;
         IWBNB(wBNB).deposit{ value: bnbBalance }();
-        if (!IWBNB(wBNB).transfer(protocolShareReserve, bnbBalance)) {
-            revert UnderlyingTransferFailed(address(vBnb), wBNB);
-        }
+        IERC20Upgradeable(wBNB).safeTransfer(protocolShareReserve, bnbBalance);
         IProtocolShareReserve(protocolShareReserve).updateAssetsState(
             address(comptroller),
             wBNB,
