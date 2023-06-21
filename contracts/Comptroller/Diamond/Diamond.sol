@@ -46,7 +46,7 @@ contract Diamond is ComptrollerV12Storage {
 
     /**
      * @notice Get all facet addresses
-     * @return Array of facet addresses
+     * @return facetAddresses_ Array of facet addresses
      */
     function getAllFacetAddresses() external view returns (address[] memory facetAddresses_) {
         facetAddresses_ = facetAddresses;
