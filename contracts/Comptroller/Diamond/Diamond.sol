@@ -2,10 +2,10 @@ pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
-import "./DiamondLens.sol";
+import "../ComptrollerStorage.sol";
 import "../Unitroller.sol";
 
-contract Diamond is DiamondLens {
+contract Diamond is ComptrollerV12Storage {
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
 
     /**
@@ -24,6 +24,43 @@ contract Diamond is DiamondLens {
     function diamondCut(IDiamondCut.FacetCut[] memory _diamondCut) public {
         require(msg.sender == admin, "only unitroller admin can");
         libDiamondCut(_diamondCut);
+    }
+
+    /**
+     * @notice Get all function selectors mapped to the facet address
+     * @param _facet Address of the facet
+     * @return _facetFunctionSelectors Array of function selectors
+     */
+    function getFacetFunctionSelectors(address _facet) external view returns (bytes4[] memory _facetFunctionSelectors) {
+        _facetFunctionSelectors = facetFunctionSelectors[_facet].functionSelectors;
+    }
+
+    /**
+     * @notice Get facet position in the facetFunctionSelectors through facet address
+     * @param _facet Address of the facet
+     * @return Position of the facet
+     */
+    function getFacetPosition(address _facet) external view returns (uint256) {
+        return facetFunctionSelectors[_facet].facetAddressPosition;
+    }
+
+    /**
+     * @notice Get all facet addresses
+     * @return Array of facet addresses
+     */
+    function getAllFacetAddresses() external view returns (address[] memory facetAddresses_) {
+        facetAddresses_ = facetAddresses;
+    }
+
+    /**
+     * @notice Get facet address and position through function selector
+     * @param _functionSelector function selector
+     * @return FacetAddressAndPosition facet address and position
+     */
+    function getFacetAddressAndPosition(
+        bytes4 _functionSelector
+    ) external view returns (ComptrollerV12Storage.FacetAddressAndPosition memory) {
+        return selectorToFacetAndPosition[_functionSelector];
     }
 
     /**
