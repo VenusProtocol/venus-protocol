@@ -10,9 +10,6 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
-    /// @notice Emitted when an account enters a market
-    event MarketEntered(VToken vToken, address account);
-
     /// @notice Emitted when an account exits a market
     event MarketExited(VToken vToken, address account);
 
@@ -98,10 +95,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
         uint[] memory results = new uint[](len);
         for (uint i; i < len; ++i) {
-            results[i] = uint(addToMarketInternal(VToken(vTokens[i]), msg.sender));
-            if (results[i] == 0) {
-                emit MarketEntered(VToken(vTokens[i]), msg.sender);
-            }
+            addToMarketInternal(VToken(vTokens[i]), msg.sender);
         }
 
         return results;

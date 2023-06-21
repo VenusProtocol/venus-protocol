@@ -153,7 +153,7 @@ describe("Comptroller: assetListTest", () => {
       const tx2 = await enterAndCheckMarkets([OMG], [OMG]);
       expect(tx1).to.emit(unitroller, "MarketEntered").withArgs(OMG.address, customer);
       const tx2Value = await tx2.wait();
-      expect(tx2Value.events?.length).to.be.equals(1);
+      expect(tx2Value.events?.length).to.be.equals(0);
     });
 
     it("adds to the asset list only once", async () => {

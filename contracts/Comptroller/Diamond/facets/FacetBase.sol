@@ -6,6 +6,9 @@ import "../../../Comptroller/ComptrollerStorage.sol";
 import "../../../Governance/IAccessControlManager.sol";
 
 contract FacetBase is ComptrollerV12Storage {
+    /// @notice Emitted when an account enters a market
+    event MarketEntered(VToken vToken, address account);
+
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
     // closeFactorMantissa must be strictly greater than this value
@@ -111,7 +114,9 @@ contract FacetBase is ComptrollerV12Storage {
         //  and not whenever we want to check if an account is in a particular market
         marketToJoin.accountMembership[borrower] = true;
         accountAssets[borrower].push(vToken);
-        // emit MarketEntered(vToken, borrower);
+
+        emit MarketEntered(vToken, borrower);
+
         return ComptrollerErrorReporter.Error.NO_ERROR;
     }
 
