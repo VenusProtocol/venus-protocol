@@ -158,7 +158,16 @@ contract RewardFacet is XVSRewardsHelper {
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
             (, , uint shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
-            venusAccrued[holder] = grantXVSInternal(holder, venusAccrued[holder], shortfall, collateral);
+
+            uint256 value = venusAccrued[holder];
+            venusAccrued[holder] = 0;
+
+            uint256 returnAmount = grantXVSInternal(holder, value, shortfall, collateral);
+
+            // returnAmount can only be positive if balance of xvsAddress is less than grant amount(venusAccrued[holder])
+            if (returnAmount != 0) {
+                venusAccrued[holder] = returnAmount;
+            }
         }
     }
 }
