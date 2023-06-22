@@ -69,8 +69,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await psm.transferOwnership(timelockAddress);
     console.log(`PSM Contract (${psm.address}) owner changed from ${deployer} to ${timelockAddress}`);
   }
+  return hre.network.live; // when live network, record the script as executed to prevent rexecution
 };
 
+func.id = "psm_initial_deploy"; // id required to prevent re-execution
 func.tags = ["PSM"];
 
 export default func;
