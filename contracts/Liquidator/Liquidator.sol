@@ -359,10 +359,10 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     function _reduceReservesInternal() internal {
-        uint256 pendingRedeemLength_ = pendingRedeem.length;
-        uint256 range = pendingRedeemLength_ >= pendingRedeemChunkLength
+        uint256 _pendingRedeemLength = pendingRedeem.length;
+        uint256 range = _pendingRedeemLength >= pendingRedeemChunkLength
             ? pendingRedeemChunkLength
-            : pendingRedeemLength_;
+            : _pendingRedeemLength;
         if (range == 0) return;
         for (int256 index = int256(range) - 1; index >= 0; index--) {
             address vToken = pendingRedeem[uint256(index)];
@@ -508,23 +508,22 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     /// @dev Checks liquidation action in comptroller and vaiDebt with minLiquidatableVAI threshold
-    function _checkForceVAILiquidate(address vToken, address borrower) private view {
-        uint256 vaiDebt_ = vaiController.getVAIRepayAmount(borrower);
-        bool isVAILiquidationPaused_ = comptroller.actionPaused(address(vaiController), IComptroller.Action.LIQUIDATE);
+    function _checkForceVAILiquidate(address vToken_, address borrower_) private view {
+        uint256 _vaiDebt = vaiController.getVAIRepayAmount(borrower_);
+        bool _isVAILiquidationPaused = comptroller.actionPaused(address(vaiController), IComptroller.Action.LIQUIDATE);
         if (
-            isVAILiquidationPaused_ ||
+            _isVAILiquidationPaused ||
             !forceVAILiquidate ||
-            vaiDebt_ < minLiquidatableVAI ||
-            vToken == address(vaiController)
+            _vaiDebt < minLiquidatableVAI ||
+            vToken_ == address(vaiController)
         ) return;
-        revert VAIDebtTooHigh(vaiDebt_, minLiquidatableVAI);
+        revert VAIDebtTooHigh(_vaiDebt, minLiquidatableVAI);
     }
 
     function _setProtocolShareReserve(address protocolShareReserve_) internal {
         ensureNonzeroAddress(protocolShareReserve_);
-        address oldProtocolShareReserve = protocolShareReserve;
+        emit NewProtocolShareReserve(protocolShareReserve, protocolShareReserve_);
         protocolShareReserve = protocolShareReserve_;
-        emit NewProtocolShareReserve(oldProtocolShareReserve, protocolShareReserve_);
     }
 
     /**
@@ -538,13 +537,12 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     /**
      * @notice Sets the threshold for minimum amount of vaiLiquidate
-     * @param _minLiquidatableVAI New address for the access control
+     * @param minLiquidatableVAI_ New address for the access control
      */
-    function setMinLiquidatableVAI(uint256 _minLiquidatableVAI) external {
+    function setMinLiquidatableVAI(uint256 minLiquidatableVAI_) external {
         _checkAccessAllowed("setMinLiquidatableVAI(uint256)");
-        uint256 oldMinLiquidatableVAI_ = minLiquidatableVAI;
-        minLiquidatableVAI = _minLiquidatableVAI;
-        emit NewMinLiquidatableVAI(oldMinLiquidatableVAI_, _minLiquidatableVAI);
+        emit NewMinLiquidatableVAI(minLiquidatableVAI, minLiquidatableVAI_);
+        minLiquidatableVAI = minLiquidatableVAI_;
     }
 
     /**
@@ -553,9 +551,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
      */
     function setPendingRedeemChunkLength(uint256 newLength_) external {
         _checkAccessAllowed("setPendingRedeemChunkLength(uint256)");
-        uint256 oldPendingRedeemChunkLength_ = pendingRedeemChunkLength;
+        emit NewPendingRedeemChunkLength(pendingRedeemChunkLength, newLength_);
         pendingRedeemChunkLength = newLength_;
-        emit NewPendingRedeemChunkLength(oldPendingRedeemChunkLength_, pendingRedeemChunkLength);
     }
 
     /**
