@@ -1,3 +1,24 @@
+## [3.0.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.8...v3.0.0-dev.9) (2023-06-23)
+
+
+### Features
+
+* add new addresses for WBETH and (new) TUSD markets ([c4ee1bf](https://github.com/VenusProtocol/venus-protocol/commit/c4ee1bfdc7d7c912c1db93685fb5f76c1bbea5fa))
+* added deployment script for swap router ([2f0c278](https://github.com/VenusProtocol/venus-protocol/commit/2f0c2783a7847879d7e54fb180c4bde0b29c1e03))
+
+
+### Bug Fixes
+
+* l-01 missing docstring ([394d1a7](https://github.com/VenusProtocol/venus-protocol/commit/394d1a7837fd0b6b3c950430d5fc89f3620336f3))
+* l-02 locked bnb in contract ([7a8044a](https://github.com/VenusProtocol/venus-protocol/commit/7a8044ae4b5beb5c5f36eef011bc72a541030a43))
+* n-01 misleading docstrings ([20e3118](https://github.com/VenusProtocol/venus-protocol/commit/20e31185312ec43432d272478e306c6776f43eae))
+* n-02 naming can be improved ([027835e](https://github.com/VenusProtocol/venus-protocol/commit/027835ed915357901652c21051c10a175bc1e1ac))
+* n-03 some convenience functions are missing ([cf6b8cb](https://github.com/VenusProtocol/venus-protocol/commit/cf6b8cb0735cf0ded3435161c6ea2e2d6c4b48e4))
+* n-03 some convenience functions are missing ([fb66414](https://github.com/VenusProtocol/venus-protocol/commit/fb66414dd6d0a3af2436dc0220b901989ee4652a))
+* n-04 confusing use of eth and bnb in ([dbf855c](https://github.com/VenusProtocol/venus-protocol/commit/dbf855c37db2e24f25f2fb19505d3f30799c8e5d))
+* n-04 confusing use of eth and bnb in ([bbe298f](https://github.com/VenusProtocol/venus-protocol/commit/bbe298f71e48a53af7bf028c3de5d6761c257cdc))
+* pr comments ([9751c85](https://github.com/VenusProtocol/venus-protocol/commit/9751c85d7054485d5f082aa4ba48c7ce878d9a34))
+
 ## [3.0.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.7...v3.0.0-dev.8) (2023-06-19)
 
 
