@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "./Interfaces.sol";
 
-
 /**
  * @title Liquidator
  * @author Venus
