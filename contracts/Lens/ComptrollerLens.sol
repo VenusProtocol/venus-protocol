@@ -9,6 +9,13 @@ import "../Utils/ErrorReporter.sol";
 import "../Comptroller/Comptroller.sol";
 import "../Tokens/VAI/VAIControllerInterface.sol";
 
+
+/**
+ * @title ComptrollerLens Contract
+ * @author Venus
+ * @notice The ComptrollerLens contract has functions to get the number of tokens that
+ * can be seized through liquidation, hypothetical account liquidity and shortfall of an account.
+ */
 contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, ExponentialNoError {
     /**
      * @dev Local vars for avoiding stack-depth limits in calculating account liquidity.
