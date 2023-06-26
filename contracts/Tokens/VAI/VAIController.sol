@@ -12,8 +12,9 @@ import "./VAIUnitroller.sol";
 import "./VAI.sol";
 
 /**
- * @title Venus's VAI Comptroller Contract
+ * @title VAI Comptroller
  * @author Venus
+ * @notice This is the implementation contract for the VAIUnitroller proxy
  */
 contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Exponential {
     /// @notice Initial index used in interest computations
