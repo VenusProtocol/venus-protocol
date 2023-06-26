@@ -7,7 +7,7 @@ import { BigNumber, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import {
-  ERC20Upgradeable,
+  EIP20InterfaceExtended,
   IAccessControlManager,
   IPriceOracle,
   PegStability,
@@ -32,7 +32,7 @@ const MAX_UINT_8: BigNumber = BigNumber.from(255);
 type ResetAllFakes = () => void;
 type PegStabilityFixture = {
   pegStability: MockContract<PegStability>;
-  stableToken: FakeContract<ERC20Upgradeable>;
+  stableToken: FakeContract<EIP20InterfaceExtended>;
   acm: FakeContract<IAccessControlManager>;
   vai: FakeContract<VAI>;
   venusTreasury: FakeContract<VTreasury>;
@@ -45,7 +45,7 @@ type DeployFixture = (stableTokenDecimals: number) => Promise<PegStabilityFixtur
 const deployFixture: DeployFixture = async (stableTokenDecimals: number) => {
   const acm = await smock.fake<IAccessControlManager>("IAccessControlManager");
   const venusTreasury = await smock.fake<VTreasury>("VTreasury");
-  const stableToken = await smock.fake<ERC20Upgradeable>("ERC20Upgradeable");
+  const stableToken = await smock.fake<EIP20InterfaceExtended>("EIP20InterfaceExtended");
   stableToken.decimals.returns(stableTokenDecimals);
   const vToken = await smock.fake<IVTokenUnderlying>("IVTokenUnderlying");
   vToken.underlying.returns(stableToken.address);
@@ -78,7 +78,7 @@ async function pegStabilityFixture8Decimals(): Promise<PegStabilityFixture> {
 }
 
 async function swapStableForVaiAndVerify(
-  stableToken: FakeContract<ERC20Upgradeable>,
+  stableToken: FakeContract<EIP20InterfaceExtended>,
   adminAddress: string,
   pegStability: MockContract<PegStability>,
   STABLE_TOKEN_AMOUNT: string,
@@ -108,7 +108,7 @@ async function swapVaiForStableAndVerify(
   pegStability: MockContract<PegStability>,
   receiverAddress: string,
   STABLE_TOKEN_AMOUNT: string,
-  stableToken: FakeContract<ERC20Upgradeable>,
+  stableToken: FakeContract<EIP20InterfaceExtended>,
   VAI_TO_BURN: string,
 ) {
   vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
@@ -126,7 +126,7 @@ async function swapVaiForStableAndVerify(
 
 describe("Peg Stability Module:main", () => {
   let pegStability: MockContract<PegStability>;
-  let stableToken: FakeContract<ERC20Upgradeable>;
+  let stableToken: FakeContract<EIP20InterfaceExtended>;
   let acm: FakeContract<IAccessControlManager>;
   let vai: FakeContract<VAI>;
   let venusTreasury: FakeContract<VTreasury>;
