@@ -9,7 +9,6 @@ import "../Utils/ErrorReporter.sol";
 import "../Comptroller/Comptroller.sol";
 import "../Tokens/VAI/VAIControllerInterface.sol";
 
-
 /**
  * @title ComptrollerLens Contract
  * @author Venus
