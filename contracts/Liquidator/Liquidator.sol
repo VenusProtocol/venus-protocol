@@ -399,9 +399,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @dev Distribute seized collateral between liquidator and protocol share reserve
     function _distributeLiquidationIncentive(
         IVToken vTokenCollateral,
-        uint256 siezedAmount
+        uint256 seizedAmount
     ) internal returns (uint256 ours, uint256 theirs) {
-        (ours, theirs) = _splitLiquidationIncentive(siezedAmount);
+        (ours, theirs) = _splitLiquidationIncentive(seizedAmount);
         if (!vTokenCollateral.transfer(msg.sender, theirs)) {
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }
