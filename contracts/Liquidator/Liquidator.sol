@@ -169,9 +169,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @notice Thrown if trying to liquidate any token when VAI debt is too high
     error VAIDebtTooHigh(uint256 vaiDebt, uint256 minLiquidatableVAI);
 
-    /// @notice Thrown when transfer of underlying assets to protocol share reserve failed
-    error UnderlyingTransferFailed(address vToken, address underlying);
-
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
