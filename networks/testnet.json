@@ -55,7 +55,13 @@
     "ComptrollerLens": "0xc698edFbac7F4A3A2A06757860938e73260ed7a4",
     "Liquidator": "0x40FB27A83e52E7B213CC345f5b6ACA17bf7D5139",
     "WBNB": "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
-    "pancakeFactory": "0x182859893230dC89b114d6e2D547BFFE30474a21"
+    "pancakeFactory": "0x182859893230dC89b114d6e2D547BFFE30474a21",
+    "SwapRouterCorePool": "0x83edf1deE1B730b7e8e13C00ba76027D63a51ac0",
+    "SwapRouterLiquidStakedBNB": "0x7DcBd10E3479907e0B8C79d01D0572C8cc00227B",
+    "SwapRouterDefi": "0x76B88ff4579B35D2722B7383b9B9ce831dc89B72",
+    "SwapRouterStableCoins": "0x6cE131c2321e25d7b4C63283b75DB160Ce3Fb710",
+    "SwapRouterTronFamily": "0x51Fd03aD1132e8cb5a5a793528c9F4ec918667d4",
+    "SwapRouterGamefi": "0xFdeBF4530F9c7d352ffFE88cd0e96C8Bb7391BD9"
   },
   "Accounts": {
     "admin": "0xfea1c651a47fe29db9b1bf3cc1f224d8d9cff68c",
