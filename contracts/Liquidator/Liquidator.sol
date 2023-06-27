@@ -409,8 +409,18 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }
 
-        if (!_redeemUnderlying(address(vTokenCollateral), ours)) {
-            pendingRedeem.push(address(vTokenCollateral));
+        if (ours > 0 && !_redeemUnderlying(address(vTokenCollateral), ours)) {
+            bool found;
+            // Check if asset is already present in pendingRedeem array
+            for (uint256 index; index < pendingRedeem.length; index++) {
+                if (pendingRedeem[index] == address(vTokenCollateral)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                pendingRedeem.push(address(vTokenCollateral));
+            }
         } else {
             if (address(vTokenCollateral) == address(vBnb)) {
                 _reduceBnbReserves();
