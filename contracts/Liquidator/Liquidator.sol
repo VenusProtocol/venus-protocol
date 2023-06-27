@@ -360,7 +360,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 range = _pendingRedeemLength >= pendingRedeemChunkLength
             ? pendingRedeemChunkLength
             : _pendingRedeemLength;
-        for (int256 index = int256(range); index > 0; index--) {
+        for (int256 index = int256(range); index > 0; ) {
             address vToken = pendingRedeem[uint256(index - 1)];
             uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
             if (_redeemUnderlying(vToken, vTokenBalance_)) {
@@ -371,6 +371,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
                 }
                 pendingRedeem[uint256(index - 1)] = pendingRedeem[pendingRedeem.length - 1];
                 pendingRedeem.pop();
+            }
+            unchecked {
+                index--;
             }
         }
     }
