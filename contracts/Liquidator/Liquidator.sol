@@ -411,9 +411,12 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         if (ours > 0 && !_redeemUnderlying(address(vTokenCollateral), ours)) {
             // Check if asset is already present in pendingRedeem array
             uint256 index;
-            for (index; index < pendingRedeem.length; index++) {
+            for (index; index < pendingRedeem.length; ) {
                 if (pendingRedeem[index] == address(vTokenCollateral)) {
                     break;
+                }
+                unchecked {
+                    index++;
                 }
             }
             if (index == pendingRedeem.length) {
