@@ -354,7 +354,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /**
      * @notice Reduce the reserves of the pending accumulated reserves
      */
-    function reduceReserves() external {
+    function reduceReserves() external nonReentrant {
         _reduceReservesInternal();
     }
 
