@@ -169,9 +169,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @notice Thrown if trying to liquidate any token when VAI debt is too high
     error VAIDebtTooHigh(uint256 vaiDebt, uint256 minLiquidatableVAI);
 
-    /// @notice Thrown when transfer of underlying assets to protocol share reserve failed
-    error UnderlyingTransferFailed(address vToken, address underlying);
-
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
@@ -354,7 +351,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /**
      * @notice Reduce the reserves of the pending accumulated reserves
      */
-    function reduceReserves() external {
+    function reduceReserves() external nonReentrant {
         _reduceReservesInternal();
     }
 
@@ -363,9 +360,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 range = _pendingRedeemLength >= pendingRedeemChunkLength
             ? pendingRedeemChunkLength
             : _pendingRedeemLength;
-        if (range == 0) return;
-        for (int256 index = int256(range) - 1; index >= 0; index--) {
-            address vToken = pendingRedeem[uint256(index)];
+        for (uint256 index = range; index > 0; ) {
+            address vToken = pendingRedeem[index - 1];
             uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
             if (_redeemUnderlying(vToken, vTokenBalance_)) {
                 if (vToken == address(vBnb)) {
@@ -373,8 +369,11 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
                 } else {
                     _reduceVTokenReserves(vToken);
                 }
-                pendingRedeem[uint256(index)] = pendingRedeem[pendingRedeem.length - 1];
+                pendingRedeem[index - 1] = pendingRedeem[pendingRedeem.length - 1];
                 pendingRedeem.pop();
+            }
+            unchecked {
+                index--;
             }
         }
     }
@@ -402,15 +401,24 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @dev Distribute seized collateral between liquidator and protocol share reserve
     function _distributeLiquidationIncentive(
         IVToken vTokenCollateral,
-        uint256 siezedAmount
+        uint256 seizedAmount
     ) internal returns (uint256 ours, uint256 theirs) {
-        (ours, theirs) = _splitLiquidationIncentive(siezedAmount);
+        (ours, theirs) = _splitLiquidationIncentive(seizedAmount);
         if (!vTokenCollateral.transfer(msg.sender, theirs)) {
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }
 
-        if (!_redeemUnderlying(address(vTokenCollateral), ours)) {
-            pendingRedeem.push(address(vTokenCollateral));
+        if (ours > 0 && !_redeemUnderlying(address(vTokenCollateral), ours)) {
+            // Check if asset is already present in pendingRedeem array
+            uint256 index;
+            for (index; index < pendingRedeem.length; index++) {
+                if (pendingRedeem[index] == address(vTokenCollateral)) {
+                    break;
+                }
+            }
+            if (index == pendingRedeem.length) {
+                pendingRedeem.push(address(vTokenCollateral));
+            }
         } else {
             if (address(vTokenCollateral) == address(vBnb)) {
                 _reduceBnbReserves();
@@ -524,15 +532,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         ensureNonzeroAddress(protocolShareReserve_);
         emit NewProtocolShareReserve(protocolShareReserve, protocolShareReserve_);
         protocolShareReserve = protocolShareReserve_;
-    }
-
-    /**
-     * @notice Sets the address of the access control of this contract
-     * @dev Admin function to set the access control address
-     * @param newAccessControlAddress New address for the access control
-     */
-    function setAccessControl(address newAccessControlAddress) external onlyOwner {
-        _setAccessControlManager(newAccessControlAddress);
     }
 
     /**
