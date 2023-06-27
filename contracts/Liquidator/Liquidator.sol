@@ -536,15 +536,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     /**
-     * @notice Sets the address of the access control of this contract
-     * @dev Admin function to set the access control address
-     * @param newAccessControlAddress New address for the access control
-     */
-    function setAccessControl(address newAccessControlAddress) external onlyOwner {
-        _setAccessControlManager(newAccessControlAddress);
-    }
-
-    /**
      * @notice Sets the threshold for minimum amount of vaiLiquidate
      * @param minLiquidatableVAI_ New address for the access control
      */
