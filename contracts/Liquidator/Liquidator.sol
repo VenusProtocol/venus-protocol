@@ -360,8 +360,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 range = _pendingRedeemLength >= pendingRedeemChunkLength
             ? pendingRedeemChunkLength
             : _pendingRedeemLength;
-        for (int256 index = int256(range); index > 0; ) {
-            address vToken = pendingRedeem[uint256(index - 1)];
+        for (uint256 index = range; index > 0; ) {
+            address vToken = pendingRedeem[index - 1];
             uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
             if (_redeemUnderlying(vToken, vTokenBalance_)) {
                 if (vToken == address(vBnb)) {
@@ -369,7 +369,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
                 } else {
                     _reduceVTokenReserves(vToken);
                 }
-                pendingRedeem[uint256(index - 1)] = pendingRedeem[pendingRedeem.length - 1];
+                pendingRedeem[index - 1] = pendingRedeem[pendingRedeem.length - 1];
                 pendingRedeem.pop();
             }
             unchecked {
@@ -409,15 +409,14 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         }
 
         if (ours > 0 && !_redeemUnderlying(address(vTokenCollateral), ours)) {
-            bool found;
             // Check if asset is already present in pendingRedeem array
-            for (uint256 index; index < pendingRedeem.length; index++) {
+            uint256 index;
+            for (index; index < pendingRedeem.length; index++) {
                 if (pendingRedeem[index] == address(vTokenCollateral)) {
-                    found = true;
                     break;
                 }
             }
-            if (!found) {
+            if (index == pendingRedeem.length) {
                 pendingRedeem.push(address(vTokenCollateral));
             }
         } else {
