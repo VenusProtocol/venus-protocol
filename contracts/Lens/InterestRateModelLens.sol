@@ -22,7 +22,7 @@ contract InterestRateModelLens {
      * @param referenceAmountInWei Borrow amount to use in simulation
      * @param interestRateModel Address for interest rate model to simulate
      * @param reserveFactorMantissa Reserve Factor to use in simulation
-     * @return SimulationResponse struct with array of borrowSimulations and an array of supplySimulations
+     * @return SimulationResponse struct with array of borrow simulations and an array of supply simulations
      */
     function getSimulationResponse(
         uint referenceAmountInWei,
