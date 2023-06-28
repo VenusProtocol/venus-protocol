@@ -62,6 +62,12 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   vTokenCollateral.underlying.returns(collateralUnderlying.address);
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
   comptroller.vaiController.returns(vaiController.address);
+  comptroller.markets.returns({
+    isListed: true,
+    collateralFactorMantissa: convertToUnit(5, 17),
+    accountMembership: true,
+    isVenus: true,
+  });
   vaiController.getVAIAddress.returns(vai.address);
 
   const accessControlManager = await smock.fake<IAccessControlManager>("IAccessControlManager");
