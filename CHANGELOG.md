@@ -1,3 +1,5 @@
+## [3.0.0-dev.11](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.10...v3.0.0-dev.11) (2023-06-28)
+
 ## [3.0.0-dev.10](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.9...v3.0.0-dev.10) (2023-06-27)
 
 ## [3.0.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.8...v3.0.0-dev.9) (2023-06-23)
