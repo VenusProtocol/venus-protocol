@@ -25,6 +25,8 @@ interface IComptroller {
     function vaiController() external view returns (IVAIController);
 
     function actionPaused(address market, Action action) external view returns (bool);
+
+    function markets(address) external view returns (bool);
 }
 
 interface IVToken is IERC20Upgradeable {
@@ -169,6 +171,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @notice Thrown if trying to liquidate any token when VAI debt is too high
     error VAIDebtTooHigh(uint256 vaiDebt, uint256 minLiquidatableVAI);
 
+    /// @notice Thrown when vToken is not listed
+    error MarketNotListed(address vToken);
+
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
@@ -298,6 +303,11 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     ) external payable nonReentrant {
         ensureNonzeroAddress(borrower);
         checkRestrictions(borrower, msg.sender);
+
+        if (!IComptroller(comptroller).markets(address(vTokenCollateral))) {
+            revert MarketNotListed(address(vTokenCollateral));
+        }
+
         _checkForceVAILiquidate(vToken, borrower);
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
         if (vToken == address(vBnb)) {
@@ -380,6 +390,10 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     /// @dev Transfers BEP20 tokens to self, then approves vToken to take these tokens.
     function _liquidateBep20(IVBep20 vToken, address borrower, uint256 repayAmount, IVToken vTokenCollateral) internal {
+        if (!IComptroller(comptroller).markets(address(vToken))) {
+            revert MarketNotListed(address(vToken));
+        }
+
         IERC20Upgradeable borrowedToken = IERC20Upgradeable(vToken.underlying());
         uint256 actualRepayAmount = _transferBep20(borrowedToken, msg.sender, address(this), repayAmount);
         borrowedToken.safeApprove(address(vToken), 0);
@@ -411,9 +425,12 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         if (ours > 0 && !_redeemUnderlying(address(vTokenCollateral), ours)) {
             // Check if asset is already present in pendingRedeem array
             uint256 index;
-            for (index; index < pendingRedeem.length; index++) {
+            for (index; index < pendingRedeem.length; ) {
                 if (pendingRedeem[index] == address(vTokenCollateral)) {
                     break;
+                }
+                unchecked {
+                    index++;
                 }
             }
             if (index == pendingRedeem.length) {

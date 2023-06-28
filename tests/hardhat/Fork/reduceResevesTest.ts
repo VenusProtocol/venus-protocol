@@ -246,5 +246,24 @@ if (FORK_MAINNET) {
           .liquidateBorrow(borrowedToken3, borrower3, repayAmount3, collateralToken3, { value: repayAmount3 }),
       ).to.be.emit(liquidator, "LiquidateBorrowedTokens");
     });
+
+    it("Should revert if market is not listed", async () => {
+      const blockNumber = 27032460;
+      const repayAmount = "47000000000000000286";
+      const borrower = "0xA461db6d21568E97E040C4Ab57Ff38708a4F0F67";
+      const liquidatorAccount = "0x85ac420773116e916e9671cb4ac1059635606cf2";
+      const borrowedToken = "0x2fF3d0F6990a40261c66E1ff2017aCBc282EB6d0";
+      const collateralToken = "0x85aC420773116e916e9671Cb4Ac1059635606cF2";
+
+      await setForkBlock(blockNumber);
+      await configure();
+
+      const liquidatorSigner = await initMainnetUser(liquidatorAccount, ethers.utils.parseEther("2"));
+      await expect(
+        liquidator.connect(liquidatorSigner).liquidateBorrow(borrowedToken, borrower, repayAmount, collateralToken),
+      )
+        .to.be.revertedWithCustomError(liquidator, "MarketNotListed")
+        .withArgs(collateralToken);
+    });
   });
 }
