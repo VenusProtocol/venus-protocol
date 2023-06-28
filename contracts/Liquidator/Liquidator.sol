@@ -6,71 +6,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "./LiquidatorStorage.sol";
-
-interface IComptroller {
-    enum Action {
-        MINT,
-        REDEEM,
-        BORROW,
-        REPAY,
-        SEIZE,
-        LIQUIDATE,
-        TRANSFER,
-        ENTER_MARKET,
-        EXIT_MARKET
-    }
-
-    function liquidationIncentiveMantissa() external view returns (uint256);
-
-    function vaiController() external view returns (IVAIController);
-
-    function actionPaused(address market, Action action) external view returns (bool);
-
-    function markets(address) external view returns (bool);
-}
-
-interface IVToken is IERC20Upgradeable {
-    function redeem(uint256 redeemTokens) external returns (uint256);
-}
-
-interface IVBep20 is IVToken {
-    function underlying() external view returns (address);
-
-    function liquidateBorrow(
-        address borrower,
-        uint256 repayAmount,
-        IVToken vTokenCollateral
-    ) external returns (uint256);
-}
-
-interface IVBNB is IVToken {
-    function liquidateBorrow(address borrower, IVToken vTokenCollateral) external payable;
-}
-
-interface IVAIController {
-    function liquidateVAI(
-        address borrower,
-        uint256 repayAmount,
-        IVToken vTokenCollateral
-    ) external returns (uint256, uint256);
-
-    function getVAIAddress() external view returns (address);
-
-    function getVAIRepayAmount(address borrower) external view returns (uint256);
-}
-
-interface IProtocolShareReserve {
-    enum IncomeType {
-        SPREAD,
-        LIQUIDATION
-    }
-
-    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
-}
-
-interface IWBNB is IERC20PermitUpgradeable {
-    function deposit() external payable;
-}
+import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController, IProtocolShareReserve, IWBNB } from "./Interfaces.sol";
 
 contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
     /// @notice Address of vBNB contract.

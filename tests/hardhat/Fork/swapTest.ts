@@ -127,13 +127,19 @@ const swapRouterConfigure = async (): Promise<void> => {
   BUSD = FaucetToken__factory.connect("0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", admin);
   USDT = FaucetToken__factory.connect("0x55d398326f99059fF775485246999027B3197955", admin);
   wBNB = IWBNB__factory.connect("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", admin);
+  vBNB = await configureVBNB("vToken BNB", "vBNB");
 
   const pancakeSwapFactory = IPancakeSwapV2Factory__factory.connect(
     "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
     admin,
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
-  swapRouter = await swapRouterFactory.deploy(wBNB.address, pancakeSwapFactory.address, comptroller.address);
+  swapRouter = await swapRouterFactory.deploy(
+    wBNB.address,
+    pancakeSwapFactory.address,
+    comptroller.address,
+    vBNB.address,
+  );
   await swapRouter.deployed();
 
   await USDT.connect(usdtUser).approve(swapRouter.address, parseUnits("1"));
@@ -145,6 +151,7 @@ const swapRouterDeflationaryConfigure = async (): Promise<void> => {
   BabyDogeUser = await initMainnetUser("0x0639556f03714a74a5feeaf5736a4a64ff70d206");
   SFMUser = await initMainnetUser("0xdaa3b5ae0521264e55f45157eb6e158e1f3e5012");
   wBNBUser = await initMainnetUser("0xf977814e90da44bfa03b6295a0616a897441acec");
+  vBNB = await configureVBNB("vToken BNB", "vBNB");
 
   wBNB = IWBNB__factory.connect("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", admin);
   BabyDoge = VBep20Immutable__factory.connect("0xc748673057861a797275CD8A068AbB95A902e8de", admin);
@@ -155,7 +162,12 @@ const swapRouterDeflationaryConfigure = async (): Promise<void> => {
     admin,
   );
   const swapRouterFactory = await ethers.getContractFactory("SwapRouter");
-  swapRouter = await swapRouterFactory.deploy(wBNB.address, pancakeSwapFactory.address, comptroller.address);
+  swapRouter = await swapRouterFactory.deploy(
+    wBNB.address,
+    pancakeSwapFactory.address,
+    comptroller.address,
+    vBNB.address,
+  );
   await swapRouter.deployed();
   await BabyDoge.connect(BabyDogeUser).approve(swapRouter.address, parseUnits("100"));
   await SFM.connect(SFMUser).approve(swapRouter.address, parseUnits("100"));
@@ -184,7 +196,6 @@ if (FORK_MAINNET) {
             configureOracle(oracle);
             vBUSD = await configureVtoken(BUSD, "vToken BUSD", "vBUSD");
             vUSDT = await configureVtoken(USDT, "vToken USDT", "vUSDT");
-            vBNB = await configureVBNB("vToken BNB", "vBNB");
 
             await comptroller._supportMarket(vBUSD.address);
             await comptroller._supportMarket(vUSDT.address);
@@ -317,6 +328,42 @@ if (FORK_MAINNET) {
             expect(currBalance).greaterThan(prevBalance);
           });
 
+          it("swap exact tokenA -> BNB --> supply", async () => {
+            const prevBalance = await vBNB.balanceOf(busdUser.address);
+            const deadline = await getValidDeadline();
+            await swapRouter
+              .connect(busdUser)
+              .swapTokensForExactBNBAndSupply(SWAP_BNB_AMOUNT, 277, [BUSD.address, wBNB.address], deadline);
+            const currBalance = await vBNB.balanceOf(busdUser.address);
+            expect(currBalance).greaterThan(prevBalance);
+          });
+
+          it("should swap Exact token -> BNB --> supply", async () => {
+            await USDT.connect(usdtUser).transfer(vUSDT.address, 1000);
+            const deadline = await getValidDeadline();
+            await swapRouter
+              .connect(busdUser)
+              .swapExactTokensForTokensAndSupply(
+                vBUSD.address,
+                SWAP_AMOUNT,
+                MIN_AMOUNT_OUT,
+                [USDT.address, BUSD.address],
+                deadline,
+              );
+            await vBNB.connect(busdUser).borrow(parseUnits("5", 0));
+            const borrowBalancePrev = await vBNB.balanceOf(busdUser.address);
+            await swapRouter
+              .connect(busdUser)
+              .swapExactTokensForBNBAndSupply(
+                parseUnits("1500", 0),
+                parseUnits("4", 0),
+                [USDT.address, wBNB.address],
+                deadline,
+              );
+            const borrowBalanceAfter = await vBNB.balanceOf(busdUser.address);
+            expect(borrowBalanceAfter).greaterThan(borrowBalancePrev);
+          });
+
           it("swap BNB -> token --> supply token", async () => {
             const prevBalance = await vBUSD.balanceOf(usdtUser.address);
             const deadline = await getValidDeadline();
@@ -366,7 +413,13 @@ if (FORK_MAINNET) {
             expect(borrowBalance).equal(BORROW_AMOUNT);
             await swapRouter
               .connect(busdUser)
-              .swapAndRepay(vUSDT.address, BORROW_AMOUNT + 1, BORROW_AMOUNT, [BUSD.address, USDT.address], deadline);
+              .swapExactTokensForTokensAndRepay(
+                vUSDT.address,
+                BORROW_AMOUNT + 1,
+                BORROW_AMOUNT,
+                [BUSD.address, USDT.address],
+                deadline,
+              );
             [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
             expect(borrowBalance).equal(0);
           });
@@ -542,7 +595,6 @@ if (FORK_MAINNET) {
             await swapRouter
               .connect(busdUser)
               .swapExactTokensForBNBAndRepay(
-                vBNB.address,
                 parseUnits("1500", 0),
                 parseUnits("4", 0),
                 [USDT.address, wBNB.address],
@@ -569,7 +621,6 @@ if (FORK_MAINNET) {
               swapRouter
                 .connect(busdUser)
                 .swapTokensForExactBNBAndRepay(
-                  vBNB.address,
                   parseUnits("1500", 0),
                   parseUnits("6", 0),
                   [USDT.address, wBNB.address],
@@ -593,13 +644,7 @@ if (FORK_MAINNET) {
             const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(busdUser.address);
             await swapRouter
               .connect(busdUser)
-              .swapTokensForExactBNBAndRepay(
-                vBNB.address,
-                SWAP_BNB_AMOUNT,
-                277,
-                [BUSD.address, wBNB.address],
-                deadline,
-              );
+              .swapTokensForExactBNBAndRepay(SWAP_BNB_AMOUNT, 277, [BUSD.address, wBNB.address], deadline);
             const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(busdUser.address);
             expect(borrowBalanceAfter).lessThan(borrowBalancePrev);
           });
@@ -642,7 +687,7 @@ if (FORK_MAINNET) {
             await vBNB.connect(busdUser).borrow(parseUnits("1", 0));
             await swapRouter
               .connect(busdUser)
-              .swapTokensForFullBNBDebtAndRepay(vBNB.address, 277, [BUSD.address, wBNB.address], deadline);
+              .swapTokensForFullBNBDebtAndRepay(277, [BUSD.address, wBNB.address], deadline);
             const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(busdUser.address);
             expect(borrowBalanceAfter).equal(0);
           });
@@ -654,7 +699,6 @@ if (FORK_MAINNET) {
             configureOracle(oracle);
             vBabyDoge = await configureVtoken(BabyDoge, "vToken Baby Doge", "vBabyDoge");
             vSFM = await configureVtoken(SFM, "vToken SFM", "vSFM");
-            vBNB = await configureVBNB("vToken BNB", "vBNB");
 
             await comptroller._supportMarket(vBNB.address);
             await comptroller._supportMarket(vBabyDoge.address);
@@ -773,6 +817,26 @@ if (FORK_MAINNET) {
             expect(currBalance).greaterThan(prevBalance);
           });
 
+          it("swap ExactTokens -> BNB and supply at supportingFee", async () => {
+            const deadline = await getValidDeadline();
+            await swapRouter
+              .connect(BabyDogeUser)
+              .swapExactTokensForTokensAndSupplyAtSupportingFee(
+                vSFM.address,
+                10000000000000,
+                1000,
+                [BabyDoge.address, SFM.address],
+                deadline,
+              );
+            await expect(vBNB.connect(BabyDogeUser).borrow(2)).to.emit(vBNB, "Borrow");
+            const borrowBalancePrev = await vBNB.balanceOf(BabyDogeUser.address);
+            await swapRouter
+              .connect(BabyDogeUser)
+              .swapExactTokensForBNBAndSupplyAtSupportingFee(500, 2, [BabyDoge.address, wBNB.address], deadline);
+            const borrowBalanceAfter = await vBNB.balanceOf(BabyDogeUser.address);
+            expect(borrowBalanceAfter).greaterThan(borrowBalancePrev);
+          });
+
           it("swap tokenA -> tokenB --> repay tokenB at supporting fee", async () => {
             await SFM.connect(SFMUser).transfer(vSFM.address, parseUnits("1"));
             const borrowAmount = parseUnits("0.00000001");
@@ -793,7 +857,7 @@ if (FORK_MAINNET) {
 
             await swapRouter
               .connect(SFMUser)
-              .swapAndRepayAtSupportingFee(
+              .swapExactTokensForTokensAndRepayAtSupportingFee(
                 vBabyDoge.address,
                 100,
                 MIN_AMOUNT_OUT,
@@ -856,13 +920,7 @@ if (FORK_MAINNET) {
             const [, , borrowBalancePrev] = await vBNB.getAccountSnapshot(BabyDogeUser.address);
             await swapRouter
               .connect(BabyDogeUser)
-              .swapExactTokensForBNBAndRepayAtSupportingFee(
-                vBNB.address,
-                500,
-                2,
-                [BabyDoge.address, wBNB.address],
-                deadline,
-              );
+              .swapExactTokensForBNBAndRepayAtSupportingFee(500, 2, [BabyDoge.address, wBNB.address], deadline);
             const [, , borrowBalanceAfter] = await vBNB.getAccountSnapshot(BabyDoge.address);
             expect(borrowBalanceAfter).lessThan(borrowBalancePrev);
           });
