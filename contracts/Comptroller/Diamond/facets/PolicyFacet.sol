@@ -269,8 +269,15 @@ contract PolicyFacet is XVSRewardsHelper {
         checkProtocolPauseState();
         checkActionPauseState(vTokenCollateral, Action.SEIZE);
 
+        Market storage market = markets[vTokenCollateral];
+
         // We've added VAIController as a borrowed token list check for seize
-        ensureListed(markets[vTokenCollateral]);
+        ensureListed(market);
+
+        if (!market.accountMembership[borrower]) {
+            return uint(Error.MARKET_NOT_COLLATERAL);
+        }
+
         if (address(vTokenBorrowed) != address(vaiController)) {
             ensureListed(markets[vTokenBorrowed]);
         }

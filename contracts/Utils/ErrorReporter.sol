@@ -20,7 +20,8 @@ contract ComptrollerErrorReporter {
         SNAPSHOT_ERROR,
         TOO_MANY_ASSETS,
         TOO_MUCH_REPAY,
-        INSUFFICIENT_BALANCE_FOR_VAI
+        INSUFFICIENT_BALANCE_FOR_VAI,
+        MARKET_NOT_COLLATERAL
     }
 
     enum FailureInfo {
