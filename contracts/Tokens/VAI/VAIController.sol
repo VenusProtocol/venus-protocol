@@ -90,6 +90,12 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         require(unitroller._acceptImplementation() == 0, "change not authorized");
     }
 
+    /**
+     * @notice The mintVAI function mints and transfers VAI from the protocol to the user, and adds a borrow balance.
+     * The amount minted must be less than the user's Account Liquidity and the mint vai limit.
+     * @param mintVAIAmount The amount of the VAI to be minted.
+     * @return 0 on success, otherwise an error code
+     */
     // solhint-disable-next-line code-complexity
     function mintVAI(uint mintVAIAmount) external nonReentrant returns (uint) {
         if (address(comptroller) != address(0)) {
@@ -184,7 +190,10 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     /**
-     * @notice Repay VAI
+     * @notice The repay function transfers VAI into the protocol and burn, reducing the user's borrow balance.
+     * Before repaying an asset, users must first approve the VAI to access their VAI balance.
+     * @param repayVAIAmount The amount of the VAI to be repaid.
+     * @return 0 on success, otherwise an error code
      */
     function repayVAI(uint repayVAIAmount) external nonReentrant returns (uint, uint) {
         if (address(comptroller) != address(0)) {
@@ -240,8 +249,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     /**
-     * @notice The sender liquidates the vai minters collateral.
-     *  The collateral seized is transferred to the liquidator.
+     * @notice The sender liquidates the vai minters collateral. The collateral seized is transferred to the liquidator.
      * @param borrower The borrower of vai to be liquidated
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @param repayAmount The amount of the underlying borrowed asset to repay
