@@ -18,7 +18,8 @@ contract InterestRateModelLens {
     }
 
     /**
-     * @notice Simulate interest rate curve fo a specific interest rate model given a reference borrow amount and reserve factor
+     * @notice Simulate interest rate curve fo a specific interest rate model given a reference borrow amount and reserve factor.
+               It is intended to be used with the Core Pool
      * @param referenceAmountInWei Borrow amount to use in simulation
      * @param interestRateModel Address for interest rate model to simulate
      * @param reserveFactorMantissa Reserve Factor to use in simulation
@@ -43,6 +44,41 @@ contract InterestRateModelLens {
             borrowSimulation[percent_Factor - 1] = borrowRate;
 
             uint256 supplyRate = ir.getSupplyRate(cash, borrow, reserves, reserveFactorMantissa);
+            supplySimulation[percent_Factor - 1] = supplyRate;
+        }
+
+        return SimulationResponse({ borrowSimulation: borrowSimulation, supplySimulation: supplySimulation });
+    }
+
+    /**
+     * @notice Simulate interest rate curve fo a specific interest rate model given a reference borrow amount and reserve factor
+               This signature is compatible with Isolated Pools
+     * @param referenceAmountInWei Borrow amount to use in simulation
+     * @param interestRateModel Address for interest rate model to simulate
+     * @param reserveFactorMantissa Reserve Factor to use in simulation
+     * @param badDebt Bad debt to use in simulating borrow and supply
+     * @return SimulationResponse struct with array of borrow simulations and an array of supply simulations
+     */
+    function getSimulationResponse(
+        uint referenceAmountInWei,
+        address interestRateModel,
+        uint reserveFactorMantissa
+        uint badDebt
+    ) external view returns (SimulationResponse memory) {
+        InterestRateModel ir = InterestRateModel(interestRateModel);
+
+        uint256[] memory borrowSimulation = new uint256[](100);
+        uint256[] memory supplySimulation = new uint256[](100);
+
+        uint borrow = referenceAmountInWei;
+        uint reserves = 0;
+
+        for (uint percent_Factor = 1; percent_Factor <= 100; ++percent_Factor) {
+            uint cash = (percent_Factor.mul(referenceAmountInWei)).div(1e2);
+            uint256 borrowRate = ir.getBorrowRate(cash, borrow, reserves, badDebt);
+            borrowSimulation[percent_Factor - 1] = borrowRate;
+
+            uint256 supplyRate = ir.getSupplyRate(cash, borrow, reserves, reserveFactorMantissa, badDebt);
             supplySimulation[percent_Factor - 1] = supplyRate;
         }
 
