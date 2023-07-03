@@ -7,7 +7,7 @@ import "./VBep20.sol";
  * @notice VTokens which wrap an EIP-20 underlying and are delegated to
  * @author Venus
  */
-contract VBep20Delegate is VBep20, VDelegateInterfaceV2 {
+contract VBep20Delegate is VBep20, VDelegateInterface {
     /**
      * @notice Construct an empty delegate
      */

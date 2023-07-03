@@ -1341,7 +1341,7 @@ contract UpdatedComptroller is
 
         xvs.approve(getXVSVTokenAddress(), amount);
         require(
-            VBep20InterfaceV2(getXVSVTokenAddress()).mintBehalf(user, amount) == uint(Error.NO_ERROR),
+            VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint(Error.NO_ERROR),
             "mint behalf error during collateralize xvs"
         );
 

@@ -6,15 +6,15 @@ import "../../Utils/Exponential.sol";
 import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
-import "./VTokenInterfacesV2.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
+import "./VTokenInterfaces.sol";
+import "../../Governance/IAccessControlManager.sol";
 
 /**
  * @title Venus's vToken Contract
  * @notice Abstract base for vTokens
  * @author Venus
  */
-contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Exponential, TokenErrorReporter {
+contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     struct MintLocalVars {
         MathError mathErr;
         uint exchangeRateMantissa;
@@ -209,7 +209,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      */
     // @custom:event Emits NewReserveFactor event
     function _setReserveFactor(uint _newReserveFactorMantissa) external nonReentrant returns (uint) {
-        _checkAccessAllowed("_setReserveFactor(uint256)");
+        ensureAllowed("_setReserveFactor(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reserve factor change failed.
@@ -222,15 +222,21 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
     /**
      * @notice Sets the address of the access control of this contract
      * @dev Admin function to set the access control address
-     * @param _newAccessControlAddress New address for the access control
-     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     * @param newAccessControlAddress New address for the access control
+     * @return uint 0=success, otherwise will revert
      */
-    // @custom:event Emits NewAccessControlManager event
-    function setAccessControl(address _newAccessControlAddress) external returns (uint) {
+    function setAccessControl(address newAccessControlAddress) external returns (uint) {
+        // Check caller is admin
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_ACCESS_CONTROL_OWNER_CHECK);
         }
-        _setAccessControlManager(_newAccessControlAddress);
+
+        require(newAccessControlAddress != address(0), "newAccessControlAddress is zero address");
+
+        address oldAccessControlAddress = accessControl;
+        accessControl = newAccessControlAddress;
+        emit NewAccessControl(oldAccessControlAddress, accessControl);
+
         return uint(Error.NO_ERROR);
     }
 
@@ -241,7 +247,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      */
     // @custom:event Emits ReservesReduced event
     function _reduceReserves(uint _reduceAmount) external nonReentrant returns (uint) {
-        _checkAccessAllowed("_reduceReserves(uint256)");
+        ensureAllowed("_reduceReserves(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
@@ -556,7 +562,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setInterestRateModel(InterestRateModel _newInterestRateModel) public returns (uint) {
-        _checkAccessAllowed("_setInterestRateModel(address)");
+        ensureAllowed("_setInterestRateModel(address)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted change of interest rate model failed
@@ -1238,7 +1244,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
     function liquidateBorrowInternal(
         address borrower,
         uint repayAmount,
-        VTokenInterfaceV2 vTokenCollateral
+        VTokenInterface vTokenCollateral
     ) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -1270,7 +1276,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
         address liquidator,
         address borrower,
         uint repayAmount,
-        VTokenInterfaceV2 vTokenCollateral
+        VTokenInterface vTokenCollateral
     ) internal returns (uint, uint) {
         /* Fail if liquidate not allowed */
         uint allowed = comptroller.liquidateBorrowAllowed(
@@ -1678,6 +1684,10 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
 
             return (MathError.NO_ERROR, exchangeRate.mantissa);
         }
+    }
+
+    function ensureAllowed(string memory functionSig) private view {
+        require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /*** Safe Token ***/

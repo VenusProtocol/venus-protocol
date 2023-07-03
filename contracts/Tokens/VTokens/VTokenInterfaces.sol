@@ -3,6 +3,15 @@ pragma solidity ^0.5.16;
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 
+interface IProtocolShareReserve {
+    enum IncomeType {
+        SPREAD,
+        LIQUIDATION
+    }
+
+    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
+}
+
 contract VTokenStorage {
     /**
      * @notice Container for borrow balance information
@@ -114,6 +123,44 @@ contract VTokenStorage {
      * @notice Mapping of account addresses to outstanding borrow balances
      */
     mapping(address => BorrowSnapshot) internal accountBorrows;
+
+    /**
+     * @notice Underlying asset for this VToken
+     */
+    address public underlying;
+
+    /**
+     * @notice Implementation address for this contract
+     */
+    address public implementation;
+
+    /**
+     * @notice delta block after which reserves will be reduced
+     */
+    uint public reduceReservesBlockDelta;
+
+    /**
+     * @notice last block number at which reserves were reduced
+     */
+    uint public reduceReservesBlockNumber;
+
+    /**
+     * @notice address of protocol share reserve contract
+     */
+    address payable public protocolShareReserve;
+
+    /**
+     * @notice address of accessControlManager
+     */
+
+    address public accessControl;
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[50] private __gap;
 }
 
 contract VTokenInterface is VTokenStorage {
@@ -218,9 +265,22 @@ contract VTokenInterface is VTokenStorage {
     event Approval(address indexed owner, address indexed spender, uint amount);
 
     /**
+     * @notice Event emitted when block delta for reduce reserves get updated
+     */
+    event NewReduceReservesBlockDelta(uint256 oldReduceReservesBlockDelta, uint256 newReduceReservesBlockDelta);
+
+    /**
+     * @notice Event emitted when address of ProtocolShareReserve contract get updated
+     */
+    event NewProtocolShareReserve(address indexed oldProtocolShareReserve, address indexed newProtocolShareReserve);
+
+    /**
      * @notice Failure event
      */
     event Failure(uint error, uint info, uint detail);
+
+    /// @notice Emitted when access control address is changed by admin
+    event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
 
     /*** User Interface ***/
 
@@ -277,14 +337,7 @@ contract VTokenInterface is VTokenStorage {
     function exchangeRateStored() public view returns (uint);
 }
 
-contract VBep20Storage {
-    /**
-     * @notice Underlying asset for this VToken
-     */
-    address public underlying;
-}
-
-contract VBep20Interface is VBep20Storage {
+contract VBep20Interface {
     /*** User Interface ***/
 
     function mint(uint mintAmount) external returns (uint);
@@ -312,14 +365,7 @@ contract VBep20Interface is VBep20Storage {
     function _addReserves(uint addAmount) external returns (uint);
 }
 
-contract VDelegationStorage {
-    /**
-     * @notice Implementation address for this contract
-     */
-    address public implementation;
-}
-
-contract VDelegatorInterface is VDelegationStorage {
+contract VDelegatorInterface {
     /**
      * @notice Emitted when implementation is changed
      */
@@ -338,7 +384,7 @@ contract VDelegatorInterface is VDelegationStorage {
     ) public;
 }
 
-contract VDelegateInterface is VDelegationStorage {
+contract VDelegateInterface {
     /**
      * @notice Called by the delegator on a delegate to initialize it for duty
      * @dev Should revert if any issues arise which make it unfit for delegation

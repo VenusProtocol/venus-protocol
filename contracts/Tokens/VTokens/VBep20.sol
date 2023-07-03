@@ -7,7 +7,7 @@ import "./VToken.sol";
  * @notice vTokens which wrap an EIP-20 underlying
  * @author Venus
  */
-contract VBep20 is VToken, VBep20InterfaceV2 {
+contract VBep20 is VToken, VBep20Interface {
     /*** User Interface ***/
 
     /**
@@ -124,7 +124,7 @@ contract VBep20 is VToken, VBep20InterfaceV2 {
     function liquidateBorrow(
         address borrower,
         uint repayAmount,
-        VTokenInterfaceV2 vTokenCollateral
+        VTokenInterface vTokenCollateral
     ) external returns (uint) {
         (uint err, ) = liquidateBorrowInternal(borrower, repayAmount, vTokenCollateral);
         return err;
