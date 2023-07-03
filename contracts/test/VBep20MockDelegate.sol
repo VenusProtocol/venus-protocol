@@ -150,7 +150,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      *  The collateral seized is transferred to the liquidator.
      * @param borrower The borrower of this vToken to be liquidated
      * @param repayAmount The amount of the underlying borrowed asset to repay
-     * @param vTokenCollateral The market in VBep20Interface which to seize collateral from the borrower
+     * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function liquidateBorrow(
