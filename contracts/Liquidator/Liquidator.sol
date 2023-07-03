@@ -239,8 +239,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     ) external payable nonReentrant {
         ensureNonzeroAddress(borrower);
         checkRestrictions(borrower, msg.sender);
-
-        if (!IComptroller(comptroller).markets(address(vTokenCollateral))) {
+        (bool isListed, , ) = IComptroller(comptroller).markets(address(vTokenCollateral));
+        if (!isListed) {
             revert MarketNotListed(address(vTokenCollateral));
         }
 
@@ -326,7 +326,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     /// @dev Transfers BEP20 tokens to self, then approves vToken to take these tokens.
     function _liquidateBep20(IVBep20 vToken, address borrower, uint256 repayAmount, IVToken vTokenCollateral) internal {
-        if (!IComptroller(comptroller).markets(address(vToken))) {
+        (bool isListed, , ) = IComptroller(comptroller).markets(address(vToken));
+        if (!isListed) {
             revert MarketNotListed(address(vToken));
         }
 
