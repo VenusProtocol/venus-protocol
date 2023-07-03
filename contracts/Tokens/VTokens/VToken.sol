@@ -53,9 +53,14 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
 
     /*** Reentrancy Guard ***/
 
-    function nonReentrant() private {
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     */
+    modifier nonReentrant() {
         require(_notEntered, "re-entered");
         _notEntered = false;
+        _;
+        _notEntered = true; // get a gas-refund post-Istanbul
     }
 
     /**
@@ -65,11 +70,8 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @return Whether or not the transfer succeeded
      */
     // @custom:event Emits Transfer event
-    function transfer(address dst, uint256 amount) external returns (bool) {
-        nonReentrant();
-        uint mErr = transferTokens(msg.sender, msg.sender, dst, amount);
-        _notEntered = true;
-        return mErr == uint(Error.NO_ERROR);
+    function transfer(address dst, uint256 amount) external nonReentrant returns (bool) {
+        return transferTokens(msg.sender, msg.sender, dst, amount) == uint(Error.NO_ERROR);
     }
 
     /**
@@ -80,11 +82,8 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @return Whether or not the transfer succeeded
      */
     // @custom:event Emits Transfer event
-    function transferFrom(address src, address dst, uint256 amount) external returns (bool) {
-        nonReentrant();
-        uint mErr = transferTokens(msg.sender, src, dst, amount);
-        _notEntered = true;
-        return mErr == uint(Error.NO_ERROR);
+    function transferFrom(address src, address dst, uint256 amount) external nonReentrant returns (bool) {
+        return transferTokens(msg.sender, src, dst, amount) == uint(Error.NO_ERROR);
     }
 
     /**
@@ -120,10 +119,8 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @notice Returns the current total borrows plus accrued interest
      * @return The total borrows with interest
      */
-    function totalBorrowsCurrent() external returns (uint) {
-        nonReentrant();
+    function totalBorrowsCurrent() external nonReentrant returns (uint) {
         require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
-        _notEntered = true;
         return totalBorrows;
     }
 
@@ -132,12 +129,9 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @param account The address whose balance should be calculated after updating borrowIndex
      * @return The calculated balance
      */
-    function borrowBalanceCurrent(address account) external returns (uint) {
-        nonReentrant();
+    function borrowBalanceCurrent(address account) external nonReentrant returns (uint) {
         require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
-        uint balance = borrowBalanceStored(account);
-        _notEntered = true;
-        return balance;
+        return borrowBalanceStored(account);
     }
 
     /**
@@ -150,11 +144,8 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits Transfer event
-    function seize(address liquidator, address borrower, uint seizeTokens) external returns (uint) {
-        nonReentrant();
-        uint mErr = seizeInternal(msg.sender, liquidator, borrower, seizeTokens);
-        _notEntered = true;
-        return mErr;
+    function seize(address liquidator, address borrower, uint seizeTokens) external nonReentrant returns (uint) {
+        return seizeInternal(msg.sender, liquidator, borrower, seizeTokens);
     }
 
     /**
@@ -217,8 +208,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits NewReserveFactor event
-    function _setReserveFactor(uint _newReserveFactorMantissa) external returns (uint) {
-        nonReentrant();
+    function _setReserveFactor(uint _newReserveFactorMantissa) external nonReentrant returns (uint) {
         _checkAccessAllowed("_setReserveFactor(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -226,9 +216,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
             return fail(Error(error), FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
         }
         // _setReserveFactorFresh emits reserve-factor-specific logs on errors, so we don't need to.
-        uint mErr = _setReserveFactorFresh(_newReserveFactorMantissa);
-        _notEntered = true;
-        return mErr;
+        return _setReserveFactorFresh(_newReserveFactorMantissa);
     }
 
     /**
@@ -252,8 +240,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits ReservesReduced event
-    function _reduceReserves(uint _reduceAmount) external returns (uint) {
-        nonReentrant();
+    function _reduceReserves(uint _reduceAmount) external nonReentrant returns (uint) {
         _checkAccessAllowed("_reduceReserves(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -264,9 +251,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
         // If reserves were reduced in accrueInterest
         if (reduceReservesBlockNumber == getBlockNumber()) return (uint(Error.NO_ERROR));
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
-        uint mErr = _reduceReservesFresh(_reduceAmount);
-        _notEntered = true;
-        return mErr;
+        return _reduceReservesFresh(_reduceAmount);
     }
 
     /**
@@ -414,12 +399,9 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @notice Accrue interest then return the up-to-date exchange rate
      * @return Calculated exchange rate scaled by 1e18
      */
-    function exchangeRateCurrent() public returns (uint) {
-        nonReentrant();
+    function exchangeRateCurrent() public nonReentrant returns (uint) {
         require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
-        uint exchangeRate = exchangeRateStored();
-        _notEntered = true;
-        return exchangeRate;
+        return exchangeRateStored();
     }
 
     /**
@@ -682,17 +664,14 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @param mintAmount The amount of the underlying asset to supply
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
      */
-    function mintInternal(uint mintAmount) internal returns (uint, uint) {
-        nonReentrant();
+    function mintInternal(uint mintAmount) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted mint failed
             return (fail(Error(error), FailureInfo.MINT_ACCRUE_INTEREST_FAILED), 0);
         }
         // mintFresh emits the actual Mint event if successful and logs on errors, so we don't need to
-        (uint mErr, uint actualMintAmount) = mintFresh(msg.sender, mintAmount);
-        _notEntered = true;
-        return (mErr, actualMintAmount);
+        return mintFresh(msg.sender, mintAmount);
     }
 
     /**
@@ -778,17 +757,14 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @param mintAmount The amount of the underlying asset to supply
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
      */
-    function mintBehalfInternal(address receiver, uint mintAmount) internal returns (uint, uint) {
-        nonReentrant();
+    function mintBehalfInternal(address receiver, uint mintAmount) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted mintBehalf failed
             return (fail(Error(error), FailureInfo.MINT_ACCRUE_INTEREST_FAILED), 0);
         }
         // mintBelahfFresh emits the actual Mint event if successful and logs on errors, so we don't need to
-        (uint mErr, uint actualMintAmount) = mintBehalfFresh(msg.sender, receiver, mintAmount);
-        _notEntered = true;
-        return (mErr, actualMintAmount);
+        return mintBehalfFresh(msg.sender, receiver, mintAmount);
     }
 
     /**
@@ -875,17 +851,14 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @param redeemTokens The number of vTokens to redeem into underlying
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function redeemInternal(uint redeemTokens) internal returns (uint) {
-        nonReentrant();
+    function redeemInternal(uint redeemTokens) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted redeem failed
             return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
         }
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
-        uint mErr = redeemFresh(msg.sender, redeemTokens, 0);
-        _notEntered = true;
-        return mErr;
+        return redeemFresh(msg.sender, redeemTokens, 0);
     }
 
     /**
@@ -894,17 +867,14 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @param redeemAmount The amount of underlying to receive from redeeming vTokens
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function redeemUnderlyingInternal(uint redeemAmount) internal returns (uint) {
-        nonReentrant();
+    function redeemUnderlyingInternal(uint redeemAmount) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted redeem failed
             return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
         }
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
-        uint mErr = redeemFresh(msg.sender, 0, redeemAmount);
-        _notEntered = true;
-        return mErr;
+        return redeemFresh(msg.sender, 0, redeemAmount);
     }
 
     /**
@@ -1054,17 +1024,18 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @param borrowAmount The amount of the underlying asset to borrow
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function borrowInternal(address borrower, address payable receiver, uint borrowAmount) internal returns (uint) {
-        nonReentrant();
+    function borrowInternal(
+        address borrower,
+        address payable receiver,
+        uint borrowAmount
+    ) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
             return fail(Error(error), FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
         }
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
-        uint mErr = borrowFresh(borrower, receiver, borrowAmount);
-        _notEntered = true;
-        return mErr;
+        return borrowFresh(borrower, receiver, borrowAmount);
     }
 
     /**
@@ -1145,17 +1116,14 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @param repayAmount The amount to repay
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
-    function repayBorrowInternal(uint repayAmount) internal returns (uint, uint) {
-        nonReentrant();
+    function repayBorrowInternal(uint repayAmount) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
             return (fail(Error(error), FailureInfo.REPAY_BORROW_ACCRUE_INTEREST_FAILED), 0);
         }
         // repayBorrowFresh emits repay-borrow-specific logs on errors, so we don't need to
-        (uint mErr, uint actualRepayAmount) = repayBorrowFresh(msg.sender, msg.sender, repayAmount);
-        _notEntered = true;
-        return (mErr, actualRepayAmount);
+        return repayBorrowFresh(msg.sender, msg.sender, repayAmount);
     }
 
     /**
@@ -1164,17 +1132,14 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @param repayAmount The amount to repay
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
-    function repayBorrowBehalfInternal(address borrower, uint repayAmount) internal returns (uint, uint) {
-        nonReentrant();
+    function repayBorrowBehalfInternal(address borrower, uint repayAmount) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
             return (fail(Error(error), FailureInfo.REPAY_BEHALF_ACCRUE_INTEREST_FAILED), 0);
         }
         // repayBorrowFresh emits repay-borrow-specific logs on errors, so we don't need to
-        (uint mErr, uint actualRepayAmount) = repayBorrowFresh(msg.sender, borrower, repayAmount);
-        _notEntered = true;
-        return (mErr, actualRepayAmount);
+        return repayBorrowFresh(msg.sender, borrower, repayAmount);
     }
 
     /**
@@ -1274,8 +1239,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
         address borrower,
         uint repayAmount,
         VTokenInterfaceV2 vTokenCollateral
-    ) internal returns (uint, uint) {
-        nonReentrant();
+    ) internal nonReentrant returns (uint, uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
@@ -1288,9 +1252,8 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
             return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
         }
 
-        (uint mErr, uint actualRepayAmount) = liquidateBorrowFresh(msg.sender, borrower, repayAmount, vTokenCollateral);
-        _notEntered = true;
-        return (mErr, actualRepayAmount);
+        // liquidateBorrowFresh emits borrow-specific logs on errors, so we don't need to
+        return liquidateBorrowFresh(msg.sender, borrower, repayAmount, vTokenCollateral);
     }
 
     /**
@@ -1486,8 +1449,7 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
      * @param addAmount Amount of addition to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function _addReservesInternal(uint addAmount) internal returns (uint) {
-        nonReentrant();
+    function _addReservesInternal(uint addAmount) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
@@ -1496,7 +1458,6 @@ contract VToken is VTokenInterfaceV2, VTokenStorageV2, AccessControlledV5, Expon
 
         // _addReservesFresh emits reserve-addition-specific logs on errors, so we don't need to.
         (error, ) = _addReservesFresh(addAmount);
-        _notEntered = true;
         return error;
     }
 
