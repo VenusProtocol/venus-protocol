@@ -212,8 +212,6 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     }
 
     function _initializeMarket(address vToken) internal {
-        uint blockNumber = block.number;
-
         VenusMarketState storage supplyState = venusSupplyState[vToken];
         VenusMarketState storage borrowState = venusBorrowState[vToken];
 
@@ -233,6 +231,6 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         /*
          * Update market state block numbers
          */
-        supplyState.block = borrowState.block = uint32(blockNumber);
+        supplyState.block = borrowState.block = uint32(getBlockNumber());
     }
 }

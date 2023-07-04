@@ -29,7 +29,7 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
     function updateVenusBorrowIndex(address vToken, ExponentialNoError.Exp memory marketBorrowIndex) internal {
         VenusMarketState storage borrowState = venusBorrowState[vToken];
         uint borrowSpeed = venusBorrowSpeeds[vToken];
-        uint blockNumber = block.number;
+        uint blockNumber = getBlockNumber();
         uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
             uint borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
@@ -52,7 +52,7 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
     function updateVenusSupplyIndex(address vToken) internal {
         VenusMarketState storage supplyState = venusSupplyState[vToken];
         uint supplySpeed = venusSupplySpeeds[vToken];
-        uint blockNumber = block.number;
+        uint blockNumber = getBlockNumber();
 
         uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
