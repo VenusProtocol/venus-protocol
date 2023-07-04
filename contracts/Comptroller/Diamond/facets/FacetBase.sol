@@ -1,13 +1,18 @@
 pragma solidity 0.5.16;
 
-import "../../../Tokens/VTokens/VToken.sol";
+import "../interfaces/IXVS.sol";
 import "../../../Utils/ErrorReporter.sol";
+import "../../../Tokens/VTokens/VToken.sol";
+import "../../../Utils/ExponentialNoError.sol";
 import "../../../Comptroller/ComptrollerStorage.sol";
 import "../../../Governance/IAccessControlManager.sol";
 
-contract FacetBase is ComptrollerV12Storage {
+contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken vToken, address account);
+
+    /// @notice Emitted when XVS is distributed to VAI Vault
+    event DistributedVAIVaultVenus(uint amount);
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
@@ -61,8 +66,55 @@ contract FacetBase is ComptrollerV12Storage {
         return _actionPaused[market][uint(action)];
     }
 
+    /**
+     * @notice Get the latest block number
+     */
     function getBlockNumber() public view returns (uint) {
         return block.number;
+    }
+
+    /**
+     * @notice Transfer XVS to VAI Vault
+     */
+    function releaseToVault() public {
+        if (releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
+            return;
+        }
+
+        uint256 xvsBalance = IXVS(getXVSAddress()).balanceOf(address(this));
+        if (xvsBalance == 0) {
+            return;
+        }
+
+        uint256 actualAmount;
+        uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
+        // releaseAmount = venusVAIVaultRate * deltaBlocks
+        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
+
+        if (xvsBalance >= _releaseAmount) {
+            actualAmount = _releaseAmount;
+        } else {
+            actualAmount = xvsBalance;
+        }
+
+        if (actualAmount < minReleaseAmount) {
+            return;
+        }
+
+        releaseStartBlock = getBlockNumber();
+
+        IXVS(getXVSAddress()).transfer(vaiVaultAddress, actualAmount);
+        emit DistributedVAIVaultVenus(actualAmount);
+
+        IVAIVault(vaiVaultAddress).updatePendingRewards();
+    }
+
+    /**
+     * @notice Return the address of the XVS token
+     * @return The address of XVS
+     */
+    function getXVSAddress() public pure returns (address) {
+        return 0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63;
     }
 
     /**

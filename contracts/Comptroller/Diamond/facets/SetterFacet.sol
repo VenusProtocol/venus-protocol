@@ -382,12 +382,12 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     }
 
     /**
-    /**
      * @notice Set the amount of XVS distributed per block to VAI Vault
      * @param venusVAIVaultRate_ The amount of XVS wei per block to distribute to VAI Vault
      */
     function _setVenusVAIVaultRate(uint venusVAIVaultRate_) external {
         ensureAdmin();
+        releaseToVault();
         uint oldVenusVAIVaultRate = venusVAIVaultRate;
         venusVAIVaultRate = venusVAIVaultRate_;
         emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
@@ -402,6 +402,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) external {
         ensureAdmin();
         ensureNonzeroAddress(vault_);
+        releaseToVault();
 
         vaiVaultAddress = vault_;
         releaseStartBlock = releaseStartBlock_;
