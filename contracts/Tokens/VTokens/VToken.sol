@@ -208,7 +208,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits NewReserveFactor event
-    function _setReserveFactor(uint _newReserveFactorMantissa) external nonReentrant returns (uint) {
+    function _setReserveFactor(uint newReserveFactorMantissa_) external nonReentrant returns (uint) {
         ensureAllowed("_setReserveFactor(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -216,7 +216,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return fail(Error(error), FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
         }
         // _setReserveFactorFresh emits reserve-factor-specific logs on errors, so we don't need to.
-        return _setReserveFactorFresh(_newReserveFactorMantissa);
+        return _setReserveFactorFresh(newReserveFactorMantissa_);
     }
 
     /**
@@ -242,11 +242,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Accrues interest and reduces reserves by transferring to admin
-     * @param _reduceAmount Amount of reduction to reserves
+     * @param reduceAmount_ Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits ReservesReduced event
-    function _reduceReserves(uint _reduceAmount) external nonReentrant returns (uint) {
+    function _reduceReserves(uint reduceAmount_) external nonReentrant returns (uint) {
         ensureAllowed("_reduceReserves(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -257,7 +257,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // If reserves were reduced in accrueInterest
         if (reduceReservesBlockNumber == getBlockNumber()) return (uint(Error.NO_ERROR));
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
-        return _reduceReservesFresh(_reduceAmount);
+        return _reduceReservesFresh(reduceAmount_);
     }
 
     /**
@@ -331,16 +331,15 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice A admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
-     * @param _newReduceReservesBlockDelta block difference value
+     * @param newReduceReservesBlockDelta_ block difference value
      */
-    function setReduceReservesBlockDelta(uint256 _newReduceReservesBlockDelta) external returns (uint) {
+    function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_REDUCE_RESERVES_BLOCK_DELTA_OWNER_CHECK);
         }
-        uint256 oldReduceReservesBlockDelta_ = reduceReservesBlockDelta;
-        reduceReservesBlockDelta = _newReduceReservesBlockDelta;
-        emit NewReduceReservesBlockDelta(oldReduceReservesBlockDelta_, _newReduceReservesBlockDelta);
+        emit NewReduceReservesBlockDelta(reduceReservesBlockDelta, newReduceReservesBlockDelta_);
+        reduceReservesBlockDelta = newReduceReservesBlockDelta_;
     }
 
     /**
@@ -352,9 +351,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_PROTOCOL_SHARE_RESERVES_OWNER_CHECK);
         }
-        address oldProtocolShareReserve_ = protocolShareReserve;
+        emit NewProtocolShareReserve(protocolShareReserve, protcolShareReserve_);
         protocolShareReserve = protcolShareReserve_;
-        emit NewProtocolShareReserve(oldProtocolShareReserve_, protcolShareReserve_);
     }
 
     /**
@@ -558,10 +556,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     /**
      * @notice Accrues interest and updates the interest rate model using _setInterestRateModelFresh
      * @dev Admin function to accrue interest and update the interest rate model
-     * @param _newInterestRateModel The new interest rate model to use
+     * @param newInterestRateModel_ The new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function _setInterestRateModel(InterestRateModel _newInterestRateModel) public returns (uint) {
+    function _setInterestRateModel(InterestRateModel newInterestRateModel_) public returns (uint) {
         ensureAllowed("_setInterestRateModel(address)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
@@ -569,7 +567,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
         }
         // _setInterestRateModelFresh emits interest-rate-model-update-specific logs on errors, so we don't need to.
-        return _setInterestRateModelFresh(_newInterestRateModel);
+        return _setInterestRateModelFresh(newInterestRateModel_);
     }
 
     /**
