@@ -19,6 +19,4 @@ interface IDiamondCut {
     ///         a function with delegatecall
     /// @param _diamondCut Contains the facet addresses and function selectors
     function diamondCut(FacetCut[] calldata _diamondCut) external;
-
-    event DiamondCut(FacetCut[] _diamondCut);
 }
