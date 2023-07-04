@@ -2,7 +2,6 @@ pragma solidity 0.5.16;
 
 import "../../../Tokens/VTokens/VToken.sol";
 import "./XVSRewardsHelper.sol";
-import "../interfaces/IXVS.sol";
 
 /**
  * @dev This facet contains all the methods related to the reward functionality
@@ -10,6 +9,8 @@ import "../interfaces/IXVS.sol";
 contract RewardFacet is XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address recipient, uint amount);
+
+    using SafeBEP20 for IBEP20;
 
     /**
      * @notice Claim all the xvs accrued by holder in all markets and VAI
@@ -70,12 +71,12 @@ contract RewardFacet is XVSRewardsHelper {
             "Blacklisted"
         );
 
-        if (amount == 0 || amount > IXVS(getXVSAddress()).balanceOf(address(this))) {
+        if (amount == 0 || amount > IBEP20(getXVSAddress()).balanceOf(address(this))) {
             return amount;
         }
 
         if (shortfall == 0) {
-            IXVS(getXVSAddress()).transfer(user, amount);
+            IBEP20(getXVSAddress()).safeTransfer(user, amount);
             return 0;
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
@@ -85,7 +86,8 @@ contract RewardFacet is XVSRewardsHelper {
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt accounts can only collateralize their pending xvs rewards");
 
-        IXVS(getXVSAddress()).approve(getXVSVTokenAddress(), amount);
+        IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), 0);
+        IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), amount);
         require(
             VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint(Error.NO_ERROR),
             "mint behalf error during collateralize xvs"

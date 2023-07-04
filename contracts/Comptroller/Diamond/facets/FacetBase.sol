@@ -1,11 +1,11 @@
 pragma solidity 0.5.16;
 
-import "../interfaces/IXVS.sol";
 import "../../../Utils/ErrorReporter.sol";
 import "../../../Tokens/VTokens/VToken.sol";
 import "../../../Utils/ExponentialNoError.sol";
 import "../../../Comptroller/ComptrollerStorage.sol";
 import "../../../Governance/IAccessControlManager.sol";
+import "../../../Utils/SafeBEP20.sol";
 
 contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
     /// @notice Emitted when an account enters a market
@@ -13,6 +13,8 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
 
     /// @notice Emitted when XVS is distributed to VAI Vault
     event DistributedVAIVaultVenus(uint amount);
+
+    using SafeBEP20 for IBEP20;
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
@@ -81,7 +83,7 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
             return;
         }
 
-        uint256 xvsBalance = IXVS(getXVSAddress()).balanceOf(address(this));
+        uint256 xvsBalance = IBEP20(getXVSAddress()).balanceOf(address(this));
         if (xvsBalance == 0) {
             return;
         }
@@ -103,7 +105,7 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
 
         releaseStartBlock = getBlockNumber();
 
-        IXVS(getXVSAddress()).transfer(vaiVaultAddress, actualAmount);
+        IBEP20(getXVSAddress()).safeTransfer(vaiVaultAddress, actualAmount);
         emit DistributedVAIVaultVenus(actualAmount);
 
         IVAIVault(vaiVaultAddress).updatePendingRewards();
