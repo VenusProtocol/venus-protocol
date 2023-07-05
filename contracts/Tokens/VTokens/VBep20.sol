@@ -179,9 +179,8 @@ contract VBep20 is VToken, VBep20Interface {
      *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
      */
     function doTransferIn(address from, uint amount) internal returns (uint) {
-        EIP20NonStandardInterface token = EIP20NonStandardInterface(underlying);
         uint balanceBefore = EIP20Interface(underlying).balanceOf(address(this));
-        token.transferFrom(from, address(this), amount);
+        EIP20NonStandardInterface(underlying).transferFrom(from, address(this), amount);
 
         bool success;
         assembly {
@@ -218,8 +217,7 @@ contract VBep20 is VToken, VBep20Interface {
      *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
      */
     function doTransferOut(address payable to, uint amount) internal {
-        EIP20NonStandardInterface token = EIP20NonStandardInterface(underlying);
-        token.transfer(to, amount);
+        EIP20NonStandardInterface(underlying).transfer(to, amount);
 
         bool success;
         assembly {
@@ -247,7 +245,6 @@ contract VBep20 is VToken, VBep20Interface {
      * @return The quantity of underlying tokens owned by this contract
      */
     function getCashPrior() internal view returns (uint) {
-        EIP20Interface token = EIP20Interface(underlying);
-        return token.balanceOf(address(this));
+        return EIP20Interface(underlying).balanceOf(address(this));
     }
 }

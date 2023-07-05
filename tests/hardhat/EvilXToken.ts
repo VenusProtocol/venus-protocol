@@ -3,7 +3,7 @@ import chai from "chai";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../helpers/utils";
-import { ComptrollerHarness__factory, IAccessControlManager } from "../../typechain";
+import { ComptrollerHarness__factory, IAccessControlManager, IProtocolShareReserve } from "../../typechain";
 
 const { expect } = chai;
 
@@ -171,6 +171,12 @@ describe("Evil Token test", async () => {
     await vToken1.setReduceReservesBlockDelta(10000);
     await vToken1.connect(user).mint(convertToUnit(1, 4));
     await underlying3.harnessSetBalance(vToken3.address, convertToUnit(1, 8));
+
+    const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+    protocolShareReserve.updateAssetsState.returns(true);
+    await vToken1.setProtcolShareReserve(protocolShareReserve.address);
+    await vToken2.setProtcolShareReserve(protocolShareReserve.address);
+    await vToken3.setProtcolShareReserve(protocolShareReserve.address);
   });
 
   it("Check the updated vToken states after transfer out", async () => {

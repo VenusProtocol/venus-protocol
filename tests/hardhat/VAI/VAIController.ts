@@ -1,5 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Wallet, constants } from "ethers";
 import { ethers } from "hardhat";
@@ -9,6 +9,7 @@ import {
   ComptrollerLens__factory,
   Comptroller__factory,
   IAccessControlManager,
+  IProtocolShareReserve,
   VAIControllerHarness__factory,
 } from "../../../typechain";
 import { SimplePriceOracle } from "../../../typechain";
@@ -51,6 +52,7 @@ describe("VAIController", async () => {
   let vaiController: MockContract<VAIControllerHarness>;
   let usdt: BEP20Harness;
   let vusdt: VBep20Harness;
+  let protocolShareReserve: FakeContract<IProtocolShareReserve>;
 
   before("get signers", async () => {
     [wallet, user1, user2, treasuryGuardian, treasuryAddress] = await (ethers as any).getSigners();
@@ -67,6 +69,9 @@ describe("VAIController", async () => {
 
     const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
     accessControl.isAllowedToCall.returns(true);
+
+    protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+    protocolShareReserve.updateAssetsState.returns(true);
 
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     const comptroller = await ComptrollerFactory.deploy();
@@ -130,6 +135,8 @@ describe("VAIController", async () => {
     await priceOracle.setDirectPrice(vai.address, bigNumber18);
     await comptroller._supportMarket(vusdt.address);
     await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(5));
+    await vusdt.setProtcolShareReserve(protocolShareReserve.address);
+    await vusdt.setReduceReservesBlockDelta(10000000000);
 
     return { usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt };
   }
@@ -279,6 +286,7 @@ describe("VAIController", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
       await vaiController.harnessSetBlockNumber(BigNumber.from(100000));
       await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
+      await mineUpTo(99999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
       expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
@@ -294,7 +302,7 @@ describe("VAIController", async () => {
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
 
       await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
-
+      await mineUpTo(99999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
       expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(50));

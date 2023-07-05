@@ -255,7 +255,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         // If reserves were reduced in accrueInterest
-        if (reduceReservesBlockNumber == getBlockNumber()) return (uint(Error.NO_ERROR));
+        if (reduceReservesBlockNumber == block.number) return (uint(Error.NO_ERROR));
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
         return _reduceReservesFresh(reduceAmount_);
     }
@@ -384,7 +384,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         require(err == uint(Error.NO_ERROR), "setting comptroller failed");
 
         // Initialize block number and borrow index (block number mocks depend on comptroller being set)
-        accrualBlockNumber = getBlockNumber();
+        accrualBlockNumber = block.number;
         borrowIndex = mantissaOne;
 
         // Set the interest rate model (depends on block number / borrow index)
@@ -416,7 +416,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     // @custom:event Emits AccrueInterest event
     function accrueInterest() public returns (uint) {
         /* Remember the initial block number */
-        uint currentBlockNumber = getBlockNumber();
+        uint currentBlockNumber = block.number;
         uint accrualBlockNumberPrior = accrualBlockNumber;
 
         /* Short-circuit accumulating 0 interest */
@@ -693,7 +693,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.MINT_FRESHNESS_CHECK), 0);
         }
 
@@ -788,7 +788,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.MINT_FRESHNESS_CHECK), 0);
         }
 
@@ -942,7 +942,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             revert("math error");
         }
 
@@ -1058,7 +1058,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             revert("math error");
         }
 
@@ -1164,7 +1164,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.REPAY_BORROW_FRESHNESS_CHECK), 0);
         }
 
@@ -1289,12 +1289,12 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_FRESHNESS_CHECK), 0);
         }
 
         /* Verify vTokenCollateral market's block number equals current block number */
-        if (vTokenCollateral.accrualBlockNumber() != getBlockNumber()) {
+        if (vTokenCollateral.accrualBlockNumber() != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
         }
 
@@ -1431,7 +1431,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function _setReserveFactorFresh(uint newReserveFactorMantissa) internal returns (uint) {
         // Verify market's block number equals current block number
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_RESERVE_FACTOR_FRESH_CHECK);
         }
 
@@ -1477,7 +1477,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint actualAddAmount;
 
         // We fail gracefully unless market's block number equals current block number
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.ADD_RESERVES_FRESH_CHECK), actualAddAmount);
         }
 
@@ -1521,7 +1521,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint totalReservesNew;
 
         // We fail gracefully unless market's block number equals current block number
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.REDUCE_RESERVES_FRESH_CHECK);
         }
 
@@ -1568,7 +1568,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // Used to store old model for use in the event that is emitted on success
         InterestRateModel oldInterestRateModel;
         // We fail gracefully unless market's block number equals current block number
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_INTEREST_RATE_MODEL_FRESH_CHECK);
         }
 
@@ -1601,14 +1601,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *  If caller has checked protocol's balance, and verified it is >= amount, this should not revert in normal conditions.
      */
     function doTransferOut(address payable to, uint amount) internal;
-
-    /**
-     * @dev Function to simply retrieve block number
-     *  This exists mainly for inheriting test contracts to stub this result.
-     */
-    function getBlockNumber() internal view returns (uint) {
-        return block.number;
-    }
 
     /**
      * @notice Return the borrow balance of account based on stored data

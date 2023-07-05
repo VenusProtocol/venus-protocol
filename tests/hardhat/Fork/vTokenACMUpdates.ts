@@ -64,14 +64,14 @@ if (FORK_MAINNET) {
 
     it("revert if permission not granted", async () => {
       await expect(vBusd.connect(impersonatedTimelock)._setReserveFactor(convertToUnit(1, 17))).to.be.revertedWith(
-        "Unauthorized",
+        "access denied",
       );
       await expect(vBusd.connect(impersonatedTimelock)._reduceReserves(convertToUnit(1, 17))).to.be.revertedWith(
-        "Unauthorized",
+        "access denied",
       );
       await expect(
         vBusd.connect(impersonatedTimelock)._setInterestRateModel(fakeInterestRateModel.address),
-      ).to.be.revertedWith("Unauthorized");
+      ).to.be.revertedWith("access denied");
     });
 
     it("should success if permission is granted for set new reserve factor", async () => {
