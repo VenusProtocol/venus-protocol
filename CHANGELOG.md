@@ -1,3 +1,66 @@
+## [3.0.0-dev.11](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.10...v3.0.0-dev.11) (2023-06-28)
+
+## [3.0.0-dev.10](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.9...v3.0.0-dev.10) (2023-06-27)
+
+## [3.0.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.8...v3.0.0-dev.9) (2023-06-23)
+
+
+### Features
+
+* add new addresses for WBETH and (new) TUSD markets ([c4ee1bf](https://github.com/VenusProtocol/venus-protocol/commit/c4ee1bfdc7d7c912c1db93685fb5f76c1bbea5fa))
+* added deployment script for swap router ([2f0c278](https://github.com/VenusProtocol/venus-protocol/commit/2f0c2783a7847879d7e54fb180c4bde0b29c1e03))
+
+
+### Bug Fixes
+
+* l-01 missing docstring ([394d1a7](https://github.com/VenusProtocol/venus-protocol/commit/394d1a7837fd0b6b3c950430d5fc89f3620336f3))
+* l-02 locked bnb in contract ([7a8044a](https://github.com/VenusProtocol/venus-protocol/commit/7a8044ae4b5beb5c5f36eef011bc72a541030a43))
+* n-01 misleading docstrings ([20e3118](https://github.com/VenusProtocol/venus-protocol/commit/20e31185312ec43432d272478e306c6776f43eae))
+* n-02 naming can be improved ([027835e](https://github.com/VenusProtocol/venus-protocol/commit/027835ed915357901652c21051c10a175bc1e1ac))
+* n-03 some convenience functions are missing ([cf6b8cb](https://github.com/VenusProtocol/venus-protocol/commit/cf6b8cb0735cf0ded3435161c6ea2e2d6c4b48e4))
+* n-03 some convenience functions are missing ([fb66414](https://github.com/VenusProtocol/venus-protocol/commit/fb66414dd6d0a3af2436dc0220b901989ee4652a))
+* n-04 confusing use of eth and bnb in ([dbf855c](https://github.com/VenusProtocol/venus-protocol/commit/dbf855c37db2e24f25f2fb19505d3f30799c8e5d))
+* n-04 confusing use of eth and bnb in ([bbe298f](https://github.com/VenusProtocol/venus-protocol/commit/bbe298f71e48a53af7bf028c3de5d6761c257cdc))
+* pr comments ([9751c85](https://github.com/VenusProtocol/venus-protocol/commit/9751c85d7054485d5f082aa4ba48c7ce878d9a34))
+
+## [3.0.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.7...v3.0.0-dev.8) (2023-06-19)
+
+
+### Bug Fixes
+
+* VPB-02 | Comparison to Boolean Constant ([1a47e51](https://github.com/VenusProtocol/venus-protocol/commit/1a47e51eae5cf2180b0034f61159cf1fa412e37f))
+* VPB-05 | Missing Upper Bound ([a158f8c](https://github.com/VenusProtocol/venus-protocol/commit/a158f8c335d0cfad71f1d2c27af6b0d92f4abe41))
+* VRT-03 | Unused Event ([df23556](https://github.com/VenusProtocol/venus-protocol/commit/df23556727d2b5f13326e6deffcec7637270f642))
+* VRT-05 | Typo ([6b7b8b7](https://github.com/VenusProtocol/venus-protocol/commit/6b7b8b71f9a93613b11ff881cf5a52ff8ef6931b))
+
+## [3.0.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.6...v3.0.0-dev.7) (2023-06-16)
+
+
+### Features
+
+* add total supply to mint and redeem events ([a094294](https://github.com/VenusProtocol/venus-protocol/commit/a09429400035edf609b4d3544705ac7450afc1ad))
+
+## [3.0.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.5...v3.0.0-dev.6) (2023-06-15)
+
+## [3.0.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.4...v3.0.0-dev.5) (2023-06-13)
+
+
+### Bug Fixes
+
+* escape notice when rendering page template ([643f0c2](https://github.com/VenusProtocol/venus-protocol/commit/643f0c219379dd94cb3c8bc1a131520006914919))
+
+## [3.0.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.3...v3.0.0-dev.4) (2023-06-07)
+
+
+### Bug Fixes
+
+* forbid zero alloc points in XVSVault ([43a77f3](https://github.com/VenusProtocol/venus-protocol/commit/43a77f346a8cda5cc03e985ef66a1dd569f67e0f))
+* i01 license identifier not provided ([8b08294](https://github.com/VenusProtocol/venus-protocol/commit/8b08294d68a580b15690e62bb801526818d880ab))
+* i02 floating pragma ([9120a0d](https://github.com/VenusProtocol/venus-protocol/commit/9120a0d589c3b90c55fc1722d2df80795db9b4bc))
+* i03 public function that should be external ([27d5402](https://github.com/VenusProtocol/venus-protocol/commit/27d5402d0f33952f4fcbac5600258e7018f42d20))
+* l01 missing zero address validation ([6c4dbb2](https://github.com/VenusProtocol/venus-protocol/commit/6c4dbb24c45083a44fdcf80fd2b5cba4edff242d))
+* lint issues ([b125ad7](https://github.com/VenusProtocol/venus-protocol/commit/b125ad7ca997e88682f35763709bfdafea64c1b8))
+
 ## [3.0.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.2...v3.0.0-dev.3) (2023-06-01)
 
 

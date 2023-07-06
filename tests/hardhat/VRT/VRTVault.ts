@@ -55,6 +55,14 @@ describe("VRTVault", async () => {
         accessControl.isAllowedToCall.returns(true);
       });
 
+      it("fails if trying to set lastAccuringBlock to some absurdly high value", async () => {
+        const { vrtVault } = fixture;
+        const blockNumberTooFar = 10000000000;
+        await expect(vrtVault.setLastAccruingBlock(blockNumberTooFar)).to.be.revertedWith(
+          "_lastAccruingBlock is absurdly high",
+        );
+      });
+
       it("fails if lastAccuringBlock has passed", async () => {
         const { vrtVault } = fixture;
         const lastAccruingBlock = (await getLastBlock()) + 10;

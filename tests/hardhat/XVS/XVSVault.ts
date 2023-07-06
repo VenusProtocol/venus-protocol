@@ -125,6 +125,12 @@ describe("XVSVault", async () => {
       ).to.be.revertedWith("zero address not allowed");
     });
 
+    it("reverts if alloc points parameter is zero", async () => {
+      await expect(xvsVault.add(xvs.address, 0, token.address, rewardPerBlock, lockPeriod)).to.be.revertedWith(
+        "Alloc points must not be zero",
+      );
+    });
+
     it("emits PoolAdded event", async () => {
       const tx = await xvsVault.add(token.address, 100, token.address, rewardPerBlock, lockPeriod);
       await expect(tx)
@@ -156,6 +162,39 @@ describe("XVSVault", async () => {
     });
   });
 
+  describe("set", async () => {
+    it("reverts if ACM does not allow the call", async () => {
+      accessControl.isAllowedToCall.returns(false);
+      await expect(xvsVault.set(xvs.address, 0, 100)).to.be.revertedWith("Unauthorized");
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("reverts if pool is not found", async () => {
+      await expect(xvsVault.set(xvs.address, 100, 100)).to.be.revertedWith("vault: pool exists?");
+    });
+
+    it("reverts if total alloc points after the call is zero", async () => {
+      await expect(xvsVault.set(xvs.address, 0, 0)).to.be.revertedWith(
+        "Alloc points per reward token must not be zero",
+      );
+    });
+
+    it("succeeds if the pool alloc points is zero but total alloc points is nonzero", async () => {
+      const token = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
+      // Adding a new pool with 99 alloc points, reward per block is unchanged
+      await xvsVault.add(xvs.address, 99, token.address, rewardPerBlock, lockPeriod);
+      await expect(xvsVault.set(xvs.address, 0, 0)).to.not.be.reverted;
+      expect(await xvsVault.totalAllocPoints(xvs.address)).to.equal(99);
+      const poolInfo = await xvsVault.poolInfos(xvs.address, 0);
+      expect(poolInfo.allocPoint).to.equal(0);
+    });
+
+    it("emits PoolUpdated event", async () => {
+      const tx = await xvsVault.set(xvs.address, 0, 1000);
+      await expect(tx).to.emit(xvsVault, "PoolUpdated").withArgs(xvs.address, 0, 100, 1000);
+    });
+  });
+
   describe("setRewardAmountPerBlock", async () => {
     it("reverts if ACM does not allow the call", async () => {
       accessControl.isAllowedToCall.returns(false);
@@ -176,6 +215,49 @@ describe("XVSVault", async () => {
     it("updates reward amount per block", async () => {
       await xvsVault.setRewardAmountPerBlock(xvs.address, 111);
       expect(await xvsVault.rewardTokenAmountsPerBlock(xvs.address)).to.equal(111);
+    });
+  });
+
+  describe("setWithdrawalLockingPeriod", async () => {
+    it("reverts if ACM does not allow the call", async () => {
+      accessControl.isAllowedToCall.returns(false);
+      await expect(xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, 1)).to.be.revertedWith("Unauthorized");
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("reverts if pool does not exist", async () => {
+      await expect(xvsVault.setWithdrawalLockingPeriod(xvs.address, 1, 1)).to.be.revertedWith("vault: pool exists?");
+    });
+
+    it("reverts if the lock period is 0", async () => {
+      await expect(xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, 0)).to.be.revertedWith(
+        "Invalid new locking period",
+      );
+    });
+
+    it("reverts if the lock period is absurdly high", async () => {
+      const secondsInTwentyYears = 60 * 60 * 24 * 365 * 20;
+      await expect(xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, secondsInTwentyYears)).to.be.revertedWith(
+        "Invalid new locking period",
+      );
+    });
+
+    it("emits WithdrawalLockingPeriodUpdated event", async () => {
+      const tx = await xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, 1);
+      await expect(tx).to.emit(xvsVault, "WithdrawalLockingPeriodUpdated").withArgs(xvs.address, poolId, lockPeriod, 1);
+      await xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, lockPeriod);
+    });
+
+    it("updates lock period", async () => {
+      let poolInfo = await xvsVault.poolInfos(xvs.address, poolId);
+      expect(poolInfo.lockPeriod).to.equal(lockPeriod);
+
+      await xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, 1);
+      poolInfo = await xvsVault.poolInfos(xvs.address, poolId);
+
+      expect(poolInfo.lockPeriod).to.equal(1);
+
+      await xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, lockPeriod);
     });
   });
 

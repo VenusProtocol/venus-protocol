@@ -143,6 +143,12 @@ contract ComptrollerInterface is ComptrollerInterfaceG4 {
     function vaiController() external view returns (VAIControllerInterface);
 
     function liquidationIncentiveMantissa() external view returns (uint);
+
+    function protocolPaused() external view returns (bool);
+
+    function mintedVAIs(address user) external view returns (uint);
+
+    function vaiMintRate() external view returns (uint);
 }
 
 interface IVAIVault {

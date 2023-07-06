@@ -28,6 +28,9 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     using SafeCast for uint256;
     using SafeBEP20 for IBEP20;
 
+    /// @notice The upper bound for the lock period in a pool, 10 years
+    uint256 public constant MAX_LOCK_PERIOD = 60 * 60 * 24 * 365 * 10;
+
     /// @notice Event emitted when deposit
     event Deposit(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
 
@@ -105,7 +108,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @dev Prevents functions to execute when vault is paused.
      */
     modifier isActive() {
-        require(vaultPaused == false, "Vault is paused");
+        require(!vaultPaused, "Vault is paused");
         _;
     }
 
@@ -161,6 +164,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         _ensureNonzeroAddress(_rewardToken);
         _ensureNonzeroAddress(address(_token));
         require(address(xvsStore) != address(0), "Store contract address is empty");
+        require(_allocPoint > 0, "Alloc points must not be zero");
 
         massUpdatePools(_rewardToken);
 
@@ -204,12 +208,16 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     function set(address _rewardToken, uint256 _pid, uint256 _allocPoint) external {
         _checkAccessAllowed("set(address,uint256,uint256)");
         _ensureValidPool(_rewardToken, _pid);
+
         massUpdatePools(_rewardToken);
 
         PoolInfo[] storage poolInfo = poolInfos[_rewardToken];
-        totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken].sub(poolInfo[_pid].allocPoint).add(_allocPoint);
+        uint256 newTotalAllocPoints = totalAllocPoints[_rewardToken].sub(poolInfo[_pid].allocPoint).add(_allocPoint);
+        require(newTotalAllocPoints > 0, "Alloc points per reward token must not be zero");
+
         uint256 oldAllocPoints = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
+        totalAllocPoints[_rewardToken] = newTotalAllocPoints;
 
         emit PoolUpdated(_rewardToken, _pid, oldAllocPoints, _allocPoint);
     }
@@ -238,7 +246,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     function setWithdrawalLockingPeriod(address _rewardToken, uint256 _pid, uint256 _newPeriod) external {
         _checkAccessAllowed("setWithdrawalLockingPeriod(address,uint256,uint256)");
         _ensureValidPool(_rewardToken, _pid);
-        require(_newPeriod > 0, "Invalid new locking period");
+        require(_newPeriod > 0 && _newPeriod < MAX_LOCK_PERIOD, "Invalid new locking period");
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         uint256 oldPeriod = pool.lockPeriod;
         pool.lockPeriod = _newPeriod;

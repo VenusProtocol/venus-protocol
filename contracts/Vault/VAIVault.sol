@@ -53,7 +53,7 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
      * @dev Prevents functions to execute when vault is paused.
      */
     modifier isActive() {
-        require(vaultPaused == false, "Vault is paused");
+        require(!vaultPaused, "Vault is paused");
         _;
     }
 

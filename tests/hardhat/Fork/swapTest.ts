@@ -328,6 +328,42 @@ if (FORK_MAINNET) {
             expect(currBalance).greaterThan(prevBalance);
           });
 
+          it("swap exact tokenA -> BNB --> supply", async () => {
+            const prevBalance = await vBNB.balanceOf(busdUser.address);
+            const deadline = await getValidDeadline();
+            await swapRouter
+              .connect(busdUser)
+              .swapTokensForExactBNBAndSupply(SWAP_BNB_AMOUNT, 277, [BUSD.address, wBNB.address], deadline);
+            const currBalance = await vBNB.balanceOf(busdUser.address);
+            expect(currBalance).greaterThan(prevBalance);
+          });
+
+          it("should swap Exact token -> BNB --> supply", async () => {
+            await USDT.connect(usdtUser).transfer(vUSDT.address, 1000);
+            const deadline = await getValidDeadline();
+            await swapRouter
+              .connect(busdUser)
+              .swapExactTokensForTokensAndSupply(
+                vBUSD.address,
+                SWAP_AMOUNT,
+                MIN_AMOUNT_OUT,
+                [USDT.address, BUSD.address],
+                deadline,
+              );
+            await vBNB.connect(busdUser).borrow(parseUnits("5", 0));
+            const borrowBalancePrev = await vBNB.balanceOf(busdUser.address);
+            await swapRouter
+              .connect(busdUser)
+              .swapExactTokensForBNBAndSupply(
+                parseUnits("1500", 0),
+                parseUnits("4", 0),
+                [USDT.address, wBNB.address],
+                deadline,
+              );
+            const borrowBalanceAfter = await vBNB.balanceOf(busdUser.address);
+            expect(borrowBalanceAfter).greaterThan(borrowBalancePrev);
+          });
+
           it("swap BNB -> token --> supply token", async () => {
             const prevBalance = await vBUSD.balanceOf(usdtUser.address);
             const deadline = await getValidDeadline();
@@ -377,7 +413,13 @@ if (FORK_MAINNET) {
             expect(borrowBalance).equal(BORROW_AMOUNT);
             await swapRouter
               .connect(busdUser)
-              .swapAndRepay(vUSDT.address, BORROW_AMOUNT + 1, BORROW_AMOUNT, [BUSD.address, USDT.address], deadline);
+              .swapExactTokensForTokensAndRepay(
+                vUSDT.address,
+                BORROW_AMOUNT + 1,
+                BORROW_AMOUNT,
+                [BUSD.address, USDT.address],
+                deadline,
+              );
             [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
             expect(borrowBalance).equal(0);
           });
@@ -775,6 +817,26 @@ if (FORK_MAINNET) {
             expect(currBalance).greaterThan(prevBalance);
           });
 
+          it("swap ExactTokens -> BNB and supply at supportingFee", async () => {
+            const deadline = await getValidDeadline();
+            await swapRouter
+              .connect(BabyDogeUser)
+              .swapExactTokensForTokensAndSupplyAtSupportingFee(
+                vSFM.address,
+                10000000000000,
+                1000,
+                [BabyDoge.address, SFM.address],
+                deadline,
+              );
+            await expect(vBNB.connect(BabyDogeUser).borrow(2)).to.emit(vBNB, "Borrow");
+            const borrowBalancePrev = await vBNB.balanceOf(BabyDogeUser.address);
+            await swapRouter
+              .connect(BabyDogeUser)
+              .swapExactTokensForBNBAndSupplyAtSupportingFee(500, 2, [BabyDoge.address, wBNB.address], deadline);
+            const borrowBalanceAfter = await vBNB.balanceOf(BabyDogeUser.address);
+            expect(borrowBalanceAfter).greaterThan(borrowBalancePrev);
+          });
+
           it("swap tokenA -> tokenB --> repay tokenB at supporting fee", async () => {
             await SFM.connect(SFMUser).transfer(vSFM.address, parseUnits("1"));
             const borrowAmount = parseUnits("0.00000001");
@@ -795,7 +857,7 @@ if (FORK_MAINNET) {
 
             await swapRouter
               .connect(SFMUser)
-              .swapAndRepayAtSupportingFee(
+              .swapExactTokensForTokensAndRepayAtSupportingFee(
                 vBabyDoge.address,
                 100,
                 MIN_AMOUNT_OUT,
