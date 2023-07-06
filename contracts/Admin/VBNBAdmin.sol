@@ -5,16 +5,24 @@ pragma solidity 0.8.13;
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "./VBNBAdminStorage.sol";
 
-contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, VBNBAdminStorage {
+contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminStorage {
     using SafeERC20Upgradeable for IWBNB;
+
+    /// @notice Emitted when PSR is updated
+    event ProtocolShareReserveUpdated(
+        IProtocolShareReserve indexed oldProtocolShareReserve,
+        IProtocolShareReserve indexed newProtocolShareReserve
+    );
 
     function initialize(
         VTokenInterface _vBNB,
         IProtocolShareReserve _protocolShareReserve,
         IWBNB _WBNB,
-        address _comptroller
+        address _comptroller,
+        address accessControlManager
     ) external initializer {
         vBNB = _vBNB;
         protocolShareReserve = _protocolShareReserve;
@@ -23,6 +31,20 @@ contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, VBNBA
 
         __Ownable2Step_init();
         __ReentrancyGuard_init();
+        __AccessControlled_init(accessControlManager);
+    }
+
+    /**
+     * @dev PSR setter.
+     * @param _protocolShareReserve Address of the PSR contract
+     */
+    function setProtocolShareReserve(IProtocolShareReserve _protocolShareReserve) external {
+        _checkAccessAllowed("setProtocolShareReserve(address)");
+
+        require(address(_protocolShareReserve) != address(0), "ACM address invalid");
+        IProtocolShareReserve oldProtocolShareReserve = protocolShareReserve;
+        protocolShareReserve = _protocolShareReserve;
+        emit ProtocolShareReserveUpdated(oldProtocolShareReserve, protocolShareReserve);
     }
 
     /**

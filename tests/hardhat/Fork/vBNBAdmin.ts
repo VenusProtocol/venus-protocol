@@ -6,6 +6,7 @@ import { Signer } from "ethers";
 import {
   Comptroller,
   Comptroller__factory,
+  IAccessControlManager,
   IProtocolShareReserve,
   MockVBNB,
   MockVBNB__factory,
@@ -44,7 +45,16 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   const VBNBAdminFactory = await ethers.getContractFactory("VBNBAdmin");
   const VBNBAdmin: VBNBAdmin = await VBNBAdminFactory.deploy();
 
-  await VBNBAdmin.initialize(vBNB.address, protocolShareReserve.address, WBNB.address, comptroller.address);
+  const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  accessControl.isAllowedToCall.returns(true);
+
+  await VBNBAdmin.initialize(
+    vBNB.address,
+    protocolShareReserve.address,
+    WBNB.address,
+    comptroller.address,
+    accessControl.address,
+  );
 
   const VBNBAdminAsVBNB = MockVBNB__factory.connect(VBNBAdmin.address, admin);
 
