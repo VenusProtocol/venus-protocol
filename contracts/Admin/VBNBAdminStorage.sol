@@ -35,6 +35,6 @@ contract VBNBAdminStorage {
     /// @notice address of comptroller contract
     address public comptroller;
 
-    /// @notice gap to prevent collision in inheritence
+    /// @dev gap to prevent collision in inheritence
     uint256[49] private __gap;
 }
