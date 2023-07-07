@@ -387,7 +387,9 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      */
     function _setVenusVAIVaultRate(uint venusVAIVaultRate_) external {
         ensureAdmin();
-        releaseToVault();
+        if (vaiVaultAddress != address(0)) {
+            releaseToVault();
+        }
         uint oldVenusVAIVaultRate = venusVAIVaultRate;
         venusVAIVaultRate = venusVAIVaultRate_;
         emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
@@ -402,7 +404,9 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) external {
         ensureAdmin();
         ensureNonzeroAddress(vault_);
-        releaseToVault();
+        if (vaiVaultAddress != address(0)) {
+            releaseToVault();
+        }
 
         vaiVaultAddress = vault_;
         releaseStartBlock = releaseStartBlock_;
