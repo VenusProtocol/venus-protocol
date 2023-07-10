@@ -48,13 +48,7 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControl.isAllowedToCall.returns(true);
 
-  await VBNBAdmin.initialize(
-    vBNB.address,
-    protocolShareReserve.address,
-    WBNB.address,
-    comptroller.address,
-    accessControl.address,
-  );
+  await VBNBAdmin.initialize(vBNB.address, protocolShareReserve.address, WBNB.address, accessControl.address);
 
   const VBNBAdminAsVBNB = MockVBNB__factory.connect(VBNBAdmin.address, admin);
 

@@ -21,13 +21,11 @@ contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acces
         VTokenInterface _vBNB,
         IProtocolShareReserve _protocolShareReserve,
         IWBNB _WBNB,
-        address _comptroller,
         address accessControlManager
     ) external initializer {
         vBNB = _vBNB;
         protocolShareReserve = _protocolShareReserve;
         WBNB = _WBNB;
-        comptroller = _comptroller;
 
         __ReentrancyGuard_init();
         __AccessControlled_init(accessControlManager);
@@ -56,7 +54,11 @@ contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acces
 
         uint256 balance = WBNB.balanceOf(address(this));
         WBNB.safeTransfer(address(protocolShareReserve), balance);
-        protocolShareReserve.updateAssetsState(comptroller, address(WBNB), IProtocolShareReserve.IncomeType.SPREAD);
+        protocolShareReserve.updateAssetsState(
+            vBNB.comptroller(),
+            address(WBNB),
+            IProtocolShareReserve.IncomeType.SPREAD
+        );
     }
 
     /**

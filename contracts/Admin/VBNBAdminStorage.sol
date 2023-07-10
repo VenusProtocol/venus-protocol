@@ -7,6 +7,8 @@ interface VTokenInterface {
     function _reduceReserves(uint reduceAmount) external returns (uint);
 
     function _acceptAdmin() external returns (uint);
+
+    function comptroller() external returns (address);
 }
 
 interface IWBNB is IERC20Upgradeable {
@@ -31,9 +33,6 @@ contract VBNBAdminStorage {
 
     /// @notice address of protocol share reserve contract
     IProtocolShareReserve public protocolShareReserve;
-
-    /// @notice address of comptroller contract
-    address public comptroller;
 
     /// @dev gap to prevent collision in inheritence
     uint256[49] private __gap;
