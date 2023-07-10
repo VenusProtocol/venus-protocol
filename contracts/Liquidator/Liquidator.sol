@@ -345,7 +345,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         vai.safeApprove(address(vaiController), 0);
         vai.safeApprove(address(vaiController), repayAmount);
 
-        (uint err, ) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
+        (uint256 err, ) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
         requireNoError(err);
     }
 
@@ -440,8 +440,8 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         theirs = seizedAmount - ours;
     }
 
-    function requireNoError(uint errCode) internal pure {
-        if (errCode == uint(0)) {
+    function requireNoError(uint256 errCode) internal pure {
+        if (errCode == uint256(0)) {
             return;
         }
 
