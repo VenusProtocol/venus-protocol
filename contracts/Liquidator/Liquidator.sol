@@ -380,7 +380,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
                 _reduceVTokenReserves(address(vTokenCollateral));
             }
         }
-        return (ours, theirs);
     }
 
     /// @dev Wrap BNB to wBNB and sends to protocol share reserve
@@ -428,7 +427,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         address from,
         address to,
         uint256 amount
-    ) internal returns (uint256 actualAmount) {
+    ) internal returns (uint256) {
         uint256 prevBalance = token.balanceOf(to);
         token.safeTransferFrom(from, to, amount);
         return token.balanceOf(to) - prevBalance;
@@ -439,7 +438,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 totalIncentive = comptroller.liquidationIncentiveMantissa();
         ours = (seizedAmount * treasuryPercentMantissa) / totalIncentive;
         theirs = seizedAmount - ours;
-        return (ours, theirs);
     }
 
     function requireNoError(uint errCode) internal pure {
