@@ -519,7 +519,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     /**
-     * @notice Pause Force Liquidation of VAI
+     * @notice Resume Force Liquidation of VAI
      */
     function resumeForceVAILiquidate() external {
         _checkAccessAllowed("resumeForceVAILiquidate()");
