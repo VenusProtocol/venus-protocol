@@ -29,7 +29,6 @@ contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Acces
         WBNB = _WBNB;
         comptroller = _comptroller;
 
-        __Ownable2Step_init();
         __ReentrancyGuard_init();
         __AccessControlled_init(accessControlManager);
     }

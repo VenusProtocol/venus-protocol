@@ -55,8 +55,6 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   const WBNBFactory = await smock.mock<WBNB__factory>("WBNB");
   const WBNB = await WBNBFactory.deploy();
 
-  console.log(WBNB.address);
-
   const VBNBAdminFactory = await ethers.getContractFactory("VBNBAdmin");
   const VBNBAdmin: VBNBAdmin = await VBNBAdminFactory.deploy();
 
