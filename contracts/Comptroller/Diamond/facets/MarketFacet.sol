@@ -95,7 +95,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
         uint[] memory results = new uint[](len);
         for (uint i; i < len; ++i) {
-            addToMarketInternal(VToken(vTokens[i]), msg.sender);
+            results[i] = uint(addToMarketInternal(VToken(vTokens[i]), msg.sender));
         }
 
         return results;
