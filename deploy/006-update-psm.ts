@@ -1,5 +1,3 @@
-import { parseUnits } from "ethers/lib/utils";
-import { artifacts, ethers } from "hardhat";
 import { Address, DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
