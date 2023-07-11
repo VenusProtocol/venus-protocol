@@ -345,7 +345,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         vai.safeApprove(address(vaiController), 0);
         vai.safeApprove(address(vaiController), repayAmount);
 
-        (uint err, ) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
+        (uint256 err, ) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
         requireNoError(err);
     }
 
@@ -380,7 +380,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
                 _reduceVTokenReserves(address(vTokenCollateral));
             }
         }
-        return (ours, theirs);
     }
 
     /// @dev Wrap BNB to wBNB and sends to protocol share reserve
@@ -428,7 +427,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         address from,
         address to,
         uint256 amount
-    ) internal returns (uint256 actualAmount) {
+    ) internal returns (uint256) {
         uint256 prevBalance = token.balanceOf(to);
         token.safeTransferFrom(from, to, amount);
         return token.balanceOf(to) - prevBalance;
@@ -439,11 +438,10 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         uint256 totalIncentive = comptroller.liquidationIncentiveMantissa();
         ours = (seizedAmount * treasuryPercentMantissa) / totalIncentive;
         theirs = seizedAmount - ours;
-        return (ours, theirs);
     }
 
-    function requireNoError(uint errCode) internal pure {
-        if (errCode == uint(0)) {
+    function requireNoError(uint256 errCode) internal pure {
+        if (errCode == uint256(0)) {
             return;
         }
 
@@ -519,7 +517,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     /**
-     * @notice Pause Force Liquidation of VAI
+     * @notice Resume Force Liquidation of VAI
      */
     function resumeForceVAILiquidate() external {
         _checkAccessAllowed("resumeForceVAILiquidate()");
