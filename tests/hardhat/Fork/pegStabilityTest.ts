@@ -76,10 +76,10 @@ async function deployPegStability(vTokenStable: string): Promise<PegStability> {
 // * Flow Validation Functions *
 // *****************************
 async function validateInitialization(psm: PegStability, vTokenStable: string, stableToken: string) {
-  expect(await psm.vaiAddress()).to.equal(Contracts.VAI);
+  expect(await psm.VAI_ADDRESS()).to.equal(Contracts.VAI);
   expect(await psm.comptroller()).to.equal(Contracts.Unitroller);
-  expect((await psm.vTokenAddress()).toLocaleLowerCase()).to.equal(vTokenStable.toLocaleLowerCase());
-  expect((await psm.stableTokenAddress()).toLocaleLowerCase()).to.equal(stableToken.toLocaleLowerCase());
+  expect((await psm.VTOKEN_ADDRESS()).toLocaleLowerCase()).to.equal(vTokenStable.toLocaleLowerCase());
+  expect((await psm.STABLE_TOKEN_ADDRESS()).toLocaleLowerCase()).to.equal(stableToken.toLocaleLowerCase());
   expect((await psm.venusTreasury()).toLocaleLowerCase()).to.equal(venusTreasury);
   expect(await psm.feeIn()).to.equal(feeIn);
   expect(await psm.feeOut()).to.equal(feeOut);
