@@ -16,6 +16,7 @@ interface VAI {
 
     function burn(address usr, uint wad) external;
 }
+
 interface DecimalProvider {
     function decimals() external view returns (uint8);
 }
