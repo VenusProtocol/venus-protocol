@@ -23,7 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
 
   const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
-  const vUSDTAddress = ADDRESSES[networkName].vUSDT;
+  const USDTAddress = ADDRESSES[networkName].USDT;
   const VAIAddress = ADDRESSES[networkName].VAI;
   const FEE_IN = 0;
   const FEE_OUT = 10; // 10bps
@@ -34,15 +34,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bscmainnet: "0xF322942f644A996A617BD29c16bd7d231d9F35E9", // Venus Treasury
   };
 
+  const oracleAddresses: { [network: string]: string } = {
+    bsctestnet: "0x3cD69251D04A28d887Ac14cbe2E14c52F3D57823",
+    bscmainnet: "0x6592b5DE802159F3E74B2486b091D11a8256ab8A", 
+  };
+
   const acmAddresses: { [network: string]: string } = {
     bsctestnet: "0x45f8a08F534f34A97187626E05d4b6648Eeaa9AA",
     bscmainnet: "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555",
   };
 
+  console.log("Oracle: " + oracleAddresses[networkName]);
+  console.log("USDTAddress: " + USDTAddress);
+
+
   await deploy("PegStability_USDT", {
     contract: "PegStability",
     from: deployer,
-    args: [vUSDTAddress, VAIAddress],
+    args: [USDTAddress, VAIAddress],
     log: true,
     autoMine: true,
     proxy: {
@@ -53,7 +62,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         args: [
           acmAddresses[networkName],
           treasuryAddresses[networkName],
-          ADDRESSES[networkName].Unitroller,
+          oracleAddresses[networkName],
           FEE_IN,
           FEE_OUT,
           VAI_MINT_CAP,
