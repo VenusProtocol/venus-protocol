@@ -44,9 +44,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bscmainnet: "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555",
   };
 
-  console.log("Oracle: " + oracleAddresses[networkName]);
-  console.log("USDTAddress: " + USDTAddress);
-
   await deploy("PegStability_USDT", {
     contract: "PegStability",
     from: deployer,
