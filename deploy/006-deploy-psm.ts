@@ -36,7 +36,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const oracleAddresses: { [network: string]: string } = {
     bsctestnet: "0x3cD69251D04A28d887Ac14cbe2E14c52F3D57823",
-    bscmainnet: "0x6592b5DE802159F3E74B2486b091D11a8256ab8A", 
+    bscmainnet: "0x6592b5DE802159F3E74B2486b091D11a8256ab8A",
   };
 
   const acmAddresses: { [network: string]: string } = {
@@ -46,7 +46,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log("Oracle: " + oracleAddresses[networkName]);
   console.log("USDTAddress: " + USDTAddress);
-
 
   await deploy("PegStability_USDT", {
     contract: "PegStability",

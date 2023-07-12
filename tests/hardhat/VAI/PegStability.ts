@@ -13,8 +13,8 @@ import {
   IPriceOracle,
   PegStability,
   PegStability__factory,
+  ResilientOracleInterface,
   VTreasury,
-  ResilientOracleInterface
 } from "../../../typechain";
 import { VAI } from "../../../typechain/contracts/Tokens/VAI";
 import { convertToUnit } from "./../../../helpers/utils";
