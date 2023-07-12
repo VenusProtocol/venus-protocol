@@ -1,3 +1,11 @@
+## [3.0.0-dev.13](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.12...v3.0.0-dev.13) (2023-07-12)
+
+
+### Bug Fixes
+
+* use hardhat 2.16.1 ([c5c0df2](https://github.com/VenusProtocol/venus-protocol/commit/c5c0df2175fcac8a9a7ed6bb16e245f16ab84b84))
+* use node 18 ([0eecc46](https://github.com/VenusProtocol/venus-protocol/commit/0eecc468d126558c1c68631be67b816daa48fadf))
+
 ## [3.0.0-dev.12](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.11...v3.0.0-dev.12) (2023-07-07)
 
 ## [3.0.0-dev.11](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.10...v3.0.0-dev.11) (2023-06-28)
