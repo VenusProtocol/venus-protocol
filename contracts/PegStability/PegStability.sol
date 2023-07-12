@@ -2,9 +2,10 @@
 pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 interface VAI {
     function balanceOf(address usr) external returns (uint256);
@@ -15,19 +16,6 @@ interface VAI {
 
     function burn(address usr, uint wad) external;
 }
-
-interface IPriceOracle {
-    function getUnderlyingPrice(address vToken) external view returns (uint256);
-}
-
-interface IVTokenUnderlying {
-    function underlying() external view returns (address);
-}
-
-interface OracleProviderInterface {
-    function oracle() external view returns (address);
-}
-
 interface DecimalProvider {
     function decimals() external view returns (uint8);
 }
@@ -55,9 +43,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     address public immutable VAI_ADDRESS;
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable STABLE_TOKEN_ADDRESS;
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable VTOKEN_ADDRESS; // vToken having as underlying the stableToken
-    address public comptroller; // used as a single point of truth for oracle address
+    ResilientOracleInterface public oracle;
     address public venusTreasury;
     uint256 public feeIn; // incoming VAI fee
     uint256 public feeOut; // outgoing VAI fee
@@ -83,8 +69,8 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     /// @notice Event emitted when venusTreasury state var is modified
     event VenusTreasuryChanged(address indexed oldTreasury, address indexed newTreasury);
 
-    /// @notice Event emitted when comptroller  state var is modified
-    event ComptrollerChanged(address indexed oldComptroller, address indexed newComptroller);
+    /// @notice Event emitted when oracle state var is modified
+    event OracleChanged(address indexed oldOracle, address indexed newOracle);
 
     /// @notice Event emitted when stable token is swapped for VAI
     event StableForVAISwapped(uint256 stableIn, uint256 vaiOut, uint256 fee);
@@ -101,16 +87,13 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address vTokenAddress_, address vaiAddress_) {
-        ensureNonzeroAddress(vTokenAddress_);
+    constructor(address stableTokenAddress_, address vaiAddress_) {
+        ensureNonzeroAddress(stableTokenAddress_);
         ensureNonzeroAddress(vaiAddress_);
 
-        address stableTokenAddress_ = IVTokenUnderlying(vTokenAddress_).underlying();
         uint256 decimals_ = DecimalProvider(stableTokenAddress_).decimals();
         require(decimals_ <= 18, "too much decimals");
         ONE_DOLLAR = 10 ** (36 - decimals_); // 1$ scaled to the decimals returned by our Oracle
-
-        VTOKEN_ADDRESS = vTokenAddress_;
         STABLE_TOKEN_ADDRESS = stableTokenAddress_;
         VAI_ADDRESS = vaiAddress_;
         _disableInitializers();
@@ -120,7 +103,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
      * @notice Initializes the contract via Proxy Contract with the required parameters
      * @param accessControlManager_ The address of the AccessControlManager contract
      * @param venusTreasury_ The address where fees will be sent
-     * @param comptroller_ The address of the Comptroller contract
+     * @param oracleAddress_ The address of the ResilientOracle contract
      * @param feeIn_ The percentage of fees to be applied to a stablecoin -> VAI swap
      * @param feeOut_ The percentage of fees to be applied to a VAI -> stablecoin swap
      * @param vaiMintCap_ The cap for the total amount of VAI that can be minted
@@ -128,15 +111,14 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     function initialize(
         address accessControlManager_,
         address venusTreasury_,
-        address comptroller_,
+        address oracleAddress_,
         uint256 feeIn_,
         uint256 feeOut_,
         uint256 vaiMintCap_
     ) external initializer {
         ensureNonzeroAddress(accessControlManager_);
         ensureNonzeroAddress(venusTreasury_);
-        ensureNonzeroAddress(comptroller_);
-        ensureNonzeroAddress(OracleProviderInterface(comptroller_).oracle());
+        ensureNonzeroAddress(oracleAddress_);
         __AccessControlled_init(accessControlManager_);
         __ReentrancyGuard_init();
 
@@ -147,7 +129,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         feeOut = feeOut_;
         vaiMintCap = vaiMintCap_;
         venusTreasury = venusTreasury_;
-        comptroller = comptroller_;
+        oracle = ResilientOracleInterface(oracleAddress_);
     }
 
     /*** Swap Functions ***/
@@ -308,18 +290,17 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @notice Set the address of the Comptroller contract from which we obtain the oracle address
-     * @dev Reverts if the new address is zero or the oracle address returned from Comptroller is zero
-     * @param comptroller_ The new address of the Comptroller contract
+     * @notice Set the address of the ResilientOracle contract
+     * @dev Reverts if the new address is zero
+     * @param oracleAddress_ The new address of the ResilientOracle contract
      */
-    // @custom:event Emits ComptrollerChanged event
-    function setComptroller(address comptroller_) external {
-        _checkAccessAllowed("setComptroller(address)");
-        ensureNonzeroAddress(comptroller_);
-        ensureNonzeroAddress(OracleProviderInterface(comptroller_).oracle());
-        address oldComptrollerAddress = comptroller;
-        comptroller = comptroller_;
-        emit ComptrollerChanged(oldComptrollerAddress, comptroller_);
+    // @custom:event Emits OracleChanged event
+    function setOracle(address oracleAddress_) external {
+        _checkAccessAllowed("setOracle(address)");
+        ensureNonzeroAddress(oracleAddress_);
+        address oldOracleAddress = address(oracle);
+        oracle = ResilientOracleInterface(oracleAddress_);
+        emit OracleChanged(oldOracleAddress, oracleAddress_);
     }
 
     /*** Helper Functions ***/
@@ -341,9 +322,8 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
      * @return The price in USD, adjusted based on the selected direction
      */
     function getPriceInUSD(FeeDirection direction) internal view returns (uint256) {
-        address priceOracleAddress = OracleProviderInterface(comptroller).oracle();
         // get price with a scale = (36 - asset_decimals)
-        uint256 price = IPriceOracle(priceOracleAddress).getUnderlyingPrice(VTOKEN_ADDRESS);
+        uint256 price = oracle.getPrice(STABLE_TOKEN_ADDRESS);
 
         if (direction == FeeDirection.IN) {
             // MIN(1, price)
