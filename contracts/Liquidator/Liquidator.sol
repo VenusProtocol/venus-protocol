@@ -502,6 +502,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
      */
     function setPendingRedeemChunkLength(uint256 newLength_) external {
         _checkAccessAllowed("setPendingRedeemChunkLength(uint256)");
+        require(newLength_ > 0, "Invalid chunk size");
         emit NewPendingRedeemChunkLength(pendingRedeemChunkLength, newLength_);
         pendingRedeemChunkLength = newLength_;
     }
