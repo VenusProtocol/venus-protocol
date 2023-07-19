@@ -526,4 +526,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         forceVAILiquidate = true;
         emit ForceVAILiquidationResumed(msg.sender);
     }
+
+    function renounceOwnership() public override {}
 }
