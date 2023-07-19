@@ -25,6 +25,9 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable wBNB;
 
+    /// @dev A unit (literal one) in EXP_SCALE, usually used in additions/subtractions
+    uint256 internal constant MANTISSA_ONE = 1e18;
+
     /* Events */
 
     /// @notice Emitted when the percent of the seized amount that goes to treasury changes.
@@ -393,7 +396,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
             wBNB,
             IProtocolShareReserve.IncomeType.LIQUIDATION
         );
-        emit ProtocolLiquidationIncentiveTransferred(msg.sender, address(wBNB), bnbBalance);
+        emit ProtocolLiquidationIncentiveTransferred(msg.sender, wBNB, bnbBalance);
     }
 
     /// @dev Redeem seized collateral to underlying assets
@@ -462,7 +465,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     function validateTreasuryPercentMantissa(uint256 treasuryPercentMantissa_) internal view {
-        uint256 maxTreasuryPercentMantissa = comptroller.liquidationIncentiveMantissa() - 1e18;
+        uint256 maxTreasuryPercentMantissa = comptroller.liquidationIncentiveMantissa() - MANTISSA_ONE;
         if (treasuryPercentMantissa_ > maxTreasuryPercentMantissa) {
             revert TreasuryPercentTooHigh(maxTreasuryPercentMantissa, treasuryPercentMantissa_);
         }
