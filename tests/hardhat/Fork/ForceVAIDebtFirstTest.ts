@@ -98,12 +98,6 @@ async function grantPermissions() {
   tx = await accessControlManager
     .connect(impersonatedTimelock)
     .giveCallPermission(LIQUIDATOR, "setPendingRedeemChunkLength(uint256)", NORMAL_TIMELOCK);
-  tx = await accessControlManager
-    .connect(impersonatedTimelock)
-    .giveCallPermission(UNITROLLER, "_setLiquidationIncentive(uint256)", NORMAL_TIMELOCK);
-  tx = await accessControlManager
-    .connect(impersonatedTimelock)
-    .giveCallPermission(LIQUIDATOR, "setTreasuryPercent(uint256)", NORMAL_TIMELOCK);
   await tx.wait();
 }
 
@@ -183,18 +177,6 @@ if (FORK_MAINNET) {
       expect(vaiDebt).to.greaterThan(minLiquidatableVAI);
 
       await liquidatorNew.connect(liquidatorSigner).liquidateBorrow(VAI_CONTROLLER, borrower, 100, VBNB);
-    });
-
-    it("Should fail if liquidation incentive is lower than treasury percentage", async () => {
-      const blockNumber = 27939619;
-      await setForkBlock(blockNumber);
-      await configure();
-      await comptroller.connect(impersonatedTimelock)._setLiquidationIncentive(convertToUnit("2.5", 18));
-      await liquidatorNew.connect(impersonatedTimelock).setTreasuryPercent(convertToUnit("1.3", 18));
-      await comptroller.connect(impersonatedTimelock)._setLiquidationIncentive(convertToUnit("1.1", 18));
-      await expect(
-        liquidatorNew.liquidateBorrow(VAI_CONTROLLER, "0x6B7a803BB85C7D1F67470C50358d11902d3169e0", 100, VBNB),
-      ).to.be.revertedWithCustomError(liquidatorNew, "TreasuryPercentTooHigh");
     });
   });
 }

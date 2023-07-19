@@ -242,7 +242,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     ) external payable nonReentrant {
         ensureNonzeroAddress(borrower);
         checkRestrictions(borrower, msg.sender);
-        validateTreasuryPercentMantissa(treasuryPercentMantissa);
         (bool isListed, , ) = IComptroller(comptroller).markets(address(vTokenCollateral));
         if (!isListed) {
             revert MarketNotListed(address(vTokenCollateral));
