@@ -66,12 +66,24 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
 
+    modifier compareAddress(address oldAddress, address newAddress) {
+        require(oldAddress != newAddress, "old address is same as new address");
+        _;
+    }
+
+    modifier compareValue(uint256 oldValue, uint256 newValue) {
+        require(oldValue != newValue, "old value is same as new value");
+        _;
+    }
+
     /**
      * @notice Sets a new price oracle for the comptroller
      * @dev Admin function to set a new price oracle
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setPriceOracle(PriceOracle newOracle) external returns (uint) {
+    function _setPriceOracle(
+        PriceOracle newOracle
+    ) external compareAddress(address(oracle), address(newOracle)) returns (uint) {
         // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(address(newOracle));
@@ -94,11 +106,14 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param newCloseFactorMantissa New close factor, scaled by 1e18
      * @return uint 0=success, otherwise will revert
      */
-    function _setCloseFactor(uint newCloseFactorMantissa) external returns (uint) {
+    function _setCloseFactor(
+        uint newCloseFactorMantissa
+    ) external compareValue(closeFactorMantissa, newCloseFactorMantissa) returns (uint) {
         // Check caller is admin
         ensureAdmin();
 
         uint oldCloseFactorMantissa = closeFactorMantissa;
+
         closeFactorMantissa = newCloseFactorMantissa;
         emit NewCloseFactor(oldCloseFactorMantissa, newCloseFactorMantissa);
 
@@ -111,12 +126,15 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param newAccessControlAddress New address for the access control
      * @return uint 0=success, otherwise will revert
      */
-    function _setAccessControl(address newAccessControlAddress) external returns (uint) {
+    function _setAccessControl(
+        address newAccessControlAddress
+    ) external compareAddress(accessControl, newAccessControlAddress) returns (uint) {
         // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(newAccessControlAddress);
 
         address oldAccessControlAddress = accessControl;
+
         accessControl = newAccessControlAddress;
         emit NewAccessControl(oldAccessControlAddress, newAccessControlAddress);
 
@@ -130,7 +148,14 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
      * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
      */
-    function _setCollateralFactor(VToken vToken, uint newCollateralFactorMantissa) external returns (uint) {
+    function _setCollateralFactor(
+        VToken vToken,
+        uint newCollateralFactorMantissa
+    )
+        external
+        compareValue(markets[address(vToken)].collateralFactorMantissa, newCollateralFactorMantissa)
+        returns (uint)
+    {
         // Check caller is allowed by access control manager
         ensureAllowed("_setCollateralFactor(address,uint256)");
         ensureNonzeroAddress(address(vToken));
@@ -168,7 +193,9 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
      */
-    function _setLiquidationIncentive(uint newLiquidationIncentiveMantissa) external returns (uint) {
+    function _setLiquidationIncentive(
+        uint newLiquidationIncentiveMantissa
+    ) external compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint) {
         ensureAllowed("_setLiquidationIncentive(uint256)");
 
         require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
@@ -184,7 +211,9 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         return uint(Error.NO_ERROR);
     }
 
-    function _setLiquidatorContract(address newLiquidatorContract_) external {
+    function _setLiquidatorContract(
+        address newLiquidatorContract_
+    ) external compareAddress(liquidatorContract, newLiquidatorContract_) {
         // Check caller is admin
         ensureAdmin();
         address oldLiquidatorContract = liquidatorContract;
@@ -197,7 +226,9 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param newPauseGuardian The address of the new Pause Guardian
      * @return uint 0=success, otherwise a failure. (See enum Error for details)
      */
-    function _setPauseGuardian(address newPauseGuardian) external returns (uint) {
+    function _setPauseGuardian(
+        address newPauseGuardian
+    ) external compareAddress(pauseGuardian, newPauseGuardian) returns (uint) {
         ensureAdmin();
         ensureNonzeroAddress(newPauseGuardian);
 
@@ -298,7 +329,9 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @dev Admin function to set a new VAI controller
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setVAIController(VAIControllerInterface vaiController_) external returns (uint) {
+    function _setVAIController(
+        VAIControllerInterface vaiController_
+    ) external compareAddress(address(vaiController), address(vaiController_)) returns (uint) {
         // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(address(vaiController_));
@@ -310,7 +343,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         return uint(Error.NO_ERROR);
     }
 
-    function _setVAIMintRate(uint newVAIMintRate) external returns (uint) {
+    function _setVAIMintRate(uint newVAIMintRate) external compareValue(vaiMintRate, newVAIMintRate) returns (uint) {
         // Check caller is admin
         ensureAdmin();
         uint oldVAIMintRate = vaiMintRate;
@@ -339,11 +372,18 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         return uint(Error.NO_ERROR);
     }
 
+    //----
     function _setTreasuryData(
         address newTreasuryGuardian,
         address newTreasuryAddress,
         uint newTreasuryPercent
-    ) external returns (uint) {
+    )
+        external
+        compareAddress(treasuryGuardian, newTreasuryGuardian)
+        compareAddress(treasuryAddress, newTreasuryAddress)
+        compareValue(treasuryPercent, newTreasuryPercent)
+        returns (uint)
+    {
         // Check caller is admin
         ensureAdminOr(treasuryGuardian);
 
@@ -371,7 +411,9 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     /**
      * @dev Set ComptrollerLens contract address
      */
-    function _setComptrollerLens(ComptrollerLensInterface comptrollerLens_) external returns (uint) {
+    function _setComptrollerLens(
+        ComptrollerLensInterface comptrollerLens_
+    ) external compareAddress(address(comptrollerLens), address(comptrollerLens_)) returns (uint) {
         ensureAdmin();
         ensureNonzeroAddress(address(comptrollerLens_));
         address oldComptrollerLens = address(comptrollerLens);
@@ -385,7 +427,9 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @notice Set the amount of XVS distributed per block to VAI Vault
      * @param venusVAIVaultRate_ The amount of XVS wei per block to distribute to VAI Vault
      */
-    function _setVenusVAIVaultRate(uint venusVAIVaultRate_) external {
+    function _setVenusVAIVaultRate(
+        uint venusVAIVaultRate_
+    ) external compareValue(venusVAIVaultRate, venusVAIVaultRate_) {
         ensureAdmin();
         if (vaiVaultAddress != address(0)) {
             releaseToVault();
@@ -401,7 +445,11 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param releaseStartBlock_ The start block of release to VAI Vault
      * @param minReleaseAmount_ The minimum release amount to VAI Vault
      */
-    function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) external {
+    function _setVAIVaultInfo(
+        address vault_,
+        uint256 releaseStartBlock_,
+        uint256 minReleaseAmount_
+    ) external compareAddress(vaiVaultAddress, vault_) {
         ensureAdmin();
         ensureNonzeroAddress(vault_);
         if (vaiVaultAddress != address(0)) {
