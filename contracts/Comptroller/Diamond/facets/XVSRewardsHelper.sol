@@ -31,16 +31,16 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
         uint borrowSpeed = venusBorrowSpeeds[vToken];
         uint blockNumber = getBlockNumber();
         uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
-        if (deltaBlocks > 0 && borrowSpeed > 0) {
+        if (deltaBlocks != 0 && borrowSpeed != 0) {
             uint borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
             uint venusAccrued = mul_(deltaBlocks, borrowSpeed);
-            Double memory ratio = borrowAmount > 0 ? fraction(venusAccrued, borrowAmount) : Double({ mantissa: 0 });
+            Double memory ratio = borrowAmount != 0 ? fraction(venusAccrued, borrowAmount) : Double({ mantissa: 0 });
             borrowState.index = safe224(
                 add_(Double({ mantissa: borrowState.index }), ratio).mantissa,
                 "new index exceeds 224 bits"
             );
             borrowState.block = uint32(blockNumber);
-        } else if (deltaBlocks > 0) {
+        } else if (deltaBlocks != 0) {
             borrowState.block = uint32(blockNumber);
         }
     }
@@ -55,16 +55,16 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
         uint blockNumber = getBlockNumber();
 
         uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
-        if (deltaBlocks > 0 && supplySpeed > 0) {
+        if (deltaBlocks != 0 && supplySpeed != 0) {
             uint supplyTokens = VToken(vToken).totalSupply();
             uint venusAccrued = mul_(deltaBlocks, supplySpeed);
-            Double memory ratio = supplyTokens > 0 ? fraction(venusAccrued, supplyTokens) : Double({ mantissa: 0 });
+            Double memory ratio = supplyTokens != 0 ? fraction(venusAccrued, supplyTokens) : Double({ mantissa: 0 });
             supplyState.index = safe224(
                 add_(Double({ mantissa: supplyState.index }), ratio).mantissa,
                 "new index exceeds 224 bits"
             );
             supplyState.block = uint32(blockNumber);
-        } else if (deltaBlocks > 0) {
+        } else if (deltaBlocks != 0) {
             supplyState.block = uint32(blockNumber);
         }
     }

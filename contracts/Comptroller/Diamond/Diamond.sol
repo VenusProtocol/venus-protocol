@@ -89,7 +89,7 @@ contract Diamond is ComptrollerV12Storage {
      * @param _functionSelectors Array of function selectors need to add in the mapping.
      */
     function addFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
-        require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
+        require(_functionSelectors.length != 0, "LibDiamondCut: No selectors in facet to cut");
         require(_facetAddress != address(0), "LibDiamondCut: Add facet can't be address(0)");
         uint96 selectorPosition = uint96(facetFunctionSelectors[_facetAddress].functionSelectors.length);
         // add new facet address if it does not exist
@@ -111,7 +111,7 @@ contract Diamond is ComptrollerV12Storage {
      * @param _functionSelectors Array of function selectors need to replace in the mapping.
      */
     function replaceFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
-        require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
+        require(_functionSelectors.length != 0, "LibDiamondCut: No selectors in facet to cut");
         require(_facetAddress != address(0), "LibDiamondCut: Add facet can't be address(0)");
         uint96 selectorPosition = uint96(facetFunctionSelectors[_facetAddress].functionSelectors.length);
         // add new facet address if it does not exist
@@ -134,7 +134,8 @@ contract Diamond is ComptrollerV12Storage {
      * @param _functionSelectors Array of function selectors need to remove in the mapping.
      */
     function removeFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
-        require(_functionSelectors.length > 0, "LibDiamondCut: No selectors in facet to cut");
+        uint256 functionSelectorsLength = _functionSelectors.length;
+        require(functionSelectorsLength != 0, "LibDiamondCut: No selectors in facet to cut");
         // if function does not exist then do nothing and revert
         require(_facetAddress == address(0), "LibDiamondCut: Remove facet address must be address(0)");
         for (uint256 selectorIndex; selectorIndex < _functionSelectors.length; selectorIndex++) {
@@ -207,7 +208,7 @@ contract Diamond is ComptrollerV12Storage {
         assembly {
             contractSize := extcodesize(_contract)
         }
-        require(contractSize > 0, _errorMessage);
+        require(contractSize != 0, _errorMessage);
     }
 
     // Find facet for function that is called and execute the
