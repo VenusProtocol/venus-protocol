@@ -137,7 +137,8 @@ contract RewardFacet is XVSRewardsHelper {
     ) public {
         uint j;
         uint256 holdersLength = holders.length;
-        for (uint i; i < vTokens.length; ++i) {
+        uint256 vTokensLength = vTokens.length;
+        for (uint i; i < vTokensLength; ++i) {
             VToken vToken = vTokens[i];
             ensureListed(markets[address(vToken)]);
             if (borrowers) {

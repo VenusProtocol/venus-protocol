@@ -205,7 +205,8 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     }
 
     function _addMarketInternal(VToken vToken) internal {
-        for (uint i; i < allMarkets.length; ++i) {
+        uint256 allMarketsLength = allMarkets.length;
+        for (uint i; i < allMarketsLength; ++i) {
             require(allMarkets[i] != vToken, "market already added");
         }
         allMarkets.push(vToken);
