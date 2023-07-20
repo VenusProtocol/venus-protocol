@@ -68,7 +68,8 @@ contract Diamond is ComptrollerV12Storage {
      * @param _diamondCut IDiamondCut contains facets address, action and function selectors.
      */
     function libDiamondCut(IDiamondCut.FacetCut[] memory _diamondCut) internal {
-        for (uint256 facetIndex; facetIndex < _diamondCut.length; facetIndex++) {
+        uint256 diamondCutLength = _diamondCut.length;
+        for (uint256 facetIndex; facetIndex < diamondCutLength; ++facetIndex) {
             IDiamondCut.FacetCutAction action = _diamondCut[facetIndex].action;
             if (action == IDiamondCut.FacetCutAction.Add) {
                 addFunctions(_diamondCut[facetIndex].facetAddress, _diamondCut[facetIndex].functionSelectors);
@@ -96,12 +97,13 @@ contract Diamond is ComptrollerV12Storage {
         if (selectorPosition == 0) {
             addFacet(_facetAddress);
         }
-        for (uint256 selectorIndex; selectorIndex < _functionSelectors.length; selectorIndex++) {
+        uint256 functionSelectorsLength = _functionSelectors.length;
+        for (uint256 selectorIndex; selectorIndex < functionSelectorsLength; ++selectorIndex) {
             bytes4 selector = _functionSelectors[selectorIndex];
             address oldFacetAddress = selectorToFacetAndPosition[selector].facetAddress;
             require(oldFacetAddress == address(0), "LibDiamondCut: Can't add function that already exists");
             addFunction(selector, selectorPosition, _facetAddress);
-            selectorPosition++;
+            ++selectorPosition;
         }
     }
 
@@ -118,13 +120,14 @@ contract Diamond is ComptrollerV12Storage {
         if (selectorPosition == 0) {
             addFacet(_facetAddress);
         }
-        for (uint256 selectorIndex; selectorIndex < _functionSelectors.length; selectorIndex++) {
+        uint256 functionSelectorsLength = _functionSelectors.length;
+        for (uint256 selectorIndex; selectorIndex < functionSelectorsLength; ++selectorIndex) {
             bytes4 selector = _functionSelectors[selectorIndex];
             address oldFacetAddress = selectorToFacetAndPosition[selector].facetAddress;
             require(oldFacetAddress != _facetAddress, "LibDiamondCut: Can't replace function with same function");
             removeFunction(oldFacetAddress, selector);
             addFunction(selector, selectorPosition, _facetAddress);
-            selectorPosition++;
+            ++selectorPosition;
         }
     }
 
@@ -138,7 +141,7 @@ contract Diamond is ComptrollerV12Storage {
         require(functionSelectorsLength != 0, "LibDiamondCut: No selectors in facet to cut");
         // if function does not exist then do nothing and revert
         require(_facetAddress == address(0), "LibDiamondCut: Remove facet address must be address(0)");
-        for (uint256 selectorIndex; selectorIndex < _functionSelectors.length; selectorIndex++) {
+        for (uint256 selectorIndex; selectorIndex < functionSelectorsLength; ++selectorIndex) {
             bytes4 selector = _functionSelectors[selectorIndex];
             address oldFacetAddress = selectorToFacetAndPosition[selector].facetAddress;
             removeFunction(oldFacetAddress, selector);
