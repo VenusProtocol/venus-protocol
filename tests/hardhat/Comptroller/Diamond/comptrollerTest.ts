@@ -65,10 +65,19 @@ async function configureVToken(vToken: FakeContract<VToken>, unitroller: MockCon
 describe("Comptroller", () => {
   let root: Signer;
   let accounts: Signer[];
+  let comptroller: ComptrollerMock;
 
   before(async () => {
     [root, ...accounts] = await ethers.getSigners();
   });
+
+  type FuncNames = keyof ComptrollerMock["functions"];
+
+  function testZeroAddress<Func extends FuncNames>(funcName: Func, args: Parameters<ComptrollerMock[Func]>) {
+    it(funcName, async () => {
+      await expect(comptroller[funcName](...args)).to.be.revertedWith("can't be zero address");
+    });
+  }
 
   describe("constructor", () => {
     it("on success it sets admin to creator and pendingAdmin is unset", async () => {
@@ -105,9 +114,16 @@ describe("Comptroller", () => {
         .withArgs(initialIncentive, validIncentive);
       expect(await comptroller.liquidationIncentiveMantissa()).to.equal(validIncentive);
     });
+
+    it("should revert on same values", async () => {
+      await comptroller._setLiquidationIncentive(validIncentive);
+      await expect(comptroller._setLiquidationIncentive(validIncentive)).to.be.revertedWith(
+        "old value is same as new value",
+      );
+    });
   });
 
-  describe("Non zero address check", () => {
+  describe("_setVenusVAIVaultRate", () => {
     let unitroller: Unitroller;
     let comptroller: ComptrollerMock;
 
@@ -116,21 +132,131 @@ describe("Comptroller", () => {
       comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     });
 
-    type FuncNames = keyof ComptrollerMock["functions"];
+    it("should revert on same values", async () => {
+      await expect(comptroller._setVenusVAIVaultRate(0)).to.be.revertedWith("old value is same as new value");
+    });
+  });
 
-    function testZeroAddress<Func extends FuncNames>(funcName: Func, args: Parameters<ComptrollerMock[Func]>) {
-      it(funcName, async () => {
-        await expect(comptroller[funcName](...args)).to.be.revertedWith("can't be zero address");
-      });
-    }
-    testZeroAddress("_setPriceOracle", [constants.AddressZero]);
-    testZeroAddress("_setCollateralFactor", [constants.AddressZero, 0]);
-    testZeroAddress("_setPauseGuardian", [constants.AddressZero]);
-    testZeroAddress("_setVAIController", [constants.AddressZero]);
-    testZeroAddress("_setTreasuryData", [constants.AddressZero, constants.AddressZero, 0]);
-    testZeroAddress("_setComptrollerLens", [constants.AddressZero]);
-    testZeroAddress("_setVAIVaultInfo", [constants.AddressZero, 0, 0]);
-    testZeroAddress("_setVenusSpeeds", [[constants.AddressZero], [0], [0]]);
+  describe("_setVAIVaultInfo", () => {
+    let unitroller: Unitroller;
+    let comptroller: ComptrollerMock;
+
+    beforeEach(async () => {
+      ({ unitroller } = await loadFixture(deploySimpleComptroller));
+      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
+    });
+
+    it("should revert on same values", async () => {
+      await expect(comptroller._setVAIVaultInfo(constants.AddressZero, 0, 0)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+      await comptroller._setVAIVaultInfo(accounts[0].address, 0, 0);
+      testZeroAddress("_setVAIVaultInfo", [constants.AddressZero, 0, 0]);
+    });
+  });
+
+  describe("_setVAIController", () => {
+    let unitroller: Unitroller;
+    let comptroller: ComptrollerMock;
+
+    beforeEach(async () => {
+      ({ unitroller } = await loadFixture(deploySimpleComptroller));
+      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
+    });
+
+    it("should revert on same values", async () => {
+      await expect(comptroller._setVAIController(constants.AddressZero)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+      await comptroller._setVAIController(accounts[0].address);
+      testZeroAddress("_setVAIController", [constants.AddressZero]);
+    });
+  });
+
+  describe("_setVAIMintRate", () => {
+    let unitroller: Unitroller;
+    let comptroller: ComptrollerMock;
+
+    beforeEach(async () => {
+      ({ unitroller } = await loadFixture(deploySimpleComptroller));
+      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
+    });
+
+    it("should revert on same values", async () => {
+      await expect(comptroller._setVAIMintRate(0)).to.be.revertedWith("old value is same as new value");
+    });
+  });
+
+  describe("_setLiquidatorContract", () => {
+    let unitroller: Unitroller;
+    let comptroller: ComptrollerMock;
+
+    beforeEach(async () => {
+      ({ unitroller } = await loadFixture(deploySimpleComptroller));
+      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
+    });
+
+    it("should revert on same values", async () => {
+      await expect(comptroller._setLiquidatorContract(constants.AddressZero)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+    });
+  });
+
+  describe("_setPauseGuardian", () => {
+    let unitroller: Unitroller;
+    let comptroller: ComptrollerMock;
+
+    beforeEach(async () => {
+      ({ unitroller } = await loadFixture(deploySimpleComptroller));
+      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
+    });
+
+    it("should revert on same values", async () => {
+      await expect(comptroller._setPauseGuardian(constants.AddressZero)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+      await comptroller._setPauseGuardian(accounts[0].address);
+      testZeroAddress("_setPauseGuardian", [constants.AddressZero]);
+    });
+  });
+
+  describe("_setTreasuryData", () => {
+    let unitroller: Unitroller;
+    let comptroller: ComptrollerMock;
+
+    beforeEach(async () => {
+      ({ unitroller } = await loadFixture(deploySimpleComptroller));
+      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
+    });
+
+    it("should revert on same values", async () => {
+      await expect(comptroller._setTreasuryData(constants.AddressZero, constants.AddressZero, 0)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+      await expect(comptroller._setTreasuryData(accounts[0].address, constants.AddressZero, 0)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+      await expect(comptroller._setTreasuryData(accounts[0].address, accounts[1].address, 0)).to.be.revertedWith(
+        "old value is same as new value",
+      );
+      await comptroller._setTreasuryData(accounts[0].address, accounts[0].address, 1);
+      testZeroAddress("_setTreasuryData", [constants.AddressZero, accounts[1].address, 0]);
+      testZeroAddress("_setTreasuryData", [accounts[0].address, accounts[1].address, 0]);
+    });
+  });
+
+  describe("_setVenusSpeeds", () => {
+    let unitroller: Unitroller;
+
+    beforeEach(async () => {
+      ({ unitroller } = await loadFixture(deploySimpleComptroller));
+      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
+    });
+
+    it("ensure non zero address for venus speeds", async () => {
+      testZeroAddress("_setVenusSpeeds", [[constants.AddressZero], [0], [0]]);
+    });
   });
 
   describe("_setPriceOracle", () => {
@@ -155,7 +281,7 @@ describe("Comptroller", () => {
     });
 
     it("fails if called by non-admin", async () => {
-      await expect(comptroller.connect(accounts[0])._setPriceOracle(oracle.address)).to.be.revertedWith(
+      await expect(comptroller.connect(accounts[0])._setPriceOracle(newOracle.address)).to.be.revertedWith(
         "only admin can",
       );
       expect(await comptroller.oracle()).to.equal(oracle.address);
@@ -166,6 +292,13 @@ describe("Comptroller", () => {
         .to.emit(unitroller, "NewPriceOracle")
         .withArgs(oracle.address, newOracle.address);
       expect(await comptroller.oracle()).to.equal(newOracle.address);
+    });
+
+    it("Should revert on same values", async () => {
+      await expect(comptroller._setPriceOracle(oracle.address)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+      testZeroAddress("_setPriceOracle", [constants.AddressZero]);
     });
   });
 
@@ -207,6 +340,15 @@ describe("Comptroller", () => {
         .to.emit(unitroller, "NewComptrollerLens")
         .withArgs(oldComptrollerLensAddress, comptrollerLens.address);
     });
+
+    it("should revert on same value", async () => {
+      const { comptroller, comptrollerLens } = await loadFixture(deploy);
+      await comptroller._setComptrollerLens(comptrollerLens.address);
+      await expect(comptroller._setComptrollerLens(comptrollerLens.address)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+      testZeroAddress("_setComptrollerLens", [constants.AddressZero]);
+    });
   });
 
   describe("_setCloseFactor", () => {
@@ -218,6 +360,10 @@ describe("Comptroller", () => {
 
     it("fails if not called by admin", async () => {
       await expect(comptroller.connect(accounts[0])._setCloseFactor(1)).to.be.revertedWith("only admin can");
+    });
+
+    it("should revert on same values", async () => {
+      await expect(comptroller._setCloseFactor(0)).to.be.revertedWith("old value is same as new value");
     });
   });
 
@@ -264,6 +410,14 @@ describe("Comptroller", () => {
         .to.emit(unitroller, "NewCollateralFactor")
         .withArgs(vToken.address, "0", half);
     });
+
+    it("should revert on same values", async () => {
+      await comptroller._supportMarket(vToken.address);
+      await comptroller._setCollateralFactor(vToken.address, half);
+      await expect(comptroller._setCollateralFactor(vToken.address, half)).to.be.revertedWith(
+        "old value is same as new value",
+      );
+    });
   });
 
   describe("_supportMarket", () => {
@@ -295,9 +449,9 @@ describe("Comptroller", () => {
       configureVToken(vToken2, unitroller);
     });
 
-    // it("fails if asset is not a VToken", async () => {
-    //   await expect(comptroller._supportMarket(token.address)).to.be.reverted;
-    // });
+    it("fails if asset is not a VToken", async () => {
+      await expect(comptroller._supportMarket(token.address)).to.be.reverted;
+    });
 
     it("succeeds and sets market", async () => {
       expect(await comptroller._supportMarket(vToken1.address))

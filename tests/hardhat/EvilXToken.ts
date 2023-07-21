@@ -155,8 +155,9 @@ describe("Evil Token test", async () => {
     await vDelegator3.deployed();
 
     vToken3 = await ethers.getContractAt("EvilXToken", vDelegator3.address);
-
     await unitroller._supportMarket(vToken3.address);
+
+    await unitroller._setCollateralFactor(vToken3.address, convertToUnit(cf2, 18));
     await unitroller._setCollateralFactor(vToken3.address, convertToUnit(cf3, 18));
     await priceOracle.setUnderlyingPrice(vToken2.address, convertToUnit(up3, 18));
 
