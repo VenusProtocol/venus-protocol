@@ -7,10 +7,10 @@ import { ethers } from "hardhat";
 import { convertToUnit } from "../../../helpers/utils";
 import {
   BEP20Harness,
-  Comptroller,
   ComptrollerLens,
   ComptrollerLens__factory,
-  Comptroller__factory,
+  ComptrollerMock,
+  ComptrollerMock__factory,
   IAccessControlManager,
   IProtocolShareReserve,
   InterestRateModelHarness,
@@ -33,7 +33,7 @@ type SetupProtocolFixture = {
   oracle: FakeContract<PriceOracle>;
   accessControl: FakeContract<IAccessControlManager>;
   comptrollerLens: MockContract<ComptrollerLens>;
-  comptroller: MockContract<Comptroller>;
+  comptroller: MockContract<ComptrollerMock>;
   usdt: BEP20Harness;
   vusdt: VBep20Harness;
   eth: BEP20Harness;
@@ -53,7 +53,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
-  const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+  const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
   const comptroller = await ComptrollerFactory.deploy();
   const comptrollerLens = await ComptrollerLensFactory.deploy();
   await comptroller._setAccessControl(accessControl.address);
