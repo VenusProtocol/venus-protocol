@@ -220,22 +220,21 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Sets the address of the access control of this contract
+     * @notice Sets the address of the access control manager of this contract
      * @dev Admin function to set the access control address
-     * @param newAccessControlAddress New address for the access control
+     * @param newAccessControlManagerAddress New address for the access control
      * @return uint 0=success, otherwise will revert
      */
-    function setAccessControl(address newAccessControlAddress) external returns (uint) {
+    function setAccessControlManager(address newAccessControlManagerAddress) external returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_ACCESS_CONTROL_OWNER_CHECK);
         }
 
-        require(newAccessControlAddress != address(0), "newAccessControlAddress is zero address");
+        require(newAccessControlManagerAddress != address(0), "newAccessControlManagerAddress is zero address");
 
-        address oldAccessControlAddress = accessControl;
-        accessControl = newAccessControlAddress;
-        emit NewAccessControl(oldAccessControlAddress, accessControl);
+        emit NewAccessControl(accessControlManager, newAccessControlManagerAddress);
+        accessControlManager = newAccessControlManagerAddress;
 
         return uint(Error.NO_ERROR);
     }
@@ -1048,10 +1047,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param borrower The borrower, on behalf of whom to borrow
      * @param receiver The account that would receive the funds (can be the same as the borrower)
      * @param borrowAmount The amount of the underlying asset to borrow
-     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     * @return uint Returns 0 on success, otherwise revert (see ErrorReporter.sol for details).
      */
     function borrowFresh(address borrower, address payable receiver, uint borrowAmount) internal returns (uint) {
-        /* Fail if borrow not allowed */
+        /* Revert if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
             revert("math error");
@@ -1062,7 +1061,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             revert("math error");
         }
 
-        /* Fail gracefully if protocol has insufficient underlying cash */
+        /* Revert if protocol has insufficient underlying cash */
         if (getCashPrior() < borrowAmount) {
             revert("math error");
         }
@@ -1677,7 +1676,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     function ensureAllowed(string memory functionSig) private view {
-        require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+        require(IAccessControlManager(accessControlManager).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /*** Safe Token ***/

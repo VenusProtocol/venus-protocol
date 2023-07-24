@@ -45,7 +45,7 @@ async function configure() {
 
   await vBusdProxy.connect(impersonatedTimelock)._setImplementation(vBusdImpl.address, true, "0x00");
   vBusd = VBep20Delegate__factory.connect(VBUSD, impersonatedTimelock);
-  await vBusd.setAccessControl(ACM);
+  await vBusd.setAccessControlManager(ACM);
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   await vBusd.connect(impersonatedTimelock).setReduceReservesBlockDelta(1000);
   await vBusd.connect(impersonatedTimelock).setProtcolShareReserve(protocolShareReserve.address);

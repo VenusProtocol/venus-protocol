@@ -153,7 +153,7 @@ contract VTokenStorageBase {
      * @notice address of accessControlManager
      */
 
-    address public accessControl;
+    address public accessControlManager;
 }
 
 contract VTokenStorage is VTokenStorageBase {
