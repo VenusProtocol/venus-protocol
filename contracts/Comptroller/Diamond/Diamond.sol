@@ -8,6 +8,11 @@ import "../Unitroller.sol";
 contract Diamond is ComptrollerV12Storage {
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
 
+    struct Facet {
+        address facetAddress;
+        bytes4[] functionSelectors;
+    }
+
     /**
      * @notice Call _acceptImplementation to accept the diamond proxy as new implementaion.
      * @param unitroller Address of the unitroller.
@@ -61,6 +66,20 @@ contract Diamond is ComptrollerV12Storage {
         bytes4 _functionSelector
     ) external view returns (ComptrollerV12Storage.FacetAddressAndPosition memory) {
         return selectorToFacetAndPosition[_functionSelector];
+    }
+
+    /**
+     * @notice Get all facets address and their function selector
+     * @return facets Array of Facet
+     */
+    function getAllFacets() external view returns (Facet[] memory facets) {
+        uint facetsLength = facetAddresses.length;
+        facets = new Facet[](facetsLength);
+        for (uint256 i; i < facetsLength; ++i) {
+            address facetAddress = facetAddresses[i];
+            facets[i].facetAddress = facetAddress;
+            facets[i].functionSelectors = facetFunctionSelectors[facetAddress].functionSelectors;
+        }
     }
 
     /**

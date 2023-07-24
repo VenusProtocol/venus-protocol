@@ -76,6 +76,11 @@ describe("Comptroller", async () => {
     expect(facetsAddress[0]).to.equal(facetCutParams[0].facetAddress);
   });
 
+  it("Get all facets address and their selectors", async () => {
+    const facets = await diamondHarness.getAllFacets();
+    expect(facets[0].facetAddress).to.equal(facetCutParams[0].facetAddress);
+  });
+
   it("Get facet address and position by function selector", async () => {
     const facetsAddressAndPosition = await diamondHarness.getFacetAddressAndPosition(
       facetCutParams[0].functionSelectors[1],
