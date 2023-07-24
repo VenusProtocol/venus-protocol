@@ -8,7 +8,7 @@ import {
   Comptroller,
   ComptrollerLens__factory,
   Comptroller__factory,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   VAIControllerHarness__factory,
 } from "../../../typechain";
 import { SimplePriceOracle } from "../../../typechain";
@@ -30,7 +30,7 @@ const BLOCKS_PER_YEAR = 1000;
 
 interface ComptrollerFixture {
   usdt: BEP20Harness;
-  accessControl: FakeContract<IAccessControlManager>;
+  accessControl: FakeContract<IAccessControlManagerV5>;
   comptroller: MockContract<Comptroller>;
   priceOracle: SimplePriceOracle;
   vai: VAIScenario;
@@ -44,7 +44,7 @@ describe("VAIController", async () => {
   let wallet: Wallet;
   let treasuryGuardian: Wallet;
   let treasuryAddress: Wallet;
-  let accessControl: FakeContract<IAccessControlManager>;
+  let accessControl: FakeContract<IAccessControlManagerV5>;
   let comptroller: MockContract<Comptroller>;
   let priceOracle: SimplePriceOracle;
   let vai: VAIScenario;
@@ -536,9 +536,7 @@ describe("VAIController", async () => {
     });
 
     it("emits NewAccessControl event", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>(
-        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-      );
+      const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
       const tx = await vaiController.setAccessControl(newAccessControl.address);
       await expect(tx)
         .to.emit(vaiController, "NewAccessControl")
@@ -546,9 +544,7 @@ describe("VAIController", async () => {
     });
 
     it("sets ACM address in storage", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>(
-        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-      );
+      const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
       await vaiController.setAccessControl(newAccessControl.address);
       expect(await vaiController.getVariable("accessControl")).to.equal(newAccessControl.address);
     });

@@ -3,11 +3,9 @@ pragma solidity ^0.5.16;
 import "../../Oracle/PriceOracle.sol";
 import "../../Utils/ErrorReporter.sol";
 import "../../Utils/Exponential.sol";
-import "../../Comptroller/ComptrollerStorage.sol";
 import { Comptroller } from "../../Comptroller/Comptroller.sol";
-import "../../Governance/IAccessControlManager.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 import "../VTokens/VToken.sol";
-import "./VAIControllerStorage.sol";
 import "./VAIUnitroller.sol";
 import "./VAI.sol";
 
@@ -787,7 +785,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     function _ensureAllowed(string memory functionSig) private view {
-        require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+        require(IAccessControlManagerV5(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /// @notice Reverts if the passed address is zero

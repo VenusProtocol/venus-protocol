@@ -4,7 +4,7 @@ import chai from "chai";
 import { Signer } from "ethers";
 import { ethers, network } from "hardhat";
 
-import { IAccessControlManager, XVS, XVSStore, XVSVault, XVSVault__factory } from "../../../typechain";
+import { IAccessControlManagerV5, XVS, XVSStore, XVSVault, XVSVault__factory } from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -40,7 +40,7 @@ async function xvsVaultFixture(): Promise<XVSVaultFixture> {
   const xvsVault = await XVSVault.deploy();
   const xvsStore = await smock.fake<XVSStore>("XVSStore");
   const xvsToken = await smock.fake<XVS>("XVS");
-  const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControl.isAllowedToCall.returns(true);
   await xvsVault.setAccessControl(accessControl.address);
   return { xvsVault, xvsStore, xvsToken };

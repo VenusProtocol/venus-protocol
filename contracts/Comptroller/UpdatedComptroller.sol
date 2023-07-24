@@ -5,7 +5,7 @@ import "../Tokens/VTokens/VToken.sol";
 import "../Utils/ErrorReporter.sol";
 import "../Tokens/XVS/XVS.sol";
 import "../Tokens/VAI/VAI.sol";
-import "../Governance/IAccessControlManager.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 import "./ComptrollerLensInterface.sol";
 import "./UpdatedComptrollerInterface.sol";
 import "./ComptrollerStorage.sol";
@@ -166,7 +166,7 @@ contract UpdatedComptroller is
     }
 
     function ensureAllowed(string memory functionSig) private view {
-        require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+        require(IAccessControlManagerV5(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /*** Assets You Are In ***/

@@ -5,11 +5,9 @@ import "../Tokens/VTokens/VToken.sol";
 import "../Utils/ErrorReporter.sol";
 import "../Tokens/XVS/XVS.sol";
 import "../Tokens/VAI/VAI.sol";
-import "../Governance/IAccessControlManager.sol";
 import "./ComptrollerLensInterface.sol";
-import "./ComptrollerInterface.sol";
-import "./ComptrollerStorage.sol";
 import "./Unitroller.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 
 /**
  * @title Venus's Comptroller Contract
@@ -160,7 +158,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
     }
 
     function ensureAllowed(string memory functionSig) private view {
-        require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+        require(IAccessControlManagerV5(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /*** Assets You Are In ***/

@@ -2,7 +2,7 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import chai from "chai";
 import { ethers, network } from "hardhat";
 
-import { Comptroller, Comptroller__factory, IAccessControlManager, VToken } from "../../../typechain";
+import { Comptroller, Comptroller__factory, IAccessControlManagerV5, VToken } from "../../../typechain";
 import { convertToUnit } from "./../../../helpers/utils";
 
 const { expect } = chai;
@@ -10,14 +10,14 @@ chai.use(smock.matchers);
 
 describe("Comptroller", () => {
   let comptroller: MockContract<Comptroller>;
-  let accessControl: FakeContract<IAccessControlManager>;
+  let accessControl: FakeContract<IAccessControlManagerV5>;
   let vToken1: FakeContract<VToken>;
   let vToken2: FakeContract<VToken>;
 
   beforeEach(async () => {
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     comptroller = await ComptrollerFactory.deploy();
-    accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+    accessControl = await smock.fake<IAccessControlManagerV5>("AccessControlManager");
     vToken1 = await smock.fake<VToken>("VToken");
     vToken2 = await smock.fake<VToken>("VToken");
 

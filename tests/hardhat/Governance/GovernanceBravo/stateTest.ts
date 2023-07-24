@@ -41,7 +41,7 @@ async function governorBravoFixture(): Promise<GovernorBravoDelegateFixture> {
   const xvsVault = await smock.fake<XVSVault>("XVSVault");
   const xvsStore = await smock.fake<XVSStore>("XVSStore");
   const xvsToken = await smock.fake<XVS>("XVS");
-  const timelock = await smock.fake<Timelock>("Timelock");
+  const timelock = await smock.fake<Timelock>("TimelockInterface");
   return { governorBravoDelegate, xvsVault, xvsStore, xvsToken, timelock };
 }
 

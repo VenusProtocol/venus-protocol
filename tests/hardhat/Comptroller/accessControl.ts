@@ -1,9 +1,10 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
+import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 import chai from "chai";
 import { Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
-import { Comptroller, Comptroller__factory, IAccessControlManager } from "../../../typechain";
+import { Comptroller, Comptroller__factory } from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -12,7 +13,7 @@ describe("Comptroller", () => {
   let user: Signer;
   let userAddress: string;
   let comptroller: MockContract<Comptroller>;
-  let accessControl: FakeContract<IAccessControlManager>;
+  let accessControl: FakeContract<IAccessControlManagerV5>;
 
   beforeEach(async () => {
     const signers = await ethers.getSigners();
@@ -20,7 +21,7 @@ describe("Comptroller", () => {
     userAddress = await user.getAddress();
     const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
     comptroller = await ComptrollerFactory.deploy();
-    accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+    accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   });
 
   describe("_setAccessControlManager", () => {
