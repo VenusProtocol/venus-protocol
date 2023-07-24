@@ -1,3 +1,5 @@
+import "module-alias/register";
+
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-ethers";
@@ -11,6 +13,7 @@ import { HardhatUserConfig, task } from "hardhat/config";
 import "solidity-docgen";
 import "solidity-docgen";
 
+require("hardhat-contract-sizer");
 require("dotenv").config();
 
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
@@ -76,7 +79,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000,
+            runs: 200,
           },
           outputSelection: {
             "*": {
@@ -99,10 +102,11 @@ const config: HardhatUserConfig = {
       gasMultiplier: 10,
       timeout: 12000000,
     },
-    // currently not used, we are still using saddle to deploy contracts
     bscmainnet: {
-      url: `https://bsc-dataseed.binance.org/`,
-      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+      url: "http://127.0.0.1:1248",
+      chainId: 56,
+      live: true,
+      timeout: 1200000, // 20 minutes
     },
   },
   etherscan: {
@@ -151,7 +155,7 @@ function isFork() {
           blockNumber: 21068448,
         },
         accounts: {
-          accountsBalance: "1000000000000000000",
+          accountsBalance: "1000000000000000000000",
         },
         live: false,
       }

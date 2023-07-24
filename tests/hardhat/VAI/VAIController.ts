@@ -5,9 +5,9 @@ import { BigNumber, Wallet, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import {
-  Comptroller,
   ComptrollerLens__factory,
-  Comptroller__factory,
+  ComptrollerMock,
+  ComptrollerMock__factory,
   IAccessControlManager,
   VAIControllerHarness__factory,
 } from "../../../typechain";
@@ -31,7 +31,7 @@ const BLOCKS_PER_YEAR = 1000;
 interface ComptrollerFixture {
   usdt: BEP20Harness;
   accessControl: FakeContract<IAccessControlManager>;
-  comptroller: MockContract<Comptroller>;
+  comptroller: MockContract<ComptrollerMock>;
   priceOracle: SimplePriceOracle;
   vai: VAIScenario;
   vaiController: MockContract<VAIControllerHarness>;
@@ -45,7 +45,7 @@ describe("VAIController", async () => {
   let treasuryGuardian: Wallet;
   let treasuryAddress: Wallet;
   let accessControl: FakeContract<IAccessControlManager>;
-  let comptroller: MockContract<Comptroller>;
+  let comptroller: MockContract<ComptrollerMock>;
   let priceOracle: SimplePriceOracle;
   let vai: VAIScenario;
   let vaiController: MockContract<VAIControllerHarness>;
@@ -65,10 +65,12 @@ describe("VAIController", async () => {
       "BEP20 usdt",
     )) as BEP20Harness;
 
-    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+    const accessControl = await smock.fake<IAccessControlManager>(
+      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
+    );
     accessControl.isAllowedToCall.returns(true);
 
-    const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+    const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
     const comptroller = await ComptrollerFactory.deploy();
 
     const priceOracleFactory = await ethers.getContractFactory("SimplePriceOracle");
@@ -88,7 +90,6 @@ describe("VAIController", async () => {
 
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setVAIController(vaiController.address);
@@ -288,7 +289,7 @@ describe("VAIController", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
 
       const TEMP_BLOCKS_PER_YEAR = 100000;
-      vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
+      await vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
 
       await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
@@ -455,8 +456,8 @@ describe("VAIController", async () => {
 
   describe("#setBaseRate", async () => {
     it("fails if access control does not allow the call", async () => {
-      accessControl.isAllowedToCall.whenCalledWith(user1.address, "setBaseRate(uint256)").returns(false);
-      expect(vaiController.setBaseRate(42)).to.be.revertedWith("access denied");
+      accessControl.isAllowedToCall.whenCalledWith(wallet.address, "setBaseRate(uint256)").returns(false);
+      await expect(vaiController.setBaseRate(42)).to.be.revertedWith("access denied");
     });
 
     it("emits NewVAIBaseRate event", async () => {
@@ -472,8 +473,8 @@ describe("VAIController", async () => {
 
   describe("#setFloatRate", async () => {
     it("fails if access control does not allow the call", async () => {
-      accessControl.isAllowedToCall.whenCalledWith(user1.address, "setFloatRate(uint256)").returns(false);
-      expect(vaiController.setFloatRate(42)).to.be.revertedWith("access denied");
+      accessControl.isAllowedToCall.whenCalledWith(wallet.address, "setFloatRate(uint256)").returns(false);
+      await expect(vaiController.setFloatRate(42)).to.be.revertedWith("access denied");
     });
 
     it("emits NewVAIFloatRate event", async () => {
@@ -489,8 +490,8 @@ describe("VAIController", async () => {
 
   describe("#setMintCap", async () => {
     it("fails if access control does not allow the call", async () => {
-      accessControl.isAllowedToCall.whenCalledWith(user1.address, "setMintCap(uint256)").returns(false);
-      expect(vaiController.setMintCap(42)).to.be.revertedWith("access denied");
+      accessControl.isAllowedToCall.whenCalledWith(wallet.address, "setMintCap(uint256)").returns(false);
+      await expect(vaiController.setMintCap(42)).to.be.revertedWith("access denied");
     });
 
     it("emits NewVAIMintCap event", async () => {
@@ -506,11 +507,11 @@ describe("VAIController", async () => {
 
   describe("#setReceiver", async () => {
     it("fails if called by a non-admin", async () => {
-      expect(vaiController.connect(user1).setReceiver(user1.address)).to.be.revertedWith("only admin can");
+      await expect(vaiController.connect(user1).setReceiver(user1.address)).to.be.revertedWith("only admin can");
     });
 
     it("reverts if the receiver is zero address", async () => {
-      expect(vaiController.setReceiver(constants.AddressZero)).to.be.revertedWith("invalid receiver address");
+      await expect(vaiController.setReceiver(constants.AddressZero)).to.be.revertedWith("invalid receiver address");
     });
 
     it("emits NewVAIReceiver event", async () => {
@@ -526,11 +527,13 @@ describe("VAIController", async () => {
 
   describe("#setAccessControl", async () => {
     it("reverts if called by non-admin", async () => {
-      expect(vaiController.connect(user1).setAccessControl(accessControl.address)).to.be.revertedWith("only admin can");
+      await expect(vaiController.connect(user1).setAccessControl(accessControl.address)).to.be.revertedWith(
+        "only admin can",
+      );
     });
 
     it("reverts if ACM is zero address", async () => {
-      expect(vaiController.setAccessControl(constants.AddressZero)).to.be.revertedWith("can't be zero address");
+      await expect(vaiController.setAccessControl(constants.AddressZero)).to.be.revertedWith("can't be zero address");
     });
 
     it("emits NewAccessControl event", async () => {

@@ -1,7 +1,8 @@
 import { MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { Signer, constants } from "ethers";
+import { constants } from "ethers";
 import { ethers } from "hardhat";
 
 import { Unitroller, Unitroller__factory } from "../../../typechain";
@@ -11,8 +12,8 @@ const { expect } = chai;
 chai.use(smock.matchers);
 
 describe("admin / _setPendingAdmin / _acceptAdmin", () => {
-  let root: Signer;
-  let accounts: Signer[];
+  let root: SignerWithAddress;
+  let accounts: SignerWithAddress[];
   let unitroller: MockContract<Unitroller>;
 
   async function unitrollerFixture(): Promise<MockContract<Unitroller>> {
@@ -28,7 +29,7 @@ describe("admin / _setPendingAdmin / _acceptAdmin", () => {
 
   describe("admin()", () => {
     it("should return correct admin", async () => {
-      expect(await unitroller.admin()).to.equal(await root.getAddress());
+      expect(await unitroller.admin()).to.equal(root.address);
     });
   });
 
@@ -40,87 +41,86 @@ describe("admin / _setPendingAdmin / _acceptAdmin", () => {
 
   describe("_setPendingAdmin()", () => {
     it("should only be callable by admin", async () => {
-      expect(await unitroller.connect(accounts[0])._setPendingAdmin(await accounts[0].getAddress()))
+      await expect(await unitroller.connect(accounts[0])._setPendingAdmin(accounts[0].address))
         .to.emit(unitroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.UNAUTHORIZED,
           ComptrollerErrorReporter.FailureInfo.SET_PENDING_ADMIN_OWNER_CHECK,
+          0,
         );
 
       // Check admin stays the same
-      expect(await unitroller.admin()).to.equal(await root.getAddress());
+      expect(await unitroller.admin()).to.equal(root.address);
       expect(await unitroller.pendingAdmin()).to.equal(constants.AddressZero);
     });
 
     it("should properly set pending admin", async () => {
-      expect(await unitroller._setPendingAdmin(await accounts[0].getAddress())); //.toSucceed();
+      expect(await unitroller._setPendingAdmin(accounts[0].address)); //.toSucceed();
 
       // Check admin stays the same
-      expect(await unitroller.admin()).to.equal(await root.getAddress());
-      expect(await unitroller.pendingAdmin()).to.equal(await accounts[0].getAddress());
+      expect(await unitroller.admin()).to.equal(root.address);
+      expect(await unitroller.pendingAdmin()).to.equal(accounts[0].address);
     });
 
     it("should properly set pending admin twice", async () => {
-      expect(await unitroller._setPendingAdmin(await accounts[0].getAddress())); //.toSucceed();
-      expect(await unitroller._setPendingAdmin(await accounts[1].getAddress())); //.toSucceed();
+      expect(await unitroller._setPendingAdmin(accounts[0].address)); //.toSucceed();
+      expect(await unitroller._setPendingAdmin(accounts[1].address)); //.toSucceed();
 
       // Check admin stays the same
-      expect(await unitroller.admin()).to.equal(await root.getAddress());
-      expect(await unitroller.pendingAdmin()).to.equal(await accounts[1].getAddress());
+      expect(await unitroller.admin()).to.equal(root.address);
+      expect(await unitroller.pendingAdmin()).to.equal(accounts[1].address);
     });
 
     it("should emit event", async () => {
-      const result = await unitroller._setPendingAdmin(await accounts[0].getAddress());
-      expect(result).to.emit(unitroller, "NewPendingAdmin").withArgs(constants.AddressZero, constants.AddressZero);
+      const result = await unitroller._setPendingAdmin(accounts[0].address);
+      await expect(result).to.emit(unitroller, "NewPendingAdmin").withArgs(constants.AddressZero, accounts[0].address);
     });
   });
 
   describe("_acceptAdmin()", () => {
     it("should fail when pending admin is zero", async () => {
-      expect(await unitroller._acceptAdmin())
+      await expect(await unitroller._acceptAdmin())
         .to.emit(unitroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.UNAUTHORIZED,
           ComptrollerErrorReporter.FailureInfo.ACCEPT_ADMIN_PENDING_ADMIN_CHECK,
+          0,
         );
 
       // Check admin stays the same
-      expect(await unitroller.admin()).to.equal(await root.getAddress());
+      expect(await unitroller.admin()).to.equal(root.address);
       expect(await unitroller.pendingAdmin()).to.equal(constants.AddressZero);
     });
 
     it("should fail when called by another account (e.g. root)", async () => {
-      expect(await unitroller._setPendingAdmin(await accounts[0].getAddress())); //.toSucceed();
-      expect(await unitroller._acceptAdmin())
+      expect(await unitroller._setPendingAdmin(accounts[0].address)); //.toSucceed();
+      await expect(await unitroller._acceptAdmin())
         .to.emit(unitroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.UNAUTHORIZED,
           ComptrollerErrorReporter.FailureInfo.ACCEPT_ADMIN_PENDING_ADMIN_CHECK,
+          0,
         );
 
       // Check admin stays the same
-      expect(await unitroller.admin()).to.equal(await root.getAddress());
-      expect(await unitroller.pendingAdmin()).to.equal(await accounts[0].getAddress());
+      expect(await unitroller.admin()).to.equal(root.address);
+      expect(await unitroller.pendingAdmin()).to.equal(accounts[0].address);
     });
 
     it("should succeed and set admin and clear pending admin", async () => {
-      await unitroller._setPendingAdmin(await accounts[0].getAddress());
+      await unitroller._setPendingAdmin(accounts[0].address);
       await unitroller.connect(accounts[0])._acceptAdmin();
 
       // Check admin stays the same
-      expect(await unitroller.admin()).to.equal(await accounts[0].getAddress());
+      expect(await unitroller.admin()).to.equal(accounts[0].address);
       expect(await unitroller.pendingAdmin()).to.equal(constants.AddressZero);
     });
 
     it("should emit log on success", async () => {
-      expect(await unitroller._setPendingAdmin(await accounts[0].getAddress())); //..toSucceed();
+      expect(await unitroller._setPendingAdmin(accounts[0].address)); //..toSucceed();
       const result = await unitroller.connect(accounts[0])._acceptAdmin();
-      expect(result)
-        .to.emit(unitroller, "NewAdmin")
-        .withArgs(await root.getAddress(), await accounts[0].getAddress());
-      expect(result)
-        .to.emit(unitroller, "NewPendingAdmin")
-        .withArgs(await accounts[0].getAddress(), constants.AddressZero);
+      await expect(result).to.emit(unitroller, "NewAdmin").withArgs(root.address, accounts[0].address);
+      await expect(result).to.emit(unitroller, "NewPendingAdmin").withArgs(accounts[0].address, constants.AddressZero);
     });
   });
 });

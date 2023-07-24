@@ -5,7 +5,7 @@ import { BigNumber, BigNumberish } from "ethers";
 import { parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 
-import { Comptroller, Comptroller__factory, VAIController, VAIController__factory } from "../../../typechain";
+import { ComptrollerMock, Comptroller__factory, VAIController, VAIController__factory } from "../../../typechain";
 import { forking, testVip } from "./vip-framework";
 import GOVERNOR_V3_ABI from "./vip-framework/abi/governorV3Abi.json";
 import { initMainnetUser } from "./vip-framework/utils";
@@ -122,7 +122,7 @@ forking(24265539, () => {
   describe("VIP-80 Post-upgrade behavior", async () => {
     const BLOCKS_PER_YEAR = 10512000n;
     const interestPerBlock = parseUnits("0.01", 18).div(BLOCKS_PER_YEAR);
-    let comptroller: Comptroller;
+    let comptroller: ComptrollerMock;
     let vaiController: VAIController;
     let vaiUser: SignerWithAddress;
 
@@ -132,7 +132,7 @@ forking(24265539, () => {
     };
 
     const postUpgradeFixture = async () => {
-      comptroller = await ethers.getContractAt<Comptroller__factory>("Comptroller", COMPTROLLER_PROXY);
+      comptroller = await ethers.getContractAt<Comptroller__factory>("ComptrollerMock", COMPTROLLER_PROXY);
       vaiController = await ethers.getContractAt<VAIController__factory>("VAIController", VAI_CONTROLLER_PROXY);
       const someVaiUserAddress = "0x5c062b3b0486f61789d680cae37909b92c0dacc5";
       vaiUser = await initMainnetUser(someVaiUserAddress, parseEther("1.0"));

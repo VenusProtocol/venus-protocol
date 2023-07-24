@@ -671,7 +671,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         accountTokens[minter] = vars.accountTokensNew;
 
         /* We emit a Mint event, and a Transfer event */
-        emit Mint(minter, vars.actualMintAmount, vars.mintTokens);
+        emit Mint(minter, vars.actualMintAmount, vars.mintTokens, vars.accountTokensNew);
         emit Transfer(address(this), minter, vars.mintTokens);
 
         /* We call the defense hook */
@@ -766,7 +766,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         accountTokens[receiver] = vars.accountTokensNew;
 
         /* We emit a MintBehalf event, and a Transfer event */
-        emit MintBehalf(payer, receiver, vars.actualMintAmount, vars.mintTokens);
+        emit MintBehalf(payer, receiver, vars.actualMintAmount, vars.mintTokens, vars.accountTokensNew);
         emit Transfer(address(this), receiver, vars.mintTokens);
 
         /* We call the defense hook */
@@ -939,7 +939,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /* We emit a Transfer event, and a Redeem event */
         emit Transfer(redeemer, address(this), vars.redeemTokens);
-        emit Redeem(redeemer, remainedAmount, vars.redeemTokens);
+        emit Redeem(redeemer, remainedAmount, vars.redeemTokens, vars.accountTokensNew);
 
         /* We call the defense hook */
         comptroller.redeemVerify(address(this), redeemer, vars.redeemAmount, vars.redeemTokens);

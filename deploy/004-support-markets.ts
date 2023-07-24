@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const vETH = await deployments.get("vETH");
 
   const comptrollerDeployment = await deployments.get("Comptroller");
-  const comptroller = await ethers.getContractAt("Comptroller", comptrollerDeployment.address);
+  const comptroller = await ethers.getContractAt("ComptrollerMock", comptrollerDeployment.address);
 
   await comptroller.connect(deployerSigner)._supportMarket(vUSDC.address);
   await comptroller.connect(deployerSigner)._supportMarket(vETH.address);

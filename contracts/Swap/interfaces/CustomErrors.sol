@@ -1,4 +1,6 @@
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity 0.8.13;
+
 // **************
 // *** ERRORS ***
 // **************
@@ -13,7 +15,7 @@ error RepayError(address repayer, address vToken, uint256 errorCode);
 error WrongAddress(address expectedAdddress, address passedAddress);
 
 ///@notice Error thrown when deadline for swap has expired
-error SwapDeadlineExpire(uint256 deadline, uint256 currentBlock);
+error SwapDeadlineExpire(uint256 deadline, uint256 timestemp);
 
 ///@notice Error thrown where the input amount parameter for a token is 0
 error InsufficientInputAmount();
@@ -42,5 +44,29 @@ error IdenticalAddresses();
 ///@notice Error thrown when the trade path[] parameter consists of only 1 token (i.e. path.length<2)
 error InvalidPath();
 
-///@notice Error thrown when invalid vTOken address is passed to swap router.
+///@notice Error thrown when invalid vToken address is passed to swap router
 error VTokenNotListed(address vToken);
+
+///@notice Error thrown when invalid underlying is passed as per given vToken
+error VTokenUnderlyingInvalid(address underlying);
+
+///@notice Error thrown when swapamount is less than the amountOutmin
+error SwapAmountLessThanAmountOutMin(uint256 swapAmount, uint256 amountOutMin);
+
+///@notice Error thrown when swapRouter's balance is less than sweep amount
+error InsufficientBalance(uint256 sweepAmount, uint256 balance);
+
+///@notice Error thrown when safeApprove failed
+error SafeApproveFailed();
+
+///@notice Error thrown when safeTransfer failed
+error SafeTransferFailed();
+
+///@notice Error thrown when transferFrom failed
+error SafeTransferFromFailed();
+
+///@notice Error thrown when safeTransferBNB failed
+error SafeTransferBNBFailed();
+
+///@notice Error thrown when reentrant check fails
+error ReentrantCheck();

@@ -138,17 +138,17 @@ contract VTokenInterface is VTokenStorage {
     /**
      * @notice Event emitted when tokens are minted
      */
-    event Mint(address minter, uint mintAmount, uint mintTokens);
+    event Mint(address minter, uint mintAmount, uint mintTokens, uint256 totalSupply);
 
     /**
      * @notice Event emitted when tokens are minted behalf by payer to receiver
      */
-    event MintBehalf(address payer, address receiver, uint mintAmount, uint mintTokens);
+    event MintBehalf(address payer, address receiver, uint mintAmount, uint mintTokens, uint256 totalSupply);
 
     /**
      * @notice Event emitted when tokens are redeemed
      */
-    event Redeem(address redeemer, uint redeemAmount, uint redeemTokens);
+    event Redeem(address redeemer, uint redeemAmount, uint redeemTokens, uint256 totalSupply);
 
     /**
      * @notice Event emitted when tokens are redeemed and fee is transferred
