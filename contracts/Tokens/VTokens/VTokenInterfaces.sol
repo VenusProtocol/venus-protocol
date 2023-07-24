@@ -12,7 +12,7 @@ interface IProtocolShareReserve {
     function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
 }
 
-contract VTokenStorage {
+contract VTokenStorageBase {
     /**
      * @notice Container for borrow balance information
      * @member principal Total balance (with accrued interest), after applying the most recent balance-changing action
@@ -154,7 +154,9 @@ contract VTokenStorage {
      */
 
     address public accessControl;
+}
 
+contract VTokenStorage is VTokenStorageBase {
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
