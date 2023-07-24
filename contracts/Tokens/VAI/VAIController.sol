@@ -450,9 +450,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
                 return (uint(Error.MATH_ERROR), 0);
             }
 
-            (, uint collateralFactorMantissa) = ComptrollerInterface(address(comptroller)).markets(
-                address(enteredMarkets[i])
-            );
+            (, uint collateralFactorMantissa) = comptroller.markets(address(enteredMarkets[i]));
             (vars.mErr, vars.marketSupply) = mulUInt(vars.marketSupply, collateralFactorMantissa);
             if (vars.mErr != MathError.NO_ERROR) {
                 return (uint(Error.MATH_ERROR), 0);
