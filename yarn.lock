@@ -2994,7 +2994,7 @@ __metadata:
     eslint-config-prettier: ^8.5.0
     eslint-plugin-jest: ^27.1.2
     ethers: ^5.6.9
-    hardhat: ^2.10.1
+    hardhat: ^2.16.1
     hardhat-deploy: ^0.11.14
     hardhat-deploy-ethers: ^0.3.0-beta.13
     hardhat-gas-reporter: ^1.0.8
@@ -7143,9 +7143,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hardhat@npm:^2.10.1":
-  version: 2.14.0
-  resolution: "hardhat@npm:2.14.0"
+"hardhat@npm:^2.16.1":
+  version: 2.16.1
+  resolution: "hardhat@npm:2.16.1"
   dependencies:
     "@ethersproject/abi": ^5.1.2
     "@metamask/eth-sig-util": ^4.0.0
@@ -7186,7 +7186,6 @@ __metadata:
     mnemonist: ^0.38.0
     mocha: ^10.0.0
     p-map: ^4.0.0
-    qs: ^6.7.0
     raw-body: ^2.4.1
     resolve: 1.17.0
     semver: ^6.3.0
@@ -7207,7 +7206,7 @@ __metadata:
       optional: true
   bin:
     hardhat: internal/cli/bootstrap.js
-  checksum: 7a11ad4650759851306d65c30252ccffa2aca9cb461c66f3fcef5f29d38fe66402d6bc295d293670fa0a72bf3572cc95029c5cd0b0fd45f45edd99d6eb5b7586
+  checksum: 32508ab6463efd796e8805150c182a9b974fcec8e4ab362a95f8bab2b4baf24c4feb48bbee1f3a7165a934f5257e1d3fcfea5764f261404aec23a88066341e48
   languageName: node
   linkType: hard
 
@@ -10776,7 +10775,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qs@npm:^6.4.0, qs@npm:^6.7.0, qs@npm:^6.9.4":
+"qs@npm:^6.4.0, qs@npm:^6.9.4":
   version: 6.11.1
   resolution: "qs@npm:6.11.1"
   dependencies:

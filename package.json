@@ -1,21 +1,20 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "0.7.1",
+  "version": "3.0.0-dev.13",
   "description": "The Venus Money Market",
+  "repository": "git@github.com:VenusProtocol/venus-protocol.git",
+  "author": "Venus",
+  "license": "BSD-3-Clause",
+  "engines": {
+    "node": ">=18.x.x"
+  },
   "files": [
     "artifacts",
     "networks",
-    "deploy",
+    "dist",
     "contracts",
     "deployments"
   ],
-  "exports": {
-    "deploy": "./dist/deploy",
-    "artifacts": "./artifacts",
-    "networks": "./dist/networks",
-    "contracts": "./contracts",
-    "deployments": "./deployments"
-  },
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
@@ -29,9 +28,6 @@
     "docgen": "hardhat docgen",
     "prepare": "husky install"
   },
-  "repository": "git@github.com:VenusProtocol/venus-protocol.git",
-  "author": "Venus",
-  "license": "BSD-3-Clause",
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
@@ -73,7 +69,7 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-jest": "^27.1.2",
     "ethers": "^5.6.9",
-    "hardhat": "^2.10.1",
+    "hardhat": "^2.16.1",
     "hardhat-deploy": "^0.11.14",
     "hardhat-deploy-ethers": "^0.3.0-beta.13",
     "hardhat-gas-reporter": "^1.0.8",
@@ -90,8 +86,7 @@
     "web3-utils": "^1.7.5"
   },
   "_moduleAliases": {
-    "@nomiclabs/hardhat-ethers": "node_modules/hardhat-deploy-ethers",
-    "@nomiclabs/hardhat-ethers/types": "hardhat-deploy-ethers/types"
+    "@nomiclabs/hardhat-ethers": "node_modules/hardhat-deploy-ethers"
   },
   "packageManager": "yarn@3.5.1",
   "publishConfig": {

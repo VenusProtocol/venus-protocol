@@ -15,8 +15,8 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
-    /// @notice Event emitted when admin changed
-    event AdminTransfered(address indexed oldAdmin, address indexed newAdmin);
+    /// @notice The upper bound for lastAccruingBlock. Close to year 3,000, considering 3 seconds per block. Used to avoid a value absurdly high
+    uint256 public constant MAX_LAST_ACCRUING_BLOCK = 9999999999;
 
     /// @notice Event emitted when vault is paused
     event VaultPaused(address indexed admin);
@@ -73,7 +73,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     }
 
     modifier isActive() {
-        require(vaultPaused == false, "Vault is paused");
+        require(!vaultPaused, "Vault is paused");
         _;
     }
 
@@ -94,7 +94,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
 
     modifier userHasPosition(address userAddress) {
         UserInfo storage user = userInfo[userAddress];
-        require(user.userAddress != address(0), "User doesnot have any position in the Vault.");
+        require(user.userAddress != address(0), "User does not have any position in the Vault.");
         _;
     }
 
@@ -161,6 +161,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     /**
      * @notice get accruedInterest of the user's VRTDeposits in the Vault
      * @param userAddress Address of User in the the Vault
+     * @return The interest accrued, in VRT
      */
     function getAccruedInterest(
         address userAddress
@@ -177,6 +178,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
      * @notice get accruedInterest of the user's VRTDeposits in the Vault
      * @param totalPrincipalAmount of the User
      * @param accrualStartBlockNumber of the User
+     * @return The interest accrued, in VRT
      */
     function computeAccruedInterest(
         uint256 totalPrincipalAmount,
@@ -193,7 +195,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
             return 0;
         }
 
-        //number of blocks Since Deposit
+        // Number of blocks since deposit
         uint256 blockDelta = blockNumber.sub(accrualStartBlockNumber);
         uint256 accruedInterest = (totalPrincipalAmount.mul(interestRatePerBlock).mul(blockDelta)).div(1e18);
         return accruedInterest;
@@ -277,9 +279,15 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
 
     function setLastAccruingBlock(uint256 _lastAccruingBlock) external {
         _checkAccessAllowed("setLastAccruingBlock(uint256)");
+        require(_lastAccruingBlock < MAX_LAST_ACCRUING_BLOCK, "_lastAccruingBlock is absurdly high");
+
         uint256 oldLastAccruingBlock = lastAccruingBlock;
         uint256 currentBlock = getBlockNumber();
-        if (_lastAccruingBlock < oldLastAccruingBlock) {
+        if (oldLastAccruingBlock != 0) {
+            require(currentBlock < oldLastAccruingBlock, "Cannot change at this point");
+        }
+        if (oldLastAccruingBlock == 0 || _lastAccruingBlock < oldLastAccruingBlock) {
+            // Must be in future
             require(currentBlock < _lastAccruingBlock, "Invalid _lastAccruingBlock interest have been accumulated");
         }
         lastAccruingBlock = _lastAccruingBlock;

@@ -41,4 +41,8 @@ contract XVSVaultScenario is XVSVault {
 
         emit RequestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
     }
+
+    function transferReward(address rewardToken, address user, uint256 amount) external {
+        _transferReward(rewardToken, user, amount);
+    }
 }
