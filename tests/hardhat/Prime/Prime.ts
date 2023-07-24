@@ -339,7 +339,7 @@ describe("PrimeScenario Token", () => {
   });
 
   describe("boosted yield", () => {
-    let comptroller: MockContract<Comptroller>;
+    let comptroller: MockContract<ComptrollerMock>;
     let prime: PrimeScenario;
     let vusdt: VBep20Harness;
     let veth: VBep20Harness;
