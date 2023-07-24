@@ -63,6 +63,9 @@ async function deployAndConfigureLiquidator() {
 
   accessControlManager = IAccessControlManagerV8__factory.connect(ACM, impersonatedTimelock);
   await accessControlManager.giveCallPermission(LIQUIDATOR, "setPendingRedeemChunkLength(uint256)", NORMAL_TIMELOCK);
+  await expect(liquidator.connect(impersonatedTimelock).setPendingRedeemChunkLength(0)).to.be.revertedWith(
+    "Invalid chunk size",
+  );
   await liquidator.connect(impersonatedTimelock).setPendingRedeemChunkLength(5);
 }
 

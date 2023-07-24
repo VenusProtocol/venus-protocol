@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.8.13;
 
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
