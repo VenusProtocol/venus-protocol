@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
-import "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 interface VAI {
     function balanceOf(address usr) external returns (uint256);
@@ -93,7 +93,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         ensureNonzeroAddress(vaiAddress_);
 
         uint256 decimals_ = DecimalProvider(stableTokenAddress_).decimals();
-        require(decimals_ <= 18, "too many decimals");
+        require(decimals_ <= 18, "too much decimals");
         ONE_DOLLAR = 10 ** (36 - decimals_); // 1$ scaled to the decimals returned by our Oracle
         STABLE_TOKEN_ADDRESS = stableTokenAddress_;
         VAI_ADDRESS = vaiAddress_;
@@ -145,7 +145,8 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         ensureNonzeroAddress(receiver);
         require(stableTknAmount > 0, "Amount must be greater than zero.");
 
-        // calculate USD value of the stable token amount scaled in 18 decimals
+        // update oracle price and calculate USD value of the stable token amount scaled in 18 decimals
+        oracle.updateAssetPrice(STABLE_TOKEN_ADDRESS);
         uint256 stableTknAmountUSD = previewTokenUSDAmount(stableTknAmount, FeeDirection.OUT);
         uint256 fee = _calculateFee(stableTknAmountUSD, FeeDirection.OUT);
 
@@ -185,7 +186,8 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         //calculate actual transfered amount (in case of fee-on-transfer tokens)
         uint256 actualTransferAmt = balanceAfter - balanceBefore;
 
-        // calculate USD value of the stable token amount scaled in 18 decimals
+        // update oracle price and calculate USD value of the stable token amount scaled in 18 decimals
+        oracle.updateAssetPrice(STABLE_TOKEN_ADDRESS);
         uint256 actualTransferAmtInUSD = previewTokenUSDAmount(actualTransferAmt, FeeDirection.IN);
 
         //calculate feeIn
