@@ -3110,9 +3110,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/oracle@npm:1.7.1-dev.1":
-  version: 1.7.1-dev.1
-  resolution: "@venusprotocol/oracle@npm:1.7.1-dev.1"
+"@venusprotocol/oracle@npm:1.7.1":
+  version: 1.7.1
+  resolution: "@venusprotocol/oracle@npm:1.7.1"
   dependencies:
     "@chainlink/contracts": ^0.5.1
     "@defi-wonderland/smock": ^2.3.4
@@ -3126,7 +3126,7 @@ __metadata:
     hardhat-deploy: ^0.11.14
     module-alias: ^2.2.2
     solidity-docgen: ^0.6.0-beta.29
-  checksum: 6e9901a042c2c1fe4a1b8d14f7d3b5152554e6993b004a7090554cdfc263bea2ed61d736d18c595b61aae824877af3049eb5e9ed8611d627bb18cf9e0b9a6f1d
+  checksum: da844a60245260accc5debadfcc11a45b3f9edf81f9e8f535ab3b130d1789c0157851769a3ddaaab0fd6da34bed57279885d8da8c1f7c99c4734fe3bd696a476
   languageName: node
   linkType: hard
 
@@ -3174,7 +3174,7 @@ __metadata:
     "@typescript-eslint/parser": ^5.40.0
     "@venusprotocol/governance-contracts": ^0.0.2
     "@venusprotocol/isolated-pools": 0.0.5
-    "@venusprotocol/oracle": 1.7.1-dev.1
+    "@venusprotocol/oracle": 1.7.1
     chai: ^4.3.6
     dotenv: ^16.0.1
     eslint: ^8.25.0
