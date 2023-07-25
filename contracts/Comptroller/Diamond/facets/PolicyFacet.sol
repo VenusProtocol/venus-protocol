@@ -39,10 +39,6 @@ contract PolicyFacet is XVSRewardsHelper {
         updateVenusSupplyIndex(vToken);
         distributeSupplierVenus(vToken, minter);
 
-        if (address(prime) != address(0)) {
-            prime.executeBoost(minter, vToken);
-        }
-
         return uint(Error.NO_ERROR);
     }
 
@@ -71,10 +67,6 @@ contract PolicyFacet is XVSRewardsHelper {
         // Keep the flywheel moving
         updateVenusSupplyIndex(vToken);
         distributeSupplierVenus(vToken, redeemer);
-
-        if (address(prime) != address(0)) {
-            prime.executeBoost(redeemer, vToken);
-        }
 
         return uint(Error.NO_ERROR);
     }
@@ -147,10 +139,6 @@ contract PolicyFacet is XVSRewardsHelper {
         Exp memory borrowIndex = Exp({ mantissa: VToken(vToken).borrowIndex() });
         updateVenusBorrowIndex(vToken, borrowIndex);
         distributeBorrowerVenus(vToken, borrower, borrowIndex);
-
-        if (address(prime) != address(0)) {
-            prime.executeBoost(borrower, vToken);
-        }
 
         return uint(Error.NO_ERROR);
     }
@@ -322,11 +310,6 @@ contract PolicyFacet is XVSRewardsHelper {
         distributeSupplierVenus(vTokenCollateral, borrower);
         distributeSupplierVenus(vTokenCollateral, liquidator);
 
-        if (address(prime) != address(0)) {
-            prime.executeBoost(borrower, vTokenCollateral);
-            prime.executeBoost(liquidator, vTokenCollateral);
-        }
-
         return uint(Error.NO_ERROR);
     }
 
@@ -376,11 +359,6 @@ contract PolicyFacet is XVSRewardsHelper {
         updateVenusSupplyIndex(vToken);
         distributeSupplierVenus(vToken, src);
         distributeSupplierVenus(vToken, dst);
-
-        if (address(prime) != address(0)) {
-            prime.executeBoost(src, vToken);
-            prime.executeBoost(dst, vToken);
-        }
 
         return uint(Error.NO_ERROR);
     }

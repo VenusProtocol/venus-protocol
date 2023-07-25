@@ -7,7 +7,6 @@ import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 import "./VTokenInterfaces.sol";
-import "../Prime/IPrime.sol";
 
 /**
  * @title Venus's vToken Contract
@@ -1501,10 +1500,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
         }
 
-        if (address(prime) != address(0)) {
-            prime.accrueInterest(address(this));
-        }
-
         // _setInterestRateModelFresh emits interest-rate-model-update-specific logs on errors, so we don't need to.
         return _setInterestRateModelFresh(newInterestRateModel);
     }
@@ -1540,25 +1535,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         // Emit NewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel)
         emit NewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel);
-
-        return uint(Error.NO_ERROR);
-    }
-
-    /**
-     * @notice Sets a new prime token for the market
-     * @dev Admin function to set a new prime token contract
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-     */
-    function _setPrimeToken(IPrime newPrime) public returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PRIME_OWNER_CHECK);
-        }
-
-        IPrime oldPrime = prime;
-        prime = newPrime;
-
-        emit NewPrime(oldPrime, newPrime);
 
         return uint(Error.NO_ERROR);
     }
