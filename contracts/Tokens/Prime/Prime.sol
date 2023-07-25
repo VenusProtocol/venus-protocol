@@ -48,6 +48,8 @@ interface IProtocolShareReserve {
         address destination,
         address asset
     ) external view returns (uint256);
+
+    function releaseFunds(address comptroller, address[] memory assets) external;
 }
 
 interface IIncomeDestination {
@@ -488,6 +490,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         interests[vToken][msg.sender].accrued = 0;
 
         IERC20Upgradeable asset = IERC20Upgradeable(IVToken(vToken).underlying());
+
+        if (amount > asset.balanceOf(address(this))) {
+            address[] memory assets = new address[](1);
+            assets[0] = address(asset);
+            IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
+        }
+
         asset.safeTransfer(msg.sender, amount);
     }
 
