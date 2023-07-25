@@ -1,6 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
@@ -16,7 +17,6 @@ import {
 import { VAI } from "../../../typechain/contracts/Tokens/VAI";
 import { VAI__factory } from "../../../typechain/factories/contracts/Tokens/VAI";
 import { FORK_MAINNET, forking, initMainnetUser } from "./utils";
-import { parseUnits } from "ethers/lib/utils";
 
 // ****************************
 // ******* Constants **********
@@ -31,7 +31,7 @@ const vaiMintCap = convertToUnit(1000, 18);
 const USDT_HOLDER = "0x6a0b3611214d5001fa5efae91b7222a316c12b52";
 const USDC_HOLDER = "0x97b9d2102a9a65a26e1ee82d59e42d1b73b68689";
 const VAI_HOLDER = "0x29aa70f8f3f2aa241b0ba9eaa744c97808d032c9";
-const MANTISSA_ONE = parseUnits("1",18);
+const MANTISSA_ONE = parseUnits("1", 18);
 
 // ****************************
 // ********* Config ***********
@@ -79,7 +79,7 @@ async function validateInitialization(psm: PegStability, stableToken: string) {
   expect(await psm.VAI_ADDRESS()).to.equal(Contracts.VAI);
   expect((await psm.STABLE_TOKEN_ADDRESS()).toLocaleLowerCase()).to.equal(stableToken.toLocaleLowerCase());
   expect((await psm.venusTreasury()).toLocaleLowerCase()).to.equal(venusTreasury);
-  expect((await psm.oracle())).to.equal(resilientOracle);
+  expect(await psm.oracle()).to.equal(resilientOracle);
   expect(await psm.feeIn()).to.equal(feeIn);
   expect(await psm.feeOut()).to.equal(feeOut);
   expect(await psm.vaiMintCap()).to.equal(vaiMintCap);
@@ -98,7 +98,7 @@ async function swapStableForVaiAndValidate(
   const stableTokenAmount = BigNumber.from(convertToUnit(1000, 18));
   // calculate price of stableToken in USD, applying MIN(1$, oracle_price) thus capping stableToken maximum price to 1$
   const feeInTokenPrice = stableTokenPrice.gt(MANTISSA_ONE) ? MANTISSA_ONE : stableTokenPrice;
-  const stableTokenAmountUSD = stableTokenAmount.mul(feeInTokenPrice).div(MANTISSA_ONE)
+  const stableTokenAmountUSD = stableTokenAmount.mul(feeInTokenPrice).div(MANTISSA_ONE);
   const fee = stableTokenAmountUSD.mul(feeIn).div(BASIS_POINT_DIVISOR);
   const vaiToMint = stableTokenAmountUSD.sub(fee);
   await stableToken.connect(tokenSigner).approve(psm.address, stableTokenAmount);
@@ -161,7 +161,7 @@ if (FORK_MAINNET) {
           VAI = VAI__factory.connect(Contracts.VAI, vaiAdmin);
           oracle = ResilientOracleInterface__factory.connect(resilientOracle, defaultSigner);
           stableTokenPrice = await oracle.getPrice(stableTokenAddress);
-          console.log(`Stable Token Price`)
+          console.log(`Stable Token Price`);
           // Fund Timelock
           await tokenSigner.sendTransaction({
             to: await vaiAdmin.getAddress(),
@@ -172,7 +172,7 @@ if (FORK_MAINNET) {
         });
         describe("Initialization", () => {
           it("Validate initialization parameters", () => {
-            return validateInitialization(psm,stableTokenAddress);
+            return validateInitialization(psm, stableTokenAddress);
           });
           it("Should not be able to re-initialize", async () => {
             return validateReInitialization(psm);
@@ -180,7 +180,7 @@ if (FORK_MAINNET) {
         });
         describe("Swap", () => {
           it(`${stableTokenName} -> VAI`, async () => {
-            return swapStableForVaiAndValidate(psm, stableToken, stableTokenPrice ,tokenSigner, tokenHolder, VAI);
+            return swapStableForVaiAndValidate(psm, stableToken, stableTokenPrice, tokenSigner, tokenHolder, VAI);
           });
           it(`VAI -> ${stableTokenName}`, async () => {
             return swapVaiForStableAndValidate(psm, stableTokenName, stableTokenPrice, VAI, vaiSigner);
