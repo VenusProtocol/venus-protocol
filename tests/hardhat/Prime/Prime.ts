@@ -175,8 +175,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   await prime.addMarket(veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
-  await vusdt._setPrimeToken(prime.address);
-  await veth._setPrimeToken(prime.address);
   await comptroller._setPrimeToken(prime.address);
 
   return {
@@ -510,7 +508,6 @@ describe("PrimeScenario Token", () => {
         await xvs.connect(user3).approve(xvsVault.address, bigNumber18.mul(2000));
         await xvsVault.connect(user3).deposit(xvs.address, 0, bigNumber18.mul(2000));
         await prime.issue(false, [user3.getAddress()]);
-        await vbnb._setPrimeToken(prime.address);
         await prime.addMarket(vbnb.address, bigNumber18.mul(1), bigNumber18.mul(1));
 
         let interest = await prime.interests(vbnb.address, user3.getAddress());
@@ -579,7 +576,6 @@ describe("PrimeScenario Token", () => {
         await xvs.connect(user3).approve(xvsVault.address, bigNumber18.mul(2000));
         await xvsVault.connect(user3).deposit(xvs.address, 0, bigNumber18.mul(2000));
         await prime.issue(false, [user3.getAddress()]);
-        await vbnb._setPrimeToken(prime.address);
         await prime.addMarket(vbnb.address, bigNumber18.mul(1), bigNumber18.mul(1));
 
         let interest = await prime.interests(vbnb.address, user3.getAddress());
