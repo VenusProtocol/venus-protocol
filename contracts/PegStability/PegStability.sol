@@ -35,43 +35,44 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         OUT
     }
 
-    /// @dev The divisor used to convert fees to basis points.
+    /// @notice The divisor used to convert fees to basis points.
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
-    /// @dev The mantissa value representing 1 (used for calculations).
+    /// @notice The mantissa value representing 1 (used for calculations).
     uint256 public constant MANTISSA_ONE = 1e18;
 
-    /// @dev The value representing one dollar in the stable token.
+    /// @notice The value representing one dollar in the stable token.
+    /// @dev Our oracle is returning amount depending on the number of decimals of the stable token. (36 - asset_decimals) E.g. 8 decimal asset = 1e28
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable ONE_DOLLAR;
 
-    /// @dev The address of the VAI token contract.
+    /// @notice The address of the VAI token contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable VAI_ADDRESS;
 
-    /// @dev The address of the stable token contract.
+    /// @notice The address of the stable token contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable STABLE_TOKEN_ADDRESS;
 
-    /// @dev The address of ResilientOracle contract wrapped in its interface
+    /// @notice The address of ResilientOracle contract wrapped in its interface
     ResilientOracleInterface public oracle;
 
-    /// @dev The address of the Venus Treasury contract.
+    /// @notice The address of the Venus Treasury contract.
     address public venusTreasury;
 
-    /// @dev The incoming stableCoin fee. (Fee for swapStableForVAI)
+    /// @notice The incoming stableCoin fee. (Fee for swapStableForVAI)
     uint256 public feeIn;
 
-    /// @dev The outgoing stableCoin fee. (Fee for swapVAIForStable)
+    /// @notice The outgoing stableCoin fee. (Fee for swapVAIForStable)
     uint256 public feeOut;
 
-    /// @dev The maximum amount of VAI that can be minted through this contract.
+    /// @notice The maximum amount of VAI that can be minted through this contract.
     uint256 public vaiMintCap;
 
-    /// @dev The total amount of VAI minted through this contract.
+    /// @notice The total amount of VAI minted through this contract.
     uint256 public vaiMinted;
 
-    /// @dev A flag indicating whether the contract is currently paused or not.
+    /// @notice A flag indicating whether the contract is currently paused or not.
     bool public isPaused;
 
     /// @notice Event emitted when contract is paused
