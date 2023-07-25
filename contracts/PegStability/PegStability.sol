@@ -34,22 +34,44 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         IN,
         OUT
     }
-    uint256 public constant BASIS_POINTS_DIVISOR = 10000; // fee is in basis points
+
+    /// @dev The divisor used to convert fees to basis points.
+    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
+
+    /// @dev The mantissa value representing 1 (used for calculations).
     uint256 public constant MANTISSA_ONE = 1e18;
-    // Our oracle is returning amount depending on the number of decimals of the stable token. (36 - asset_decimals).
-    // E.g. 8 decimal asset = 1e28
+
+    /// @dev The value representing one dollar in the stable token.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable ONE_DOLLAR;
+
+    /// @dev The address of the VAI token contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable VAI_ADDRESS;
+
+    /// @dev The address of the stable token contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable STABLE_TOKEN_ADDRESS;
+
+    /// @dev The address of ResilientOracle contract wrapped in its interface
     ResilientOracleInterface public oracle;
+
+    /// @dev The address of the Venus Treasury contract.
     address public venusTreasury;
-    uint256 public feeIn; // incoming VAI fee
-    uint256 public feeOut; // outgoing VAI fee
-    uint256 public vaiMintCap; // max amount of VAI that can be minted through this contract
+
+    /// @dev The incoming stableCoin fee. (Fee for swapStableForVAI)
+    uint256 public feeIn;
+
+    /// @dev The outgoing stableCoin fee. (Fee for swapVAIForStable)
+    uint256 public feeOut;
+
+    /// @dev The maximum amount of VAI that can be minted through this contract.
+    uint256 public vaiMintCap;
+
+    /// @dev The total amount of VAI minted through this contract.
     uint256 public vaiMinted;
+
+    /// @dev A flag indicating whether the contract is currently paused or not.
     bool public isPaused;
 
     /// @notice Event emitted when contract is paused
