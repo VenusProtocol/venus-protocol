@@ -93,7 +93,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         ensureNonzeroAddress(vaiAddress_);
 
         uint256 decimals_ = DecimalProvider(stableTokenAddress_).decimals();
-        require(decimals_ <= 18, "too much decimals");
+        require(decimals_ <= 18, "too many decimals");
         ONE_DOLLAR = 10 ** (36 - decimals_); // 1$ scaled to the decimals returned by our Oracle
         STABLE_TOKEN_ADDRESS = stableTokenAddress_;
         VAI_ADDRESS = vaiAddress_;
