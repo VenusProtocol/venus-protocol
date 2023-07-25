@@ -22,14 +22,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
 
-  const vUSDTAddress = ADDRESSES[networkName].vUSDT;
+  const USDTAddress = ADDRESSES[networkName].USDT;
   const VAIAddress = ADDRESSES[networkName].VAI;
 
   await catchUnknownSigner(
     deploy("PegStability_USDT", {
       contract: "PegStability",
       from: deployer,
-      args: [vUSDTAddress, VAIAddress],
+      args: [USDTAddress, VAIAddress],
       log: true,
       autoMine: true,
       proxy: {
