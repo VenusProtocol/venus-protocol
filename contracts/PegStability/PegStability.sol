@@ -345,16 +345,17 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
      * @notice Calculates the amount of VAI that would be burnt from the user.
      * @dev This calculation might be off with a bit, if the price of the oracle for this asset is not updated in the block this function is invoked.
      * @param stableTknAmount The amount of stable tokens to be received after the swap.
-     * @return The amount of VAI that would be burnt from the user.
+     * @return The amount of VAI that would be taken from the user.
      */
     function previewSwapVAIForStable(uint256 stableTknAmount) external view returns (uint256) {
         require(stableTknAmount > 0, "Amount must be greater than zero.");
 
         uint256 stableTknAmountUSD = previewTokenUSDAmount(stableTknAmount, FeeDirection.OUT);
+        uint256 fee = _calculateFee(stableTknAmountUSD, FeeDirection.OUT);
 
         require(vaiMinted >= stableTknAmountUSD, "Can't burn more VAI than minted.");
 
-        return stableTknAmountUSD;
+        return stableTknAmountUSD + fee;
     }
 
     /**
