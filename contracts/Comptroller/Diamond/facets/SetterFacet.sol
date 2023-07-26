@@ -470,17 +470,11 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setPrimeToken(IPrime _prime) external returns (uint) {
-        // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(address(_prime));
 
-        // Track the old prime token for the comptroller
         IPrime oldPrime = prime;
-
-        // Set comptroller's prime token to new prime token
         prime = _prime;
-
-        // Emit NewPrimeToken(oldPrime, newPrime)
         emit NewPrimeToken(oldPrime, prime);
 
         return uint(Error.NO_ERROR);
