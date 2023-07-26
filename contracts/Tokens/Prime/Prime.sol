@@ -56,6 +56,15 @@ interface IIncomeDestination {
     function updateAssetsState(address comptroller, address asset) external;
 }
 
+error MarketNotSupported();
+error InvalidLimit();
+error IneligibleToClaim();
+error WaitMoreTime();
+error UserHasNoPrimeToken();
+error InvalidCaller();
+error InvalidComptroller();
+error NoScoreUpdatesRequired();
+
 contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -115,8 +124,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      */
     function updateMultipliers(address market, uint256 _supplyMultiplier, uint256 _borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
-        require(markets[market].exists == true, "market is not supported");
-
+        if (markets[market].exists == false) revert MarketNotSupported();
+        
         accrueInterest(market);
         markets[market].supplyMultiplier = _supplyMultiplier;
         markets[market].borrowMultiplier = _borrowMultiplier;
@@ -132,7 +141,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      */
     function addMarket(address vToken, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
-        require(markets[vToken].exists == false, "market is already added");
+        if (markets[vToken].exists == true) revert MarketNotSupported();
 
         markets[vToken].rewardIndex = 0;
         markets[vToken].supplyMultiplier = supplyMultiplier;
@@ -153,9 +162,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      */
     function setLimit(uint256 irrevocableLimit, uint256 revocableLimit) external {
         _checkAccessAllowed("setLimit(uint256,uint256)");
-
-        require(_totalRevocable <= revocableLimit, "limit is lower than total minted tokens");
-        require(_totalIrrevocable <= irrevocableLimit, "limit is lower than total minted tokens");
+        if (irrevocableLimit < _totalIrrevocable || revocableLimit < _totalRevocable) revert InvalidLimit();
 
         _revocableLimit = revocableLimit;
         _irrevocableLimit = irrevocableLimit;
@@ -210,11 +217,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @notice For claiming prime token when staking period is completed
      */
     function claim() external {
-        require(stakedAt[msg.sender] != 0, "you are not eligible to claim prime token");
-        require(
-            block.timestamp - stakedAt[msg.sender] >= STAKING_PERIOD,
-            "you need to wait more time for claiming prime token"
-        );
+        if (stakedAt[msg.sender] == 0) revert IneligibleToClaim();
+        if (block.timestamp - stakedAt[msg.sender] < STAKING_PERIOD) revert WaitMoreTime();
 
         stakedAt[msg.sender] = 0;
 
@@ -325,7 +329,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param owner token owner
      */
     function _mint(bool isIrrevocable, address owner) internal {
-        require(tokens[owner].exists == false, "user already owns a prime token");
+        if (tokens[owner].exists == true) revert IneligibleToClaim();
 
         tokens[owner].exists = true;
         tokens[owner].isIrrevocable = isIrrevocable;
@@ -336,10 +340,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             _totalRevocable++;
         }
 
-        require(
-            _totalIrrevocable <= _irrevocableLimit && _totalRevocable <= _revocableLimit,
-            "exceeds token mint limit"
-        );
+        if (_totalIrrevocable > _irrevocableLimit || _totalRevocable > _revocableLimit) revert InvalidLimit();
 
         _updateRoundAfterTokenMinted();
 
@@ -351,7 +352,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param owner owner whose prime token to burn
      */
     function _burn(address owner) internal {
-        require(tokens[owner].exists == true, "user doesn't own an prime token");
+        if (tokens[owner].exists == false) revert UserHasNoPrimeToken();
 
         tokens[owner].exists = false;
         tokens[owner].isIrrevocable = false;
@@ -423,7 +424,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param vToken the market for which to distribute the income
      */
     function accrueInterest(address vToken) public {
-        require(markets[vToken].exists == true, "market is not supported");
+        if (markets[vToken].exists == false) revert MarketNotSupported();
 
         IVToken market = IVToken(vToken);
 
@@ -506,11 +507,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param asset The address of the asset whose income is distributed
      */
     function updateAssetsState(address _comptroller, address asset) external {
-        require(msg.sender == protocolShareReserve, "only protocol share reserve can call this function");
-        require(_comptroller == comptroller, "comptroller is not supported");
+        if (msg.sender != protocolShareReserve) revert InvalidCaller();
+        if (comptroller != _comptroller) revert InvalidComptroller();
 
         address vToken = vTokenForAsset[asset];
-        require(vToken != address(0), "asset is not supported");
+        if (vToken == address(0)) revert MarketNotSupported();
 
         IVToken market = IVToken(vToken);
         unreleasedIncome[market.underlying()] = 0;
@@ -523,17 +524,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param accounts accounts for which we need to update score
      */
     function updateScores(address[] memory accounts) external {
-        require(pendingScoreUpdates != 0, "there is no pending score updates");
-        require(nextScoreUpdateRoundId != 0, "there is no score updates required");
+        if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
+        if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
 
         for (uint256 i = 0; i < accounts.length; i++) {
             address account = accounts[i];
-
-            require(tokens[account].exists == true, "prime token for the account doesn't exist");
-            require(
-                isScoreUpdated[nextScoreUpdateRoundId][account] == false,
-                "score is already updated for this account"
-            );
+            
+            if (tokens[account].exists == false) revert UserHasNoPrimeToken();
+            if (isScoreUpdated[nextScoreUpdateRoundId][account] == true) revert NoScoreUpdatesRequired();
 
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
