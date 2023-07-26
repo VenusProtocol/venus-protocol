@@ -531,7 +531,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             address account = accounts[i];
             
             if (tokens[account].exists == false) revert UserHasNoPrimeToken();
-            if (isScoreUpdated[nextScoreUpdateRoundId][account] == true) revert NoScoreUpdatesRequired();
+            if (isScoreUpdated[nextScoreUpdateRoundId][account] == true) continue;
 
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
