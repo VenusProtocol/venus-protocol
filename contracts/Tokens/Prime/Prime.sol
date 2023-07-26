@@ -564,7 +564,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     }
 
     /**
-     * @notice update the required score updates when token is burned before round is completed
+     * @notice update the required score updates when token is minted before round is completed
      */
     function _updateRoundAfterTokenMinted() internal {
         if (pendingScoreUpdates > 0) {
