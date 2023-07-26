@@ -282,7 +282,7 @@ contract VTokenInterface is VTokenStorage {
     event Failure(uint error, uint info, uint detail);
 
     /// @notice Emitted when access control address is changed by admin
-    event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
+    event NewAccessControlManager(address oldAccessControlAddress, address newAccessControlAddress);
 
     /*** User Interface ***/
 

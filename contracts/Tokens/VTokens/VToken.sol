@@ -233,7 +233,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         require(newAccessControlManagerAddress != address(0), "newAccessControlManagerAddress is zero address");
 
-        emit NewAccessControl(accessControlManager, newAccessControlManagerAddress);
+        emit NewAccessControlManager(accessControlManager, newAccessControlManagerAddress);
         accessControlManager = newAccessControlManagerAddress;
 
         return uint(Error.NO_ERROR);
