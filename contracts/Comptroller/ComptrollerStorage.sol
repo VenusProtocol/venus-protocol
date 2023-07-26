@@ -238,17 +238,17 @@ contract ComptrollerV11Storage is ComptrollerV10Storage {
 contract ComptrollerV12Storage is ComptrollerV11Storage {
     struct FacetAddressAndPosition {
         address facetAddress;
-        uint96 functionSelectorPosition; // position in facetFunctionSelectors.functionSelectors array
+        uint96 functionSelectorPosition; // position in _facetFunctionSelectors.functionSelectors array
     }
 
     struct FacetFunctionSelectors {
         bytes4[] functionSelectors;
-        uint256 facetAddressPosition; // position of facetAddress in facetAddresses array
+        uint256 facetAddressPosition; // position of facetAddress in _facetAddresses array
     }
 
-    mapping(bytes4 => FacetAddressAndPosition) internal selectorToFacetAndPosition;
+    mapping(bytes4 => FacetAddressAndPosition) internal _selectorToFacetAndPosition;
     // maps facet addresses to function selectors
-    mapping(address => FacetFunctionSelectors) internal facetFunctionSelectors;
+    mapping(address => FacetFunctionSelectors) internal _facetFunctionSelectors;
     // facet addresses
-    address[] internal facetAddresses;
+    address[] internal _facetAddresses;
 }

@@ -5,7 +5,7 @@ import "../Comptroller/Diamond/Diamond.sol";
 
 contract DiamondHarness is Diamond {
     function getFacetAddress(bytes4 sig) public view returns (address) {
-        address facet = selectorToFacetAndPosition[sig].facetAddress;
+        address facet = _selectorToFacetAndPosition[sig].facetAddress;
         require(facet != address(0), "Diamond: Function does not exist");
         return facet;
     }
