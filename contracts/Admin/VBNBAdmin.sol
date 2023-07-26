@@ -2,13 +2,12 @@
 
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "./VBNBAdminStorage.sol";
 
-contract VBNBAdmin is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminStorage {
+contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminStorage {
     using SafeERC20Upgradeable for IWBNB;
 
     /// @notice Emitted when PSR is updated
