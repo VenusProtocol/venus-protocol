@@ -101,8 +101,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
     /**
      * @notice Update value of alpha
-     * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numberator is 1
-     * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then numberator is 2
+     * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1
+     * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2
      */
     function updateAlpha(uint128 _alphaNumerator, uint128 _alphaDenominator) external {
         _checkAccessAllowed("updateAlpha(uint128,uint128)");
@@ -191,7 +191,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     }
 
     /**
-     * @notice Executed by XVSVault whenever users XVSVault balance changes
+     * @notice Executed by XVSVault whenever user's XVSVault balance changes
      * @param owner the account address whose balance was updated
      */
     function xvsUpdated(address owner) external {
@@ -564,7 +564,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     }
 
     /**
-     * @notice update the required score updates when token is burned before round is completed
+     * @notice update the required score updates when token is minted before round is completed
      */
     function _updateRoundAfterTokenMinted() internal {
         if (pendingScoreUpdates > 0) {
