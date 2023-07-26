@@ -16,6 +16,9 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
         IProtocolShareReserve indexed newProtocolShareReserve
     );
 
+    /// @notice Emitted reserves are reduced
+    event ReservesReduced(uint256 reduceAmount);
+
     function initialize(
         VTokenInterface _vBNB,
         IProtocolShareReserve _protocolShareReserve,
@@ -58,6 +61,8 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
             address(WBNB),
             IProtocolShareReserve.IncomeType.SPREAD
         );
+
+        emit ReservesReduced(reduceAmount);
     }
 
     /**
