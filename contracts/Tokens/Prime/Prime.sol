@@ -191,7 +191,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     }
 
     /**
-     * @notice Executed by XVSVault whenever users XVSVault balance changes
+     * @notice Executed by XVSVault whenever user's XVSVault balance changes
      * @param owner the account address whose balance was updated
      */
     function xvsUpdated(address owner) external {
