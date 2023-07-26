@@ -35,5 +35,5 @@ contract VBNBAdminStorage {
     IProtocolShareReserve public protocolShareReserve;
 
     /// @dev gap to prevent collision in inheritence
-    uint256[49] private __gap;
+    uint256[47] private __gap;
 }
