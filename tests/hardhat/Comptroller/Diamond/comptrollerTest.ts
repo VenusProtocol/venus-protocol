@@ -221,31 +221,6 @@ describe("Comptroller", () => {
     });
   });
 
-  describe("_setTreasuryData", () => {
-    let unitroller: Unitroller;
-    let comptroller: ComptrollerMock;
-
-    beforeEach(async () => {
-      ({ unitroller } = await loadFixture(deploySimpleComptroller));
-      comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
-    });
-
-    it("should revert on same values", async () => {
-      await expect(comptroller._setTreasuryData(constants.AddressZero, constants.AddressZero, 0)).to.be.revertedWith(
-        "old address is same as new address",
-      );
-      await expect(comptroller._setTreasuryData(accounts[0].address, constants.AddressZero, 0)).to.be.revertedWith(
-        "old address is same as new address",
-      );
-      await expect(comptroller._setTreasuryData(accounts[0].address, accounts[1].address, 0)).to.be.revertedWith(
-        "old value is same as new value",
-      );
-      await comptroller._setTreasuryData(accounts[0].address, accounts[0].address, 1);
-      testZeroAddress("_setTreasuryData", [constants.AddressZero, accounts[1].address, 0]);
-      testZeroAddress("_setTreasuryData", [accounts[0].address, accounts[1].address, 0]);
-    });
-  });
-
   describe("_setVenusSpeeds", () => {
     let unitroller: Unitroller;
 
