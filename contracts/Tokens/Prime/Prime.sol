@@ -146,7 +146,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         markets[vToken].rewardIndex = 0;
         markets[vToken].supplyMultiplier = supplyMultiplier;
         markets[vToken].borrowMultiplier = borrowMultiplier;
-        markets[vToken].score = 0;
+        markets[vToken].sumOfMembersScore = 0;
         markets[vToken].exists = true;
 
         vTokenForAsset[IVToken(vToken).underlying()] = vToken;
@@ -203,9 +203,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             for (uint i = 0; i < _allMarkets.length; i++) {
                 executeBoost(owner, _allMarkets[i]);
                 
-                markets[_allMarkets[i]].score = markets[_allMarkets[i]].score - interests[_allMarkets[i]][owner].score;
+                markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][owner].score;
                 interests[_allMarkets[i]][owner].score = 0;
-                interests[_allMarkets[i]][account].rewardIndex = 0;
+                interests[_allMarkets[i]][owner].rewardIndex = 0;
             }
 
             _burn(owner);
@@ -249,7 +249,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
             uint score = _calculateScore(market, account);
             interests[market][account].score = score;
-            markets[market].score = markets[market].score + score;
+            markets[market].sumOfMembersScore = markets[market].sumOfMembersScore + score;
         }
     }
 
@@ -421,7 +421,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         }
 
         uint score = _calculateScore(market, account);
-        markets[market].score = markets[market].score - interests[market][account].score + score;
+        markets[market].sumOfMembersScore = markets[market].sumOfMembersScore - interests[market][account].score + score;
         interests[market][account].score = score;
     }
 
@@ -449,8 +449,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         }
 
         uint256 delta;
-        if (markets[vToken].score > 0) {
-            delta = ((distributionIncome * EXP_SCALE) / markets[vToken].score);
+        if (markets[vToken].sumOfMembersScore > 0) {
+            delta = ((distributionIncome * EXP_SCALE) / markets[vToken].sumOfMembersScore);
         }
 
         markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;

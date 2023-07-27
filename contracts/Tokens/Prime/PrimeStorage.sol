@@ -10,7 +10,7 @@ contract PrimeStorageV1 {
         uint256 supplyMultiplier;
         uint256 borrowMultiplier;
         uint256 rewardIndex;
-        uint256 score;
+        uint256 sumOfMembersScore;
         bool exists;
     }
 
