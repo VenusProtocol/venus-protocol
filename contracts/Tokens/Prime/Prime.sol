@@ -21,7 +21,7 @@ interface IVToken {
 
     function balanceOf(address account) external returns (uint);
 
-    function underlying() external returns (address);
+    function underlying() external view returns (address);
 }
 
 interface ERC20Interface {
@@ -68,6 +68,14 @@ error NoScoreUpdatesRequired();
 contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
+    /// @notice address of WBNB contract
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable WBNB;
+
+    /// @notice address of vBNB contract
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable vBNB;
+
     /// @notice Emitted when prime token is minted
     event Mint(address user, bool isIrrevocable);
 
@@ -76,6 +84,18 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
     /// @notice Emitted asset state is update by protocol share reserve
     event UpdatedAssetsState(address comptroller, address asset);
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(address _wbnb, address _vbnb) {
+        require(_wbnb != address(0), "ProtocolShareReserve: WBNB address invalid");
+        require(_vbnb != address(0), "ProtocolShareReserve: vBNB address invalid");
+        WBNB = _wbnb;
+        vBNB = _vbnb;
+
+        // Note that the contract is upgradeable. Use initialize() or reinitializers
+        // to set the state variables.
+        _disableInitializers();
+    }
 
     function initialize(
         address _xvsVault,
@@ -149,7 +169,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         markets[vToken].sumOfMembersScore = 0;
         markets[vToken].exists = true;
 
-        vTokenForAsset[IVToken(vToken).underlying()] = vToken;
+        vTokenForAsset[_getUnderlying(vToken)] = vToken;
 
         allMarkets.push(vToken);
         _startScoreUpdateRound();
@@ -438,11 +458,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             comptroller,
             IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
             address(this),
-            market.underlying()
+            _getUnderlying(vToken)
         );
 
-        uint256 distributionIncome = totalIncomeUnreleased - unreleasedIncome[market.underlying()];
-        unreleasedIncome[market.underlying()] = totalIncomeUnreleased;
+        uint256 distributionIncome = totalIncomeUnreleased - unreleasedIncome[_getUnderlying(vToken)];
+        unreleasedIncome[_getUnderlying(vToken)] = totalIncomeUnreleased;
 
         if (distributionIncome == 0) {
             return;
@@ -485,7 +505,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         interests[vToken][msg.sender].rewardIndex = markets[vToken].rewardIndex;
         interests[vToken][msg.sender].accrued = 0;
 
-        IERC20Upgradeable asset = IERC20Upgradeable(IVToken(vToken).underlying());
+        IERC20Upgradeable asset = IERC20Upgradeable(_getUnderlying(vToken));
 
         if (amount > asset.balanceOf(address(this))) {
             address[] memory assets = new address[](1);
@@ -509,7 +529,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         if (vToken == address(0)) revert MarketNotSupported();
 
         IVToken market = IVToken(vToken);
-        unreleasedIncome[market.underlying()] = 0;
+        unreleasedIncome[_getUnderlying(address(market))] = 0;
 
         emit UpdatedAssetsState(comptroller, asset);
     }
@@ -555,6 +575,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         if (pendingScoreUpdates > 0) {
             totalScoreUpdatesRequired--;
             pendingScoreUpdates--;
+        }
+    }
+
+    function _getUnderlying(address vToken) internal view returns (address) {
+        if (vToken == vBNB) {
+            return WBNB;
+        } else {
+            return IVToken(vToken).underlying();
         }
     }
 }
