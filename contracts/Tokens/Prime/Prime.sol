@@ -124,7 +124,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      */
     function updateMultipliers(address market, uint256 _supplyMultiplier, uint256 _borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
-        if (markets[market].exists == false) revert MarketNotSupported();
+        if (!markets[market].exists) revert MarketNotSupported();
         
         accrueInterest(market);
         markets[market].supplyMultiplier = _supplyMultiplier;
@@ -141,7 +141,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      */
     function addMarket(address vToken, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
-        if (markets[vToken].exists == true) revert MarketNotSupported();
+        if (markets[vToken].exists) revert MarketNotSupported();
 
         markets[vToken].rewardIndex = 0;
         markets[vToken].supplyMultiplier = supplyMultiplier;
@@ -176,7 +176,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     function issue(bool isIrrevocable, address[] memory users) external {
         _checkAccessAllowed("issue(bool,address[])");
 
-        if (isIrrevocable == true) {
+        if (isIrrevocable) {
             for (uint i = 0; i < users.length; i++) {
                 _mint(true, users[i]);
                 _initializeMarkets(users[i]);
@@ -198,7 +198,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint256 totalStaked = _xvsBalanceOfUser(user);
         bool isAccountEligible = isEligible(totalStaked);
 
-        if (tokens[user].exists == true && isAccountEligible == false) {
+        if (tokens[user].exists && !isAccountEligible) {
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
                 executeBoost(user, _allMarkets[i]);
@@ -209,11 +209,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             }
 
             _burn(user);
-        } else if (isAccountEligible == false && tokens[user].exists == false && stakedAt[user] > 0) {
+        } else if (!isAccountEligible && !tokens[user].exists && stakedAt[user] > 0) {
             stakedAt[user] = 0;
-        } else if (stakedAt[user] == 0 && isAccountEligible == true && tokens[user].exists == false) {
+        } else if (stakedAt[user] == 0 && isAccountEligible && !tokens[user].exists) {
             stakedAt[user] = block.timestamp;
-        } else if (tokens[user].exists == true && isAccountEligible == true) {
+        } else if (tokens[user].exists && isAccountEligible) {
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
                 executeBoost(user, _allMarkets[i]);
@@ -338,12 +338,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param user token owner
      */
     function _mint(bool isIrrevocable, address user) internal {
-        if (tokens[user].exists == true) revert IneligibleToClaim();
+        if (tokens[user].exists) revert IneligibleToClaim();
 
         tokens[user].exists = true;
         tokens[user].isIrrevocable = isIrrevocable;
 
-        if (isIrrevocable == true) {
+        if (isIrrevocable) {
             _totalIrrevocable++;
         } else {
             _totalRevocable++;
@@ -359,12 +359,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param user owner whose prime token to burn
      */
     function _burn(address user) internal {
-        if (tokens[user].exists == false) revert UserHasNoPrimeToken();
+        if (!tokens[user].exists) revert UserHasNoPrimeToken();
 
         tokens[user].exists = false;
         tokens[user].isIrrevocable = false;
 
-        if (tokens[user].isIrrevocable == true) {
+        if (tokens[user].isIrrevocable) {
             _totalIrrevocable--;
         } else {
             _totalRevocable--;
@@ -393,11 +393,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param vToken the market for which we need to accrue rewards
      */
     function executeBoost(address user, address vToken) public {
-        if (markets[vToken].exists == false) {
+        if (!markets[vToken].exists) {
             return;
         }
 
-        if (tokens[user].exists == false) {
+        if (!tokens[user].exists) {
             return;
         }
 
@@ -412,11 +412,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param market the market for which we need to score
      */
     function updateScore(address user, address market) public {
-        if (markets[market].exists == false) {
+        if (!markets[market].exists) {
             return;
         }
 
-        if (tokens[user].exists == false) {
+        if (!tokens[user].exists) {
             return;
         }
 
@@ -430,7 +430,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param vToken the market for which to distribute the income
      */
     function accrueInterest(address vToken) public {
-        if (markets[vToken].exists == false) revert MarketNotSupported();
+        if (!markets[vToken].exists) revert MarketNotSupported();
 
         IVToken market = IVToken(vToken);
 
@@ -525,8 +525,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
             
-            if (tokens[user].exists == false) revert UserHasNoPrimeToken();
-            if (isScoreUpdated[nextScoreUpdateRoundId][user] == true) continue;
+            if (!tokens[user].exists) revert UserHasNoPrimeToken();
+            if (isScoreUpdated[nextScoreUpdateRoundId][user]) continue;
 
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
