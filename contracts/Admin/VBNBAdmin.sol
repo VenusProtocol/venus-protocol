@@ -40,7 +40,7 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
     function setProtocolShareReserve(IProtocolShareReserve _protocolShareReserve) external {
         _checkAccessAllowed("setProtocolShareReserve(address)");
 
-        require(address(_protocolShareReserve) != address(0), "ACM address invalid");
+        require(address(_protocolShareReserve) != address(0), "PSR address invalid");
         IProtocolShareReserve oldProtocolShareReserve = protocolShareReserve;
         protocolShareReserve = _protocolShareReserve;
         emit ProtocolShareReserveUpdated(oldProtocolShareReserve, protocolShareReserve);
