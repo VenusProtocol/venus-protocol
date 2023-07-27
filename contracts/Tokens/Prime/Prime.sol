@@ -421,9 +421,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         }
 
         uint score = _calculateScore(market, account);
-        markets[market].score = markets[market].score - interests[market][account].score;
+        markets[market].score = markets[market].score - interests[market][account].score + score;
         interests[market][account].score = score;
-        markets[market].score = markets[market].score + score;
     }
 
     /**
