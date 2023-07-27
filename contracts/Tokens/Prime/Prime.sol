@@ -69,10 +69,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Emitted when prime token is minted
-    event Mint(address owner, bool isIrrevocable);
+    event Mint(address user, bool isIrrevocable);
 
     /// @notice Emitted when prime token is burned
-    event Burn(address owner);
+    event Burn(address user);
 
     /// @notice Emitted asset state is update by protocol share reserve
     event UpdatedAssetsState(address comptroller, address asset);
@@ -171,53 +171,53 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     /**
      * @notice Directly issue prime tokens to users
      * @param isIrrevocable is the tokens being issued is irrevocable
-     * @param owners list of address to issue tokens to
+     * @param users list of address to issue tokens to
      */
-    function issue(bool isIrrevocable, address[] memory owners) external {
+    function issue(bool isIrrevocable, address[] memory users) external {
         _checkAccessAllowed("issue(bool,address[])");
 
         if (isIrrevocable == true) {
-            for (uint i = 0; i < owners.length; i++) {
-                _mint(true, owners[i]);
-                _initializeMarkets(owners[i]);
+            for (uint i = 0; i < users.length; i++) {
+                _mint(true, users[i]);
+                _initializeMarkets(users[i]);
             }
         } else {
-            for (uint i = 0; i < owners.length; i++) {
-                _mint(false, owners[i]);
-                _initializeMarkets(owners[i]);
-                delete stakedAt[owners[i]];
+            for (uint i = 0; i < users.length; i++) {
+                _mint(false, users[i]);
+                _initializeMarkets(users[i]);
+                delete stakedAt[users[i]];
             }
         }
     }
 
     /**
      * @notice Executed by XVSVault whenever user's XVSVault balance changes
-     * @param owner the account address whose balance was updated
+     * @param user the account address whose balance was updated
      */
-    function xvsUpdated(address owner) external {
-        uint256 totalStaked = _xvsBalanceOfUser(owner);
+    function xvsUpdated(address user) external {
+        uint256 totalStaked = _xvsBalanceOfUser(user);
         bool isAccountEligible = isEligible(totalStaked);
 
-        if (tokens[owner].exists == true && isAccountEligible == false) {
+        if (tokens[user].exists == true && isAccountEligible == false) {
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
-                executeBoost(owner, _allMarkets[i]);
+                executeBoost(user, _allMarkets[i]);
                 
-                markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][owner].score;
-                interests[_allMarkets[i]][owner].score = 0;
-                interests[_allMarkets[i]][owner].rewardIndex = 0;
+                markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][user].score;
+                interests[_allMarkets[i]][user].score = 0;
+                interests[_allMarkets[i]][user].rewardIndex = 0;
             }
 
-            _burn(owner);
-        } else if (isAccountEligible == false && tokens[owner].exists == false && stakedAt[owner] > 0) {
-            stakedAt[owner] = 0;
-        } else if (stakedAt[owner] == 0 && isAccountEligible == true && tokens[owner].exists == false) {
-            stakedAt[owner] = block.timestamp;
-        } else if (tokens[owner].exists == true && isAccountEligible == true) {
+            _burn(user);
+        } else if (isAccountEligible == false && tokens[user].exists == false && stakedAt[user] > 0) {
+            stakedAt[user] = 0;
+        } else if (stakedAt[user] == 0 && isAccountEligible == true && tokens[user].exists == false) {
+            stakedAt[user] = block.timestamp;
+        } else if (tokens[user].exists == true && isAccountEligible == true) {
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
-                executeBoost(owner, _allMarkets[i]);
-                updateScore(owner, _allMarkets[i]);
+                executeBoost(user, _allMarkets[i]);
+                updateScore(user, _allMarkets[i]);
             }
         }
     }
@@ -255,14 +255,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
     /**
      * @notice fetch the current XVS balance of user in the XVSVault
-     * @param account the account address for which markets needs to be initialized
+     * @param user the account address for which markets needs to be initialized
      * @return xvsBalance the XVS balance of user
      */
-    function _xvsBalanceOfUser(address account) internal view returns (uint256) {
+    function _xvsBalanceOfUser(address user) internal view returns (uint256) {
         (uint256 xvs, , uint256 pendingWithdrawals) = IXVSVault(xvsVault).getUserInfo(
             xvsVaultRewardToken,
             xvsVaultPoolId,
-            account
+            user
         );
         return (xvs - pendingWithdrawals);
     }
@@ -270,16 +270,16 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     /**
      * @notice calculate the current score of user
      * @param market the market for which to calculate the score
-     * @param account the account for which to calculate the score
+     * @param user the account for which to calculate the score
      * @return score the score of the user
      */
-    function _calculateScore(address market, address account) internal returns (uint256) {
-        uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(account));
+    function _calculateScore(address market, address user) internal returns (uint256) {
+        uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(user));
 
         IVToken vToken = IVToken(market);
-        uint256 borrow = vToken.borrowBalanceStored(account);
+        uint256 borrow = vToken.borrowBalanceStored(user);
         uint256 exchangeRate = vToken.exchangeRateStored();
-        uint256 balanceOfAccount = vToken.balanceOf(account);
+        uint256 balanceOfAccount = vToken.balanceOf(user);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
         return
@@ -335,13 +335,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     /**
      * @notice Used to mint a new prime token
      * @param isIrrevocable is the tokens being issued is irrevocable
-     * @param owner token owner
+     * @param user token owner
      */
-    function _mint(bool isIrrevocable, address owner) internal {
-        if (tokens[owner].exists == true) revert IneligibleToClaim();
+    function _mint(bool isIrrevocable, address user) internal {
+        if (tokens[user].exists == true) revert IneligibleToClaim();
 
-        tokens[owner].exists = true;
-        tokens[owner].isIrrevocable = isIrrevocable;
+        tokens[user].exists = true;
+        tokens[user].isIrrevocable = isIrrevocable;
 
         if (isIrrevocable == true) {
             _totalIrrevocable++;
@@ -351,20 +351,20 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         if (_totalIrrevocable > _irrevocableLimit || _totalRevocable > _revocableLimit) revert InvalidLimit();
 
-        emit Mint(owner, isIrrevocable);
+        emit Mint(user, isIrrevocable);
     }
 
     /**
      * @notice Used to burn a new prime token
-     * @param owner owner whose prime token to burn
+     * @param user owner whose prime token to burn
      */
-    function _burn(address owner) internal {
-        if (tokens[owner].exists == false) revert UserHasNoPrimeToken();
+    function _burn(address user) internal {
+        if (tokens[user].exists == false) revert UserHasNoPrimeToken();
 
-        tokens[owner].exists = false;
-        tokens[owner].isIrrevocable = false;
+        tokens[user].exists = false;
+        tokens[user].isIrrevocable = false;
 
-        if (tokens[owner].isIrrevocable == true) {
+        if (tokens[user].isIrrevocable == true) {
             _totalIrrevocable--;
         } else {
             _totalRevocable--;
@@ -372,7 +372,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         _updateRoundAfterTokenBurned();
 
-        emit Burn(owner);
+        emit Burn(user);
     }
 
     /**
@@ -389,40 +389,40 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
     /**
      * @notice Accrue rewards for the user. Must be called by Comptroller before changing account's borrow or supply balance.
-     * @param account account for which we need to accrue rewards
+     * @param user account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
      */
-    function executeBoost(address account, address vToken) public {
+    function executeBoost(address user, address vToken) public {
         if (markets[vToken].exists == false) {
             return;
         }
 
-        if (tokens[account].exists == false) {
+        if (tokens[user].exists == false) {
             return;
         }
 
         accrueInterest(vToken);
-        interests[vToken][account].accrued = _interestAccrued(vToken, account);
-        interests[vToken][account].rewardIndex = markets[vToken].rewardIndex;
+        interests[vToken][user].accrued = _interestAccrued(vToken, user);
+        interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
     }
 
     /**
      * @notice Update total score of user and market. Must be called after changing account's borrow or supply balance.
-     * @param account account for which we need to update score
+     * @param user account for which we need to update score
      * @param market the market for which we need to score
      */
-    function updateScore(address account, address market) public {
+    function updateScore(address user, address market) public {
         if (markets[market].exists == false) {
             return;
         }
 
-        if (tokens[account].exists == false) {
+        if (tokens[user].exists == false) {
             return;
         }
 
-        uint score = _calculateScore(market, account);
-        markets[market].sumOfMembersScore = markets[market].sumOfMembersScore - interests[market][account].score + score;
-        interests[market][account].score = score;
+        uint score = _calculateScore(market, user);
+        markets[market].sumOfMembersScore = markets[market].sumOfMembersScore - interests[market][user].score + score;
+        interests[market][user].score = score;
     }
 
     /**
@@ -459,17 +459,17 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     /**
      * @notice Returns boosted interest accrued for a user
      * @param vToken the market for which to fetch the accrued interest
-     * @param account the account for which to get the accrued interest
+     * @param user the account for which to get the accrued interest
      */
-    function getInterestAccrued(address vToken, address account) public returns (uint256) {
+    function getInterestAccrued(address vToken, address user) public returns (uint256) {
         accrueInterest(vToken);
 
-        return _interestAccrued(vToken, account);
+        return _interestAccrued(vToken, user);
     }
 
-    function _interestAccrued(address vToken, address account) internal returns (uint256) {
-        uint256 index = markets[vToken].rewardIndex - interests[vToken][account].rewardIndex;
-        uint256 score = interests[vToken][account].score;
+    function _interestAccrued(address vToken, address user) internal returns (uint256) {
+        uint256 index = markets[vToken].rewardIndex - interests[vToken][user].rewardIndex;
+        uint256 score = interests[vToken][user].score;
 
         return (index * score) / EXP_SCALE;
     }
@@ -516,26 +516,26 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
     /**
      * @notice Update total score of multiple users and market
-     * @param accounts accounts for which we need to update score
+     * @param users accounts for which we need to update score
      */
-    function updateScores(address[] memory accounts) external {
+    function updateScores(address[] memory users) external {
         if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
         if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
 
-        for (uint256 i = 0; i < accounts.length; i++) {
-            address account = accounts[i];
+        for (uint256 i = 0; i < users.length; i++) {
+            address user = users[i];
             
-            if (tokens[account].exists == false) revert UserHasNoPrimeToken();
-            if (isScoreUpdated[nextScoreUpdateRoundId][account] == true) continue;
+            if (tokens[user].exists == false) revert UserHasNoPrimeToken();
+            if (isScoreUpdated[nextScoreUpdateRoundId][user] == true) continue;
 
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
                 address market = _allMarkets[i];
-                updateScore(account, market);
+                updateScore(user, market);
             }
 
             pendingScoreUpdates--;
-            isScoreUpdated[nextScoreUpdateRoundId][account] = true;
+            isScoreUpdated[nextScoreUpdateRoundId][user] = true;
         }
     }
 
