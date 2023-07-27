@@ -38,8 +38,8 @@ interface IXVSVault {
 
 interface IProtocolShareReserve {
     enum Schema {
-        ONE,
-        TWO
+        DEFAULT,
+        SPREAD_PRIME_CORE
     }
 
     function getUnreleasedFunds(
@@ -428,7 +428,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         uint totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
             comptroller,
-            IProtocolShareReserve.Schema.ONE,
+            IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
             address(this),
             market.underlying()
         );
