@@ -342,8 +342,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         if (_totalIrrevocable > _irrevocableLimit || _totalRevocable > _revocableLimit) revert InvalidLimit();
 
-        _updateRoundAfterTokenMinted();
-
         emit Mint(owner, isIrrevocable);
     }
 
@@ -560,16 +558,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         if (pendingScoreUpdates > 0) {
             totalScoreUpdatesRequired--;
             pendingScoreUpdates--;
-        }
-    }
-
-    /**
-     * @notice update the required score updates when token is minted before round is completed
-     */
-    function _updateRoundAfterTokenMinted() internal {
-        if (pendingScoreUpdates > 0) {
-            totalScoreUpdatesRequired++;
-            pendingScoreUpdates++;
         }
     }
 }
