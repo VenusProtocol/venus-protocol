@@ -457,19 +457,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;
     }
 
-    function getMarketDecimals(address vToken) internal returns (uint256) {
-        IVToken market = IVToken(vToken);
-        address underlying;
-
-        try market.underlying() returns (address _underlying) {
-            underlying = _underlying;
-        } catch (bytes memory) {
-            return 10 ** 18; // vBNB
-        }
-
-        return (10 ** ERC20Interface(underlying).decimals());
-    }
-
     /**
      * @notice Returns boosted interest accrued for a user
      * @param vToken the market for which to fetch the accrued interest
