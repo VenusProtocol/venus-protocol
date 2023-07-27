@@ -199,6 +199,15 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         bool isAccountEligible = isEligible(totalStaked);
 
         if (tokens[owner].exists == true && isAccountEligible == false) {
+            address[] storage _allMarkets = allMarkets;
+            for (uint i = 0; i < _allMarkets.length; i++) {
+                executeBoost(owner, _allMarkets[i]);
+                
+                markets[_allMarkets[i]].score = markets[_allMarkets[i]].score - interests[_allMarkets[i]][owner].score;
+                interests[_allMarkets[i]][owner].score = 0;
+                interests[_allMarkets[i]][account].rewardIndex = 0;
+            }
+
             _burn(owner);
         } else if (isAccountEligible == false && tokens[owner].exists == false && stakedAt[owner] > 0) {
             stakedAt[owner] = 0;
@@ -485,6 +494,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      */
     function claimInterest(address vToken) external {
         uint256 amount = getInterestAccrued(vToken, msg.sender);
+        amount += interests[vToken][msg.sender].accrued;
+
         interests[vToken][msg.sender].rewardIndex = markets[vToken].rewardIndex;
         interests[vToken][msg.sender].accrued = 0;
 
