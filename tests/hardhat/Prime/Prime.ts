@@ -138,8 +138,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._supportMarket(veth.address);
   await comptroller._setCollateralFactor(veth.address, half);
 
-  eth.transfer(user1.address, bigNumber18.mul(100));
-  usdt.transfer(user2.address, bigNumber18.mul(10000));
+  await eth.transfer(user1.address, bigNumber18.mul(100));
+  await usdt.transfer(user2.address, bigNumber18.mul(10000));
 
   await comptroller._setMarketSupplyCaps([vusdt.address, veth.address], [bigNumber18.mul(10000), bigNumber18.mul(100)]);
 
@@ -370,6 +370,8 @@ describe("PrimeScenario Token", () => {
       ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, oracle, protocolShareReserve } = await loadFixture(
         deployProtocol,
       ));
+
+      await protocolShareReserve.getUnreleasedFunds.returns("0");
 
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));
