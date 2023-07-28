@@ -339,6 +339,11 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         emit OracleChanged(oldOracleAddress, oracleAddress_);
     }
 
+    /**
+     * @dev Disabling renounceOwnership function.
+     */
+    function renounceOwnership() public override {}
+
     /*** Helper Functions ***/
 
     /**
