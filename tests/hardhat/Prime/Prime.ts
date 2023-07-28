@@ -354,7 +354,7 @@ describe("PrimeScenario Token", () => {
     });
   });
 
-  describe.skip("boosted yield", () => {
+  describe("boosted yield", () => {
     let comptroller: MockContract<ComptrollerMock>;
     let prime: PrimeScenario;
     let vusdt: VBep20Harness;
@@ -416,13 +416,13 @@ describe("PrimeScenario Token", () => {
       expect(interest.rewardIndex).to.be.equal(0);
 
       let market = await prime.markets(vusdt.address);
-      expect(market.score).to.be.equal("223606797749979014552");
+      expect(market.sumOfMembersScore).to.be.equal("223606797749979014552");
       expect(market.rewardIndex).to.be.equal(0);
 
       await protocolShareReserve.getUnreleasedFunds.returns("518436");
       await prime.accrueInterest(vusdt.address);
       market = await prime.markets(vusdt.address);
-      expect(market.score).to.be.equal("223606797749979014552");
+      expect(market.sumOfMembersScore).to.be.equal("223606797749979014552");
       /**
        * IncomeToDistribute = 518436
        * IndexDelta = IncomeToDistribute/MarketScore = 518436 / 223606797749979014552 = 0.000000000000002318
@@ -537,7 +537,7 @@ describe("PrimeScenario Token", () => {
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.rewardIndex).to.be.equal(0);
-        expect(market.score).to.be.equal(0);
+        expect(market.sumOfMembersScore).to.be.equal(0);
 
         await bnb.connect(user3).approve(vbnb.address, bigNumber18.mul(90));
         await vbnb.connect(user3).mint(bigNumber18.mul(1));
@@ -554,7 +554,7 @@ describe("PrimeScenario Token", () => {
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.rewardIndex).to.be.equal(0);
-        expect(market.score).to.be.equal("426614580154030858642");
+        expect(market.sumOfMembersScore).to.be.equal("426614580154030858642");
 
         await protocolShareReserve.getUnreleasedFunds.returns(103683);
         await prime.accrueInterest(vbnb.address);
@@ -567,7 +567,7 @@ describe("PrimeScenario Token", () => {
          * rewardIndex += 103687/426614580154030858642 = 243
          */
         expect(market.rewardIndex).to.be.equal(243);
-        expect(market.score).to.be.equal("426614580154030858642");
+        expect(market.sumOfMembersScore).to.be.equal("426614580154030858642");
 
         /**
          * index = 463
@@ -582,7 +582,7 @@ describe("PrimeScenario Token", () => {
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.rewardIndex).to.be.equal(486);
-        expect(market.score).to.be.equal("426614580154030858642");
+        expect(market.sumOfMembersScore).to.be.equal("426614580154030858642");
 
         /**
          * 927 * 223.606797749979014552 = 207283.5015
@@ -605,7 +605,7 @@ describe("PrimeScenario Token", () => {
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.rewardIndex).to.be.equal(0);
-        expect(market.score).to.be.equal(0);
+        expect(market.sumOfMembersScore).to.be.equal(0);
 
         let nextScoreUpdateRoundId = await prime.nextScoreUpdateRoundId();
         let totalScoreUpdatesRequired = await prime.totalScoreUpdatesRequired();
@@ -641,7 +641,7 @@ describe("PrimeScenario Token", () => {
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.rewardIndex).to.be.equal(0);
-        expect(market.score).to.be.equal("424264068711928538075");
+        expect(market.sumOfMembersScore).to.be.equal("424264068711928538075");
 
         await protocolShareReserve.getUnreleasedFunds.returns(103687);
         await prime.accrueInterest(vbnb.address);
@@ -653,7 +653,7 @@ describe("PrimeScenario Token", () => {
          * rewardIndex += 103687/424264068711928538075 = 244
          */
         expect(market.rewardIndex).to.be.equal(244);
-        expect(market.score).to.be.equal("424264068711928538075");
+        expect(market.sumOfMembersScore).to.be.equal("424264068711928538075");
 
         /**
          * interest = index * user score = 463 * 223.606797749979014552 = 103529
@@ -673,7 +673,7 @@ describe("PrimeScenario Token", () => {
          * rewardIndex += 207374/424264068711928538075 = 488
          */
         expect(market.rewardIndex).to.be.equal(488);
-        expect(market.score).to.be.equal("424264068711928538075");
+        expect(market.sumOfMembersScore).to.be.equal("424264068711928538075");
 
         /**
          * 926 * 223.606797749979014552 = 207059.8947
