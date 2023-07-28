@@ -218,7 +218,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         //calculate actual transfered amount (in case of fee-on-transfer tokens)
         uint256 actualTransferAmt = balanceAfter - balanceBefore;
 
-        // update oracle price and calculate USD value of the stable token amount scaled in 18 decimagit
+        // update oracle price and calculate USD value of the stable token amount scaled in 18 decimals
         oracle.updateAssetPrice(STABLE_TOKEN_ADDRESS);
         uint256 actualTransferAmtInUSD = previewTokenUSDAmount(actualTransferAmt, FeeDirection.IN);
 
@@ -381,7 +381,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
     /**
      * @dev Disabling renounceOwnership function.
      */
-     function renounceOwnership() public override {}
+    function renounceOwnership() public override {}
 
     /**
      * @dev Calculates the USD value of the given amount of stable tokens depending on the swap direction.
