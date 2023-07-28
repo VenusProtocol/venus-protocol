@@ -452,8 +452,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     function accrueInterest(address vToken) public {
         if (!markets[vToken].exists) revert MarketNotSupported();
 
-        IVToken market = IVToken(vToken);
-
         uint totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
             comptroller,
             IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
