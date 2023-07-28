@@ -76,7 +76,7 @@ async function deployPegStability(stableToken: string): Promise<PegStability> {
 // * Flow Validation Functions *
 // *****************************
 async function validateInitialization(psm: PegStability, stableToken: string) {
-  expect(await psm.VAI_ADDRESS()).to.equal(Contracts.VAI);
+  expect(await psm.VAI()).to.equal(Contracts.VAI);
   expect((await psm.STABLE_TOKEN_ADDRESS()).toLocaleLowerCase()).to.equal(stableToken.toLocaleLowerCase());
   expect((await psm.venusTreasury()).toLocaleLowerCase()).to.equal(venusTreasury);
   expect(await psm.oracle()).to.equal(resilientOracle);
@@ -87,7 +87,7 @@ async function validateInitialization(psm: PegStability, stableToken: string) {
   expect(await psm.isPaused()).to.be.false;
   expect(await psm.accessControlManager()).to.equal(acmAddress);
 }
-async function swapStableForVaiAndValidate(
+async function swapStableForVAIAndValidate(
   psm: PegStability,
   stableToken: FaucetToken,
   stableTokenPrice: BigNumber,
@@ -110,7 +110,7 @@ async function swapStableForVaiAndValidate(
   await expect(tx).to.emit(psm, "StableForVAISwapped").withArgs(stableTokenAmount, vaiToMint, fee);
 }
 
-async function swapVaiForStableAndValidate(
+async function swapVAIForStableAndValidate(
   psm: PegStability,
   stableTokenName: string,
   stableTokenPrice: BigNumber,
@@ -124,7 +124,7 @@ async function swapVaiForStableAndValidate(
   formatConsoleLog(`${stableTokenName} Price: ` + stableTokenPrice.toString());
   await VAI.connect(vaiSigner).approve(psm.address, tokenAmountUsd);
   const tx = await psm.connect(vaiSigner).swapVAIForStable(VAI_HOLDER, convertToUnit(100, 18));
-  await expect(tx).to.emit(psm, "VaiForStableSwapped").withArgs(tokenAmountUsd, 0, tokenAmount);
+  await expect(tx).to.emit(psm, "VAIForStableSwapped").withArgs(tokenAmountUsd, tokenAmount, 0);
 }
 
 async function validateReInitialization(psm: PegStability) {
@@ -180,10 +180,10 @@ if (FORK_MAINNET) {
         });
         describe("Swap", () => {
           it(`${stableTokenName} -> VAI`, async () => {
-            return swapStableForVaiAndValidate(psm, stableToken, stableTokenPrice, tokenSigner, tokenHolder, VAI);
+            return swapStableForVAIAndValidate(psm, stableToken, stableTokenPrice, tokenSigner, tokenHolder, VAI);
           });
           it(`VAI -> ${stableTokenName}`, async () => {
-            return swapVaiForStableAndValidate(psm, stableTokenName, stableTokenPrice, VAI, vaiSigner);
+            return swapVAIForStableAndValidate(psm, stableTokenName, stableTokenPrice, VAI, vaiSigner);
           });
         });
       });
