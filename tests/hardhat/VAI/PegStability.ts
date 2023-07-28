@@ -64,7 +64,7 @@ async function pegStabilityFixture(tokenDecimals: number): Promise<PegStabilityF
   return { pegStability, stableToken, acm, vai, venusTreasury, priceOracle };
 }
 
-async function swapStableForVaiAndVerify(
+async function swapStableForVAIAndVerify(
   stableToken: FakeContract<EIP20InterfaceExtended>,
   adminAddress: string,
   pegStability: MockContract<PegStability>,
@@ -86,7 +86,7 @@ async function swapStableForVaiAndVerify(
   await expect(tx).to.emit(pegStability, "StableForVAISwapped").withArgs(STABLE_TOKEN_AMOUNT, VAI_TO_SEND, VAI_FEE);
 }
 
-async function swapVaiForStableAndVerify(
+async function swapVAIForStableAndVerify(
   vai: FakeContract<VAI>,
   adminAddress: string,
   USER_VAI_BALANCE: string,
@@ -107,8 +107,8 @@ async function swapVaiForStableAndVerify(
   expect(vai.burn).to.have.been.calledOnceWith(adminAddress, VAI_TO_BURN);
   expect(stableToken.transfer).to.have.been.calledOnceWith(receiverAddress, STABLE_TOKEN_AMOUNT);
   await expect(tx)
-    .to.emit(pegStability, "VaiForStableSwapped")
-    .withArgs(VAI_TO_BURN, VAI_FEE_TO_TREASURY, STABLE_TOKEN_AMOUNT);
+    .to.emit(pegStability, "VAIForStableSwapped")
+    .withArgs(VAI_TO_BURN, STABLE_TOKEN_AMOUNT, VAI_FEE_TO_TREASURY);
 }
 describe("Peg Stability Module", () => {
   tokenDecimals.forEach(function (decimals) {
@@ -186,7 +186,7 @@ describe("Peg Stability Module", () => {
                 TEN_PERCENT,
                 VAI_MINT_CAP,
               ),
-            ).to.be.rejectedWith("Can't be zero address");
+            ).to.be.revertedWithCustomError(pegStability, "ZeroAddress");
           });
           it("treasury", async () => {
             await expect(
@@ -198,7 +198,7 @@ describe("Peg Stability Module", () => {
                 TEN_PERCENT,
                 VAI_MINT_CAP,
               ),
-            ).to.be.rejectedWith("Can't be zero address");
+            ).to.be.revertedWithCustomError(pegStability, "ZeroAddress");
           });
           it("stableToken", async () => {
             await expect(
@@ -210,10 +210,10 @@ describe("Peg Stability Module", () => {
                 TEN_PERCENT,
                 VAI_MINT_CAP,
               ),
-            ).to.be.rejectedWith("Can't be zero address");
+            ).to.be.revertedWithCustomError(pegStability, "ZeroAddress");
           });
         });
-        describe("reverts is fee init value is invalid", () => {
+        describe("reverts if fee init value is invalid", () => {
           it("feeIn", async () => {
             await expect(
               pegStability.initialize(
@@ -224,7 +224,7 @@ describe("Peg Stability Module", () => {
                 TEN_PERCENT,
                 VAI_MINT_CAP,
               ),
-            ).to.be.rejectedWith("Invalid fee in");
+            ).to.be.revertedWithCustomError(pegStability, "InvalidFee");
           });
           it("feeOut", async () => {
             await expect(
@@ -236,7 +236,7 @@ describe("Peg Stability Module", () => {
                 HUNDERD_PERCENT, //invalid
                 VAI_MINT_CAP,
               ),
-            ).to.be.rejectedWith("Invalid fee out");
+            ).to.be.revertedWithCustomError(pegStability, "InvalidFee");
           });
         });
         it("should initialize sucessfully", async () => {
@@ -266,7 +266,7 @@ describe("Peg Stability Module", () => {
           it("should revert if already paused", async () => {
             acm.isAllowedToCall.whenCalledWith(adminAddress, "pause()").returns(true);
             await pegStability.setVariable("isPaused", true);
-            await expect(pegStability.pause()).to.be.revertedWith("PSM is already paused.");
+            await expect(pegStability.pause()).to.be.revertedWithCustomError(pegStability, "AlreadyPaused");
           });
         });
         describe("resume()", () => {
@@ -283,7 +283,7 @@ describe("Peg Stability Module", () => {
           it("should revert if already resumed", async () => {
             acm.isAllowedToCall.whenCalledWith(adminAddress, "resume()").returns(true);
             await pegStability.setVariable("isPaused", false);
-            await expect(pegStability.resume()).to.be.revertedWith("PSM is not paused.");
+            await expect(pegStability.resume()).to.be.revertedWithCustomError(pegStability, "NotPaused");
           });
         });
         describe("setFeeIn(uint256)", () => {
@@ -292,7 +292,10 @@ describe("Peg Stability Module", () => {
           });
           it("should revert if fee is invalid", async () => {
             acm.isAllowedToCall.whenCalledWith(adminAddress, "setFeeIn(uint256)").returns(true);
-            await expect(pegStability.setFeeIn(HUNDERD_PERCENT)).to.be.revertedWith("Invalid fee.");
+            await expect(pegStability.setFeeIn(HUNDERD_PERCENT)).to.be.revertedWithCustomError(
+              pegStability,
+              "InvalidFee",
+            );
           });
           it("set the correct fee", async () => {
             acm.isAllowedToCall.whenCalledWith(adminAddress, "setFeeIn(uint256)").returns(true);
@@ -309,7 +312,10 @@ describe("Peg Stability Module", () => {
           });
           it("should revert if fee is invalid", async () => {
             acm.isAllowedToCall.whenCalledWith(adminAddress, "setFeeIn(uint256)").returns(true);
-            await expect(pegStability.setFeeIn(HUNDERD_PERCENT)).to.be.revertedWith("Invalid fee.");
+            await expect(pegStability.setFeeIn(HUNDERD_PERCENT)).to.be.revertedWithCustomError(
+              pegStability,
+              "InvalidFee",
+            );
           });
           it("set the correct fee", async () => {
             acm.isAllowedToCall.whenCalledWith(adminAddress, "setFeeOut(uint256)").returns(true);
@@ -320,16 +326,16 @@ describe("Peg Stability Module", () => {
             expect(feeOut).to.equal(TWENTY_PERCENT);
           });
         });
-        describe("setVaiMintCap(uint256)", () => {
+        describe("setVAIMintCap(uint256)", () => {
           it("should revert if not authorised", async () => {
-            await expect(pegStability.setVaiMintCap(0)).to.be.revertedWithCustomError(pegStability, "Unauthorized");
+            await expect(pegStability.setVAIMintCap(0)).to.be.revertedWithCustomError(pegStability, "Unauthorized");
           });
           it("should set the correct mint cap", async () => {
             const OLD_MINT_CAP = await pegStability.getVariable("vaiMintCap");
             const NEW_MINT_CAP = convertToUnit(10, 18);
-            acm.isAllowedToCall.whenCalledWith(adminAddress, "setVaiMintCap(uint256)").returns(true);
-            await expect(pegStability.setVaiMintCap(NEW_MINT_CAP))
-              .to.emit(pegStability, "VaiMintCapChanged")
+            acm.isAllowedToCall.whenCalledWith(adminAddress, "setVAIMintCap(uint256)").returns(true);
+            await expect(pegStability.setVAIMintCap(NEW_MINT_CAP))
+              .to.emit(pegStability, "VAIMintCapChanged")
               .withArgs(OLD_MINT_CAP, NEW_MINT_CAP);
             expect(await pegStability.getVariable("vaiMintCap")).to.equal(NEW_MINT_CAP);
           });
@@ -343,8 +349,9 @@ describe("Peg Stability Module", () => {
           });
           it("should revert if zero address", async () => {
             acm.isAllowedToCall.whenCalledWith(adminAddress, "setVenusTreasury(address)").returns(true);
-            await expect(pegStability.setVenusTreasury(ethers.constants.AddressZero)).to.be.revertedWith(
-              "Can't be zero address.",
+            await expect(pegStability.setVenusTreasury(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
+              pegStability,
+              "ZeroAddress",
             );
           });
           it("should set the treasury address", async () => {
@@ -365,8 +372,9 @@ describe("Peg Stability Module", () => {
           });
           it("should revert if oracle address is zero", async () => {
             acm.isAllowedToCall.whenCalledWith(adminAddress, "setOracle(address)").returns(true);
-            await expect(pegStability.setOracle(ethers.constants.AddressZero)).to.be.revertedWith(
-              "Can't be zero address.",
+            await expect(pegStability.setOracle(ethers.constants.AddressZero)).to.be.revertedWithCustomError(
+              pegStability,
+              "ZeroAddress",
             );
           });
           it("should set the oracle", async () => {
@@ -384,10 +392,16 @@ describe("Peg Stability Module", () => {
           await pegStability.setVariable("isPaused", true);
         });
         it("should revert when paused and call swapVAIForStable(address,uint256)", async () => {
-          await expect(pegStability.swapVAIForStable(adminAddress, 100)).to.be.revertedWith("Contract is paused.");
+          await expect(pegStability.swapVAIForStable(adminAddress, 100)).to.be.revertedWithCustomError(
+            pegStability,
+            "Paused",
+          );
         });
         it("should revert when paused and call swapStableForVAI(address,uint256)", async () => {
-          await expect(pegStability.swapStableForVAI(adminAddress, 100)).to.be.revertedWith("Contract is paused.");
+          await expect(pegStability.swapStableForVAI(adminAddress, 100)).to.be.revertedWithCustomError(
+            pegStability,
+            "Paused",
+          );
         });
       });
       describe("Swap functions", () => {
@@ -397,32 +411,32 @@ describe("Peg Stability Module", () => {
             await pegStability.setVariable("vaiMinted", VAI_MINTED);
           });
           it("should revert if receiver is zero address ", async () => {
-            await expect(pegStability.swapVAIForStable(ethers.constants.AddressZero, 100)).to.be.revertedWith(
-              "Can't be zero address.",
-            );
+            await expect(
+              pegStability.swapVAIForStable(ethers.constants.AddressZero, 100),
+            ).to.be.revertedWithCustomError(pegStability, "ZeroAddress");
           });
           it("should revert if sender has insufficient VAI balance ", async () => {
             const USER_VAI_BALANCE = convertToUnit(109, 18); // USER NEEDS TO HAVE 110 VAI
             vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-            await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-              "Not enough VAI.",
-            );
+            await expect(
+              pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT),
+            ).to.be.revertedWithCustomError(pegStability, "NotEnoughVAI");
           });
           it("should revert if VAI transfer fails ", async () => {
             const USER_VAI_BALANCE = convertToUnit(110, 18);
             vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
-            await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-              "VAI fee transfer failed.",
-            );
+            await expect(
+              pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT),
+            ).to.be.revertedWithCustomError(pegStability, "VAITransferFail");
           });
           it("should revert if VAI to be burnt > vaiMinted ", async () => {
             const STABLE_TOKEN_AMOUNT_DOUBLE = STABLE_TOKEN_AMOUNT.mul(2);
             const USER_VAI_BALANCE = convertToUnit(300, 18);
             vai.balanceOf.whenCalledWith(adminAddress).returns(USER_VAI_BALANCE);
             vai.transferFrom.returns(true);
-            await expect(pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT_DOUBLE)).to.be.revertedWith(
-              "Can't burn more VAI than minted.",
-            );
+            await expect(
+              pegStability.swapVAIForStable(adminAddress, STABLE_TOKEN_AMOUNT_DOUBLE),
+            ).to.be.revertedWithCustomError(pegStability, "VAIMintedUnderflow");
           });
           describe("should sucessfully perform the swap", () => {
             beforeEach(async () => {
@@ -433,7 +447,7 @@ describe("Peg Stability Module", () => {
               const VAI_FEE_TO_TREASURY = convertToUnit(10, 18);
               const VAI_TO_BURN = convertToUnit(100, 18);
               it("stable token = 1$ ", async () => {
-                await swapVaiForStableAndVerify(
+                await swapVAIForStableAndVerify(
                   vai,
                   adminAddress,
                   USER_VAI_BALANCE,
@@ -448,7 +462,7 @@ describe("Peg Stability Module", () => {
               });
               it("stable token < 1$ ", async () => {
                 priceOracle.getPrice.returns(TOKEN_PRICE_BELOW_ONE); // 0.9$
-                await swapVaiForStableAndVerify(
+                await swapVAIForStableAndVerify(
                   vai,
                   adminAddress,
                   USER_VAI_BALANCE,
@@ -466,7 +480,7 @@ describe("Peg Stability Module", () => {
                 const USER_VAI_BALANCE = convertToUnit(121, 18); // 121 (110 VAI + 11 VAI fee)
                 const VAI_FEE_TO_TREASURY = convertToUnit(11, 18);
                 const VAI_TO_BURN = convertToUnit(110, 18);
-                await swapVaiForStableAndVerify(
+                await swapVAIForStableAndVerify(
                   vai,
                   adminAddress,
                   USER_VAI_BALANCE,
@@ -491,7 +505,7 @@ describe("Peg Stability Module", () => {
                 });
               });
               it("stable token = 1$ ", async () => {
-                await swapVaiForStableAndVerify(
+                await swapVAIForStableAndVerify(
                   vai,
                   adminAddress,
                   USER_VAI_BALANCE,
@@ -506,7 +520,7 @@ describe("Peg Stability Module", () => {
               });
               it("stable token < 1$ ", async () => {
                 priceOracle.getPrice.returns(TOKEN_PRICE_BELOW_ONE); // 0.9$
-                await swapVaiForStableAndVerify(
+                await swapVAIForStableAndVerify(
                   vai,
                   adminAddress,
                   USER_VAI_BALANCE,
@@ -524,7 +538,7 @@ describe("Peg Stability Module", () => {
                 const USER_VAI_BALANCE = convertToUnit(121, 18); // 121 (110 VAI + 11 VAI fee)
                 const VAI_FEE_TO_TREASURY = "0";
                 const VAI_TO_BURN = convertToUnit(110, 18);
-                await swapVaiForStableAndVerify(
+                await swapVAIForStableAndVerify(
                   vai,
                   adminAddress,
                   USER_VAI_BALANCE,
@@ -545,9 +559,9 @@ describe("Peg Stability Module", () => {
             resetAllFakes();
           });
           it("should revert if receiver is zero address ", async () => {
-            await expect(pegStability.swapStableForVAI(ethers.constants.AddressZero, 100)).to.be.revertedWith(
-              "Can't be zero address.",
-            );
+            await expect(
+              pegStability.swapStableForVAI(ethers.constants.AddressZero, 100),
+            ).to.be.revertedWithCustomError(pegStability, "ZeroAddress");
           });
           it("should revert if VAI mint cap will be reached ", async () => {
             const MINT_CAP = convertToUnit(99, 18);
@@ -557,9 +571,9 @@ describe("Peg Stability Module", () => {
               .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
               .returns(true);
             stableToken.balanceOf.returnsAtCall(1, STABLE_TOKEN_AMOUNT);
-            await expect(pegStability.swapStableForVAI(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-              "VAI mint cap reached.",
-            );
+            await expect(
+              pegStability.swapStableForVAI(adminAddress, STABLE_TOKEN_AMOUNT),
+            ).to.be.revertedWithCustomError(pegStability, "VAIMintCapReached");
           });
           if (decimals == 18) {
             it("should revert if amount after transfer is too small  ", async function () {
@@ -569,9 +583,9 @@ describe("Peg Stability Module", () => {
                 .whenCalledWith(adminAddress, pegStability.address, STABLE_TOKEN_AMOUNT)
                 .returns(true);
               stableToken.balanceOf.returnsAtCall(1, TOO_SMALL_AMOUNT);
-              await expect(pegStability.swapStableForVAI(adminAddress, STABLE_TOKEN_AMOUNT)).to.be.revertedWith(
-                "Amount too small.",
-              );
+              await expect(
+                pegStability.swapStableForVAI(adminAddress, STABLE_TOKEN_AMOUNT),
+              ).to.be.revertedWithCustomError(pegStability, "AmountTooSmall");
             });
           }
           describe("should sucessfully perform the swap", () => {
@@ -582,7 +596,7 @@ describe("Peg Stability Module", () => {
               const VAI_FEE = convertToUnit(10, 18);
               const VAI_TO_SEND = convertToUnit(90, 18);
               it("stable token = 1$ ", async () => {
-                await swapStableForVaiAndVerify(
+                await swapStableForVAIAndVerify(
                   stableToken,
                   adminAddress,
                   pegStability,
@@ -596,7 +610,7 @@ describe("Peg Stability Module", () => {
               });
               it("stable token > 1$ ", async () => {
                 priceOracle.getPrice.returns(TOKEN_PRICE_ABOVE_ONE);
-                await swapStableForVaiAndVerify(
+                await swapStableForVAIAndVerify(
                   stableToken,
                   adminAddress,
                   pegStability,
@@ -612,7 +626,7 @@ describe("Peg Stability Module", () => {
                 priceOracle.getPrice.returns(TOKEN_PRICE_BELOW_ONE);
                 const VAI_FEE = convertToUnit(9, 18);
                 const VAI_TO_SEND = convertToUnit(81, 18);
-                await swapStableForVaiAndVerify(
+                await swapStableForVAIAndVerify(
                   stableToken,
                   adminAddress,
                   pegStability,
@@ -637,7 +651,7 @@ describe("Peg Stability Module", () => {
                 vai.mint.reset();
               });
               it("stable token = 1$ ", async () => {
-                await swapStableForVaiAndVerify(
+                await swapStableForVAIAndVerify(
                   stableToken,
                   adminAddress,
                   pegStability,
@@ -651,7 +665,7 @@ describe("Peg Stability Module", () => {
               });
               it("stable token > 1$ ", async () => {
                 priceOracle.getPrice.returns(TOKEN_PRICE_ABOVE_ONE);
-                await swapStableForVaiAndVerify(
+                await swapStableForVAIAndVerify(
                   stableToken,
                   adminAddress,
                   pegStability,
@@ -666,7 +680,7 @@ describe("Peg Stability Module", () => {
               it("stable token < 1$ ", async () => {
                 priceOracle.getPrice.returns(TOKEN_PRICE_BELOW_ONE);
                 const VAI_TO_SEND = convertToUnit(90, 18);
-                await swapStableForVaiAndVerify(
+                await swapStableForVAIAndVerify(
                   stableToken,
                   adminAddress,
                   pegStability,
