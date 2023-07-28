@@ -270,7 +270,7 @@ describe("PrimeScenario Token", () => {
     it("stake and mint", async () => {
       const user = user1;
 
-      await expect(prime.connect(user).claim()).to.be.reverted;
+      await expect(prime.connect(user).claim()).to.be.revertedWithCustomError(prime, "IneligibleToClaim");
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
@@ -278,7 +278,7 @@ describe("PrimeScenario Token", () => {
       let stake = await prime.stakedAt(user.getAddress());
       expect(stake).be.gt(0);
 
-      await expect(prime.connect(user).claim()).to.be.reverted;
+      await expect(prime.connect(user).claim()).to.be.revertedWithCustomError(prime, "WaitMoreTime");
 
       await mine(90 * 24 * 60 * 60);
       await expect(prime.connect(user).claim()).to.be.not.reverted;
