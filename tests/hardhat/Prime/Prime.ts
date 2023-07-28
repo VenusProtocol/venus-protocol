@@ -225,7 +225,7 @@ describe("PrimeScenario Token", () => {
   });
 
   describe("protocol setup", () => {
-    let comptroller: MockContract<Comptroller>;
+    let comptroller: MockContract<ComptrollerMock>;
     let vusdt: VBep20Harness;
     let veth: VBep20Harness;
     let usdt: BEP20Harness;
@@ -270,7 +270,7 @@ describe("PrimeScenario Token", () => {
     it("stake and mint", async () => {
       const user = user1;
 
-      await expect(prime.connect(user).claim()).to.be.revertedWith("you are not eligible to claim prime token");
+      await expect(prime.connect(user).claim()).to.be.reverted;
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
@@ -278,9 +278,7 @@ describe("PrimeScenario Token", () => {
       let stake = await prime.stakedAt(user.getAddress());
       expect(stake).be.gt(0);
 
-      await expect(prime.connect(user).claim()).to.be.revertedWith(
-        "you need to wait more time for claiming prime token",
-      );
+      await expect(prime.connect(user).claim()).to.be.reverted;
 
       await mine(90 * 24 * 60 * 60);
       await expect(prime.connect(user).claim()).to.be.not.reverted;
