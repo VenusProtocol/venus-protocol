@@ -145,7 +145,11 @@ Contract tests are defined under the [tests directory](https://github.com/VenusP
 
     yarn test
 
+<<<<<<< Updated upstream
 - To run fork tests add `FORK_MAINNET=true` and `QUICK_NODE_URL `in the `.env` file.
+=======
+- To run fork tests add `FORK_MAINNET=true` and `BSC_ARCHIVE_NODE_URL `in the `.env` file.
+>>>>>>> Stashed changes
 
 ## Code Coverage
 
