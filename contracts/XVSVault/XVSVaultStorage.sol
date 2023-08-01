@@ -124,13 +124,13 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
     mapping(address => mapping(address => uint256)) public pendingRewardTransfers;
 
     /// @notice Prime token contract address
-    IPrime public _primeToken;
+    IPrime public primeToken;
 
     /// @notice Reward token for which prime token is issued for staking
-    address public _primeRewardToken;
+    address public primeRewardToken;
 
     /// @notice Pool ID for which prime token is issued for staking
-    uint256 public _primePoolId;
+    uint256 public primePoolId;
 
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new

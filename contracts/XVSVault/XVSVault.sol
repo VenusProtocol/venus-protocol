@@ -86,6 +86,16 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         uint256 newOwedAmount
     );
 
+    /// @notice Emitted when prime token contract address is changed
+    event NewPrimeToken(
+        IPrime oldPrimeToken, 
+        IPrime newPrimeToken, 
+        address oldPrimeRewardToken, 
+        address newPrimeRewardToken, 
+        uint256 oldPrimePoolId,
+        uint256 newPrimePoolId
+    );
+
     constructor() public {
         admin = msg.sender;
     }
@@ -284,8 +294,8 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
             _moveDelegates(address(0), delegates[msg.sender], safe96(_amount, "XVSVault::deposit: votes overflow"));
         }
 
-        if (_primeRewardToken == _rewardToken && _pid == _primePoolId) {
-            _primeToken.xvsUpdated(msg.sender);
+        if (primeRewardToken == _rewardToken && _pid == primePoolId) {
+            primeToken.xvsUpdated(msg.sender);
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
@@ -487,8 +497,8 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
             );
         }
 
-        if (_primeRewardToken == _rewardToken && _pid == _primePoolId) {
-            _primeToken.xvsUpdated(msg.sender);
+        if (primeRewardToken == _rewardToken && _pid == primePoolId) {
+            primeToken.xvsUpdated(msg.sender);
         }
 
         emit Claim(msg.sender, _rewardToken, _pid, pending);
@@ -856,19 +866,28 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
     /**
      * @notice Sets the address of the prime token contract
-     * @param primeToken address of the prime token contract
-     * @param primeRewardToken address of reward token
-     * @param primePoolId pool id for reward
+     * @param _primeToken address of the prime token contract
+     * @param _primeRewardToken address of reward token
+     * @param _primePoolId pool id for reward
      */
-    function setPrimeToken(IPrime primeToken, address primeRewardToken, uint256 primePoolId) external {
+    function setPrimeToken(IPrime _primeToken, address _primeRewardToken, uint256 _primePoolId) external {
         _checkAccessAllowed("setPrimeToken(address,address,uint256)");
 
-        require(address(primeToken) != address(0), "prime token cannot be zero address");
-        require(primeRewardToken != address(0), "reward cannot be zero address");
+        require(address(_primeToken) != address(0), "prime token cannot be zero address");
+        require(_primeRewardToken != address(0), "reward cannot be zero address");
 
-        _primeToken = primeToken;
-        _primeRewardToken = primeRewardToken;
-        _primePoolId = primePoolId;
+        emit NewPrimeToken(
+            primeToken,
+            _primeToken,
+            primeRewardToken,
+            _primeRewardToken,
+            primePoolId,
+            _primePoolId
+        );
+
+        primeToken = _primeToken;
+        primeRewardToken = _primeRewardToken;
+        primePoolId = _primePoolId;
     }
 
     /**
