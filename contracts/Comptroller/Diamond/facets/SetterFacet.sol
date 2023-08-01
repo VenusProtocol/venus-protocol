@@ -380,13 +380,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         address newTreasuryGuardian,
         address newTreasuryAddress,
         uint newTreasuryPercent
-    )
-        external
-        compareAddress(treasuryGuardian, newTreasuryGuardian)
-        compareAddress(treasuryAddress, newTreasuryAddress)
-        compareValue(treasuryPercent, newTreasuryPercent)
-        returns (uint)
-    {
+    ) external returns (uint) {
         // Check caller is admin
         ensureAdminOr(treasuryGuardian);
 
