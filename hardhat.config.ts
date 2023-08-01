@@ -92,7 +92,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: isFork(),
     bsctestnet: {
-      url: process.env.BSC_TESTNET_NODE || "https://data-seed-prebsc-1-s1.binance.org:8545",
+      url: process.env.BSC_ARCHIVE_NODE_URL || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
       accounts: {
         mnemonic: process.env.MNEMONIC || "",
@@ -150,7 +150,7 @@ function isFork() {
         allowUnlimitedContractSize: false,
         loggingEnabled: false,
         forking: {
-          url: process.env.BSC_ARCHIVE_NODE || "",
+          url: process.env.BSC_ARCHIVE_NODE_URL || "",
           blockNumber: 21068448,
         },
         accounts: {
