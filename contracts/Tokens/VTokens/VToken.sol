@@ -496,6 +496,22 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
+     * @notice Accrues interest and updates the interest rate model using _setInterestRateModelFresh
+     * @dev Admin function to accrue interest and update the interest rate model
+     * @param newInterestRateModel The new interest rate model to use
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     */
+    function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint) {
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted change of interest rate model failed
+            return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
+        }
+        // _setInterestRateModelFresh emits interest-rate-model-update-specific logs on errors, so we don't need to.
+        return _setInterestRateModelFresh(newInterestRateModel);
+    }
+
+    /**
      * @notice Calculates the exchange rate from the underlying to the VToken
      * @dev This function does not accrue interest before calculating the exchange rate
      * @return Calculated exchange rate scaled by 1e18
@@ -1488,24 +1504,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice accrues interest and updates the interest rate model using _setInterestRateModelFresh
-     * @dev Admin function to accrue interest and update the interest rate model
-     * @param newInterestRateModel the new interest rate model to use
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
-     */
-    function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted change of interest rate model failed
-            return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
-        }
-
-        // _setInterestRateModelFresh emits interest-rate-model-update-specific logs on errors, so we don't need to.
-        return _setInterestRateModelFresh(newInterestRateModel);
-    }
-
-    /**
-     * @notice updates the interest rate model (*requires fresh interest accrual)
+     * @notice updates the interest rate model (requires fresh interest accrual)
      * @dev Admin function to update the interest rate model
      * @param newInterestRateModel the new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
