@@ -4,22 +4,10 @@ pragma solidity 0.8.13;
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-
-interface IVAI {
-    function balanceOf(address usr) external returns (uint256);
-
-    function transferFrom(address src, address dst, uint amount) external returns (bool);
-
-    function mint(address usr, uint wad) external;
-
-    function burn(address usr, uint wad) external;
-}
-
-interface IDecimalProvider {
-    function decimals() external view returns (uint8);
-}
+import { IVAI } from "./IVAI.sol";
 
 /**
  * @title Peg Stability Contract.
@@ -150,7 +138,7 @@ contract PegStability is AccessControlledV8, ReentrancyGuardUpgradeable {
         _ensureNonzeroAddress(stableTokenAddress_);
         _ensureNonzeroAddress(vaiAddress_);
 
-        uint256 decimals_ = IDecimalProvider(stableTokenAddress_).decimals();
+        uint256 decimals_ = IERC20MetadataUpgradeable(stableTokenAddress_).decimals();
 
         if (decimals_ > 18) {
             revert TooManyDecimals();

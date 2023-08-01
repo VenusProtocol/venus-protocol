@@ -10,6 +10,7 @@ import { ethers } from "hardhat";
 import {
   EIP20InterfaceExtended,
   IAccessControlManager,
+  IERC20MetadataUpgradeable,
   IPriceOracle,
   PegStability,
   PegStability__factory,
@@ -34,7 +35,7 @@ const tokenDecimals: number[] = [18, 8, 6];
 type ResetAllFakes = () => void;
 type PegStabilityFixture = {
   pegStability: MockContract<PegStability>;
-  stableToken: FakeContract<EIP20InterfaceExtended>;
+  stableToken: FakeContract<IERC20MetadataUpgradeable>;
   acm: FakeContract<IAccessControlManager>;
   vai: FakeContract<VAI>;
   venusTreasury: FakeContract<VTreasury>;
@@ -44,7 +45,7 @@ type PegStabilityFixture = {
 async function pegStabilityFixture(tokenDecimals: number): Promise<PegStabilityFixture> {
   const acm = await smock.fake<IAccessControlManager>("IAccessControlManager");
   const venusTreasury = await smock.fake<VTreasury>("VTreasury");
-  const stableToken = await smock.fake<EIP20InterfaceExtended>("EIP20InterfaceExtended");
+  const stableToken = await smock.fake<IERC20MetadataUpgradeable>("IERC20MetadataUpgradeable");
   stableToken.decimals.returns(tokenDecimals);
   const priceOracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
   const vai = await smock.fake<VAI>("contracts/Tokens/VAI/VAI.sol:VAI");
