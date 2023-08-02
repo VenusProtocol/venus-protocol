@@ -174,9 +174,9 @@ describe("Evil Token test", async () => {
 
     const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
     protocolShareReserve.updateAssetsState.returns(true);
-    await vToken1.setProtcolShareReserve(protocolShareReserve.address);
-    await vToken2.setProtcolShareReserve(protocolShareReserve.address);
-    await vToken3.setProtcolShareReserve(protocolShareReserve.address);
+    await vToken1.setProtocolShareReserve(protocolShareReserve.address);
+    await vToken2.setProtocolShareReserve(protocolShareReserve.address);
+    await vToken3.setProtocolShareReserve(protocolShareReserve.address);
   });
 
   it("Check the updated vToken states after transfer out", async () => {

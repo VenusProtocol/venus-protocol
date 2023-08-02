@@ -135,7 +135,7 @@ describe("VAIController", async () => {
     await priceOracle.setDirectPrice(vai.address, bigNumber18);
     await comptroller._supportMarket(vusdt.address);
     await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(5));
-    await vusdt.setProtcolShareReserve(protocolShareReserve.address);
+    await vusdt.setProtocolShareReserve(protocolShareReserve.address);
     await vusdt.setReduceReservesBlockDelta(10000000000);
 
     return { usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt };
