@@ -1,5 +1,5 @@
 {
-  "address": "0x2822E0Ac03e64F7BA26e0aCb79EC0B6336e9CA2A",
+  "address": "0xB21E69eef4Bc1D64903fa28D9b32491B1c0786F1",
   "abi": [
     {
       "anonymous": false,
@@ -125,6 +125,41 @@
       "type": "receive"
     },
     {
+      "inputs": [],
+      "name": "AlreadyPaused",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "AmountTooSmall",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidFee",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotEnoughVAI",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotPaused",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "Paused",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "TooManyDecimals",
+      "type": "error"
+    },
+    {
       "inputs": [
         {
           "internalType": "address",
@@ -146,23 +181,29 @@
       "type": "error"
     },
     {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "oldComptroller",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "newComptroller",
-          "type": "address"
-        }
-      ],
-      "name": "ComptrollerChanged",
-      "type": "event"
+      "inputs": [],
+      "name": "VAIMintCapReached",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "VAIMintedUnderflow",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "VAITransferFail",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAmount",
+      "type": "error"
     },
     {
       "anonymous": false,
@@ -232,6 +273,25 @@
         }
       ],
       "name": "NewAccessControlManager",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oldOracle",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOracle",
+          "type": "address"
+        }
+      ],
+      "name": "OracleChanged",
       "type": "event"
     },
     {
@@ -335,17 +395,17 @@
         {
           "indexed": false,
           "internalType": "uint256",
-          "name": "vaiFee",
+          "name": "stableOut",
           "type": "uint256"
         },
         {
           "indexed": false,
           "internalType": "uint256",
-          "name": "stableOut",
+          "name": "vaiFee",
           "type": "uint256"
         }
       ],
-      "name": "VaiForStableSwapped",
+      "name": "VAIForStableSwapped",
       "type": "event"
     },
     {
@@ -364,7 +424,7 @@
           "type": "uint256"
         }
       ],
-      "name": "VaiMintCapChanged",
+      "name": "VAIMintCapChanged",
       "type": "event"
     },
     {
@@ -440,23 +500,10 @@
     },
     {
       "inputs": [],
-      "name": "VAI_ADDRESS",
+      "name": "VAI",
       "outputs": [
         {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "VTOKEN_ADDRESS",
-      "outputs": [
-        {
-          "internalType": "address",
+          "internalType": "contract IVAI",
           "name": "",
           "type": "address"
         }
@@ -477,19 +524,6 @@
       "outputs": [
         {
           "internalType": "contract IAccessControlManagerV8",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "comptroller",
-      "outputs": [
-        {
-          "internalType": "address",
           "name": "",
           "type": "address"
         }
@@ -537,7 +571,7 @@
         },
         {
           "internalType": "address",
-          "name": "comptroller_",
+          "name": "oracleAddress_",
           "type": "address"
         },
         {
@@ -569,6 +603,19 @@
           "internalType": "bool",
           "name": "",
           "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "oracle",
+      "outputs": [
+        {
+          "internalType": "contract ResilientOracleInterface",
+          "name": "",
+          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -608,6 +655,44 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "stableTknAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "previewSwapStableForVAI",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "stableTknAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "previewSwapVAIForStable",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "renounceOwnership",
       "outputs": [],
@@ -630,19 +715,6 @@
         }
       ],
       "name": "setAccessControlManager",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "comptroller_",
-          "type": "address"
-        }
-      ],
-      "name": "setComptroller",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -676,12 +748,25 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "oracleAddress_",
+          "type": "address"
+        }
+      ],
+      "name": "setOracle",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "uint256",
           "name": "vaiMintCap_",
           "type": "uint256"
         }
       ],
-      "name": "setVaiMintCap",
+      "name": "setVAIMintCap",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -713,7 +798,13 @@
         }
       ],
       "name": "swapStableForVAI",
-      "outputs": [],
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -731,7 +822,13 @@
         }
       ],
       "name": "swapVAIForStable",
-      "outputs": [],
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -809,84 +906,84 @@
       "type": "constructor"
     }
   ],
-  "transactionHash": "0x1084ef1e56d20b4055e9fb1b6f9082cd54d97aa7b68b12a83579936a121b2e99",
+  "transactionHash": "0x112bf2e85a863436d9b12587ef20284720784f864281ee667ab2549ef7482086",
   "receipt": {
     "to": null,
-    "from": "0xFEA1c651A47FE29dB9b1bf3cC1f224d8D9CFF68C",
-    "contractAddress": "0x2822E0Ac03e64F7BA26e0aCb79EC0B6336e9CA2A",
-    "transactionIndex": 10,
-    "gasUsed": "907219",
-    "logsBloom": "0x00000000000000000000000000000000400000000000000000800000000000000000000000000000000000000000000000000000000200000000000000008000000000000000000000000000000002040001000000000000000000000000000000000000020000000000000000000800000000800000000000000000000000400000000000000000000000000000000000000000000080000000000000800000000000000000000000000000000400000000000000800000000000000000000000000024000000000000000010040000000000040401000000000000000020000000020000000000010000000000000000000800000000000000000100000000",
-    "blockHash": "0xeec7469873a8faf83d5a6981e12f4e2eec12704dcf7086a0fddd84bcc8f1239f",
-    "transactionHash": "0x1084ef1e56d20b4055e9fb1b6f9082cd54d97aa7b68b12a83579936a121b2e99",
+    "from": "0x8BDA9f9E1fEF0DFd404Fef338D9fE4c543d172e1",
+    "contractAddress": "0xB21E69eef4Bc1D64903fa28D9b32491B1c0786F1",
+    "transactionIndex": 0,
+    "gasUsed": "912188",
+    "logsBloom": "0x00000000000000000000000000000000400000000000000000800000000000000000000000000040000000000000000800000000002000000000000000008000010000000000000000000000000002000001040400000000000000000000000000000000020000000000000000000800000000800000000000000000000000400000000000000000000000000000000080000000000080000000000000800000000000000000000010000000000400000004000000800000000000000000000000000020000000000000000000040000000000000400000000000000000020000000000000000000000000000000000000000800000000000000000000000000",
+    "blockHash": "0xfd6ae513584f44db7bf9add95b28841640721a6902c07934cc11654c36812776",
+    "transactionHash": "0x112bf2e85a863436d9b12587ef20284720784f864281ee667ab2549ef7482086",
     "logs": [
       {
-        "transactionIndex": 10,
-        "blockNumber": 30883315,
-        "transactionHash": "0x1084ef1e56d20b4055e9fb1b6f9082cd54d97aa7b68b12a83579936a121b2e99",
-        "address": "0x2822E0Ac03e64F7BA26e0aCb79EC0B6336e9CA2A",
+        "transactionIndex": 0,
+        "blockNumber": 32091799,
+        "transactionHash": "0x112bf2e85a863436d9b12587ef20284720784f864281ee667ab2549ef7482086",
+        "address": "0xB21E69eef4Bc1D64903fa28D9b32491B1c0786F1",
         "topics": [
           "0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b",
-          "0x000000000000000000000000c319b8207a9fb2797710bb79b4ab8933f90da9b3"
+          "0x000000000000000000000000dda903294fb71141302ad3bf2af37dd6cbd5dbbf"
         ],
         "data": "0x",
-        "logIndex": 45,
-        "blockHash": "0xeec7469873a8faf83d5a6981e12f4e2eec12704dcf7086a0fddd84bcc8f1239f"
+        "logIndex": 0,
+        "blockHash": "0xfd6ae513584f44db7bf9add95b28841640721a6902c07934cc11654c36812776"
       },
       {
-        "transactionIndex": 10,
-        "blockNumber": 30883315,
-        "transactionHash": "0x1084ef1e56d20b4055e9fb1b6f9082cd54d97aa7b68b12a83579936a121b2e99",
-        "address": "0x2822E0Ac03e64F7BA26e0aCb79EC0B6336e9CA2A",
+        "transactionIndex": 0,
+        "blockNumber": 32091799,
+        "transactionHash": "0x112bf2e85a863436d9b12587ef20284720784f864281ee667ab2549ef7482086",
+        "address": "0xB21E69eef4Bc1D64903fa28D9b32491B1c0786F1",
         "topics": [
           "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
           "0x0000000000000000000000000000000000000000000000000000000000000000",
-          "0x000000000000000000000000fea1c651a47fe29db9b1bf3cc1f224d8d9cff68c"
+          "0x0000000000000000000000008bda9f9e1fef0dfd404fef338d9fe4c543d172e1"
         ],
         "data": "0x",
-        "logIndex": 46,
-        "blockHash": "0xeec7469873a8faf83d5a6981e12f4e2eec12704dcf7086a0fddd84bcc8f1239f"
+        "logIndex": 1,
+        "blockHash": "0xfd6ae513584f44db7bf9add95b28841640721a6902c07934cc11654c36812776"
       },
       {
-        "transactionIndex": 10,
-        "blockNumber": 30883315,
-        "transactionHash": "0x1084ef1e56d20b4055e9fb1b6f9082cd54d97aa7b68b12a83579936a121b2e99",
-        "address": "0x2822E0Ac03e64F7BA26e0aCb79EC0B6336e9CA2A",
+        "transactionIndex": 0,
+        "blockNumber": 32091799,
+        "transactionHash": "0x112bf2e85a863436d9b12587ef20284720784f864281ee667ab2549ef7482086",
+        "address": "0xB21E69eef4Bc1D64903fa28D9b32491B1c0786F1",
         "topics": ["0x66fd58e82f7b31a2a5c30e0888f3093efe4e111b00cd2b0c31fe014601293aa0"],
         "data": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000045f8a08f534f34a97187626e05d4b6648eeaa9aa",
-        "logIndex": 47,
-        "blockHash": "0xeec7469873a8faf83d5a6981e12f4e2eec12704dcf7086a0fddd84bcc8f1239f"
+        "logIndex": 2,
+        "blockHash": "0xfd6ae513584f44db7bf9add95b28841640721a6902c07934cc11654c36812776"
       },
       {
-        "transactionIndex": 10,
-        "blockNumber": 30883315,
-        "transactionHash": "0x1084ef1e56d20b4055e9fb1b6f9082cd54d97aa7b68b12a83579936a121b2e99",
-        "address": "0x2822E0Ac03e64F7BA26e0aCb79EC0B6336e9CA2A",
+        "transactionIndex": 0,
+        "blockNumber": 32091799,
+        "transactionHash": "0x112bf2e85a863436d9b12587ef20284720784f864281ee667ab2549ef7482086",
+        "address": "0xB21E69eef4Bc1D64903fa28D9b32491B1c0786F1",
         "topics": ["0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498"],
         "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
-        "logIndex": 48,
-        "blockHash": "0xeec7469873a8faf83d5a6981e12f4e2eec12704dcf7086a0fddd84bcc8f1239f"
+        "logIndex": 3,
+        "blockHash": "0xfd6ae513584f44db7bf9add95b28841640721a6902c07934cc11654c36812776"
       },
       {
-        "transactionIndex": 10,
-        "blockNumber": 30883315,
-        "transactionHash": "0x1084ef1e56d20b4055e9fb1b6f9082cd54d97aa7b68b12a83579936a121b2e99",
-        "address": "0x2822E0Ac03e64F7BA26e0aCb79EC0B6336e9CA2A",
+        "transactionIndex": 0,
+        "blockNumber": 32091799,
+        "transactionHash": "0x112bf2e85a863436d9b12587ef20284720784f864281ee667ab2549ef7482086",
+        "address": "0xB21E69eef4Bc1D64903fa28D9b32491B1c0786F1",
         "topics": ["0x7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f"],
         "data": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000007877ffd62649b6a1557b55d4c20fcbab17344c91",
-        "logIndex": 49,
-        "blockHash": "0xeec7469873a8faf83d5a6981e12f4e2eec12704dcf7086a0fddd84bcc8f1239f"
+        "logIndex": 4,
+        "blockHash": "0xfd6ae513584f44db7bf9add95b28841640721a6902c07934cc11654c36812776"
       }
     ],
-    "blockNumber": 30883315,
-    "cumulativeGasUsed": "2792437",
+    "blockNumber": 32091799,
+    "cumulativeGasUsed": "912188",
     "status": 1,
     "byzantium": true
   },
   "args": [
-    "0xC319b8207a9FB2797710BB79B4aB8933f90dA9B3",
+    "0xDDa903294fB71141302aD3Bf2AF37dD6Cbd5DBbF",
     "0x7877fFd62649b6A1557B55D4c20fcBaB17344C91",
-    "0x728cdbca00000000000000000000000045f8a08f534f34a97187626e05d4b6648eeaa9aa000000000000000000000000fea1c651a47fe29db9b1bf3cc1f224d8d9cff68c00000000000000000000000094d1820b2d1c7c7452a163983dc888cec546b77d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000422ca8b0a00a425000000"
+    "0x728cdbca00000000000000000000000045f8a08f534f34a97187626e05d4b6648eeaa9aa000000000000000000000000fea1c651a47fe29db9b1bf3cc1f224d8d9cff68c0000000000000000000000003cd69251d04a28d887ac14cbe2e14c52f3d578230000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000422ca8b0a00a425000000"
   ],
   "numDeployments": 1,
   "solcInputHash": "0e89febeebc7444140de8e67c9067d2c",
@@ -898,7 +995,7 @@
     "args": [
       "0x45f8a08F534f34A97187626E05d4b6648Eeaa9AA",
       "0xFEA1c651A47FE29dB9b1bf3cC1f224d8D9CFF68C",
-      "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D",
+      "0x3cD69251D04A28d887Ac14cbe2E14c52F3D57823",
       0,
       10,
       {
@@ -907,7 +1004,7 @@
       }
     ]
   },
-  "implementation": "0xC319b8207a9FB2797710BB79B4aB8933f90dA9B3",
+  "implementation": "0xDDa903294fB71141302aD3Bf2AF37dD6Cbd5DBbF",
   "devdoc": {
     "details": "This contract implements a proxy that is upgradeable by an admin. To avoid https://medium.com/nomic-labs-blog/malicious-backdoors-in-ethereum-proxies-62629adf3357[proxy selector clashing], which can potentially be used in an attack, this contract uses the https://blog.openzeppelin.com/the-transparent-proxy-pattern/[transparent proxy pattern]. This pattern implies two things that go hand in hand: 1. If any account other than the admin calls the proxy, the call will be forwarded to the implementation, even if that call matches one of the admin functions exposed by the proxy itself. 2. If the admin calls the proxy, it can access the admin functions, but its calls will never be forwarded to the implementation. If the admin tries to call a function on the implementation it will fail with an error that says \"admin cannot fallback to proxy target\". These properties mean that the admin account can only be used for admin actions like upgrading the proxy or changing the admin, so it's best if it's a dedicated account that is not used for anything else. This will avoid headaches due to sudden errors when trying to call a function from the proxy implementation. Our recommendation is for the dedicated account to be an instance of the {ProxyAdmin} contract. If set up this way, you should think of the `ProxyAdmin` instance as the real administrative interface of your proxy.",
     "kind": "dev",
