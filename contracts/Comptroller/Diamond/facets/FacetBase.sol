@@ -55,6 +55,7 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
         require(msg.sender == admin || msg.sender == privilegedAddress, "access denied");
     }
 
+    /// @notice Checks the caller is allowed to call the specified fuction
     function ensureAllowed(string memory functionSig) internal view {
         require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
@@ -174,6 +175,13 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
         return ComptrollerErrorReporter.Error.NO_ERROR;
     }
 
+    /**
+     * @notice Checks for the user is allowed to redeem tokens
+     * @param vToken Address of the market
+     * @param redeemer Address of the user
+     * @param redeemTokens Amount of tokens to redeem
+     * @return Success indicator for redeem is allowed or not
+     */
     function redeemAllowedInternal(address vToken, address redeemer, uint redeemTokens) internal view returns (uint) {
         ensureListed(markets[vToken]);
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */

@@ -42,6 +42,13 @@ contract PolicyFacet is XVSRewardsHelper {
         return uint(Error.NO_ERROR);
     }
 
+    /**
+     * @notice Validates mint and reverts on rejection. May emit logs.
+     * @param vToken Asset being minted
+     * @param minter The address minting the tokens
+     * @param actualMintAmount The amount of the underlying asset being minted
+     * @param mintTokens The number of tokens being minted
+     */
     function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {}
 
     /**
@@ -241,6 +248,15 @@ contract PolicyFacet is XVSRewardsHelper {
         return uint(Error.NO_ERROR);
     }
 
+    /**
+     * @notice Validates liquidateBorrow and reverts on rejection. May emit logs.
+     * @param vTokenBorrowed Asset which was borrowed by the borrower
+     * @param vTokenCollateral Asset which was used as collateral and will be seized
+     * @param liquidator The address repaying the borrow and seizing the collateral
+     * @param borrower The address of the borrower
+     * @param actualRepayAmount The amount of underlying being repaid
+     * @param seizeTokens The amount of collateral token that will be seized
+     */
     function liquidateBorrowVerify(
         address vTokenBorrowed,
         address vTokenCollateral,

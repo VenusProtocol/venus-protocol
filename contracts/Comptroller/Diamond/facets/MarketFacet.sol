@@ -21,13 +21,18 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         return true;
     }
 
+    /**
+     * @notice Returns the assets an account has entered
+     * @param account The address of the account to pull assets for
+     * @return A dynamic list with the assets the account has entered
+     */
     function getAssetsIn(address account) external view returns (VToken[] memory) {
         return accountAssets[account];
     }
 
     /**
      * @notice Return all of the markets
-     * @dev The automatic getter may be used to access an individual market.
+     * @dev The automatic getter may be used to access an individual market
      * @return The list of market addresses
      */
     function getAllMarkets() external view returns (VToken[] memory) {
@@ -79,7 +84,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @notice Returns whether the given account is entered in the given asset
      * @param account The address of the account to check
      * @param vToken The vToken to check
-     * @return True if the account is in the asset, otherwise false.
+     * @return True if the account is in the asset, otherwise false
      */
     function checkMembership(address account, VToken vToken) external view returns (bool) {
         return markets[address(vToken)].accountMembership[account];
@@ -104,7 +109,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     /**
      * @notice Removes asset from sender's account liquidity calculation
      * @dev Sender must not have an outstanding borrow balance in the asset,
-     *  or be providing necessary collateral for an outstanding borrow.
+     *  or be providing necessary collateral for an outstanding borrow
      * @param vTokenAddress The address of the asset to be removed
      * @return Whether or not the account successfully exited the market
      */
@@ -188,10 +193,10 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     }
 
     /**
-     * @notice Grants or revokes the borrowing delegate rights to / from an account.
-     *  If allowed, the delegate will be able to borrow funds on behalf of the sender.
+     * @notice Grants or revokes the borrowing delegate rights to / from an account
+     *  If allowed, the delegate will be able to borrow funds on behalf of the sender
      *  Upon a delegated borrow, the delegate will receive the funds, and the borrower
-     *  will see the debt on their account.
+     *  will see the debt on their account
      * @param delegate The address to update the rights for
      * @param allowBorrows Whether to grant (true) or revoke (false) the rights
      */

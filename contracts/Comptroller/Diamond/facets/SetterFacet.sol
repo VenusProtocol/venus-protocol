@@ -66,11 +66,21 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
 
+    /**
+     * @notice Compare two addresses to ensure they are different
+     * @param oldAddress The original address to compare
+     * @param newAddress The new address to compare
+     */
     modifier compareAddress(address oldAddress, address newAddress) {
         require(oldAddress != newAddress, "old address is same as new address");
         _;
     }
 
+    /**
+     * @notice Compare two values to ensure they are different
+     * @param oldValue The original value to compare
+     * @param newValue The new value to compare
+     */
     modifier compareValue(uint256 oldValue, uint256 newValue) {
         require(oldValue != newValue, "old value is same as new value");
         _;
@@ -211,6 +221,11 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         return uint(Error.NO_ERROR);
     }
 
+    /**
+     * @notice Update the address of the liquidator contract
+     * @dev Admin function to set liquidator contract
+     * @param newLiquidatorContract_ The new address of the liquidator contract
+     */
     function _setLiquidatorContract(
         address newLiquidatorContract_
     ) external compareAddress(liquidatorContract, newLiquidatorContract_) {
@@ -244,10 +259,10 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     }
 
     /**
-     * @notice Set the given borrow caps for the given vToken market Borrowing that brings total borrows to or above borrow cap will revert.
-     * @dev Access is controled by ACM. A borrow cap of 0 corresponds to unlimited borrowing.
+     * @notice Set the given borrow caps for the given vToken market Borrowing that brings total borrows to or above borrow cap will revert
+     * @dev Access is controled by ACM. A borrow cap of 0 corresponds to unlimited borrowing
      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
-     * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing.
+     * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing
      */
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint[] calldata newBorrowCaps) external {
         ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");
@@ -264,10 +279,10 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     }
 
     /**
-     * @notice Set the given supply caps for the given vToken market Supply that brings total Supply to or above supply cap will revert.
-     * @dev Admin function to set the supply cap A supply cap of 0 corresponds to Minting NotAllowed.
+     * @notice Set the given supply caps for the given vToken market Supply that brings total Supply to or above supply cap will revert
+     * @dev Admin function to set the supply cap A supply cap of 0 corresponds to Minting NotAllowed
      * @param vTokens The addresses of the markets (tokens) to change the supply caps for
-     * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed.
+     * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed
      */
     function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
         ensureAllowed("_setMarketSupplyCaps(address[],uint256[])");
@@ -285,6 +300,8 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
     /**
      * @notice Set whole protocol pause/unpause state
+     * @param state The new state (true=paused, false=unpaused)
+     * @return bool The updated state of the protocol
      */
     function _setProtocolPaused(bool state) external returns (bool) {
         ensureAllowed("_setProtocolPaused(bool)");
@@ -343,6 +360,11 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         return uint(Error.NO_ERROR);
     }
 
+    /**
+     * @notice Set the VAI mint rate
+     * @param newVAIMintRate The new VAI mint rate to be set
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function _setVAIMintRate(uint newVAIMintRate) external compareValue(vaiMintRate, newVAIMintRate) returns (uint) {
         // Check caller is admin
         ensureAdmin();
@@ -372,7 +394,13 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         return uint(Error.NO_ERROR);
     }
 
-    //----
+    /**
+     * @notice Set the treasury data.
+     * @param newTreasuryGuardian The new address of the treasury guardian to be set
+     * @param newTreasuryAddress The new address of the treasury to be set
+     * @param newTreasuryPercent The new treasury percent to be set
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
     function _setTreasuryData(
         address newTreasuryGuardian,
         address newTreasuryAddress,
@@ -404,6 +432,8 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
     /**
      * @dev Set ComptrollerLens contract address
+     * @param comptrollerLens_ The new ComptrollerLens contract address to be set
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setComptrollerLens(
         ComptrollerLensInterface comptrollerLens_

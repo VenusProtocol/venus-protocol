@@ -54,7 +54,7 @@ contract RewardFacet is XVSRewardsHelper {
 
     /**
      * @notice Transfer XVS to the user with user's shortfall considered
-     * @dev Note: If there is not enough XVS, we do not perform the transfer all.
+     * @dev Note: If there is not enough XVS, we do not perform the transfer all
      * @param user The address of the user to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      * @param shortfall The shortfall of the user
@@ -81,7 +81,7 @@ contract RewardFacet is XVSRewardsHelper {
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
         // anything, otherwise, we will transfer the pending xvs as collateral to
-        // vXVS token and mint vXVS for the user.
+        // vXVS token and mint vXVS for the user
         //
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt accounts can only collateralize their pending xvs rewards");
@@ -101,7 +101,7 @@ contract RewardFacet is XVSRewardsHelper {
 
     /**
      * @notice Transfer XVS to the recipient
-     * @dev Note: If there is not enough XVS, we do not perform the transfer all.
+     * @dev Note: If there is not enough XVS, we do not perform the transfer all
      * @param recipient The address of the recipient to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      */

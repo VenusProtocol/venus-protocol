@@ -99,7 +99,7 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
 
     /**
      * @notice Calculate XVS accrued by a borrower and possibly transfer it to them
-     * @dev Borrowers will not begin to accrue until after the first interaction with the protocol.
+     * @dev Borrowers will not begin to accrue until after the first interaction with the protocol
      * @param vToken The market in which the borrower is interacting
      * @param borrower The address of the borrower to distribute XVS to
      */
