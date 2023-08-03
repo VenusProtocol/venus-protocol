@@ -345,7 +345,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice A admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
      * @param protcolShareReserve_ The address of protocol share reserve contract
      */
-    function setProtcolShareReserve(address payable protcolShareReserve_) external returns (uint) {
+    function setProtocolShareReserve(address payable protcolShareReserve_) external returns (uint) {
         // Check caller is admin
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_PROTOCOL_SHARE_RESERVES_OWNER_CHECK);

@@ -48,7 +48,7 @@ async function configure() {
   await vBusd.setAccessControlManager(ACM);
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   await vBusd.connect(impersonatedTimelock).setReduceReservesBlockDelta(1000);
-  await vBusd.connect(impersonatedTimelock).setProtcolShareReserve(protocolShareReserve.address);
+  await vBusd.connect(impersonatedTimelock).setProtocolShareReserve(protocolShareReserve.address);
 }
 
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
