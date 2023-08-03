@@ -11,7 +11,6 @@ import {
   Liquidator,
   Liquidator__factory,
   SimplePriceOracle__factory,
-  VAIController__factory,
   VBep20Delegate__factory,
 } from "../../../typechain";
 import { VBep20Delegate } from "../../../typechain/contracts/Tokens/VTokens";
@@ -22,7 +21,6 @@ const { ethers } = require("hardhat");
 
 const FORK_TESTNET = process.env.FORK_TESTNET === "true";
 
-const VAI_CONTROLLER = "0xf70C3C6b749BbAb89C081737334E74C9aFD4BE16";
 const NORMAL_TIMELOCK = "0xce10739590001705F7FF231611ba4A48B2820327";
 const LIQUIDATOR = "0x55AEABa76ecf144031Ef64E222166eb28Cb4865F";
 const UNITROLLER = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
@@ -37,7 +35,6 @@ const PROTOCOL_SHARE_RESERVE = "0x8b293600C50D6fbdc6Ed4251cc75ECe29880276f";
 
 let impersonatedTimelock: Signer;
 let liquidateUserImpersonate: Signer;
-let userImpersonate: Signer;
 
 let liquidator: Liquidator;
 let vUsdc: VBep20Delegate;
@@ -58,7 +55,6 @@ if (FORK_TESTNET) {
       await impersonateAccount(user);
       impersonatedTimelock = await ethers.getSigner(NORMAL_TIMELOCK);
       liquidateUserImpersonate = await ethers.getSigner(liquidatorUser);
-      userImpersonate = await ethers.getSigner(user);
       await setBalance(NORMAL_TIMELOCK, ethers.utils.parseEther("2"));
       await setBalance(liquidatorUser, ethers.utils.parseEther("2"));
       await setBalance(user, ethers.utils.parseEther("2"));
@@ -66,11 +62,9 @@ if (FORK_TESTNET) {
       liquidator = Liquidator__factory.connect(LIQUIDATOR, impersonatedTimelock);
       comptroller = Comptroller__factory.connect(UNITROLLER, impersonatedTimelock);
       vUsdc = VBep20Delegate__factory.connect(VUSDC, impersonatedTimelock);
-      vMatic = VBep20Delegate__factory.connect(VMATIC, impersonatedTimelock);
       oracle = SimplePriceOracle__factory.connect(CHAINLINK_ORACLE, impersonatedTimelock);
       usdc = FaucetToken__factory.connect(USDC, impersonatedTimelock);
       matic = FaucetToken__factory.connect(MATIC, impersonatedTimelock);
-      vaiController = VAIController__factory.connect(VAI_CONTROLLER, impersonatedTimelock);
 
       await matic.allocateTo(liquidatorUser, convertToUnit("100000", 18));
       await matic.connect(liquidateUserImpersonate).approve(liquidator.address, convertToUnit("100000", 18));

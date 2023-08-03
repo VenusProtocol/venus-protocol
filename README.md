@@ -125,19 +125,6 @@ To run venus, pull the repository from GitHub and install its dependencies. You 
   Version: 0.5.16+commit.9c3226ce.Darwin.appleclang
   ```
 
-## REPL
-
-The Venus Protocol has a simple scenario evaluation tool to test and evaluate scenarios which could occur on the blockchain. This is primarily used for constructing high-level integration tests. The tool also has a REPL to interact with local the Venus Protocol (similar to `truffle console`).
-
-    yarn repl -n development
-    yarn repl -n rinkeby
-
-    > Read VToken vBAT Address
-    Command: Read VToken vBAT Address
-    AddressV<val=0xAD53863b864AE703D31b819d29c14cDA93D7c6a6>
-
-You can read more about the scenario runner in the [Scenario Docs](https://github.com/VenusProtocol/venus-protocol/tree/master/scenario/SCENARIO.md) on steps for using the repl.
-
 ## Testing
 
 Jest contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
@@ -158,11 +145,35 @@ Contract tests are defined under the [tests directory](https://github.com/VenusP
 
     yarn test
 
+- To run fork tests add `FORK_MAINNET=true` and `BSC_ARCHIVE_NODE_URL `in the `.env` file.
+
 ## Code Coverage
 
 To run code coverage, run:
 
-    yarn coverage
+    npx hardhat coverage
+
+## Deployment
+
+```
+
+npx hardhat deploy
+
+```
+
+- This command will execute all the deployment scripts in `./deploy` directory - It will skip only deployment scripts which implement a `skip` condition - Here is example of a skip condition: - Skipping deployment script on `bsctestnet` network `func.skip = async (hre: HardhatRuntimeEnvironment) => hre.network.name !== "bsctestnet";`
+- The default network will be `hardhat`
+- Deployment to another network: - Make sure the desired network is configured in `hardhat.config.ts` - Add `MNEMONIC` variable in `.env` file - Execute deploy command by adding `--network <network_name>` in the deploy command above - E.g. `npx hardhat deploy --network bsctestnet`
+- Execution of single or custom set of scripts is possible, if:
+  - In the deployment scripts you have added `tags` for example: - `func.tags = ["MockTokens"];`
+  - Once this is done, adding `--tags "<tag_name>,<tag_name>..."` to the deployment command will execute only the scripts containing the tags.
+
+### Source Code Verification
+
+In order to verify the source code of already deployed contracts, run:
+`npx hardhat etherscan-verify --network <network_name>`
+
+Make sure you have added `ETHERSCAN_API_KEY` in `.env` file.
 
 ## Linting
 
@@ -170,150 +181,46 @@ To lint the code, run:
 
     yarn lint
 
-## Docker
+To format the code, run:
+yarn prettier
 
-To run in docker:
+## Hardhat Commands
 
-    # Build the docker image
-    docker build -t venusprotocol/venus-protocol .
-
-    # Run a shell to the built image
-    docker run -it venusprotocol/venus-protocol /bin/sh
-
-From within a docker shell, you can interact locally with the protocol via ganache and truffle:
-
-```bash
-    /venus-protocol > yarn console -n goerli
-    Using network goerli https://goerli-eth.venus.io
-    Saddle console on network goerli https://goerli-eth.venus.io
-    Deployed goerli contracts
-      comptroller: 0x627EA49279FD0dE89186A58b8758aD02B6Be2867
-      xvs: 0xfa5E1B628EFB17C024ca76f65B45Faf6B3128CA5
-      sxp: 0xfa5E1B628EFB17C024ca76f65B45Faf6B3128CA5
-      governorAlpha: 0x8C3969Dd514B559D78135e9C210F2F773Feadf21
-      maximillion: 0x73d3F01b8aC5063f4601C7C45DA5Fdf1b5240C92
-      priceOracle: 0x9A536Ed5C97686988F93C9f7C2A390bF3B59c0ec
-      priceOracleProxy: 0xd0c84453b3945cd7e84BF7fc53BfFd6718913B71
-      timelock: 0x25e46957363e16C4e2D5F2854b062475F9f8d287
-      unitroller: 0x627EA49279FD0dE89186A58b8758aD02B6Be2867
-
-    > await xvs.methods.totalSupply().call()
-    '300000000000000000000000000'
-    > await sxp.methods.totalSupply().call()
-    '28971492600000000000000000'
 ```
 
-## Console
+npx hardhat accounts
 
-After you deploy, as above, you can run a truffle console with the following command:
+npx hardhat compile
 
-    yarn console -n goerli
+npx hardhat clean
 
-This command will start a saddle console conencted to Goerli testnet (see [Saddle README](https://github.com/compound-finance/saddle#cli)):
+npx hardhat test
 
-```javascript
-    Using network goerli https://goerli.infura.io/v3/e1a5d4d2c06a4e81945fca56d0d5d8ea
-    Saddle console on network goerli https://goerli.infura.io/v3/e1a5d4d2c06a4e81945fca56d0d5d8ea
-    Deployed goerli contracts
-      comptroller: 0x627EA49279FD0dE89186A58b8758aD02B6Be2867
-      xvs: 0xfa5E1B628EFB17C024ca76f65B45Faf6B3128CA5
-      sxp: 0xfa5E1B628EFB17C024ca76f65B45Faf6B3128CA5
-      governorAlpha: 0x8C3969Dd514B559D78135e9C210F2F773Feadf21
-      maximillion: 0x73d3F01b8aC5063f4601C7C45DA5Fdf1b5240C92
-      priceOracle: 0x9A536Ed5C97686988F93C9f7C2A390bF3B59c0ec
-      priceOracleProxy: 0xd0c84453b3945cd7e84BF7fc53BfFd6718913B71
-      timelock: 0x25e46957363e16C4e2D5F2854b062475F9f8d287
-      unitroller: 0x627EA49279FD0dE89186A58b8758aD02B6Be2867
+npx hardhat node
 
-    > await xvs.methods.totalSupply().call()
-    '300000000000000000000000000'
-    > await sxp.methods.totalSupply().call()
-    '28971492600000000000000000'
-```
+npx hardhat help
 
-## Deploying a VToken from Source
+REPORT_GAS=true npx hardhat test
 
-Note: you will need to set `~/.ethereum/<network>` with your private key or assign your private key to the environment variable `ACCOUNT`.
+npx hardhat coverage
 
-Note: for all sections including BscScan verification, you must set the `BSCSCAN_API_KEY` to a valid API Key from [BscScan](https://bscscan.com/apis).
+TS_NODE_FILES=true npx ts-node scripts/deploy.ts
 
-To deploy a new vToken, you can run the `token:deploy`. command, as follows. If you set `VERIFY=true`, the script will verify the token on BscScan as well. The JSON here is the token config JSON, which should be specific to the token you wish to list.
+npx eslint '**/*.{js,ts}'
 
-```bash
-npx saddle -n rinkeby script token:deploy '{
-  "underlying": "0x577D296678535e4903D59A4C929B718e1D575e0A",
-  "comptroller": "$Comptroller",
-  "interestRateModel": "$Base200bps_Slope3000bps",
-  "initialExchangeRateMantissa": "2.0e18",
-  "name": "Venus Kyber Network Crystal",
-  "symbol": "vKNC",
-  "decimals": "8",
-  "admin": "$Timelock"
-}'
-```
+npx eslint '**/*.{js,ts}' --fix
 
-If you only want to verify an existing token an BscScan, make sure `BSCSCAN_API_KEY` is set and run `token:verify` with the first argument as the token address and the second as the token config JSON:
+npx prettier '**/*.{json,sol,md}' --check
 
-```bash
-npx saddle -n rinkeby script token:verify 0x19B674715cD20626415C738400FDd0d32D6809B6 '{
-  "underlying": "0x577D296678535e4903D59A4C929B718e1D575e0A",
-  "comptroller": "$Comptroller",
-  "interestRateModel": "$Base200bps_Slope3000bps",
-  "initialExchangeRateMantissa": "2.0e18",
-  "name": "Venus Kyber Network Crystal",
-  "symbol": "vKNC",
-  "decimals": "8",
-  "admin": "$Timelock"
-}'
-```
+npx prettier '**/*.{json,sol,md}' --write
 
-Finally, to see if a given deployment matches this version of the Venus Protocol, you can run `token:match` with a token address and token config:
+npx solhint 'contracts/**/*.sol'
 
-```bash
-npx saddle -n rinkeby script token:match 0x19B674715cD20626415C738400FDd0d32D6809B6 '{
-  "underlying": "0x577D296678535e4903D59A4C929B718e1D575e0A",
-  "comptroller": "$Comptroller",
-  "interestRateModel": "$Base200bps_Slope3000bps",
-  "initialExchangeRateMantissa": "2.0e18",
-  "name": "Venus Kyber Network Crystal",
-  "symbol": "vKNC",
-  "decimals": "8",
-  "admin": "$Timelock"
-}'
-```
+npx solhint 'contracts/**/*.sol' --fix
 
-## Deploying a VToken from Docker Build
 
----
 
-To deploy a specific version of the Venus Protocol, you can use the `token:deploy` script through Docker:
-
-```bash
-docker run --env BSCSCAN_API_KEY --env VERIFY=true --env ACCOUNT=0x$(cat ~/.ethereum/rinkeby) SwipeWallet/venus-protocol:latest npx saddle -n rinkeby script token:deploy '{
-  "underlying": "0x577D296678535e4903D59A4C929B718e1D575e0A",
-  "comptroller": "$Comptroller",
-  "interestRateModel": "$Base200bps_Slope3000bps",
-  "initialExchangeRateMantissa": "2.0e18",
-  "name": "Venus Kyber Network Crystal",
-  "symbol": "vKNC",
-  "decimals": "8",
-  "admin": "$Timelock"
-}'
-```
-
-To match a deployed contract against a given version of the Venus Protocol, you can run `token:match` through Docker, passing a token address and config:
-
-```bash
-docker run --env ACCOUNT=0x$(cat ~/.ethereum/rinkeby) SwipeWallet/venus-protocol:latest npx saddle -n rinkeby script token:match 0xF1BAd36CB247C82Cb4e9C2874374492Afb50d565 '{
-  "underlying": "0x577D296678535e4903D59A4C929B718e1D575e0A",
-  "comptroller": "$Comptroller",
-  "interestRateModel": "$Base200bps_Slope3000bps",
-  "initialExchangeRateMantissa": "2.0e18",
-  "name": "Venus Kyber Network Crystal",
-  "symbol": "vKNC",
-  "decimals": "8",
-  "admin": "$Timelock"
-}'
+MNEMONIC="<>" BSC_API_KEY="<>" npx hardhat run ./script/hardhat/deploy.ts --network testnet
 ```
 
 ## Discussion

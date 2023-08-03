@@ -221,12 +221,12 @@ contract TokenErrorReporter {
 contract VAIControllerErrorReporter {
     enum Error {
         NO_ERROR,
-        UNAUTHORIZED,
-        REJECTION,
-        SNAPSHOT_ERROR,
-        PRICE_ERROR,
-        MATH_ERROR,
-        INSUFFICIENT_BALANCE_FOR_VAI
+        UNAUTHORIZED, // The sender is not authorized to perform this action.
+        REJECTION, // The action would violate the comptroller, vaicontroller policy.
+        SNAPSHOT_ERROR, // The comptroller could not get the account borrows and exchange rate from the market.
+        PRICE_ERROR, // The comptroller could not obtain a required price of an asset.
+        MATH_ERROR, // A math calculation error occurred.
+        INSUFFICIENT_BALANCE_FOR_VAI // Caller does not have sufficient balance to mint VAI.
     }
 
     enum FailureInfo {
