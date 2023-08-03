@@ -385,7 +385,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         }
     }
 
-    /// @dev Wrap BNB to wBNB and sends to protocol share reserve
+    /// @dev Wraps BNB to wBNB and sends to protocol share reserve
     function _reduceBnbReserves() private {
         uint256 bnbBalance = address(this).balance;
         IWBNB(wBNB).deposit{ value: bnbBalance }();

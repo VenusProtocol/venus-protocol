@@ -28,6 +28,6 @@ contract LiquidatorStorage {
     /// @dev Size of chunk to consider when redeeming underlying at the time of liquidation
     uint256 internal pendingRedeemChunkLength;
 
-    /// @notice gap to prevent collision in inheritence
+    /// @notice gap to prevent collision in inheritance
     uint256[49] private __gap;
 }
