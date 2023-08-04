@@ -424,7 +424,7 @@ contract PolicyFacet is XVSRewardsHelper {
         uint256[] calldata supplySpeeds,
         uint256[] calldata borrowSpeeds
     ) external {
-        ensureAdminOr(comptrollerImplementation);
+        ensureAdmin();
 
         uint256 numTokens = vTokens.length;
         require(
