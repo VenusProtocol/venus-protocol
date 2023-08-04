@@ -227,12 +227,12 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
          */
         if (supplyState.index == 0) {
             // Initialize supply state index with default value
-            supplyState.index = venusInitialIndex;
+            supplyState.index = VENUS_INITIAL_INDEX;
         }
 
         if (borrowState.index == 0) {
             // Initialize borrow state index with default value
-            borrowState.index = venusInitialIndex;
+            borrowState.index = VENUS_INITIAL_INDEX;
         }
 
         /*

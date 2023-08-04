@@ -18,13 +18,13 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
     using SafeBEP20 for IBEP20;
 
     /// @notice The initial Venus index for a market
-    uint224 public constant venusInitialIndex = 1e36;
+    uint224 public constant VENUS_INITIAL_INDEX = 1e36;
     // closeFactorMantissa must be strictly greater than this value
-    uint internal constant closeFactorMinMantissa = 0.05e18; // 0.05
+    uint256 internal constant CLOSE_FACTOR_MIN_MANTISSA = 0.05e18; // 0.05
     // closeFactorMantissa must not exceed this value
-    uint internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
+    uint256 internal constant CLOSE_FACTOR_MAX_MANTISSA = 0.9e18; // 0.9
     // No collateralFactorMantissa may exceed this value
-    uint internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
+    uint256 internal constant COLLATERAL_FACTOR_MAX_MANTISSA = 0.9e18; // 0.9
 
     /// @notice Reverts if the protocol is paused
     function checkProtocolPauseState() internal view {
