@@ -136,10 +136,10 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
     function getHypotheticalAccountLiquidityInternal(
         address account,
         VToken vTokenModify,
-        uint redeemTokens,
-        uint borrowAmount
-    ) internal view returns (ComptrollerErrorReporter.Error, uint, uint) {
-        (uint err, uint liquidity, uint shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
+        uint256 redeemTokens,
+        uint256 borrowAmount
+    ) internal view returns (Error, uint256, uint256) {
+        (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
             account,
             vTokenModify,
@@ -183,25 +183,29 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
      * @param redeemTokens Amount of tokens to redeem
      * @return Success indicator for redeem is allowed or not
      */
-    function redeemAllowedInternal(address vToken, address redeemer, uint redeemTokens) internal view returns (uint) {
+    function redeemAllowedInternal(
+        address vToken,
+        address redeemer,
+        uint256 redeemTokens
+    ) internal view returns (uint256) {
         ensureListed(markets[vToken]);
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
         if (!markets[vToken].accountMembership[redeemer]) {
-            return uint(ComptrollerErrorReporter.Error.NO_ERROR);
+            return uint256(Error.NO_ERROR);
         }
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
-        (ComptrollerErrorReporter.Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             redeemer,
             VToken(vToken),
             redeemTokens,
             0
         );
-        if (err != ComptrollerErrorReporter.Error.NO_ERROR) {
-            return uint(err);
+        if (err != Error.NO_ERROR) {
+            return uint256(err);
         }
         if (shortfall != 0) {
-            return uint(ComptrollerErrorReporter.Error.INSUFFICIENT_LIQUIDITY);
+            return uint256(Error.INSUFFICIENT_LIQUIDITY);
         }
-        return uint(ComptrollerErrorReporter.Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 }

@@ -51,9 +51,9 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     function liquidateCalculateSeizeTokens(
         address vTokenBorrowed,
         address vTokenCollateral,
-        uint actualRepayAmount
-    ) external view returns (uint, uint) {
-        (uint err, uint seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256) {
+        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
             address(this),
             vTokenBorrowed,
             vTokenCollateral,
@@ -71,9 +71,9 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      */
     function liquidateVAICalculateSeizeTokens(
         address vTokenCollateral,
-        uint actualRepayAmount
-    ) external view returns (uint, uint) {
-        (uint err, uint seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
+        uint256 actualRepayAmount
+    ) external view returns (uint256, uint256) {
+        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
             address(this),
             vTokenCollateral,
             actualRepayAmount
@@ -96,12 +96,12 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param vTokens The list of addresses of the vToken markets to be enabled
      * @return Success indicator for whether each corresponding market was entered
      */
-    function enterMarkets(address[] calldata vTokens) external returns (uint[] memory) {
-        uint len = vTokens.length;
+    function enterMarkets(address[] calldata vTokens) external returns (uint256[] memory) {
+        uint256 len = vTokens.length;
 
-        uint[] memory results = new uint[](len);
-        for (uint i; i < len; ++i) {
-            results[i] = uint(addToMarketInternal(VToken(vTokens[i]), msg.sender));
+        uint256[] memory results = new uint256[](len);
+        for (uint256 i; i < len; ++i) {
+            results[i] = uint256(addToMarketInternal(VToken(vTokens[i]), msg.sender));
         }
 
         return results;
@@ -114,12 +114,12 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param vTokenAddress The address of the asset to be removed
      * @return Whether or not the account successfully exited the market
      */
-    function exitMarket(address vTokenAddress) external returns (uint) {
+    function exitMarket(address vTokenAddress) external returns (uint256) {
         checkActionPauseState(vTokenAddress, Action.EXIT_MARKET);
 
         VToken vToken = VToken(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
-        (uint oErr, uint tokensHeld, uint amountOwed, ) = vToken.getAccountSnapshot(msg.sender);
+        (uint256 oErr, uint256 tokensHeld, uint256 amountOwed, ) = vToken.getAccountSnapshot(msg.sender);
         require(oErr == 0, "getAccountSnapshot failed"); // semi-opaque error code
 
         /* Fail if the sender has a borrow balance */
@@ -128,7 +128,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         }
 
         /* Fail if the sender is not permitted to redeem all of their tokens */
-        uint allowed = redeemAllowedInternal(vTokenAddress, msg.sender, tokensHeld);
+        uint256 allowed = redeemAllowedInternal(vTokenAddress, msg.sender, tokensHeld);
         if (allowed != 0) {
             return failOpaque(Error.REJECTION, FailureInfo.EXIT_MARKET_REJECTION, allowed);
         }
@@ -137,7 +137,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
         /* Return true if the sender is not already ‘in’ the market */
         if (!marketToExit.accountMembership[msg.sender]) {
-            return uint(Error.NO_ERROR);
+            return uint256(Error.NO_ERROR);
         }
 
         /* Set vToken account membership to false */
@@ -146,8 +146,8 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         /* Delete vToken from the account’s list of assets */
         // In order to delete vToken, copy last item in list to location of item to be removed, reduce length by 1
         VToken[] storage userAssetList = accountAssets[msg.sender];
-        uint len = userAssetList.length;
-        uint i;
+        uint256 len = userAssetList.length;
+        uint256 i;
         for (; i < len; ++i) {
             if (userAssetList[i] == vToken) {
                 userAssetList[i] = userAssetList[len - 1];
@@ -161,16 +161,16 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
         emit MarketExited(vToken, msg.sender);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
      * @notice Add the market to the markets mapping and set it as listed
      * @dev Admin function to set isListed and add support for the market
      * @param vToken The address of the market (token) to list
-     * @return uint 0=success, otherwise a failure. (See enum Error for details)
+     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
-    function _supportMarket(VToken vToken) external returns (uint) {
+    function _supportMarket(VToken vToken) external returns (uint256) {
         ensureAllowed("_supportMarket(address)");
 
         if (markets[address(vToken)].isListed) {
@@ -190,7 +190,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
         emit MarketListed(vToken);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -212,7 +212,7 @@ contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
     function _addMarketInternal(VToken vToken) internal {
         uint256 allMarketsLength = allMarkets.length;
-        for (uint i; i < allMarketsLength; ++i) {
+        for (uint256 i; i < allMarketsLength; ++i) {
             require(allMarkets[i] != vToken, "market already added");
         }
         allMarkets.push(vToken);

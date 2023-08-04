@@ -12,16 +12,16 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
     event DistributedBorrowerVenus(
         VToken indexed vToken,
         address indexed borrower,
-        uint venusDelta,
-        uint venusBorrowIndex
+        uint256 venusDelta,
+        uint256 venusBorrowIndex
     );
 
     /// @notice Emitted when XVS is distributed to a supplier
     event DistributedSupplierVenus(
         VToken indexed vToken,
         address indexed supplier,
-        uint venusDelta,
-        uint venusSupplyIndex
+        uint256 venusDelta,
+        uint256 venusSupplyIndex
     );
 
     /**
@@ -30,12 +30,12 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
      */
     function updateVenusBorrowIndex(address vToken, ExponentialNoError.Exp memory marketBorrowIndex) internal {
         VenusMarketState storage borrowState = venusBorrowState[vToken];
-        uint borrowSpeed = venusBorrowSpeeds[vToken];
-        uint blockNumber = getBlockNumber();
-        uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
+        uint256 borrowSpeed = venusBorrowSpeeds[vToken];
+        uint256 blockNumber = getBlockNumber();
+        uint256 deltaBlocks = sub_(uint256(blockNumber), uint256(borrowState.block));
         if (deltaBlocks != 0 && borrowSpeed != 0) {
-            uint borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
-            uint venusAccrued = mul_(deltaBlocks, borrowSpeed);
+            uint256 borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
+            uint256 venusAccrued = mul_(deltaBlocks, borrowSpeed);
             Double memory ratio = borrowAmount != 0 ? fraction(venusAccrued, borrowAmount) : Double({ mantissa: 0 });
             borrowState.index = safe224(
                 add_(Double({ mantissa: borrowState.index }), ratio).mantissa,
@@ -53,14 +53,14 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
      */
     function updateVenusSupplyIndex(address vToken) internal {
         VenusMarketState storage supplyState = venusSupplyState[vToken];
-        uint supplySpeed = venusSupplySpeeds[vToken];
-        uint blockNumber = getBlockNumber();
+        uint256 supplySpeed = venusSupplySpeeds[vToken];
+        uint256 blockNumber = getBlockNumber();
 
-        uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
+        uint256 deltaBlocks = sub_(uint256(blockNumber), uint256(supplyState.block));
         if (deltaBlocks != 0 && supplySpeed != 0) {
-            uint supplyTokens = VToken(vToken).totalSupply();
-            uint venusAccrued = mul_(deltaBlocks, supplySpeed);
-            Double memory ratio = supplyTokens != 0 ? fraction(venusAccrued, supplyTokens) : Double({ mantissa: 0 });
+            uint256 supplyTokens = VToken(vToken).totalSupply();
+            uint256 accruedVenus = mul_(deltaBlocks, supplySpeed);
+            Double memory ratio = supplyTokens != 0 ? fraction(accruedVenus, supplyTokens) : Double({ mantissa: 0 });
             supplyState.index = safe224(
                 add_(Double({ mantissa: supplyState.index }), ratio).mantissa,
                 "new index exceeds 224 bits"
@@ -80,8 +80,8 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
         if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }
-        uint supplyIndex = venusSupplyState[vToken].index;
-        uint supplierIndex = venusSupplierIndex[vToken][supplier];
+        uint256 supplyIndex = venusSupplyState[vToken].index;
+        uint256 supplierIndex = venusSupplierIndex[vToken][supplier];
         // Update supplier's index to the current index since we are distributing accrued XVS
         venusSupplierIndex[vToken][supplier] = supplyIndex;
         if (supplierIndex == 0 && supplyIndex >= venusInitialIndex) {
@@ -93,7 +93,7 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
         // Calculate change in the cumulative sum of the XVS per vToken accrued
         Double memory deltaIndex = Double({ mantissa: sub_(supplyIndex, supplierIndex) });
         // Multiply of supplierTokens and supplierDelta
-        uint supplierDelta = mul_(VToken(vToken).balanceOf(supplier), deltaIndex);
+        uint256 supplierDelta = mul_(VToken(vToken).balanceOf(supplier), deltaIndex);
         // Addition of supplierAccrued and supplierDelta
         venusAccrued[supplier] = add_(venusAccrued[supplier], supplierDelta);
         emit DistributedSupplierVenus(VToken(vToken), supplier, supplierDelta, supplyIndex);
@@ -113,8 +113,8 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
         if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }
-        uint borrowIndex = venusBorrowState[vToken].index;
-        uint borrowerIndex = venusBorrowerIndex[vToken][borrower];
+        uint256 borrowIndex = venusBorrowState[vToken].index;
+        uint256 borrowerIndex = venusBorrowerIndex[vToken][borrower];
         // Update borrowers's index to the current index since we are distributing accrued XVS
         venusBorrowerIndex[vToken][borrower] = borrowIndex;
         if (borrowerIndex == 0 && borrowIndex >= venusInitialIndex) {
@@ -125,7 +125,7 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
         }
         // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
         Double memory deltaIndex = Double({ mantissa: sub_(borrowIndex, borrowerIndex) });
-        uint borrowerDelta = mul_(div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
+        uint256 borrowerDelta = mul_(div_(VToken(vToken).borrowBalanceStored(borrower), marketBorrowIndex), deltaIndex);
         venusAccrued[borrower] = add_(venusAccrued[borrower], borrowerDelta);
         emit DistributedBorrowerVenus(VToken(vToken), borrower, borrowerDelta, borrowIndex);
     }

@@ -10,15 +10,19 @@ import { FacetBase, VToken, ComptrollerErrorReporter, ExponentialNoError } from 
 /**
  * @dev This facet contains all the setters for the states
  */
-contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
+contract SetterFacet is ComptrollerErrorReporter, FacetBase {
     /// @notice Emitted when close factor is changed by admin
-    event NewCloseFactor(uint oldCloseFactorMantissa, uint newCloseFactorMantissa);
+    event NewCloseFactor(uint256 oldCloseFactorMantissa, uint256 newCloseFactorMantissa);
 
     /// @notice Emitted when a collateral factor is changed by admin
-    event NewCollateralFactor(VToken vToken, uint oldCollateralFactorMantissa, uint newCollateralFactorMantissa);
+    event NewCollateralFactor(
+        VToken indexed vToken,
+        uint256 oldCollateralFactorMantissa,
+        uint256 newCollateralFactorMantissa
+    );
 
     /// @notice Emitted when liquidation incentive is changed by admin
-    event NewLiquidationIncentive(uint oldLiquidationIncentiveMantissa, uint newLiquidationIncentiveMantissa);
+    event NewLiquidationIncentive(uint256 oldLiquidationIncentiveMantissa, uint256 newLiquidationIncentiveMantissa);
 
     /// @notice Emitted when price oracle is changed
     event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
@@ -30,7 +34,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
 
     /// @notice Emitted when VAI mint rate is changed by admin
-    event NewVAIMintRate(uint oldVAIMintRate, uint newVAIMintRate);
+    event NewVAIMintRate(uint256 oldVAIMintRate, uint256 newVAIMintRate);
 
     /// @notice Emitted when protocol state is changed by admin
     event ActionProtocolPaused(bool state);
@@ -42,7 +46,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     event NewTreasuryAddress(address oldTreasuryAddress, address newTreasuryAddress);
 
     /// @notice Emitted when treasury percent is changed
-    event NewTreasuryPercent(uint oldTreasuryPercent, uint newTreasuryPercent);
+    event NewTreasuryPercent(uint256 oldTreasuryPercent, uint256 newTreasuryPercent);
 
     /// @notice Emitted when liquidator adress is changed
     event NewLiquidatorContract(address oldLiquidatorContract, address newLiquidatorContract);
@@ -66,7 +70,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     event NewVAIVaultInfo(address indexed vault_, uint256 releaseStartBlock_, uint256 releaseInterval_);
 
     /// @notice Emitted when Venus VAI Vault rate is changed
-    event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);
+    event NewVenusVAIVaultRate(uint256 oldVenusVAIVaultRate, uint256 newVenusVAIVaultRate);
 
     /**
      * @notice Compare two addresses to ensure they are different
@@ -91,11 +95,11 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     /**
      * @notice Sets a new price oracle for the comptroller
      * @dev Admin function to set a new price oracle
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setPriceOracle(
         PriceOracle newOracle
-    ) external compareAddress(address(oracle), address(newOracle)) returns (uint) {
+    ) external compareAddress(address(oracle), address(newOracle)) returns (uint256) {
         // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(address(newOracle));
@@ -109,38 +113,38 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         // Emit NewPriceOracle(oldOracle, newOracle)
         emit NewPriceOracle(oldOracle, newOracle);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
      * @notice Sets the closeFactor used when liquidating borrows
      * @dev Admin function to set closeFactor
      * @param newCloseFactorMantissa New close factor, scaled by 1e18
-     * @return uint 0=success, otherwise will revert
+     * @return uint256 0=success, otherwise will revert
      */
     function _setCloseFactor(
-        uint newCloseFactorMantissa
-    ) external compareValue(closeFactorMantissa, newCloseFactorMantissa) returns (uint) {
+        uint256 newCloseFactorMantissa
+    ) external compareValue(closeFactorMantissa, newCloseFactorMantissa) returns (uint256) {
         // Check caller is admin
         ensureAdmin();
 
-        uint oldCloseFactorMantissa = closeFactorMantissa;
+        uint256 oldCloseFactorMantissa = closeFactorMantissa;
 
         closeFactorMantissa = newCloseFactorMantissa;
         emit NewCloseFactor(oldCloseFactorMantissa, newCloseFactorMantissa);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
      * @notice Sets the address of the access control of this contract
      * @dev Admin function to set the access control address
      * @param newAccessControlAddress New address for the access control
-     * @return uint 0=success, otherwise will revert
+     * @return uint256 0=success, otherwise will revert
      */
     function _setAccessControl(
         address newAccessControlAddress
-    ) external compareAddress(accessControl, newAccessControlAddress) returns (uint) {
+    ) external compareAddress(accessControl, newAccessControlAddress) returns (uint256) {
         // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(newAccessControlAddress);
@@ -150,7 +154,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         accessControl = newAccessControlAddress;
         emit NewAccessControl(oldAccessControlAddress, newAccessControlAddress);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -158,15 +162,15 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @dev Restricted function to set per-market collateralFactor
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
-     * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
+     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
     function _setCollateralFactor(
         VToken vToken,
-        uint newCollateralFactorMantissa
+        uint256 newCollateralFactorMantissa
     )
         external
         compareValue(markets[address(vToken)].collateralFactorMantissa, newCollateralFactorMantissa)
-        returns (uint)
+        returns (uint256)
     {
         // Check caller is allowed by access control manager
         ensureAllowed("_setCollateralFactor(address,uint256)");
@@ -179,7 +183,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         Exp memory newCollateralFactorExp = Exp({ mantissa: newCollateralFactorMantissa });
 
         //-- Check collateral factor <= 0.9
-        Exp memory highLimit = Exp({ mantissa: collateralFactorMaxMantissa });
+        Exp memory highLimit = Exp({ mantissa: COLLATERAL_FACTOR_MAX_MANTISSA });
         if (lessThanExp(highLimit, newCollateralFactorExp)) {
             return fail(Error.INVALID_COLLATERAL_FACTOR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION);
         }
@@ -190,37 +194,37 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         }
 
         // Set market's collateral factor to new collateral factor, remember old value
-        uint oldCollateralFactorMantissa = market.collateralFactorMantissa;
+        uint256 oldCollateralFactorMantissa = market.collateralFactorMantissa;
         market.collateralFactorMantissa = newCollateralFactorMantissa;
 
         // Emit event with asset, old collateral factor, and new collateral factor
         emit NewCollateralFactor(vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
      * @notice Sets liquidationIncentive
      * @dev Admin function to set liquidationIncentive
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
-     * @return uint 0=success, otherwise a failure. (See ErrorReporter for details)
+     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
     function _setLiquidationIncentive(
-        uint newLiquidationIncentiveMantissa
-    ) external compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint) {
+        uint256 newLiquidationIncentiveMantissa
+    ) external compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint256) {
         ensureAllowed("_setLiquidationIncentive(uint256)");
 
         require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
 
         // Save current value for use in log
-        uint oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
+        uint256 oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
         // Set liquidation incentive to new incentive
         liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
 
         // Emit event with old incentive, new incentive
         emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -241,11 +245,11 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     /**
      * @notice Admin function to change the Pause Guardian
      * @param newPauseGuardian The address of the new Pause Guardian
-     * @return uint 0=success, otherwise a failure. (See enum Error for details)
+     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
     function _setPauseGuardian(
         address newPauseGuardian
-    ) external compareAddress(pauseGuardian, newPauseGuardian) returns (uint) {
+    ) external compareAddress(pauseGuardian, newPauseGuardian) returns (uint256) {
         ensureAdmin();
         ensureNonzeroAddress(newPauseGuardian);
 
@@ -257,7 +261,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         // Emit NewPauseGuardian(OldPauseGuardian, NewPauseGuardian)
         emit NewPauseGuardian(oldPauseGuardian, newPauseGuardian);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -266,15 +270,15 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
      * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing
      */
-    function _setMarketBorrowCaps(VToken[] calldata vTokens, uint[] calldata newBorrowCaps) external {
+    function _setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
         ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");
 
-        uint numMarkets = vTokens.length;
-        uint numBorrowCaps = newBorrowCaps.length;
+        uint256 numMarkets = vTokens.length;
+        uint256 numBorrowCaps = newBorrowCaps.length;
 
         require(numMarkets != 0 && numMarkets == numBorrowCaps, "invalid input");
 
-        for (uint i; i < numMarkets; ++i) {
+        for (uint256 i; i < numMarkets; ++i) {
             borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
             emit NewBorrowCap(vTokens[i], newBorrowCaps[i]);
         }
@@ -289,12 +293,12 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
         ensureAllowed("_setMarketSupplyCaps(address[],uint256[])");
 
-        uint numMarkets = vTokens.length;
-        uint numSupplyCaps = newSupplyCaps.length;
+        uint256 numMarkets = vTokens.length;
+        uint256 numSupplyCaps = newSupplyCaps.length;
 
         require(numMarkets != 0 && numMarkets == numSupplyCaps, "invalid input");
 
-        for (uint i; i < numMarkets; ++i) {
+        for (uint256 i; i < numMarkets; ++i) {
             supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
             emit NewSupplyCap(vTokens[i], newSupplyCaps[i]);
         }
@@ -324,8 +328,8 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
         uint256 numMarkets = markets_.length;
         uint256 numActions = actions_.length;
-        for (uint marketIdx; marketIdx < numMarkets; ++marketIdx) {
-            for (uint actionIdx; actionIdx < numActions; ++actionIdx) {
+        for (uint256 marketIdx; marketIdx < numMarkets; ++marketIdx) {
+            for (uint256 actionIdx; actionIdx < numActions; ++actionIdx) {
                 setActionPausedInternal(markets_[marketIdx], actions_[actionIdx], paused_);
             }
         }
@@ -339,18 +343,18 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      */
     function setActionPausedInternal(address market, Action action, bool paused) internal {
         ensureListed(markets[market]);
-        _actionPaused[market][uint(action)] = paused;
+        _actionPaused[market][uint256(action)] = paused;
         emit ActionPausedMarket(VToken(market), action, paused);
     }
 
     /**
      * @notice Sets a new VAI controller
      * @dev Admin function to set a new VAI controller
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setVAIController(
         VAIControllerInterface vaiController_
-    ) external compareAddress(address(vaiController), address(vaiController_)) returns (uint) {
+    ) external compareAddress(address(vaiController), address(vaiController_)) returns (uint256) {
         // Check caller is admin
         ensureAdmin();
         ensureNonzeroAddress(address(vaiController_));
@@ -359,22 +363,24 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         vaiController = vaiController_;
         emit NewVAIController(oldVaiController, vaiController_);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
      * @notice Set the VAI mint rate
      * @param newVAIMintRate The new VAI mint rate to be set
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setVAIMintRate(uint newVAIMintRate) external compareValue(vaiMintRate, newVAIMintRate) returns (uint) {
+    function _setVAIMintRate(
+        uint256 newVAIMintRate
+    ) external compareValue(vaiMintRate, newVAIMintRate) returns (uint256) {
         // Check caller is admin
         ensureAdmin();
-        uint oldVAIMintRate = vaiMintRate;
+        uint256 oldVAIMintRate = vaiMintRate;
         vaiMintRate = newVAIMintRate;
         emit NewVAIMintRate(oldVAIMintRate, newVAIMintRate);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -383,7 +389,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param amount The amount of VAI to set to the account
      * @return The number of minted VAI by `owner`
      */
-    function setMintedVAIOf(address owner, uint amount) external returns (uint) {
+    function setMintedVAIOf(address owner, uint256 amount) external returns (uint256) {
         checkProtocolPauseState();
 
         // Pausing is a very serious situation - we revert to sound the alarms
@@ -393,7 +399,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
             return fail(Error.REJECTION, FailureInfo.SET_MINTED_VAI_REJECTION);
         }
         mintedVAIs[owner] = amount;
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -401,13 +407,13 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param newTreasuryGuardian The new address of the treasury guardian to be set
      * @param newTreasuryAddress The new address of the treasury to be set
      * @param newTreasuryPercent The new treasury percent to be set
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setTreasuryData(
         address newTreasuryGuardian,
         address newTreasuryAddress,
-        uint newTreasuryPercent
-    ) external returns (uint) {
+        uint256 newTreasuryPercent
+    ) external returns (uint256) {
         // Check caller is admin
         ensureAdminOr(treasuryGuardian);
 
@@ -417,7 +423,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
 
         address oldTreasuryGuardian = treasuryGuardian;
         address oldTreasuryAddress = treasuryAddress;
-        uint oldTreasuryPercent = treasuryPercent;
+        uint256 oldTreasuryPercent = treasuryPercent;
 
         treasuryGuardian = newTreasuryGuardian;
         treasuryAddress = newTreasuryAddress;
@@ -427,7 +433,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
         emit NewTreasuryAddress(oldTreasuryAddress, newTreasuryAddress);
         emit NewTreasuryPercent(oldTreasuryPercent, newTreasuryPercent);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /*** Venus Distribution ***/
@@ -435,18 +441,18 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     /**
      * @dev Set ComptrollerLens contract address
      * @param comptrollerLens_ The new ComptrollerLens contract address to be set
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setComptrollerLens(
         ComptrollerLensInterface comptrollerLens_
-    ) external compareAddress(address(comptrollerLens), address(comptrollerLens_)) returns (uint) {
+    ) external compareAddress(address(comptrollerLens), address(comptrollerLens_)) returns (uint256) {
         ensureAdmin();
         ensureNonzeroAddress(address(comptrollerLens_));
         address oldComptrollerLens = address(comptrollerLens);
         comptrollerLens = comptrollerLens_;
         emit NewComptrollerLens(oldComptrollerLens, address(comptrollerLens));
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -454,13 +460,13 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
      * @param venusVAIVaultRate_ The amount of XVS wei per block to distribute to VAI Vault
      */
     function _setVenusVAIVaultRate(
-        uint venusVAIVaultRate_
+        uint256 venusVAIVaultRate_
     ) external compareValue(venusVAIVaultRate, venusVAIVaultRate_) {
         ensureAdmin();
         if (vaiVaultAddress != address(0)) {
             releaseToVault();
         }
-        uint oldVenusVAIVaultRate = venusVAIVaultRate;
+        uint256 oldVenusVAIVaultRate = venusVAIVaultRate;
         venusVAIVaultRate = venusVAIVaultRate_;
         emit NewVenusVAIVaultRate(oldVenusVAIVaultRate, venusVAIVaultRate_);
     }
