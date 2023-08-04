@@ -74,14 +74,15 @@ contract Diamond is ComptrollerV12Storage {
      * @notice Get all facets address and their function selector
      * @return facets_ Array of Facet
      */
-    function facets() external view returns (Facet[] memory facets_) {
+    function facets() external view returns (Facet[] memory) {
         uint256 facetsLength = _facetAddresses.length;
-        facets_ = new Facet[](facetsLength);
+        Facet[] memory facets_ = new Facet[](facetsLength);
         for (uint256 i; i < facetsLength; ++i) {
             address facet = _facetAddresses[i];
             facets_[i].facetAddress = facet;
             facets_[i].functionSelectors = _facetFunctionSelectors[facet].functionSelectors;
         }
+        return facets_;
     }
 
     /**

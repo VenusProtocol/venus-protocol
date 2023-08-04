@@ -8,7 +8,7 @@ import { ComptrollerV12Storage } from "../../../Comptroller/ComptrollerStorage.s
 import { IAccessControlManager } from "../../../Governance/IAccessControlManager.sol";
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 
-contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
+contract FacetBase is ComptrollerV12Storage, ExponentialNoError, ComptrollerErrorReporter {
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken indexed vToken, address indexed account);
 
@@ -138,7 +138,7 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount
-    ) internal view returns (ComptrollerErrorReporter.Error, uint256, uint256) {
+    ) internal view returns (Error, uint256, uint256) {
         (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
             account,
@@ -146,7 +146,7 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
             redeemTokens,
             borrowAmount
         );
-        return (ComptrollerErrorReporter.Error(err), liquidity, shortfall);
+        return (Error(err), liquidity, shortfall);
     }
 
     /**
@@ -155,13 +155,13 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
      * @param borrower The address of the account to modify
      * @return Success indicator for whether the market was entered
      */
-    function addToMarketInternal(VToken vToken, address borrower) internal returns (ComptrollerErrorReporter.Error) {
+    function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
         checkActionPauseState(address(vToken), Action.ENTER_MARKET);
         Market storage marketToJoin = markets[address(vToken)];
         ensureListed(marketToJoin);
         if (marketToJoin.accountMembership[borrower]) {
             // already joined
-            return ComptrollerErrorReporter.Error.NO_ERROR;
+            return Error.NO_ERROR;
         }
         // survived the gauntlet, add to list
         // NOTE: we store these somewhat redundantly as a significant optimization
@@ -173,7 +173,7 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
 
         emit MarketEntered(vToken, borrower);
 
-        return ComptrollerErrorReporter.Error.NO_ERROR;
+        return Error.NO_ERROR;
     }
 
     /**
@@ -191,21 +191,21 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
         ensureListed(markets[vToken]);
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
         if (!markets[vToken].accountMembership[redeemer]) {
-            return uint256(ComptrollerErrorReporter.Error.NO_ERROR);
+            return uint256(Error.NO_ERROR);
         }
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
-        (ComptrollerErrorReporter.Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             redeemer,
             VToken(vToken),
             redeemTokens,
             0
         );
-        if (err != ComptrollerErrorReporter.Error.NO_ERROR) {
+        if (err != Error.NO_ERROR) {
             return uint256(err);
         }
         if (shortfall != 0) {
-            return uint256(ComptrollerErrorReporter.Error.INSUFFICIENT_LIQUIDITY);
+            return uint256(Error.INSUFFICIENT_LIQUIDITY);
         }
-        return uint256(ComptrollerErrorReporter.Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 }

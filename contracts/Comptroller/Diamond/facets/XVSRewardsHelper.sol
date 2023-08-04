@@ -2,12 +2,12 @@
 
 pragma solidity 0.5.16;
 
-import { FacetBase, ComptrollerErrorReporter, VToken, ExponentialNoError } from "./FacetBase.sol";
+import { FacetBase, VToken } from "./FacetBase.sol";
 
 /**
  * @dev This contract contains internal functions used in RewardFacet and PolicyFacet
  */
-contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
+contract XVSRewardsHelper is FacetBase {
     /// @notice Emitted when XVS is distributed to a borrower
     event DistributedBorrowerVenus(
         VToken indexed vToken,
@@ -28,7 +28,7 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
      * @notice Accrue XVS to the market by updating the borrow index
      * @param vToken The market whose borrow index to update
      */
-    function updateVenusBorrowIndex(address vToken, ExponentialNoError.Exp memory marketBorrowIndex) internal {
+    function updateVenusBorrowIndex(address vToken, Exp memory marketBorrowIndex) internal {
         VenusMarketState storage borrowState = venusBorrowState[vToken];
         uint256 borrowSpeed = venusBorrowSpeeds[vToken];
         uint256 blockNumber = getBlockNumber();
@@ -105,11 +105,7 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
      * @param vToken The market in which the borrower is interacting
      * @param borrower The address of the borrower to distribute XVS to
      */
-    function distributeBorrowerVenus(
-        address vToken,
-        address borrower,
-        ExponentialNoError.Exp memory marketBorrowIndex
-    ) internal {
+    function distributeBorrowerVenus(address vToken, address borrower, Exp memory marketBorrowIndex) internal {
         if (address(vaiVaultAddress) != address(0)) {
             releaseToVault();
         }

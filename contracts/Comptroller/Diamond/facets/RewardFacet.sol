@@ -113,7 +113,7 @@ contract RewardFacet is XVSRewardsHelper {
      * @param recipient The address of the recipient to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      */
-    function _grantXVS(address recipient, uint256 amount) external {
+    function grantXVS(address recipient, uint256 amount) external {
         ensureAdminOr(comptrollerImplementation);
         uint256 amountLeft = grantXVSInternal(recipient, amount, 0, false);
         require(amountLeft == 0, "insufficient xvs for grant");

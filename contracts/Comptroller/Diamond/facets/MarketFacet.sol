@@ -2,12 +2,12 @@
 
 pragma solidity 0.5.16;
 
-import { FacetBase, VToken, ComptrollerErrorReporter, ExponentialNoError } from "./FacetBase.sol";
+import { FacetBase, VToken } from "./FacetBase.sol";
 
 /**
  * @dev This facet contains all the methods related to the market's management in the pool
  */
-contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
+contract MarketFacet is FacetBase {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken indexed vToken);
 
