@@ -441,15 +441,17 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     function accrueInterest(address vToken) public {
         if (!markets[vToken].exists) revert MarketNotSupported();
 
+        address underlying = _getUnderlying(vToken);
+
         uint totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
             comptroller,
             IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
             address(this),
-            _getUnderlying(vToken)
+            underlying
         );
 
-        uint256 distributionIncome = totalIncomeUnreleased - unreleasedIncome[_getUnderlying(vToken)];
-        unreleasedIncome[_getUnderlying(vToken)] = totalIncomeUnreleased;
+        uint256 distributionIncome = totalIncomeUnreleased - unreleasedIncome[underlying];
+        unreleasedIncome[underlying] = totalIncomeUnreleased;
 
         if (distributionIncome == 0) {
             return;
