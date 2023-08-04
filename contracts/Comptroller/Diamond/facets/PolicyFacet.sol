@@ -267,7 +267,14 @@ contract PolicyFacet is XVSRewardsHelper {
         address borrower,
         uint actualRepayAmount,
         uint seizeTokens
-    ) external {}
+    ) external {
+        if (address(prime) != address(0)) {
+            prime.updateScore(borrower, vTokenBorrowed);
+            prime.updateScore(borrower, vTokenCollateral);
+            prime.updateScore(liquidator, vTokenBorrowed);
+            prime.updateScore(liquidator, vTokenCollateral);
+        }
+    }
 
     /**
      * @notice Checks if the seizing of assets should be allowed to occur
