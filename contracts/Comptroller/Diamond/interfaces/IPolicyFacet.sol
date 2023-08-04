@@ -38,7 +38,7 @@ interface IPolicyFacet {
         address liquidator,
         address borrower,
         uint256 repayAmount
-    ) external returns (uint256);
+    ) external view returns (uint256);
 
     function liquidateBorrowVerify(
         address vTokenBorrowed,

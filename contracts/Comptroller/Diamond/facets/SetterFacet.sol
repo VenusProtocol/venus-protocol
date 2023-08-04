@@ -2,6 +2,7 @@
 
 pragma solidity 0.5.16;
 
+import { ISetterFacet } from "../interfaces/ISetterFacet.sol";
 import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
 import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
 import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
@@ -10,7 +11,7 @@ import { FacetBase, VToken } from "./FacetBase.sol";
 /**
  * @dev This facet contains all the setters for the states
  */
-contract SetterFacet is FacetBase {
+contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when close factor is changed by admin
     event NewCloseFactor(uint256 oldCloseFactorMantissa, uint256 newCloseFactorMantissa);
 

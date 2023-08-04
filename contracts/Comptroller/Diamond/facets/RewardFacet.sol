@@ -2,6 +2,7 @@
 
 pragma solidity 0.5.16;
 
+import { IRewardFacet } from "../interfaces/IRewardFacet.sol";
 import { XVSRewardsHelper, VToken } from "./XVSRewardsHelper.sol";
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
@@ -9,7 +10,7 @@ import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 /**
  * @dev This facet contains all the methods related to the reward functionality
  */
-contract RewardFacet is XVSRewardsHelper {
+contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address indexed recipient, uint256 amount);
 

@@ -6,7 +6,7 @@ pragma experimental ABIEncoderV2;
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
 import { Unitroller, ComptrollerV12Storage } from "../Unitroller.sol";
 
-contract Diamond is ComptrollerV12Storage {
+contract Diamond is IDiamondCut, ComptrollerV12Storage {
     /// @notice Emitted when functions are added, replaced or removed to facets
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
 
