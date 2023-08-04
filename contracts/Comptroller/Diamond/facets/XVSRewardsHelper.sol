@@ -84,11 +84,11 @@ contract XVSRewardsHelper is FacetBase {
         uint256 supplierIndex = venusSupplierIndex[vToken][supplier];
         // Update supplier's index to the current index since we are distributing accrued XVS
         venusSupplierIndex[vToken][supplier] = supplyIndex;
-        if (supplierIndex == 0 && supplyIndex >= VENUS_INITIAL_INDEX) {
+        if (supplierIndex == 0 && supplyIndex >= venusInitialIndex) {
             // Covers the case where users supplied tokens before the market's supply state index was set.
             // Rewards the user with XVS accrued from the start of when supplier rewards were first
             // set for the market.
-            supplierIndex = VENUS_INITIAL_INDEX;
+            supplierIndex = venusInitialIndex;
         }
         // Calculate change in the cumulative sum of the XVS per vToken accrued
         Double memory deltaIndex = Double({ mantissa: sub_(supplyIndex, supplierIndex) });
@@ -113,11 +113,11 @@ contract XVSRewardsHelper is FacetBase {
         uint256 borrowerIndex = venusBorrowerIndex[vToken][borrower];
         // Update borrowers's index to the current index since we are distributing accrued XVS
         venusBorrowerIndex[vToken][borrower] = borrowIndex;
-        if (borrowerIndex == 0 && borrowIndex >= VENUS_INITIAL_INDEX) {
+        if (borrowerIndex == 0 && borrowIndex >= venusInitialIndex) {
             // Covers the case where users borrowed tokens before the market's borrow state index was set.
             // Rewards the user with XVS accrued from the start of when borrower rewards were first
             // set for the market.
-            borrowerIndex = VENUS_INITIAL_INDEX;
+            borrowerIndex = venusInitialIndex;
         }
         // Calculate change in the cumulative sum of the XVS per borrowed unit accrued
         Double memory deltaIndex = Double({ mantissa: sub_(borrowIndex, borrowerIndex) });

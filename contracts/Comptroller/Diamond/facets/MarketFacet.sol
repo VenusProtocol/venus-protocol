@@ -228,12 +228,12 @@ contract MarketFacet is IMarketFacet, FacetBase {
          */
         if (supplyState.index == 0) {
             // Initialize supply state index with default value
-            supplyState.index = VENUS_INITIAL_INDEX;
+            supplyState.index = venusInitialIndex;
         }
 
         if (borrowState.index == 0) {
             // Initialize borrow state index with default value
-            borrowState.index = VENUS_INITIAL_INDEX;
+            borrowState.index = venusInitialIndex;
         }
 
         /*

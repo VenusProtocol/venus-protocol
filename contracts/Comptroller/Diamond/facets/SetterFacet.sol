@@ -184,7 +184,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         Exp memory newCollateralFactorExp = Exp({ mantissa: newCollateralFactorMantissa });
 
         //-- Check collateral factor <= 0.9
-        Exp memory highLimit = Exp({ mantissa: COLLATERAL_FACTOR_MAX_MANTISSA });
+        Exp memory highLimit = Exp({ mantissa: collateralFactorMaxMantissa });
         if (lessThanExp(highLimit, newCollateralFactorExp)) {
             return fail(Error.INVALID_COLLATERAL_FACTOR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION);
         }
