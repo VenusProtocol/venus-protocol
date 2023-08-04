@@ -43,7 +43,7 @@ const rewardsFixture = async (): Promise<RewardsFixtire> => {
   comptroller.getAllMarkets.returns([vBUSD.address, vWBTC.address]);
   comptroller.getXVSAddress.returns(XVS.address);
   comptroller.venusAccrued.returns(VENUS_ACCRUED);
-  comptroller.venusInitialIndex.returns(convertToUnit(1, 18));
+  comptroller.VENUS_INITIAL_INDEX.returns(convertToUnit(1, 18));
   comptroller.venusSupplySpeeds.returns(convertToUnit(0.5, 18));
   comptroller.venusBorrowSpeeds.returns(convertToUnit(0.5, 18));
   comptroller.venusSupplierIndex.returns(convertToUnit(1, 18));

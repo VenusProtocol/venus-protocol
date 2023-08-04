@@ -138,7 +138,7 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount
-    ) internal view returns (Error, uint256, uint256) {
+    ) internal view returns (ComptrollerErrorReporter.Error, uint256, uint256) {
         (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
             account,
@@ -191,21 +191,21 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
         ensureListed(markets[vToken]);
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
         if (!markets[vToken].accountMembership[redeemer]) {
-            return uint256(Error.NO_ERROR);
+            return uint256(ComptrollerErrorReporter.Error.NO_ERROR);
         }
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+        (ComptrollerErrorReporter.Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             redeemer,
             VToken(vToken),
             redeemTokens,
             0
         );
-        if (err != Error.NO_ERROR) {
+        if (err != ComptrollerErrorReporter.Error.NO_ERROR) {
             return uint256(err);
         }
         if (shortfall != 0) {
-            return uint256(Error.INSUFFICIENT_LIQUIDITY);
+            return uint256(ComptrollerErrorReporter.Error.INSUFFICIENT_LIQUIDITY);
         }
-        return uint256(Error.NO_ERROR);
+        return uint256(ComptrollerErrorReporter.Error.NO_ERROR);
     }
 }
