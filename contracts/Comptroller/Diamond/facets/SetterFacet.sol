@@ -324,7 +324,7 @@ contract SetterFacet is FacetBase {
      * @param paused_ The new paused state (true=paused, false=unpaused)
      */
     function _setActionsPaused(address[] calldata markets_, Action[] calldata actions_, bool paused_) external {
-        ensureAllowed("_setActionsPaused(address[],uint256[],bool)");
+        ensureAllowed("_setActionsPaused(address[],uint8[],bool)");
 
         uint256 numMarkets = markets_.length;
         uint256 numActions = actions_.length;
