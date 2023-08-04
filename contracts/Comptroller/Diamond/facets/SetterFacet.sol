@@ -24,7 +24,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
 
     /// @notice Emitted when borrow cap for a vToken is changed
-    event NewBorrowCap(VToken indexed vToken, uint newBorrowCap);
+    event NewBorrowCap(VToken indexed vToken, uint256 newBorrowCap);
 
     /// @notice Emitted when VAIController is changed
     event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
@@ -51,7 +51,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     event NewComptrollerLens(address oldComptrollerLens, address newComptrollerLens);
 
     /// @notice Emitted when supply cap for a vToken is changed
-    event NewSupplyCap(VToken indexed vToken, uint newSupplyCap);
+    event NewSupplyCap(VToken indexed vToken, uint256 newSupplyCap);
 
     /// @notice Emitted when access control address is changed by admin
     event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
@@ -63,7 +63,7 @@ contract SetterFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase 
     event ActionPausedMarket(VToken indexed vToken, Action indexed action, bool pauseState);
 
     /// @notice Emitted when VAI Vault info is changed
-    event NewVAIVaultInfo(address vault_, uint releaseStartBlock_, uint releaseInterval_);
+    event NewVAIVaultInfo(address indexed vault_, uint256 releaseStartBlock_, uint256 releaseInterval_);
 
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint oldVenusVAIVaultRate, uint newVenusVAIVaultRate);

@@ -10,10 +10,10 @@ import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 
 contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
     /// @notice Emitted when an account enters a market
-    event MarketEntered(VToken vToken, address account);
+    event MarketEntered(VToken indexed vToken, address indexed account);
 
     /// @notice Emitted when XVS is distributed to VAI Vault
-    event DistributedVAIVaultVenus(uint amount);
+    event DistributedVAIVaultVenus(uint256 amount);
 
     using SafeBEP20 for IBEP20;
 

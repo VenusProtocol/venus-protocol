@@ -9,10 +9,10 @@ import { XVSRewardsHelper, VToken } from "./XVSRewardsHelper.sol";
  */
 contract PolicyFacet is XVSRewardsHelper {
     /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
-    event VenusBorrowSpeedUpdated(VToken indexed vToken, uint newSpeed);
+    event VenusBorrowSpeedUpdated(VToken indexed vToken, uint256 newSpeed);
 
     /// @notice Emitted when a new supply-side XVS speed is calculated for a market
-    event VenusSupplySpeedUpdated(VToken indexed vToken, uint newSpeed);
+    event VenusSupplySpeedUpdated(VToken indexed vToken, uint256 newSpeed);
 
     /**
      * @notice Checks if the account should be allowed to mint tokens in the given market

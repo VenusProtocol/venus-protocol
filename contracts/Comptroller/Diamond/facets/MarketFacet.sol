@@ -9,13 +9,13 @@ import { FacetBase, VToken, ComptrollerErrorReporter, ExponentialNoError } from 
  */
 contract MarketFacet is ComptrollerErrorReporter, ExponentialNoError, FacetBase {
     /// @notice Emitted when an admin supports a market
-    event MarketListed(VToken vToken);
+    event MarketListed(VToken indexed vToken);
 
     /// @notice Emitted when an account exits a market
-    event MarketExited(VToken vToken, address account);
+    event MarketExited(VToken indexed vToken, address indexed account);
 
     /// @notice Emitted when the borrowing delegate rights are updated for an account
-    event DelegateUpdated(address borrower, address delegate, bool allowDelegatedBorrows);
+    event DelegateUpdated(address indexed borrower, address indexed delegate, bool allowDelegatedBorrows);
 
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     function isComptroller() public pure returns (bool) {

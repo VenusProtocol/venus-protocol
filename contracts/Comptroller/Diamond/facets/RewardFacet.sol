@@ -11,7 +11,7 @@ import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
  */
 contract RewardFacet is XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin
-    event VenusGranted(address recipient, uint amount);
+    event VenusGranted(address indexed recipient, uint256 amount);
 
     using SafeBEP20 for IBEP20;
 
