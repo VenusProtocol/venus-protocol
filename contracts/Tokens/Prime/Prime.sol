@@ -7,20 +7,9 @@ import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
 interface IVToken {
-    function borrowRatePerBlock() external view returns (uint);
-
-    function reserveFactorMantissa() external returns (uint);
-
-    function totalBorrows() external returns (uint);
-
-    function accrueInterest() external returns (uint);
-
     function borrowBalanceStored(address account) external returns (uint);
-
     function exchangeRateStored() external returns (uint);
-
-    function balanceOf(address account) external returns (uint);
-
+    function balanceOf(address account) external view returns (uint);
     function underlying() external view returns (address);
 }
 
