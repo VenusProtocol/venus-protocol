@@ -2,8 +2,7 @@ pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
-import "../ComptrollerStorage.sol";
-import "../Unitroller.sol";
+import { Unitroller, ComptrollerV12Storage } from "../Unitroller.sol";
 
 contract Diamond is ComptrollerV12Storage {
     /// @notice Emitted when functions are added, replaced or removed to facets

@@ -1,8 +1,7 @@
 pragma solidity 0.5.16;
 
-import "../../../Oracle/PriceOracle.sol";
-import "../../../Tokens/VTokens/VToken.sol";
-import "../../ComptrollerStorage.sol";
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { ComptrollerV12Storage } from "../../ComptrollerStorage.sol";
 
 interface IRewardFacet {
     function claimVenus(address holder) external;

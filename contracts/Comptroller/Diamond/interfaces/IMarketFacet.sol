@@ -1,7 +1,6 @@
 pragma solidity 0.5.16;
 
-import "../../../Tokens/VTokens/VToken.sol";
-import "../../../Oracle/PriceOracle.sol";
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 
 interface IMarketFacet {
     function isComptroller() external pure returns (bool);

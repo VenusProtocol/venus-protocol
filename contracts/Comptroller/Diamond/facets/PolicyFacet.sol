@@ -1,8 +1,6 @@
 pragma solidity 0.5.16;
 
-import "../../../Utils/ErrorReporter.sol";
-import "./XVSRewardsHelper.sol";
-import "../../../Tokens/VTokens/VToken.sol";
+import { XVSRewardsHelper, VToken } from "./XVSRewardsHelper.sol";
 
 /**
  * @dev This facet contains all the hooks used while transferring the assets

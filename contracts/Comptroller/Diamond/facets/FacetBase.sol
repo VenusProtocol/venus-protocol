@@ -1,11 +1,10 @@
 pragma solidity 0.5.16;
 
-import "../../../Utils/ErrorReporter.sol";
-import "../../../Tokens/VTokens/VToken.sol";
-import "../../../Utils/ExponentialNoError.sol";
-import "../../../Comptroller/ComptrollerStorage.sol";
-import "../../../Governance/IAccessControlManager.sol";
-import "../../../Utils/SafeBEP20.sol";
+import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
+import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
+import { ComptrollerV12Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { IAccessControlManager } from "../../../Governance/IAccessControlManager.sol";
+import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 
 contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
     /// @notice Emitted when an account enters a market

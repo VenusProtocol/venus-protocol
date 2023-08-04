@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-import "../../../Tokens/VTokens/VToken.sol";
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 
 interface IPolicyFacet {
     function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint);

@@ -1,9 +1,9 @@
 pragma solidity ^0.5.16;
 
-import "../Tokens/VTokens/VToken.sol";
-import "../Oracle/PriceOracle.sol";
-import "../Tokens/VAI/VAIControllerInterface.sol";
-import "./ComptrollerLensInterface.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { PriceOracle } from "../Oracle/PriceOracle.sol";
+import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
 
 contract UnitrollerAdminStorage {
     /**

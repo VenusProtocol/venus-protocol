@@ -1,9 +1,10 @@
 pragma solidity 0.5.16;
 
-import "../../../Oracle/PriceOracle.sol";
-import "../../../Comptroller/ComptrollerLensInterface.sol";
-import "../../../Tokens/VAI/VAIController.sol";
-import "../../ComptrollerStorage.sol";
+import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { ComptrollerV12Storage } from "../../ComptrollerStorage.sol";
+import { VAIControllerInterface } from "../../../Tokens/VAI/VAIController.sol";
+import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
 
 interface ISetterFacet {
     function _setPriceOracle(PriceOracle newOracle) external returns (uint);

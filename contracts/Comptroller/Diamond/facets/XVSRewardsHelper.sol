@@ -1,6 +1,6 @@
 pragma solidity 0.5.16;
 
-import "./FacetBase.sol";
+import { FacetBase, ComptrollerErrorReporter, VToken, ExponentialNoError } from "./FacetBase.sol";
 
 /**
  * @dev This contract contains internal functions used in RewardFacet and PolicyFacet

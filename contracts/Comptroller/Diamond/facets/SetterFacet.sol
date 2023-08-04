@@ -1,9 +1,9 @@
 pragma solidity 0.5.16;
 
-import "../../../Oracle/PriceOracle.sol";
-import "../../../Tokens/VTokens/VToken.sol";
-import "../../../Utils/ErrorReporter.sol";
-import "./FacetBase.sol";
+import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
+import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
+import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
+import { FacetBase, VToken, ComptrollerErrorReporter, ExponentialNoError } from "./FacetBase.sol";
 
 /**
  * @dev This facet contains all the setters for the states

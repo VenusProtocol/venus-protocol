@@ -1,7 +1,8 @@
 pragma solidity 0.5.16;
 
-import "../../../Tokens/VTokens/VToken.sol";
-import "./XVSRewardsHelper.sol";
+import { XVSRewardsHelper, VToken } from "./XVSRewardsHelper.sol";
+import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
+import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
  * @dev This facet contains all the methods related to the reward functionality
