@@ -67,13 +67,13 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
      * @param market vToken address
      */
     function actionPaused(address market, Action action) public view returns (bool) {
-        return _actionPaused[market][uint(action)];
+        return _actionPaused[market][uint256(action)];
     }
 
     /**
      * @notice Get the latest block number
      */
-    function getBlockNumber() public view returns (uint) {
+    function getBlockNumber() public view returns (uint256) {
         return block.number;
     }
 

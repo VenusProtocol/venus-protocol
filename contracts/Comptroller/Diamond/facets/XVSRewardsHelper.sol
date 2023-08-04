@@ -35,8 +35,8 @@ contract XVSRewardsHelper is ComptrollerErrorReporter, FacetBase {
         uint256 deltaBlocks = sub_(uint256(blockNumber), uint256(borrowState.block));
         if (deltaBlocks != 0 && borrowSpeed != 0) {
             uint256 borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
-            uint256 venusAccrued = mul_(deltaBlocks, borrowSpeed);
-            Double memory ratio = borrowAmount != 0 ? fraction(venusAccrued, borrowAmount) : Double({ mantissa: 0 });
+            uint256 accruedVenus = mul_(deltaBlocks, borrowSpeed);
+            Double memory ratio = borrowAmount != 0 ? fraction(accruedVenus, borrowAmount) : Double({ mantissa: 0 });
             borrowState.index = safe224(
                 add_(Double({ mantissa: borrowState.index }), ratio).mantissa,
                 "new index exceeds 224 bits"
