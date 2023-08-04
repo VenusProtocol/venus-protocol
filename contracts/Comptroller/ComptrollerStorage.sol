@@ -228,9 +228,6 @@ contract ComptrollerV10Storage is ComptrollerV9Storage {
 
     /// @notice The rate at which venus is distributed to the corresponding supply market (per block)
     mapping(address => uint) public venusSupplySpeeds;
-
-    /// @notice Prime token address
-    IPrime public prime;
 }
 
 contract ComptrollerV11Storage is ComptrollerV10Storage {
@@ -255,4 +252,7 @@ contract ComptrollerV12Storage is ComptrollerV11Storage {
     mapping(address => FacetFunctionSelectors) internal _facetFunctionSelectors;
     // facet addresses
     address[] internal _facetAddresses;
+
+    /// @notice Prime token address
+    IPrime public prime;
 }
