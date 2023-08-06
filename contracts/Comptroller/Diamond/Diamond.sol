@@ -1,11 +1,12 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
-import "../ComptrollerStorage.sol";
-import "../Unitroller.sol";
+import { Unitroller, ComptrollerV12Storage } from "../Unitroller.sol";
 
-contract Diamond is ComptrollerV12Storage {
+contract Diamond is IDiamondCut, ComptrollerV12Storage {
     /// @notice Emitted when functions are added, replaced or removed to facets
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
 
@@ -73,14 +74,15 @@ contract Diamond is ComptrollerV12Storage {
      * @notice Get all facets address and their function selector
      * @return facets_ Array of Facet
      */
-    function facets() external view returns (Facet[] memory facets_) {
-        uint facetsLength = _facetAddresses.length;
-        facets_ = new Facet[](facetsLength);
+    function facets() external view returns (Facet[] memory) {
+        uint256 facetsLength = _facetAddresses.length;
+        Facet[] memory facets_ = new Facet[](facetsLength);
         for (uint256 i; i < facetsLength; ++i) {
             address facet = _facetAddresses[i];
             facets_[i].facetAddress = facet;
             facets_[i].functionSelectors = _facetFunctionSelectors[facet].functionSelectors;
         }
+        return facets_;
     }
 
     /**
