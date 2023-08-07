@@ -14,7 +14,7 @@ export async function setForkBlock(blockNumber: number) {
     params: [
       {
         forking: {
-          jsonRpcUrl: process.env.BSC_ARCHIVE_NODE,
+          jsonRpcUrl: process.env.BSC_ARCHIVE_NODE_URL,
           blockNumber: blockNumber,
         },
       },
