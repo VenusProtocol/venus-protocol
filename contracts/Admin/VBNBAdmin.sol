@@ -34,14 +34,14 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
 
     /**
      * @dev PSR setter.
-     * @param _protocolShareReserve Address of the PSR contract
+     * @param protocolShareReserve_ Address of the PSR contract
      */
-    function setProtocolShareReserve(IProtocolShareReserve _protocolShareReserve) external {
+    function setProtocolShareReserve(IProtocolShareReserve protocolShareReserve_) external {
         _checkAccessAllowed("setProtocolShareReserve(address)");
 
-        require(address(_protocolShareReserve) != address(0), "PSR address invalid");
+        require(address(protocolShareReserve_) != address(0), "PSR address invalid");
         IProtocolShareReserve oldProtocolShareReserve = protocolShareReserve;
-        protocolShareReserve = _protocolShareReserve;
+        protocolShareReserve = protocolShareReserve_;
         emit ProtocolShareReserveUpdated(oldProtocolShareReserve, protocolShareReserve);
     }
 
