@@ -50,8 +50,6 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
      * @param reduceAmount amount of reserves to reduce
      */
     function reduceReserves(uint reduceAmount) external nonReentrant {
-        _checkAccessAllowed("reduceReserves(uint256)");
-
         require(vBNB._reduceReserves(reduceAmount) == 0, "reduceReserves failed");
         _wrapBNB();
 
