@@ -111,7 +111,7 @@ describe("Comptroller", () => {
         await expect(comptroller.connect(user)._setActionsPaused([], [], true)).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "_setActionsPaused(address[],uint256[],bool)",
+          "_setActionsPaused(address[],uint8[],bool)",
         );
       });
     });

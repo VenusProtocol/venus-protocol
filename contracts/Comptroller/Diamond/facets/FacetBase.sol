@@ -1,29 +1,30 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.5.16;
 
-import "../../../Utils/ErrorReporter.sol";
-import "../../../Tokens/VTokens/VToken.sol";
-import "../../../Utils/ExponentialNoError.sol";
-import "../../../Comptroller/ComptrollerStorage.sol";
-import "../../../Governance/IAccessControlManager.sol";
-import "../../../Utils/SafeBEP20.sol";
+import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
+import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
+import { ComptrollerV12Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { IAccessControlManager } from "../../../Governance/IAccessControlManager.sol";
+import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 
-contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
+contract FacetBase is ComptrollerV12Storage, ExponentialNoError, ComptrollerErrorReporter {
     /// @notice Emitted when an account enters a market
-    event MarketEntered(VToken vToken, address account);
+    event MarketEntered(VToken indexed vToken, address indexed account);
 
     /// @notice Emitted when XVS is distributed to VAI Vault
-    event DistributedVAIVaultVenus(uint amount);
+    event DistributedVAIVaultVenus(uint256 amount);
 
     using SafeBEP20 for IBEP20;
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
     // closeFactorMantissa must be strictly greater than this value
-    uint internal constant closeFactorMinMantissa = 0.05e18; // 0.05
+    uint256 internal constant closeFactorMinMantissa = 0.05e18; // 0.05
     // closeFactorMantissa must not exceed this value
-    uint internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
+    uint256 internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
     // No collateralFactorMantissa may exceed this value
-    uint internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
+    uint256 internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
 
     /// @notice Reverts if the protocol is paused
     function checkProtocolPauseState() internal view {
@@ -55,6 +56,7 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
         require(msg.sender == admin || msg.sender == privilegedAddress, "access denied");
     }
 
+    /// @notice Checks the caller is allowed to call the specified fuction
     function ensureAllowed(string memory functionSig) internal view {
         require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
@@ -65,13 +67,13 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
      * @param market vToken address
      */
     function actionPaused(address market, Action action) public view returns (bool) {
-        return _actionPaused[market][uint(action)];
+        return _actionPaused[market][uint256(action)];
     }
 
     /**
      * @notice Get the latest block number
      */
-    function getBlockNumber() public view returns (uint) {
+    function getBlockNumber() public view returns (uint256) {
         return block.number;
     }
 
@@ -134,17 +136,17 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
     function getHypotheticalAccountLiquidityInternal(
         address account,
         VToken vTokenModify,
-        uint redeemTokens,
-        uint borrowAmount
-    ) internal view returns (ComptrollerErrorReporter.Error, uint, uint) {
-        (uint err, uint liquidity, uint shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
+        uint256 redeemTokens,
+        uint256 borrowAmount
+    ) internal view returns (Error, uint256, uint256) {
+        (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
             address(this),
             account,
             vTokenModify,
             redeemTokens,
             borrowAmount
         );
-        return (ComptrollerErrorReporter.Error(err), liquidity, shortfall);
+        return (Error(err), liquidity, shortfall);
     }
 
     /**
@@ -153,13 +155,13 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
      * @param borrower The address of the account to modify
      * @return Success indicator for whether the market was entered
      */
-    function addToMarketInternal(VToken vToken, address borrower) internal returns (ComptrollerErrorReporter.Error) {
+    function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
         checkActionPauseState(address(vToken), Action.ENTER_MARKET);
         Market storage marketToJoin = markets[address(vToken)];
         ensureListed(marketToJoin);
         if (marketToJoin.accountMembership[borrower]) {
             // already joined
-            return ComptrollerErrorReporter.Error.NO_ERROR;
+            return Error.NO_ERROR;
         }
         // survived the gauntlet, add to list
         // NOTE: we store these somewhat redundantly as a significant optimization
@@ -171,28 +173,39 @@ contract FacetBase is ComptrollerV12Storage, ExponentialNoError {
 
         emit MarketEntered(vToken, borrower);
 
-        return ComptrollerErrorReporter.Error.NO_ERROR;
+        return Error.NO_ERROR;
     }
 
-    function redeemAllowedInternal(address vToken, address redeemer, uint redeemTokens) internal view returns (uint) {
+    /**
+     * @notice Checks for the user is allowed to redeem tokens
+     * @param vToken Address of the market
+     * @param redeemer Address of the user
+     * @param redeemTokens Amount of tokens to redeem
+     * @return Success indicator for redeem is allowed or not
+     */
+    function redeemAllowedInternal(
+        address vToken,
+        address redeemer,
+        uint256 redeemTokens
+    ) internal view returns (uint256) {
         ensureListed(markets[vToken]);
         /* If the redeemer is not 'in' the market, then we can bypass the liquidity check */
         if (!markets[vToken].accountMembership[redeemer]) {
-            return uint(ComptrollerErrorReporter.Error.NO_ERROR);
+            return uint256(Error.NO_ERROR);
         }
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
-        (ComptrollerErrorReporter.Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             redeemer,
             VToken(vToken),
             redeemTokens,
             0
         );
-        if (err != ComptrollerErrorReporter.Error.NO_ERROR) {
-            return uint(err);
+        if (err != Error.NO_ERROR) {
+            return uint256(err);
         }
         if (shortfall != 0) {
-            return uint(ComptrollerErrorReporter.Error.INSUFFICIENT_LIQUIDITY);
+            return uint256(Error.INSUFFICIENT_LIQUIDITY);
         }
-        return uint(ComptrollerErrorReporter.Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 }

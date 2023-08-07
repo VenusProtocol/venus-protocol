@@ -1,11 +1,13 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
-import "../ComptrollerStorage.sol";
-import "../Unitroller.sol";
+import { Unitroller, ComptrollerV12Storage } from "../Unitroller.sol";
 
-contract Diamond is ComptrollerV12Storage {
+contract Diamond is IDiamondCut, ComptrollerV12Storage {
+    /// @notice Emitted when functions are added, replaced or removed to facets
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
 
     struct Facet {
@@ -14,8 +16,8 @@ contract Diamond is ComptrollerV12Storage {
     }
 
     /**
-     * @notice Call _acceptImplementation to accept the diamond proxy as new implementaion.
-     * @param unitroller Address of the unitroller.
+     * @notice Call _acceptImplementation to accept the diamond proxy as new implementaion
+     * @param unitroller Address of the unitroller
      */
     function _become(Unitroller unitroller) public {
         require(msg.sender == unitroller.admin(), "only unitroller admin can");
@@ -23,8 +25,8 @@ contract Diamond is ComptrollerV12Storage {
     }
 
     /**
-     * @notice To add function selectors to the facets' mapping.
-     * @param diamondCut_ IDiamondCut contains facets address, action and function selectors.
+     * @notice To add function selectors to the facets' mapping
+     * @param diamondCut_ IDiamondCut contains facets address, action and function selectors
      */
     function diamondCut(IDiamondCut.FacetCut[] memory diamondCut_) public {
         require(msg.sender == admin, "only unitroller admin can");
@@ -72,19 +74,20 @@ contract Diamond is ComptrollerV12Storage {
      * @notice Get all facets address and their function selector
      * @return facets_ Array of Facet
      */
-    function facets() external view returns (Facet[] memory facets_) {
-        uint facetsLength = _facetAddresses.length;
-        facets_ = new Facet[](facetsLength);
+    function facets() external view returns (Facet[] memory) {
+        uint256 facetsLength = _facetAddresses.length;
+        Facet[] memory facets_ = new Facet[](facetsLength);
         for (uint256 i; i < facetsLength; ++i) {
             address facet = _facetAddresses[i];
             facets_[i].facetAddress = facet;
             facets_[i].functionSelectors = _facetFunctionSelectors[facet].functionSelectors;
         }
+        return facets_;
     }
 
     /**
-     * @notice To add function selectors to the facets' mapping.
-     * @param diamondCut_ IDiamondCut contains facets address, action and function selectors.
+     * @notice To add function selectors to the facets' mapping
+     * @param diamondCut_ IDiamondCut contains facets address, action and function selectors
      */
     function libDiamondCut(IDiamondCut.FacetCut[] memory diamondCut_) internal {
         uint256 diamondCutLength = diamondCut_.length;
@@ -104,9 +107,9 @@ contract Diamond is ComptrollerV12Storage {
     }
 
     /**
-     * @notice Add function selectors to the facet's address mapping.
-     * @param facetAddress Address of the facet.
-     * @param functionSelectors Array of function selectors need to add in the mapping.
+     * @notice Add function selectors to the facet's address mapping
+     * @param facetAddress Address of the facet
+     * @param functionSelectors Array of function selectors need to add in the mapping
      */
     function addFunctions(address facetAddress, bytes4[] memory functionSelectors) internal {
         require(functionSelectors.length != 0, "LibDiamondCut: No selectors in facet to cut");
@@ -127,9 +130,9 @@ contract Diamond is ComptrollerV12Storage {
     }
 
     /**
-     * @notice Replace facet's address mapping for function selectors i.e selectors already associate to any other existing facet.
-     * @param facetAddress Address of the facet.
-     * @param functionSelectors Array of function selectors need to replace in the mapping.
+     * @notice Replace facet's address mapping for function selectors i.e selectors already associate to any other existing facet
+     * @param facetAddress Address of the facet
+     * @param functionSelectors Array of function selectors need to replace in the mapping
      */
     function replaceFunctions(address facetAddress, bytes4[] memory functionSelectors) internal {
         require(functionSelectors.length != 0, "LibDiamondCut: No selectors in facet to cut");
@@ -151,9 +154,9 @@ contract Diamond is ComptrollerV12Storage {
     }
 
     /**
-     * @notice Remove function selectors to the facet's address mapping.
-     * @param facetAddress Address of the facet.
-     * @param functionSelectors Array of function selectors need to remove in the mapping.
+     * @notice Remove function selectors to the facet's address mapping
+     * @param facetAddress Address of the facet
+     * @param functionSelectors Array of function selectors need to remove in the mapping
      */
     function removeFunctions(address facetAddress, bytes4[] memory functionSelectors) internal {
         uint256 functionSelectorsLength = functionSelectors.length;
@@ -168,8 +171,8 @@ contract Diamond is ComptrollerV12Storage {
     }
 
     /**
-     * @notice Add new facet to the proxy.
-     * @param facetAddress Address of the facet.
+     * @notice Add new facet to the proxy
+     * @param facetAddress Address of the facet
      */
     function addFacet(address facetAddress) internal {
         enforceHasContractCode(facetAddress, "Diamond: New facet has no code");
@@ -178,10 +181,10 @@ contract Diamond is ComptrollerV12Storage {
     }
 
     /**
-     * @notice Add function selector to the facet's address mapping.
-     * @param selector funciton selector need to be added.
-     * @param selectorPosition funciton selector position.
-     * @param facetAddress Address of the facet.
+     * @notice Add function selector to the facet's address mapping
+     * @param selector funciton selector need to be added
+     * @param selectorPosition funciton selector position
+     * @param facetAddress Address of the facet
      */
     function addFunction(bytes4 selector, uint96 selectorPosition, address facetAddress) internal {
         _selectorToFacetAndPosition[selector].functionSelectorPosition = selectorPosition;
@@ -190,9 +193,9 @@ contract Diamond is ComptrollerV12Storage {
     }
 
     /**
-     * @notice Remove function selector to the facet's address mapping.
-     * @param facetAddress Address of the facet.
-     * @param selector function selectors need to remove in the mapping.
+     * @notice Remove function selector to the facet's address mapping
+     * @param facetAddress Address of the facet
+     * @param selector function selectors need to remove in the mapping
      */
     function removeFunction(address facetAddress, bytes4 selector) internal {
         require(facetAddress != address(0), "LibDiamondCut: Can't remove function that doesn't exist");
@@ -225,6 +228,11 @@ contract Diamond is ComptrollerV12Storage {
         }
     }
 
+    /**
+     * @dev Ensure that the given address has contract code deployed
+     * @param _contract The address to check for contract code
+     * @param _errorMessage The error message to display if the contract code is not deployed
+     */
     function enforceHasContractCode(address _contract, string memory _errorMessage) internal view {
         uint256 contractSize;
         assembly {

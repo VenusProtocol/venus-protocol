@@ -1,10 +1,12 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity ^0.5.16;
 
-import "../Tokens/VTokens/VToken.sol";
-import "../Oracle/PriceOracle.sol";
-import "../Tokens/VAI/VAIControllerInterface.sol";
-import "./ComptrollerLensInterface.sol";
-import "../Tokens/Prime/IPrime.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { PriceOracle } from "../Oracle/PriceOracle.sol";
+import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
+import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
+import { IPrime } from "../Tokens/Prime/IPrime.sol";
 
 contract UnitrollerAdminStorage {
     /**
@@ -37,17 +39,17 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     /**
      * @notice Multiplier used to calculate the maximum repayAmount when liquidating a borrow
      */
-    uint public closeFactorMantissa;
+    uint256 public closeFactorMantissa;
 
     /**
      * @notice Multiplier representing the discount on collateral that a liquidator receives
      */
-    uint public liquidationIncentiveMantissa;
+    uint256 public liquidationIncentiveMantissa;
 
     /**
      * @notice Max number of assets a single account can participate in (borrow or use as collateral)
      */
-    uint public maxAssets;
+    uint256 public maxAssets;
 
     /**
      * @notice Per-account mapping of "assets you are in", capped by maxAssets
@@ -62,7 +64,7 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
          *  For instance, 0.9 to allow borrowing 90% of collateral value.
          *  Must be between 0 and 1, and stored as a mantissa.
          */
-        uint collateralFactorMantissa;
+        uint256 collateralFactorMantissa;
         /// @notice Per-market mapping of "accounts in this asset"
         mapping(address => bool) accountMembership;
         /// @notice Whether or not this market receives XVS
@@ -104,10 +106,10 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     VToken[] public allMarkets;
 
     /// @notice The rate at which the flywheel distributes XVS, per block
-    uint public venusRate;
+    uint256 public venusRate;
 
     /// @notice The portion of venusRate that each market currently receives
-    mapping(address => uint) public venusSpeeds;
+    mapping(address => uint256) public venusSpeeds;
 
     /// @notice The Venus market supply state for each market
     mapping(address => VenusMarketState) public venusSupplyState;
@@ -116,22 +118,22 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     mapping(address => VenusMarketState) public venusBorrowState;
 
     /// @notice The Venus supply index for each market for each supplier as of the last time they accrued XVS
-    mapping(address => mapping(address => uint)) public venusSupplierIndex;
+    mapping(address => mapping(address => uint256)) public venusSupplierIndex;
 
     /// @notice The Venus borrow index for each market for each borrower as of the last time they accrued XVS
-    mapping(address => mapping(address => uint)) public venusBorrowerIndex;
+    mapping(address => mapping(address => uint256)) public venusBorrowerIndex;
 
     /// @notice The XVS accrued but not yet transferred to each user
-    mapping(address => uint) public venusAccrued;
+    mapping(address => uint256) public venusAccrued;
 
     /// @notice The Address of VAIController
     VAIControllerInterface public vaiController;
 
     /// @notice The minted VAI amount to each user
-    mapping(address => uint) public mintedVAIs;
+    mapping(address => uint256) public mintedVAIs;
 
     /// @notice VAI Mint Rate as a percentage
-    uint public vaiMintRate;
+    uint256 public vaiMintRate;
 
     /**
      * @notice The Pause Guardian can pause certain actions as a safety mechanism.
@@ -145,12 +147,12 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     bool public protocolPaused;
 
     /// @notice The rate at which the flywheel distributes XVS to VAI Minters, per block (deprecated)
-    uint private venusVAIRate;
+    uint256 private venusVAIRate;
 }
 
 contract ComptrollerV2Storage is ComptrollerV1Storage {
     /// @notice The rate at which the flywheel distributes XVS to VAI Vault, per block
-    uint public venusVAIVaultRate;
+    uint256 public venusVAIVaultRate;
 
     // address of VAI Vault
     address public vaiVaultAddress;
@@ -167,7 +169,7 @@ contract ComptrollerV3Storage is ComptrollerV2Storage {
     address public borrowCapGuardian;
 
     /// @notice Borrow caps enforced by borrowAllowed for each vToken address. Defaults to zero which corresponds to unlimited borrowing.
-    mapping(address => uint) public borrowCaps;
+    mapping(address => uint256) public borrowCaps;
 }
 
 contract ComptrollerV4Storage is ComptrollerV3Storage {
@@ -183,10 +185,10 @@ contract ComptrollerV4Storage is ComptrollerV3Storage {
 
 contract ComptrollerV5Storage is ComptrollerV4Storage {
     /// @notice The portion of XVS that each contributor receives per block (deprecated)
-    mapping(address => uint) private venusContributorSpeeds;
+    mapping(address => uint256) private venusContributorSpeeds;
 
     /// @notice Last block at which a contributor's XVS rewards have been allocated (deprecated)
-    mapping(address => uint) private lastContributorBlock;
+    mapping(address => uint256) private lastContributorBlock;
 }
 
 contract ComptrollerV6Storage is ComptrollerV5Storage {
@@ -219,15 +221,15 @@ contract ComptrollerV9Storage is ComptrollerV8Storage {
     }
 
     /// @notice True if a certain action is paused on a certain market
-    mapping(address => mapping(uint => bool)) internal _actionPaused;
+    mapping(address => mapping(uint256 => bool)) internal _actionPaused;
 }
 
 contract ComptrollerV10Storage is ComptrollerV9Storage {
     /// @notice The rate at which venus is distributed to the corresponding borrow market (per block)
-    mapping(address => uint) public venusBorrowSpeeds;
+    mapping(address => uint256) public venusBorrowSpeeds;
 
     /// @notice The rate at which venus is distributed to the corresponding supply market (per block)
-    mapping(address => uint) public venusSupplySpeeds;
+    mapping(address => uint256) public venusSupplySpeeds;
 }
 
 contract ComptrollerV11Storage is ComptrollerV10Storage {

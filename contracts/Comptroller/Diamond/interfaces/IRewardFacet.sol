@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.5.16;
 
-import "../../../Oracle/PriceOracle.sol";
-import "../../../Tokens/VTokens/VToken.sol";
-import "../../ComptrollerStorage.sol";
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { ComptrollerV12Storage } from "../../ComptrollerStorage.sol";
 
 interface IRewardFacet {
     function claimVenus(address holder) external;
@@ -13,9 +14,9 @@ interface IRewardFacet {
 
     function claimVenusAsCollateral(address holder) external;
 
-    function _grantXVS(address recipient, uint amount) external;
+    function _grantXVS(address recipient, uint256 amount) external;
 
-    function getBlockNumber() external view returns (uint);
+    function getBlockNumber() external view returns (uint256);
 
     function getXVSAddress() external pure returns (address);
 

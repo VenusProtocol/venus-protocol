@@ -103,7 +103,7 @@ async function deployFreshVaultFixture() {
   const VaiVaultFactory = await ethers.getContractFactory("VAIVault");
   vaiVaultFresh = await VaiVaultFactory.deploy();
 
-  const vaiFactory = await ethers.getContractFactory("VAI");
+  const vaiFactory = await ethers.getContractFactory("contracts/Tokens/VAI/VAI.sol:VAI");
   vai = await vaiFactory.deploy(1);
 
   const xvsFactory = await ethers.getContractFactory("XVS");

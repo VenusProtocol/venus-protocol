@@ -1,18 +1,20 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.5.16;
 
-import "../../../Utils/ErrorReporter.sol";
-import "./XVSRewardsHelper.sol";
-import "../../../Tokens/VTokens/VToken.sol";
+import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
+
+import { XVSRewardsHelper, VToken } from "./XVSRewardsHelper.sol";
 
 /**
  * @dev This facet contains all the hooks used while transferring the assets
  */
-contract PolicyFacet is XVSRewardsHelper {
+contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
-    event VenusBorrowSpeedUpdated(VToken indexed vToken, uint newSpeed);
+    event VenusBorrowSpeedUpdated(VToken indexed vToken, uint256 newSpeed);
 
     /// @notice Emitted when a new supply-side XVS speed is calculated for a market
-    event VenusSupplySpeedUpdated(VToken indexed vToken, uint newSpeed);
+    event VenusSupplySpeedUpdated(VToken indexed vToken, uint256 newSpeed);
 
     /**
      * @notice Checks if the account should be allowed to mint tokens in the given market
@@ -21,7 +23,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param mintAmount The amount of underlying being supplied to the market in exchange for tokens
      * @return 0 if the mint is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function mintAllowed(address vToken, address minter, uint mintAmount) external returns (uint) {
+    function mintAllowed(address vToken, address minter, uint256 mintAmount) external returns (uint256) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.MINT);
@@ -39,15 +41,22 @@ contract PolicyFacet is XVSRewardsHelper {
         updateVenusSupplyIndex(vToken);
         distributeSupplierVenus(vToken, minter);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
-    function mintVerify(address vToken, address minter, uint actualMintAmount, uint mintTokens) external {
+    /**
+     * @notice Validates mint and reverts on rejection. May emit logs.
+     * @param vToken Asset being minted
+     * @param minter The address minting the tokens
+     * @param actualMintAmount The amount of the underlying asset being minted
+     * @param mintTokens The number of tokens being minted
+     */
+    function mintVerify(address vToken, address minter, uint256 actualMintAmount, uint256 mintTokens) external {
         if (address(prime) != address(0)) {
             prime.updateScore(minter, vToken);
         }
     }
-
+    
     /**
      * @notice Checks if the account should be allowed to redeem tokens in the given market
      * @param vToken The market to verify the redeem against
@@ -55,12 +64,12 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param redeemTokens The number of vTokens to exchange for the underlying asset in the market
      * @return 0 if the redeem is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function redeemAllowed(address vToken, address redeemer, uint redeemTokens) external returns (uint) {
+    function redeemAllowed(address vToken, address redeemer, uint256 redeemTokens) external returns (uint256) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REDEEM);
 
-        uint allowed = redeemAllowedInternal(vToken, redeemer, redeemTokens);
-        if (allowed != uint(Error.NO_ERROR)) {
+        uint256 allowed = redeemAllowedInternal(vToken, redeemer, redeemTokens);
+        if (allowed != uint256(Error.NO_ERROR)) {
             return allowed;
         }
 
@@ -68,7 +77,7 @@ contract PolicyFacet is XVSRewardsHelper {
         updateVenusSupplyIndex(vToken);
         distributeSupplierVenus(vToken, redeemer);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -79,7 +88,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param redeemTokens The number of tokens being redeemed
      */
     // solhint-disable-next-line no-unused-vars
-    function redeemVerify(address vToken, address redeemer, uint redeemAmount, uint redeemTokens) external {
+    function redeemVerify(address vToken, address redeemer, uint256 redeemAmount, uint256 redeemTokens) external {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
         if (address(prime) != address(0)) {
             prime.updateScore(redeemer, vToken);
@@ -93,7 +102,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param borrowAmount The amount of underlying the account would borrow
      * @return 0 if the borrow is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function borrowAllowed(address vToken, address borrower, uint borrowAmount) external returns (uint) {
+    function borrowAllowed(address vToken, address borrower, uint256 borrowAmount) external returns (uint256) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.BORROW);
@@ -107,32 +116,32 @@ contract PolicyFacet is XVSRewardsHelper {
             // attempt to add borrower to the market
             Error err = addToMarketInternal(VToken(vToken), borrower);
             if (err != Error.NO_ERROR) {
-                return uint(err);
+                return uint256(err);
             }
         }
 
         if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
-            return uint(Error.PRICE_ERROR);
+            return uint256(Error.PRICE_ERROR);
         }
 
-        uint borrowCap = borrowCaps[vToken];
+        uint256 borrowCap = borrowCaps[vToken];
         // Borrow cap of 0 corresponds to unlimited borrowing
         if (borrowCap != 0) {
-            uint nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
+            uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
             require(nextTotalBorrows < borrowCap, "market borrow cap reached");
         }
 
-        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             borrower,
             VToken(vToken),
             0,
             borrowAmount
         );
         if (err != Error.NO_ERROR) {
-            return uint(err);
+            return uint256(err);
         }
         if (shortfall != 0) {
-            return uint(Error.INSUFFICIENT_LIQUIDITY);
+            return uint256(Error.INSUFFICIENT_LIQUIDITY);
         }
 
         // Keep the flywheel moving
@@ -140,7 +149,7 @@ contract PolicyFacet is XVSRewardsHelper {
         updateVenusBorrowIndex(vToken, borrowIndex);
         distributeBorrowerVenus(vToken, borrower, borrowIndex);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -150,7 +159,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param borrowAmount The amount of the underlying asset requested to borrow
      */
     // solhint-disable-next-line no-unused-vars
-    function borrowVerify(address vToken, address borrower, uint borrowAmount) external {
+    function borrowVerify(address vToken, address borrower, uint256 borrowAmount) external {
         if (address(prime) != address(0)) {
             prime.updateScore(borrower, vToken);
         }
@@ -170,8 +179,8 @@ contract PolicyFacet is XVSRewardsHelper {
         address payer,
         address borrower,
         // solhint-disable-next-line no-unused-vars
-        uint repayAmount
-    ) external returns (uint) {
+        uint256 repayAmount
+    ) external returns (uint256) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REPAY);
         ensureListed(markets[vToken]);
@@ -185,7 +194,7 @@ contract PolicyFacet is XVSRewardsHelper {
             prime.updateScore(borrower, vToken);
         }
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -199,8 +208,8 @@ contract PolicyFacet is XVSRewardsHelper {
         address vToken,
         address payer,
         address borrower,
-        uint actualRepayAmount,
-        uint borrowerIndex
+        uint256 actualRepayAmount,
+        uint256 borrowerIndex
     ) external {
         if (address(prime) != address(0)) {
             prime.updateScore(borrower, vToken);
@@ -220,15 +229,15 @@ contract PolicyFacet is XVSRewardsHelper {
         address vTokenCollateral,
         address liquidator,
         address borrower,
-        uint repayAmount
-    ) external view returns (uint) {
+        uint256 repayAmount
+    ) external view returns (uint256) {
         checkProtocolPauseState();
 
         // if we want to pause liquidating to vTokenCollateral, we should pause seizing
         checkActionPauseState(vTokenBorrowed, Action.LIQUIDATE);
 
         if (liquidatorContract != address(0) && liquidator != liquidatorContract) {
-            return uint(Error.UNAUTHORIZED);
+            return uint256(Error.UNAUTHORIZED);
         }
 
         ensureListed(markets[vTokenCollateral]);
@@ -237,16 +246,16 @@ contract PolicyFacet is XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
         if (err != Error.NO_ERROR) {
-            return uint(err);
+            return uint256(err);
         }
         if (shortfall == 0) {
-            return uint(Error.INSUFFICIENT_SHORTFALL);
+            return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
         /* The liquidator may not repay more than what is allowed by the closeFactor */
-        uint borrowBalance;
+        uint256 borrowBalance;
         if (address(vTokenBorrowed) != address(vaiController)) {
             borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
         } else {
@@ -254,19 +263,28 @@ contract PolicyFacet is XVSRewardsHelper {
         }
         //-- maxClose = multipy of closeFactorMantissa and borrowBalance
         if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactorMantissa }), borrowBalance)) {
-            return uint(Error.TOO_MUCH_REPAY);
+            return uint256(Error.TOO_MUCH_REPAY);
         }
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
+    /**
+     * @notice Validates liquidateBorrow and reverts on rejection. May emit logs.
+     * @param vTokenBorrowed Asset which was borrowed by the borrower
+     * @param vTokenCollateral Asset which was used as collateral and will be seized
+     * @param liquidator The address repaying the borrow and seizing the collateral
+     * @param borrower The address of the borrower
+     * @param actualRepayAmount The amount of underlying being repaid
+     * @param seizeTokens The amount of collateral token that will be seized
+     */
     function liquidateBorrowVerify(
         address vTokenBorrowed,
         address vTokenCollateral,
         address liquidator,
         address borrower,
-        uint actualRepayAmount,
-        uint seizeTokens
+        uint256 actualRepayAmount,
+        uint256 seizeTokens
     ) external {
         if (address(prime) != address(0)) {
             prime.updateScore(borrower, vTokenBorrowed);
@@ -289,8 +307,8 @@ contract PolicyFacet is XVSRewardsHelper {
         address vTokenBorrowed,
         address liquidator,
         address borrower,
-        uint seizeTokens // solhint-disable-line no-unused-vars
-    ) external returns (uint) {
+        uint256 seizeTokens // solhint-disable-line no-unused-vars
+    ) external returns (uint256) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vTokenCollateral, Action.SEIZE);
@@ -301,7 +319,7 @@ contract PolicyFacet is XVSRewardsHelper {
         ensureListed(market);
 
         if (!market.accountMembership[borrower]) {
-            return uint(Error.MARKET_NOT_COLLATERAL);
+            return uint256(Error.MARKET_NOT_COLLATERAL);
         }
 
         if (address(vTokenBorrowed) != address(vaiController)) {
@@ -309,7 +327,7 @@ contract PolicyFacet is XVSRewardsHelper {
         }
 
         if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
-            return uint(Error.COMPTROLLER_MISMATCH);
+            return uint256(Error.COMPTROLLER_MISMATCH);
         }
 
         // Keep the flywheel moving
@@ -317,7 +335,7 @@ contract PolicyFacet is XVSRewardsHelper {
         distributeSupplierVenus(vTokenCollateral, borrower);
         distributeSupplierVenus(vTokenCollateral, liquidator);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -334,7 +352,7 @@ contract PolicyFacet is XVSRewardsHelper {
         address vTokenBorrowed,
         address liquidator,
         address borrower,
-        uint seizeTokens
+        uint256 seizeTokens
     ) external {
         if (address(prime) != address(0)) {
             prime.updateScore(borrower, vTokenCollateral);
@@ -350,15 +368,20 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param transferTokens The number of vTokens to transfer
      * @return 0 if the transfer is allowed, otherwise a semi-opaque error code (See ErrorReporter.sol)
      */
-    function transferAllowed(address vToken, address src, address dst, uint transferTokens) external returns (uint) {
+    function transferAllowed(
+        address vToken,
+        address src,
+        address dst,
+        uint256 transferTokens
+    ) external returns (uint256) {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.TRANSFER);
 
         // Currently the only consideration is whether or not
         //  the src is allowed to redeem this many tokens
-        uint allowed = redeemAllowedInternal(vToken, src, transferTokens);
-        if (allowed != uint(Error.NO_ERROR)) {
+        uint256 allowed = redeemAllowedInternal(vToken, src, transferTokens);
+        if (allowed != uint256(Error.NO_ERROR)) {
             return allowed;
         }
 
@@ -367,7 +390,7 @@ contract PolicyFacet is XVSRewardsHelper {
         distributeSupplierVenus(vToken, src);
         distributeSupplierVenus(vToken, dst);
 
-        return uint(Error.NO_ERROR);
+        return uint256(Error.NO_ERROR);
     }
 
     /**
@@ -378,7 +401,7 @@ contract PolicyFacet is XVSRewardsHelper {
      * @param transferTokens The number of vTokens to transfer
      */
     // solhint-disable-next-line no-unused-vars
-    function transferVerify(address vToken, address src, address dst, uint transferTokens) external {
+    function transferVerify(address vToken, address src, address dst, uint256 transferTokens) external {
         if (address(prime) != address(0)) {
             prime.updateScore(src, vToken);
             prime.updateScore(dst, vToken);
@@ -391,15 +414,15 @@ contract PolicyFacet is XVSRewardsHelper {
                 account liquidity in excess of collateral requirements,
      *          account shortfall below collateral requirements)
      */
-    function getAccountLiquidity(address account) external view returns (uint, uint, uint) {
-        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(
+    function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(address(0)),
             0,
             0
         );
 
-        return (uint(err), liquidity, shortfall);
+        return (uint256(err), liquidity, shortfall);
     }
 
     /**
@@ -415,16 +438,16 @@ contract PolicyFacet is XVSRewardsHelper {
     function getHypotheticalAccountLiquidity(
         address account,
         address vTokenModify,
-        uint redeemTokens,
-        uint borrowAmount
-    ) external view returns (uint, uint, uint) {
-        (Error err, uint liquidity, uint shortfall) = getHypotheticalAccountLiquidityInternal(
+        uint256 redeemTokens,
+        uint256 borrowAmount
+    ) external view returns (uint256, uint256, uint256) {
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
             VToken(vTokenModify),
             redeemTokens,
             borrowAmount
         );
-        return (uint(err), liquidity, shortfall);
+        return (uint256(err), liquidity, shortfall);
     }
 
     // setter functionality
@@ -436,24 +459,24 @@ contract PolicyFacet is XVSRewardsHelper {
      */
     function _setVenusSpeeds(
         VToken[] calldata vTokens,
-        uint[] calldata supplySpeeds,
-        uint[] calldata borrowSpeeds
+        uint256[] calldata supplySpeeds,
+        uint256[] calldata borrowSpeeds
     ) external {
-        ensureAdminOr(comptrollerImplementation);
+        ensureAdmin();
 
-        uint numTokens = vTokens.length;
+        uint256 numTokens = vTokens.length;
         require(
             numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length,
             "Comptroller::_setVenusSpeeds invalid input"
         );
 
-        for (uint i; i < numTokens; ++i) {
+        for (uint256 i; i < numTokens; ++i) {
             ensureNonzeroAddress(address(vTokens[i]));
             setVenusSpeedInternal(vTokens[i], supplySpeeds[i], borrowSpeeds[i]);
         }
     }
 
-    function setVenusSpeedInternal(VToken vToken, uint supplySpeed, uint borrowSpeed) internal {
+    function setVenusSpeedInternal(VToken vToken, uint256 supplySpeed, uint256 borrowSpeed) internal {
         ensureListed(markets[address(vToken)]);
 
         if (venusSupplySpeeds[address(vToken)] != supplySpeed) {

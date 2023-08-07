@@ -1,14 +1,18 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.5.16;
 
-import "../../../Tokens/VTokens/VToken.sol";
-import "./XVSRewardsHelper.sol";
+import { IRewardFacet } from "../interfaces/IRewardFacet.sol";
+import { XVSRewardsHelper, VToken } from "./XVSRewardsHelper.sol";
+import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
+import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
  * @dev This facet contains all the methods related to the reward functionality
  */
-contract RewardFacet is XVSRewardsHelper {
+contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin
-    event VenusGranted(address recipient, uint amount);
+    event VenusGranted(address indexed recipient, uint256 amount);
 
     using SafeBEP20 for IBEP20;
 
@@ -54,14 +58,19 @@ contract RewardFacet is XVSRewardsHelper {
 
     /**
      * @notice Transfer XVS to the user with user's shortfall considered
-     * @dev Note: If there is not enough XVS, we do not perform the transfer all.
+     * @dev Note: If there is not enough XVS, we do not perform the transfer all
      * @param user The address of the user to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      * @param shortfall The shortfall of the user
      * @param collateral Whether or not we will use user's venus reward as collateral to pay off the debt
      * @return The amount of XVS which was NOT transferred to the user
      */
-    function grantXVSInternal(address user, uint amount, uint shortfall, bool collateral) internal returns (uint) {
+    function grantXVSInternal(
+        address user,
+        uint256 amount,
+        uint256 shortfall,
+        bool collateral
+    ) internal returns (uint256) {
         // If the user is blacklisted, they can't get XVS rewards
         require(
             user != 0xEF044206Db68E40520BfA82D45419d498b4bc7Bf &&
@@ -81,7 +90,7 @@ contract RewardFacet is XVSRewardsHelper {
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
         // anything, otherwise, we will transfer the pending xvs as collateral to
-        // vXVS token and mint vXVS for the user.
+        // vXVS token and mint vXVS for the user
         //
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt accounts can only collateralize their pending xvs rewards");
@@ -89,7 +98,7 @@ contract RewardFacet is XVSRewardsHelper {
         IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), 0);
         IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), amount);
         require(
-            VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint(Error.NO_ERROR),
+            VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint256(Error.NO_ERROR),
             "mint behalf error during collateralize xvs"
         );
 
@@ -101,13 +110,13 @@ contract RewardFacet is XVSRewardsHelper {
 
     /**
      * @notice Transfer XVS to the recipient
-     * @dev Note: If there is not enough XVS, we do not perform the transfer all.
+     * @dev Note: If there is not enough XVS, we do not perform the transfer all
      * @param recipient The address of the recipient to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      */
-    function _grantXVS(address recipient, uint amount) external {
-        ensureAdminOr(comptrollerImplementation);
-        uint amountLeft = grantXVSInternal(recipient, amount, 0, false);
+    function _grantXVS(address recipient, uint256 amount) external {
+        ensureAdmin();
+        uint256 amountLeft = grantXVSInternal(recipient, amount, 0, false);
         require(amountLeft == 0, "insufficient xvs for grant");
         emit VenusGranted(recipient, amount);
     }
@@ -135,10 +144,10 @@ contract RewardFacet is XVSRewardsHelper {
         bool suppliers,
         bool collateral
     ) public {
-        uint j;
+        uint256 j;
         uint256 holdersLength = holders.length;
         uint256 vTokensLength = vTokens.length;
-        for (uint i; i < vTokensLength; ++i) {
+        for (uint256 i; i < vTokensLength; ++i) {
             VToken vToken = vTokens[i];
             ensureListed(markets[address(vToken)]);
             if (borrowers) {
@@ -160,7 +169,7 @@ contract RewardFacet is XVSRewardsHelper {
             address holder = holders[j];
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
-            (, , uint shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
+            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
 
             uint256 value = venusAccrued[holder];
             venusAccrued[holder] = 0;
