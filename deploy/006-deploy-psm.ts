@@ -26,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const USDTAddress = ADDRESSES[networkName].USDT;
   const VAIAddress = ADDRESSES[networkName].VAI;
   const FEE_IN = 0;
-  const FEE_OUT = 10; // 10bps
+  const FEE_OUT = 0;
   const VAI_MINT_CAP = parseUnits("5000000", 18); // 5M
 
   const treasuryAddresses: { [network: string]: string } = {
