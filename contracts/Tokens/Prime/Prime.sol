@@ -66,13 +66,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     address public immutable vBNB;
 
     /// @notice Emitted when prime token is minted
-    event Mint(address user, bool isIrrevocable);
+    event Mint(address indexed user, bool isIrrevocable);
 
     /// @notice Emitted when prime token is burned
-    event Burn(address user);
+    event Burn(address indexed user);
 
     /// @notice Emitted asset state is update by protocol share reserve
-    event UpdatedAssetsState(address comptroller, address asset);
+    event UpdatedAssetsState(address indexed comptroller, address indexed asset);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address _wbnb, address _vbnb) {

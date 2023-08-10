@@ -88,8 +88,8 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
     /// @notice Emitted when prime token contract address is changed
     event NewPrimeToken(
-        IPrime oldPrimeToken, 
-        IPrime newPrimeToken, 
+        IPrime indexed oldPrimeToken, 
+        IPrime indexed newPrimeToken, 
         address oldPrimeRewardToken, 
         address newPrimeRewardToken, 
         uint256 oldPrimePoolId,
