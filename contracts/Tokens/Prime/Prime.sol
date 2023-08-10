@@ -402,11 +402,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param vToken the market for which we need to accrue rewards
      */
     function executeBoost(address user, address vToken) public {
-        if (!markets[vToken].exists) {
-            return;
-        }
-
-        if (!tokens[user].exists) {
+        if (!markets[vToken].exists || !tokens[user].exists) {
             return;
         }
 
