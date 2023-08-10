@@ -182,7 +182,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param isIrrevocable is the tokens being issued is irrevocable
      * @param users list of address to issue tokens to
      */
-    function issue(bool isIrrevocable, address[] memory users) external {
+    function issue(bool isIrrevocable, address[] calldata users) external {
         _checkAccessAllowed("issue(bool,address[])");
 
         if (isIrrevocable) {
