@@ -76,8 +76,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address _wbnb, address _vbnb) {
-        require(_wbnb != address(0), "ProtocolShareReserve: WBNB address invalid");
-        require(_vbnb != address(0), "ProtocolShareReserve: vBNB address invalid");
+        require(_wbnb != address(0), "Prime: WBNB address invalid");
+        require(_vbnb != address(0), "Prime: vBNB address invalid");
         WBNB = _wbnb;
         vBNB = _vbnb;
 
