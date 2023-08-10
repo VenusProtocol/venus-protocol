@@ -53,6 +53,7 @@ error UserHasNoPrimeToken();
 error InvalidCaller();
 error InvalidComptroller();
 error NoScoreUpdatesRequired();
+error MarketAlreadyExists();
 
 contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -150,7 +151,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      */
     function addMarket(address vToken, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
-        if (markets[vToken].exists) revert MarketNotSupported();
+        if (markets[vToken].exists) revert MarketAlreadyExists();
 
         markets[vToken].rewardIndex = 0;
         markets[vToken].supplyMultiplier = supplyMultiplier;
