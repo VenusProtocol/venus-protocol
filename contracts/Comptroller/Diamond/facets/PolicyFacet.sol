@@ -87,7 +87,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param redeemAmount The amount of the underlying asset being redeemed
      * @param redeemTokens The number of tokens being redeemed
      */
-    // solhint-disable-next-line no-unused-vars
     function redeemVerify(address vToken, address redeemer, uint256 redeemAmount, uint256 redeemTokens) external {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
         if (address(prime) != address(0)) {
