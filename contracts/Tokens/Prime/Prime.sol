@@ -379,7 +379,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         tokens[user].exists = false;
         tokens[user].isIrrevocable = false;
 
-        _updateRoundAfterTokenBurned();
+        _updateRoundAfterTokenBurned(user);
 
         emit Burn(user);
     }
@@ -556,9 +556,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     /**
      * @notice update the required score updates when token is burned before round is completed
      */
-    function _updateRoundAfterTokenBurned() internal {
-        if (pendingScoreUpdates > 0) {
-            totalScoreUpdatesRequired--;
+    function _updateRoundAfterTokenBurned(address user) internal {
+        if (totalScoreUpdatesRequired > 0) totalScoreUpdatesRequired--;
+        
+        if (pendingScoreUpdates > 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
             pendingScoreUpdates--;
         }
     }
