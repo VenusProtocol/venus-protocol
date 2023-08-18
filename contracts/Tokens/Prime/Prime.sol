@@ -443,11 +443,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         );
 
         uint256 distributionIncome = totalIncomeUnreleased - unreleasedIncome[underlying];
-        unreleasedIncome[underlying] = totalIncomeUnreleased;
+        
 
         if (distributionIncome == 0) {
             return;
         }
+
+        unreleasedIncome[underlying] = totalIncomeUnreleased;
 
         uint256 delta;
         if (markets[vToken].sumOfMembersScore > 0) {
