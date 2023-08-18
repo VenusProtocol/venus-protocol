@@ -370,14 +370,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     function _burn(address user) internal {
         if (!tokens[user].exists) revert UserHasNoPrimeToken();
 
-        tokens[user].exists = false;
-        tokens[user].isIrrevocable = false;
-
         if (tokens[user].isIrrevocable) {
             _totalIrrevocable--;
         } else {
             _totalRevocable--;
         }
+
+        tokens[user].exists = false;
+        tokens[user].isIrrevocable = false;
 
         _updateRoundAfterTokenBurned();
 
