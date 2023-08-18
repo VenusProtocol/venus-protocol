@@ -12,10 +12,6 @@ interface IVToken {
     function underlying() external view returns (address);
 }
 
-interface ERC20Interface {
-    function decimals() external view returns (uint8);
-}
-
 interface IXVSVault {
     function getUserInfo(
         address _rewardToken,

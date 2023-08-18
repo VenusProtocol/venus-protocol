@@ -34,9 +34,6 @@ contract PrimeStorageV1 {
     /// @notice maxmimum BPS = 100%
     uint256 internal constant MAXIMUM_BPS = 10000;
 
-    /// @notice protocol income distribution BPS = 20%
-    uint256 internal constant INCOME_DISTRIBUTION_BPS = 2000;
-
     /// @notice Mapping to get prime token's metadata
     mapping(address => Token) public tokens;
 
