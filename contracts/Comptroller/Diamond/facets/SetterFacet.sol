@@ -509,7 +509,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         IPrime oldPrime = prime;
         prime = _prime;
-        emit NewPrimeToken(oldPrime, prime);
+        emit NewPrimeToken(oldPrime, _prime);
 
         return uint(Error.NO_ERROR);
     }
