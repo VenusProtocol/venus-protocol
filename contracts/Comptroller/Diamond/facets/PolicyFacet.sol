@@ -189,10 +189,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         updateVenusBorrowIndex(vToken, borrowIndex);
         distributeBorrowerVenus(vToken, borrower, borrowIndex);
 
-        if (address(prime) != address(0)) {
-            prime.updateScore(borrower, vToken);
-        }
-
         return uint256(Error.NO_ERROR);
     }
 
