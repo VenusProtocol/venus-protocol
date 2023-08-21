@@ -240,7 +240,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Accrues interest and reduces reserves by transferring to admin
+     * @notice Accrues interest and reduces reserves by transferring to protocol share reserve
      * @param reduceAmount_ Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
@@ -329,7 +329,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice A admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @notice An admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
      * @param newReduceReservesBlockDelta_ block difference value
      */
     function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external returns (uint) {
@@ -342,7 +342,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice A admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @notice An admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
      * @param protcolShareReserve_ The address of protocol share reserve contract
      */
     function setProtocolShareReserve(address payable protcolShareReserve_) external returns (uint) {
@@ -411,7 +411,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     /**
      * @notice Applies accrued interest to total borrows and reserves
      * @dev This calculates interest accrued from the last checkpointed block
-     *   up to the current block and writes new checkpoint to storage.
+     * up to the current block and writes new checkpoint to storage and
+     * reduce spread reserves to protocol share reserve
+     * if currentBlock - reduceReservesBlockNumber >= blockDelta
      */
     // @custom:event Emits AccrueInterest event
     function accrueInterest() public returns (uint) {
@@ -555,7 +557,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Accrues interest and updates the interest rate model using _setInterestRateModelFresh
-     * @dev Admin function to accrue interest and update the interest rate model
+     * @dev Governance function to accrue interest and update the interest rate model
      * @param newInterestRateModel_ The new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
