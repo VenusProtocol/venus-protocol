@@ -1519,6 +1519,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _reduceReservesFresh(uint reduceAmount) internal returns (uint) {
+        if (reduceAmount == 0) {
+            return uint(Error.NO_ERROR);
+        }
         // totalReserves - reduceAmount
         uint totalReservesNew;
 
