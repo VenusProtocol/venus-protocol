@@ -350,6 +350,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         if (msg.sender != admin) {
             return fail(Error.UNAUTHORIZED, FailureInfo.SET_PROTOCOL_SHARE_RESERVES_OWNER_CHECK);
         }
+        require(protcolShareReserve_ != address(0), "can't be zero address");
         emit NewProtocolShareReserve(protocolShareReserve, protcolShareReserve_);
         protocolShareReserve = protcolShareReserve_;
     }

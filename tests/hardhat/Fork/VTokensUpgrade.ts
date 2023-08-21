@@ -53,6 +53,9 @@ async function configureNew(vTokenAddress: string) {
   const vToken = VBep20Delegate__factory.connect(vTokenAddress, impersonatedTimelock);
   protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   await vToken.connect(impersonatedTimelock).setReduceReservesBlockDelta(1000);
+  await expect(
+    vToken.connect(impersonatedTimelock).setProtocolShareReserve(ethers.constants.AddressZero),
+  ).to.be.revertedWith("can't be zero address");
   await vToken.connect(impersonatedTimelock).setProtocolShareReserve(protocolShareReserve.address);
   return vToken;
 }
