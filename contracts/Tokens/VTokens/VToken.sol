@@ -1552,7 +1552,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             IProtocolShareReserve.IncomeType.SPREAD
         );
 
-        emit ReservesReduced(msg.sender, reduceAmount, totalReservesNew);
+        emit ReservesReduced(protocolShareReserve, reduceAmount, totalReservesNew);
 
         return uint(Error.NO_ERROR);
     }

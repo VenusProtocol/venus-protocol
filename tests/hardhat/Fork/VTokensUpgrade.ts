@@ -159,7 +159,7 @@ if (FORK_MAINNET) {
         const totalReservesnew = await vTokenNew.totalReserves();
         expect(result)
           .to.be.emit(vTokenNew, "ReservesReduced")
-          .withArgs(userAddress, totalReservesAfterMint, totalReservesnew);
+          .withArgs(protocolShareReserve.address, totalReservesAfterMint, totalReservesnew);
         const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
 
         return {
@@ -190,7 +190,7 @@ if (FORK_MAINNET) {
         const totalReservesnew = await vTokenNew.totalReserves();
         expect(result)
           .to.be.emit(vTokenNew, "ReservesReduced")
-          .withArgs(userAddress, totalReservesAfterBorrow, totalReservesnew);
+          .withArgs(protocolShareReserve.address, totalReservesAfterBorrow, totalReservesnew);
         const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
 
         return {
@@ -221,7 +221,7 @@ if (FORK_MAINNET) {
         const totalReservesnew = await vTokenNew.totalReserves();
         expect(result)
           .to.be.emit(vTokenNew, "ReservesReduced")
-          .withArgs(userAddress, totalReservesAfterRedeem, totalReservesnew);
+          .withArgs(protocolShareReserve.address, totalReservesAfterRedeem, totalReservesnew);
         const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
 
         return {
@@ -252,7 +252,7 @@ if (FORK_MAINNET) {
         const totalReservesnew = await vTokenNew.totalReserves();
         expect(result)
           .to.be.emit(vTokenNew, "ReservesReduced")
-          .withArgs(userAddress, totalReservesAfterRepayBorrow, totalReservesnew);
+          .withArgs(protocolShareReserve.address, totalReservesAfterRepayBorrow, totalReservesnew);
         const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
 
         return {
