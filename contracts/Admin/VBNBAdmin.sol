@@ -31,6 +31,9 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
         VTokenInterface _vBNB,
         IWBNB _WBNB
     ) {
+        require(address(_WBNB) != address(0), "WBNB address invalid");
+        require(address(_vBNB) != address(0), "vBNB address invalid");
+
         vBNB = _vBNB;
         WBNB = _WBNB;
 
@@ -43,6 +46,7 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
         IProtocolShareReserve _protocolShareReserve,
         address accessControlManager
     ) external initializer {
+        require(address(_protocolShareReserve) != address(0), "PSR address invalid");
         protocolShareReserve = _protocolShareReserve;
 
         __ReentrancyGuard_init();
