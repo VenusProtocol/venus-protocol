@@ -1,3 +1,10 @@
+## [3.0.0-dev.17](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.16...v3.0.0-dev.17) (2023-08-22)
+
+
+### Bug Fixes
+
+* correct testnet VenusLens address ([ba24b14](https://github.com/VenusProtocol/venus-protocol/commit/ba24b143015c2b93abe706f2ca3395f42e673985))
+
 ## [3.0.0-dev.16](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.15...v3.0.0-dev.16) (2023-08-09)
 
 ## [3.0.0-dev.15](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.14...v3.0.0-dev.15) (2023-08-08)
