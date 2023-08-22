@@ -55,13 +55,15 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   const WBNBFactory = await smock.mock<WBNB__factory>("WBNB");
   const WBNB = await WBNBFactory.deploy();
 
-  const VBNBAdminFactory = await ethers.getContractFactory("VBNBAdmin");
-  const VBNBAdmin: VBNBAdmin = await VBNBAdminFactory.deploy();
-
-  const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+  const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
   accessControl.isAllowedToCall.returns(true);
 
-  await VBNBAdmin.initialize(mockVBNB.address, protocolShareReserve.address, WBNB.address, accessControl.address);
+  const VBNBAdminFactory = await ethers.getContractFactory("VBNBAdmin");
+  const VBNBAdmin: VBNBAdmin = await upgrades.deployProxy(VBNBAdminFactory, [
+    protocolShareReserve.address, accessControl.address
+  ], {
+    constructorArgs: [mockVBNB.address, WBNB.address],
+  });
 
   const VBNBAdminAsVBNB = await hre.ethers.getContractAt("MockVBNB", VBNBAdmin.address);
 

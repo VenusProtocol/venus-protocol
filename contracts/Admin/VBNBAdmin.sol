@@ -9,6 +9,14 @@ import "./VBNBAdminStorage.sol";
 contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminStorage {
     using SafeERC20Upgradeable for IWBNB;
 
+    /// @notice address of vBNB 
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    VTokenInterface public immutable vBNB;
+
+    /// @notice address of WBNB contract
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IWBNB public immutable WBNB;
+
     /// @notice Emitted when PSR is updated
     event ProtocolShareReserveUpdated(
         IProtocolShareReserve indexed oldProtocolShareReserve,
@@ -18,15 +26,24 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
     /// @notice Emitted reserves are reduced
     event ReservesReduced(uint256 reduceAmount);
 
-    function initialize(
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(
         VTokenInterface _vBNB,
+        IWBNB _WBNB
+    ) {
+        vBNB = _vBNB;
+        WBNB = _WBNB;
+
+        // Note that the contract is upgradeable. Use initialize() or reinitializers
+        // to set the state variables.
+        _disableInitializers();
+    }
+
+    function initialize(
         IProtocolShareReserve _protocolShareReserve,
-        IWBNB _WBNB,
         address accessControlManager
     ) external initializer {
-        vBNB = _vBNB;
         protocolShareReserve = _protocolShareReserve;
-        WBNB = _WBNB;
 
         __ReentrancyGuard_init();
         __AccessControlled_init(accessControlManager);
