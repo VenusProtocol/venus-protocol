@@ -1,3 +1,10 @@
+## [3.0.0-dev.18](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.17...v3.0.0-dev.18) (2023-08-23)
+
+
+### Bug Fixes
+
+* add a missing param to SwapRouter deployment script ([e5a47e8](https://github.com/VenusProtocol/venus-protocol/commit/e5a47e80d788264b6a5c5e60c3e9b7cfb40c14c4))
+
 ## [3.0.0-dev.17](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.16...v3.0.0-dev.17) (2023-08-22)
 
 
