@@ -1,12 +1,13 @@
 pragma solidity ^0.5.16;
 
-import "../VAIController.sol";
+import "../Tokens/VAI/VAIController.sol";
 
 contract VAIControllerHarness is VAIController {
-    address vaiAddress;
+    address internal vaiAddress;
     uint public blockNumber;
+    uint public blocksPerYear;
 
-    constructor() VAIController() public {
+    constructor() public VAIController() {
         admin = msg.sender;
     }
 
@@ -24,12 +25,17 @@ contract VAIControllerHarness is VAIController {
     }
 
     function harnessRepayVAIFresh(address payer, address account, uint repayAmount) public returns (uint) {
-       (uint err,) = repayVAIFresh(payer, account, repayAmount);
-       return err;
+        (uint err, ) = repayVAIFresh(payer, account, repayAmount);
+        return err;
     }
 
-    function harnessLiquidateVAIFresh(address liquidator, address borrower, uint repayAmount, VToken vTokenCollateral) public returns (uint) {
-        (uint err,) = liquidateVAIFresh(liquidator, borrower, repayAmount, vTokenCollateral);
+    function harnessLiquidateVAIFresh(
+        address liquidator,
+        address borrower,
+        uint repayAmount,
+        VToken vTokenCollateral
+    ) public returns (uint) {
+        (uint err, ) = liquidateVAIFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;
     }
 
@@ -46,7 +52,15 @@ contract VAIControllerHarness is VAIController {
         blockNumber = number;
     }
 
+    function setBlocksPerYear(uint number) public {
+        blocksPerYear = number;
+    }
+
     function getBlockNumber() public view returns (uint) {
         return blockNumber;
+    }
+
+    function getBlocksPerYear() public view returns (uint) {
+        return blocksPerYear;
     }
 }

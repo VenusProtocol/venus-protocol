@@ -1,8 +1,7 @@
 pragma solidity ^0.5.16;
 
 contract MockPot {
-
-    uint public dsr;  // the Dai Savings Rate
+    uint public dsr; // the Dai Savings Rate
 
     constructor(uint dsr_) public {
         setDsr(dsr_);
@@ -14,13 +13,12 @@ contract MockPot {
 }
 
 contract MockJug {
-
     struct Ilk {
         uint duty;
         uint rho;
     }
 
-    mapping (bytes32 => Ilk) public ilks;
+    mapping(bytes32 => Ilk) public ilks;
     uint public base;
 
     constructor(uint duty_, uint base_) public {

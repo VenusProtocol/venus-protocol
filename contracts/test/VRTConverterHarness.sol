@@ -1,10 +1,9 @@
 pragma solidity ^0.5.16;
 
-import "../../contracts/VRT/VRTConverter.sol";
+import "../../contracts/Tokens/VRT/VRTConverter.sol";
 
 contract VRTConverterHarness is VRTConverter {
-    
-    constructor() VRTConverter() public {
+    constructor() public VRTConverter() {
         admin = msg.sender;
     }
 
@@ -23,16 +22,7 @@ contract VRTConverterHarness is VRTConverter {
         conversionEndTime = conversionStartTime.add(conversionPeriod);
     }
 
-    function getXVSRedeemedAmount(uint256 vrtAmount)
-    public
-    view
-    returns (uint256)
-    {
-        return
-            vrtAmount
-                .mul(conversionRatio)
-                .mul(xvsDecimalsMultiplier)
-                .div(1e18)
-                .div(vrtDecimalsMultiplier);
+    function getXVSRedeemedAmount(uint256 vrtAmount) public view returns (uint256) {
+        return vrtAmount.mul(conversionRatio).mul(xvsDecimalsMultiplier).div(1e18).div(vrtDecimalsMultiplier);
     }
 }

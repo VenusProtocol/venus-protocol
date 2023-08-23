@@ -1,26 +1,26 @@
 pragma solidity ^0.5.16;
 
-import "../Comptroller.sol";
-import "../PriceOracle.sol";
+import "../Comptroller/Comptroller.sol";
+import "../Oracle/PriceOracle.sol";
 
 contract ComptrollerKovan is Comptroller {
-  function getXVSAddress() public view returns (address) {
-    return 0x61460874a7196d6a22D1eE4922473664b3E95270;
-  }
+    function getXVSAddress() public view returns (address) {
+        return 0x61460874a7196d6a22D1eE4922473664b3E95270;
+    }
 }
 
 contract ComptrollerRopsten is Comptroller {
-  function getXVSAddress() public view returns (address) {
-    return 0x1Fe16De955718CFAb7A44605458AB023838C2793;
-  }
+    function getXVSAddress() public view returns (address) {
+        return 0x1Fe16De955718CFAb7A44605458AB023838C2793;
+    }
 }
 
 contract ComptrollerHarness is Comptroller {
-    address xvsAddress;
-    address vXVSAddress;
+    address internal xvsAddress;
+    address internal vXVSAddress;
     uint public blockNumber;
 
-    constructor() Comptroller() public {}
+    constructor() public Comptroller() {}
 
     function setVenusSupplyState(address vToken, uint224 index, uint32 blockNumber_) public {
         venusSupplyState[vToken].index = index;
@@ -68,17 +68,17 @@ contract ComptrollerHarness is Comptroller {
 
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets_[i];
-            Exp memory borrowIndex = Exp({mantissa: vToken.borrowIndex()});
+            Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });
             updateVenusSupplyIndex(address(vToken));
             updateVenusBorrowIndex(address(vToken), borrowIndex);
         }
 
-        Exp memory totalUtility = Exp({mantissa: 0});
+        Exp memory totalUtility = Exp({ mantissa: 0 });
         Exp[] memory utilities = new Exp[](allMarkets_.length);
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets_[i];
             if (venusSpeeds[address(vToken)] > 0) {
-                Exp memory assetPrice = Exp({mantissa: oracle.getUnderlyingPrice(vToken)});
+                Exp memory assetPrice = Exp({ mantissa: oracle.getUnderlyingPrice(vToken) });
                 Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
                 utilities[i] = utility;
                 totalUtility = add_(totalUtility, utility);
@@ -88,7 +88,7 @@ contract ComptrollerHarness is Comptroller {
         for (uint i = 0; i < allMarkets_.length; i++) {
             VToken vToken = allMarkets[i];
             uint newSpeed = totalUtility.mantissa > 0 ? mul_(venusRate, div_(utilities[i], totalUtility)) : 0;
-            setVenusSpeedInternal(vToken, newSpeed);
+            setVenusSpeedInternal(vToken, newSpeed, newSpeed);
         }
     }
 
@@ -100,8 +100,12 @@ contract ComptrollerHarness is Comptroller {
         venusSupplierIndex[vToken][supplier] = index;
     }
 
-    function harnessDistributeAllBorrowerVenus(address vToken, address borrower, uint marketBorrowIndexMantissa) public {
-        distributeBorrowerVenus(vToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}));
+    function harnessDistributeAllBorrowerVenus(
+        address vToken,
+        address borrower,
+        uint marketBorrowIndexMantissa
+    ) public {
+        distributeBorrowerVenus(vToken, borrower, Exp({ mantissa: marketBorrowIndexMantissa }));
         venusAccrued[borrower] = grantXVSInternal(borrower, venusAccrued[borrower], 0, false);
     }
 
@@ -111,7 +115,7 @@ contract ComptrollerHarness is Comptroller {
     }
 
     function harnessUpdateVenusBorrowIndex(address vToken, uint marketBorrowIndexMantissa) public {
-        updateVenusBorrowIndex(vToken, Exp({mantissa: marketBorrowIndexMantissa}));
+        updateVenusBorrowIndex(vToken, Exp({ mantissa: marketBorrowIndexMantissa }));
     }
 
     function harnessUpdateVenusSupplyIndex(address vToken) public {
@@ -119,7 +123,7 @@ contract ComptrollerHarness is Comptroller {
     }
 
     function harnessDistributeBorrowerVenus(address vToken, address borrower, uint marketBorrowIndexMantissa) public {
-        distributeBorrowerVenus(vToken, borrower, Exp({mantissa: marketBorrowIndexMantissa}));
+        distributeBorrowerVenus(vToken, borrower, Exp({ mantissa: marketBorrowIndexMantissa }));
     }
 
     function harnessDistributeSupplierVenus(address vToken, address supplier) public {
@@ -136,7 +140,7 @@ contract ComptrollerHarness is Comptroller {
     function harnessAddVenusMarkets(address[] memory vTokens) public {
         for (uint i = 0; i < vTokens.length; i++) {
             // temporarily set venusSpeed to 1 (will be fixed by `harnessRefreshVenusSpeeds`)
-            setVenusSpeedInternal(VToken(vTokens[i]), 1);
+            setVenusSpeedInternal(VToken(vTokens[i]), 1, 1);
         }
     }
 
@@ -189,33 +193,33 @@ contract ComptrollerBorked {
 }
 
 contract BoolComptroller is ComptrollerInterface {
-    bool allowMint = true;
-    bool allowRedeem = true;
-    bool allowBorrow = true;
-    bool allowRepayBorrow = true;
-    bool allowLiquidateBorrow = true;
-    bool allowSeize = true;
-    bool allowTransfer = true;
+    bool internal allowMint = true;
+    bool internal allowRedeem = true;
+    bool internal allowBorrow = true;
+    bool internal allowRepayBorrow = true;
+    bool internal allowLiquidateBorrow = true;
+    bool internal allowSeize = true;
+    bool internal allowTransfer = true;
 
-    bool verifyMint = true;
-    bool verifyRedeem = true;
-    bool verifyBorrow = true;
-    bool verifyRepayBorrow = true;
-    bool verifyLiquidateBorrow = true;
-    bool verifySeize = true;
-    bool verifyTransfer = true;
+    bool internal verifyMint = true;
+    bool internal verifyRedeem = true;
+    bool internal verifyBorrow = true;
+    bool internal verifyRepayBorrow = true;
+    bool internal verifyLiquidateBorrow = true;
+    bool internal verifySeize = true;
+    bool internal verifyTransfer = true;
     uint public liquidationIncentiveMantissa = 11e17;
-    bool failCalculateSeizeTokens;
-    uint calculatedSeizeTokens;
+    bool internal failCalculateSeizeTokens;
+    uint internal calculatedSeizeTokens;
 
     bool public protocolPaused = false;
 
     mapping(address => uint) public mintedVAIs;
-    bool vaiFailCalculateSeizeTokens;
-    uint vaiCalculatedSeizeTokens;
+    bool internal vaiFailCalculateSeizeTokens;
+    uint internal vaiCalculatedSeizeTokens;
 
-    uint noError = 0;
-    uint opaqueError = noError + 11; // an arbitrary, opaque error code
+    uint internal noError = 0;
+    uint internal opaqueError = noError + 11; // an arbitrary, opaque error code
 
     address public treasuryGuardian;
     address public treasuryAddress;
@@ -285,7 +289,8 @@ contract BoolComptroller is ComptrollerInterface {
         address _vToken,
         address _payer,
         address _borrower,
-        uint _repayAmount) external returns (uint) {
+        uint _repayAmount
+    ) external returns (uint) {
         _vToken;
         _payer;
         _borrower;
@@ -298,7 +303,8 @@ contract BoolComptroller is ComptrollerInterface {
         address _payer,
         address _borrower,
         uint _repayAmount,
-        uint _borrowerIndex) external {
+        uint _borrowerIndex
+    ) external {
         _vToken;
         _payer;
         _borrower;
@@ -316,7 +322,8 @@ contract BoolComptroller is ComptrollerInterface {
         address _vTokenCollateral,
         address _liquidator,
         address _borrower,
-        uint _repayAmount) external returns (uint) {
+        uint _repayAmount
+    ) external returns (uint) {
         _vTokenBorrowed;
         _vTokenCollateral;
         _borrower;
@@ -333,7 +340,8 @@ contract BoolComptroller is ComptrollerInterface {
         address _liquidator,
         address _borrower,
         uint _repayAmount,
-        uint _seizeTokens) external {
+        uint _seizeTokens
+    ) external {
         _vTokenBorrowed;
         _vTokenCollateral;
         _liquidator;
@@ -348,7 +356,8 @@ contract BoolComptroller is ComptrollerInterface {
         address _vTokenBorrowed,
         address _borrower,
         address _liquidator,
-        uint _seizeTokens) external returns (uint) {
+        uint _seizeTokens
+    ) external returns (uint) {
         _vTokenCollateral;
         _vTokenBorrowed;
         _liquidator;
@@ -362,7 +371,8 @@ contract BoolComptroller is ComptrollerInterface {
         address _vTokenBorrowed,
         address _liquidator,
         address _borrower,
-        uint _seizeTokens) external {
+        uint _seizeTokens
+    ) external {
         _vTokenCollateral;
         _vTokenBorrowed;
         _liquidator;
@@ -375,7 +385,8 @@ contract BoolComptroller is ComptrollerInterface {
         address _vToken,
         address _src,
         address _dst,
-        uint _transferTokens) external returns (uint) {
+        uint _transferTokens
+    ) external returns (uint) {
         _vToken;
         _src;
         _dst;
@@ -383,11 +394,7 @@ contract BoolComptroller is ComptrollerInterface {
         return allowTransfer ? noError : opaqueError;
     }
 
-    function transferVerify(
-        address _vToken,
-        address _src,
-        address _dst,
-        uint _transferTokens) external {
+    function transferVerify(address _vToken, address _src, address _dst, uint _transferTokens) external {
         _vToken;
         _src;
         _dst;
@@ -400,7 +407,8 @@ contract BoolComptroller is ComptrollerInterface {
     function liquidateCalculateSeizeTokens(
         address _vTokenBorrowed,
         address _vTokenCollateral,
-        uint _repayAmount) external view returns (uint, uint) {
+        uint _repayAmount
+    ) external view returns (uint, uint) {
         _vTokenBorrowed;
         _vTokenCollateral;
         _repayAmount;
@@ -411,7 +419,8 @@ contract BoolComptroller is ComptrollerInterface {
 
     function liquidateVAICalculateSeizeTokens(
         address _vTokenCollateral,
-        uint _repayAmount) external view returns (uint, uint) {
+        uint _repayAmount
+    ) external view returns (uint, uint) {
         _vTokenCollateral;
         _repayAmount;
         return vaiFailCalculateSeizeTokens ? (opaqueError, 0) : (noError, vaiCalculatedSeizeTokens);
@@ -526,41 +535,77 @@ contract BoolComptroller is ComptrollerInterface {
         treasuryPercent = treasuryPercent_;
     }
 
-    function _setMarketSupplyCaps(VToken[] calldata vTokens, uint[] calldata newSupplyCaps) external {
-
-    }
+    function _setMarketSupplyCaps(VToken[] calldata vTokens, uint[] calldata newSupplyCaps) external {}
 
     /*** Functions from ComptrollerInterface not implemented by BoolComptroller ***/
 
-    function markets(address) external view returns (bool, uint) { revert(); }
-    function oracle() external view returns (PriceOracle) { revert(); }
-    function getAccountLiquidity(address) external view returns (uint, uint, uint) { revert(); }
-    function getAssetsIn(address) external view returns (VToken[] memory) { revert(); }
-    function claimVenus(address) external { revert(); }
-    function venusAccrued(address) external view returns (uint) { revert(); }
-    function venusSpeeds(address) external view returns (uint) { revert(); }
-    function getAllMarkets() external view returns (VToken[] memory) { revert(); }
-    function venusSupplierIndex(address, address) external view returns (uint) { revert(); }
-    function venusInitialIndex() external view returns (uint224) { revert(); }
-    function venusBorrowerIndex(address, address) external view returns (uint) { revert(); }
-    function venusBorrowState(address) external view returns (uint224, uint32) { revert(); }
-    function venusSupplyState(address) external view returns (uint224, uint32) { revert(); }
+    function markets(address) external view returns (bool, uint) {
+        revert();
+    }
+
+    function oracle() external view returns (PriceOracle) {
+        revert();
+    }
+
+    function getAccountLiquidity(address) external view returns (uint, uint, uint) {
+        revert();
+    }
+
+    function getAssetsIn(address) external view returns (VToken[] memory) {
+        revert();
+    }
+
+    function claimVenus(address) external {
+        revert();
+    }
+
+    function venusAccrued(address) external view returns (uint) {
+        revert();
+    }
+
+    function venusSpeeds(address) external view returns (uint) {
+        revert();
+    }
+
+    function getAllMarkets() external view returns (VToken[] memory) {
+        revert();
+    }
+
+    function venusSupplierIndex(address, address) external view returns (uint) {
+        revert();
+    }
+
+    function venusInitialIndex() external view returns (uint224) {
+        revert();
+    }
+
+    function venusBorrowerIndex(address, address) external view returns (uint) {
+        revert();
+    }
+
+    function venusBorrowState(address) external view returns (uint224, uint32) {
+        revert();
+    }
+
+    function venusSupplyState(address) external view returns (uint224, uint32) {
+        revert();
+    }
 }
 
 contract EchoTypesComptroller is UnitrollerAdminStorage {
-    function stringy(string memory s) public pure returns(string memory) {
+    function stringy(string memory s) public pure returns (string memory) {
         return s;
     }
 
-    function addresses(address a) public pure returns(address) {
+    function addresses(address a) public pure returns (address) {
         return a;
     }
 
-    function booly(bool b) public pure returns(bool) {
+    function booly(bool b) public pure returns (bool) {
         return b;
     }
 
-    function listOInts(uint[] memory u) public pure returns(uint[] memory) {
+    function listOInts(uint[] memory u) public pure returns (uint[] memory) {
         return u;
     }
 

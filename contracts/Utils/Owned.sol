@@ -1,7 +1,6 @@
 pragma solidity ^0.5.16;
 
 contract Owned {
-
     address public owner;
 
     event OwnershipTransferred(address indexed _from, address indexed _to);
@@ -10,7 +9,7 @@ contract Owned {
         owner = msg.sender;
     }
 
-    modifier onlyOwner {
+    modifier onlyOwner() {
         require(msg.sender == owner, "Should be owner");
         _;
     }

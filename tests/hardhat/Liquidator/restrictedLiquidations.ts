@@ -63,7 +63,7 @@ describe("Liquidator", () => {
 
       it("adds address to allowlist", async () => {
         await liquidator.addToAllowlist(borrower.address, guy.address);
-        expect(await liquidator.liquidationAllowed(borrower.address, guy.address)).to.equal(true);
+        expect(await liquidator.allowedLiquidatorsByAccount(borrower.address, guy.address)).to.equal(true);
       });
 
       it("fails if already in the allowlist", async () => {
@@ -95,9 +95,9 @@ describe("Liquidator", () => {
 
       it("removes address from allowlist", async () => {
         await liquidator.addToAllowlist(borrower.address, guy.address);
-        expect(await liquidator.liquidationAllowed(borrower.address, guy.address)).to.equal(true);
+        expect(await liquidator.allowedLiquidatorsByAccount(borrower.address, guy.address)).to.equal(true);
         await liquidator.removeFromAllowlist(borrower.address, guy.address);
-        expect(await liquidator.liquidationAllowed(borrower.address, guy.address)).to.equal(false);
+        expect(await liquidator.allowedLiquidatorsByAccount(borrower.address, guy.address)).to.equal(false);
       });
 
       it("emits LiquidationPermissionRevoked event", async () => {

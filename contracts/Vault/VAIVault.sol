@@ -52,7 +52,7 @@ contract VAIVault is VAIVaultStorage {
         updateAndPayOutPending(msg.sender);
 
         // Transfer in the amounts from user
-        if(_amount > 0) {
+        if (_amount > 0) {
             vai.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
         }
@@ -88,7 +88,7 @@ contract VAIVault is VAIVaultStorage {
         updateVault();
         updateAndPayOutPending(account); // Update balances of account this is not withdrawal but claiming XVS farmed
 
-        if(_amount > 0) {
+        if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
             vai.safeTransfer(address(account), _amount);
         }
@@ -101,8 +101,7 @@ contract VAIVault is VAIVaultStorage {
      * @notice View function to see pending XVS on frontend
      * @param _user The user to see pending XVS
      */
-    function pendingXVS(address _user) public view returns (uint256)
-    {
+    function pendingXVS(address _user) public view returns (uint256) {
         UserInfo storage user = userInfo[_user];
 
         return user.amount.mul(accXVSPerShare).div(1e18).sub(user.rewardDebt);
@@ -115,7 +114,7 @@ contract VAIVault is VAIVaultStorage {
     function updateAndPayOutPending(address account) internal {
         uint256 pending = pendingXVS(account);
 
-        if(pending > 0) {
+        if (pending > 0) {
             safeXVSTransfer(account, pending);
         }
     }
@@ -143,7 +142,7 @@ contract VAIVault is VAIVaultStorage {
     function updatePendingRewards() public {
         uint256 newRewards = xvs.balanceOf(address(this)).sub(xvsBalance);
 
-        if(newRewards > 0) {
+        if (newRewards > 0) {
             xvsBalance = xvs.balanceOf(address(this)); // If there is no change the balance didn't change
             pendingRewards = pendingRewards.add(newRewards);
         }
@@ -154,7 +153,8 @@ contract VAIVault is VAIVaultStorage {
      */
     function updateVault() internal {
         uint256 vaiBalance = vai.balanceOf(address(this));
-        if (vaiBalance == 0) { // avoids division by 0 errors
+        if (vaiBalance == 0) {
+            // avoids division by 0 errors
             return;
         }
 

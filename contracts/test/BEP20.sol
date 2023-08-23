@@ -1,23 +1,29 @@
 pragma solidity ^0.5.16;
 
-import "../SafeMath.sol";
+import "../Utils/SafeMath.sol";
 
 interface BEP20Base {
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
+
     function totalSupply() external view returns (uint256);
+
     function allowance(address owner, address spender) external view returns (uint256);
+
     function approve(address spender, uint256 value) external returns (bool);
+
     function balanceOf(address who) external view returns (uint256);
 }
 
 contract BEP20 is BEP20Base {
     function transfer(address to, uint256 value) external returns (bool);
+
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
 contract BEP20NS is BEP20Base {
     function transfer(address to, uint256 value) external;
+
     function transferFrom(address from, address to, uint256 value) external;
 }
 
@@ -33,10 +39,15 @@ contract StandardToken is BEP20 {
     string public symbol;
     uint8 public decimals;
     uint256 public totalSupply;
-    mapping (address => mapping (address => uint256)) public allowance;
+    mapping(address => mapping(address => uint256)) public allowance;
     mapping(address => uint256) public balanceOf;
 
-    constructor(uint256 _initialAmount, string memory _tokenName, uint8 _decimalUnits, string memory _tokenSymbol) public {
+    constructor(
+        uint256 _initialAmount,
+        string memory _tokenName,
+        uint8 _decimalUnits,
+        string memory _tokenSymbol
+    ) public {
         totalSupply = _initialAmount;
         balanceOf[msg.sender] = _initialAmount;
         name = _tokenName;
@@ -78,10 +89,15 @@ contract NonStandardToken is BEP20NS {
     uint8 public decimals;
     string public symbol;
     uint256 public totalSupply;
-    mapping (address => mapping (address => uint256)) public allowance;
+    mapping(address => mapping(address => uint256)) public allowance;
     mapping(address => uint256) public balanceOf;
 
-    constructor(uint256 _initialAmount, string memory _tokenName, uint8 _decimalUnits, string memory _tokenSymbol) public {
+    constructor(
+        uint256 _initialAmount,
+        string memory _tokenName,
+        uint8 _decimalUnits,
+        string memory _tokenSymbol
+    ) public {
         totalSupply = _initialAmount;
         balanceOf[msg.sender] = _initialAmount;
         name = _tokenName;
@@ -111,13 +127,17 @@ contract NonStandardToken is BEP20NS {
 
 contract BEP20Harness is StandardToken {
     // To support testing, we can specify addresses for which transferFrom should fail and return false
-    mapping (address => bool) public failTransferFromAddresses;
+    mapping(address => bool) public failTransferFromAddresses;
 
     // To support testing, we allow the contract to always fail `transfer`.
-    mapping (address => bool) public failTransferToAddresses;
+    mapping(address => bool) public failTransferToAddresses;
 
-    constructor(uint256 _initialAmount, string memory _tokenName, uint8 _decimalUnits, string memory _tokenSymbol) public
-        StandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {}
+    constructor(
+        uint256 _initialAmount,
+        string memory _tokenName,
+        uint8 _decimalUnits,
+        string memory _tokenSymbol
+    ) public StandardToken(_initialAmount, _tokenName, _decimalUnits, _tokenSymbol) {}
 
     function harnessSetFailTransferFromAddress(address src, bool _fail) public {
         failTransferFromAddresses[src] = _fail;

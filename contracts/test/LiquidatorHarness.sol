@@ -1,23 +1,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.13;
 
-import "../Liquidator.sol";
+import "../Liquidator/Liquidator.sol";
 
 contract LiquidatorHarness is Liquidator {
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
         address comptroller_,
         address payable vBnb_,
         address treasury_
-    )
-        Liquidator(
-            comptroller_,
-            vBnb_,
-            treasury_
-        )
-    {}
+    ) Liquidator(comptroller_, vBnb_, treasury_) {}
 
     function initialize(uint256 liquidationIncentiveMantissa_) external override initializer {
         __Liquidator_init(liquidationIncentiveMantissa_);
@@ -36,11 +29,7 @@ contract LiquidatorHarness is Liquidator {
     }
 
     /// @dev Computes the amounts that would go to treasury and to the liquidator.
-    function splitLiquidationIncentive(uint256 seizedAmount)
-        public
-        view
-        returns (uint256 ours, uint256 theirs)
-    {
-       return super._splitLiquidationIncentive(seizedAmount);
+    function splitLiquidationIncentive(uint256 seizedAmount) public view returns (uint256 ours, uint256 theirs) {
+        return super._splitLiquidationIncentive(seizedAmount);
     }
 }

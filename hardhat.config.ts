@@ -8,11 +8,21 @@ import { ethers } from "ethers";
 import fs from "fs";
 import "hardhat-deploy";
 import { HardhatUserConfig, task } from "hardhat/config";
+import "solidity-docgen";
+import "solidity-docgen";
 
 require("dotenv").config();
 
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
+
+task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
+  const accounts = await hre.ethers.getSigners();
+
+  for (const account of accounts) {
+    console.log(account.address);
+  }
+});
 
 task("run-script", "Runs a hardhard script by name")
   .addParam("path", "Path within script/hardhat to script")
@@ -62,7 +72,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.8.17",
+        version: "0.8.13",
         settings: {
           optimizer: {
             enabled: true,
@@ -78,25 +88,21 @@ const config: HardhatUserConfig = {
     ],
   },
   networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true,
+      loggingEnabled: false,
+      live: false,
+    },
     bsctestnet: {
       url: process.env.BSC_TESTNET_NODE || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
-      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+      accounts: {
+        mnemonic: process.env.MNEMONIC || "",
+      },
       gasPrice: ethers.utils.parseUnits("10", "gwei").toNumber(),
       gasMultiplier: 10,
       timeout: 12000000,
     },
-    hardhat: (() => {
-      if (process.env.BSC_ARCHIVE_NODE) {
-        return {
-          chainId: 56,
-          forking: {
-            url: process.env.BSC_ARCHIVE_NODE || "",
-          },
-        };
-      }
-      return {};
-    })(),
     // currently not used, we are still using saddle to deploy contracts
     bscmainnet: {
       url: `https://bsc-dataseed.binance.org/`,
@@ -113,7 +119,7 @@ const config: HardhatUserConfig = {
     artifacts: "./artifacts",
   },
   mocha: {
-    timeout: 20000,
+    timeout: 200000000,
   },
   typechain: {
     outDir: "typechain",
@@ -131,6 +137,11 @@ const config: HardhatUserConfig = {
         artifacts: "node_modules/@venusprotocol/isolated-pools/artifacts",
       },
     ],
+  },
+  docgen: {
+    outputDir: "./docgen-docs",
+    pages: "files",
+    templates: "docgen-templates",
   },
 };
 

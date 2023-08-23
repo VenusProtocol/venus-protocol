@@ -1,0 +1,16 @@
+{
+  "extends": "solhint:recommended",
+  "rules": {
+    "code-complexity": ["error", 8],
+    "compiler-version": ["error", ">=0.5.0"],
+    "const-name-snakecase": "off",
+    "constructor-syntax": "error",
+    "func-visibility": ["error", { "ignoreConstructors": true }],
+    "max-line-length": ["error", 175],
+    "not-rely-on-time": "off",
+    "reason-string": ["warn", { "maxLength": 64 }],
+    "no-unused-vars": "error",
+    "state-visibility": "error",
+    "ordering": "warn"
+  }
+}

@@ -22,7 +22,12 @@ contract VRTVault is VRTVaultStorage {
     event Deposit(address indexed user, uint256 amount);
 
     /// @notice Event emitted when accruedInterest and VRT PrincipalAmount is withrawn
-    event Withdraw(address indexed user, uint256 withdrawnAmount, uint256 totalPrincipalAmount, uint256 accruedInterest);
+    event Withdraw(
+        address indexed user,
+        uint256 withdrawnAmount,
+        uint256 totalPrincipalAmount,
+        uint256 accruedInterest
+    );
 
     /// @notice Event emitted when Admin withdraw BEP20 token from contract
     event WithdrawToken(address indexed tokenAddress, address indexed receiver, uint256 amount);
@@ -33,7 +38,7 @@ contract VRTVault is VRTVaultStorage {
     constructor() public {
         admin = msg.sender;
     }
-    
+
     modifier onlyAdmin() {
         require(msg.sender == admin, "only admin allowed");
         _;
@@ -70,7 +75,7 @@ contract VRTVault is VRTVaultStorage {
         emit VaultResumed(msg.sender);
     }
 
-    modifier isActive() { 
+    modifier isActive() {
         require(vaultPaused == false, "Vault is paused");
         _;
     }
@@ -106,18 +111,21 @@ contract VRTVault is VRTVaultStorage {
         address userAddress = msg.sender;
         UserInfo storage user = userInfo[userAddress];
 
-        if(user.userAddress == address(0)){
+        if (user.userAddress == address(0)) {
             user.userAddress = userAddress;
             user.totalPrincipalAmount = depositAmount;
-        } else{
+        } else {
             // accrue Interest and transfer to the user
             uint256 accruedInterest = computeAccruedInterest(user.totalPrincipalAmount, user.accrualStartBlockNumber);
 
             user.totalPrincipalAmount = user.totalPrincipalAmount.add(depositAmount);
 
-            if(accruedInterest > 0){
+            if (accruedInterest > 0) {
                 uint256 vrtBalance = vrt.balanceOf(address(this));
-                require(vrtBalance >= accruedInterest, "Failed to transfer accruedInterest, Insufficient VRT in Vault.");
+                require(
+                    vrtBalance >= accruedInterest,
+                    "Failed to transfer accruedInterest, Insufficient VRT in Vault."
+                );
                 emit Claim(userAddress, accruedInterest);
                 vrt.safeTransfer(user.userAddress, accruedInterest);
             }
@@ -132,9 +140,11 @@ contract VRTVault is VRTVaultStorage {
      * @notice get accruedInterest of the user's VRTDeposits in the Vault
      * @param userAddress Address of User in the the Vault
      */
-    function getAccruedInterest(address userAddress) public view nonZeroAddress(userAddress) isInitialized returns (uint256) {
+    function getAccruedInterest(
+        address userAddress
+    ) public view nonZeroAddress(userAddress) isInitialized returns (uint256) {
         UserInfo storage user = userInfo[userAddress];
-        if(user.accrualStartBlockNumber == 0){
+        if (user.accrualStartBlockNumber == 0) {
             return 0;
         }
 
@@ -146,11 +156,13 @@ contract VRTVault is VRTVaultStorage {
      * @param totalPrincipalAmount of the User
      * @param accrualStartBlockNumber of the User
      */
-    function computeAccruedInterest(uint256 totalPrincipalAmount, uint256 accrualStartBlockNumber) isInitialized internal view returns (uint256) {
-        
+    function computeAccruedInterest(
+        uint256 totalPrincipalAmount,
+        uint256 accrualStartBlockNumber
+    ) internal view isInitialized returns (uint256) {
         uint256 blockNumber = getBlockNumber();
 
-        if(accrualStartBlockNumber == 0 || accrualStartBlockNumber >= blockNumber){
+        if (accrualStartBlockNumber == 0 || accrualStartBlockNumber >= blockNumber) {
             return 0;
         }
 
@@ -166,7 +178,7 @@ contract VRTVault is VRTVaultStorage {
     function claim() external nonReentrant isInitialized userHasPosition(msg.sender) isActive {
         address userAddress = msg.sender;
         uint256 accruedInterest = getAccruedInterest(userAddress);
-        if(accruedInterest > 0){
+        if (accruedInterest > 0) {
             UserInfo storage user = userInfo[userAddress];
             uint256 vrtBalance = vrt.balanceOf(address(this));
             require(vrtBalance >= accruedInterest, "Failed to transfer VRT, Insufficient VRT in Vault.");
@@ -203,8 +215,12 @@ contract VRTVault is VRTVaultStorage {
      * @param receiver recipient of the BEP20 token
      * @param amount tokenAmount
      */
-    function withdrawBep20(address tokenAddress, address receiver, uint256 amount) onlyAdmin isInitialized nonZeroAddress(tokenAddress) nonZeroAddress(receiver) external {
-        require(amount > 0 , "amount is invalid");
+    function withdrawBep20(
+        address tokenAddress,
+        address receiver,
+        uint256 amount
+    ) external onlyAdmin isInitialized nonZeroAddress(tokenAddress) nonZeroAddress(receiver) {
+        require(amount > 0, "amount is invalid");
         IBEP20 token = IBEP20(tokenAddress);
         require(amount <= token.balanceOf(address(this)), "Insufficient amount in Vault");
         emit WithdrawToken(tokenAddress, receiver, amount);
@@ -221,5 +237,4 @@ contract VRTVault is VRTVaultStorage {
         require(msg.sender == vrtVaultProxy.admin(), "only proxy admin can change brains");
         vrtVaultProxy._acceptImplementation();
     }
-
 }
