@@ -403,7 +403,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         }
 
         accrueInterest(vToken);
-        interests[vToken][user].accrued = _interestAccrued(vToken, user);
+        interests[vToken][user].accrued += _interestAccrued(vToken, user);
         interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
     }
 
