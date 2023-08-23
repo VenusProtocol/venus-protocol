@@ -11,7 +11,6 @@ import fs from "fs";
 import "hardhat-deploy";
 import { HardhatUserConfig, task } from "hardhat/config";
 import "solidity-docgen";
-import "solidity-docgen";
 
 require("dotenv").config();
 
