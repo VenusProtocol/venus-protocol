@@ -9,7 +9,7 @@ import "./VBNBAdminStorage.sol";
 contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminStorage {
     using SafeERC20Upgradeable for IWBNB;
 
-    /// @notice address of vBNB 
+    /// @notice address of vBNB
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     VTokenInterface public immutable vBNB;
 
@@ -27,10 +27,7 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
     event ReservesReduced(uint256 reduceAmount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(
-        VTokenInterface _vBNB,
-        IWBNB _WBNB
-    ) {
+    constructor(VTokenInterface _vBNB, IWBNB _WBNB) {
         require(address(_WBNB) != address(0), "WBNB address invalid");
         require(address(_vBNB) != address(0), "vBNB address invalid");
 

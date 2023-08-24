@@ -46,11 +46,13 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   accessControl.isAllowedToCall.returns(true);
 
   const VBNBAdminFactory = await ethers.getContractFactory("VBNBAdmin");
-  const VBNBAdmin: VBNBAdmin = await upgrades.deployProxy(VBNBAdminFactory, [
-    protocolShareReserve.address, accessControl.address
-  ], {
-    constructorArgs: [vBNB.address, WBNB.address],
-  });
+  const VBNBAdmin: VBNBAdmin = await upgrades.deployProxy(
+    VBNBAdminFactory,
+    [protocolShareReserve.address, accessControl.address],
+    {
+      constructorArgs: [vBNB.address, WBNB.address],
+    },
+  );
 
   const VBNBAdminAsVBNB = MockVBNB__factory.connect(VBNBAdmin.address, admin);
 
