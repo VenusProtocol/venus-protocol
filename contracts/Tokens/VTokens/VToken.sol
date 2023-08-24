@@ -963,26 +963,35 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Sender borrows assets from the protocol to their own address
+     * @notice Receiver gets the borrow on behalf of the borrower address
+     * @param borrower The borrower, on behalf of whom to borrow
+     * @param receiver The account that would receive the funds (can be the same as the borrower)
      * @param borrowAmount The amount of the underlying asset to borrow
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function borrowInternal(uint borrowAmount) internal nonReentrant returns (uint) {
+    function borrowInternal(
+        address borrower,
+        address payable receiver,
+        uint borrowAmount
+    ) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
             return fail(Error(error), FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
         }
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
-        return borrowFresh(msg.sender, borrowAmount);
+        return borrowFresh(borrower, receiver, borrowAmount);
     }
 
     /**
-     * @notice Users borrow assets from the protocol to their own address
+     * @notice Receiver gets the borrow on behalf of the borrower address
+     * @dev Before calling this function, ensure that the interest has been accrued
+     * @param borrower The borrower, on behalf of whom to borrow
+     * @param receiver The account that would receive the funds (can be the same as the borrower)
      * @param borrowAmount The amount of the underlying asset to borrow
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function borrowFresh(address payable borrower, uint borrowAmount) internal returns (uint) {
+    function borrowFresh(address borrower, address payable receiver, uint borrowAmount) internal returns (uint) {
         /* Fail if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
@@ -1036,7 +1045,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  On success, the vToken borrowAmount less of cash.
          *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
          */
-        doTransferOut(borrower, borrowAmount);
+        doTransferOut(receiver, borrowAmount);
 
         /* We emit a Borrow event */
         emit Borrow(borrower, borrowAmount, vars.accountBorrowsNew, vars.totalBorrowsNew);

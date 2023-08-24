@@ -1,4 +1,5 @@
 pragma solidity ^0.5.16;
+
 import "../Utils/SafeMath.sol";
 import "../Utils/IBEP20.sol";
 
@@ -56,8 +57,8 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
     // Infomation about a withdrawal request
     struct WithdrawalRequest {
         uint256 amount;
-        uint256 lockedUntil;
-        bool afterUpgrade;
+        uint128 lockedUntil;
+        uint128 afterUpgrade;
     }
 
     // Info of each user that stakes tokens.
@@ -111,4 +112,14 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
 
     /// @notice Tracks pending withdrawals for all users for a particular reward token and pool id
     mapping(address => mapping(uint256 => uint256)) internal totalPendingWithdrawals;
+
+    /// @notice pause indicator for Vault
+    bool public vaultPaused;
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
 }

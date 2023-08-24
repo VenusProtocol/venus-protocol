@@ -26,7 +26,7 @@ library PancakeLibrary {
                             hex"ff",
                             factory,
                             keccak256(abi.encodePacked(token0, token1)),
-                            hex"d0d4c4cd0848c93cb4fd1f498d7013ee6bfb25783ea21593d5834f5d250ece66" // init code hash
+                            hex"00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5" // init code hash
                         )
                     )
                 )
@@ -50,10 +50,9 @@ library PancakeLibrary {
     function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
         if (amountA == 0) {
             revert InsufficientInputAmount();
-        } else if (reserveA == 0 && reserveB == 0) {
+        } else if (reserveA == 0 || reserveB == 0) {
             revert InsufficientLiquidity();
         }
-        require(reserveA > 0 && reserveB > 0, "PancakeLibrary: INSUFFICIENT_LIQUIDITY");
         amountB = (amountA * reserveB) / reserveA;
     }
 
@@ -65,12 +64,12 @@ library PancakeLibrary {
     ) internal pure returns (uint256 amountOut) {
         if (amountIn == 0) {
             revert InsufficientInputAmount();
-        } else if (reserveIn == 0 && reserveOut == 0) {
+        } else if (reserveIn == 0 || reserveOut == 0) {
             revert InsufficientLiquidity();
         }
-        uint256 amountInWithFee = amountIn * 998;
+        uint256 amountInWithFee = amountIn * 9975;
         uint256 numerator = amountInWithFee * reserveOut;
-        uint256 denominator = (reserveIn * 1000) + amountInWithFee;
+        uint256 denominator = (reserveIn * 10000) + amountInWithFee;
         amountOut = numerator / denominator;
     }
 
@@ -82,11 +81,11 @@ library PancakeLibrary {
     ) internal pure returns (uint256 amountIn) {
         if (amountOut == 0) {
             revert InsufficientOutputAmount();
-        } else if (reserveIn == 0 && reserveOut == 0) {
+        } else if (reserveIn == 0 || reserveOut == 0) {
             revert InsufficientLiquidity();
         }
-        uint256 numerator = reserveIn * amountOut * 1000;
-        uint256 denominator = (reserveOut - amountOut) * 998;
+        uint256 numerator = reserveIn * amountOut * 10000;
+        uint256 denominator = (reserveOut - amountOut) * 9975;
         amountIn = (numerator / denominator) + 1;
     }
 
@@ -101,9 +100,12 @@ library PancakeLibrary {
         }
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
-        for (uint256 i; i < path.length - 1; i++) {
+        for (uint256 i; i < path.length - 1; ) {
             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
             amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
+            unchecked {
+                i += 1;
+            }
         }
     }
 
@@ -118,9 +120,12 @@ library PancakeLibrary {
         }
         amounts = new uint256[](path.length);
         amounts[amounts.length - 1] = amountOut;
-        for (uint256 i = path.length - 1; i > 0; i--) {
+        for (uint256 i = path.length - 1; i > 0; ) {
             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);
             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
+            unchecked {
+                i -= 1;
+            }
         }
     }
 }

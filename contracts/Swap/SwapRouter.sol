@@ -1,13 +1,14 @@
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import "./interfaces/IPancakeSwapV2Router.sol";
 import "./interfaces/IVtoken.sol";
-import "./interfaces/IWBNB.sol";
-import "./lib/TransferHelper.sol";
-import "./lib/PancakeLibrary.sol";
-import "./interfaces/CustomErrors.sol";
+import "./RouterHelper.sol";
+import "./interfaces/IVBNB.sol";
+import "./interfaces/IVtoken.sol";
+import "./interfaces/InterfaceComptroller.sol";
 
 /**
  * @title Venus's Pancake Swap Integration Contract
@@ -16,19 +17,25 @@ import "./interfaces/CustomErrors.sol";
  * @author 0xlucian
  */
 
-contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPancakeSwapV2Router {
-    /// @notice Address of WBNB contract.
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable WBNB;
+contract SwapRouter is Ownable2Step, RouterHelper, IPancakeSwapV2Router {
+    using SafeERC20 for IERC20;
 
-    /// @notice Address of pancake swap factory contract.
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable factory;
+    address public immutable comptrollerAddress;
+
+    uint256 private constant _NOT_ENTERED = 1;
+
+    uint256 private constant _ENTERED = 2;
+
+    address public vBNBAddress;
+
+    /**
+     * @dev Guard variable for re-entrancy checks
+     */
+    uint256 internal _status;
 
     // ***************
     // ** MODIFIERS **
     // ***************
-
     modifier ensure(uint256 deadline) {
         if (deadline < block.timestamp) {
             revert SwapDeadlineExpire(deadline, block.timestamp);
@@ -36,21 +43,30 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         _;
     }
 
-    // **************
-    // *** EVENTS ***
-    // **************
+    modifier ensurePath(address[] calldata path) {
+        if (path.length < 2) {
+            revert InvalidPath();
+        }
+        _;
+    }
 
-    /// @notice This event is emitted whenever a successful swap (tokenA -> tokenB) occurs
-    event SwapTokensForTokens(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     */
+    modifier nonReentrant() {
+        if (_status == _ENTERED) {
+            revert ReentrantCheck();
+        }
+        _status = _ENTERED;
+        _;
+        _status = _NOT_ENTERED;
+    }
 
-    /// @notice This event is emitted whenever a successful swap (BNB -> token) occurs
-    event SwapBnbForTokens(address indexed swapper, address[] indexed path, uint256[] indexed amounts);
+    /// @notice event emitted on sweep token success
+    event SweepToken(address indexed token, address indexed to, uint256 sweepAmount);
 
-    /// @notice This event is emitted whenever a successful supply on behalf of the user occurs
-    event SupplyOnBehalf(address indexed supplier, address indexed vTokenAddress, uint256 indexed amount);
-
-    /// @notice This event is emitted whenever a successful repay on behalf of the user occurs
-    event RepayOnBehalf(address indexed repayer, address indexed vTokenAddress, uint256 indexed amount);
+    /// @notice event emitted on vBNBAddress update
+    event VBNBAddressUpdated(address indexed oldAddress, address indexed newAddress);
 
     // *********************
     // **** CONSTRUCTOR ****
@@ -58,23 +74,22 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address WBNB_, address factory_) {
-        if (WBNB_ == address(0) || factory_ == address(0)) {
+    constructor(
+        address WBNB_,
+        address factory_,
+        address _comptrollerAddress,
+        address _vBNBAddress
+    ) RouterHelper(WBNB_, factory_) {
+        if (_comptrollerAddress == address(0) || _vBNBAddress == address(0)) {
             revert ZeroAddress();
         }
-        WBNB = WBNB_;
-        factory = factory_;
-        // Note that the contract is upgradeable. Use initialize() or reinitializers
-        // to set the state variables.
-        _disableInitializers();
+        comptrollerAddress = _comptrollerAddress;
+        _status = _NOT_ENTERED;
+        vBNBAddress = _vBNBAddress;
     }
 
-    // *********************
-    // **** INITIALIZE *****
-    // *********************
-    function initialize() external initializer {
-        __Ownable2Step_init();
-        __ReentrancyGuard_init();
+    receive() external payable {
+        assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
     }
 
     // ****************************
@@ -82,29 +97,68 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
     // ****************************
 
     /**
+     * @notice Setter for the vBNB address.
+     * @param _vBNBAddress Address of the BNB vToken to update.
+     */
+    function setVBNBAddress(address _vBNBAddress) external onlyOwner {
+        if (_vBNBAddress == address(0)) {
+            revert ZeroAddress();
+        }
+
+        _isVTokenListed(_vBNBAddress);
+
+        address oldAddress = vBNBAddress;
+        vBNBAddress = _vBNBAddress;
+
+        emit VBNBAddressUpdated(oldAddress, vBNBAddress);
+    }
+
+    /**
      * @notice Swap token A for token B and supply to a Venus market
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      */
-    function swapAndSupply(
+    function swapExactTokensForTokensAndSupply(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
-        uint256[] memory swapAmounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, msg.sender);
-        TransferHelper.safeApprove(path[1], vTokenAddress, 0);
-        TransferHelper.safeApprove(path[1], vTokenAddress, swapAmounts[1]);
-        uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, swapAmounts[1]);
-        if (response != 0) {
-            revert SupplyError(msg.sender, vTokenAddress, response);
-        } else {
-            emit SupplyOnBehalf(msg.sender, vTokenAddress, swapAmounts[1]);
-        }
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _supply(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap deflationary (a small amount of fee is deducted at the time of transfer of token) token A for token B and supply to a Venus market.
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param amountIn The amount of tokens to swap.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     */
+    function swapExactTokensForTokensAndSupplyAtSupportingFee(
+        address vTokenAddress,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        uint256 swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, address(this));
+        _supply(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -113,24 +167,94 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
      * @param vTokenAddress The address of the vToken contract for supplying assets.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
      * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
      */
-    function swapBnbAndSupply(
+    function swapExactBNBForTokensAndSupply(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
-        uint256[] memory swapAmounts = _swapExactETHForTokens(amountOutMin, path, msg.sender);
-        TransferHelper.safeApprove(path[1], vTokenAddress, 0);
-        TransferHelper.safeApprove(path[1], vTokenAddress, swapAmounts[1]);
-        uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, swapAmounts[1]);
-        if (response != 0) {
-            revert SupplyError(msg.sender, vTokenAddress, response);
-        } else {
-            emit SupplyOnBehalf(msg.sender, vTokenAddress, swapAmounts[1]);
-        }
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _supply(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap BNB for another deflationary token (a small amount of fee is deducted at the time of transfer of token) and supply to a Venus market
+     * @dev The amount to be swapped is obtained from the msg.value, since we are swapping BNB
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapExactBNBForTokensAndSupplyAtSupportingFee(
+        address vTokenAddress,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        uint256 swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, address(this));
+        _supply(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap tokens for Exact tokens and supply to a Venus market
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForExactTokensAndSupply(
+        address vTokenAddress,
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _supply(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap BNB for Exact tokens and supply to a Venus market
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapBNBForExactTokensAndSupply(
+        address vTokenAddress,
+        uint256 amountOut,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapETHForExactTokens(amountOut, path, address(this));
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _supply(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -139,6 +263,7 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
      * @param amountIn The amount of tokens to swap.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive (and repay)
      */
     function swapAndRepay(
@@ -147,16 +272,37 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external override ensure(deadline) {
-        uint256[] memory swapAmounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, msg.sender);
-        TransferHelper.safeApprove(path[1], vTokenAddress, 0);
-        TransferHelper.safeApprove(path[1], vTokenAddress, swapAmounts[1]);
-        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmounts[1]);
-        if (response != 0) {
-            revert RepayError(msg.sender, vTokenAddress, response);
-        } else {
-            emit RepayOnBehalf(msg.sender, vTokenAddress, swapAmounts[1]);
-        }
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap deflationary token (a small amount of fee is deducted at the time of transfer of token) token A for token B and repay a borrow from a Venus market
+     * @param vTokenAddress The address of the vToken contract to repay.
+     * @param amountIn The amount of tokens to swap.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive (and repay)
+     */
+    function swapAndRepayAtSupportingFee(
+        address vTokenAddress,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        uint256 swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, address(this));
+        _repay(lastAsset, vTokenAddress, swapAmount);
     }
 
     /**
@@ -165,23 +311,228 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
      * @param vTokenAddress The address of the vToken contract to repay.
      * @param amountOutMin Minimum amount of tokens to receive.
      * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
      * @dev Addresses of underlying assets should be ordered so the swap path tokens are listed first and last asset is the token we receive
      */
-    function swapBnbAndRepay(
+    function swapExactBNBForTokensAndRepay(
         address vTokenAddress,
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable override ensure(deadline) {
-        uint256[] memory swapAmounts = _swapExactETHForTokens(amountOutMin, path, msg.sender);
-        TransferHelper.safeApprove(path[1], vTokenAddress, 0);
-        TransferHelper.safeApprove(path[1], vTokenAddress, swapAmounts[1]);
-        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmounts[1]);
-        if (response != 0) {
-            revert RepayError(msg.sender, vTokenAddress, response);
-        } else {
-            emit RepayOnBehalf(msg.sender, vTokenAddress, swapAmounts[1]);
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap BNB for another deflationary token (a small amount of fee is deducted at the time of transfer of token) and repay a borrow from a Venus market
+     * @dev The amount to be swapped is obtained from the msg.value, since we are swapping BNB
+     * @param vTokenAddress The address of the vToken contract to repay.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered so the swap path tokens are listed first and last asset is the token we receive
+     */
+    function swapExactBNBForTokensAndRepayAtSupportingFee(
+        address vTokenAddress,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapExactETHForTokens(amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        uint256 swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, address(this));
+        _repay(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap tokens for Exact tokens and repay to a Venus market
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForExactTokensAndRepay(
+        address vTokenAddress,
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap tokens for full tokens debt and repay to a Venus market
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForFullTokenDebtAndRepay(
+        address vTokenAddress,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        uint256 amountOut = IVToken(vTokenAddress).borrowBalanceCurrent(msg.sender);
+        _swapTokensForExactTokens(amountOut, amountInMax, path, address(this));
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap BNB for Exact tokens and repay to a Venus market
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapBNBForExactTokensAndRepay(
+        address vTokenAddress,
+        uint256 amountOut,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        _swapETHForExactTokens(amountOut, path, address(this));
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap BNB for Exact tokens and repay to a Venus market
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapBNBForFullTokenDebtAndRepay(
+        address vTokenAddress,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        _ensureVTokenChecks(vTokenAddress, path[path.length - 1]);
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(address(this));
+        uint256 amountOut = IVToken(vTokenAddress).borrowBalanceCurrent(msg.sender);
+        _swapETHForExactTokens(amountOut, path, address(this));
+        uint256 swapAmount = _getSwapAmount(lastAsset, balanceBefore);
+        _repay(lastAsset, vTokenAddress, swapAmount);
+    }
+
+    /**
+     * @notice Swap Exact tokens for BNB and repay to a Venus market
+     * @param amountIn The amount of tokens to swap.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapExactTokensForBNBAndRepay(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        uint256 balanceBefore = address(this).balance;
+        _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.NON_SUPPORTING_FEE);
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
+    }
+
+    /**
+     * @notice Swap Exact deflationary tokens (a small amount of fee is deducted at the time of transfer of tokens) for BNB and repay to a Venus market
+     * @param amountIn The amount of tokens to swap.
+     * @param amountOutMin Minimum amount of tokens to receive.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapExactTokensForBNBAndRepayAtSupportingFee(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        uint256 balanceBefore = address(this).balance;
+        _swapExactTokensForETH(amountIn, amountOutMin, path, address(this), TypesOfTokens.SUPPORTING_FEE);
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        if (swapAmount < amountOutMin) {
+            revert SwapAmountLessThanAmountOutMin(swapAmount, amountOutMin);
         }
+        IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
+    }
+
+    /**
+     * @notice Swap tokens for Exact BNB and repay to a Venus market
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForExactBNBAndRepay(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        uint256 balanceBefore = address(this).balance;
+        _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
+    }
+
+    /**
+     * @notice Swap tokens for Exact BNB and repay to a Venus market
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param deadline Unix timestamp after which the transaction will revert.
+     * @dev Addresses of underlying assets should be ordered that first asset is the token we are swapping and second asset is the token we receive
+     * @dev In case of swapping native BNB the first asset in path array should be the wBNB address
+     */
+    function swapTokensForFullBNBDebtAndRepay(
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable override nonReentrant ensure(deadline) ensurePath(path) {
+        uint256 balanceBefore = address(this).balance;
+        uint256 amountOut = IVToken(vBNBAddress).borrowBalanceCurrent(msg.sender);
+        _swapTokensForExactETH(amountOut, amountInMax, path, address(this));
+        uint256 balanceAfter = address(this).balance;
+        uint256 swapAmount = balanceAfter - balanceBefore;
+        IVBNB(vBNBAddress).repayBorrowBehalf{ value: swapAmount }(msg.sender);
     }
 
     /**
@@ -202,8 +553,34 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, to);
+    ) external virtual override nonReentrant ensure(deadline) ensurePath(path) returns (uint256[] memory amounts) {
+        amounts = _swapExactTokensForTokens(amountIn, amountOutMin, path, to, TypesOfTokens.NON_SUPPORTING_FEE);
+    }
+
+    /**
+     * @notice Swaps an exact amount of input tokens for as many output tokens as possible,
+     *         along the route determined by the path. The first element of path is the input token,
+     *         the last is the output token, and any intermediate elements represent intermediate
+     *         pairs to trade through (if, for example, a direct pair does not exist).
+     *         This method to swap deflationary tokens which would require supporting fee.
+     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
+     * @param amountIn The address of the vToken contract to repay.
+     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     */
+    function swapExactTokensForTokensAtSupportingFee(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external virtual override nonReentrant ensure(deadline) ensurePath(path) returns (uint256 swapAmount) {
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(to);
+        _swapExactTokensForTokens(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
+        swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, to);
     }
 
     /**
@@ -217,104 +594,269 @@ contract SwapRouter is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, IPan
      * @param to Recipient of the output tokens.
      * @param deadline Unix timestamp after which the transaction will revert.
      */
-    function swapExactETHForTokens(
+    function swapExactBNBForTokens(
         uint256 amountOutMin,
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        amounts = _swapExactETHForTokens(amountOutMin, path, to);
+    )
+        external
+        payable
+        virtual
+        override
+        nonReentrant
+        ensure(deadline)
+        ensurePath(path)
+        returns (uint256[] memory amounts)
+    {
+        amounts = _swapExactETHForTokens(amountOutMin, path, to, TypesOfTokens.NON_SUPPORTING_FEE);
     }
 
-    // **** LIBRARY FUNCTIONS ****
-    function quote(
-        uint256 amountA,
-        uint256 reserveA,
-        uint256 reserveB
-    ) public pure virtual override returns (uint256 amountB) {
-        return PancakeLibrary.quote(amountA, reserveA, reserveB);
+    /**
+     * @notice Swaps an exact amount of ETH for as many output tokens as possible,
+     *         along the route determined by the path. The first element of path must be WBNB,
+     *         the last is the output token, and any intermediate elements represent
+     *         intermediate pairs to trade through (if, for example, a direct pair does not exist).
+     *         This method to swap deflationary tokens which would require supporting fee.
+     * @dev amountIn is passed through the msg.value of the transaction
+     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     */
+    function swapExactBNBForTokensAtSupportingFee(
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable virtual override nonReentrant ensure(deadline) ensurePath(path) returns (uint256 swapAmount) {
+        address lastAsset = path[path.length - 1];
+        uint256 balanceBefore = IERC20(lastAsset).balanceOf(to);
+        _swapExactETHForTokens(amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
+        swapAmount = _checkForAmountOut(lastAsset, balanceBefore, amountOutMin, to);
     }
 
-    function getAmountOut(
-        uint256 amountIn,
-        uint256 reserveIn,
-        uint256 reserveOut
-    ) public pure virtual override returns (uint256 amountOut) {
-        return PancakeLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
-    }
-
-    function getAmountIn(
-        uint256 amountOut,
-        uint256 reserveIn,
-        uint256 reserveOut
-    ) public pure virtual override returns (uint256 amountIn) {
-        return PancakeLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
-    }
-
-    function getAmountsOut(
-        uint256 amountIn,
-        address[] memory path
-    ) public view virtual override returns (uint256[] memory amounts) {
-        return PancakeLibrary.getAmountsOut(factory, amountIn, path);
-    }
-
-    function getAmountsIn(
-        uint256 amountOut,
-        address[] memory path
-    ) public view virtual override returns (uint256[] memory amounts) {
-        return PancakeLibrary.getAmountsIn(factory, amountOut, path);
-    }
-
-    // ****************************
-    // **** INTERNAL FUNCTIONS ****
-    // ****************************
-
-    // requires the initial amount to have already been sent to the first pair
-    function _swap(uint256[] memory amounts, address[] memory path, address _to) internal virtual {
-        for (uint256 i; i < path.length - 1; ++i) {
-            (address input, address output) = (path[i], path[i + 1]);
-            (address token0, ) = PancakeLibrary.sortTokens(input, output);
-            uint256 amountOut = amounts[i + 1];
-            (uint256 amount0Out, uint256 amount1Out) = input == token0
-                ? (uint256(0), amountOut)
-                : (amountOut, uint256(0));
-            address to = i < path.length - 2 ? PancakeLibrary.pairFor(factory, output, path[i + 2]) : _to;
-            IPancakePair(PancakeLibrary.pairFor(factory, input, output)).swap(amount0Out, amount1Out, to, new bytes(0));
-        }
-    }
-
-    function _swapExactTokensForTokens(
+    /**
+     * @notice Swaps an exact amount of input tokens for as many output ETH as possible,
+     *         along the route determined by the path. The first element of path is the input token,
+     *         the last is the output ETH, and any intermediate elements represent intermediate
+     *         pairs to trade through (if, for example, a direct pair does not exist).
+     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
+     * @param amountIn The address of the vToken contract to repay.
+     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     */
+    function swapExactTokensForBNB(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
-        address to
-    ) internal returns (uint256[] memory amounts) {
-        amounts = PancakeLibrary.getAmountsOut(factory, amountIn, path);
-        if (amounts[amounts.length - 1] < amountOutMin) {
-            revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
-        }
-        address pairAddress = PancakeLibrary.pairFor(factory, path[0], path[1]);
-        TransferHelper.safeTransferFrom(path[0], msg.sender, pairAddress, amounts[0]);
-        _swap(amounts, path, to);
-        emit SwapTokensForTokens(msg.sender, path, amounts);
+        address to,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) returns (uint256[] memory amounts) {
+        amounts = _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.NON_SUPPORTING_FEE);
     }
 
-    function _swapExactETHForTokens(
+    /**
+     * @notice Swaps an exact amount of input tokens for as many output ETH as possible,
+     *         along the route determined by the path. The first element of path is the input token,
+     *         the last is the output ETH, and any intermediate elements represent intermediate
+     *         pairs to trade through (if, for example, a direct pair does not exist).
+     *         This method to swap deflationary tokens which would require supporting fee.
+     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
+     * @param amountIn The address of the vToken contract to repay.
+     * @param amountOutMin The minimum amount of output tokens that must be received for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     */
+    function swapExactTokensForBNBAtSupportingFee(
+        uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external override nonReentrant ensure(deadline) ensurePath(path) returns (uint256 swapAmount) {
+        uint256 balanceBefore = to.balance;
+        _swapExactTokensForETH(amountIn, amountOutMin, path, to, TypesOfTokens.SUPPORTING_FEE);
+        uint256 balanceAfter = to.balance;
+        swapAmount = balanceAfter - balanceBefore;
+        if (swapAmount < amountOutMin) {
+            revert SwapAmountLessThanAmountOutMin(swapAmount, amountOutMin);
+        }
+    }
+
+    /**
+     * @notice Swaps an as many amount of input tokens for as exact amount of tokens as output,
+     *         along the route determined by the path. The first element of path is the input token,
+     *         the last is the output token, and any intermediate elements represent intermediate
+     *         pairs to trade through (if, for example, a direct pair does not exist).
+     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     **/
+    function swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external virtual override nonReentrant ensure(deadline) ensurePath(path) returns (uint256[] memory amounts) {
+        amounts = _swapTokensForExactTokens(amountOut, amountInMax, path, to);
+    }
+
+    /**
+     * @notice Swaps an as ETH as input tokens for as exact amount of tokens as output,
+     *         along the route determined by the path. The first element of path is the input WBNB,
+     *         the last is the output as token, and any intermediate elements represent intermediate
+     *         pairs to trade through (if, for example, a direct pair does not exist).
+     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     **/
+    function swapBNBForExactTokens(
+        uint256 amountOut,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    )
+        external
+        payable
+        virtual
+        override
+        nonReentrant
+        ensure(deadline)
+        ensurePath(path)
+        returns (uint256[] memory amounts)
+    {
+        amounts = _swapETHForExactTokens(amountOut, path, to);
+    }
+
+    /**
+     * @notice Swaps an as many amount of input tokens for as exact amount of ETH as output,
+     *         along the route determined by the path. The first element of path is the input token,
+     *         the last is the output as ETH, and any intermediate elements represent intermediate
+     *         pairs to trade through (if, for example, a direct pair does not exist).
+     * @dev msg.sender should have already given the router an allowance of at least amountIn on the input token.
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param amountInMax The maximum amount of input tokens that can be taken for the transaction not to revert.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @param to Recipient of the output tokens.
+     * @param deadline Unix timestamp after which the transaction will revert.
+     **/
+    function swapTokensForExactBNB(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external virtual override nonReentrant ensure(deadline) ensurePath(path) returns (uint256[] memory amounts) {
+        amounts = _swapTokensForExactETH(amountOut, amountInMax, path, to);
+    }
+
+    /**
+     * @notice A public function to sweep accidental BEP-20 transfers to this contract. Tokens are sent to the address `to`, provided in input
+     * @param token The address of the ERC-20 token to sweep
+     * @param to Recipient of the output tokens.
+     * @param sweepAmount The ampunt of the tokens to sweep
+     * @custom:access Only Governance
+     */
+    function sweepToken(IERC20 token, address to, uint256 sweepAmount) external onlyOwner nonReentrant {
+        uint256 balance = token.balanceOf(address(this));
+        if (sweepAmount > balance) {
+            revert InsufficientBalance(sweepAmount, balance);
+        }
+        token.safeTransfer(to, sweepAmount);
+
+        emit SweepToken(address(token), to, sweepAmount);
+    }
+
+    /**
+     * @notice Supply token to a Venus market
+     * @param path The addresses of the underlying token
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param swapAmount The amount of tokens supply to Venus Market.
+     */
+    function _supply(address path, address vTokenAddress, uint256 swapAmount) internal {
+        TransferHelper.safeApprove(path, vTokenAddress, 0);
+        TransferHelper.safeApprove(path, vTokenAddress, swapAmount);
+        uint256 response = IVToken(vTokenAddress).mintBehalf(msg.sender, swapAmount);
+        if (response != 0) {
+            revert SupplyError(msg.sender, vTokenAddress, response);
+        }
+    }
+
+    /**
+     * @notice Repay a borrow from Venus market
+     * @param path The addresses of the underlying token
+     * @param vTokenAddress The address of the vToken contract for supplying assets.
+     * @param swapAmount The amount of tokens repay to Venus Market.
+     */
+    function _repay(address path, address vTokenAddress, uint256 swapAmount) internal {
+        TransferHelper.safeApprove(path, vTokenAddress, 0);
+        TransferHelper.safeApprove(path, vTokenAddress, swapAmount);
+        uint256 response = IVToken(vTokenAddress).repayBorrowBehalf(msg.sender, swapAmount);
+        if (response != 0) {
+            revert RepayError(msg.sender, vTokenAddress, response);
+        }
+    }
+
+    /**
+     * @notice Check if the balance of to minus the balanceBefore is greater than the amountOutMin.
+     * @param asset The address of the underlying token
+     * @param balanceBefore Balance before the swap.
+     * @param amountOutMin Min amount out threshold.
+     * @param to Recipient of the output tokens.
+     */
+    function _checkForAmountOut(
+        address asset,
+        uint256 balanceBefore,
+        uint256 amountOutMin,
         address to
-    ) internal returns (uint256[] memory amounts) {
-        address wBNBAddress = WBNB;
-        if (path[0] != wBNBAddress) {
-            revert WrongAddress(wBNBAddress, path[0]);
+    ) internal view returns (uint256 swapAmount) {
+        uint256 balanceAfter = IERC20(asset).balanceOf(to);
+        swapAmount = balanceAfter - balanceBefore;
+        if (swapAmount < amountOutMin) {
+            revert SwapAmountLessThanAmountOutMin(swapAmount, amountOutMin);
         }
-        amounts = PancakeLibrary.getAmountsOut(factory, msg.value, path);
-        if (amounts[amounts.length - 1] < amountOutMin) {
-            revert OutputAmountBelowMinimum(amounts[amounts.length - 1], amountOutMin);
+    }
+
+    /**
+     * @notice Returns the difference between the balance of this and the balanceBefore
+     * @param asset The address of the underlying token
+     * @param balanceBefore Balance before the swap.
+     */
+    function _getSwapAmount(address asset, uint256 balanceBefore) internal view returns (uint256 swapAmount) {
+        uint256 balanceAfter = IERC20(asset).balanceOf(address(this));
+        swapAmount = balanceAfter - balanceBefore;
+    }
+
+    /**
+     * @notice Check isVTokenListed and last address in the path should be vToken underlying.
+     * @param vTokenAddress Address of the vToken.
+     * @param underlying Address of the underlying asset.
+     */
+    function _ensureVTokenChecks(address vTokenAddress, address underlying) internal {
+        _isVTokenListed(vTokenAddress);
+        if (IVToken(vTokenAddress).underlying() != underlying) {
+            revert VTokenUnderlyingInvalid(underlying);
         }
-        IWBNB(wBNBAddress).deposit{ value: amounts[0] }();
-        assert(IWBNB(wBNBAddress).transfer(PancakeLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
-        _swap(amounts, path, to);
-        emit SwapBnbForTokens(msg.sender, path, amounts);
+    }
+
+    /**
+     * @notice Check is vToken listed in the pool.
+     * @param vToken Address of the vToken.
+     */
+    function _isVTokenListed(address vToken) internal view {
+        bool isListed = InterfaceComptroller(comptrollerAddress).markets(vToken);
+        if (!isListed) {
+            revert VTokenNotListed(vToken);
+        }
     }
 }

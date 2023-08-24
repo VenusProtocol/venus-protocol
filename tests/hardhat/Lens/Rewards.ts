@@ -1,5 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
@@ -13,6 +13,7 @@ let vWBTC: FakeContract<VToken>;
 let XVS: FakeContract<MockToken>;
 let account: Signer;
 let venusLens: MockContract<VenusLens>;
+let startBlock: number;
 
 const VENUS_ACCRUED = convertToUnit(10, 18);
 
@@ -22,6 +23,7 @@ type RewardsFixtire = {
   vWBTC: FakeContract<VToken>;
   XVS: FakeContract<MockToken>;
   venusLens: MockContract<VenusLens>;
+  startBlock: number;
 };
 
 const rewardsFixture = async (): Promise<RewardsFixtire> => {
@@ -31,6 +33,8 @@ const rewardsFixture = async (): Promise<RewardsFixtire> => {
   const venusLensFactory = await smock.mock<VenusLens__factory>("VenusLens");
   venusLens = await venusLensFactory.deploy();
   comptroller = await smock.fake<Comptroller>("Comptroller");
+
+  const startBlock = await ethers.provider.getBlockNumber();
 
   // Fake return values
   comptroller.getAllMarkets.returns([vBUSD.address, vWBTC.address]);
@@ -44,12 +48,12 @@ const rewardsFixture = async (): Promise<RewardsFixtire> => {
 
   comptroller.venusBorrowState.returns({
     index: convertToUnit(1, 18),
-    block: 1,
+    block: startBlock,
   });
 
   comptroller.venusSupplyState.returns({
     index: convertToUnit(1, 18),
-    block: 1,
+    block: startBlock,
   });
 
   vBUSD.borrowIndex.returns(convertToUnit(1, 18));
@@ -70,17 +74,18 @@ const rewardsFixture = async (): Promise<RewardsFixtire> => {
     vBUSD,
     vWBTC,
     venusLens,
+    startBlock,
   };
 };
 
 describe("VenusLens: Rewards Summary", () => {
   beforeEach(async () => {
     [account] = await ethers.getSigners();
-    ({ comptroller, vBUSD, vWBTC, XVS, venusLens } = await loadFixture(rewardsFixture));
+    ({ comptroller, vBUSD, vWBTC, XVS, venusLens, startBlock } = await loadFixture(rewardsFixture));
   });
   it("Should get summary for all markets", async () => {
     // Mine some blocks so deltaBlocks != 0
-    await mine(11);
+    await mineUpTo(startBlock + 1000);
 
     const accountAddress = await account.getAddress();
     const pendingRewards = await venusLens.pendingRewards(accountAddress, comptroller.address);
@@ -127,8 +132,8 @@ describe("VenusLens: Rewards Summary", () => {
       XVS.address,
       BigNumber.from(convertToUnit(10, 18)),
       [
-        [vBUSD.address, BigNumber.from(convertToUnit(22.35, 18))],
-        [vWBTC.address, BigNumber.from(convertToUnit(0.0000002235, 18))],
+        [vBUSD.address, BigNumber.from(convertToUnit(10, 18))],
+        [vWBTC.address, BigNumber.from(convertToUnit(0.0000001, 18))],
       ],
     ];
 

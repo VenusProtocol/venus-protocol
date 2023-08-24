@@ -5,7 +5,13 @@ import chai from "chai";
 import { ethers, upgrades } from "hardhat";
 
 import { convertToBigInt } from "../../../helpers/utils";
-import { Comptroller, LiquidatorHarness, LiquidatorHarness__factory, VBNB, VBep20Immutable } from "../../../typechain";
+import {
+  Comptroller,
+  LiquidatorHarness,
+  LiquidatorHarness__factory,
+  MockVBNB,
+  VBep20Immutable,
+} from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -18,7 +24,7 @@ type LiquidatorFixture = {
   comptroller: FakeContract<Comptroller>;
   vTokenCollateral: FakeContract<VBep20Immutable>;
   liquidator: MockContract<LiquidatorHarness>;
-  vBnb: FakeContract<VBNB>;
+  vBnb: FakeContract<MockVBNB>;
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
@@ -26,7 +32,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
 
   const comptroller = await smock.fake<Comptroller>("Comptroller");
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
-  const vBnb = await smock.fake<VBNB>("VBNB");
+  const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
   const Liquidator = await smock.mock<LiquidatorHarness__factory>("LiquidatorHarness");

@@ -8,10 +8,18 @@
   "files": [
     "artifacts",
     "networks",
+    "deploy",
     "dist",
     "contracts",
     "deployments"
   ],
+  "exports": {
+    "deploy": "./dist/deploy",
+    "artifacts": "./artifacts",
+    "networks": "./dist/networks",
+    "contracts": "./contracts",
+    "deployments": "./deployments"
+  },
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
@@ -59,6 +67,7 @@
     "@types/node": "^18.7.1",
     "@typescript-eslint/eslint-plugin": "^5.40.0",
     "@typescript-eslint/parser": "^5.40.0",
+    "@venusprotocol/governance-contracts": "^0.0.2",
     "@venusprotocol/isolated-pools": "0.0.5",
     "chai": "^4.3.6",
     "eslint": "^8.25.0",

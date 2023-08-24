@@ -4,7 +4,7 @@ import chai from "chai";
 import { Signer } from "ethers";
 import { ethers, network } from "hardhat";
 
-import { XVS, XVSStore, XVSVault, XVSVault__factory } from "../../../typechain";
+import { IAccessControlManager, XVS, XVSStore, XVSVault, XVSVault__factory } from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -40,6 +40,9 @@ async function xvsVaultFixture(): Promise<XVSVaultFixture> {
   const xvsVault = await XVSVault.deploy();
   const xvsStore = await smock.fake<XVSStore>("XVSStore");
   const xvsToken = await smock.fake<XVS>("XVS");
+  const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  accessControl.isAllowedToCall.returns(true);
+  await xvsVault.setAccessControl(accessControl.address);
   return { xvsVault, xvsStore, xvsToken };
 }
 
@@ -54,6 +57,27 @@ describe("XVS Vault Tests", () => {
   });
 
   describe("delegateBySig", () => {
+    it("reverts if the market is paused", async () => {
+      await xvsVault.pause();
+
+      const signatureLike = await network.provider.send("eth_signTypedData_v4", [
+        rootAddress,
+        typedData(rootAddress, 0, 0, xvsVault.address),
+      ]);
+      const signature = ethers.utils.splitSignature(signatureLike);
+
+      await expect(
+        xvsVault.delegateBySig(
+          rootAddress,
+          0,
+          0,
+          signature.v,
+          ethers.utils.formatBytes32String("r"),
+          ethers.utils.formatBytes32String("s"),
+        ),
+      ).to.be.revertedWith("Vault is paused");
+    });
+
     it("reverts if the signatory is invalid", async () => {
       const signatureLike = await network.provider.send("eth_signTypedData_v4", [
         rootAddress,
