@@ -1,3 +1,60 @@
+## [2.2.0](https://github.com/VenusProtocol/venus-protocol/compare/v2.1.0...v2.2.0) (2023-08-24)
+
+
+### Features
+
+* add ACM in xvsVault ([d571d1c](https://github.com/VenusProtocol/venus-protocol/commit/d571d1c44f6f9410465de07c623c4dfd69490bd8))
+* add delegate borrowing feature ([ce70a96](https://github.com/VenusProtocol/venus-protocol/commit/ce70a965b1c090d1692ef20a5ccfac6f53138a68))
+* add missing addresses for the markets in main net ([5c8f5ba](https://github.com/VenusProtocol/venus-protocol/commit/5c8f5ba36e5d2af9a6a48bf750f92cd1a7664641))
+* add pause unpause and access control ([a615acf](https://github.com/VenusProtocol/venus-protocol/commit/a615acf923cd35873247d4b4ae628f0e884a6e00))
+* add semantic release ([25ba010](https://github.com/VenusProtocol/venus-protocol/commit/25ba01055aeea0d03a8fcd715b9fb0777defb5e1))
+* add v5 Access Control Manager ([f33e0d9](https://github.com/VenusProtocol/venus-protocol/commit/f33e0d931f9233a68ae9472720be9aebd7ed97b8))
+* integrate ACM in VRTVault ([f8ba903](https://github.com/VenusProtocol/venus-protocol/commit/f8ba90395ffbfdb232896d3b7b2c98660c06f9c3))
+* remove setDelegateForBNBHacker ([59318f6](https://github.com/VenusProtocol/venus-protocol/commit/59318f6b6a87455129c6f1982132cc01580d70d3))
+* support custom proposers ([a71e338](https://github.com/VenusProtocol/venus-protocol/commit/a71e33852f5c873840dfa303e272c816237f4352))
+* support governance routes ([0f713ff](https://github.com/VenusProtocol/venus-protocol/commit/0f713ff29c8a3613615fb28db743c483d7d7a9b5))
+
+
+### Bug Fixes
+
+* [VEN-1227] Remove borrowInternal(uint) from the VToken contract ([56df3b7](https://github.com/VenusProtocol/venus-protocol/commit/56df3b7a8fc5ba92d6cc96367606713ff70070b4))
+* add storage gap in VRT vault ([4504000](https://github.com/VenusProtocol/venus-protocol/commit/450400071227ea20cd9a25001613fda31d43eec7))
+* last address of path. ([926dc07](https://github.com/VenusProtocol/venus-protocol/commit/926dc0709215cfac3d73ac5a4ad1750d6d568f6d))
+* lint issues and minor fix ([01f2bda](https://github.com/VenusProtocol/venus-protocol/commit/01f2bda0843f30aa091773fa0aa8655e9775e9aa))
+* minor fix ([182cd43](https://github.com/VenusProtocol/venus-protocol/commit/182cd43f438eb30d1062f0e8b72920ddb9e7b63f))
+* minor fixes ([5670041](https://github.com/VenusProtocol/venus-protocol/commit/567004169fc6a99cb8140e6ba78f6e9bf8daf500))
+* mionor ([807f1ec](https://github.com/VenusProtocol/venus-protocol/commit/807f1ecf2c1a14134e713346626086ad1bf4568d))
+* mutiple swap + deflationary token support + swapExactTokensForTokens ([9437a22](https://github.com/VenusProtocol/venus-protocol/commit/9437a223d4f5f127c51a01ebc5b1049a75d5597d))
+* PEV-001 fix claim logic in deposit ([b4ea715](https://github.com/VenusProtocol/venus-protocol/commit/b4ea715c949e3941470f470dcb5643bac0e8f589))
+* PLS-01 "change the fee percent to 0.25% in pancakeLibrary" ([e8c3676](https://github.com/VenusProtocol/venus-protocol/commit/e8c36766f0b6065a751c0e62383487d9ba49874f))
+* PLS-02 added indiviual checks for reserveIn and reserveOut to be 0 ([774eed1](https://github.com/VenusProtocol/venus-protocol/commit/774eed1266561fb63951617e750c2d3cad370524))
+* PLS-03 removed redundant checking of reserves in pancakeLibrary ([0714741](https://github.com/VenusProtocol/venus-protocol/commit/071474188855749eaa8a852835b19af1347e072d))
+* pr comments ([346d32e](https://github.com/VenusProtocol/venus-protocol/commit/346d32e59b64e7224302c6104f7c338fc7e38e60))
+* PR comments. ([6ef9faf](https://github.com/VenusProtocol/venus-protocol/commit/6ef9faf8fc19a066c7e4a7dac440a9bd25f2a1cc))
+* PR comments. ([7e0d572](https://github.com/VenusProtocol/venus-protocol/commit/7e0d572778b51fbd246174bd16cbf5d1788306f8))
+* PVE-001 claim fix in vrt ([369cf3f](https://github.com/VenusProtocol/venus-protocol/commit/369cf3fb74ec90566d0c0df642e620cc062e7bd8))
+* PVE-002 improve sanity checks ([b62f302](https://github.com/VenusProtocol/venus-protocol/commit/b62f30285497edbe113ef98a33052e86f2f2183c))
+* PVE-003 fix floating pragmas ([672b9de](https://github.com/VenusProtocol/venus-protocol/commit/672b9de69da25c11f9f8e33091495c2b708af583))
+* remove unwanted comments and fix the version of pragmas ([5e88387](https://github.com/VenusProtocol/venus-protocol/commit/5e88387d4a47d2c396960d9b16ab22cf19be13ad))
+* RHS-01 use TransferHelper Library safeTransfer to send WBNB in RouterHelper contract ([9e7103e](https://github.com/VenusProtocol/venus-protocol/commit/9e7103e6e1c4b58e0a8d2eb0d598368912a279f7))
+* srs-02, srs-07 missing checks for vToken, pass single address ([99fc4b2](https://github.com/VenusProtocol/venus-protocol/commit/99fc4b2014e4a44cd4d484454f46860ca39121f4))
+* SRS-03 check the address(0) for comptroller address in swapRouter constructor ([48eb87c](https://github.com/VenusProtocol/venus-protocol/commit/48eb87ca15b5dd373a6db112f9f777561f38cf54))
+* SRS-04 added comments for supporting Fee for all the functions in Swaprouter ([4dae8d4](https://github.com/VenusProtocol/venus-protocol/commit/4dae8d41b71aba8fe5243d551771c9d9ea2163d4))
+* srs-05 added comments for missing parameters ([f04f5ce](https://github.com/VenusProtocol/venus-protocol/commit/f04f5cebebe98d54fe77171df03ea7ea48efddb3))
+* SRS-06 netspec comments changed for sweepToken function ([ae30cdd](https://github.com/VenusProtocol/venus-protocol/commit/ae30cdd868cfe370ca1fd7c2d11288c000892084))
+* support fees on transfers and approve vToken ([d4969d7](https://github.com/VenusProtocol/venus-protocol/commit/d4969d7082f6bda1a22db2230253128a3e3f3db9))
+* swa-01 reentrant check ([844f78d](https://github.com/VenusProtocol/venus-protocol/commit/844f78d9c21416671ea5c79cae47181098428d16))
+* SWA-02 added unchecked block in the for loop iteration ([b3542eb](https://github.com/VenusProtocol/venus-protocol/commit/b3542eb3a772aabeac78537d0e93c02c0594c3aa))
+* swa-03 used custom errors instead of string errors ([ebef2cd](https://github.com/VenusProtocol/venus-protocol/commit/ebef2cd84a55222f2503ff427c1547d69f5cd864))
+* swap fork tests ([c3a0fb2](https://github.com/VenusProtocol/venus-protocol/commit/c3a0fb202bd58eccb13839af4ff30231c2939958))
+* VEN-005 Change external function naming ([48c85bf](https://github.com/VenusProtocol/venus-protocol/commit/48c85bf3c6259a9cf48846c31c07b8f830dff930))
+* VENUS-002 remove checks with true/false in require ([fa35f34](https://github.com/VenusProtocol/venus-protocol/commit/fa35f34db15afdeee5a5630b2570419a9d09731e))
+* VENUS-003 check for zero address ([e9a2e5a](https://github.com/VenusProtocol/venus-protocol/commit/e9a2e5a924c5878e5d23b7a406ca1426171c89eb))
+* VENUS-004 fix floating pragmas ([7c3d2e0](https://github.com/VenusProtocol/venus-protocol/commit/7c3d2e0dd696118fd85b242f322fcb2e284cf4bd))
+* VENUS-006 add market active check ([4279d0d](https://github.com/VenusProtocol/venus-protocol/commit/4279d0d8984d4a90a81172797112325d289a9ebc))
+* VENUS-007 prevent massUpdatePools function ([027914e](https://github.com/VenusProtocol/venus-protocol/commit/027914e858b0db22bec5f690bf6c6009bea15421))
+* working docker setup ([252f201](https://github.com/VenusProtocol/venus-protocol/commit/252f201d3302752141d1858a3d6d0863de1a2a68))
+
 ## [2.1.0](https://github.com/VenusProtocol/venus-protocol/compare/v2.0.1...v2.1.0) (2023-08-24)
 
 ### Features
