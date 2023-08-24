@@ -58,9 +58,8 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
         require(msg.sender == owner(), "only owner can set PSR");
 
         require(address(protocolShareReserve_) != address(0), "PSR address invalid");
-        IProtocolShareReserve oldProtocolShareReserve = protocolShareReserve;
+        emit ProtocolShareReserveUpdated(protocolShareReserve, protocolShareReserve_);
         protocolShareReserve = protocolShareReserve_;
-        emit ProtocolShareReserveUpdated(oldProtocolShareReserve, protocolShareReserve);
     }
 
     /**
