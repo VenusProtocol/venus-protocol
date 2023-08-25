@@ -333,10 +333,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param newReduceReservesBlockDelta_ block difference value
      */
     function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_REDUCE_RESERVES_BLOCK_DELTA_OWNER_CHECK);
-        }
+        ensureAllowed("setReduceReservesBlockDelta(uint256)");
         emit NewReduceReservesBlockDelta(reduceReservesBlockDelta, newReduceReservesBlockDelta_);
         reduceReservesBlockDelta = newReduceReservesBlockDelta_;
     }

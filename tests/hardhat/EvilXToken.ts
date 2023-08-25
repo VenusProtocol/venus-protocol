@@ -97,6 +97,7 @@ describe("Evil Token test", async () => {
     await vDelegator1.deployed();
 
     vToken1 = await ethers.getContractAt("VBep20MockDelegate", vDelegator1.address);
+    await vToken1.setAccessControlManager(accessControlMock.address);
 
     await unitroller._supportMarket(vToken1.address);
     await unitroller._setCollateralFactor(vToken1.address, convertToUnit(cf1, 18));

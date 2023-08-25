@@ -136,8 +136,6 @@ describe("VAIController", async () => {
     await comptroller._supportMarket(vusdt.address);
     await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(5));
     await vusdt.setProtocolShareReserve(protocolShareReserve.address);
-    await vusdt.setReduceReservesBlockDelta(10000000000);
-
     return { usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt };
   }
 
@@ -147,6 +145,8 @@ describe("VAIController", async () => {
     ));
     accessControl.isAllowedToCall.reset();
     accessControl.isAllowedToCall.returns(true);
+    await vusdt.setAccessControlManager(accessControl.address);
+    await vusdt.setReduceReservesBlockDelta(10000000000);
     await vusdt.harnessSetBalance(user1.address, bigNumber18.mul(200));
     await comptroller.connect(user1).enterMarkets([vusdt.address]);
   });

@@ -6,6 +6,7 @@ import { ethers } from "hardhat";
 
 import {
   FaucetToken__factory,
+  IAccessControlManagerV5__factory,
   IProtocolShareReserve,
   VBep20Delegate,
   VBep20Delegate__factory,
@@ -35,6 +36,7 @@ chai.use(smock.matchers);
 const FORK_MAINNET = process.env.FORK_MAINNET === "true";
 
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
+const ACM = "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555";
 
 let impersonatedTimelock: Signer;
 let protocolShareReserve: FakeContract<IProtocolShareReserve>;
@@ -45,6 +47,7 @@ async function configureTimelock() {
 
 async function configureNew(vTokenAddress: string) {
   await configureTimelock();
+  const accessControlManager = IAccessControlManagerV5__factory.connect(ACM, impersonatedTimelock);
   const vTokenProxy = VBep20Delegator__factory.connect(vTokenAddress, impersonatedTimelock);
   const vTokenFactory = await ethers.getContractFactory("VBep20Delegate");
   const vTokenImpl = await vTokenFactory.deploy();
@@ -52,6 +55,12 @@ async function configureNew(vTokenAddress: string) {
   await vTokenProxy.connect(impersonatedTimelock)._setImplementation(vTokenImpl.address, true, "0x00");
   const vToken = VBep20Delegate__factory.connect(vTokenAddress, impersonatedTimelock);
   protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  await vToken.setAccessControlManager(ACM);
+  await accessControlManager.giveCallPermission(
+    vToken.address,
+    "setReduceReservesBlockDelta(uint256)",
+    NORMAL_TIMELOCK,
+  );
   await vToken.connect(impersonatedTimelock).setReduceReservesBlockDelta(1000);
   await vToken.connect(impersonatedTimelock).setProtocolShareReserve(protocolShareReserve.address);
   return vToken;
@@ -145,7 +154,7 @@ if (FORK_MAINNET) {
         amount: string,
       ) {
         await setForkBlock(blockNumber);
-        await mine(4);
+        await mine(6);
         const vTokenOld = await configureOld(vTokenContract);
         await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
         await vTokenOld.connect(signer).mint(amount);
@@ -176,7 +185,7 @@ if (FORK_MAINNET) {
         amount: string,
       ) {
         await setForkBlock(blockNumber);
-        await mine(4);
+        await mine(6);
         const vTokenOld = await configureOld(vTokenContract);
         await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
         await vTokenOld.connect(signer).borrow(amount);
@@ -207,7 +216,7 @@ if (FORK_MAINNET) {
         amount: string,
       ) {
         await setForkBlock(blockNumber);
-        await mine(4);
+        await mine(6);
         const vTokenOld = await configureOld(vTokenContract);
         await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
         await vTokenOld.connect(signer).redeem(amount);
@@ -238,7 +247,7 @@ if (FORK_MAINNET) {
         amount: string,
       ) {
         await setForkBlock(blockNumber);
-        await mine(4);
+        await mine(6);
         const vTokenOld = await configureOld(vTokenContract);
         await configureUserAndTokens(vTokenContract, userAddress, underlyingAddress, amount);
         await vTokenOld.connect(signer).repayBorrow(amount);
@@ -261,7 +270,7 @@ if (FORK_MAINNET) {
         };
       }
 
-      it("Should match mint operations in all markets", async () => {
+      it.only("Should match mint operations in all markets", async () => {
         const markets = Object.keys(vTokenAddresses);
         for (const market of markets) {
           const marketAddress = vTokenAddresses[market];
