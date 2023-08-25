@@ -84,8 +84,7 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
     /**
      * @notice Accept admin for vBNB
      */
-    function acceptVBNBAdmin() external nonReentrant returns (uint) {
-        require(msg.sender == owner(), "only owner can accept admin");
+    function acceptVBNBAdmin() external onlyOwner nonReentrant returns (uint) {
         return vBNB._acceptAdmin();
     }
 
@@ -107,9 +106,7 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
     /**
      * @notice Invoked when called function does not exist in the contract
      */
-    fallback(bytes calldata data) external payable returns (bytes memory) {
-        require(msg.sender == owner(), "only owner can call vBNB admin functions");
-
+    fallback(bytes calldata data) external payable onlyOwner returns (bytes memory) {
         (bool ok, bytes memory res) = address(vBNB).call{ value: msg.value }(data);
         require(ok, "call failed");
         return res;
