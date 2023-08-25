@@ -82,13 +82,6 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
     }
 
     /**
-     * @notice Accept admin for vBNB
-     */
-    function acceptVBNBAdmin() external onlyOwner nonReentrant returns (uint) {
-        return vBNB._acceptAdmin();
-    }
-
-    /**
      * @notice Wraps BNB into WBNB
      */
     function _wrapBNB() internal {
