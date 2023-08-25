@@ -227,7 +227,7 @@ contract VBep20 is VToken, VBep20Interface {
                 success := not(0) // set success to true
             }
             case 32 {
-                // This is a complaint BEP-20
+                // This is a compliant BEP-20
                 returndatacopy(0, 0, 32)
                 success := mload(0) // Set `success = returndata` of external call
             }

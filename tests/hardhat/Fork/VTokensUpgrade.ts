@@ -62,6 +62,9 @@ async function configureNew(vTokenAddress: string) {
     NORMAL_TIMELOCK,
   );
   await vToken.connect(impersonatedTimelock).setReduceReservesBlockDelta(1000);
+  await expect(
+    vToken.connect(impersonatedTimelock).setProtocolShareReserve(ethers.constants.AddressZero),
+  ).to.be.revertedWith("can't be zero address");
   await vToken.connect(impersonatedTimelock).setProtocolShareReserve(protocolShareReserve.address);
   return vToken;
 }
@@ -168,7 +171,7 @@ if (FORK_MAINNET) {
         const totalReservesnew = await vTokenNew.totalReserves();
         expect(result)
           .to.be.emit(vTokenNew, "ReservesReduced")
-          .withArgs(userAddress, totalReservesAfterMint, totalReservesnew);
+          .withArgs(protocolShareReserve.address, totalReservesAfterMint, totalReservesnew);
         const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
 
         return {
@@ -199,7 +202,7 @@ if (FORK_MAINNET) {
         const totalReservesnew = await vTokenNew.totalReserves();
         expect(result)
           .to.be.emit(vTokenNew, "ReservesReduced")
-          .withArgs(userAddress, totalReservesAfterBorrow, totalReservesnew);
+          .withArgs(protocolShareReserve.address, totalReservesAfterBorrow, totalReservesnew);
         const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
 
         return {
@@ -230,7 +233,7 @@ if (FORK_MAINNET) {
         const totalReservesnew = await vTokenNew.totalReserves();
         expect(result)
           .to.be.emit(vTokenNew, "ReservesReduced")
-          .withArgs(userAddress, totalReservesAfterRedeem, totalReservesnew);
+          .withArgs(protocolShareReserve.address, totalReservesAfterRedeem, totalReservesnew);
         const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
 
         return {
@@ -261,7 +264,7 @@ if (FORK_MAINNET) {
         const totalReservesnew = await vTokenNew.totalReserves();
         expect(result)
           .to.be.emit(vTokenNew, "ReservesReduced")
-          .withArgs(userAddress, totalReservesAfterRepayBorrow, totalReservesnew);
+          .withArgs(protocolShareReserve.address, totalReservesAfterRepayBorrow, totalReservesnew);
         const newState = await fetchStorage(vTokenNew, userAddress, userAddress);
 
         return {
