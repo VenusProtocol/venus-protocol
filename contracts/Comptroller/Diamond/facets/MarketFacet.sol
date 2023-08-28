@@ -167,7 +167,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
     /**
      * @notice Add the market to the markets mapping and set it as listed
-     * @dev Admin function to set isListed and add support for the market
+     * @dev Allows a privileged role to add and list markets to the Comptroller
      * @param vToken The address of the market (token) to list
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */

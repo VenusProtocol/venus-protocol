@@ -25,7 +25,8 @@ contract Diamond is IDiamondCut, ComptrollerV12Storage {
     }
 
     /**
-     * @notice To add function selectors to the facets' mapping
+     * @notice To add function selectors to the facet's mapping
+     * @dev Allows the contract admin to add function selectors
      * @param diamondCut_ IDiamondCut contains facets address, action and function selectors
      */
     function diamondCut(IDiamondCut.FacetCut[] memory diamondCut_) public {

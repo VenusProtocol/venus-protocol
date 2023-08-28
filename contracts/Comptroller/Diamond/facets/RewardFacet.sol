@@ -110,7 +110,8 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
     /**
      * @notice Transfer XVS to the recipient
-     * @dev Note: If there is not enough XVS, we do not perform the transfer all
+     * @dev Allows the contract admin to transfer XVS to any recipient based on the recipient's shortfall
+     *      Note: If there is not enough XVS, we do not perform the transfer all
      * @param recipient The address of the recipient to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      */

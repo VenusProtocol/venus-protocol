@@ -417,6 +417,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     // setter functionality
     /**
      * @notice Set XVS speed for a single market
+     * @dev Allows the contract admin to set XVS speed for a market
      * @param vTokens The market whose XVS speed to update
      * @param supplySpeeds New XVS speed for supply
      * @param borrowSpeeds New XVS speed for borrow
