@@ -1,3 +1,10 @@
+## [2.2.1](https://github.com/VenusProtocol/venus-protocol/compare/v2.2.0...v2.2.1) (2023-08-28)
+
+
+### Bug Fixes
+
+* remove exports from package.json ([1192698](https://github.com/VenusProtocol/venus-protocol/commit/11926980735f0bb613f4dff0df4424dcdda5a6b3))
+
 ## [2.2.0](https://github.com/VenusProtocol/venus-protocol/compare/v2.1.0...v2.2.0) (2023-08-24)
 
 
