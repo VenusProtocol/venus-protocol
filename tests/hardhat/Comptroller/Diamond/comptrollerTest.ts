@@ -336,7 +336,7 @@ describe("Comptroller", () => {
   describe("_setCloseFactor", () => {
     let comptroller: ComptrollerMock;
     let unitroller: Unitroller;
-    
+
     beforeEach(async () => {
       ({ comptroller } = await loadFixture(deploySimpleComptroller));
     });
