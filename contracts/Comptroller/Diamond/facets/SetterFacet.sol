@@ -129,8 +129,18 @@ contract SetterFacet is ISetterFacet, FacetBase {
         // Check caller is admin
         ensureAdmin();
 
-        uint256 oldCloseFactorMantissa = closeFactorMantissa;
+        Exp memory newCloseFactorExp = Exp({ mantissa: newCloseFactorMantissa });
 
+        //-- Check close factor <= 0.9
+        Exp memory highLimit = Exp({ mantissa: closeFactorMaxMantissa });
+        //-- Check close factor >= 0.05
+        Exp memory lowLimit = Exp({ mantissa: closeFactorMinMantissa });
+
+        if (lessThanExp(highLimit, newCloseFactorExp) && greaterThanExp(lowLimit, newCloseFactorExp)) {
+            return fail(Error.INVALID_CLOSE_FACTOR, FailureInfo.SET_CLOSE_FACTOR_VALIDATION);
+        }
+
+        uint256 oldCloseFactorMantissa = closeFactorMantissa;
         closeFactorMantissa = newCloseFactorMantissa;
         emit NewCloseFactor(oldCloseFactorMantissa, newCloseFactorMantissa);
 
@@ -238,6 +248,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     ) external compareAddress(liquidatorContract, newLiquidatorContract_) {
         // Check caller is admin
         ensureAdmin();
+        ensureNonzeroAddress(newLiquidatorContract_);
         address oldLiquidatorContract = liquidatorContract;
         liquidatorContract = newLiquidatorContract_;
         emit NewLiquidatorContract(oldLiquidatorContract, newLiquidatorContract_);
