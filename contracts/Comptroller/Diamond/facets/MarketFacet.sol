@@ -74,8 +74,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
         address vTokenCollateral,
         uint256 actualRepayAmount
     ) external view returns (uint256, uint256) {
-        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
+        (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
             address(this),
+            vaiController.getVAIAddress(),
             vTokenCollateral,
             actualRepayAmount
         );
