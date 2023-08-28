@@ -3,6 +3,11 @@ pragma solidity ^0.5.16;
 import "../../Utils/ErrorReporter.sol";
 import "./VAIControllerStorage.sol";
 
+/**
+ * @title VAI Unitroller
+ * @author Venus
+ * @notice This is the proxy contract for the VAIComptroller
+ */
 contract VAIUnitroller is VAIUnitrollerAdminStorage, VAIControllerErrorReporter {
     /**
      * @notice Emitted when pendingVAIControllerImplementation is changed

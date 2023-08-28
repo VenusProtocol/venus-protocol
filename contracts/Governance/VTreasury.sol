@@ -5,7 +5,9 @@ import "../Utils/SafeBEP20.sol";
 import "../Utils/Ownable.sol";
 
 /**
- * @dev Contract for treasury all tokens as fee and transfer to governance
+ * @title VTreasury
+ * @author Venus
+ * @notice Protocol treasury that holds tokens owned by Venus
  */
 contract VTreasury is Ownable {
     using SafeMath for uint256;
