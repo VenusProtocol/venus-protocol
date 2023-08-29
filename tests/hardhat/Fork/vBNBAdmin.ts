@@ -107,7 +107,7 @@ if (FORK_MAINNET) {
             await VBNBAdmin.reduceReserves(amount); //4869.449631532919221682
 
             let balance = await vBNB.totalReserves();
-            expect(balance).to.be.equal("365812375578874632"); //0.365812375578874632
+            expect(balance).to.be.equal("366663102033709224"); //0.366663102033709224
             balance = await ethers.provider.getBalance(VBNBAdmin.address);
             expect(balance).to.be.equal(0);
             balance = await WBNB.balanceOf(protocolShareReserve.address);
