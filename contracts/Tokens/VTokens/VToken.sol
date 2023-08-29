@@ -329,7 +329,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice An admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @notice Governance function to set new threshold of block difference after which funds will be sent to the protocol share reserve
      * @param newReduceReservesBlockDelta_ block difference value
      */
     function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external returns (uint) {
