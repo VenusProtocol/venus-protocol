@@ -136,7 +136,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         //-- Check close factor >= 0.05
         Exp memory lowLimit = Exp({ mantissa: closeFactorMinMantissa });
 
-        if (lessThanExp(highLimit, newCloseFactorExp) && greaterThanExp(lowLimit, newCloseFactorExp)) {
+        if (lessThanExp(highLimit, newCloseFactorExp) || greaterThanExp(lowLimit, newCloseFactorExp)) {
             return fail(Error.INVALID_CLOSE_FACTOR, FailureInfo.SET_CLOSE_FACTOR_VALIDATION);
         }
 
