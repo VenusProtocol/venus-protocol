@@ -279,7 +279,7 @@ describe("PrimeScenario Token", () => {
       expect(stake).be.gt(0);
 
       await expect(prime.connect(user).claim()).to.be.revertedWithCustomError(prime, "WaitMoreTime");
-
+      expect(await prime.claimTimeRemaining(user.getAddress())).to.be.equal(7775999);
       await mine(90 * 24 * 60 * 60);
       await expect(prime.connect(user).claim()).to.be.not.reverted;
 
@@ -351,7 +351,7 @@ describe("PrimeScenario Token", () => {
       expect(token.exists).to.be.equal(true);
     });
 
-    it.only("manually burn irrevocable token", async () => {
+    it("manually burn irrevocable token", async () => {
       await prime.issue(true, [user1.getAddress(), user2.getAddress()]);
 
       let token = await prime.tokens(user1.getAddress());

@@ -250,6 +250,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         _initializeMarkets(msg.sender);
     }
 
+    /**
+     * @notice For burning any prime token
+     * @param user the account address for which the prime token will be burned
+     */
     function burn(address user) external {
         _checkAccessAllowed("burn(address)");
 
@@ -264,6 +268,22 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         }
 
         _burn(user);
+    }
+
+    /**
+     * @notice fetch the numbers of seconds remaining for staking period to complete
+     * @param user the account address for which we are checking the remaining time
+     * @return timeRemaining the number of seconds the user needs to wait to claim prime token
+     */
+    function claimTimeRemaining(address user) external view returns (uint256) {
+        if (stakedAt[user] == 0) revert IneligibleToClaim();
+
+        uint256 totalTimeStaked = block.timestamp - stakedAt[user];
+        if (totalTimeStaked < STAKING_PERIOD) {
+            return STAKING_PERIOD - totalTimeStaked;
+        } else {
+            return 0;
+        }
     }
 
     /**
