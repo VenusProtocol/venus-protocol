@@ -9,7 +9,10 @@ import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterfa
 import { FacetBase, VToken } from "./FacetBase.sol";
 
 /**
+ * @title SetterFacet
+ * @author Venus
  * @dev This facet contains all the setters for the states
+ * @notice This facet contract contains all the configurational setter functions
  */
 contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when close factor is changed by admin

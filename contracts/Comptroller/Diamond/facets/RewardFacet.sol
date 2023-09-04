@@ -8,7 +8,10 @@ import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
+ * @title RewardFacet
+ * @author Venus
  * @dev This facet contains all the methods related to the reward functionality
+ * @notice This facet contract provides the external functions related to all claims and rewards of the protocol
  */
 contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin

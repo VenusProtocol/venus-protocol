@@ -6,7 +6,10 @@ import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase, VToken } from "./FacetBase.sol";
 
 /**
+ * @title MarketFacet
+ * @author Venus
  * @dev This facet contains all the methods related to the market's management in the pool
+ * @notice This facet contract contains functions regarding markets
  */
 contract MarketFacet is IMarketFacet, FacetBase {
     /// @notice Emitted when an admin supports a market
