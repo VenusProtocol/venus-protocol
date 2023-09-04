@@ -206,22 +206,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         bool isAccountEligible = isEligible(totalStaked);
 
         if (tokens[user].exists && !isAccountEligible) {
-            address[] storage _allMarkets = allMarkets;
             if (tokens[user].isIrrevocable) {
-                for (uint i = 0; i < _allMarkets.length; i++) {
-                    executeBoost(user, _allMarkets[i]);
-                    updateScore(user, _allMarkets[i]);
-                }
+                _accrueInterestAndUpdateScore(user);
             } else {
-                
-                for (uint i = 0; i < _allMarkets.length; i++) {
-                    executeBoost(user, _allMarkets[i]);
-                    
-                    markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][user].score;
-                    interests[_allMarkets[i]][user].score = 0;
-                    interests[_allMarkets[i]][user].rewardIndex = 0;
-                }
-
                 _burn(user);
             }
         } else if (!isAccountEligible && !tokens[user].exists && stakedAt[user] > 0) {
@@ -229,11 +216,15 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         } else if (stakedAt[user] == 0 && isAccountEligible && !tokens[user].exists) {
             stakedAt[user] = block.timestamp;
         } else if (tokens[user].exists && isAccountEligible) {
-            address[] storage _allMarkets = allMarkets;
-            for (uint i = 0; i < _allMarkets.length; i++) {
-                executeBoost(user, _allMarkets[i]);
-                updateScore(user, _allMarkets[i]);
-            }
+            _accrueInterestAndUpdateScore(user);
+        }
+    }
+
+    function _accrueInterestAndUpdateScore(address user) internal {
+        address[] storage _allMarkets = allMarkets;
+        for (uint i = 0; i < _allMarkets.length; i++) {
+            executeBoost(user, _allMarkets[i]);
+            updateScore(user, _allMarkets[i]);
         }
     }
 
@@ -256,17 +247,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      */
     function burn(address user) external {
         _checkAccessAllowed("burn(address)");
-
-        address[] storage _allMarkets = allMarkets;
-
-        for (uint i = 0; i < _allMarkets.length; i++) {
-            executeBoost(user, _allMarkets[i]);
-            
-            markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][user].score;
-            interests[_allMarkets[i]][user].score = 0;
-            interests[_allMarkets[i]][user].rewardIndex = 0;
-        }
-
         _burn(user);
     }
 
@@ -411,6 +391,16 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      */
     function _burn(address user) internal {
         if (!tokens[user].exists) revert UserHasNoPrimeToken();
+
+        address[] storage _allMarkets = allMarkets;
+
+        for (uint i = 0; i < _allMarkets.length; i++) {
+            executeBoost(user, _allMarkets[i]);
+            
+            markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][user].score;
+            interests[_allMarkets[i]][user].score = 0;
+            interests[_allMarkets[i]][user].rewardIndex = 0;
+        }
 
         if (tokens[user].isIrrevocable) {
             _totalIrrevocable--;
