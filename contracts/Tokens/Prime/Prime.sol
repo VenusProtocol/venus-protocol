@@ -5,6 +5,8 @@ import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlle
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
+import "hardhat/console.sol";
+
 interface IVToken {
     function borrowBalanceStored(address account) external returns (uint);
     function exchangeRateStored() external returns (uint);
@@ -205,15 +207,23 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         if (tokens[user].exists && !isAccountEligible) {
             address[] storage _allMarkets = allMarkets;
-            for (uint i = 0; i < _allMarkets.length; i++) {
-                executeBoost(user, _allMarkets[i]);
+            if (tokens[user].isIrrevocable) {
+                for (uint i = 0; i < _allMarkets.length; i++) {
+                    executeBoost(user, _allMarkets[i]);
+                    updateScore(user, _allMarkets[i]);
+                }
+            } else {
                 
-                markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][user].score;
-                interests[_allMarkets[i]][user].score = 0;
-                interests[_allMarkets[i]][user].rewardIndex = 0;
-            }
+                for (uint i = 0; i < _allMarkets.length; i++) {
+                    executeBoost(user, _allMarkets[i]);
+                    
+                    markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][user].score;
+                    interests[_allMarkets[i]][user].score = 0;
+                    interests[_allMarkets[i]][user].rewardIndex = 0;
+                }
 
-            _burn(user);
+                _burn(user);
+            }
         } else if (!isAccountEligible && !tokens[user].exists && stakedAt[user] > 0) {
             stakedAt[user] = 0;
         } else if (stakedAt[user] == 0 && isAccountEligible && !tokens[user].exists) {
@@ -238,6 +248,22 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         _mint(false, msg.sender);
         _initializeMarkets(msg.sender);
+    }
+
+    function burn(address user) external {
+        _checkAccessAllowed("burn(address)");
+
+        address[] storage _allMarkets = allMarkets;
+
+        for (uint i = 0; i < _allMarkets.length; i++) {
+            executeBoost(user, _allMarkets[i]);
+            
+            markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][user].score;
+            interests[_allMarkets[i]][user].score = 0;
+            interests[_allMarkets[i]][user].rewardIndex = 0;
+        }
+
+        _burn(user);
     }
 
     /**

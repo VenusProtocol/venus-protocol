@@ -310,7 +310,7 @@ describe("PrimeScenario Token", () => {
       expect(stake).be.equal(0);
     });
 
-    it("burn", async () => {
+    it("burn revocable token", async () => {
       const user = user1;
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
@@ -333,6 +333,39 @@ describe("PrimeScenario Token", () => {
       expect(token.isIrrevocable).to.be.equal(false);
 
       expect(await prime._totalRevocable()).to.be.equal(0);
+    });
+
+    it("cannot burn irrevocable token", async () => {
+      await prime.issue(true, [user1.getAddress(), user2.getAddress()]);
+
+      let token = await prime.tokens(user1.getAddress());
+      expect(token.exists).to.be.equal(true);
+      expect(token.isIrrevocable).to.be.equal(true);
+
+      token = await prime.tokens(user2.getAddress());
+      expect(token.isIrrevocable).to.be.equal(true);
+      expect(token.exists).to.be.equal(true);
+
+      await prime.xvsUpdated(user1.getAddress());
+      expect(token.isIrrevocable).to.be.equal(true);
+      expect(token.exists).to.be.equal(true);
+    });
+
+    it.only("manually burn irrevocable token", async () => {
+      await prime.issue(true, [user1.getAddress(), user2.getAddress()]);
+
+      let token = await prime.tokens(user1.getAddress());
+      expect(token.exists).to.be.equal(true);
+      expect(token.isIrrevocable).to.be.equal(true);
+
+      token = await prime.tokens(user2.getAddress());
+      expect(token.isIrrevocable).to.be.equal(true);
+      expect(token.exists).to.be.equal(true);
+
+      await prime.burn(user1.getAddress());
+      token = await prime.tokens(user1.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.exists).to.be.equal(false);
     });
 
     it("issue", async () => {
