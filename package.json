@@ -11,6 +11,7 @@
   "files": [
     "artifacts",
     "networks",
+    "deploy",
     "dist",
     "contracts",
     "deployments"
