@@ -528,11 +528,28 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param vToken the market for which claim the accrued interest
      */
     function claimInterest(address vToken) external {
-        uint256 amount = getInterestAccrued(vToken, msg.sender);
-        amount += interests[vToken][msg.sender].accrued;
+        _claimInterest(vToken, msg.sender);
+    }
 
-        interests[vToken][msg.sender].rewardIndex = markets[vToken].rewardIndex;
-        interests[vToken][msg.sender].accrued = 0;
+    /**
+     * @notice For user to claim boosted yield
+     * @param vToken the market for which claim the accrued interest
+     */
+    function claimInterest(address vToken, address user) external {
+        _claimInterest(vToken, user);
+    }
+
+    /**
+     * @notice To transfer the accrued interest to user
+     * @param vToken the market for which claim the accrued interest
+     * @param user the account for which to get the accrued interest
+     */
+    function _claimInterest(address vToken, address user) internal {
+        uint256 amount = getInterestAccrued(vToken, user);
+        amount += interests[vToken][user].accrued;
+
+        interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
+        interests[vToken][user].accrued = 0;
 
         IERC20Upgradeable asset = IERC20Upgradeable(_getUnderlying(vToken));
 
@@ -542,7 +559,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
         }
 
-        asset.safeTransfer(msg.sender, amount);
+        asset.safeTransfer(user, amount);
     }
 
     /**

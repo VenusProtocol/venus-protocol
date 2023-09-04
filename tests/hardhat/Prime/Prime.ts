@@ -488,12 +488,12 @@ describe("PrimeScenario Token", () => {
       await prime.accrueInterest(vusdt.address);
       expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(518320);
 
-      await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.reverted;
+      await expect(prime.connect(user1)["claimInterest(address)"](vusdt.address)).to.be.reverted;
 
       const interest = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
       await usdt.transfer(prime.address, interest);
       const previousBalance = await usdt.balanceOf(user1.getAddress());
-      await expect(prime.connect(user1).claimInterest(vusdt.address)).to.be.not.reverted;
+      await expect(prime["claimInterest(address,address)"](vusdt.address, user1.getAddress())).to.be.not.reverted;
       const newBalance = await usdt.balanceOf(user1.getAddress());
       expect(newBalance).to.be.equal(previousBalance.add(interest));
     });
