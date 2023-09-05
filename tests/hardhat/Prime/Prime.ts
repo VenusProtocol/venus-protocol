@@ -60,6 +60,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
   await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
+  await protocolShareReserve.MAX_PERCENT.returns("100");
 
   const tokenFactory = await ethers.getContractFactory("BEP20Harness");
   const usdt = (await tokenFactory.deploy(
@@ -404,6 +405,7 @@ describe("PrimeScenario Token", () => {
       ));
 
       await protocolShareReserve.getUnreleasedFunds.returns("0");
+      await protocolShareReserve.getPercentageDistribution.returns("100");
 
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));

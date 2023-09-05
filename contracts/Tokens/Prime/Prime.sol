@@ -667,16 +667,18 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint256 userScore,
         uint256 totalScore
     ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
+        if (totalScore == 0) return (0,0);
+
         uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
         uint256 totalValue = totalSupply + totalBorrow;
-
+    
         if (totalValue == 0) return (0,0);
 
         uint256 userSupplyIncomeYearly = (userYearlyIncome * totalSupply) / totalValue;
         uint256 userBorrowIncomeYearly = (userYearlyIncome * totalBorrow) / totalValue;
 
-        supplyAPR = (userSupplyIncomeYearly * MAXIMUM_BPS) / totalSupply;
-        borrowAPR = (userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow;
+        supplyAPR = totalSupply == 0 ? 0 : ((userSupplyIncomeYearly * MAXIMUM_BPS) / totalSupply);
+        borrowAPR = totalBorrow == 0 ? 0 : ((userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow);
     }
 
     function calculateAPR(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
