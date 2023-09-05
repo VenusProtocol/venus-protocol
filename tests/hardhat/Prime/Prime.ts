@@ -172,20 +172,13 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
 
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
-  const prime:PrimeScenario = await upgrades.deployProxy(primeFactory, [
-    xvsVault.address,
-    xvs.address,
-    0,
-    1,
-    2,
-    accessControl.address,
-    protocolShareReserve.address,
-    comptroller.address,
-  ], {
-    constructorArgs: [wbnb.address,
-      vbnb.address],
-  });
-
+  const prime: PrimeScenario = await upgrades.deployProxy(
+    primeFactory,
+    [xvsVault.address, xvs.address, 0, 1, 2, accessControl.address, protocolShareReserve.address, comptroller.address],
+    {
+      constructorArgs: [wbnb.address, vbnb.address],
+    },
+  );
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 

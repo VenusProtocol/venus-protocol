@@ -7,8 +7,11 @@ import "./libs/Scores.sol";
 
 interface IVToken {
     function borrowBalanceStored(address account) external returns (uint);
+
     function exchangeRateStored() external returns (uint);
+
     function balanceOf(address account) external view returns (uint);
+
     function underlying() external view returns (address);
 }
 
@@ -130,7 +133,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     function updateMultipliers(address market, uint256 _supplyMultiplier, uint256 _borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
         if (!markets[market].exists) revert MarketNotSupported();
-        
+
         accrueInterest(market);
         markets[market].supplyMultiplier = _supplyMultiplier;
         markets[market].borrowMultiplier = _borrowMultiplier;
@@ -207,8 +210,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
                 executeBoost(user, _allMarkets[i]);
-                
-                markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][user].score;
+
+                markets[_allMarkets[i]].sumOfMembersScore =
+                    markets[_allMarkets[i]].sumOfMembersScore -
+                    interests[_allMarkets[i]][user].score;
                 interests[_allMarkets[i]][user].score = 0;
                 interests[_allMarkets[i]][user].rewardIndex = 0;
             }
@@ -443,7 +448,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         );
 
         uint256 distributionIncome = totalIncomeUnreleased - unreleasedIncome[underlying];
-        
 
         if (distributionIncome == 0) {
             return;
@@ -527,7 +531,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
-            
+
             if (!tokens[user].exists) revert UserHasNoPrimeToken();
             if (isScoreUpdated[nextScoreUpdateRoundId][user]) continue;
 
@@ -556,7 +560,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      */
     function _updateRoundAfterTokenBurned(address user) internal {
         if (totalScoreUpdatesRequired > 0) totalScoreUpdatesRequired--;
-        
+
         if (pendingScoreUpdates > 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
             pendingScoreUpdates--;
         }
