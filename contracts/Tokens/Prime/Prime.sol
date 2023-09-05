@@ -8,10 +8,13 @@ import "./libs/Scores.sol";
 import "hardhat/console.sol";
 
 interface IVToken {
-    function borrowBalanceStored(address account) external returns (uint);
-    function exchangeRateStored() external returns (uint);
+    function borrowBalanceStored(address account) external view returns (uint);
+    function exchangeRateStored() external view returns (uint);
     function balanceOf(address account) external view returns (uint);
     function underlying() external view returns (address);
+    function totalBorrows() external view returns (uint);
+    function borrowRatePerBlock() external view returns (uint);
+    function reserveFactorMantissa() external view returns (uint);
 }
 
 interface IXVSVault {
@@ -36,6 +39,8 @@ interface IProtocolShareReserve {
     ) external view returns (uint256);
 
     function releaseFunds(address comptroller, address[] memory assets) external;
+    function getPercentageDistribution(address destination, Schema schema) external view returns (uint256);
+    function MAX_PERCENT() external view returns (uint256);
 }
 
 interface IIncomeDestination {
@@ -54,6 +59,8 @@ error MarketAlreadyExists();
 
 contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    
+    uint256 private constant BLOCKS_PER_YEAR = 210240000;
 
     /// @notice address of WBNB contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
@@ -570,6 +577,18 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         emit UpdatedAssetsState(comptroller, asset);
     }
 
+    function _getUnderlying(address vToken) internal view returns (address) {
+        if (vToken == vBNB) {
+            return WBNB;
+        } else {
+            return IVToken(vToken).underlying();
+        }
+    }
+
+    //////////////////////////////////////////////////
+    /////// Update Scores after Config Change ///////
+    ////////////////////////////////////////////////
+
     /**
      * @notice Update total score of multiple users and market
      * @param users accounts for which we need to update score
@@ -615,11 +634,53 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         }
     }
 
-    function _getUnderlying(address vToken) internal view returns (address) {
-        if (vToken == vBNB) {
-            return WBNB;
-        } else {
-            return IVToken(vToken).underlying();
-        }
+    //////////////////////////////////////////////////
+    //////////////// APR Calculation ////////////////
+    ////////////////////////////////////////////////    
+
+    function _incomePerBlock(address vToken) internal view returns (uint256) {
+        IVToken market = IVToken(vToken);
+        return ((((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) * market.reserveFactorMantissa()) / EXP_SCALE);
+    }
+
+    function _distributionPercentage() internal view returns (uint256) {
+        return IProtocolShareReserve(protocolShareReserve).getPercentageDistribution(
+            address(this), IProtocolShareReserve.Schema.SPREAD_PRIME_CORE
+        );
+    }
+
+    function _incomeDistributionYearly(address vToken) internal view returns (uint256) {
+        uint256 totalIncomePerBlock = _incomePerBlock(vToken);
+        uint256 incomePerBlockForDistribution = (totalIncomePerBlock * _distributionPercentage()) / IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
+        return BLOCKS_PER_YEAR * incomePerBlockForDistribution;
+    }
+
+    function _calculateUserAPR(
+        address vToken, 
+        address user, 
+        uint256 totalSupply, 
+        uint256 totalBorrow
+    ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
+        uint256 userScore = interests[vToken][user].score;
+        uint256 totalScore = markets[vToken].sumOfMembersScore;
+
+        uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
+        uint256 totalValue = totalSupply + totalBorrow;
+
+        uint256 userSupplyIncomeYearly = (userYearlyIncome * totalSupply) / totalValue;
+        uint256 userBorrowIncomeYearly = (userYearlyIncome * totalBorrow) / totalValue;
+
+        supplyAPR = (userSupplyIncomeYearly * MAXIMUM_BPS) / totalSupply;
+        borrowAPR = (userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow;
+    }
+
+    function apr(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
+        IVToken vToken = IVToken(market);
+        uint256 borrow = vToken.borrowBalanceStored(user);
+        uint256 exchangeRate = vToken.exchangeRateStored();
+        uint256 balanceOfAccount = vToken.balanceOf(user);
+        uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
+
+        return _calculateUserAPR(market, user, supply, borrow);
     }
 }
