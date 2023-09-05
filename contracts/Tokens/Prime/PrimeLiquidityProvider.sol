@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.13;
 
-import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { SafeERC20Upgradeable, IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 
-contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
+contract PrimeLiquidityProvider is AccessControlledV8 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice The max token distribution speed
     uint224 public constant MAX_DISTRIBUTION_SPEED = 1e18;
+
+    /// @notice exp scale
+    uint256 internal constant EXP_SCALE = 1e18;
 
     /// @notice Address of the Prime contract
     address public prime;
@@ -29,10 +31,6 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     /// @notice Is funds transfer paused to prime token
     bool public fundsTransferpaused;
 
-    /// @dev This empty reserved space is put in place to allow future versions to add new
-    /// variables without shifting down storage in the inheritance chain.
-    uint256[46] private __gap;
-
     /// @notice Emitted when a token distribution is initialized
     event TokenDistributionInitialized(address indexed token);
 
@@ -40,7 +38,7 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     event TokenDistributionSpeedUpdated(address indexed token, uint256 newSpeed);
 
     /// @notice Emitted when distribution state(Index and block) is updated
-    event TokensAccrued(address indexed token);
+    event TokensAccrued(address indexed token, uint256 amount);
 
     /// @notice Emitted when token is transferred to the prime contract
     event TokenTransferredToPrime(address indexed token, uint256 amount);
@@ -83,34 +81,6 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     }
 
     /**
-     * @notice Accrue token by updating the distribution state
-     * @param token_ Address of the token
-     * @custom:event Emits TokensAccrued event
-     */
-    function accrueTokens(address token_) public {
-        uint256 blockNumber = getBlockNumber();
-        uint256 deltaBlocks = blockNumber - lastAccruedBlock[token_];
-
-        if (deltaBlocks > 0) {
-            uint256 distributionSpeed = tokenDistributionSpeeds[token_];
-            uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
-
-            if (distributionSpeed > 0 && balance > 0) {
-                uint256 initialBalance = initialBalances[token_];
-                uint256 accruedSinceUpdate = deltaBlocks * distributionSpeed;
-                uint256 estimatedAccrue = (initialBalance * accruedSinceUpdate);
-                uint256 tokenAccrued = (balance <= estimatedAccrue ? balance : estimatedAccrue);
-
-                tokenAmountAccrued[token_] += tokenAccrued;
-            }
-
-            lastAccruedBlock[token_] = blockNumber;
-
-            emit TokensAccrued(token_);
-        }
-    }
-
-    /**
      * @notice RewardsDistributor initializer
      * @dev Initializes the deployer to owner
      * @param accessControlManager_ AccessControlManager contract address
@@ -123,8 +93,7 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
         address[] calldata tokens_,
         uint256[] calldata distributionSpeeds_
     ) external initializer {
-        __Ownable2Step_init();
-        __AccessControlled_init_unchained(accessControlManager_);
+        __AccessControlled_init(accessControlManager_);
 
         uint256 numTokens = tokens_.length;
         if (numTokens != distributionSpeeds_.length) {
@@ -260,6 +229,35 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
         token_.safeTransfer(to_, balance);
 
         emit SweepToken(address(token_), to_, amount_);
+    }
+
+    /**
+     * @notice Accrue token by updating the distribution state
+     * @param token_ Address of the token
+     * @custom:event Emits TokensAccrued event
+     */
+    function accrueTokens(address token_) public {
+        uint256 blockNumber = getBlockNumber();
+        uint256 deltaBlocks = blockNumber - lastAccruedBlock[token_];
+
+        if (deltaBlocks > 0) {
+            uint256 distributionSpeed = tokenDistributionSpeeds[token_];
+            uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
+            uint256 tokenAccrued;
+
+            if (distributionSpeed > 0 && balance > 0) {
+                uint256 initialBalance = initialBalances[token_];
+                uint256 accruedSinceUpdate = deltaBlocks * distributionSpeed;
+                uint256 estimatedAccrue = (initialBalance * accruedSinceUpdate) / EXP_SCALE;
+                tokenAccrued = (balance <= estimatedAccrue ? balance : estimatedAccrue);
+
+                tokenAmountAccrued[token_] += tokenAccrued;
+            }
+
+            lastAccruedBlock[token_] = blockNumber;
+
+            emit TokensAccrued(token_, tokenAccrued);
+        }
     }
 
     /**
