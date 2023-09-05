@@ -60,7 +60,9 @@ error MarketAlreadyExists();
 contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     
-    uint256 private constant BLOCKS_PER_YEAR = 210240000;
+    /// @notice total blocks per year
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable BLOCKS_PER_YEAR;
 
     /// @notice address of WBNB contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
@@ -80,11 +82,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     event UpdatedAssetsState(address indexed comptroller, address indexed asset);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address _wbnb, address _vbnb) {
+    constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) {
         require(_wbnb != address(0), "Prime: WBNB address invalid");
         require(_vbnb != address(0), "Prime: vBNB address invalid");
+        require(_blocksPerYear != 0, "Prime: Invalid blocks per year");
         WBNB = _wbnb;
         vBNB = _vbnb;
+        BLOCKS_PER_YEAR = _blocksPerYear;
 
         // Note that the contract is upgradeable. Use initialize() or reinitializers
         // to set the state variables.
@@ -659,13 +663,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         address vToken, 
         address user, 
         uint256 totalSupply, 
-        uint256 totalBorrow
+        uint256 totalBorrow,
+        uint256 userScore,
+        uint256 totalScore
     ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
-        uint256 userScore = interests[vToken][user].score;
-        uint256 totalScore = markets[vToken].sumOfMembersScore;
-
         uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
         uint256 totalValue = totalSupply + totalBorrow;
+
+        if (totalValue == 0) return (0,0);
 
         uint256 userSupplyIncomeYearly = (userYearlyIncome * totalSupply) / totalValue;
         uint256 userBorrowIncomeYearly = (userYearlyIncome * totalBorrow) / totalValue;
@@ -674,13 +679,37 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         borrowAPR = (userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow;
     }
 
-    function apr(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
+    function calculateAPR(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
         IVToken vToken = IVToken(market);
         uint256 borrow = vToken.borrowBalanceStored(user);
         uint256 exchangeRate = vToken.exchangeRateStored();
         uint256 balanceOfAccount = vToken.balanceOf(user);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
-        return _calculateUserAPR(market, user, supply, borrow);
+        uint256 userScore = interests[market][user].score;
+        uint256 totalScore = markets[market].sumOfMembersScore;
+
+        return _calculateUserAPR(market, user, supply, borrow, userScore, totalScore);
+    }
+
+    function estimateAPR(
+        address market, 
+        address user,
+        uint256 borrow,
+        uint256 supply,
+        uint256 xvsStaked
+    ) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
+        uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
+
+        uint256 userScore = Scores.calculateScore(
+            xvsStaked,
+            _capitalForScore(xvsStaked, borrow, supply, market),
+            alphaNumerator,
+            alphaDenominator
+        );
+
+        totalScore = totalScore + userScore;
+
+        return _calculateUserAPR(market, user, supply, borrow, userScore, totalScore);
     }
 }
