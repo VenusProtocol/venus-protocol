@@ -15,6 +15,7 @@ import {
   IProtocolShareReserve,
   InterestRateModelHarness,
   PriceOracle,
+  PrimeLiquidityProvider,
   PrimeScenario,
   VBep20Harness,
   XVS,
@@ -50,6 +51,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const oracle = await smock.fake<PriceOracle>("PriceOracle");
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  const primeLiquidityProvider = await smock.fake<PrimeLiquidityProvider>("PrimeLiquidityProvider");
   const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
@@ -174,7 +176,17 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
   const prime: PrimeScenario = await upgrades.deployProxy(
     primeFactory,
-    [xvsVault.address, xvs.address, 0, 1, 2, accessControl.address, protocolShareReserve.address, comptroller.address],
+    [
+      xvsVault.address,
+      xvs.address,
+      0,
+      1,
+      2,
+      accessControl.address,
+      protocolShareReserve.address,
+      primeLiquidityProvider.address,
+      comptroller.address,
+    ],
     {
       constructorArgs: [wbnb.address, vbnb.address],
     },

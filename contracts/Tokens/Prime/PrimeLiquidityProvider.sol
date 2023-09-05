@@ -14,7 +14,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
     uint256 internal constant EXP_SCALE = 1e18;
 
     /// @notice Address of the Prime contract
-    address public prime;
+    address public immutable prime;
 
     /// @notice The rate at which token is distributed (per block)
     mapping(address => uint256) public tokenDistributionSpeeds;
@@ -75,6 +75,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address prime_) {
+        _ensureZeroAddress(prime_);
         prime = prime_;
 
         _disableInitializers();
@@ -194,10 +195,6 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      * @custom:error Throw InvalidArguments on Zero address(token)
      */
     function releaseFunds(address token_) external {
-        if (token_ == address(0)) {
-            revert InvalidArguments();
-        }
-
         if (fundsTransferpaused) {
             revert FundsTransferIspaused();
         }
@@ -237,6 +234,8 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      * @custom:event Emits TokensAccrued event
      */
     function accrueTokens(address token_) public {
+        _ensureZeroAddress(token_);
+
         uint256 blockNumber = getBlockNumber();
         uint256 deltaBlocks = blockNumber - lastAccruedBlock[token_];
 
@@ -260,6 +259,11 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
         }
     }
 
+    /// @notice Get the latest block number
+    function getBlockNumber() public view virtual returns (uint256) {
+        return block.number;
+    }
+
     /**
      * @notice Initialize the distribution of the token
      * @param token_ Address of the token to be intialized
@@ -267,6 +271,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      * @custom:error Throw TokenAlreadyInitialized if token is already initialized
      */
     function _initializeToken(address token_) internal {
+        _ensureZeroAddress(token_);
         uint256 blockNumber = getBlockNumber();
         uint256 intializedBlock = lastAccruedBlock[token_];
 
@@ -317,18 +322,19 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      * @custom:error Throw InvalidArguments on Zero address(token)
      */
     function _setInitialBalance(address token_) internal {
-        if (token_ == address(0)) {
-            revert InvalidArguments();
-        }
-
         uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
         initialBalances[token_] = balance;
 
         emit TokenInitialBalanceUpdated(token_, balance);
     }
 
-    /// @notice Get the latest block number
-    function getBlockNumber() public view virtual returns (uint256) {
-        return block.number;
+    /**
+     * @notice Revert on zero address
+     * @param address_ Address to be verified
+     */
+    function _ensureZeroAddress(address address_) internal pure {
+        if (address_ == address(0)) {
+            revert InvalidArguments();
+        }
     }
 }
