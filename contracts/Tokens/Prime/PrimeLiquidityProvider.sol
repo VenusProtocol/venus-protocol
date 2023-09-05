@@ -23,6 +23,9 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     /// @notice The token accrued but not yet transferred to prime contract
     mapping(address => uint256) public tokenAmountAccrued;
 
+    /// @notice Initial balance at the time of token initialzation
+    mapping(address => uint256) public initialBalances;
+
     /// @dev This empty reserved space is put in place to allow future versions to add new
     /// variables without shifting down storage in the inheritance chain.
     uint256[46] private __gap;
@@ -41,6 +44,9 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
 
     /// @notice Emitted on sweep token success
     event SweepToken(address indexed token, address indexed to, uint256 sweepAmount);
+
+    /// @notice Emitted on updattion of initial balance for token
+    event TokenInitialBalanceUpdated(address token, uint256 balance);
 
     /// @notice Thrown when arguments are passed are invalid
     error InvalidArguments();
@@ -70,23 +76,26 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
      * @custom:event Emits TokensAccrued event
      */
     function accrueTokens(address token_) public {
-        uint256 distributionSpeed = tokenDistributionSpeeds[token_];
         uint256 blockNumber = getBlockNumber();
-
         uint256 deltaBlocks = blockNumber - lastAccruedBlock[token_];
 
-        if (deltaBlocks > 0 && distributionSpeed > 0) {
+        if (deltaBlocks > 0) {
+            uint256 distributionSpeed = tokenDistributionSpeeds[token_];
             uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
-            uint256 accruedSinceUpdate = deltaBlocks * distributionSpeed;
-            uint256 tokenAccrued = (balance * accruedSinceUpdate);
+
+            if (distributionSpeed > 0 && balance > 0) {
+                uint256 initialBalance = initialBalances[token_];
+                uint256 accruedSinceUpdate = deltaBlocks * distributionSpeed;
+                uint256 estimatedAccrue = (initialBalance * accruedSinceUpdate);
+                uint256 tokenAccrued = (balance <= estimatedAccrue ? balance : estimatedAccrue);
+
+                tokenAmountAccrued[token_] += tokenAccrued;
+            }
 
             lastAccruedBlock[token_] = blockNumber;
-            tokenAmountAccrued[token_] += tokenAccrued;
-        } else if (deltaBlocks > 0) {
-            lastAccruedBlock[token_] = blockNumber;
+
+            emit TokensAccrued(token_);
         }
-
-        emit TokensAccrued(token_);
     }
 
     /**
@@ -133,6 +142,20 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
                 ++i;
             }
         }
+    }
+
+    /**
+     * @notice Set the initial balance of the token on behalf of tokens would be distributed
+     * @param token_ Address of the token
+     * @custom:access Controlled by ACM
+     */
+    function setInitialBalance(address token_) external {
+        _checkAccessAllowed("setInitialBalance(address)");
+
+        // Accrue tokens on the basis of previous initialBalance then set the new initialBalance
+        accrueTokens(token_);
+
+        _setInitialBalance(token_);
     }
 
     /**
@@ -239,10 +262,31 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
             //  2. Token accrued at the new speed starts after this block.
             accrueTokens(token_);
 
-            // Update speed and emit event
+            // Update speed
             tokenDistributionSpeeds[token_] = distributionSpeed_;
+
+            // Setting updated initial balance
+            _setInitialBalance(token_);
+
             emit TokenDistributionSpeedUpdated(token_, distributionSpeed_);
         }
+    }
+
+    /**
+     * @notice Set the initial balance of the token on behalf of tokens would be distributed
+     * @param token_ Address of the token
+     * @custom:event Emits TokenInitialBalanceUpdated event
+     * @custom:error Throw InvalidArguments on Zero address(token)
+     */
+    function _setInitialBalance(address token_) internal {
+        if (token_ == address(0)) {
+            revert InvalidArguments();
+        }
+
+        uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
+        initialBalances[token_] = balance;
+
+        emit TokenInitialBalanceUpdated(token_, balance);
     }
 
     /// @notice Get the latest block number
