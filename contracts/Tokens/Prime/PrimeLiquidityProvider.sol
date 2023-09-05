@@ -26,6 +26,9 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     /// @notice Initial balance at the time of token initialzation
     mapping(address => uint256) public initialBalances;
 
+    /// @notice Is funds transfer paused to prime token
+    bool public fundsTransferpaused;
+
     /// @dev This empty reserved space is put in place to allow future versions to add new
     /// variables without shifting down storage in the inheritance chain.
     uint256[46] private __gap;
@@ -45,8 +48,14 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     /// @notice Emitted on sweep token success
     event SweepToken(address indexed token, address indexed to, uint256 sweepAmount);
 
-    /// @notice Emitted on updattion of initial balance for token
-    event TokenInitialBalanceUpdated(address token, uint256 balance);
+    /// @notice Emitted on updation of initial balance for token
+    event TokenInitialBalanceUpdated(address indexed token, uint256 balance);
+
+    /// @notice Emitted when funds transfer is paused
+    event FundsTransferpaused(address indexed user);
+
+    /// @notice Emitted when funds transfer is resumed
+    event FundsTransferResumed(address indexed user);
 
     /// @notice Thrown when arguments are passed are invalid
     error InvalidArguments();
@@ -59,6 +68,9 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
 
     ///@notice Error thrown when swapRouter's balance is less than sweep amount
     error InsufficientBalance(uint256 sweepAmount, uint256 balance);
+
+    /// @notice Emitted when funds transfer is paused
+    error FundsTransferIspaused();
 
     /**
      * @param prime_ Address of the Prime contract
@@ -145,6 +157,30 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     }
 
     /**
+     * @notice Pause fund transfer of tokens to Prime contract
+     * @custom:event Emits FundsTransferpaused on success
+     * @custom:access Controlled by ACM
+     */
+    function pauseFundsTransfer() external {
+        _checkAccessAllowed("pauseConversion()");
+        fundsTransferpaused = true;
+
+        emit FundsTransferpaused(msg.sender);
+    }
+
+    /**
+     * @notice Resume fund transfer of tokens to Prime contract
+     * @custom:event Emits FundsTransferResumed on success
+     * @custom:access Controlled by ACM
+     */
+    function resumeFundsTransfer() external {
+        _checkAccessAllowed("resumeConversion()");
+        fundsTransferpaused = false;
+
+        emit FundsTransferResumed(msg.sender);
+    }
+
+    /**
      * @notice Set the initial balance of the token on behalf of tokens would be distributed
      * @param token_ Address of the token
      * @custom:access Controlled by ACM
@@ -191,6 +227,10 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     function releaseFunds(address token_) external {
         if (token_ == address(0)) {
             revert InvalidArguments();
+        }
+
+        if (fundsTransferpaused) {
+            revert FundsTransferIspaused();
         }
 
         accrueTokens(token_);
