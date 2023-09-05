@@ -182,8 +182,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     protocolShareReserve.address,
     comptroller.address,
   ], {
-    constructorArgs: [wbnb.address,
-      vbnb.address],
+    constructorArgs: [wbnb.address,vbnb.address, 10512000],
   });
 
 
