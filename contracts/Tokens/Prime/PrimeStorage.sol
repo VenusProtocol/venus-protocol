@@ -101,6 +101,8 @@ contract PrimeStorageV1 {
     /// @dev mapping of asset adress => amount
     mapping(address => uint256) public unreleasedIncome;
 
+    address public primeLiquidityProvider;
+
     /// @dev This empty reserved space is put in place to allow future versions to add new
     /// variables without shifting down storage in the inheritance chain.
     uint256[28] private __gap;

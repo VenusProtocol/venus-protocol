@@ -43,6 +43,10 @@ interface IIncomeDestination {
     function updateAssetsState(address comptroller, address asset) external;
 }
 
+interface IPrimeLiquidityProvider {
+    function releaseFunds(address token_) external;
+}
+
 error MarketNotSupported();
 error InvalidLimit();
 error IneligibleToClaim();
@@ -93,6 +97,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint128 _alphaDenominator,
         address _accessControlManager,
         address _protocolShareReserve,
+        address _primeLiquidityProvider,
         address _comptroller
     ) external virtual initializer {
         alphaNumerator = _alphaNumerator;
@@ -102,6 +107,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         xvsVault = _xvsVault;
         nextScoreUpdateRoundId = 0;
         protocolShareReserve = _protocolShareReserve;
+        primeLiquidityProvider = _primeLiquidityProvider;
         comptroller = _comptroller;
 
         __AccessControlled_init(_accessControlManager);
@@ -498,6 +504,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             address[] memory assets = new address[](1);
             assets[0] = address(asset);
             IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
+            if (amount > asset.balanceOf(address(this))) {
+                IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
+            }
         }
 
         asset.safeTransfer(msg.sender, amount);

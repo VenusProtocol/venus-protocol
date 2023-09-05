@@ -8,8 +8,8 @@ import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contract
 contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    /// @notice The initial TOKEN index
-    uint224 public constant INITIAL_INDEX = 1e36;
+    /// @notice The max token distribution speed
+    uint224 public constant MAX_DISTRIBUTION_SPEED = 1e18;
 
     /// @notice Address of the Prime contract
     address public prime;
@@ -39,8 +39,20 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     /// @notice Emitted when token is transferred to the prime contract
     event TokenTransferredToPrime(address indexed token, uint256 amount);
 
+    /// @notice Emitted on sweep token success
+    event SweepToken(address indexed token, address indexed to, uint256 sweepAmount);
+
     /// @notice Thrown when arguments are passed are invalid
     error InvalidArguments();
+
+    /// @notice Thrown when distribution speed is greater than MAX_DISTRIBUTION_SPEED
+    error InvalidDistributionSpeed(uint256 speed, uint256 maxSpeed);
+
+    /// @notice Thrown when token is initialized
+    error TokenAlreadyInitialized(address token);
+
+    ///@notice Error thrown when swapRouter's balance is less than sweep amount
+    error InsufficientBalance(uint256 sweepAmount, uint256 balance);
 
     /**
      * @param prime_ Address of the Prime contract
@@ -54,27 +66,27 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
 
     /**
      * @notice Accrue token by updating the distribution state
-     * @param token Address of the token
+     * @param token_ Address of the token
      * @custom:event Emits TokensAccrued event
      */
-    function accrueTokens(address token) public {
-        uint256 distributionSpeed = tokenDistributionSpeeds[token];
+    function accrueTokens(address token_) public {
+        uint256 distributionSpeed = tokenDistributionSpeeds[token_];
         uint256 blockNumber = getBlockNumber();
 
-        uint256 deltaBlocks = blockNumber - lastAccruedBlock[token];
+        uint256 deltaBlocks = blockNumber - lastAccruedBlock[token_];
 
         if (deltaBlocks > 0 && distributionSpeed > 0) {
-            uint256 balance = IERC20Upgradeable(token).balanceOf(address(this));
+            uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
             uint256 accruedSinceUpdate = deltaBlocks * distributionSpeed;
             uint256 tokenAccrued = (balance * accruedSinceUpdate);
 
-            lastAccruedBlock[token] = blockNumber;
-            tokenAmountAccrued[token] += tokenAccrued;
+            lastAccruedBlock[token_] = blockNumber;
+            tokenAmountAccrued[token_] += tokenAccrued;
         } else if (deltaBlocks > 0) {
-            lastAccruedBlock[token] = blockNumber;
+            lastAccruedBlock[token_] = blockNumber;
         }
 
-        emit TokensAccrued(token);
+        emit TokensAccrued(token_);
     }
 
     /**
@@ -127,7 +139,7 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
      * @notice Set distribution speed for tokens
      * @param tokens_ Array of addresses of the tokens
      * @param distributionSpeeds_ New distribution speeds for tokens
-     * @custom:access Controled by ACM
+     * @custom:access Controlled by ACM
      * @custom:error Throw InvalidArguments on different length of tokens and speeds array
      */
     function setTokensDistributionSpeed(address[] calldata tokens_, uint256[] calldata distributionSpeeds_) external {
@@ -153,7 +165,7 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
      * @custom:event Emits TokenTransferredToPrime event
      * @custom:error Throw InvalidArguments on Zero address(token)
      */
-    function releaseFund(address token_) external {
+    function releaseFunds(address token_) external {
         if (token_ == address(0)) {
             revert InvalidArguments();
         }
@@ -168,13 +180,38 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
     }
 
     /**
+     * @notice A public function to sweep accidental ERC-20 transfers to this contract. Tokens are sent to user
+     * @param token_ The address of the ERC-20 token to sweep
+     * @param to_ The address of the recipient
+     * @param amount_ The amount of tokens needs to transfer
+     * @custom:event Emits SweepToken event
+     * @custom:error Throw InsufficientBalance on Zero address(token)
+     * @custom:access Only Governance
+     */
+    function sweepToken(IERC20Upgradeable token_, address to_, uint256 amount_) external onlyOwner {
+        uint256 balance = token_.balanceOf(address(this));
+        if (amount_ > balance) {
+            revert InsufficientBalance(amount_, balance);
+        }
+
+        token_.safeTransfer(to_, balance);
+
+        emit SweepToken(address(token_), to_, amount_);
+    }
+
+    /**
      * @notice Initialize the distribution of the token
      * @param token_ Address of the token to be intialized
      * @custom:event Emits TokenDistributionInitialized event
-     * @custom:error Throw error message for exceeding 32 bits for block number
+     * @custom:error Throw TokenAlreadyInitialized if token is already initialized
      */
     function _initializeToken(address token_) internal {
         uint256 blockNumber = getBlockNumber();
+        uint256 intializedBlock = lastAccruedBlock[token_];
+
+        if (intializedBlock > 0) {
+            revert TokenAlreadyInitialized(token_);
+        }
 
         /*
          * Update token state block number
@@ -186,23 +223,29 @@ contract PrimeLiquidityProvider is Ownable2StepUpgradeable, AccessControlledV8 {
 
     /**
      * @notice Set distribution speed for single token
-     * @param token Address of the token
-     * @param distributionSpeed New distribution speed for token
+     * @param token_ Address of the token
+     * @param distributionSpeed_ New distribution speed for token
      * @custom:event Emits TokenDistributionSpeedUpdated event
+     * @custom:error Throw InvalidDistributionSpeed if speed is greater than max speed
      */
-    function _setTokenDistributionSpeed(address token, uint256 distributionSpeed) internal {
-        if (tokenDistributionSpeeds[token] != distributionSpeed) {
+    function _setTokenDistributionSpeed(address token_, uint256 distributionSpeed_) internal {
+        if (distributionSpeed_ > MAX_DISTRIBUTION_SPEED) {
+            revert InvalidDistributionSpeed(distributionSpeed_, MAX_DISTRIBUTION_SPEED);
+        }
+
+        if (tokenDistributionSpeeds[token_] != distributionSpeed_) {
             // Distribution speed updated so let's update distribution state to ensure that
             //  1. Token accrued properly for the old speed, and
             //  2. Token accrued at the new speed starts after this block.
-            accrueTokens(token);
+            accrueTokens(token_);
 
             // Update speed and emit event
-            tokenDistributionSpeeds[token] = distributionSpeed;
-            emit TokenDistributionSpeedUpdated(token, distributionSpeed);
+            tokenDistributionSpeeds[token_] = distributionSpeed_;
+            emit TokenDistributionSpeedUpdated(token_, distributionSpeed_);
         }
     }
 
+    /// @notice Get the latest block number
     function getBlockNumber() public view virtual returns (uint256) {
         return block.number;
     }
