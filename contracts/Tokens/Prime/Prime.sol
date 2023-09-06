@@ -699,9 +699,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     
         if (totalValue == 0) return (0,0);
 
-        uint256 apr = (userYearlyIncome * MAXIMUM_BPS) / totalValue;
-        supplyAPR = totalSupply > 0 ? apr : 0;
-        borrowAPR = totalBorrow > 0 ? apr : 0;
+        uint256 userSupplyIncomeYearly = (userYearlyIncome * totalSupply) / totalValue;
+        uint256 userBorrowIncomeYearly = (userYearlyIncome * totalBorrow) / totalValue;
+
+        supplyAPR = totalSupply == 0 ? 0 : ((userSupplyIncomeYearly * MAXIMUM_BPS) / totalSupply);
+        borrowAPR = totalBorrow == 0 ? 0 : ((userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow);
     }
 
     /**
