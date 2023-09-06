@@ -59,6 +59,7 @@ error InvalidCaller();
 error InvalidComptroller();
 error NoScoreUpdatesRequired();
 error MarketAlreadyExists();
+error InvalidAddress();
 
 contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -109,6 +110,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         address _comptroller,
         address _oracle
     ) external virtual initializer {
+        if (_xvsVault == address(0)) revert InvalidAddress();
+        if (_xvsVaultRewardToken == address(0)) revert InvalidAddress();
+        if (_protocolShareReserve == address(0)) revert InvalidAddress();
+        if (_comptroller == address(0)) revert InvalidAddress();
+        if (_oracle == address(0)) revert InvalidAddress();
+
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
         xvsVaultRewardToken = _xvsVaultRewardToken;
