@@ -8,7 +8,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice The max token distribution speed
-    uint224 public constant MAX_DISTRIBUTION_SPEED = 1e18;
+    uint256 public constant MAX_DISTRIBUTION_SPEED = 1e18;
 
     /// @notice exp scale
     uint256 internal constant EXP_SCALE = 1e18;
@@ -25,11 +25,8 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
     /// @notice The token accrued but not yet transferred to prime contract
     mapping(address => uint256) public tokenAmountAccrued;
 
-    /// @notice Initial balance at the time of token initialzation
-    mapping(address => uint256) public initialBalances;
-
     /// @notice Is funds transfer paused to prime token
-    bool public fundsTransferpaused;
+    bool public isFundsTransferpaused;
 
     /// @notice Emitted when a token distribution is initialized
     event TokenDistributionInitialized(address indexed token);
@@ -50,10 +47,10 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
     event TokenInitialBalanceUpdated(address indexed token, uint256 balance);
 
     /// @notice Emitted when funds transfer is paused
-    event FundsTransferpaused(address indexed user);
+    event FundsTransferpaused();
 
     /// @notice Emitted when funds transfer is resumed
-    event FundsTransferResumed(address indexed user);
+    event FundsTransferResumed();
 
     /// @notice Thrown when arguments are passed are invalid
     error InvalidArguments();
@@ -132,10 +129,10 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      * @custom:access Controlled by ACM
      */
     function pauseFundsTransfer() external {
-        _checkAccessAllowed("pauseConversion()");
-        fundsTransferpaused = true;
+        _checkAccessAllowed("pauseFundsTransfer()");
+        isFundsTransferpaused = true;
 
-        emit FundsTransferpaused(msg.sender);
+        emit FundsTransferpaused();
     }
 
     /**
@@ -144,28 +141,14 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      * @custom:access Controlled by ACM
      */
     function resumeFundsTransfer() external {
-        _checkAccessAllowed("resumeConversion()");
-        fundsTransferpaused = false;
+        _checkAccessAllowed("resumeFundsTransfer()");
+        isFundsTransferpaused = false;
 
-        emit FundsTransferResumed(msg.sender);
+        emit FundsTransferResumed();
     }
 
     /**
-     * @notice Set the initial balance of the token on behalf of tokens would be distributed
-     * @param token_ Address of the token
-     * @custom:access Controlled by ACM
-     */
-    function setInitialBalance(address token_) external {
-        _checkAccessAllowed("setInitialBalance(address)");
-
-        // Accrue tokens on the basis of previous initialBalance then set the new initialBalance
-        accrueTokens(token_);
-
-        _setInitialBalance(token_);
-    }
-
-    /**
-     * @notice Set distribution speed for tokens
+     * @notice Set distribution speed(amount of token distribute per block)
      * @param tokens_ Array of addresses of the tokens
      * @param distributionSpeeds_ New distribution speeds for tokens
      * @custom:access Controlled by ACM
@@ -195,7 +178,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      * @custom:error Throw InvalidArguments on Zero address(token)
      */
     function releaseFunds(address token_) external {
-        if (fundsTransferpaused) {
+        if (isFundsTransferpaused) {
             revert FundsTransferIspaused();
         }
 
@@ -242,20 +225,16 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
         if (deltaBlocks > 0) {
             uint256 distributionSpeed = tokenDistributionSpeeds[token_];
             uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
-            uint256 tokenAccrued;
 
-            if (distributionSpeed > 0 && balance > 0) {
-                uint256 initialBalance = initialBalances[token_];
+            if (distributionSpeed > 0 && (balance - tokenAmountAccrued[token_]) > 0) {
                 uint256 accruedSinceUpdate = deltaBlocks * distributionSpeed;
-                uint256 estimatedAccrue = (initialBalance * accruedSinceUpdate) / EXP_SCALE;
-                tokenAccrued = (balance <= estimatedAccrue ? balance : estimatedAccrue);
+                uint256 tokenAccrued = (balance <= accruedSinceUpdate ? balance : accruedSinceUpdate);
 
                 tokenAmountAccrued[token_] += tokenAccrued;
+                emit TokensAccrued(token_, tokenAccrued);
             }
 
             lastAccruedBlock[token_] = blockNumber;
-
-            emit TokensAccrued(token_, tokenAccrued);
         }
     }
 
@@ -288,7 +267,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
     }
 
     /**
-     * @notice Set distribution speed for single token
+     * @notice Set distribution speed(amount of token distribute per block)
      * @param token_ Address of the token
      * @param distributionSpeed_ New distribution speed for token
      * @custom:event Emits TokenDistributionSpeedUpdated event
@@ -308,24 +287,8 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
             // Update speed
             tokenDistributionSpeeds[token_] = distributionSpeed_;
 
-            // Setting updated initial balance
-            _setInitialBalance(token_);
-
             emit TokenDistributionSpeedUpdated(token_, distributionSpeed_);
         }
-    }
-
-    /**
-     * @notice Set the initial balance of the token on behalf of tokens would be distributed
-     * @param token_ Address of the token
-     * @custom:event Emits TokenInitialBalanceUpdated event
-     * @custom:error Throw InvalidArguments on Zero address(token)
-     */
-    function _setInitialBalance(address token_) internal {
-        uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
-        initialBalances[token_] = balance;
-
-        emit TokenInitialBalanceUpdated(token_, balance);
     }
 
     /**

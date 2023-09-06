@@ -71,16 +71,6 @@ describe("PrimeLiquidityProvider: tests", () => {
       const tokenBSpeed_ = await primeLiquidityProvider.tokenDistributionSpeeds(tokenB.address);
       expect(tokenBSpeed_).to.equal(tokenBSpeed);
     });
-
-    it("Initial Balance", async () => {
-      const tokenAInitialBalance = await primeLiquidityProvider.initialBalances(tokenA.address);
-      const balanceA = await tokenA.balanceOf(primeLiquidityProvider.address);
-      expect(tokenAInitialBalance).to.equal(balanceA);
-
-      const tokenBInitialBalance = await primeLiquidityProvider.initialBalances(tokenB.address);
-      const balanceB = await tokenB.balanceOf(primeLiquidityProvider.address);
-      expect(tokenBInitialBalance).to.equal(balanceB);
-    });
   });
 
   describe("Testing all setters", () => {
@@ -113,18 +103,18 @@ describe("PrimeLiquidityProvider: tests", () => {
       const tx = await primeLiquidityProvider.pauseFundsTransfer();
       tx.wait();
 
-      await expect(tx).to.emit(primeLiquidityProvider, "FundsTransferpaused").withArgs(signer.address);
+      await expect(tx).to.emit(primeLiquidityProvider, "FundsTransferpaused");
 
-      expect(await primeLiquidityProvider.fundsTransferpaused()).to.equal(true);
+      expect(await primeLiquidityProvider.isFundsTransferpaused()).to.equal(true);
     });
 
     it("resumeFundsTransfer", async () => {
       const tx = await primeLiquidityProvider.resumeFundsTransfer();
       tx.wait();
 
-      await expect(tx).to.emit(primeLiquidityProvider, "FundsTransferResumed").withArgs(signer.address);
+      await expect(tx).to.emit(primeLiquidityProvider, "FundsTransferResumed");
 
-      expect(await primeLiquidityProvider.fundsTransferpaused()).to.equal(false);
+      expect(await primeLiquidityProvider.isFundsTransferpaused()).to.equal(false);
     });
 
     it("Revert on invalid args for setTokensDistributionSpeed", async () => {
@@ -149,21 +139,6 @@ describe("PrimeLiquidityProvider: tests", () => {
         .to.emit(primeLiquidityProvider, "TokenDistributionSpeedUpdated")
         .withArgs(tokenC.address, tokenCSpeed);
     });
-
-    it("Revert on invalid args for setInitialBalance", async () => {
-      const tx = primeLiquidityProvider.setInitialBalance(ethers.constants.AddressZero);
-
-      await expect(tx).to.be.to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidArguments");
-    });
-
-    it("setInitialBalance success", async () => {
-      await tokenC.transfer(primeLiquidityProvider.address, convertToUnit(300, 18));
-      const balance = await tokenC.balanceOf(primeLiquidityProvider.address);
-      const tx = await primeLiquidityProvider.setInitialBalance(tokenC.address);
-      tx.wait();
-
-      await expect(tx).to.emit(primeLiquidityProvider, "TokenInitialBalanceUpdated").withArgs(tokenC.address, balance);
-    });
   });
 
   describe("Accrue tokens", () => {
@@ -172,9 +147,6 @@ describe("PrimeLiquidityProvider: tests", () => {
 
       await tokenA.transfer(primeLiquidityProvider.address, parseUnits("100", 18));
       await tokenB.transfer(primeLiquidityProvider.address, parseUnits("200", 18));
-
-      // setting initial balance as while deploying the contract there was no funds allocated to primeLiquidityProvider
-      await primeLiquidityProvider.setInitialBalance(tokenA.address);
     });
 
     it("Accrue amount for tokenA", async () => {
@@ -183,26 +155,25 @@ describe("PrimeLiquidityProvider: tests", () => {
       await primeLiquidityProvider.accrueTokens(tokenA.address);
       const balanceA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
 
-      expect(balanceA).to.equal("11000000000000000000");
+      expect(balanceA).to.equal("130000000000000000");
     });
 
     it("Accrue amount for multiple tokens", async () => {
       await mine(10);
       await primeLiquidityProvider.accrueTokens(tokenA.address);
-      await primeLiquidityProvider.setInitialBalance(tokenB.address);
 
       await mine(10);
       let balanceA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
       let balanceB = await primeLiquidityProvider.tokenAmountAccrued(tokenB.address);
 
-      expect(balanceA).to.equal("11000000000000000000");
+      expect(balanceA).to.equal("130000000000000000");
       expect(balanceB).to.equal(0);
 
       await primeLiquidityProvider.accrueTokens(tokenA.address);
       balanceA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
       balanceB = await primeLiquidityProvider.tokenAmountAccrued(tokenB.address);
 
-      expect(balanceA).to.equal("23000000000000000000");
+      expect(balanceA).to.equal("240000000000000000");
       expect(balanceB).to.equal(0);
 
       await mine(10);
@@ -210,18 +181,17 @@ describe("PrimeLiquidityProvider: tests", () => {
       balanceA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
       balanceB = await primeLiquidityProvider.tokenAmountAccrued(tokenB.address);
 
-      expect(balanceA).to.equal("23000000000000000000");
-      expect(balanceB).to.equal("88000000000000000000");
+      expect(balanceA).to.equal("240000000000000000");
+      expect(balanceB).to.equal("700000000000000000");
 
       await primeLiquidityProvider.accrueTokens(tokenA.address);
       await primeLiquidityProvider.accrueTokens(tokenB.address);
       balanceA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
       balanceB = await primeLiquidityProvider.tokenAmountAccrued(tokenB.address);
 
-      expect(balanceA).to.equal("35000000000000000000");
-      expect(balanceB).to.equal("96000000000000000000");
+      expect(balanceA).to.equal("360000000000000000");
+      expect(balanceB).to.equal("740000000000000000");
 
-      await primeLiquidityProvider.setInitialBalance(tokenC.address);
       await mine(10);
 
       await primeLiquidityProvider.accrueTokens(tokenC.address);
@@ -238,7 +208,6 @@ describe("PrimeLiquidityProvider: tests", () => {
       await tokenB.transfer(primeLiquidityProvider.address, parseUnits("200", 18));
 
       // setting initial balance as while deploying the contract there was no funds allocated to primeLiquidityProvider
-      await primeLiquidityProvider.setInitialBalance(tokenA.address);
 
       await mine(10);
     });
@@ -257,7 +226,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
       await expect(tx)
         .to.emit(primeLiquidityProvider, "TokenTransferredToPrime")
-        .withArgs(tokenA.address, "11000000000000000000");
+        .withArgs(tokenA.address, "130000000000000000");
 
       expect(await primeLiquidityProvider.tokenAmountAccrued(tokenA.address)).to.equal(0);
     });
