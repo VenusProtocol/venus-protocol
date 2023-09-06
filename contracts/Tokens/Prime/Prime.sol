@@ -13,6 +13,12 @@ interface IVToken {
     function balanceOf(address account) external view returns (uint);
 
     function underlying() external view returns (address);
+
+    function totalBorrows() external view returns (uint);
+
+    function borrowRatePerBlock() external view returns (uint);
+
+    function reserveFactorMantissa() external view returns (uint);
 }
 
 interface IXVSVault {
@@ -37,6 +43,10 @@ interface IProtocolShareReserve {
     ) external view returns (uint256);
 
     function releaseFunds(address comptroller, address[] memory assets) external;
+
+    function getPercentageDistribution(address destination, Schema schema) external view returns (uint256);
+
+    function MAX_PERCENT() external view returns (uint256);
 }
 
 interface IIncomeDestination {
@@ -59,6 +69,8 @@ error MarketAlreadyExists();
 
 contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+
+    uint256 private constant BLOCKS_PER_YEAR = 210240000;
 
     /// @notice address of WBNB contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
@@ -213,28 +225,25 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         bool isAccountEligible = isEligible(totalStaked);
 
         if (tokens[user].exists && !isAccountEligible) {
-            address[] storage _allMarkets = allMarkets;
-            for (uint i = 0; i < _allMarkets.length; i++) {
-                executeBoost(user, _allMarkets[i]);
-
-                markets[_allMarkets[i]].sumOfMembersScore =
-                    markets[_allMarkets[i]].sumOfMembersScore -
-                    interests[_allMarkets[i]][user].score;
-                interests[_allMarkets[i]][user].score = 0;
-                interests[_allMarkets[i]][user].rewardIndex = 0;
+            if (tokens[user].isIrrevocable) {
+                _accrueInterestAndUpdateScore(user);
+            } else {
+                _burn(user);
             }
-
-            _burn(user);
         } else if (!isAccountEligible && !tokens[user].exists && stakedAt[user] > 0) {
             stakedAt[user] = 0;
         } else if (stakedAt[user] == 0 && isAccountEligible && !tokens[user].exists) {
             stakedAt[user] = block.timestamp;
         } else if (tokens[user].exists && isAccountEligible) {
-            address[] storage _allMarkets = allMarkets;
-            for (uint i = 0; i < _allMarkets.length; i++) {
-                executeBoost(user, _allMarkets[i]);
-                updateScore(user, _allMarkets[i]);
-            }
+            _accrueInterestAndUpdateScore(user);
+        }
+    }
+
+    function _accrueInterestAndUpdateScore(address user) internal {
+        address[] storage _allMarkets = allMarkets;
+        for (uint i = 0; i < _allMarkets.length; i++) {
+            executeBoost(user, _allMarkets[i]);
+            updateScore(user, _allMarkets[i]);
         }
     }
 
@@ -249,6 +258,31 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         _mint(false, msg.sender);
         _initializeMarkets(msg.sender);
+    }
+
+    /**
+     * @notice For burning any prime token
+     * @param user the account address for which the prime token will be burned
+     */
+    function burn(address user) external {
+        _checkAccessAllowed("burn(address)");
+        _burn(user);
+    }
+
+    /**
+     * @notice fetch the numbers of seconds remaining for staking period to complete
+     * @param user the account address for which we are checking the remaining time
+     * @return timeRemaining the number of seconds the user needs to wait to claim prime token
+     */
+    function claimTimeRemaining(address user) external view returns (uint256) {
+        if (stakedAt[user] == 0) revert IneligibleToClaim();
+
+        uint256 totalTimeStaked = block.timestamp - stakedAt[user];
+        if (totalTimeStaked < STAKING_PERIOD) {
+            return STAKING_PERIOD - totalTimeStaked;
+        } else {
+            return 0;
+        }
     }
 
     /**
@@ -377,6 +411,18 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     function _burn(address user) internal {
         if (!tokens[user].exists) revert UserHasNoPrimeToken();
 
+        address[] storage _allMarkets = allMarkets;
+
+        for (uint i = 0; i < _allMarkets.length; i++) {
+            executeBoost(user, _allMarkets[i]);
+
+            markets[_allMarkets[i]].sumOfMembersScore =
+                markets[_allMarkets[i]].sumOfMembersScore -
+                interests[_allMarkets[i]][user].score;
+            interests[_allMarkets[i]][user].score = 0;
+            interests[_allMarkets[i]][user].rewardIndex = 0;
+        }
+
         if (tokens[user].isIrrevocable) {
             _totalIrrevocable--;
         } else {
@@ -492,11 +538,28 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param vToken the market for which claim the accrued interest
      */
     function claimInterest(address vToken) external {
-        uint256 amount = getInterestAccrued(vToken, msg.sender);
-        amount += interests[vToken][msg.sender].accrued;
+        _claimInterest(vToken, msg.sender);
+    }
 
-        interests[vToken][msg.sender].rewardIndex = markets[vToken].rewardIndex;
-        interests[vToken][msg.sender].accrued = 0;
+    /**
+     * @notice For user to claim boosted yield
+     * @param vToken the market for which claim the accrued interest
+     */
+    function claimInterest(address vToken, address user) external {
+        _claimInterest(vToken, user);
+    }
+
+    /**
+     * @notice To transfer the accrued interest to user
+     * @param vToken the market for which claim the accrued interest
+     * @param user the account for which to get the accrued interest
+     */
+    function _claimInterest(address vToken, address user) internal {
+        uint256 amount = getInterestAccrued(vToken, user);
+        amount += interests[vToken][user].accrued;
+
+        interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
+        interests[vToken][user].accrued = 0;
 
         IERC20Upgradeable asset = IERC20Upgradeable(_getUnderlying(vToken));
 
@@ -509,7 +572,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             }
         }
 
-        asset.safeTransfer(msg.sender, amount);
+        asset.safeTransfer(user, amount);
     }
 
     /**
@@ -529,6 +592,18 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         emit UpdatedAssetsState(comptroller, asset);
     }
+
+    function _getUnderlying(address vToken) internal view returns (address) {
+        if (vToken == vBNB) {
+            return WBNB;
+        } else {
+            return IVToken(vToken).underlying();
+        }
+    }
+
+    //////////////////////////////////////////////////
+    /////// Update Scores after Config Change ///////
+    ////////////////////////////////////////////////
 
     /**
      * @notice Update total score of multiple users and market
@@ -575,11 +650,57 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         }
     }
 
-    function _getUnderlying(address vToken) internal view returns (address) {
-        if (vToken == vBNB) {
-            return WBNB;
-        } else {
-            return IVToken(vToken).underlying();
-        }
+    //////////////////////////////////////////////////
+    //////////////// APR Calculation ////////////////
+    ////////////////////////////////////////////////
+
+    function _incomePerBlock(address vToken) internal view returns (uint256) {
+        IVToken market = IVToken(vToken);
+        return ((((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) * market.reserveFactorMantissa()) /
+            EXP_SCALE);
+    }
+
+    function _distributionPercentage() internal view returns (uint256) {
+        return
+            IProtocolShareReserve(protocolShareReserve).getPercentageDistribution(
+                address(this),
+                IProtocolShareReserve.Schema.SPREAD_PRIME_CORE
+            );
+    }
+
+    function _incomeDistributionYearly(address vToken) internal view returns (uint256) {
+        uint256 totalIncomePerBlock = _incomePerBlock(vToken);
+        uint256 incomePerBlockForDistribution = (totalIncomePerBlock * _distributionPercentage()) /
+            IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
+        return BLOCKS_PER_YEAR * incomePerBlockForDistribution;
+    }
+
+    function _calculateUserAPR(
+        address vToken,
+        address user,
+        uint256 totalSupply,
+        uint256 totalBorrow
+    ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
+        uint256 userScore = interests[vToken][user].score;
+        uint256 totalScore = markets[vToken].sumOfMembersScore;
+
+        uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
+        uint256 totalValue = totalSupply + totalBorrow;
+
+        uint256 userSupplyIncomeYearly = (userYearlyIncome * totalSupply) / totalValue;
+        uint256 userBorrowIncomeYearly = (userYearlyIncome * totalBorrow) / totalValue;
+
+        supplyAPR = (userSupplyIncomeYearly * MAXIMUM_BPS) / totalSupply;
+        borrowAPR = (userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow;
+    }
+
+    function apr(address market, address user) external returns (uint256 supplyAPR, uint256 borrowAPR) {
+        IVToken vToken = IVToken(market);
+        uint256 borrow = vToken.borrowBalanceStored(user);
+        uint256 exchangeRate = vToken.exchangeRateStored();
+        uint256 balanceOfAccount = vToken.balanceOf(user);
+        uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
+
+        return _calculateUserAPR(market, user, supply, borrow);
     }
 }
