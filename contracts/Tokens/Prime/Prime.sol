@@ -6,8 +6,6 @@ import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interf
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
-import "hardhat/console.sol";
-
 interface IVToken {
     function borrowBalanceStored(address account) external view returns (uint);
     function exchangeRateStored() external view returns (uint);
@@ -329,6 +327,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint256 balanceOfAccount = vToken.balanceOf(user);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
+
+        ResilientOracleInterface oracleInterface = ResilientOracleInterface(oracle);
+        address xvsToken = IXVSVault(xvsVault).xvsAddress();
+        oracleInterface.updateAssetPrice(xvsToken);
+        oracleInterface.updatePrice(market);
+
         (uint256 capital,,) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
 
         return
@@ -371,31 +375,24 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     ) internal view returns (uint256, uint256, uint256) {
         ResilientOracleInterface oracleInterface = ResilientOracleInterface(oracle);
         address xvsToken = IXVSVault(xvsVault).xvsAddress();
-        oracleInterface.updateAssetPrice(xvsToken);
-        oracleInterface.updatePrice(market);
-
-        // uint256 borrowCap = (xvs * markets[market].borrowMultiplier) / EXP_SCALE;
-        // uint256 supplyCap = (xvs * markets[market].supplyMultiplier) / EXP_SCALE;
-
-        // if (supply > supplyCap) {
-        //     supply = supplyCap;
-        // }
-
-        // if (borrow > borrowCap) {
-        //     borrow = borrowCap;
-        // }
-
-        // return ((supply + borrow), supply, borrow);
 
         uint256 xvsPrice = oracleInterface.getPrice(xvsToken);
         uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
         uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
-
+        
         uint256 tokenPrice = oracleInterface.getUnderlyingPrice(market);
         uint256 supplyUSD = (tokenPrice * supply) / EXP_SCALE;
         uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
 
-        
+        if (supplyUSD >= supplyCapUSD) {
+            supply = supplyUSD > 0 ? (supply * supplyCapUSD) / supplyUSD : 0;
+        }
+
+        if (borrowUSD >= borrowCapUSD) {
+            borrow = borrowUSD > 0 ? (borrow * borrowCapUSD) / borrowUSD : 0;
+        }
+
+        return ((supply + borrow), supply, borrow);
     }
 
     /**
