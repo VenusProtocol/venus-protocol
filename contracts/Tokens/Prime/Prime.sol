@@ -124,7 +124,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         nextScoreUpdateRoundId = 0;
         protocolShareReserve = _protocolShareReserve;
         comptroller = _comptroller;
-        oracle = _oracle;
+        oracle = ResilientOracleInterface(_oracle);
 
         __AccessControlled_init(_accessControlManager);
         __Pausable_init();
@@ -340,10 +340,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
 
-        ResilientOracleInterface oracleInterface = ResilientOracleInterface(oracle);
         address xvsToken = IXVSVault(xvsVault).xvsAddress();
-        oracleInterface.updateAssetPrice(xvsToken);
-        oracleInterface.updatePrice(market);
+        oracle.updateAssetPrice(xvsToken);
+        oracle.updatePrice(market);
 
         (uint256 capital,,) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
 
@@ -385,14 +384,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         uint256 supply,
         address market
     ) internal view returns (uint256, uint256, uint256) {
-        ResilientOracleInterface oracleInterface = ResilientOracleInterface(oracle);
         address xvsToken = IXVSVault(xvsVault).xvsAddress();
 
-        uint256 xvsPrice = oracleInterface.getPrice(xvsToken);
+        uint256 xvsPrice = oracle.getPrice(xvsToken);
         uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
         uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
         
-        uint256 tokenPrice = oracleInterface.getUnderlyingPrice(market);
+        uint256 tokenPrice = oracle.getUnderlyingPrice(market);
         uint256 supplyUSD = (tokenPrice * supply) / EXP_SCALE;
         uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
 
