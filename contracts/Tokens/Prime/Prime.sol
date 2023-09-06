@@ -324,10 +324,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint256 balanceOfAccount = vToken.balanceOf(user);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
+        (uint256 capital,,) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
+
         return
             Scores.calculateScore(
                 xvsBalanceForScore,
-                _capitalForScore(xvsBalanceForScore, borrow, supply, market),
+                capital,
                 alphaNumerator,
                 alphaDenominator
             );
@@ -353,13 +355,15 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param supply the supply balance of user
      * @param market the market vToken address
      * @return capital the capital to use in calculation of score
+     * @return cappedSupply the capped supply of user
+     * @return cappedBorrow the capped borrow of user
      */
     function _capitalForScore(
         uint256 xvs,
         uint256 borrow,
         uint256 supply,
         address market
-    ) internal view returns (uint256) {
+    ) internal view returns (uint256, uint256, uint256) {
         uint256 borrowCap = (xvs * markets[market].borrowMultiplier) / EXP_SCALE;
         uint256 supplyCap = (xvs * markets[market].supplyMultiplier) / EXP_SCALE;
 
@@ -371,7 +375,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             borrow = borrowCap;
         }
 
-        return (supply + borrow);
+        return ((supply + borrow), supply, borrow);
     }
 
     /**
@@ -689,6 +693,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         address user, 
         uint256 totalSupply, 
         uint256 totalBorrow,
+        uint256 totalCappedSupply,
+        uint256 totalCappedBorrow,
         uint256 userScore,
         uint256 totalScore
     ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
@@ -696,11 +702,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
         uint256 totalValue = totalSupply + totalBorrow;
+        uint256 totalCappedValue = totalCappedSupply + totalCappedBorrow;
     
-        if (totalValue == 0) return (0,0);
+        if (totalValue == 0 || totalCappedValue == 0) return (0,0);
 
-        uint256 userSupplyIncomeYearly = (userYearlyIncome * totalSupply) / totalValue;
-        uint256 userBorrowIncomeYearly = (userYearlyIncome * totalBorrow) / totalValue;
+        uint256 userSupplyIncomeYearly = (userYearlyIncome * totalCappedSupply) / totalCappedValue;
+        uint256 userBorrowIncomeYearly = (userYearlyIncome * totalCappedBorrow) / totalCappedValue;
 
         supplyAPR = totalSupply == 0 ? 0 : ((userSupplyIncomeYearly * MAXIMUM_BPS) / totalSupply);
         borrowAPR = totalBorrow == 0 ? 0 : ((userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow);
@@ -723,7 +730,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint256 userScore = interests[market][user].score;
         uint256 totalScore = markets[market].sumOfMembersScore;
 
-        return _calculateUserAPR(market, user, supply, borrow, userScore, totalScore);
+        uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(user));
+        (,uint256 cappedSupply,uint256 cappedBorrow) = _capitalForScore(xvsBalanceForScore, borrow, supply, address(vToken));
+
+        return _calculateUserAPR(market, user, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
     }
 
     /**
@@ -746,15 +756,16 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
 
         uint256 xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
+        (uint256 capital,uint256 cappedSupply,uint256 cappedBorrow) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
         uint256 userScore = Scores.calculateScore(
             xvsBalanceForScore,
-            _capitalForScore(xvsBalanceForScore, borrow, supply, market),
+            capital,
             alphaNumerator,
             alphaDenominator
         );
 
         totalScore = totalScore + userScore;
 
-        return _calculateUserAPR(market, user, supply, borrow, userScore, totalScore);
+        return _calculateUserAPR(market, user, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
     }
 }
