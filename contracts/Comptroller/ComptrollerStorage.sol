@@ -103,10 +103,10 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     VToken[] public allMarkets;
 
     /// @notice The rate at which the flywheel distributes XVS, per block
-    uint public venusRate;
+    uint internal venusRate;
 
     /// @notice The portion of venusRate that each market currently receives
-    mapping(address => uint) public venusSpeeds;
+    mapping(address => uint) internal venusSpeeds;
 
     /// @notice The Venus market supply state for each market
     mapping(address => VenusMarketState) public venusSupplyState;
@@ -233,4 +233,9 @@ contract ComptrollerV11Storage is ComptrollerV10Storage {
     /// @notice Whether the delegate is allowed to borrow on behalf of the borrower
     //mapping(address borrower => mapping (address delegate => bool approved)) public approvedDelegates;
     mapping(address => mapping(address => bool)) public approvedDelegates;
+}
+
+contract ComptrollerV12Storage is ComptrollerV11Storage {
+    /// @notice Flag indicating whether forced liquidation enabled for a market
+    mapping(address => bool) public isForcedLiquidationEnabled;
 }
