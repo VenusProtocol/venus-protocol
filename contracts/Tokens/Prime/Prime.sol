@@ -69,7 +69,7 @@ error MarketAlreadyExists();
 
 contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-    
+
     /// @notice total blocks per year
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable BLOCKS_PER_YEAR;
@@ -705,19 +705,19 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @return borrowAPR the borrow APR of the user
      */
     function _calculateUserAPR(
-        address vToken, 
-        address user, 
-        uint256 totalSupply, 
+        address vToken,
+        address user,
+        uint256 totalSupply,
         uint256 totalBorrow,
         uint256 userScore,
         uint256 totalScore
     ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
-        if (totalScore == 0) return (0,0);
+        if (totalScore == 0) return (0, 0);
 
         uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
         uint256 totalValue = totalSupply + totalBorrow;
-    
-        if (totalValue == 0) return (0,0);
+
+        if (totalValue == 0) return (0, 0);
 
         uint256 apr = (userYearlyIncome * MAXIMUM_BPS) / totalValue;
         supplyAPR = totalSupply > 0 ? apr : 0;
@@ -755,7 +755,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @return borrowAPR borrow APR of the user
      */
     function estimateAPR(
-        address market, 
+        address market,
         address user,
         uint256 borrow,
         uint256 supply,

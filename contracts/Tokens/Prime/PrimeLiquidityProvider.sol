@@ -26,7 +26,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
     mapping(address => uint256) public tokenAmountAccrued;
 
     /// @notice Is funds transfer paused to prime token
-    bool public isFundsTransferpaused;
+    bool public isFundsTransferPaused;
 
     /// @notice Emitted when a token distribution is initialized
     event TokenDistributionInitialized(address indexed token);
@@ -47,7 +47,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
     event TokenInitialBalanceUpdated(address indexed token, uint256 balance);
 
     /// @notice Emitted when funds transfer is paused
-    event FundsTransferpaused();
+    event FundsTransferPaused();
 
     /// @notice Emitted when funds transfer is resumed
     event FundsTransferResumed();
@@ -65,7 +65,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
     error InsufficientBalance(uint256 sweepAmount, uint256 balance);
 
     /// @notice Emitted when funds transfer is paused
-    error FundsTransferIspaused();
+    error FundsTransferIsPaused();
 
     /**
      * @param prime_ Address of the Prime contract
@@ -125,14 +125,14 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
 
     /**
      * @notice Pause fund transfer of tokens to Prime contract
-     * @custom:event Emits FundsTransferpaused on success
+     * @custom:event Emits FundsTransferPaused on success
      * @custom:access Controlled by ACM
      */
     function pauseFundsTransfer() external {
         _checkAccessAllowed("pauseFundsTransfer()");
-        isFundsTransferpaused = true;
+        isFundsTransferPaused = true;
 
-        emit FundsTransferpaused();
+        emit FundsTransferPaused();
     }
 
     /**
@@ -142,13 +142,13 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      */
     function resumeFundsTransfer() external {
         _checkAccessAllowed("resumeFundsTransfer()");
-        isFundsTransferpaused = false;
+        isFundsTransferPaused = false;
 
         emit FundsTransferResumed();
     }
 
     /**
-     * @notice Set distribution speed(amount of token distribute per block)
+     * @notice Set distribution speed (amount of token distribute per block)
      * @param tokens_ Array of addresses of the tokens
      * @param distributionSpeeds_ New distribution speeds for tokens
      * @custom:access Controlled by ACM
@@ -178,8 +178,8 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      * @custom:error Throw InvalidArguments on Zero address(token)
      */
     function releaseFunds(address token_) external {
-        if (isFundsTransferpaused) {
-            revert FundsTransferIspaused();
+        if (isFundsTransferPaused) {
+            revert FundsTransferIsPaused();
         }
 
         accrueTokens(token_);
@@ -267,7 +267,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
     }
 
     /**
-     * @notice Set distribution speed(amount of token distribute per block)
+     * @notice Set distribution speed (amount of token distribute per block)
      * @param token_ Address of the token
      * @param distributionSpeed_ New distribution speed for token
      * @custom:event Emits TokenDistributionSpeedUpdated event
