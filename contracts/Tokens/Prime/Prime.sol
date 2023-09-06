@@ -683,6 +683,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param user the user whose APR we need to calculate
      * @param totalSupply the total token supply of the user
      * @param totalBorrow the total tokens borrowed by the user
+     * @param totalCappedSupply the total token capped supply of the user
+     * @param totalCappedBorrow the total capped tokens borrowed by the user
      * @param userScore the score of the user
      * @param totalScore the total market score
      * @return supplyAPR the supply APR of the user
