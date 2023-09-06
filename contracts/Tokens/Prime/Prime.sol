@@ -69,8 +69,10 @@ error MarketAlreadyExists();
 
 contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-
-    uint256 private constant BLOCKS_PER_YEAR = 210240000;
+    
+    /// @notice total blocks per year
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable BLOCKS_PER_YEAR;
 
     /// @notice address of WBNB contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
@@ -90,11 +92,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     event UpdatedAssetsState(address indexed comptroller, address indexed asset);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address _wbnb, address _vbnb) {
+    constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) {
         require(_wbnb != address(0), "Prime: WBNB address invalid");
         require(_vbnb != address(0), "Prime: vBNB address invalid");
+        require(_blocksPerYear != 0, "Prime: Invalid blocks per year");
         WBNB = _wbnb;
         vBNB = _vbnb;
+        BLOCKS_PER_YEAR = _blocksPerYear;
 
         // Note that the contract is upgradeable. Use initialize() or reinitializers
         // to set the state variables.
@@ -654,12 +658,21 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     //////////////// APR Calculation ////////////////
     ////////////////////////////////////////////////
 
+    /**
+     * @notice Returns the income the market generates per block
+     * @param vToken the market for which to fetch the income per block
+     * @return income the amount of tokens generated as income per block
+     */
     function _incomePerBlock(address vToken) internal view returns (uint256) {
         IVToken market = IVToken(vToken);
         return ((((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) * market.reserveFactorMantissa()) /
             EXP_SCALE);
     }
 
+    /**
+     * @notice the percentage of income we distribute among the prime token holders
+     * @return percentage the percentage returned without mantissa
+     */
     function _distributionPercentage() internal view returns (uint256) {
         return
             IProtocolShareReserve(protocolShareReserve).getPercentageDistribution(
@@ -668,6 +681,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
             );
     }
 
+    /**
+     * @notice the total income that's going to be distributed in a year to prime token holders
+     * @param vToken the market for which to fetch the total income that's going to distributed in a year
+     * @return amount the total income
+     */
     function _incomeDistributionYearly(address vToken) internal view returns (uint256) {
         uint256 totalIncomePerBlock = _incomePerBlock(vToken);
         uint256 incomePerBlockForDistribution = (totalIncomePerBlock * _distributionPercentage()) /
@@ -675,32 +693,85 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         return BLOCKS_PER_YEAR * incomePerBlockForDistribution;
     }
 
+    /**
+     * @notice used to calculate the supply and borrow APR of the user
+     * @param vToken the market for which to fetch the APR
+     * @param user the user whose APR we need to calculate
+     * @param totalSupply the total token supply of the user
+     * @param totalBorrow the total tokens borrowed by the user
+     * @param userScore the score of the user
+     * @param totalScore the total market score
+     * @return supplyAPR the supply APR of the user
+     * @return borrowAPR the borrow APR of the user
+     */
     function _calculateUserAPR(
-        address vToken,
-        address user,
-        uint256 totalSupply,
-        uint256 totalBorrow
+        address vToken, 
+        address user, 
+        uint256 totalSupply, 
+        uint256 totalBorrow,
+        uint256 userScore,
+        uint256 totalScore
     ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
-        uint256 userScore = interests[vToken][user].score;
-        uint256 totalScore = markets[vToken].sumOfMembersScore;
+        if (totalScore == 0) return (0,0);
 
         uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
         uint256 totalValue = totalSupply + totalBorrow;
+    
+        if (totalValue == 0) return (0,0);
 
-        uint256 userSupplyIncomeYearly = (userYearlyIncome * totalSupply) / totalValue;
-        uint256 userBorrowIncomeYearly = (userYearlyIncome * totalBorrow) / totalValue;
-
-        supplyAPR = (userSupplyIncomeYearly * MAXIMUM_BPS) / totalSupply;
-        borrowAPR = (userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow;
+        uint256 apr = (userYearlyIncome * MAXIMUM_BPS) / totalValue;
+        supplyAPR = totalSupply > 0 ? apr : 0;
+        borrowAPR = totalBorrow > 0 ? apr : 0;
     }
 
-    function apr(address market, address user) external returns (uint256 supplyAPR, uint256 borrowAPR) {
+    /**
+     * @notice Returns supply and borrow APR for user for a given market
+     * @param market the market for which to fetch the APR
+     * @param user the account for which to get the APR
+     * @return supplyAPR supply APR of the user
+     * @return borrowAPR borrow APR of the user
+     */
+    function calculateAPR(address market, address user) external returns (uint256 supplyAPR, uint256 borrowAPR) {
         IVToken vToken = IVToken(market);
         uint256 borrow = vToken.borrowBalanceStored(user);
         uint256 exchangeRate = vToken.exchangeRateStored();
         uint256 balanceOfAccount = vToken.balanceOf(user);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
-        return _calculateUserAPR(market, user, supply, borrow);
+        uint256 userScore = interests[market][user].score;
+        uint256 totalScore = markets[market].sumOfMembersScore;
+
+        return _calculateUserAPR(market, user, supply, borrow, userScore, totalScore);
+    }
+
+    /**
+     * @notice Returns supply and borrow APR for estimated supply, borrow and XVS staked
+     * @param market the market for which to fetch the APR
+     * @param user the account for which to get the APR
+     * @param borrow hypothetical borrow amount
+     * @param supply hypothetical supply amount
+     * @param xvsStaked hypothetical staked XVS amount
+     * @return supplyAPR supply APR of the user
+     * @return borrowAPR borrow APR of the user
+     */
+    function estimateAPR(
+        address market, 
+        address user,
+        uint256 borrow,
+        uint256 supply,
+        uint256 xvsStaked
+    ) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
+        uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
+
+        uint256 userScore = Scores.calculateScore(
+            xvsStaked,
+            _capitalForScore(xvsStaked, borrow, supply, market),
+            alphaNumerator,
+            alphaDenominator
+        );
+
+        totalScore = totalScore + userScore;
+
+        return _calculateUserAPR(market, user, supply, borrow, userScore, totalScore);
     }
 }
