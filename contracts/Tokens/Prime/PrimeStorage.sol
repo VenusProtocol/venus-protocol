@@ -1,5 +1,7 @@
 pragma solidity 0.8.13;
 
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+
 contract PrimeStorageV1 {
     struct Token {
         bool exists;
@@ -101,7 +103,11 @@ contract PrimeStorageV1 {
     /// @dev mapping of asset adress => amount
     mapping(address => uint256) public unreleasedIncome;
 
+    /// @notice The address of PLP contract
     address public primeLiquidityProvider;
+
+    /// @notice The address of ResilientOracle contract
+    ResilientOracleInterface public oracle;
 
     /// @dev This empty reserved space is put in place to allow future versions to add new
     /// variables without shifting down storage in the inheritance chain.

@@ -14,9 +14,9 @@ import {
   IAccessControlManager,
   IProtocolShareReserve,
   InterestRateModelHarness,
-  PriceOracle,
   PrimeLiquidityProvider,
   PrimeScenario,
+  ResilientOracleInterface,
   VBep20Harness,
   XVS,
   XVSStore,
@@ -31,7 +31,7 @@ export const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 export const bigNumber16 = BigNumber.from("10000000000000000"); // 1e16
 
 type SetupProtocolFixture = {
-  oracle: FakeContract<PriceOracle>;
+  oracle: FakeContract<ResilientOracleInterface>;
   accessControl: FakeContract<IAccessControlManager>;
   comptrollerLens: MockContract<ComptrollerLens>;
   comptroller: MockContract<ComptrollerMock>;
@@ -49,7 +49,7 @@ type SetupProtocolFixture = {
 async function deployProtocol(): Promise<SetupProtocolFixture> {
   const [wallet, user1, user2, user3] = await ethers.getSigners();
 
-  const oracle = await smock.fake<PriceOracle>("PriceOracle");
+  const oracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   const primeLiquidityProvider = await smock.fake<PrimeLiquidityProvider>("PrimeLiquidityProvider");
   const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
@@ -135,6 +135,12 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     }
   });
 
+  oracle.getPrice.returns((token: string) => {
+    if (token == xvs.address) {
+      return convertToUnit(3, 18);
+    }
+  });
+
   const half = convertToUnit("0.5", 18);
   await comptroller._supportMarket(vusdt.address);
   await comptroller._setCollateralFactor(vusdt.address, half);
@@ -175,23 +181,21 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
 
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
-  const prime: PrimeScenario = await upgrades.deployProxy(
-    primeFactory,
-    [
-      xvsVault.address,
-      xvs.address,
-      0,
-      1,
-      2,
-      accessControl.address,
-      protocolShareReserve.address,
-      primeLiquidityProvider.address,
-      comptroller.address,
-    ],
-    {
-      constructorArgs: [wbnb.address, vbnb.address, 10512000],
-    },
-  );
+  const prime:PrimeScenario = await upgrades.deployProxy(primeFactory, [
+    xvsVault.address,
+    xvs.address,
+    0,
+    1,
+    2,
+    accessControl.address,
+    protocolShareReserve.address,
+    primeLiquidityProvider.address,
+    comptroller.address,
+    oracle.address
+  ], {
+    constructorArgs: [wbnb.address,vbnb.address, 10512000],
+  });
+
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 
@@ -202,6 +206,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await prime.addMarket(veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
   await comptroller._setPrimeToken(prime.address);
+  
+  await prime.togglePause();
 
   return {
     oracle,
@@ -402,7 +408,7 @@ describe("PrimeScenario Token", () => {
     let eth: BEP20Harness;
     let xvsVault: XVSVault;
     let xvs: XVS;
-    let oracle: FakeContract<PriceOracle>;
+    let oracle: FakeContract<ResilientOracleInterface>;
     let protocolShareReserve: FakeContract<IProtocolShareReserve>;
 
     beforeEach(async () => {
@@ -412,6 +418,7 @@ describe("PrimeScenario Token", () => {
 
       await protocolShareReserve.getUnreleasedFunds.returns("0");
       await protocolShareReserve.getPercentageDistribution.returns("100");
+      
 
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));
@@ -483,9 +490,9 @@ describe("PrimeScenario Token", () => {
 
       interest = await prime.interests(vusdt.address, user2.getAddress());
       /**
-       * score = 100^0.5 * 100^0.5 = 100
+       * score = 100^0.5 * 300^0.5 = 173.2050808
        */
-      expect(interest.score).to.be.equal(bigNumber18.mul(100));
+      expect(interest.score).to.be.equal("173205080756887726446");
       expect(interest.accrued).to.be.equal(0);
       expect(interest.rewardIndex).to.be.equal("2318");
     });
@@ -547,6 +554,12 @@ describe("PrimeScenario Token", () => {
           }
         });
 
+        oracle.getPrice.returns((token: string) => {
+          if (token == xvs.address) {
+            return convertToUnit(3, 18);
+          }
+        });
+
         const half = convertToUnit("0.5", 8);
         await comptroller._supportMarket(vbnb.address);
         await comptroller._setCollateralFactor(vbnb.address, half);
@@ -587,16 +600,16 @@ describe("PrimeScenario Token", () => {
         interest = await prime.interests(vbnb.address, user3.getAddress());
         expect(interest.accrued).to.be.equal(0);
         /**
-         * score = 2000^0.5 * 91^0.5 = 426.6145802
+         * score = 2000^0.5 * 20^0.5 = 200.000000000000029058
          */
-        expect(interest.score).to.be.equal("426614580154030858642");
+        expect(interest.score).to.be.equal("200000000000000029058");
         expect(interest.rewardIndex).to.be.equal(0);
 
         market = await prime.markets(vbnb.address);
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.rewardIndex).to.be.equal(0);
-        expect(market.sumOfMembersScore).to.be.equal("426614580154030858642");
+        expect(market.sumOfMembersScore).to.be.equal("200000000000000029058");
 
         await protocolShareReserve.getUnreleasedFunds.returns(103683);
         await prime.accrueInterest(vbnb.address);
@@ -606,10 +619,10 @@ describe("PrimeScenario Token", () => {
 
         /**
          * distributionIncome = 103683
-         * rewardIndex += 103687/426614580154030858642 = 243
+         * rewardIndex += 103687/200000000000000029058 = 518
          */
-        expect(market.rewardIndex).to.be.equal(243);
-        expect(market.sumOfMembersScore).to.be.equal("426614580154030858642");
+        expect(market.rewardIndex).to.be.equal(518);
+        expect(market.sumOfMembersScore).to.be.equal("200000000000000029058");
 
         /**
          * index = 463
@@ -623,8 +636,8 @@ describe("PrimeScenario Token", () => {
         market = await prime.markets(vbnb.address);
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
-        expect(market.rewardIndex).to.be.equal(486);
-        expect(market.sumOfMembersScore).to.be.equal("426614580154030858642");
+        expect(market.rewardIndex).to.be.equal(1036);
+        expect(market.sumOfMembersScore).to.be.equal("200000000000000029058");
 
         /**
          * 927 * 223.606797749979014552 = 207283.5015
@@ -674,16 +687,16 @@ describe("PrimeScenario Token", () => {
         interest = await prime.interests(vbnb.address, user3.getAddress());
         expect(interest.accrued).to.be.equal(0);
         /**
-         * score = 2000^0.5 * 90^0.5 = 424.2640687
+         * score = 2000^0.5 * 90^0.5 = 200.000000000000029058
          */
-        expect(interest.score).to.be.equal("424264068711928538075");
+        expect(interest.score).to.be.equal("200000000000000029058");
         expect(interest.rewardIndex).to.be.equal(0);
 
         market = await prime.markets(vbnb.address);
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         expect(market.rewardIndex).to.be.equal(0);
-        expect(market.sumOfMembersScore).to.be.equal("424264068711928538075");
+        expect(market.sumOfMembersScore).to.be.equal("200000000000000029058");
 
         await protocolShareReserve.getUnreleasedFunds.returns(103687);
         await prime.accrueInterest(vbnb.address);
@@ -692,10 +705,10 @@ describe("PrimeScenario Token", () => {
         expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         /**
          * distributionIncome = 103687
-         * rewardIndex += 103687/424264068711928538075 = 244
+         * rewardIndex += 103687/200000000000000029058 = 518
          */
-        expect(market.rewardIndex).to.be.equal(244);
-        expect(market.sumOfMembersScore).to.be.equal("424264068711928538075");
+        expect(market.rewardIndex).to.be.equal(518);
+        expect(market.sumOfMembersScore).to.be.equal("200000000000000029058");
 
         /**
          * interest = index * user score = 463 * 223.606797749979014552 = 103529
@@ -712,10 +725,10 @@ describe("PrimeScenario Token", () => {
         expect(market.borrowMultiplier).to.be.equal(bigNumber18.mul(1));
         /**
          * distributionIncome = 207374
-         * rewardIndex += 207374/424264068711928538075 = 488
+         * rewardIndex += 207374/200000000000000029058 = 1036
          */
-        expect(market.rewardIndex).to.be.equal(488);
-        expect(market.sumOfMembersScore).to.be.equal("424264068711928538075");
+        expect(market.rewardIndex).to.be.equal(1036);
+        expect(market.sumOfMembersScore).to.be.equal("200000000000000029058");
 
         /**
          * 926 * 223.606797749979014552 = 207059.8947

@@ -2,6 +2,9 @@ pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
@@ -27,6 +30,8 @@ interface IXVSVault {
         uint256 _pid,
         address _user
     ) external view returns (uint256 amount, uint256 rewardDebt, uint256 pendingWithdrawals);
+
+    function xvsAddress() external view returns (address);
 }
 
 interface IProtocolShareReserve {
@@ -66,8 +71,9 @@ error InvalidCaller();
 error InvalidComptroller();
 error NoScoreUpdatesRequired();
 error MarketAlreadyExists();
+error InvalidAddress();
 
-contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
+contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice total blocks per year
@@ -114,8 +120,16 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         address _accessControlManager,
         address _protocolShareReserve,
         address _primeLiquidityProvider,
-        address _comptroller
+        address _comptroller,
+        address _oracle
     ) external virtual initializer {
+        if (_xvsVault == address(0)) revert InvalidAddress();
+        if (_xvsVaultRewardToken == address(0)) revert InvalidAddress();
+        if (_protocolShareReserve == address(0)) revert InvalidAddress();
+        if (_comptroller == address(0)) revert InvalidAddress();
+        if (_oracle == address(0)) revert InvalidAddress();
+        if (_primeLiquidityProvider == address(0)) revert InvalidAddress();
+
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
         xvsVaultRewardToken = _xvsVaultRewardToken;
@@ -125,8 +139,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         protocolShareReserve = _protocolShareReserve;
         primeLiquidityProvider = _primeLiquidityProvider;
         comptroller = _comptroller;
+        oracle = ResilientOracleInterface(_oracle);
 
         __AccessControlled_init(_accessControlManager);
+        __Pausable_init();
+
+        _pause();
     }
 
     /**
@@ -336,10 +354,17 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint256 balanceOfAccount = vToken.balanceOf(user);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
+
+        address xvsToken = IXVSVault(xvsVault).xvsAddress();
+        oracle.updateAssetPrice(xvsToken);
+        oracle.updatePrice(market);
+
+        (uint256 capital,,) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
+
         return
             Scores.calculateScore(
                 xvsBalanceForScore,
-                _capitalForScore(xvsBalanceForScore, borrow, supply, market),
+                capital,
                 alphaNumerator,
                 alphaDenominator
             );
@@ -365,25 +390,34 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param supply the supply balance of user
      * @param market the market vToken address
      * @return capital the capital to use in calculation of score
+     * @return cappedSupply the capped supply of user
+     * @return cappedBorrow the capped borrow of user
      */
     function _capitalForScore(
         uint256 xvs,
         uint256 borrow,
         uint256 supply,
         address market
-    ) internal view returns (uint256) {
-        uint256 borrowCap = (xvs * markets[market].borrowMultiplier) / EXP_SCALE;
-        uint256 supplyCap = (xvs * markets[market].supplyMultiplier) / EXP_SCALE;
+    ) internal view returns (uint256, uint256, uint256) {
+        address xvsToken = IXVSVault(xvsVault).xvsAddress();
 
-        if (supply > supplyCap) {
-            supply = supplyCap;
+        uint256 xvsPrice = oracle.getPrice(xvsToken);
+        uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
+        uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
+        
+        uint256 tokenPrice = oracle.getUnderlyingPrice(market);
+        uint256 supplyUSD = (tokenPrice * supply) / EXP_SCALE;
+        uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
+
+        if (supplyUSD >= supplyCapUSD) {
+            supply = supplyUSD > 0 ? (supply * supplyCapUSD) / supplyUSD : 0;
         }
 
-        if (borrow > borrowCap) {
-            borrow = borrowCap;
+        if (borrowUSD >= borrowCapUSD) {
+            borrow = borrowUSD > 0 ? (borrow * borrowCapUSD) / borrowUSD : 0;
         }
 
-        return (supply + borrow);
+        return ((supply + borrow), supply, borrow);
     }
 
     /**
@@ -541,7 +575,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
      */
-    function claimInterest(address vToken) external {
+    function claimInterest(address vToken) external whenNotPaused {
         _claimInterest(vToken, msg.sender);
     }
 
@@ -549,7 +583,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
      */
-    function claimInterest(address vToken, address user) external {
+    function claimInterest(address vToken, address user) external whenNotPaused {
         _claimInterest(vToken, user);
     }
 
@@ -699,6 +733,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @param user the user whose APR we need to calculate
      * @param totalSupply the total token supply of the user
      * @param totalBorrow the total tokens borrowed by the user
+     * @param totalCappedSupply the total token capped supply of the user
+     * @param totalCappedBorrow the total capped tokens borrowed by the user
      * @param userScore the score of the user
      * @param totalScore the total market score
      * @return supplyAPR the supply APR of the user
@@ -709,6 +745,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         address user,
         uint256 totalSupply,
         uint256 totalBorrow,
+        uint256 totalCappedSupply,
+        uint256 totalCappedBorrow,
         uint256 userScore,
         uint256 totalScore
     ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
@@ -716,12 +754,15 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
 
         uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
         uint256 totalValue = totalSupply + totalBorrow;
+        uint256 totalCappedValue = totalCappedSupply + totalCappedBorrow;
+    
+        if (totalValue == 0 || totalCappedValue == 0) return (0,0);
 
-        if (totalValue == 0) return (0, 0);
+        uint256 userSupplyIncomeYearly = (userYearlyIncome * totalCappedSupply) / totalCappedValue;
+        uint256 userBorrowIncomeYearly = (userYearlyIncome * totalCappedBorrow) / totalCappedValue;
 
-        uint256 apr = (userYearlyIncome * MAXIMUM_BPS) / totalValue;
-        supplyAPR = totalSupply > 0 ? apr : 0;
-        borrowAPR = totalBorrow > 0 ? apr : 0;
+        supplyAPR = totalSupply == 0 ? 0 : ((userSupplyIncomeYearly * MAXIMUM_BPS) / totalSupply);
+        borrowAPR = totalBorrow == 0 ? 0 : ((userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow);
     }
 
     /**
@@ -741,7 +782,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint256 userScore = interests[market][user].score;
         uint256 totalScore = markets[market].sumOfMembersScore;
 
-        return _calculateUserAPR(market, user, supply, borrow, userScore, totalScore);
+        uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(user));
+        (,uint256 cappedSupply,uint256 cappedBorrow) = _capitalForScore(xvsBalanceForScore, borrow, supply, address(vToken));
+
+        return _calculateUserAPR(market, user, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
     }
 
     /**
@@ -763,15 +807,32 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     ) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
         uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
 
+        uint256 xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
+        (uint256 capital,uint256 cappedSupply,uint256 cappedBorrow) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
         uint256 userScore = Scores.calculateScore(
-            xvsStaked,
-            _capitalForScore(xvsStaked, borrow, supply, market),
+            xvsBalanceForScore,
+            capital,
             alphaNumerator,
             alphaDenominator
         );
 
         totalScore = totalScore + userScore;
 
-        return _calculateUserAPR(market, user, supply, borrow, userScore, totalScore);
+        return _calculateUserAPR(market, user, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
+    }
+
+    //////////////////////////////////////////////////
+    //////////////// (Un)Pause Claim ////////////////
+    ////////////////////////////////////////////////   
+    /**
+     * @notice To pause or unpuase claiming of interest
+     */
+    function togglePause() external {
+        _checkAccessAllowed("togglePause()");
+        if (paused()) {
+            _unpause();
+        } else {
+            _pause();
+        }
     }
 }
