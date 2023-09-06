@@ -99,9 +99,13 @@ contract PrimeStorageV1 {
     /// @notice address of core pool comptroller contract
     address public comptroller;
 
-    /// @notice unreleased income from reserve that's already distributed to prime holders
+    /// @notice unreleased income from PSR that's already distributed to prime holders
     /// @dev mapping of asset adress => amount
-    mapping(address => uint256) public unreleasedIncome;
+    mapping(address => uint256) public unreleasedPSRIncome;
+
+    /// @notice unreleased income from PLP that's already distributed to prime holders
+    /// @dev mapping of asset adress => amount
+    mapping(address => uint256) public unreleasedPLPIncome;
 
     /// @notice The address of PLP contract
     address public primeLiquidityProvider;

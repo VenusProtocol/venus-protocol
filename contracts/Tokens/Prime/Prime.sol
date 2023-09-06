@@ -60,6 +60,8 @@ interface IIncomeDestination {
 
 interface IPrimeLiquidityProvider {
     function releaseFunds(address token_) external;
+    function accrueTokens(address token_) external;
+    function tokenAmountAccrued(address token_) external view returns (uint256);
 }
 
 error MarketNotSupported();
@@ -530,6 +532,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
 
         address underlying = _getUnderlying(vToken);
 
+        IPrimeLiquidityProvider primeLiquidityProvider = IPrimeLiquidityProvider(primeLiquidityProvider);
+
         uint totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
             comptroller,
             IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
@@ -537,13 +541,20 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
             underlying
         );
 
-        uint256 distributionIncome = totalIncomeUnreleased - unreleasedIncome[underlying];
+        uint256 distributionIncome = totalIncomeUnreleased - unreleasedPSRIncome[underlying];
+
+        primeLiquidityProvider.accrueTokens(underlying);
+        uint256 totalAccruedInPLP = primeLiquidityProvider.tokenAmountAccrued(underlying);
+        uint256 unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
+
+        distributionIncome += unreleasedPLPAccruedInterest;
 
         if (distributionIncome == 0) {
             return;
         }
 
-        unreleasedIncome[underlying] = totalIncomeUnreleased;
+        unreleasedPSRIncome[underlying] = totalIncomeUnreleased;
+        unreleasedPLPIncome[underlying] = totalAccruedInPLP;
 
         uint256 delta;
         if (markets[vToken].sumOfMembersScore > 0) {
@@ -599,7 +610,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
         interests[vToken][user].accrued = 0;
 
-        IERC20Upgradeable asset = IERC20Upgradeable(_getUnderlying(vToken));
+        address underlying = _getUnderlying(vToken);
+        IERC20Upgradeable asset = IERC20Upgradeable(underlying);
 
         if (amount > asset.balanceOf(address(this))) {
             address[] memory assets = new address[](1);
@@ -607,6 +619,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
             IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
             if (amount > asset.balanceOf(address(this))) {
                 IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
+                unreleasedPLPIncome[underlying] = 0;
             }
         }
 
@@ -626,7 +639,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         if (vToken == address(0)) revert MarketNotSupported();
 
         IVToken market = IVToken(vToken);
-        unreleasedIncome[_getUnderlying(address(market))] = 0;
+        unreleasedPSRIncome[_getUnderlying(address(market))] = 0;
 
         emit UpdatedAssetsState(comptroller, asset);
     }
