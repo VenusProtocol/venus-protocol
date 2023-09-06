@@ -2,6 +2,7 @@ pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
@@ -23,6 +24,8 @@ interface IXVSVault {
         uint256 _pid,
         address _user
     ) external view returns (uint256 amount, uint256 rewardDebt, uint256 pendingWithdrawals);
+
+    function xvsAddress() external view returns (address);
 }
 
 interface IProtocolShareReserve {
@@ -103,7 +106,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint128 _alphaDenominator,
         address _accessControlManager,
         address _protocolShareReserve,
-        address _comptroller
+        address _comptroller,
+        address _oracle
     ) external virtual initializer {
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
@@ -113,6 +117,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         nextScoreUpdateRoundId = 0;
         protocolShareReserve = _protocolShareReserve;
         comptroller = _comptroller;
+        oracle = _oracle;
 
         __AccessControlled_init(_accessControlManager);
     }
@@ -364,18 +369,33 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         uint256 supply,
         address market
     ) internal view returns (uint256, uint256, uint256) {
-        uint256 borrowCap = (xvs * markets[market].borrowMultiplier) / EXP_SCALE;
-        uint256 supplyCap = (xvs * markets[market].supplyMultiplier) / EXP_SCALE;
+        ResilientOracleInterface oracleInterface = ResilientOracleInterface(oracle);
+        address xvsToken = IXVSVault(xvsVault).xvsAddress();
+        oracleInterface.updateAssetPrice(xvsToken);
+        oracleInterface.updatePrice(market);
 
-        if (supply > supplyCap) {
-            supply = supplyCap;
-        }
+        // uint256 borrowCap = (xvs * markets[market].borrowMultiplier) / EXP_SCALE;
+        // uint256 supplyCap = (xvs * markets[market].supplyMultiplier) / EXP_SCALE;
 
-        if (borrow > borrowCap) {
-            borrow = borrowCap;
-        }
+        // if (supply > supplyCap) {
+        //     supply = supplyCap;
+        // }
 
-        return ((supply + borrow), supply, borrow);
+        // if (borrow > borrowCap) {
+        //     borrow = borrowCap;
+        // }
+
+        // return ((supply + borrow), supply, borrow);
+
+        uint256 xvsPrice = oracleInterface.getPrice(xvsToken);
+        uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
+        uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
+
+        uint256 tokenPrice = oracleInterface.getUnderlyingPrice(market);
+        uint256 supplyUSD = (tokenPrice * supply) / EXP_SCALE;
+        uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
+
+        
     }
 
     /**

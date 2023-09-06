@@ -101,7 +101,10 @@ contract PrimeStorageV1 {
     /// @dev mapping of asset adress => amount
     mapping(address => uint256) public unreleasedIncome;
 
+    /// @notice The address of ResilientOracle contract
+    address public oracle;
+
     /// @dev This empty reserved space is put in place to allow future versions to add new
     /// variables without shifting down storage in the inheritance chain.
-    uint256[28] private __gap;
+    uint256[27] private __gap;
 }
