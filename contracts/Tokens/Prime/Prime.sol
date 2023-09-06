@@ -3,6 +3,8 @@ pragma solidity 0.8.13;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
@@ -58,7 +60,7 @@ error InvalidComptroller();
 error NoScoreUpdatesRequired();
 error MarketAlreadyExists();
 
-contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
+contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     
     /// @notice total blocks per year
@@ -118,6 +120,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         oracle = _oracle;
 
         __AccessControlled_init(_accessControlManager);
+        __Pausable_init();
+
+        _pause();
     }
 
     /**
@@ -549,7 +554,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
      */
-    function claimInterest(address vToken) external {
+    function claimInterest(address vToken) external whenNotPaused {
         _claimInterest(vToken, msg.sender);
     }
 
@@ -557,7 +562,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
      */
-    function claimInterest(address vToken, address user) external {
+    function claimInterest(address vToken, address user) external whenNotPaused {
         _claimInterest(vToken, user);
     }
 
@@ -786,5 +791,20 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
         totalScore = totalScore + userScore;
 
         return _calculateUserAPR(market, user, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
+    }
+
+    //////////////////////////////////////////////////
+    //////////////// (Un)Pause Claim ////////////////
+    ////////////////////////////////////////////////   
+    /**
+     * @notice To pause or unpuase claiming of interest
+     */
+    function togglePause() external {
+        _checkAccessAllowed("togglePause()");
+        if (paused()) {
+            _unpause();
+        } else {
+            _pause();
+        }
     }
 }

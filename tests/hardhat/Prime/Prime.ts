@@ -203,6 +203,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await prime.addMarket(veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
   await comptroller._setPrimeToken(prime.address);
+  
+  await prime.togglePause();
 
   return {
     oracle,
