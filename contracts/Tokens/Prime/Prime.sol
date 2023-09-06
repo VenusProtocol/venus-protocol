@@ -745,9 +745,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PrimeStorageV1 {
     ) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
         uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
 
+        uint256 xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
         uint256 userScore = Scores.calculateScore(
-            xvsStaked,
-            _capitalForScore(xvsStaked, borrow, supply, market),
+            xvsBalanceForScore,
+            _capitalForScore(xvsBalanceForScore, borrow, supply, market),
             alphaNumerator,
             alphaDenominator
         );
