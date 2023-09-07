@@ -62,6 +62,7 @@ interface IPrimeLiquidityProvider {
     function releaseFunds(address token_) external;
     function accrueTokens(address token_) external;
     function tokenAmountAccrued(address token_) external view returns (uint256);
+    function getEffectiveDistributionSpeed(address token_) external view returns (uint256);
 }
 
 error MarketNotSupported();
@@ -733,11 +734,16 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      * @param vToken the market for which to fetch the total income that's going to distributed in a year
      * @return amount the total income
      */
-    function _incomeDistributionYearly(address vToken) internal view returns (uint256) {
-        uint256 totalIncomePerBlock = _incomePerBlock(vToken);
-        uint256 incomePerBlockForDistribution = (totalIncomePerBlock * _distributionPercentage()) /
+    function _incomeDistributionYearly(address vToken) internal view returns (uint256 amount) {
+        uint256 totalIncomePerBlockFromMarket = _incomePerBlock(vToken);
+        uint256 incomePerBlockForDistributionFromMarket = (totalIncomePerBlockFromMarket * _distributionPercentage()) /
             IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
-        return BLOCKS_PER_YEAR * incomePerBlockForDistribution;
+        amount += BLOCKS_PER_YEAR * incomePerBlockForDistributionFromMarket;
+
+        uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider).getEffectiveDistributionSpeed(
+            _getUnderlying(vToken)
+        );
+        amount += BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
     }
 
     /**

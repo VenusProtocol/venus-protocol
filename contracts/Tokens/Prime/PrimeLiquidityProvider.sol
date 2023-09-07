@@ -239,6 +239,23 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     }
 
     /**
+     * @notice Get rewards per block for token
+     * @param token_ Address of the token
+     * @return speed returns the per block reward
+     */
+    function getEffectiveDistributionSpeed(address token_) external view returns (uint256) {
+        uint256 distributionSpeed = tokenDistributionSpeeds[token_];
+        uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
+        uint256 accrued = tokenAmountAccrued[token_];
+
+        if (distributionSpeed > 0 && (balance - accrued) > 0) {
+            return distributionSpeed;
+        }
+
+        return 0;
+    }
+
+    /**
      * @notice Initialize the distribution of the token
      * @param token_ Address of the token to be intialized
      * @custom:event Emits TokenDistributionInitialized event
