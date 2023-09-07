@@ -4,6 +4,11 @@ pragma experimental ABIEncoderV2;
 import "../InterestRateModels/InterestRateModel.sol";
 import "../Utils/SafeMath.sol";
 
+/**
+ * @title InterestRateModelLens Contract
+ * @author Venus
+ * @notice Lens for querying interest rate model simulations
+ */
 contract InterestRateModelLens {
     using SafeMath for uint256;
 
@@ -12,6 +17,13 @@ contract InterestRateModelLens {
         uint256[] supplySimulation;
     }
 
+    /**
+     * @notice Simulate interest rate curve fo a specific interest rate model given a reference borrow amount and reserve factor
+     * @param referenceAmountInWei Borrow amount to use in simulation
+     * @param interestRateModel Address for interest rate model to simulate
+     * @param reserveFactorMantissa Reserve Factor to use in simulation
+     * @return SimulationResponse struct with array of borrow simulations and an array of supply simulations
+     */
     function getSimulationResponse(
         uint referenceAmountInWei,
         address interestRateModel,

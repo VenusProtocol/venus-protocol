@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.13;
 
 interface IPancakeSwapV2Router {
@@ -115,13 +116,34 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external payable;
 
+    function swapExactTokensForBNBAndSupply(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external;
+
+    function swapExactTokensForBNBAndSupplyAtSupportingFee(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external;
+
+    function swapTokensForExactBNBAndSupply(
+        uint256 amountOut,
+        uint256 amountInMax,
+        address[] calldata path,
+        uint256 deadline
+    ) external;
+
     function swapBNBForFullTokenDebtAndRepay(
         address vTokenAddress,
         address[] calldata path,
         uint256 deadline
     ) external payable;
 
-    function swapAndRepay(
+    function swapExactTokensForTokensAndRepay(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -129,7 +151,7 @@ interface IPancakeSwapV2Router {
         uint256 deadline
     ) external;
 
-    function swapAndRepayAtSupportingFee(
+    function swapExactTokensForTokensAndRepayAtSupportingFee(
         address vTokenAddress,
         uint256 amountIn,
         uint256 amountOutMin,
@@ -178,25 +200,21 @@ interface IPancakeSwapV2Router {
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable;
+    ) external;
 
     function swapExactTokensForBNBAndRepayAtSupportingFee(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
         uint256 deadline
-    ) external payable;
+    ) external;
 
     function swapTokensForExactBNBAndRepay(
         uint256 amountOut,
         uint256 amountInMax,
         address[] calldata path,
         uint256 deadline
-    ) external payable;
+    ) external;
 
-    function swapTokensForFullBNBDebtAndRepay(
-        uint256 amountInMax,
-        address[] calldata path,
-        uint256 deadline
-    ) external payable;
+    function swapTokensForFullBNBDebtAndRepay(uint256 amountInMax, address[] calldata path, uint256 deadline) external;
 }
