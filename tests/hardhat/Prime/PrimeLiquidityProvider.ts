@@ -103,18 +103,19 @@ describe("PrimeLiquidityProvider: tests", () => {
       const tx = await primeLiquidityProvider.pauseFundsTransfer();
       tx.wait();
 
-      await expect(tx).to.emit(primeLiquidityProvider, "FundsTransferPaused");
+      await expect(tx).to.emit(primeLiquidityProvider, "Paused").withArgs(signer.address);
 
-      expect(await primeLiquidityProvider.isFundsTransferPaused()).to.equal(true);
+      expect(await primeLiquidityProvider.paused()).to.equal(true);
     });
 
     it("resumeFundsTransfer", async () => {
+      await primeLiquidityProvider.pauseFundsTransfer();
       const tx = await primeLiquidityProvider.resumeFundsTransfer();
       tx.wait();
 
-      await expect(tx).to.emit(primeLiquidityProvider, "FundsTransferResumed");
+      await expect(tx).to.emit(primeLiquidityProvider, "Unpaused").withArgs(signer.address);
 
-      expect(await primeLiquidityProvider.isFundsTransferPaused()).to.equal(false);
+      expect(await primeLiquidityProvider.paused()).to.equal(false);
     });
 
     it("Revert on invalid args for setTokensDistributionSpeed", async () => {

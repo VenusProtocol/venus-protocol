@@ -3,8 +3,9 @@ pragma solidity 0.8.13;
 
 import { SafeERC20Upgradeable, IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
-contract PrimeLiquidityProvider is AccessControlledV8 {
+contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice The max token distribution speed
@@ -24,9 +25,6 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
 
     /// @notice The token accrued but not yet transferred to prime contract
     mapping(address => uint256) public tokenAmountAccrued;
-
-    /// @notice Is funds transfer paused to prime token
-    bool public isFundsTransferPaused;
 
     /// @notice Emitted when a token distribution is initialized
     event TokenDistributionInitialized(address indexed token);
@@ -92,6 +90,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
         uint256[] calldata distributionSpeeds_
     ) external initializer {
         __AccessControlled_init(accessControlManager_);
+        __Pausable_init();
 
         uint256 numTokens = tokens_.length;
         if (numTokens != distributionSpeeds_.length) {
@@ -130,9 +129,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      */
     function pauseFundsTransfer() external {
         _checkAccessAllowed("pauseFundsTransfer()");
-        isFundsTransferPaused = true;
-
-        emit FundsTransferPaused();
+        _pause();
     }
 
     /**
@@ -142,9 +139,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      */
     function resumeFundsTransfer() external {
         _checkAccessAllowed("resumeFundsTransfer()");
-        isFundsTransferPaused = false;
-
-        emit FundsTransferResumed();
+        _unpause();
     }
 
     /**
@@ -178,7 +173,7 @@ contract PrimeLiquidityProvider is AccessControlledV8 {
      * @custom:error Throw InvalidArguments on Zero address(token)
      */
     function releaseFunds(address token_) external {
-        if (isFundsTransferPaused) {
+        if (paused()) {
             revert FundsTransferIsPaused();
         }
 
