@@ -9,12 +9,18 @@ import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
 interface IVToken {
-    function borrowBalanceStored(address account) external view returns (uint);
-    function exchangeRateStored() external view returns (uint);
+    function borrowBalanceStored(address account) external returns (uint);
+
+    function exchangeRateStored() external returns (uint);
+
     function balanceOf(address account) external view returns (uint);
+
     function underlying() external view returns (address);
+
     function totalBorrows() external view returns (uint);
+
     function borrowRatePerBlock() external view returns (uint);
+
     function reserveFactorMantissa() external view returns (uint);
 }
 
@@ -42,12 +48,20 @@ interface IProtocolShareReserve {
     ) external view returns (uint256);
 
     function releaseFunds(address comptroller, address[] memory assets) external;
+
     function getPercentageDistribution(address destination, Schema schema) external view returns (uint256);
+
     function MAX_PERCENT() external view returns (uint256);
 }
 
 interface IIncomeDestination {
     function updateAssetsState(address comptroller, address asset) external;
+}
+
+interface IPrimeLiquidityProvider {
+    function releaseFunds(address token_) external;
+    function accrueTokens(address token_) external;
+    function tokenAmountAccrued(address token_) external view returns (uint256);
 }
 
 error MarketNotSupported();
@@ -63,7 +77,7 @@ error InvalidAddress();
 
 contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-    
+
     /// @notice total blocks per year
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable BLOCKS_PER_YEAR;
@@ -107,6 +121,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         uint128 _alphaDenominator,
         address _accessControlManager,
         address _protocolShareReserve,
+        address _primeLiquidityProvider,
         address _comptroller,
         address _oracle
     ) external virtual initializer {
@@ -115,6 +130,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         if (_protocolShareReserve == address(0)) revert InvalidAddress();
         if (_comptroller == address(0)) revert InvalidAddress();
         if (_oracle == address(0)) revert InvalidAddress();
+        if (_primeLiquidityProvider == address(0)) revert InvalidAddress();
 
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
@@ -123,6 +139,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         xvsVault = _xvsVault;
         nextScoreUpdateRoundId = 0;
         protocolShareReserve = _protocolShareReserve;
+        primeLiquidityProvider = _primeLiquidityProvider;
         comptroller = _comptroller;
         oracle = ResilientOracleInterface(_oracle);
 
@@ -158,7 +175,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
     function updateMultipliers(address market, uint256 _supplyMultiplier, uint256 _borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
         if (!markets[market].exists) revert MarketNotSupported();
-        
+
         accrueInterest(market);
         markets[market].supplyMultiplier = _supplyMultiplier;
         markets[market].borrowMultiplier = _borrowMultiplier;
@@ -438,8 +455,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
 
         for (uint i = 0; i < _allMarkets.length; i++) {
             executeBoost(user, _allMarkets[i]);
-            
-            markets[_allMarkets[i]].sumOfMembersScore = markets[_allMarkets[i]].sumOfMembersScore - interests[_allMarkets[i]][user].score;
+
+            markets[_allMarkets[i]].sumOfMembersScore =
+                markets[_allMarkets[i]].sumOfMembersScore -
+                interests[_allMarkets[i]][user].score;
             interests[_allMarkets[i]][user].score = 0;
             interests[_allMarkets[i]][user].rewardIndex = 0;
         }
@@ -513,6 +532,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
 
         address underlying = _getUnderlying(vToken);
 
+        IPrimeLiquidityProvider primeLiquidityProvider = IPrimeLiquidityProvider(primeLiquidityProvider);
+
         uint totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
             comptroller,
             IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
@@ -520,14 +541,20 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
             underlying
         );
 
-        uint256 distributionIncome = totalIncomeUnreleased - unreleasedIncome[underlying];
-        
+        uint256 distributionIncome = totalIncomeUnreleased - unreleasedPSRIncome[underlying];
+
+        primeLiquidityProvider.accrueTokens(underlying);
+        uint256 totalAccruedInPLP = primeLiquidityProvider.tokenAmountAccrued(underlying);
+        uint256 unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
+
+        distributionIncome += unreleasedPLPAccruedInterest;
 
         if (distributionIncome == 0) {
             return;
         }
 
-        unreleasedIncome[underlying] = totalIncomeUnreleased;
+        unreleasedPSRIncome[underlying] = totalIncomeUnreleased;
+        unreleasedPLPIncome[underlying] = totalAccruedInPLP;
 
         uint256 delta;
         if (markets[vToken].sumOfMembersScore > 0) {
@@ -583,12 +610,17 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
         interests[vToken][user].accrued = 0;
 
-        IERC20Upgradeable asset = IERC20Upgradeable(_getUnderlying(vToken));
+        address underlying = _getUnderlying(vToken);
+        IERC20Upgradeable asset = IERC20Upgradeable(underlying);
 
         if (amount > asset.balanceOf(address(this))) {
             address[] memory assets = new address[](1);
             assets[0] = address(asset);
             IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
+            if (amount > asset.balanceOf(address(this))) {
+                IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
+                unreleasedPLPIncome[underlying] = 0;
+            }
         }
 
         asset.safeTransfer(user, amount);
@@ -607,7 +639,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         if (vToken == address(0)) revert MarketNotSupported();
 
         IVToken market = IVToken(vToken);
-        unreleasedIncome[_getUnderlying(address(market))] = 0;
+        unreleasedPSRIncome[_getUnderlying(address(market))] = 0;
 
         emit UpdatedAssetsState(comptroller, asset);
     }
@@ -634,7 +666,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
 
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
-            
+
             if (!tokens[user].exists) revert UserHasNoPrimeToken();
             if (isScoreUpdated[nextScoreUpdateRoundId][user]) continue;
 
@@ -663,7 +695,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      */
     function _updateRoundAfterTokenBurned(address user) internal {
         if (totalScoreUpdatesRequired > 0) totalScoreUpdatesRequired--;
-        
+
         if (pendingScoreUpdates > 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
             pendingScoreUpdates--;
         }
@@ -671,7 +703,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
 
     //////////////////////////////////////////////////
     //////////////// APR Calculation ////////////////
-    ////////////////////////////////////////////////    
+    ////////////////////////////////////////////////
 
     /**
      * @notice Returns the income the market generates per block
@@ -680,7 +712,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      */
     function _incomePerBlock(address vToken) internal view returns (uint256) {
         IVToken market = IVToken(vToken);
-        return ((((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) * market.reserveFactorMantissa()) / EXP_SCALE);
+        return ((((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) * market.reserveFactorMantissa()) /
+            EXP_SCALE);
     }
 
     /**
@@ -688,9 +721,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      * @return percentage the percentage returned without mantissa
      */
     function _distributionPercentage() internal view returns (uint256) {
-        return IProtocolShareReserve(protocolShareReserve).getPercentageDistribution(
-            address(this), IProtocolShareReserve.Schema.SPREAD_PRIME_CORE
-        );
+        return
+            IProtocolShareReserve(protocolShareReserve).getPercentageDistribution(
+                address(this),
+                IProtocolShareReserve.Schema.SPREAD_PRIME_CORE
+            );
     }
 
     /**
@@ -700,7 +735,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      */
     function _incomeDistributionYearly(address vToken) internal view returns (uint256) {
         uint256 totalIncomePerBlock = _incomePerBlock(vToken);
-        uint256 incomePerBlockForDistribution = (totalIncomePerBlock * _distributionPercentage()) / IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
+        uint256 incomePerBlockForDistribution = (totalIncomePerBlock * _distributionPercentage()) /
+            IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
         return BLOCKS_PER_YEAR * incomePerBlockForDistribution;
     }
 
@@ -718,16 +754,16 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      * @return borrowAPR the borrow APR of the user
      */
     function _calculateUserAPR(
-        address vToken, 
-        address user, 
-        uint256 totalSupply, 
+        address vToken,
+        address user,
+        uint256 totalSupply,
         uint256 totalBorrow,
         uint256 totalCappedSupply,
         uint256 totalCappedBorrow,
         uint256 userScore,
         uint256 totalScore
     ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
-        if (totalScore == 0) return (0,0);
+        if (totalScore == 0) return (0, 0);
 
         uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
         uint256 totalValue = totalSupply + totalBorrow;
@@ -749,7 +785,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      * @return supplyAPR supply APR of the user
      * @return borrowAPR borrow APR of the user
      */
-    function calculateAPR(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
+    function calculateAPR(address market, address user) external returns (uint256 supplyAPR, uint256 borrowAPR) {
         IVToken vToken = IVToken(market);
         uint256 borrow = vToken.borrowBalanceStored(user);
         uint256 exchangeRate = vToken.exchangeRateStored();
@@ -776,7 +812,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      * @return borrowAPR borrow APR of the user
      */
     function estimateAPR(
-        address market, 
+        address market,
         address user,
         uint256 borrow,
         uint256 supply,

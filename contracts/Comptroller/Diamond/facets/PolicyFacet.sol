@@ -57,7 +57,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             prime.updateScore(minter, vToken);
         }
     }
-    
+
     /**
      * @notice Checks if the account should be allowed to redeem tokens in the given market
      * @param vToken The market to verify the redeem against

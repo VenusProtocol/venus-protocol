@@ -14,6 +14,7 @@ import {
   IAccessControlManager,
   IProtocolShareReserve,
   InterestRateModelHarness,
+  PrimeLiquidityProvider,
   PrimeScenario,
   ResilientOracleInterface,
   VBep20Harness,
@@ -50,6 +51,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const oracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  const primeLiquidityProvider = await smock.fake<PrimeLiquidityProvider>("PrimeLiquidityProvider");
   const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
@@ -187,6 +189,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     2,
     accessControl.address,
     protocolShareReserve.address,
+    primeLiquidityProvider.address,
     comptroller.address,
     oracle.address
   ], {
