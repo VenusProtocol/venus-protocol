@@ -1656,7 +1656,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     function ensureNoMathError(MathError mErr) private pure {
-        require(mErr != MathError.NO_ERROR, "math error");
+        require(mErr == MathError.NO_ERROR, "math error");
     }
 
     function ensureNonZeroAddress(address address_) private pure {
