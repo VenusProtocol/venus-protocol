@@ -64,7 +64,7 @@ async function configureNew(vTokenAddress: string) {
   await vToken.connect(impersonatedTimelock).setReduceReservesBlockDelta(1000);
   await expect(
     vToken.connect(impersonatedTimelock).setProtocolShareReserve(ethers.constants.AddressZero),
-  ).to.be.revertedWith("can't be zero address");
+  ).to.be.revertedWith("zero address");
   await vToken.connect(impersonatedTimelock).setProtocolShareReserve(protocolShareReserve.address);
   return vToken;
 }
