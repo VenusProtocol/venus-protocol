@@ -3,7 +3,7 @@
 pragma solidity 0.5.16;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
-import { ComptrollerV12Storage } from "../../ComptrollerStorage.sol";
+import { ComptrollerV13Storage } from "../../ComptrollerStorage.sol";
 
 interface IRewardFacet {
     function claimVenus(address holder) external;
@@ -22,7 +22,7 @@ interface IRewardFacet {
 
     function getXVSVTokenAddress() external pure returns (address);
 
-    function actionPaused(address market, ComptrollerV12Storage.Action action) external view returns (bool);
+    function actionPaused(address market, ComptrollerV13Storage.Action action) external view returns (bool);
 
     function releaseToVault() external;
 

@@ -4,11 +4,11 @@ pragma solidity 0.5.16;
 
 import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
 import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV12Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { ComptrollerV13Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { IAccessControlManager } from "../../../Governance/IAccessControlManager.sol";
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 
-contract FacetBase is ComptrollerV12Storage, ExponentialNoError, ComptrollerErrorReporter {
+contract FacetBase is ComptrollerV13Storage, ExponentialNoError, ComptrollerErrorReporter {
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken indexed vToken, address indexed account);
 

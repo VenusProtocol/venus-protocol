@@ -4,7 +4,7 @@ pragma solidity 0.5.16;
 
 import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
-import { ComptrollerV12Storage } from "../../ComptrollerStorage.sol";
+import { ComptrollerV13Storage } from "../../ComptrollerStorage.sol";
 import { VAIControllerInterface } from "../../../Tokens/VAI/VAIController.sol";
 import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
 
@@ -31,7 +31,7 @@ interface ISetterFacet {
 
     function _setActionsPaused(
         address[] calldata markets,
-        ComptrollerV12Storage.Action[] calldata actions,
+        ComptrollerV13Storage.Action[] calldata actions,
         bool paused
     ) external;
 
@@ -52,4 +52,6 @@ interface ISetterFacet {
     function _setVenusVAIVaultRate(uint256 venusVAIVaultRate_) external;
 
     function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) external;
+
+    function _setForcedLiquidation(address vToken, bool enable) external;
 }

@@ -238,6 +238,10 @@ contract ComptrollerV11Storage is ComptrollerV10Storage {
 }
 
 contract ComptrollerV12Storage is ComptrollerV11Storage {
+    mapping(address => bool) public isForcedLiquidationEnabled;
+}
+
+contract ComptrollerV13Storage is ComptrollerV12Storage {
     struct FacetAddressAndPosition {
         address facetAddress;
         uint96 functionSelectorPosition; // position in _facetFunctionSelectors.functionSelectors array
