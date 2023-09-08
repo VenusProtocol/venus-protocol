@@ -15,7 +15,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     uint256 internal constant EXP_SCALE = 1e18;
 
     /// @notice Address of the Prime contract
-    address public immutable prime;
+    address public prime;
 
     /// @notice The rate at which token is distributed (per block)
     mapping(address => uint256) public tokenDistributionSpeeds;
@@ -31,6 +31,9 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
 
     /// @notice Emitted when a new token distribution speed is set
     event TokenDistributionSpeedUpdated(address indexed token, uint256 newSpeed);
+
+    /// @notice Emitted when prime token contract address is changed
+    event PrimeTokenUpdated(address oldPrimeToken, address newPrimeToken);
 
     /// @notice Emitted when distribution state(Index and block) is updated
     event TokensAccrued(address indexed token, uint256 amount);
@@ -64,17 +67,6 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
 
     /// @notice Emitted when funds transfer is paused
     error FundsTransferIsPaused();
-
-    /**
-     * @param prime_ Address of the Prime contract
-     */
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address prime_) {
-        _ensureZeroAddress(prime_);
-        prime = prime_;
-
-        _disableInitializers();
-    }
 
     /**
      * @notice RewardsDistributor initializer
@@ -164,6 +156,17 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
                 ++i;
             }
         }
+    }
+
+    /**
+     * @notice Set the prime token contract address
+     * @param prime_ The new address of the prime token contract
+     */
+    function setPrimeToken(address prime_) external onlyOwner {
+        _ensureZeroAddress(prime_);
+
+        emit PrimeTokenUpdated(prime, prime_);
+        prime = prime_;
     }
 
     /**

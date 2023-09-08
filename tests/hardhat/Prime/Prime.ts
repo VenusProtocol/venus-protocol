@@ -181,21 +181,24 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
 
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
-  const prime:PrimeScenario = await upgrades.deployProxy(primeFactory, [
-    xvsVault.address,
-    xvs.address,
-    0,
-    1,
-    2,
-    accessControl.address,
-    protocolShareReserve.address,
-    primeLiquidityProvider.address,
-    comptroller.address,
-    oracle.address
-  ], {
-    constructorArgs: [wbnb.address,vbnb.address, 10512000],
-  });
-
+  const prime: PrimeScenario = await upgrades.deployProxy(
+    primeFactory,
+    [
+      xvsVault.address,
+      xvs.address,
+      0,
+      1,
+      2,
+      accessControl.address,
+      protocolShareReserve.address,
+      primeLiquidityProvider.address,
+      comptroller.address,
+      oracle.address,
+    ],
+    {
+      constructorArgs: [wbnb.address, vbnb.address, 10512000],
+    },
+  );
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 
@@ -206,7 +209,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await prime.addMarket(veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
   await comptroller._setPrimeToken(prime.address);
-  
+
   await prime.togglePause();
 
   return {
@@ -418,7 +421,6 @@ describe("PrimeScenario Token", () => {
 
       await protocolShareReserve.getUnreleasedFunds.returns("0");
       await protocolShareReserve.getPercentageDistribution.returns("100");
-      
 
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));

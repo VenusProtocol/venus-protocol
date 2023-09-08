@@ -20,6 +20,7 @@ let tokenC: MockContract<FaucetToken>;
 let prime: FakeContract<Prime>;
 let accessControl: FakeContract<IAccessControlManager>;
 let signer: ethers.signer;
+let signers: ethers.signers;
 
 const tokenASpeed = parseUnits("1", 16);
 const tokenBSpeed = parseUnits("2", 16);
@@ -28,7 +29,7 @@ const tokenAInitialFund = parseUnits("100", 18);
 const tokenBInitialFund = parseUnits("200", 18);
 
 const fixture = async () => {
-  const signers = await ethers.getSigners();
+  signers = await ethers.getSigners();
   signer = signers[0];
 
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
@@ -40,14 +41,13 @@ const fixture = async () => {
   tokenC = await FaucetToken.deploy(parseUnits("10000", 18), "TOKENC", 18, "C");
 
   const PrimeLiquidityProvider = await ethers.getContractFactory("PrimeLiquidityProvider");
-  primeLiquidityProvider = await upgrades.deployProxy(
-    PrimeLiquidityProvider,
-    [accessControl.address, [tokenA.address, tokenB.address], [tokenASpeed, tokenBSpeed]],
-    {
-      constructorArgs: [prime.address],
-      unsafeAllow: ["state-variable-immutable"],
-    },
-  );
+  primeLiquidityProvider = await upgrades.deployProxy(PrimeLiquidityProvider, [
+    accessControl.address,
+    [tokenA.address, tokenB.address],
+    [tokenASpeed, tokenBSpeed],
+  ]);
+
+  await primeLiquidityProvider.setPrimeToken(prime.address);
 };
 
 describe("PrimeLiquidityProvider: tests", () => {
@@ -141,6 +141,25 @@ describe("PrimeLiquidityProvider: tests", () => {
       await expect(tx)
         .to.emit(primeLiquidityProvider, "TokenDistributionSpeedUpdated")
         .withArgs(tokenC.address, tokenCSpeed);
+    });
+
+    it("Revert on invalid prime token address", async () => {
+      const tx = primeLiquidityProvider.setPrimeToken(ethers.constants.AddressZero);
+
+      await expect(tx).to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidArguments");
+    });
+
+    it("Revert when prime token setter is called by non-owner", async () => {
+      const tx = primeLiquidityProvider.connect(signers[1]).setPrimeToken(prime.address);
+
+      await expect(tx).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("setPrimeToken success", async () => {
+      const tx = await primeLiquidityProvider.setPrimeToken(signers[2].address);
+      tx.wait();
+
+      await expect(tx).to.emit(primeLiquidityProvider, "PrimeTokenUpdated").withArgs(prime.address, signers[2].address);
     });
   });
 
@@ -270,12 +289,18 @@ describe("PrimeLiquidityProvider: tests", () => {
     });
 
     it("Release funds success", async () => {
+      const lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlock(tokenB.address);
+
       const tx = await primeLiquidityProvider.releaseFunds(tokenA.address);
       tx.wait();
 
+      const currentBlockTokenA = await primeLiquidityProvider.getBlockNumber();
+      const deltaBlocksTokenA = Number(currentBlockTokenA) - Number(lastAccruedBlockTokenA);
+      const accruedTokenA = deltaBlocksTokenA * Number(tokenASpeed);
+
       await expect(tx)
         .to.emit(primeLiquidityProvider, "TokenTransferredToPrime")
-        .withArgs(tokenA.address, convertToUnit("13", 16));
+        .withArgs(tokenA.address, BigInt(accruedTokenA));
 
       expect(await primeLiquidityProvider.tokenAmountAccrued(tokenA.address)).to.equal(0);
     });
