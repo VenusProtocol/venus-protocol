@@ -9,7 +9,10 @@ import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterfa
 import { FacetBase, VToken } from "./FacetBase.sol";
 
 /**
+ * @title SetterFacet
+ * @author Venus
  * @dev This facet contains all the setters for the states
+ * @notice This facet contract contains all the configurational setter functions
  */
 contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when close factor is changed by admin
@@ -95,7 +98,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets a new price oracle for the comptroller
-     * @dev Admin function to set a new price oracle
+     * @dev Allows the contract admin to set a new price oracle used by the Comptroller
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setPriceOracle(
@@ -119,7 +122,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets the closeFactor used when liquidating borrows
-     * @dev Admin function to set closeFactor
+     * @dev Allows the contract admin to set the closeFactor used to liquidate borrows
      * @param newCloseFactorMantissa New close factor, scaled by 1e18
      * @return uint256 0=success, otherwise will revert
      */
@@ -129,8 +132,18 @@ contract SetterFacet is ISetterFacet, FacetBase {
         // Check caller is admin
         ensureAdmin();
 
-        uint256 oldCloseFactorMantissa = closeFactorMantissa;
+        Exp memory newCloseFactorExp = Exp({ mantissa: newCloseFactorMantissa });
 
+        //-- Check close factor <= 0.9
+        Exp memory highLimit = Exp({ mantissa: closeFactorMaxMantissa });
+        //-- Check close factor >= 0.05
+        Exp memory lowLimit = Exp({ mantissa: closeFactorMinMantissa });
+
+        if (lessThanExp(highLimit, newCloseFactorExp) || greaterThanExp(lowLimit, newCloseFactorExp)) {
+            return fail(Error.INVALID_CLOSE_FACTOR, FailureInfo.SET_CLOSE_FACTOR_VALIDATION);
+        }
+
+        uint256 oldCloseFactorMantissa = closeFactorMantissa;
         closeFactorMantissa = newCloseFactorMantissa;
         emit NewCloseFactor(oldCloseFactorMantissa, newCloseFactorMantissa);
 
@@ -139,7 +152,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets the address of the access control of this contract
-     * @dev Admin function to set the access control address
+     * @dev Allows the contract admin to set the address of access control of this contract
      * @param newAccessControlAddress New address for the access control
      * @return uint256 0=success, otherwise will revert
      */
@@ -160,7 +173,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets the collateralFactor for a market
-     * @dev Restricted function to set per-market collateralFactor
+     * @dev Allows a privileged role to set the collateralFactorMantissa
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
@@ -206,7 +219,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Sets liquidationIncentive
-     * @dev Admin function to set liquidationIncentive
+     * @dev Allows a privileged role to set the liquidationIncentiveMantissa
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
@@ -230,7 +243,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Update the address of the liquidator contract
-     * @dev Admin function to set liquidator contract
+     * @dev Allows the contract admin to update the address of liquidator contract
      * @param newLiquidatorContract_ The new address of the liquidator contract
      */
     function _setLiquidatorContract(
@@ -238,6 +251,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     ) external compareAddress(liquidatorContract, newLiquidatorContract_) {
         // Check caller is admin
         ensureAdmin();
+        ensureNonzeroAddress(newLiquidatorContract_);
         address oldLiquidatorContract = liquidatorContract;
         liquidatorContract = newLiquidatorContract_;
         emit NewLiquidatorContract(oldLiquidatorContract, newLiquidatorContract_);
@@ -245,6 +259,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Admin function to change the Pause Guardian
+     * @dev Allows the contract admin to change the Pause Guardian
      * @param newPauseGuardian The address of the new Pause Guardian
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
@@ -267,7 +282,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Set the given borrow caps for the given vToken market Borrowing that brings total borrows to or above borrow cap will revert
-     * @dev Access is controled by ACM. A borrow cap of 0 corresponds to unlimited borrowing
+     * @dev Allows a privileged role to set the borrowing cap for a vToken market. A borrow cap of 0 corresponds to unlimited borrowing
      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
      * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing
      */
@@ -287,7 +302,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Set the given supply caps for the given vToken market Supply that brings total Supply to or above supply cap will revert
-     * @dev Admin function to set the supply cap A supply cap of 0 corresponds to Minting NotAllowed
+     * @dev Allows a privileged role to set the supply cap for a vToken. A supply cap of 0 corresponds to Minting NotAllowed
      * @param vTokens The addresses of the markets (tokens) to change the supply caps for
      * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed
      */
@@ -307,6 +322,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Set whole protocol pause/unpause state
+     * @dev Allows a privileged role to pause/unpause protocol
      * @param state The new state (true=paused, false=unpaused)
      * @return bool The updated state of the protocol
      */
@@ -320,6 +336,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Pause/unpause certain actions
+     * @dev Allows a privileged role to pause/unpause the protocol action state
      * @param markets_ Markets to pause/unpause the actions on
      * @param actions_ List of action ids to pause/unpause
      * @param paused_ The new paused state (true=paused, false=unpaused)
