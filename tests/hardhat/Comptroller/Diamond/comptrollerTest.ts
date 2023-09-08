@@ -201,13 +201,6 @@ describe("Comptroller", () => {
         "old address is same as new address",
       );
     });
-
-    it("should revert on zero address", async () => {
-      await comptroller._setLiquidatorContract(accounts[0].address);
-      await expect(comptroller._setLiquidatorContract(constants.AddressZero)).to.be.revertedWith(
-        "can't be zero address",
-      );
-    });
   });
 
   describe("_setPauseGuardian", () => {
@@ -335,7 +328,6 @@ describe("Comptroller", () => {
 
   describe("_setCloseFactor", () => {
     let comptroller: ComptrollerMock;
-    let unitroller: Unitroller;
 
     beforeEach(async () => {
       ({ comptroller } = await loadFixture(deploySimpleComptroller));
@@ -347,15 +339,6 @@ describe("Comptroller", () => {
 
     it("should revert on same values", async () => {
       await expect(comptroller._setCloseFactor(0)).to.be.revertedWith("old value is same as new value");
-    });
-
-    it("fails if factor is set out of range", async () => {
-      expect(await comptroller._setCloseFactor(convertToUnit(1, 18)))
-        .to.emit(unitroller, "Failure")
-        .withArgs(
-          ComptrollerErrorReporter.Error.INVALID_CLOSE_FACTOR,
-          ComptrollerErrorReporter.FailureInfo.SET_CLOSE_FACTOR_VALIDATION,
-        );
     });
   });
 

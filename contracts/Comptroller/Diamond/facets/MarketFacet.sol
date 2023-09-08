@@ -6,10 +6,7 @@ import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase, VToken } from "./FacetBase.sol";
 
 /**
- * @title MarketFacet
- * @author Venus
  * @dev This facet contains all the methods related to the market's management in the pool
- * @notice This facet contract contains functions regarding markets
  */
 contract MarketFacet is IMarketFacet, FacetBase {
     /// @notice Emitted when an admin supports a market
@@ -170,7 +167,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
     /**
      * @notice Add the market to the markets mapping and set it as listed
-     * @dev Allows a privileged role to add and list markets to the Comptroller
+     * @dev Admin function to set isListed and add support for the market
      * @param vToken The address of the market (token) to list
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
