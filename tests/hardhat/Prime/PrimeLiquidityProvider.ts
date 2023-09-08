@@ -270,12 +270,18 @@ describe("PrimeLiquidityProvider: tests", () => {
     });
 
     it("Release funds success", async () => {
+      const lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlock(tokenB.address);
+
       const tx = await primeLiquidityProvider.releaseFunds(tokenA.address);
       tx.wait();
 
+      const currentBlockTokenA = await primeLiquidityProvider.getBlockNumber();
+      const deltaBlocksTokenA = Number(currentBlockTokenA) - Number(lastAccruedBlockTokenA);
+      const accruedTokenA = deltaBlocksTokenA * Number(tokenASpeed);
+
       await expect(tx)
         .to.emit(primeLiquidityProvider, "TokenTransferredToPrime")
-        .withArgs(tokenA.address, convertToUnit("13", 16));
+        .withArgs(tokenA.address, BigInt(accruedTokenA));
 
       expect(await primeLiquidityProvider.tokenAmountAccrued(tokenA.address)).to.equal(0);
     });
