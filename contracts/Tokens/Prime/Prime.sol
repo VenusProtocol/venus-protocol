@@ -9,9 +9,9 @@ import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
 interface IVToken {
-    function borrowBalanceStored(address account) external returns (uint);
+    function borrowBalanceStored(address account) external view returns (uint);
 
-    function exchangeRateStored() external returns (uint);
+    function exchangeRateStored() external view returns (uint);
 
     function balanceOf(address account) external view returns (uint);
 
@@ -786,7 +786,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      * @return supplyAPR supply APR of the user
      * @return borrowAPR borrow APR of the user
      */
-    function calculateAPR(address market, address user) external returns (uint256 supplyAPR, uint256 borrowAPR) {
+    function calculateAPR(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
         IVToken vToken = IVToken(market);
         uint256 borrow = vToken.borrowBalanceStored(user);
         uint256 exchangeRate = vToken.exchangeRateStored();
