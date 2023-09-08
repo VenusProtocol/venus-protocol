@@ -14,7 +14,9 @@ import {
   IAccessControlManager,
   IProtocolShareReserve,
   InterestRateModelHarness,
+  Prime,
   PrimeLiquidityProvider,
+  PrimeLiquidityProvider__factory,
   PrimeScenario,
   ResilientOracleInterface,
   VBep20Harness,
@@ -23,6 +25,7 @@ import {
   XVSVault,
   XVSVaultScenario,
 } from "../../../typechain";
+import exp from "constants";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -44,6 +47,7 @@ type SetupProtocolFixture = {
   xvsStore: XVSStore;
   prime: PrimeScenario;
   protocolShareReserve: FakeContract<IProtocolShareReserve>;
+  primeLiquidityProvider: PrimeLiquidityProvider;
 };
 
 async function deployProtocol(): Promise<SetupProtocolFixture> {
@@ -51,7 +55,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const oracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
-  const primeLiquidityProvider = await smock.fake<PrimeLiquidityProvider>("PrimeLiquidityProvider");
   const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
@@ -180,6 +183,12 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const rewardPerBlock = bigNumber18.mul(1);
   await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
 
+  const primeLiquidityProviderFactory = await ethers.getContractFactory("PrimeLiquidityProvider");
+  const primeLiquidityProvider = await upgrades.deployProxy(
+    primeLiquidityProviderFactory,
+    [accessControl.address, [], []], {}
+  )
+
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
   const prime: PrimeScenario = await upgrades.deployProxy(
     primeFactory,
@@ -226,6 +235,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     xvsStore,
     prime,
     protocolShareReserve,
+    primeLiquidityProvider
   };
 }
 
@@ -759,4 +769,137 @@ describe("PrimeScenario Token", () => {
       expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(1554961);
     });
   });
+
+  describe("PLP integration", () => {
+    let comptroller: MockContract<ComptrollerMock>;
+    let prime: PrimeScenario;
+    let vusdt: VBep20Harness;
+    let veth: VBep20Harness;
+    let vmatic: VBep20Harness;
+    let usdt: BEP20Harness;
+    let eth: BEP20Harness;
+    let matic: BEP20Harness;
+    let xvsVault: XVSVault;
+    let xvs: XVS;
+    let oracle: FakeContract<ResilientOracleInterface>;
+    let protocolShareReserve: FakeContract<IProtocolShareReserve>;
+    let primeLiquidityProvider: PrimeLiquidityProvider;
+    
+    beforeEach(async () => {
+      const [wallet, user1, user2, user3] = await ethers.getSigners();
+
+      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, oracle, protocolShareReserve, primeLiquidityProvider } = await loadFixture(
+        deployProtocol,
+      ));
+
+      await protocolShareReserve.getUnreleasedFunds.returns("0");
+      await protocolShareReserve.getPercentageDistribution.returns("100");
+
+      await primeLiquidityProvider.setPrimeToken(prime.address);
+
+      const tokenFactory = await ethers.getContractFactory("BEP20Harness");
+      matic = (await tokenFactory.deploy(
+        bigNumber18.mul(100000000),
+        "matic",
+        BigNumber.from(18),
+        "BEP20 MATIC",
+      )) as BEP20Harness;
+
+      const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
+      const InterestRateModelHarness = (await interestRateModelHarnessFactory.deploy(
+        BigNumber.from(18).mul(5),
+      )) as InterestRateModelHarness;
+
+      const vTokenFactory = await ethers.getContractFactory("VBep20Harness");
+      vmatic = (await vTokenFactory.deploy(
+        matic.address,
+        comptroller.address,
+        InterestRateModelHarness.address,
+        bigNumber18,
+        "VToken matic",
+        "vmatic",
+        BigNumber.from(18),
+        wallet.address,
+      )) as VBep20Harness;
+      
+      const half = convertToUnit("0.5", 18);
+      await vmatic._setReserveFactor(bigNumber16.mul(20));
+      await comptroller._supportMarket(vmatic.address);
+      
+
+      oracle.getUnderlyingPrice.returns((vToken: string) => {
+        if (vToken == vusdt.address) {
+          return convertToUnit(1, 18);
+        } else if (vToken == veth.address) {
+          return convertToUnit(1200, 18);
+        } else if (vToken == vmatic.address) {
+          return convertToUnit(1, 18);
+        }
+      });
+
+      await comptroller._setCollateralFactor(vmatic.address, half);
+
+      await comptroller._setMarketSupplyCaps([vmatic.address], [bigNumber18.mul(10000)]);
+      await comptroller._setMarketBorrowCaps([vmatic.address], [bigNumber18.mul(10000)]);
+
+      await prime.addMarket(vmatic.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
+
+      await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
+      await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));
+      await mine(90 * 24 * 60 * 60);
+      await prime.connect(user1).claim();
+
+      await matic.transfer(user1.getAddress(), bigNumber18.mul(90));
+      await matic.connect(user1).approve(vmatic.address, bigNumber18.mul(90));
+      await vmatic.connect(user1).mint(bigNumber18.mul(90));
+
+      const speed = convertToUnit(1, 18);
+      await primeLiquidityProvider.setTokensDistributionSpeed([matic.address], [speed]);
+      await matic.transfer(primeLiquidityProvider.address, bigNumber18.mul(10000));
+    })
+
+    it("claim interest", async () => {
+      let interest = await prime.interests(vmatic.address, user1.getAddress());
+      expect(interest.score).to.be.equal("948683298050513937723");
+      expect(interest.accrued).to.be.equal(0);
+      expect(interest.rewardIndex).to.be.equal(0);
+
+      let plpAccrued = await primeLiquidityProvider.tokenAmountAccrued(matic.address)
+      expect(plpAccrued).to.be.equal(0);
+
+      await mine(100);
+      await primeLiquidityProvider.accrueTokens(matic.address);
+      plpAccrued = await primeLiquidityProvider.tokenAmountAccrued(matic.address)
+      expect(plpAccrued).to.be.equal(bigNumber18.mul(102)); // (1 * 100) + 2 = 102
+
+      await prime.accrueInterest(vmatic.address);
+      interest = await prime.interests(vmatic.address, user1.getAddress());
+      expect(interest.score).to.be.equal("948683298050513937723");
+      expect(interest.accrued).to.be.equal(0);
+      expect(interest.rewardIndex).to.be.equal(0);
+
+      await prime.executeBoost(user1.getAddress(), vmatic.address);
+
+      const market = await prime.markets(vmatic.address);
+      // 103000000000000000000 / 948683298050513937723 = 108571532999114341
+      // 1000000000000000000 / 948683298050513937723 = 1054092553389459
+      // 108571532999114341 + 1054092553389459 = 109625625552503800
+      expect(market.rewardIndex).to.be.equal("109625625552503800");
+
+      interest = await prime.interests(vmatic.address, user1.getAddress());
+      expect(interest.score).to.be.equal("948683298050513937723");
+      //109625625552503800 * 948683298050513937723 = 103999999999999999163
+      expect(interest.accrued).to.be.equal("103999999999999999163");
+      expect(interest.rewardIndex).to.be.equal("109625625552503800");
+
+      const beforeBalance = await matic.balanceOf(user1.getAddress());
+      expect(beforeBalance).to.be.equal(0);
+      await prime["claimInterest(address,address)"](vmatic.address, user1.getAddress());
+      const afterBalance = await matic.balanceOf(user1.getAddress());
+      // 103999999999999999163 + 1000000000000000000 = 104999999999999998571
+      expect(afterBalance).to.be.equal("104999999999999998571"); 
+    })
+  });
+
+  describe("APR estimation", () => {});
 });
