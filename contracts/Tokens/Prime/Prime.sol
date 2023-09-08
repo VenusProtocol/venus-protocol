@@ -60,8 +60,11 @@ interface IIncomeDestination {
 
 interface IPrimeLiquidityProvider {
     function releaseFunds(address token_) external;
+
     function accrueTokens(address token_) external;
+
     function tokenAmountAccrued(address token_) external view returns (uint256);
+
     function getEffectiveDistributionSpeed(address token_) external view returns (uint256);
 }
 
@@ -357,20 +360,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         uint256 balanceOfAccount = vToken.balanceOf(user);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
-
         address xvsToken = IXVSVault(xvsVault).xvsAddress();
         oracle.updateAssetPrice(xvsToken);
         oracle.updatePrice(market);
 
-        (uint256 capital,,) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
+        (uint256 capital, , ) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
 
-        return
-            Scores.calculateScore(
-                xvsBalanceForScore,
-                capital,
-                alphaNumerator,
-                alphaDenominator
-            );
+        return Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
     }
 
     /**
@@ -407,7 +403,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         uint256 xvsPrice = oracle.getPrice(xvsToken);
         uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
         uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
-        
+
         uint256 tokenPrice = oracle.getUnderlyingPrice(market);
         uint256 supplyUSD = (tokenPrice * supply) / EXP_SCALE;
         uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
@@ -740,9 +736,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
             IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
         amount += BLOCKS_PER_YEAR * incomePerBlockForDistributionFromMarket;
 
-        uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider).getEffectiveDistributionSpeed(
-            _getUnderlying(vToken)
-        );
+        uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
+            .getEffectiveDistributionSpeed(_getUnderlying(vToken));
         amount += BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
     }
 
@@ -774,8 +769,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
         uint256 totalValue = totalSupply + totalBorrow;
         uint256 totalCappedValue = totalCappedSupply + totalCappedBorrow;
-    
-        if (totalValue == 0 || totalCappedValue == 0) return (0,0);
+
+        if (totalValue == 0 || totalCappedValue == 0) return (0, 0);
 
         uint256 userSupplyIncomeYearly = (userYearlyIncome * totalCappedSupply) / totalCappedValue;
         uint256 userBorrowIncomeYearly = (userYearlyIncome * totalCappedBorrow) / totalCappedValue;
@@ -802,7 +797,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         uint256 totalScore = markets[market].sumOfMembersScore;
 
         uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(user));
-        (,uint256 cappedSupply,uint256 cappedBorrow) = _capitalForScore(xvsBalanceForScore, borrow, supply, address(vToken));
+        (, uint256 cappedSupply, uint256 cappedBorrow) = _capitalForScore(
+            xvsBalanceForScore,
+            borrow,
+            supply,
+            address(vToken)
+        );
 
         return _calculateUserAPR(market, user, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
     }
@@ -827,13 +827,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
 
         uint256 xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
-        (uint256 capital,uint256 cappedSupply,uint256 cappedBorrow) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
-        uint256 userScore = Scores.calculateScore(
+        (uint256 capital, uint256 cappedSupply, uint256 cappedBorrow) = _capitalForScore(
             xvsBalanceForScore,
-            capital,
-            alphaNumerator,
-            alphaDenominator
+            borrow,
+            supply,
+            market
         );
+        uint256 userScore = Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
 
         totalScore = totalScore + userScore;
 
@@ -842,7 +842,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
 
     //////////////////////////////////////////////////
     //////////////// (Un)Pause Claim ////////////////
-    ////////////////////////////////////////////////   
+    ////////////////////////////////////////////////
     /**
      * @notice To pause or unpuase claiming of interest
      */
