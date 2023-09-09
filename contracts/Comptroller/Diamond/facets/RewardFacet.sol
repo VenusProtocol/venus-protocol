@@ -8,7 +8,10 @@ import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
+ * @title RewardFacet
+ * @author Venus
  * @dev This facet contains all the methods related to the reward functionality
+ * @notice This facet contract provides the external functions related to all claims and rewards of the protocol
  */
 contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin
@@ -110,7 +113,8 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
     /**
      * @notice Transfer XVS to the recipient
-     * @dev Note: If there is not enough XVS, we do not perform the transfer all
+     * @dev Allows the contract admin to transfer XVS to any recipient based on the recipient's shortfall
+     *      Note: If there is not enough XVS, we do not perform the transfer all
      * @param recipient The address of the recipient to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      */

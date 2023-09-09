@@ -8,6 +8,11 @@ import { ComptrollerV13Storage } from "../../../Comptroller/ComptrollerStorage.s
 import { IAccessControlManager } from "../../../Governance/IAccessControlManager.sol";
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 
+/**
+ * @title FacetBase
+ * @author Venus
+ * @notice This facet contract contains functions related to access and checks
+ */
 contract FacetBase is ComptrollerV13Storage, ExponentialNoError, ComptrollerErrorReporter {
     /// @notice Emitted when an account enters a market
     event MarketEntered(VToken indexed vToken, address indexed account);

@@ -5,7 +5,10 @@ pragma solidity 0.5.16;
 import { FacetBase, VToken } from "./FacetBase.sol";
 
 /**
+ * @title XVSRewardsHelper
+ * @author Venus
  * @dev This contract contains internal functions used in RewardFacet and PolicyFacet
+ * @notice This facet contract contains the shared functions used by the RewardFacet and PolicyFacet
  */
 contract XVSRewardsHelper is FacetBase {
     /// @notice Emitted when XVS is distributed to a borrower

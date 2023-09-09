@@ -7,7 +7,10 @@ import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 import { XVSRewardsHelper, VToken } from "./XVSRewardsHelper.sol";
 
 /**
+ * @title PolicyFacet
+ * @author Venus
  * @dev This facet contains all the hooks used while transferring the assets
+ * @notice This facet contract contains all the external pre-hook functions related to vToken
  */
 contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
@@ -423,6 +426,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     // setter functionality
     /**
      * @notice Set XVS speed for a single market
+     * @dev Allows the contract admin to set XVS speed for a market
      * @param vTokens The market whose XVS speed to update
      * @param supplySpeeds New XVS speed for supply
      * @param borrowSpeeds New XVS speed for borrow

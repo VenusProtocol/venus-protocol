@@ -6,6 +6,11 @@ pragma experimental ABIEncoderV2;
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
 import { Unitroller, ComptrollerV13Storage } from "../Unitroller.sol";
 
+/**
+ * @title Diamond
+ * @author Venus
+ * @notice This contract contains functions related to facets
+ */
 contract Diamond is IDiamondCut, ComptrollerV13Storage {
     /// @notice Emitted when functions are added, replaced or removed to facets
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
@@ -25,7 +30,8 @@ contract Diamond is IDiamondCut, ComptrollerV13Storage {
     }
 
     /**
-     * @notice To add function selectors to the facets' mapping
+     * @notice To add function selectors to the facet's mapping
+     * @dev Allows the contract admin to add function selectors
      * @param diamondCut_ IDiamondCut contains facets address, action and function selectors
      */
     function diamondCut(IDiamondCut.FacetCut[] memory diamondCut_) public {
