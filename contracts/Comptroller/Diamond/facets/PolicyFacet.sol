@@ -435,10 +435,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         ensureAdmin();
 
         uint256 numTokens = vTokens.length;
-        require(
-            numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length,
-            "Comptroller::_setVenusSpeeds invalid input"
-        );
+        require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "invalid input");
 
         for (uint256 i; i < numTokens; ++i) {
             ensureNonzeroAddress(address(vTokens[i]));

@@ -73,14 +73,21 @@ contract FacetBase is ComptrollerV13Storage, ExponentialNoError, ComptrollerErro
     /**
      * @notice Get the latest block number
      */
-    function getBlockNumber() public view returns (uint256) {
+    function getBlockNumber() internal view returns (uint256) {
         return block.number;
+    }
+
+    /**
+     * @notice Get the latest block number with the safe32 check
+     */
+    function getBlockNumberAsUint32() internal view returns (uint32) {
+        return safe32(getBlockNumber(), "block # > 32 bits");
     }
 
     /**
      * @notice Transfer XVS to VAI Vault
      */
-    function releaseToVault() public {
+    function releaseToVault() internal {
         if (releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
             return;
         }

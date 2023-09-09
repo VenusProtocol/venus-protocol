@@ -101,9 +101,7 @@ describe("Comptroller", () => {
     });
 
     it("fails if incentive is less than 1e18", async () => {
-      await expect(comptroller._setLiquidationIncentive(tooSmallIncentive)).to.be.revertedWith(
-        "incentive must be over 1e18",
-      );
+      await expect(comptroller._setLiquidationIncentive(tooSmallIncentive)).to.be.revertedWith("incentive < 1e18");
     });
 
     it("accepts a valid incentive and emits a NewLiquidationIncentive event", async () => {

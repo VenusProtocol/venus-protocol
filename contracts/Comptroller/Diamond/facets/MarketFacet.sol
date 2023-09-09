@@ -214,12 +214,14 @@ contract MarketFacet is IMarketFacet, FacetBase {
     function _addMarketInternal(VToken vToken) internal {
         uint256 allMarketsLength = allMarkets.length;
         for (uint256 i; i < allMarketsLength; ++i) {
-            require(allMarkets[i] != vToken, "market already added");
+            require(allMarkets[i] != vToken, "already added");
         }
         allMarkets.push(vToken);
     }
 
     function _initializeMarket(address vToken) internal {
+        uint32 blockNumber = getBlockNumberAsUint32();
+
         VenusMarketState storage supplyState = venusSupplyState[vToken];
         VenusMarketState storage borrowState = venusBorrowState[vToken];
 
@@ -239,6 +241,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
         /*
          * Update market state block numbers
          */
-        supplyState.block = borrowState.block = uint32(getBlockNumber());
+        supplyState.block = borrowState.block = blockNumber;
     }
 }

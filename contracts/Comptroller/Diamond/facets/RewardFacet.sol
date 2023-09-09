@@ -93,16 +93,16 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         // vXVS token and mint vXVS for the user
         //
         // If mintBehalf failed, don't grant any xvs
-        require(collateral, "bankrupt accounts can only collateralize their pending xvs rewards");
+        require(collateral, "bankrupt");
 
         IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), 0);
         IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), amount);
         require(
             VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint256(Error.NO_ERROR),
-            "mint behalf error during collateralize xvs"
+            "mint behalf error"
         );
 
-        // set venusAccrue[user] to 0
+        // set venusAccrued[user] to 0
         return 0;
     }
 
@@ -117,7 +117,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     function _grantXVS(address recipient, uint256 amount) external {
         ensureAdmin();
         uint256 amountLeft = grantXVSInternal(recipient, amount, 0, false);
-        require(amountLeft == 0, "insufficient xvs for grant");
+        require(amountLeft == 0, "no xvs");
         emit VenusGranted(recipient, amount);
     }
 

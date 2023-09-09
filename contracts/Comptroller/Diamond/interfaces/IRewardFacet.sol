@@ -16,15 +16,11 @@ interface IRewardFacet {
 
     function _grantXVS(address recipient, uint256 amount) external;
 
-    function getBlockNumber() external view returns (uint256);
-
     function getXVSAddress() external pure returns (address);
 
     function getXVSVTokenAddress() external pure returns (address);
 
     function actionPaused(address market, ComptrollerV13Storage.Action action) external view returns (bool);
-
-    function releaseToVault() external;
 
     function claimVenus(
         address[] calldata holders,

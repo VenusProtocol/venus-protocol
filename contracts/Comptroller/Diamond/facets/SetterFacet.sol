@@ -218,7 +218,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     ) external compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint256) {
         ensureAllowed("_setLiquidationIncentive(uint256)");
 
-        require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
+        require(newLiquidationIncentiveMantissa >= 1e18, "incentive < 1e18");
 
         // Save current value for use in log
         uint256 oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
@@ -421,7 +421,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         // Check caller is admin
         ensureAdminOr(treasuryGuardian);
 
-        require(newTreasuryPercent < 1e18, "treasury percent cap overflow");
+        require(newTreasuryPercent < 1e18, "percent >= 100%");
         ensureNonzeroAddress(newTreasuryGuardian);
         ensureNonzeroAddress(newTreasuryAddress);
 
@@ -499,7 +499,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     function _setForcedLiquidation(address vTokenBorrowed, bool enable) external {
-        ensureAllowed("setForcedLiquidation(address,bool)");
+        ensureAllowed("_setForcedLiquidation(address,bool)");
         if (vTokenBorrowed != address(vaiController)) {
             ensureListed(markets[vTokenBorrowed]);
         }
