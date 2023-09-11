@@ -10,7 +10,7 @@ on:
     branches: [master, develop]
   pull_request:
     branches: [main, develop]
-
+  workflow_dispatch:
 jobs:
   test:
     name: Test
