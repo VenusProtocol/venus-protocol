@@ -17,6 +17,7 @@
   ],
   "scripts": {
     "compile": "hardhat compile",
+    "coverage": "hardhat coverage",
     "test": "hardhat test",
     "build": "rm -rf dist && tsc --declaration && hardhat compile",
     "lint": "yarn lint:ts && yarn lint:sol && yarn prettier:check",
@@ -32,6 +33,7 @@
     "@openzeppelin/contracts": "^4.8.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
     "@venusprotocol/governance-contracts": "^0.0.2",
+    "bignumber.js": "^9.1.2",
     "dotenv": "^16.0.1",
     "module-alias": "^2.2.2"
   },
@@ -81,7 +83,7 @@
     "prettier-plugin-solidity": "^1.0.0-beta.24",
     "semantic-release": "^19.0.3",
     "solhint": "^3.3.7",
-    "solidity-coverage": "^0.7.21",
+    "solidity-coverage": "^0.8.4",
     "solidity-docgen": "^0.6.0-beta.30",
     "ts-node": "^10.9.1",
     "typechain": "^8.1.0",
