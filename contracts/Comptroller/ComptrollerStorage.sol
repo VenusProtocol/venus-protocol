@@ -105,10 +105,10 @@ contract ComptrollerV1Storage is UnitrollerAdminStorage {
     VToken[] public allMarkets;
 
     /// @notice The rate at which the flywheel distributes XVS, per block
-    uint256 public venusRate;
+    uint256 internal venusRate;
 
     /// @notice The portion of venusRate that each market currently receives
-    mapping(address => uint256) public venusSpeeds;
+    mapping(address => uint256) internal venusSpeeds;
 
     /// @notice The Venus market supply state for each market
     mapping(address => VenusMarketState) public venusSupplyState;
@@ -238,6 +238,10 @@ contract ComptrollerV11Storage is ComptrollerV10Storage {
 }
 
 contract ComptrollerV12Storage is ComptrollerV11Storage {
+    mapping(address => bool) public isForcedLiquidationEnabled;
+}
+
+contract ComptrollerV13Storage is ComptrollerV12Storage {
     struct FacetAddressAndPosition {
         address facetAddress;
         uint96 functionSelectorPosition; // position in _facetFunctionSelectors.functionSelectors array

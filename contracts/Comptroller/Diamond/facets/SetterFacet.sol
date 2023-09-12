@@ -76,6 +76,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint256 oldVenusVAIVaultRate, uint256 newVenusVAIVaultRate);
 
+    /// @notice Emitted when force liquidation enabled for a market
+    event IsForcedLiquidationEnabledUpdated(address indexed vToken, bool enable);
+
     /**
      * @notice Compare two addresses to ensure they are different
      * @param oldAddress The original address to compare
@@ -228,7 +231,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     ) external compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint256) {
         ensureAllowed("_setLiquidationIncentive(uint256)");
 
-        require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
+        require(newLiquidationIncentiveMantissa >= 1e18, "incentive < 1e18");
 
         // Save current value for use in log
         uint256 oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
@@ -435,7 +438,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         // Check caller is admin
         ensureAdminOr(treasuryGuardian);
 
-        require(newTreasuryPercent < 1e18, "treasury percent cap overflow");
+        require(newTreasuryPercent < 1e18, "percent >= 100%");
         ensureNonzeroAddress(newTreasuryGuardian);
         ensureNonzeroAddress(newTreasuryAddress);
 
@@ -510,5 +513,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
         releaseStartBlock = releaseStartBlock_;
         minReleaseAmount = minReleaseAmount_;
         emit NewVAIVaultInfo(vault_, releaseStartBlock_, minReleaseAmount_);
+    }
+
+    function _setForcedLiquidation(address vTokenBorrowed, bool enable) external {
+        ensureAllowed("_setForcedLiquidation(address,bool)");
+        if (vTokenBorrowed != address(vaiController)) {
+            ensureListed(markets[vTokenBorrowed]);
+        }
+        isForcedLiquidationEnabled[address(vTokenBorrowed)] = enable;
+        emit IsForcedLiquidationEnabledUpdated(vTokenBorrowed, enable);
     }
 }

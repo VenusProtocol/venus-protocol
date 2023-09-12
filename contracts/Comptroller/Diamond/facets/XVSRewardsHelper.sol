@@ -34,19 +34,16 @@ contract XVSRewardsHelper is FacetBase {
     function updateVenusBorrowIndex(address vToken, Exp memory marketBorrowIndex) internal {
         VenusMarketState storage borrowState = venusBorrowState[vToken];
         uint256 borrowSpeed = venusBorrowSpeeds[vToken];
-        uint256 blockNumber = getBlockNumber();
-        uint256 deltaBlocks = sub_(uint256(blockNumber), uint256(borrowState.block));
+        uint32 blockNumber = getBlockNumberAsUint32();
+        uint256 deltaBlocks = sub_(blockNumber, borrowState.block);
         if (deltaBlocks != 0 && borrowSpeed != 0) {
             uint256 borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
             uint256 accruedVenus = mul_(deltaBlocks, borrowSpeed);
             Double memory ratio = borrowAmount != 0 ? fraction(accruedVenus, borrowAmount) : Double({ mantissa: 0 });
-            borrowState.index = safe224(
-                add_(Double({ mantissa: borrowState.index }), ratio).mantissa,
-                "new index exceeds 224 bits"
-            );
-            borrowState.block = uint32(blockNumber);
+            borrowState.index = safe224(add_(Double({ mantissa: borrowState.index }), ratio).mantissa, "224");
+            borrowState.block = blockNumber;
         } else if (deltaBlocks != 0) {
-            borrowState.block = uint32(blockNumber);
+            borrowState.block = blockNumber;
         }
     }
 
@@ -57,20 +54,17 @@ contract XVSRewardsHelper is FacetBase {
     function updateVenusSupplyIndex(address vToken) internal {
         VenusMarketState storage supplyState = venusSupplyState[vToken];
         uint256 supplySpeed = venusSupplySpeeds[vToken];
-        uint256 blockNumber = getBlockNumber();
+        uint32 blockNumber = getBlockNumberAsUint32();
 
-        uint256 deltaBlocks = sub_(uint256(blockNumber), uint256(supplyState.block));
+        uint256 deltaBlocks = sub_(blockNumber, supplyState.block);
         if (deltaBlocks != 0 && supplySpeed != 0) {
             uint256 supplyTokens = VToken(vToken).totalSupply();
             uint256 accruedVenus = mul_(deltaBlocks, supplySpeed);
             Double memory ratio = supplyTokens != 0 ? fraction(accruedVenus, supplyTokens) : Double({ mantissa: 0 });
-            supplyState.index = safe224(
-                add_(Double({ mantissa: supplyState.index }), ratio).mantissa,
-                "new index exceeds 224 bits"
-            );
-            supplyState.block = uint32(blockNumber);
+            supplyState.index = safe224(add_(Double({ mantissa: supplyState.index }), ratio).mantissa, "224");
+            supplyState.block = blockNumber;
         } else if (deltaBlocks != 0) {
-            supplyState.block = uint32(blockNumber);
+            supplyState.block = blockNumber;
         }
     }
 

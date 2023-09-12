@@ -225,8 +225,20 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         ensureListed(markets[vTokenCollateral]);
+
+        uint256 borrowBalance;
         if (address(vTokenBorrowed) != address(vaiController)) {
             ensureListed(markets[vTokenBorrowed]);
+            borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
+        } else {
+            borrowBalance = vaiController.getVAIRepayAmount(borrower);
+        }
+
+        if (isForcedLiquidationEnabled[vTokenBorrowed]) {
+            if (repayAmount > borrowBalance) {
+                return uint(Error.TOO_MUCH_REPAY);
+            }
+            return uint(Error.NO_ERROR);
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
@@ -238,13 +250,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
-        /* The liquidator may not repay more than what is allowed by the closeFactor */
-        uint256 borrowBalance;
-        if (address(vTokenBorrowed) != address(vaiController)) {
-            borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
-        } else {
-            borrowBalance = vaiController.getVAIRepayAmount(borrower);
-        }
+        // The liquidator may not repay more than what is allowed by the closeFactor
         //-- maxClose = multipy of closeFactorMantissa and borrowBalance
         if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactorMantissa }), borrowBalance)) {
             return uint256(Error.TOO_MUCH_REPAY);
@@ -433,10 +439,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         ensureAdmin();
 
         uint256 numTokens = vTokens.length;
-        require(
-            numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length,
-            "Comptroller::_setVenusSpeeds invalid input"
-        );
+        require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "invalid input");
 
         for (uint256 i; i < numTokens; ++i) {
             ensureNonzeroAddress(address(vTokens[i]));

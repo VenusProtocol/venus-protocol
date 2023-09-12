@@ -753,7 +753,7 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
         emit NewVAIMintCap(old, _mintCap);
     }
 
-    function getBlockNumber() public view returns (uint) {
+    function getBlockNumber() internal view returns (uint) {
         return block.number;
     }
 

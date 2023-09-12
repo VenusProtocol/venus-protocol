@@ -13,6 +13,7 @@ import {
   IAccessControlManager,
   PriceOracle,
   Unitroller,
+  VAIController,
   VToken,
 } from "../../../../typechain";
 import { ComptrollerErrorReporter } from "../../util/Errors";
@@ -100,9 +101,7 @@ describe("Comptroller", () => {
     });
 
     it("fails if incentive is less than 1e18", async () => {
-      await expect(comptroller._setLiquidationIncentive(tooSmallIncentive)).to.be.revertedWith(
-        "incentive must be over 1e18",
-      );
+      await expect(comptroller._setLiquidationIncentive(tooSmallIncentive)).to.be.revertedWith("incentive < 1e18");
     });
 
     it("accepts a valid incentive and emits a NewLiquidationIncentive event", async () => {
@@ -412,6 +411,63 @@ describe("Comptroller", () => {
     });
   });
 
+  describe("_setForcedLiquidation", async () => {
+    let comptroller: MockContract<Comptroller>;
+    let vToken: FakeContract<VToken>;
+    let accessControl: FakeContract<IAccessControlManager>;
+
+    type Contracts = SimpleComptrollerFixture & { vToken: FakeContract<VToken> };
+
+    async function deploy(): Promise<Contracts> {
+      const contracts = await deploySimpleComptroller();
+      const vToken = await smock.fake<VToken>("VToken");
+      await contracts.comptroller._supportMarket(vToken.address);
+      return { ...contracts, vToken };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller, vToken, accessControl } = await loadFixture(deploy));
+      configureVToken(vToken, comptroller);
+    });
+
+    it("fails if asset is not listed", async () => {
+      const someVToken = await smock.fake<VToken>("VToken");
+      await expect(comptroller._setForcedLiquidation(someVToken.address, true)).to.be.revertedWith("market not listed");
+    });
+
+    it("fails if ACM does not allow the call", async () => {
+      accessControl.isAllowedToCall.returns(false);
+      await expect(comptroller._setForcedLiquidation(vToken.address, true)).to.be.revertedWith("access denied");
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("sets forced liquidation", async () => {
+      await comptroller._setForcedLiquidation(vToken.address, true);
+      expect(await comptroller.isForcedLiquidationEnabled(vToken.address)).to.be.true;
+
+      await comptroller._setForcedLiquidation(vToken.address, false);
+      expect(await comptroller.isForcedLiquidationEnabled(vToken.address)).to.be.false;
+    });
+
+    it("sets forced liquidation for VAI, even though it is not a listed market", async () => {
+      const vaiController = await smock.fake<VAIController>("VAIController");
+      await comptroller._setVAIController(vaiController.address);
+      await comptroller._setForcedLiquidation(vaiController.address, true);
+      expect(await comptroller.isForcedLiquidationEnabled(vaiController.address)).to.be.true;
+
+      await comptroller._setForcedLiquidation(vaiController.address, false);
+      expect(await comptroller.isForcedLiquidationEnabled(vaiController.address)).to.be.false;
+    });
+
+    it("emits IsForcedLiquidationEnabledUpdated event", async () => {
+      const tx1 = await comptroller._setForcedLiquidation(vToken.address, true);
+      await expect(tx1).to.emit(comptroller, "IsForcedLiquidationEnabledUpdated").withArgs(vToken.address, true);
+
+      const tx2 = await comptroller._setForcedLiquidation(vToken.address, false);
+      await expect(tx2).to.emit(comptroller, "IsForcedLiquidationEnabledUpdated").withArgs(vToken.address, false);
+    });
+  });
+
   describe("_supportMarket", () => {
     let unitroller: Unitroller;
     let comptroller: ComptrollerMock;
@@ -549,6 +605,145 @@ describe("Comptroller", () => {
         await expect(comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 0)).to.be.revertedWith(
           "redeemTokens zero",
         );
+      });
+    });
+
+    describe("liquidateBorrowAllowed", async () => {
+      const generalTests = () => {
+        it("reverts if borrowed market is not listed", async () => {
+          const someVToken = await smock.fake<VToken>("VToken");
+          await expect(
+            comptroller.liquidateBorrowAllowed(
+              someVToken.address,
+              vToken.address,
+              accounts[0].address,
+              root.address,
+              convertToUnit("1", 18),
+            ),
+          ).to.be.revertedWith("market not listed");
+        });
+
+        it("reverts if collateral market is not listed", async () => {
+          const someVToken = await smock.fake<VToken>("VToken");
+          await expect(
+            comptroller.liquidateBorrowAllowed(
+              vToken.address,
+              someVToken.address,
+              accounts[0].address,
+              root.address,
+              convertToUnit("1", 18),
+            ),
+          ).to.be.revertedWith("market not listed");
+        });
+
+        it("does not revert if borrowed vToken is VAIController", async () => {
+          const vaiController = await smock.fake<VAIController>("VAIController");
+          await comptroller._setVAIController(vaiController.address);
+          await expect(
+            comptroller.liquidateBorrowAllowed(
+              vaiController.address,
+              vToken.address,
+              accounts[0].address,
+              root.address,
+              convertToUnit("1", 18),
+            ),
+          ).to.not.be.revertedWith("market not listed");
+        });
+      };
+
+      describe("isForcedLiquidationEnabled == true", async () => {
+        beforeEach(async () => {
+          await comptroller._setForcedLiquidation(vToken.address, true);
+        });
+
+        generalTests();
+
+        it("allows liquidations without shortfall", async () => {
+          vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
+          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
+            vToken.address,
+            vToken.address,
+            accounts[0].address,
+            root.address,
+            convertToUnit("1", 18),
+          );
+          expect(errCode).to.equal(0);
+        });
+
+        it("allows to repay 100% of the borrow", async () => {
+          vToken.borrowBalanceStored.returns(convertToUnit("1", 18));
+          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
+            vToken.address,
+            vToken.address,
+            accounts[0].address,
+            root.address,
+            convertToUnit("1", 18),
+          );
+          expect(errCode).to.equal(0);
+        });
+
+        it("fails with TOO_MUCH_REPAY if trying to repay > borrowed amount", async () => {
+          vToken.borrowBalanceStored.returns(convertToUnit("0.99", 18));
+          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
+            vToken.address,
+            vToken.address,
+            accounts[0].address,
+            root.address,
+            convertToUnit("1", 18),
+          );
+          expect(errCode).to.equal(17);
+        });
+
+        it("checks the shortfall if isForcedLiquidationEnabled is set back to false", async () => {
+          await comptroller._setForcedLiquidation(vToken.address, false);
+          vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
+          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
+            vToken.address,
+            vToken.address,
+            accounts[0].address,
+            root.address,
+            convertToUnit("1", 18),
+          );
+          expect(errCode).to.equal(3);
+        });
+      });
+
+      describe("isForcedLiquidationEnabled == false", async () => {
+        let comptrollerLens: FakeContract<ComptrollerLens>;
+
+        beforeEach(async () => {
+          comptrollerLens = await smock.fake<ComptrollerLens>("ComptrollerLens");
+          await comptroller._setComptrollerLens(comptrollerLens.address);
+          await comptroller._setCloseFactor(convertToUnit("0.5", 18));
+        });
+
+        generalTests();
+
+        it("fails if borrower has 0 shortfall", async () => {
+          vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
+          comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 1, 0]);
+          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
+            vToken.address,
+            vToken.address,
+            accounts[0].address,
+            root.address,
+            convertToUnit("1", 18),
+          );
+          expect(errCode).to.equal(3);
+        });
+
+        it("succeeds if borrower has nonzero shortfall", async () => {
+          vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
+          comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 1]);
+          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
+            vToken.address,
+            vToken.address,
+            accounts[0].address,
+            root.address,
+            convertToUnit("1", 18),
+          );
+          expect(errCode).to.equal(0);
+        });
       });
     });
   });
