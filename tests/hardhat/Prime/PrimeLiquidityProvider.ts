@@ -1,5 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { impersonateAccount, loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
@@ -281,17 +281,34 @@ describe("PrimeLiquidityProvider: tests", () => {
     });
 
     it("Revert on funds transfer Paused", async () => {
+      const [wallet] = await ethers.getSigners();
       await primeLiquidityProvider.pauseFundsTransfer();
 
-      const tx = primeLiquidityProvider.releaseFunds(tokenA.address);
+      await impersonateAccount(prime.address);
+      const primeSigner = await ethers.provider.getSigner(prime.address);
+      await wallet.sendTransaction({ to: prime.address, value: ethers.utils.parseEther("10") });
+
+      const tx = primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
 
       await expect(tx).to.be.to.be.revertedWithCustomError(primeLiquidityProvider, "FundsTransferIsPaused");
     });
 
+    it("Revert on invalid caller", async () => {
+      const tx = primeLiquidityProvider.releaseFunds(tokenA.address);
+
+      await expect(tx).to.be.to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidCaller");
+    });
+
     it("Release funds success", async () => {
+      const [wallet] = await ethers.getSigners();
+
       const lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlock(tokenB.address);
 
-      const tx = await primeLiquidityProvider.releaseFunds(tokenA.address);
+      await impersonateAccount(prime.address);
+      const primeSigner = await ethers.provider.getSigner(prime.address);
+      await wallet.sendTransaction({ to: prime.address, value: ethers.utils.parseEther("10") });
+
+      const tx = await primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
       tx.wait();
 
       const currentBlockTokenA = await primeLiquidityProvider.getBlockNumber();

@@ -59,6 +59,9 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @notice Thrown when distribution speed is greater than MAX_DISTRIBUTION_SPEED
     error InvalidDistributionSpeed(uint256 speed, uint256 maxSpeed);
 
+    /// @notice Thrown when caller is not the desired caller
+    error InvalidCaller();
+
     /// @notice Thrown when token is initialized
     error TokenAlreadyInitialized(address token);
 
@@ -176,6 +179,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
      * @custom:error Throw InvalidArguments on Zero address(token)
      */
     function releaseFunds(address token_) external {
+        if (msg.sender != prime) revert InvalidCaller();
         if (paused()) {
             revert FundsTransferIsPaused();
         }
