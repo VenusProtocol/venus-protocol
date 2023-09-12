@@ -1,3 +1,72 @@
+## [3.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v2.2.1...v3.0.0) (2023-09-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* [XVSVault-1] remove burnAdmin and getAdmin
+* [VAIVault-7] remove getAdmin
+* [VAIVault-5] remove setNewAdmin
+* [VAIVault-2] remove burnAdmin
+
+### Features
+
+* [VAIVault-2] remove burnAdmin ([cc46efa](https://github.com/VenusProtocol/venus-protocol/commit/cc46efac3e06db507c49ba891b76851dfd69f7c3))
+* [VAIVault-5] remove setNewAdmin ([c2779f0](https://github.com/VenusProtocol/venus-protocol/commit/c2779f0c87b9da7bf7f62f09026f93a3e49c78a7))
+* [VAIVault-7] remove getAdmin ([3551342](https://github.com/VenusProtocol/venus-protocol/commit/3551342205ce0752452fd0437e7dba1c0ea74c31))
+* [XVSVault-1] remove burnAdmin and getAdmin ([734201b](https://github.com/VenusProtocol/venus-protocol/commit/734201b06e1655f9a0ba36760d16823659db7bd8))
+* add fork syntactic sugar and replace QUICKNODE Key with whole URI in env ([a106b6e](https://github.com/VenusProtocol/venus-protocol/commit/a106b6e212bf8c604d086fd848d2e0f484ae8728))
+* add fork tests for PSM ([c693c55](https://github.com/VenusProtocol/venus-protocol/commit/c693c55cd7e75ccf3f452c8e4bfa62161976f9da))
+* add new addresses for WBETH and (new) TUSD markets ([c4ee1bf](https://github.com/VenusProtocol/venus-protocol/commit/c4ee1bfdc7d7c912c1db93685fb5f76c1bbea5fa))
+* add total supply to mint and redeem events ([a094294](https://github.com/VenusProtocol/venus-protocol/commit/a09429400035edf609b4d3544705ac7450afc1ad))
+* added deployment script for swap router ([2f0c278](https://github.com/VenusProtocol/venus-protocol/commit/2f0c2783a7847879d7e54fb180c4bde0b29c1e03))
+* handle insufficient rewards case ([78c9731](https://github.com/VenusProtocol/venus-protocol/commit/78c97315c0850b9fe429e8475a66642ab04f2f4b))
+
+
+### Bug Fixes
+
+* [QS-12] fix pending reward computation in XVSVault ([8d547ac](https://github.com/VenusProtocol/venus-protocol/commit/8d547ac656c33618125733e00d4ae237a16b82be))
+* [QS-19] validate addresses in XVSVault ([9048e50](https://github.com/VenusProtocol/venus-protocol/commit/9048e507043aac4c488220401da1bfb61434a449))
+* [QS-2] use safe96 to compute voting power ([1be65cc](https://github.com/VenusProtocol/venus-protocol/commit/1be65cc5362ee7717fb2eddacf761becb754d382))
+* [QS-3] update voting power based on staked token ([bad686c](https://github.com/VenusProtocol/venus-protocol/commit/bad686c0ebd7c24e6f13cd7115a521c2a436bed2))
+* [QS-4][QS-25] restrict setting lastAccruingBlock ([b0a896c](https://github.com/VenusProtocol/venus-protocol/commit/b0a896c88bef287c6a58e1fe51aa63e8cb4f2dab))
+* [QS-5][QS-6] update pending reward upon user interactions ([49db8b4](https://github.com/VenusProtocol/venus-protocol/commit/49db8b4151768ec3fb76c429386f0e544572ee03))
+* [QS-7][QS-8] disable initializer in XVSVault ([c02ccb8](https://github.com/VenusProtocol/venus-protocol/commit/c02ccb8e0bad620ede890c9bf411f98d2c2e8e75))
+* [VAIVault-1] disallow re-configuring token addresses in VAIVault ([53d1156](https://github.com/VenusProtocol/venus-protocol/commit/53d11560f8a836b999b76405f3842757ebb6fb82))
+* [XVSVault-2] disallow adding two pools with the same staked token ([4404d27](https://github.com/VenusProtocol/venus-protocol/commit/4404d27c57d40bea97320a86437ba662e26b85ec))
+* [XVSVault-4.1] check that reward token is configured in XVSStore ([8e715b2](https://github.com/VenusProtocol/venus-protocol/commit/8e715b26da6e6f5e6075ca8686f78ae92de5af21))
+* add a missing param to SwapRouter deployment script ([e5a47e8](https://github.com/VenusProtocol/venus-protocol/commit/e5a47e80d788264b6a5c5e60c3e9b7cfb40c14c4))
+* correct testnet VenusLens address ([ba24b14](https://github.com/VenusProtocol/venus-protocol/commit/ba24b143015c2b93abe706f2ca3395f42e673985))
+* escape notice when rendering page template ([643f0c2](https://github.com/VenusProtocol/venus-protocol/commit/643f0c219379dd94cb3c8bc1a131520006914919))
+* fix fork tests ([4ab4c68](https://github.com/VenusProtocol/venus-protocol/commit/4ab4c685af0022daeee76bccbcea1749d12338ad))
+* forbid zero alloc points in XVSVault ([43a77f3](https://github.com/VenusProtocol/venus-protocol/commit/43a77f346a8cda5cc03e985ef66a1dd569f67e0f))
+* i01 license identifier not provided ([8b08294](https://github.com/VenusProtocol/venus-protocol/commit/8b08294d68a580b15690e62bb801526818d880ab))
+* i02 floating pragma ([9120a0d](https://github.com/VenusProtocol/venus-protocol/commit/9120a0d589c3b90c55fc1722d2df80795db9b4bc))
+* i03 public function that should be external ([27d5402](https://github.com/VenusProtocol/venus-protocol/commit/27d5402d0f33952f4fcbac5600258e7018f42d20))
+* l-01 missing docstring ([394d1a7](https://github.com/VenusProtocol/venus-protocol/commit/394d1a7837fd0b6b3c950430d5fc89f3620336f3))
+* l-02 locked bnb in contract ([7a8044a](https://github.com/VenusProtocol/venus-protocol/commit/7a8044ae4b5beb5c5f36eef011bc72a541030a43))
+* l01 missing zero address validation ([6c4dbb2](https://github.com/VenusProtocol/venus-protocol/commit/6c4dbb24c45083a44fdcf80fd2b5cba4edff242d))
+* lint issues ([b125ad7](https://github.com/VenusProtocol/venus-protocol/commit/b125ad7ca997e88682f35763709bfdafea64c1b8))
+* n-01 misleading docstrings ([20e3118](https://github.com/VenusProtocol/venus-protocol/commit/20e31185312ec43432d272478e306c6776f43eae))
+* n-02 naming can be improved ([027835e](https://github.com/VenusProtocol/venus-protocol/commit/027835ed915357901652c21051c10a175bc1e1ac))
+* n-03 some convenience functions are missing ([cf6b8cb](https://github.com/VenusProtocol/venus-protocol/commit/cf6b8cb0735cf0ded3435161c6ea2e2d6c4b48e4))
+* n-03 some convenience functions are missing ([fb66414](https://github.com/VenusProtocol/venus-protocol/commit/fb66414dd6d0a3af2436dc0220b901989ee4652a))
+* n-04 confusing use of eth and bnb in ([dbf855c](https://github.com/VenusProtocol/venus-protocol/commit/dbf855c37db2e24f25f2fb19505d3f30799c8e5d))
+* n-04 confusing use of eth and bnb in ([bbe298f](https://github.com/VenusProtocol/venus-protocol/commit/bbe298f71e48a53af7bf028c3de5d6761c257cdc))
+* pr comments ([9751c85](https://github.com/VenusProtocol/venus-protocol/commit/9751c85d7054485d5f082aa4ba48c7ce878d9a34))
+* remove the word Error from error message ([41e8623](https://github.com/VenusProtocol/venus-protocol/commit/41e86237965a19757d7c568bbe78cdccd57904f6))
+* update imports of package files ([9806697](https://github.com/VenusProtocol/venus-protocol/commit/9806697bc4d42dd9f4beb71b72e467b78dac36a5))
+* use hardhat 2.16.1 ([c5c0df2](https://github.com/VenusProtocol/venus-protocol/commit/c5c0df2175fcac8a9a7ed6bb16e245f16ab84b84))
+* use node 18 ([0eecc46](https://github.com/VenusProtocol/venus-protocol/commit/0eecc468d126558c1c68631be67b816daa48fadf))
+* VPB-02 | Comparison to Boolean Constant ([1a47e51](https://github.com/VenusProtocol/venus-protocol/commit/1a47e51eae5cf2180b0034f61159cf1fa412e37f))
+* VPB-05 | Missing Upper Bound ([a158f8c](https://github.com/VenusProtocol/venus-protocol/commit/a158f8c335d0cfad71f1d2c27af6b0d92f4abe41))
+* VRT-03 | Unused Event ([df23556](https://github.com/VenusProtocol/venus-protocol/commit/df23556727d2b5f13326e6deffcec7637270f642))
+* VRT-05 | Typo ([6b7b8b7](https://github.com/VenusProtocol/venus-protocol/commit/6b7b8b71f9a93613b11ff881cf5a52ff8ef6931b))
+
+
+### Performance Improvements
+
+* [XVSVault-4.2] pay out pending only if the amount is nonzero ([31dc837](https://github.com/VenusProtocol/venus-protocol/commit/31dc837fa59fb25976c6f861f8a8513422eca319))
+
 ## [3.0.0-dev.19](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.18...v3.0.0-dev.19) (2023-09-04)
 
 
