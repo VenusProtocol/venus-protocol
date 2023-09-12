@@ -64,7 +64,7 @@ async function configureNew(vTokenAddress: string) {
   await vToken.connect(impersonatedTimelock).setReduceReservesBlockDelta(1000);
   await expect(
     vToken.connect(impersonatedTimelock).setProtocolShareReserve(ethers.constants.AddressZero),
-  ).to.be.revertedWith("can't be zero address");
+  ).to.be.revertedWith("zero address");
   await vToken.connect(impersonatedTimelock).setProtocolShareReserve(protocolShareReserve.address);
   return vToken;
 }
@@ -273,7 +273,7 @@ if (FORK_MAINNET) {
         };
       }
 
-      it.only("Should match mint operations in all markets", async () => {
+      it("Should match mint operations in all markets", async () => {
         const markets = Object.keys(vTokenAddresses);
         for (const market of markets) {
           const marketAddress = vTokenAddresses[market];

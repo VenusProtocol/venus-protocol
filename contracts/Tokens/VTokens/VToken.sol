@@ -96,9 +96,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     // @custom:event Emits Approval event on successful approve
     function approve(address spender, uint256 amount) external returns (bool) {
-        address src = msg.sender;
-        transferAllowances[src][spender] = amount;
-        emit Approval(src, spender, amount);
+        transferAllowances[msg.sender][spender] = amount;
+        emit Approval(msg.sender, spender, amount);
         return true;
     }
 
@@ -111,7 +110,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function balanceOfUnderlying(address owner) external returns (uint) {
         Exp memory exchangeRate = Exp({ mantissa: exchangeRateCurrent() });
         (MathError mErr, uint balance) = mulScalarTruncate(exchangeRate, accountTokens[owner]);
-        require(mErr == MathError.NO_ERROR, "balance could not be calculated");
+        ensureNoMathError(mErr);
         return balance;
     }
 
@@ -157,9 +156,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     // @custom:event Emits NewPendingAdmin event with old and new admin addresses
     function _setPendingAdmin(address payable newPendingAdmin) external returns (uint) {
         // Check caller = admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PENDING_ADMIN_OWNER_CHECK);
-        }
+        ensureAdmin(msg.sender);
 
         // Save current value, if any, for inclusion in log
         address oldPendingAdmin = pendingAdmin;
@@ -227,11 +224,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function setAccessControlManager(address newAccessControlManagerAddress) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_ACCESS_CONTROL_OWNER_CHECK);
-        }
+        ensureAdmin(msg.sender);
 
-        require(newAccessControlManagerAddress != address(0), "newAccessControlManagerAddress is zero address");
+        ensureNonZeroAddress(newAccessControlManagerAddress);
 
         emit NewAccessControlManager(accessControlManager, newAccessControlManagerAddress);
         accessControlManager = newAccessControlManagerAddress;
@@ -344,10 +339,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function setProtocolShareReserve(address payable protcolShareReserve_) external returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PROTOCOL_SHARE_RESERVES_OWNER_CHECK);
-        }
-        require(protcolShareReserve_ != address(0), "can't be zero address");
+        ensureAdmin(msg.sender);
+        ensureNonZeroAddress(protcolShareReserve_);
         emit NewProtocolShareReserve(protocolShareReserve, protcolShareReserve_);
         protocolShareReserve = protcolShareReserve_;
     }
@@ -369,7 +362,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         string memory symbol_,
         uint8 decimals_
     ) public {
-        require(msg.sender == admin, "only admin may initialize the market");
+        ensureAdmin(msg.sender);
         require(accrualBlockNumber == 0 && borrowIndex == 0, "market may only be initialized once");
 
         // Set initial exchange rate
@@ -435,7 +428,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /* Calculate the number of blocks elapsed since the last accrual */
         (MathError mathErr, uint blockDelta) = subUInt(currentBlockNumber, accrualBlockNumberPrior);
-        require(mathErr == MathError.NO_ERROR, "could not calculate block delta");
+        ensureNoMathError(mathErr);
 
         /*
          * Calculate the interest accumulated into borrows and reserves and the new index:
@@ -535,9 +528,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     // @custom:event Emits NewComptroller event
     function _setComptroller(ComptrollerInterface newComptroller) public returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
+        ensureAdmin(msg.sender);
 
         ComptrollerInterface oldComptroller = comptroller;
         // Ensure invoke comptroller.isComptroller() returns true
@@ -576,7 +567,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function exchangeRateStored() public view returns (uint) {
         (MathError err, uint result) = exchangeRateStoredInternal();
-        require(err == MathError.NO_ERROR, "exchangeRateStored: exchangeRateStoredInternal failed");
+        ensureNoMathError(err);
         return result;
     }
 
@@ -587,7 +578,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function borrowBalanceStored(address account) public view returns (uint) {
         (MathError err, uint result) = borrowBalanceStoredInternal(account);
-        require(err == MathError.NO_ERROR, "borrowBalanceStored: borrowBalanceStoredInternal failed");
+        ensureNoMathError(err);
         return result;
     }
 
@@ -726,7 +717,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             vars.actualMintAmount,
             Exp({ mantissa: vars.exchangeRateMantissa })
         );
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_EXCHANGE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /*
          * We calculate the new total supply of vTokens and minter token balance, checking for overflow:
@@ -734,10 +725,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  accountTokensNew = accountTokens[minter] + mintTokens
          */
         (vars.mathErr, vars.totalSupplyNew) = addUInt(totalSupply, vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_TOTAL_SUPPLY_CALCULATION_FAILED");
-
+        ensureNoMathError(vars.mathErr);
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[minter], vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /* We write previously calculated values into storage */
         totalSupply = vars.totalSupplyNew;
@@ -779,7 +769,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
      */
     function mintBehalfFresh(address payer, address receiver, uint mintAmount) internal returns (uint, uint) {
-        require(receiver != address(0), "receiver is invalid");
+        ensureNonZeroAddress(receiver);
         /* Fail if mint not allowed */
         uint allowed = comptroller.mintAllowed(address(this), receiver, mintAmount);
         if (allowed != 0) {
@@ -821,7 +811,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             vars.actualMintAmount,
             Exp({ mantissa: vars.exchangeRateMantissa })
         );
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_EXCHANGE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /*
          * We calculate the new total supply of vTokens and receiver token balance, checking for overflow:
@@ -829,10 +819,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  accountTokensNew = accountTokens[receiver] + mintTokens
          */
         (vars.mathErr, vars.totalSupplyNew) = addUInt(totalSupply, vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_TOTAL_SUPPLY_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[receiver], vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /* We write previously calculated values into storage */
         totalSupply = vars.totalSupplyNew;
@@ -896,9 +886,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /* exchangeRate = invoke Exchange Rate Stored() */
         (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         /* If redeemTokensIn > 0: */
         if (redeemTokensIn > 0) {
@@ -913,9 +901,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
                 Exp({ mantissa: vars.exchangeRateMantissa }),
                 redeemTokensIn
             );
-            if (vars.mathErr != MathError.NO_ERROR) {
-                revert("math error");
-            }
+            ensureNoMathError(vars.mathErr);
         } else {
             /*
              * We get the current exchange rate and calculate the amount to be redeemed:
@@ -927,9 +913,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
                 redeemAmountIn,
                 Exp({ mantissa: vars.exchangeRateMantissa })
             );
-            if (vars.mathErr != MathError.NO_ERROR) {
-                revert("math error");
-            }
+            ensureNoMathError(vars.mathErr);
 
             vars.redeemAmount = redeemAmountIn;
         }
@@ -951,14 +935,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  accountTokensNew = accountTokens[redeemer] - redeemTokens
          */
         (vars.mathErr, vars.totalSupplyNew) = subUInt(totalSupply, vars.redeemTokens);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.accountTokensNew) = subUInt(accountTokens[redeemer], vars.redeemTokens);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         /* Fail gracefully if protocol has insufficient cash */
         if (getCashPrior() < vars.redeemAmount) {
@@ -987,19 +967,13 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
                 vars.redeemAmount,
                 IComptroller(address(comptroller)).treasuryPercent()
             );
-            if (vars.mathErr != MathError.NO_ERROR) {
-                revert("math error");
-            }
+            ensureNoMathError(vars.mathErr);
 
             (vars.mathErr, feeAmount) = divUInt(feeAmount, 1e18);
-            if (vars.mathErr != MathError.NO_ERROR) {
-                revert("math error");
-            }
+            ensureNoMathError(vars.mathErr);
 
             (vars.mathErr, remainedAmount) = subUInt(vars.redeemAmount, feeAmount);
-            if (vars.mathErr != MathError.NO_ERROR) {
-                revert("math error");
-            }
+            ensureNoMathError(vars.mathErr);
 
             doTransferOut(address(uint160(IComptroller(address(comptroller)).treasuryAddress())), feeAmount);
 
@@ -1074,19 +1048,13 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  totalBorrowsNew = totalBorrows + borrowAmount
          */
         (vars.mathErr, vars.accountBorrows) = borrowBalanceStoredInternal(borrower);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.accountBorrowsNew) = addUInt(vars.accountBorrows, borrowAmount);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.totalBorrowsNew) = addUInt(totalBorrows, borrowAmount);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         /////////////////////////
         // EFFECTS & INTERACTIONS
@@ -1211,10 +1179,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  totalBorrowsNew = totalBorrows - actualRepayAmount
          */
         (vars.mathErr, vars.accountBorrowsNew) = subUInt(vars.accountBorrows, vars.actualRepayAmount);
-        require(vars.mathErr == MathError.NO_ERROR, "REPAY_BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.totalBorrowsNew) = subUInt(totalBorrows, vars.actualRepayAmount);
-        require(vars.mathErr == MathError.NO_ERROR, "REPAY_BORROW_NEW_TOTAL_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /* We write the previously calculated values into storage */
         accountBorrows[borrower].principal = vars.accountBorrowsNew;
@@ -1680,6 +1648,18 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     function ensureAllowed(string memory functionSig) private view {
         require(IAccessControlManager(accessControlManager).isAllowedToCall(msg.sender, functionSig), "access denied");
+    }
+
+    function ensureAdmin(address caller_) private view {
+        require(caller_ == admin, "Unauthorized");
+    }
+
+    function ensureNoMathError(MathError mErr) private pure {
+        require(mErr == MathError.NO_ERROR, "math error");
+    }
+
+    function ensureNonZeroAddress(address address_) private pure {
+        require(address_ != address(0), "zero address");
     }
 
     /*** Safe Token ***/
