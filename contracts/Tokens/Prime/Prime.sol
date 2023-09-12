@@ -267,6 +267,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         }
     }
 
+    /**
+     * @notice Retrieves an array of all available markets
+     * @return An array of addresses representing all available markets
+     */
+    function getAllMarkets() external view returns (address[] memory) {
+        return allMarkets;
+    }
+
     function _accrueInterestAndUpdateScore(address user) internal {
         address[] storage _allMarkets = allMarkets;
         for (uint i = 0; i < _allMarkets.length; i++) {

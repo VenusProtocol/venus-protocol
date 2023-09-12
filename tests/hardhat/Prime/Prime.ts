@@ -251,13 +251,14 @@ describe("PrimeScenario Token", () => {
 
   describe("protocol setup", () => {
     let comptroller: MockContract<ComptrollerMock>;
+    let prime: PrimeScenario;
     let vusdt: VBep20Harness;
     let veth: VBep20Harness;
     let usdt: BEP20Harness;
     let eth: BEP20Harness;
 
     beforeEach(async () => {
-      ({ comptroller, vusdt, veth, usdt, eth } = await loadFixture(deployProtocol));
+      ({ comptroller, vusdt, veth, usdt, eth, prime } = await loadFixture(deployProtocol));
 
       await eth.connect(user1).approve(veth.address, bigNumber18.mul(90));
       await veth.connect(user1).mint(bigNumber18.mul(90));
@@ -280,6 +281,12 @@ describe("PrimeScenario Token", () => {
     it("borrow balance", async () => {
       expect(await usdt.balanceOf(user1.getAddress())).to.be.gt(0);
       expect(await eth.balanceOf(user2.getAddress())).to.be.gt(0);
+    });
+
+    it("get markets in prime", async () => {
+      const [market1, market2] = await prime.getAllMarkets();
+      expect(market1).to.be.equal(vusdt.address);
+      expect(market2).to.be.equal(veth.address);
     });
   });
 
