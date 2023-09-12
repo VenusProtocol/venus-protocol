@@ -280,7 +280,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       await mine(10);
     });
 
-    it("Revert on funds ransfer Paused", async () => {
+    it("Revert on funds transfer Paused", async () => {
       await primeLiquidityProvider.pauseFundsTransfer();
 
       const tx = primeLiquidityProvider.releaseFunds(tokenA.address);

@@ -10,8 +10,8 @@ import { ethers } from "ethers";
 import fs from "fs";
 import "hardhat-deploy";
 import { HardhatUserConfig, task } from "hardhat/config";
-import "solidity-docgen";
 import "solidity-coverage";
+import "solidity-docgen";
 
 require("hardhat-contract-sizer");
 require("dotenv").config();
