@@ -717,7 +717,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             vars.actualMintAmount,
             Exp({ mantissa: vars.exchangeRateMantissa })
         );
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_EXCHANGE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /*
          * We calculate the new total supply of vTokens and minter token balance, checking for overflow:
@@ -725,10 +725,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  accountTokensNew = accountTokens[minter] + mintTokens
          */
         (vars.mathErr, vars.totalSupplyNew) = addUInt(totalSupply, vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_TOTAL_SUPPLY_CALCULATION_FAILED");
-
+        ensureNoMathError(vars.mathErr);
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[minter], vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /* We write previously calculated values into storage */
         totalSupply = vars.totalSupplyNew;
@@ -812,7 +811,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             vars.actualMintAmount,
             Exp({ mantissa: vars.exchangeRateMantissa })
         );
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_EXCHANGE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /*
          * We calculate the new total supply of vTokens and receiver token balance, checking for overflow:
@@ -820,10 +819,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  accountTokensNew = accountTokens[receiver] + mintTokens
          */
         (vars.mathErr, vars.totalSupplyNew) = addUInt(totalSupply, vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_TOTAL_SUPPLY_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[receiver], vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /* We write previously calculated values into storage */
         totalSupply = vars.totalSupplyNew;
@@ -1180,10 +1179,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  totalBorrowsNew = totalBorrows - actualRepayAmount
          */
         (vars.mathErr, vars.accountBorrowsNew) = subUInt(vars.accountBorrows, vars.actualRepayAmount);
-        require(vars.mathErr == MathError.NO_ERROR, "REPAY_BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.totalBorrowsNew) = subUInt(totalBorrows, vars.actualRepayAmount);
-        require(vars.mathErr == MathError.NO_ERROR, "REPAY_BORROW_NEW_TOTAL_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /* We write the previously calculated values into storage */
         accountBorrows[borrower].principal = vars.accountBorrowsNew;

@@ -273,7 +273,7 @@ if (FORK_MAINNET) {
         };
       }
 
-      it.only("Should match mint operations in all markets", async () => {
+      it("Should match mint operations in all markets", async () => {
         const markets = Object.keys(vTokenAddresses);
         for (const market of markets) {
           const marketAddress = vTokenAddresses[market];
