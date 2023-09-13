@@ -59,6 +59,9 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @notice Thrown when distribution speed is greater than MAX_DISTRIBUTION_SPEED
     error InvalidDistributionSpeed(uint256 speed, uint256 maxSpeed);
 
+    /// @notice Thrown when caller is not the desired caller
+    error InvalidCaller();
+
     /// @notice Thrown when token is initialized
     error TokenAlreadyInitialized(address token);
 
@@ -176,6 +179,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
      * @custom:error Throw InvalidArguments on Zero address(token)
      */
     function releaseFunds(address token_) external {
+        if (msg.sender != prime) revert InvalidCaller();
         if (paused()) {
             revert FundsTransferIsPaused();
         }
@@ -224,9 +228,10 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
             uint256 distributionSpeed = tokenDistributionSpeeds[token_];
             uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
 
-            if (distributionSpeed > 0 && (balance - tokenAmountAccrued[token_]) > 0) {
+            uint256 balanceDiff = balance - tokenAmountAccrued[token_];
+            if (distributionSpeed > 0 && balanceDiff > 0) {
                 uint256 accruedSinceUpdate = deltaBlocks * distributionSpeed;
-                uint256 tokenAccrued = (balance <= accruedSinceUpdate ? balance : accruedSinceUpdate);
+                uint256 tokenAccrued = (balanceDiff <= accruedSinceUpdate ? balanceDiff : accruedSinceUpdate);
 
                 tokenAmountAccrued[token_] += tokenAccrued;
                 emit TokensAccrued(token_, tokenAccrued);

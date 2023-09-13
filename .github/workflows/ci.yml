@@ -53,7 +53,7 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           recreate: true
-          path: code-coverage-results.md 
+          path: code-coverage-results.md
 
   lint:
     name: Lint
