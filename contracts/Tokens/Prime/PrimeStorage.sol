@@ -61,7 +61,7 @@ contract PrimeStorageV1 {
     mapping(address => mapping(address => Interest)) public interests;
 
     /// @notice A list of boosted markets
-    address[] public allMarkets;
+    address[] internal allMarkets;
 
     /// @notice numberator of alpha. Ex: if alpha is 0.5 then this will be 1
     uint128 public alphaNumerator;
