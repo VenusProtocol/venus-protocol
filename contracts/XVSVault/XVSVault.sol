@@ -870,9 +870,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @param _primeRewardToken address of reward token
      * @param _primePoolId pool id for reward
      */
-    function setPrimeToken(IPrime _primeToken, address _primeRewardToken, uint256 _primePoolId) external {
-        _checkAccessAllowed("setPrimeToken(address,address,uint256)");
-
+    function setPrimeToken(IPrime _primeToken, address _primeRewardToken, uint256 _primePoolId) external onlyAdmin {
         require(address(_primeToken) != address(0), "prime token cannot be zero address");
         require(_primeRewardToken != address(0), "reward cannot be zero address");
 
