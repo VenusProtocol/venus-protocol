@@ -53,8 +53,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function mintVerify(address vToken, address minter, uint256 actualMintAmount, uint256 mintTokens) external {
         if (address(prime) != address(0)) {
-            prime.executeBoost(minter, vToken);
-            prime.updateScore(minter, vToken);
+            prime.accrueInterestAndUpdateScore(minter, vToken);
         }
     }
 
@@ -91,8 +90,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     function redeemVerify(address vToken, address redeemer, uint256 redeemAmount, uint256 redeemTokens) external {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
         if (address(prime) != address(0)) {
-            prime.executeBoost(redeemer, vToken);
-            prime.updateScore(redeemer, vToken);
+            prime.accrueInterestAndUpdateScore(redeemer, vToken);
         }
     }
 
@@ -162,8 +160,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     // solhint-disable-next-line no-unused-vars
     function borrowVerify(address vToken, address borrower, uint256 borrowAmount) external {
         if (address(prime) != address(0)) {
-            prime.executeBoost(borrower, vToken);
-            prime.updateScore(borrower, vToken);
+            prime.accrueInterestAndUpdateScore(borrower, vToken);
         }
     }
 
@@ -210,8 +207,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 borrowerIndex
     ) external {
         if (address(prime) != address(0)) {
-            prime.executeBoost(borrower, vToken);
-            prime.updateScore(borrower, vToken);
+            prime.accrueInterestAndUpdateScore(borrower, vToken);
         }
     }
 
@@ -286,10 +282,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 seizeTokens
     ) external {
         if (address(prime) != address(0)) {
-            prime.executeBoost(borrower, vTokenBorrowed);
-            prime.executeBoost(liquidator, vTokenBorrowed);
-            prime.updateScore(borrower, vTokenBorrowed);
-            prime.updateScore(liquidator, vTokenBorrowed);
+            prime.accrueInterestAndUpdateScore(borrower, vTokenBorrowed);
+            prime.accrueInterestAndUpdateScore(liquidator, vTokenBorrowed);
         }
     }
 
@@ -354,10 +348,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 seizeTokens
     ) external {
         if (address(prime) != address(0)) {
-            prime.executeBoost(borrower, vTokenCollateral);
-            prime.executeBoost(liquidator, vTokenCollateral);
-            prime.updateScore(borrower, vTokenCollateral);
-            prime.updateScore(liquidator, vTokenCollateral);
+            prime.accrueInterestAndUpdateScore(borrower, vTokenCollateral);
+            prime.accrueInterestAndUpdateScore(liquidator, vTokenCollateral);
         }
     }
 
@@ -404,10 +396,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     // solhint-disable-next-line no-unused-vars
     function transferVerify(address vToken, address src, address dst, uint256 transferTokens) external {
         if (address(prime) != address(0)) {
-            prime.executeBoost(src, vToken);
-            prime.executeBoost(dst, vToken);
-            prime.updateScore(src, vToken);
-            prime.updateScore(dst, vToken);
+            prime.accrueInterestAndUpdateScore(src, vToken);
+            prime.accrueInterestAndUpdateScore(dst, vToken);
         }
     }
 

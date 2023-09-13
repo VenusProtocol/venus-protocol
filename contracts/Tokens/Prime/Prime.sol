@@ -270,9 +270,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
     function _accrueInterestAndUpdateScore(address user) internal {
         address[] storage _allMarkets = allMarkets;
         for (uint i = 0; i < _allMarkets.length; i++) {
-            executeBoost(user, _allMarkets[i]);
-            updateScore(user, _allMarkets[i]);
+            _executeBoost(user, _allMarkets[i]);
+            _updateScore(user, _allMarkets[i]);
         }
+    }
+
+    function accrueInterestAndUpdateScore(address user, address market) public {
+        _executeBoost(user, market);
+        _updateScore(user, market);
     }
 
     /**
@@ -451,7 +456,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         address[] storage _allMarkets = allMarkets;
 
         for (uint i = 0; i < _allMarkets.length; i++) {
-            executeBoost(user, _allMarkets[i]);
+            _executeBoost(user, _allMarkets[i]);
 
             markets[_allMarkets[i]].sumOfMembersScore =
                 markets[_allMarkets[i]].sumOfMembersScore -
@@ -491,7 +496,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      * @param user account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
      */
-    function executeBoost(address user, address vToken) public {
+    function _executeBoost(address user, address vToken) internal {
         if (!markets[vToken].exists || !tokens[user].exists) {
             return;
         }
@@ -506,7 +511,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
      * @param user account for which we need to update score
      * @param market the market for which we need to score
      */
-    function updateScore(address user, address market) public {
+    function _updateScore(address user, address market) internal {
         if (!markets[market].exists) {
             return;
         }
@@ -670,7 +675,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
             address[] storage _allMarkets = allMarkets;
             for (uint i = 0; i < _allMarkets.length; i++) {
                 address market = _allMarkets[i];
-                updateScore(user, market);
+                accrueInterestAndUpdateScore(user, market);
             }
 
             pendingScoreUpdates--;

@@ -878,7 +878,7 @@ describe("PrimeScenario Token", () => {
       expect(interest.accrued).to.be.equal(0);
       expect(interest.rewardIndex).to.be.equal(0);
 
-      await prime.executeBoost(user1.getAddress(), vmatic.address);
+      await prime.accrueInterestAndUpdateScore(user1.getAddress(), vmatic.address);
 
       const market = await prime.markets(vmatic.address);
       // 103000000000000000000 / 948683298050513937723 = 108571532999114341
