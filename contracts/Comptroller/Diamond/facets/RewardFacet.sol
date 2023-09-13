@@ -8,7 +8,10 @@ import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
+ * @title RewardFacet
+ * @author Venus
  * @dev This facet contains all the methods related to the reward functionality
+ * @notice This facet contract provides the external functions related to all claims and rewards of the protocol
  */
 contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin
@@ -93,16 +96,16 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         // vXVS token and mint vXVS for the user
         //
         // If mintBehalf failed, don't grant any xvs
-        require(collateral, "bankrupt accounts can only collateralize their pending xvs rewards");
+        require(collateral, "bankrupt");
 
         IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), 0);
         IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), amount);
         require(
             VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint256(Error.NO_ERROR),
-            "mint behalf error during collateralize xvs"
+            "mint behalf error"
         );
 
-        // set venusAccrue[user] to 0
+        // set venusAccrued[user] to 0
         return 0;
     }
 
@@ -110,14 +113,15 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
     /**
      * @notice Transfer XVS to the recipient
-     * @dev Note: If there is not enough XVS, we do not perform the transfer all
+     * @dev Allows the contract admin to transfer XVS to any recipient based on the recipient's shortfall
+     *      Note: If there is not enough XVS, we do not perform the transfer all
      * @param recipient The address of the recipient to transfer XVS to
      * @param amount The amount of XVS to (possibly) transfer
      */
     function _grantXVS(address recipient, uint256 amount) external {
         ensureAdmin();
         uint256 amountLeft = grantXVSInternal(recipient, amount, 0, false);
-        require(amountLeft == 0, "insufficient xvs for grant");
+        require(amountLeft == 0, "no xvs");
         emit VenusGranted(recipient, amount);
     }
 

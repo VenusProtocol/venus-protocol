@@ -7,29 +7,30 @@ name: Venus-Protocol
 
 on:
   push:
-    branches: [master, develop]
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
 jobs:
   test:
     name: Test
-    runs-on: self-hosted
-
+    runs-on: ubuntu-22.04
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v2
 
-      - name: Clear
-        run: docker system prune -f -a --volumes
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18
+          cache: "yarn"
 
-      - name: Build docker
-        run: docker build -t venus:${GITHUB_SHA::7} .
+      - name: Install deps
+        run: yarn
 
-      - name: Run tests
-        run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} yarn test
-
-      - name: Clear
-        run: docker rm ${GITHUB_SHA::7}
+      - name: Run hardhat compile and tests coverage
+        run: |
+          yarn test
 
       - name: Run hardhat compile and tests coverage
         run: |

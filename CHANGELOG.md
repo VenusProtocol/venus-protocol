@@ -1,3 +1,37 @@
+## [3.0.0-dev.19](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.18...v3.0.0-dev.19) (2023-09-04)
+
+
+### Features
+
+* add semantic release to main ([7f28dc0](https://github.com/VenusProtocol/venus-protocol/commit/7f28dc0d705e9339ad27472c6e9ebd3e88a3e4a5))
+
+
+### Bug Fixes
+
+* remove duplicate import ([e220aec](https://github.com/VenusProtocol/venus-protocol/commit/e220aec2090af60aaeee778f58b70f13fe9b5ba7))
+* remove exports from package.json ([1192698](https://github.com/VenusProtocol/venus-protocol/commit/11926980735f0bb613f4dff0df4424dcdda5a6b3))
+* set path for hardhat-ethers ([28795b1](https://github.com/VenusProtocol/venus-protocol/commit/28795b1001119a85ac9a0f5ae303945c8c3ba66f))
+* update dependencies ([36b6e76](https://github.com/VenusProtocol/venus-protocol/commit/36b6e76ee022360f7421156ca9d0e4423215f4c5))
+* update the network files with the currently used addresses ([4eaa8ae](https://github.com/VenusProtocol/venus-protocol/commit/4eaa8aef5e6a3ece21e2116073efb4c6bf1c26d5))
+
+## [3.0.0-dev.18](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.17...v3.0.0-dev.18) (2023-08-23)
+
+
+### Bug Fixes
+
+* add a missing param to SwapRouter deployment script ([e5a47e8](https://github.com/VenusProtocol/venus-protocol/commit/e5a47e80d788264b6a5c5e60c3e9b7cfb40c14c4))
+
+## [3.0.0-dev.17](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.16...v3.0.0-dev.17) (2023-08-22)
+
+
+### Bug Fixes
+
+* correct testnet VenusLens address ([ba24b14](https://github.com/VenusProtocol/venus-protocol/commit/ba24b143015c2b93abe706f2ca3395f42e673985))
+
+## [3.0.0-dev.16](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.15...v3.0.0-dev.16) (2023-08-09)
+
+## [3.0.0-dev.15](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.14...v3.0.0-dev.15) (2023-08-08)
+
 ## [3.0.0-dev.14](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0-dev.13...v3.0.0-dev.14) (2023-08-01)
 
 

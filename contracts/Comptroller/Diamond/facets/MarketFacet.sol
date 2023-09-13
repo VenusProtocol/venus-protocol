@@ -6,7 +6,10 @@ import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase, VToken } from "./FacetBase.sol";
 
 /**
+ * @title MarketFacet
+ * @author Venus
  * @dev This facet contains all the methods related to the market's management in the pool
+ * @notice This facet contract contains functions regarding markets
  */
 contract MarketFacet is IMarketFacet, FacetBase {
     /// @notice Emitted when an admin supports a market
@@ -167,7 +170,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
     /**
      * @notice Add the market to the markets mapping and set it as listed
-     * @dev Admin function to set isListed and add support for the market
+     * @dev Allows a privileged role to add and list markets to the Comptroller
      * @param vToken The address of the market (token) to list
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
@@ -214,12 +217,14 @@ contract MarketFacet is IMarketFacet, FacetBase {
     function _addMarketInternal(VToken vToken) internal {
         uint256 allMarketsLength = allMarkets.length;
         for (uint256 i; i < allMarketsLength; ++i) {
-            require(allMarkets[i] != vToken, "market already added");
+            require(allMarkets[i] != vToken, "already added");
         }
         allMarkets.push(vToken);
     }
 
     function _initializeMarket(address vToken) internal {
+        uint32 blockNumber = getBlockNumberAsUint32();
+
         VenusMarketState storage supplyState = venusSupplyState[vToken];
         VenusMarketState storage borrowState = venusBorrowState[vToken];
 
@@ -239,6 +244,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
         /*
          * Update market state block numbers
          */
-        supplyState.block = borrowState.block = uint32(getBlockNumber());
+        supplyState.block = borrowState.block = blockNumber;
     }
 }
