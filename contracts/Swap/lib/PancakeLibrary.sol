@@ -1,10 +1,16 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.13;
 
 import "../interfaces/IPancakePair.sol";
 import "../interfaces/CustomErrors.sol";
 
 library PancakeLibrary {
-    // returns sorted token addresses, used to handle return values from pairs sorted in this order
+    /**
+     * @notice Used to handle return values from pairs sorted in this order
+     * @param tokenA The address of token A
+     * @param tokenB The address of token B
+     * @return token0 token1 Sorted token addresses
+     **/
     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
         if (tokenA == tokenB) {
             revert IdenticalAddresses();
@@ -15,7 +21,13 @@ library PancakeLibrary {
         }
     }
 
-    // calculates the CREATE2 address for a pair without making any external calls
+    /**
+     * @notice Calculates the CREATE2 address for a pair without making any external calls
+     * @param factory Address of the pancake swap factory
+     * @param tokenA The address of token A
+     * @param tokenB The address of token B
+     * @return pair Address for a pair
+     **/
     function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
         pair = address(
@@ -34,7 +46,13 @@ library PancakeLibrary {
         );
     }
 
-    // fetches and sorts the reserves for a pair
+    /**
+     * @notice Fetches and sorts the reserves for a pair
+     * @param factory Address of the pancake swap factory
+     * @param tokenA The address of token A
+     * @param tokenB The address of token B
+     * @return reserveA reserveB Reserves for the token A and token B
+     **/
     function getReserves(
         address factory,
         address tokenA,
@@ -46,18 +64,29 @@ library PancakeLibrary {
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
-    // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
+    /**
+     * @notice Given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
+     * @param amountA The amount of token A
+     * @param reserveA The amount of reserves for token A before swap
+     * @param reserveB The amount of reserves for token B before swap
+     * @return amountB An equivalent amount of the token B
+     **/
     function quote(uint256 amountA, uint256 reserveA, uint256 reserveB) internal pure returns (uint256 amountB) {
         if (amountA == 0) {
             revert InsufficientInputAmount();
-        } else if (reserveA == 0 && reserveB == 0) {
+        } else if (reserveA == 0 || reserveB == 0) {
             revert InsufficientLiquidity();
         }
-        require(reserveA > 0 && reserveB > 0, "PancakeLibrary: INSUFFICIENT_LIQUIDITY");
         amountB = (amountA * reserveB) / reserveA;
     }
 
-    // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+    /**
+     * @notice Given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+     * @param amountIn The amount of token A need to swap
+     * @param reserveIn The amount of reserves for token A before swap
+     * @param reserveOut The amount of reserves for token B after swap
+     * @return amountOut The maximum output amount of the token B
+     **/
     function getAmountOut(
         uint256 amountIn,
         uint256 reserveIn,
@@ -65,16 +94,22 @@ library PancakeLibrary {
     ) internal pure returns (uint256 amountOut) {
         if (amountIn == 0) {
             revert InsufficientInputAmount();
-        } else if (reserveIn == 0 && reserveOut == 0) {
+        } else if (reserveIn == 0 || reserveOut == 0) {
             revert InsufficientLiquidity();
         }
-        uint256 amountInWithFee = amountIn * 998;
+        uint256 amountInWithFee = amountIn * 9975;
         uint256 numerator = amountInWithFee * reserveOut;
-        uint256 denominator = (reserveIn * 1000) + amountInWithFee;
+        uint256 denominator = (reserveIn * 10000) + amountInWithFee;
         amountOut = numerator / denominator;
     }
 
-    // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
+    /**
+     * @notice Given an output amount of an asset and pair reserves, returns a required input amount of the other asset
+     * @param amountOut The amount of token B after swap
+     * @param reserveIn The amount of reserves for token A before swap
+     * @param reserveOut The amount of reserves for token B after swap
+     * @return amountIn Required input amount of the token A
+     **/
     function getAmountIn(
         uint256 amountOut,
         uint256 reserveIn,
@@ -82,15 +117,21 @@ library PancakeLibrary {
     ) internal pure returns (uint256 amountIn) {
         if (amountOut == 0) {
             revert InsufficientOutputAmount();
-        } else if (reserveIn == 0 && reserveOut == 0) {
+        } else if (reserveIn == 0 || reserveOut == 0) {
             revert InsufficientLiquidity();
         }
-        uint256 numerator = reserveIn * amountOut * 1000;
-        uint256 denominator = (reserveOut - amountOut) * 998;
+        uint256 numerator = reserveIn * amountOut * 10000;
+        uint256 denominator = (reserveOut - amountOut) * 9975;
         amountIn = (numerator / denominator) + 1;
     }
 
-    // performs chained getAmountOut calculations on any number of pairs
+    /**
+     * @notice Performs chained getAmountOut calculations on any number of pairs
+     * @param factory Address of the pancake swap factory
+     * @param amountIn The amount of tokens to swap.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @return amounts Array of amounts after performing swap for respective pairs in path
+     **/
     function getAmountsOut(
         address factory,
         uint256 amountIn,
@@ -101,13 +142,22 @@ library PancakeLibrary {
         }
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
-        for (uint256 i; i < path.length - 1; i++) {
+        for (uint256 i; i < path.length - 1; ) {
             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i], path[i + 1]);
             amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
+            unchecked {
+                i += 1;
+            }
         }
     }
 
-    // performs chained getAmountIn calculations on any number of pairs
+    /**
+     * @notice Performs chained getAmountIn calculations on any number of pairs
+     * @param factory Address of the pancake swap factory
+     * @param amountOut The amount of the tokens needs to be as output token.
+     * @param path Array with addresses of the underlying assets to be swapped
+     * @return amounts Array of amounts after performing swap for respective pairs in path
+     **/
     function getAmountsIn(
         address factory,
         uint256 amountOut,
@@ -118,9 +168,12 @@ library PancakeLibrary {
         }
         amounts = new uint256[](path.length);
         amounts[amounts.length - 1] = amountOut;
-        for (uint256 i = path.length - 1; i > 0; i--) {
+        for (uint256 i = path.length - 1; i > 0; ) {
             (uint256 reserveIn, uint256 reserveOut) = getReserves(factory, path[i - 1], path[i]);
             amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
+            unchecked {
+                i -= 1;
+            }
         }
     }
 }

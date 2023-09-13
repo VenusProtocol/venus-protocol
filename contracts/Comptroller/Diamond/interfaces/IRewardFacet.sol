@@ -1,21 +1,11 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.5.16;
 
-import "../../../Oracle/PriceOracle.sol";
-import "../../../Tokens/VTokens/VToken.sol";
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { ComptrollerV13Storage } from "../../ComptrollerStorage.sol";
 
 interface IRewardFacet {
-    enum Action {
-        MINT,
-        REDEEM,
-        BORROW,
-        REPAY,
-        SEIZE,
-        LIQUIDATE,
-        TRANSFER,
-        ENTER_MARKET,
-        EXIT_MARKET
-    }
-
     function claimVenus(address holder) external;
 
     function claimVenus(address holder, VToken[] calldata vTokens) external;
@@ -24,17 +14,13 @@ interface IRewardFacet {
 
     function claimVenusAsCollateral(address holder) external;
 
-    function _grantXVS(address recipient, uint amount) external;
-
-    function getBlockNumber() external view returns (uint);
+    function _grantXVS(address recipient, uint256 amount) external;
 
     function getXVSAddress() external pure returns (address);
 
     function getXVSVTokenAddress() external pure returns (address);
 
-    function actionPaused(address market, Action action) external view returns (bool);
-
-    function releaseToVault() external;
+    function actionPaused(address market, ComptrollerV13Storage.Action action) external view returns (bool);
 
     function claimVenus(
         address[] calldata holders,

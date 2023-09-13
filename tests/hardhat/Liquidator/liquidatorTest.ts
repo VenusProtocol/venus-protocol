@@ -7,7 +7,7 @@ import { ethers, upgrades } from "hardhat";
 
 import { convertToBigInt } from "../../../helpers/utils";
 import {
-  Comptroller,
+  ComptrollerMock,
   FaucetToken,
   FaucetToken__factory,
   Liquidator,
@@ -29,7 +29,7 @@ const treasuryShare = 181n; // seizeTokens * treasuryPercent / announcedIncentiv
 const liquidatorShare = seizeTokens - treasuryShare;
 
 type LiquidatorFixture = {
-  comptroller: FakeContract<Comptroller>;
+  comptroller: FakeContract<ComptrollerMock>;
   borrowedUnderlying: MockContract<FaucetToken>;
   vai: MockContract<FaucetToken>;
   vaiController: FakeContract<VAIController>;
@@ -42,7 +42,7 @@ type LiquidatorFixture = {
 async function deployLiquidator(): Promise<LiquidatorFixture> {
   const [, treasury] = await ethers.getSigners();
 
-  const comptroller = await smock.fake<Comptroller>("Comptroller");
+  const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
   const borrowedUnderlying = await FaucetToken.deploy(convertToBigInt("100", 18), "USD", 18, "USD");

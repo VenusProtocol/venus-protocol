@@ -56,7 +56,7 @@ contract VAIControllerHarness is VAIController {
         blocksPerYear = number;
     }
 
-    function getBlockNumber() public view returns (uint) {
+    function getBlockNumber() internal view returns (uint) {
         return blockNumber;
     }
 

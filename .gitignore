@@ -43,6 +43,14 @@ junit.xml
 .last_confs
 .saddle_history
 
+# yarn
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
 # hardhat
 typechain
 artifacts
@@ -56,3 +64,11 @@ docgen-docs
 
 #openzepplin files
 .openzeppelin/*
+
+# yarn
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions

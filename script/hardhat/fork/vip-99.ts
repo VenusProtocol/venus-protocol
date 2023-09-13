@@ -5,7 +5,7 @@ import { parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import {
-  Comptroller,
+  ComptrollerMock,
   IERC20Upgradeable,
   PriceOracle,
   SwapDebtDelegate,
@@ -89,12 +89,10 @@ forking(25918391, () => {
 
 // Ressetting the fork to prevent oracle prices from getting stale
 forking(25918391, () => {
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerMock;
   let busd: IERC20Upgradeable;
-  let usdc: IERC20Upgradeable; // eslint-disable-line
   let usdt: IERC20Upgradeable;
   let btc: IERC20Upgradeable;
-  let eth: IERC20Upgradeable; // eslint-disable-line
   let vBUSD: VBep20Delegate;
   let vUSDC: VBep20Delegate;
   let vUSDT: VBep20Delegate;
@@ -104,13 +102,13 @@ forking(25918391, () => {
   let oracle: PriceOracle;
 
   before(async () => {
-    comptroller = await ethers.getContractAt("Comptroller", COMPTROLLER);
+    comptroller = await ethers.getContractAt("ComptrollerMock", COMPTROLLER);
     [vBUSD, vUSDC, vUSDT, vBTC, vETH] = await Promise.all(
       [VBUSD, VUSDC, VUSDT, VBTC, VETH].map((address: string) => {
         return ethers.getContractAt("VBep20Delegate", address);
       }),
     );
-    [busd, usdc, usdt, btc, eth] = await Promise.all(
+    [busd, , usdt, btc] = await Promise.all(
       [vBUSD, vUSDC, vUSDT, vBTC, vETH].map(async (vToken: VBep20) => {
         const underlying = await vToken.underlying();
         return ethers.getContractAt("IERC20Upgradeable", underlying);
