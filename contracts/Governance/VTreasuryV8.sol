@@ -72,10 +72,8 @@ contract VTreasuryV8 is Ownable {
             // Update actualWithdrawAmount
             actualWithdrawAmount = nativeBalance;
         }
-        // Transfer Native to withdrawAddress
-        bool res = withdrawAddress.send(actualWithdrawAmount);
-
-        require(res, "Transfer Failed");
+        // Transfer BNB to withdrawAddress
+        withdrawAddress.transfer(actualWithdrawAmount);
 
         emit WithdrawTreasuryNative(actualWithdrawAmount, withdrawAddress);
     }
