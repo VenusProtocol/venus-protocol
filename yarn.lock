@@ -2536,9 +2536,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@smithy/types@npm:^2.3.0":
-  version: 2.3.1
-  resolution: "@smithy/types@npm:2.3.1"
+"@smithy/types@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "@smithy/types@npm:2.2.2"
   dependencies:
     tslib: ^2.5.0
   checksum: f0cdac9f7bc97c5c2516d7f70ed58a888d6a164ae7b4150b89ecccc51d440a574f70884993927e2053ccacb5e8a21466b6f1d21599d1fd2ee79b7e2ddc7e2a9b
@@ -4932,17 +4932,6 @@ __metadata:
   dependencies:
     clone: ^1.0.2
   checksum: 3a88b7a587fc076b84e60affad8b85245c01f60f38fc1d259e7ac1d89eb9ce6abb19e27215de46b98568dd5bc48471730b327637e6f20b0f1bc85cf00440c80a
-  languageName: node
-  linkType: hard
-
-"define-data-property@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "define-data-property@npm:1.0.1"
-  dependencies:
-    get-intrinsic: ^1.2.1
-    gopd: ^1.0.1
-    has-property-descriptors: ^1.0.0
-  checksum: 6129cda80ea82198ff22b26ae4624744c7f61b9d664ab78b28156db87849dc893a5c2e76ab8628f1115901bd1c109bd5b943f5901e0f10456254d4aa8b7cd5ae
   languageName: node
   linkType: hard
 

@@ -12,6 +12,6 @@ module.exports = {
     grep: /@gas|@no-cov/,
     invert: true,
   },
-  skipFiles: ["test", "oracle"].concat(process.env["SKIP_UNITROLLER"] ? ["Unitroller.sol"] : []),
+  skipFiles: ["test"],
   istanbulReporter: ["html", "lcov", "text", "json", "cobertura"],
 };
