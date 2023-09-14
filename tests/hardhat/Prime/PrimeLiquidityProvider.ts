@@ -81,14 +81,14 @@ describe("PrimeLiquidityProvider: tests", () => {
     it("Revert on invalid args for initializeTokens", async () => {
       const tx = primeLiquidityProvider.initializeTokens([ethers.constants.AddressZero]);
 
-      await expect(tx).to.be.to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidArguments");
+      await expect(tx).to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidArguments");
     });
 
     it("Revert on re-intializing token", async () => {
       const tx = primeLiquidityProvider.initializeTokens([tokenA.address]);
 
       await expect(tx)
-        .to.be.to.be.revertedWithCustomError(primeLiquidityProvider, "TokenAlreadyInitialized")
+        .to.be.revertedWithCustomError(primeLiquidityProvider, "TokenAlreadyInitialized")
         .withArgs(tokenA.address);
     });
 
@@ -121,7 +121,7 @@ describe("PrimeLiquidityProvider: tests", () => {
     it("Revert on invalid args for setTokensDistributionSpeed", async () => {
       const tx = primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], []);
 
-      await expect(tx).to.be.to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidArguments");
+      await expect(tx).to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidArguments");
     });
 
     it("Revert on invalid distribution speed for setTokensDistributionSpeed", async () => {
@@ -130,7 +130,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       const tx = primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [convertToUnit(1, 19)]);
 
       await expect(tx)
-        .to.be.to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidDistributionSpeed")
+        .to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidDistributionSpeed")
         .withArgs(speedMoreThanMaxSpeed, maxDistributionSpeed);
     });
 
@@ -290,13 +290,13 @@ describe("PrimeLiquidityProvider: tests", () => {
 
       const tx = primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
 
-      await expect(tx).to.be.to.be.revertedWithCustomError(primeLiquidityProvider, "FundsTransferIsPaused");
+      await expect(tx).to.be.revertedWithCustomError(primeLiquidityProvider, "FundsTransferIsPaused");
     });
 
     it("Revert on invalid caller", async () => {
       const tx = primeLiquidityProvider.releaseFunds(tokenA.address);
 
-      await expect(tx).to.be.to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidCaller");
+      await expect(tx).to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidCaller");
     });
 
     it("Release funds success", async () => {

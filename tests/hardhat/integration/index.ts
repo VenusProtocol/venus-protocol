@@ -421,9 +421,6 @@ describe("Prime Token", () => {
     });
 
     it("claim interest for multiple users", async () => {
-      await prime.accrueInterest(vusdt.address);
-      await prime.accrueInterest(veth.address);
-
       let interestForUser1ForUsdt = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
       let interestForUser1ForEth = await prime.callStatic.getInterestAccrued(veth.address, user1.getAddress());
 
@@ -437,9 +434,6 @@ describe("Prime Token", () => {
       await protocolShareReserve.updateAssetsState(comptroller.address, usdt.address, 0);
       await protocolShareReserve.updateAssetsState(comptroller.address, eth.address, 0);
 
-      await prime.accrueInterest(vusdt.address);
-      await prime.accrueInterest(veth.address);
-
       interestForUser1ForUsdt = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
       interestForUser1ForEth = await prime.callStatic.getInterestAccrued(veth.address, user1.getAddress());
 
@@ -449,8 +443,6 @@ describe("Prime Token", () => {
       // providing some liquidity to PLP
       await usdt.transfer(primeLiquidityProvider.address, convertToUnit("1", 6));
       await eth.transfer(primeLiquidityProvider.address, convertToUnit("1", 6));
-      await prime.accrueInterest(veth.address);
-      await prime.accrueInterest(vusdt.address);
 
       const interestForUser1ForEthIncludingPlp = await prime.callStatic.getInterestAccrued(
         vusdt.address,
@@ -498,9 +490,6 @@ describe("Prime Token", () => {
       await comptroller.connect(user3).enterMarkets([vusdt.address, veth.address]);
 
       await veth.connect(user3).borrow(bigNumber18.mul(1));
-
-      await prime.accrueInterest(vusdt.address);
-      await prime.accrueInterest(veth.address);
 
       let interestForUser2ForUsdt = await prime.callStatic.getInterestAccrued(vusdt.address, user2.getAddress());
       let interestForUser2ForEth = await prime.callStatic.getInterestAccrued(veth.address, user2.getAddress());
