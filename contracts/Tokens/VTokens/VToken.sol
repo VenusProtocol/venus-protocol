@@ -1490,8 +1490,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         if (reduceAmount == 0) {
             return uint(Error.NO_ERROR);
         }
-        // totalReserves - reduceAmount
-        uint totalReservesNew;
 
         // We fail gracefully unless market's block number equals current block number
         if (accrualBlockNumber != block.number) {
@@ -1512,7 +1510,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // EFFECTS & INTERACTIONS
         // (No safe failures beyond this point)
 
-        totalReservesNew = totalReserves - reduceAmount;
+        // totalReserves - reduceAmount
+        uint totalReservesNew = totalReserves - reduceAmount;
 
         // Store reserves[n+1] = reserves[n] - reduceAmount
         totalReserves = totalReservesNew;
