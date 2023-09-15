@@ -328,6 +328,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param newReduceReservesBlockDelta_ block difference value
      */
     function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external returns (uint) {
+        require(newReduceReservesBlockDelta_ > 0, "Invalid Input");
         ensureAllowed("setReduceReservesBlockDelta(uint256)");
         emit NewReduceReservesBlockDelta(reduceReservesBlockDelta, newReduceReservesBlockDelta_);
         reduceReservesBlockDelta = newReduceReservesBlockDelta_;
