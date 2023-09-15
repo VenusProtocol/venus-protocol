@@ -510,7 +510,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalBorrows = totalBorrowsNew;
         totalReserves = totalReservesNew;
 
-        if (currentBlockNumber - reduceReservesBlockNumber >= reduceReservesBlockDelta) {
+        (mathErr, blockDelta) = subUInt(currentBlockNumber, reduceReservesBlockNumber);
+        ensureNoMathError(mathErr);
+        if (blockDelta >= reduceReservesBlockDelta) {
             reduceReservesBlockNumber = currentBlockNumber;
             _reduceReservesFresh(totalReservesNew);
         }
