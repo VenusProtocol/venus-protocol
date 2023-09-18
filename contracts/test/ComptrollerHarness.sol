@@ -157,7 +157,7 @@ contract ComptrollerHarness is Comptroller {
         blockNumber = number;
     }
 
-    function getBlockNumber() public view returns (uint) {
+    function getBlockNumber() internal view returns (uint) {
         return blockNumber;
     }
 
