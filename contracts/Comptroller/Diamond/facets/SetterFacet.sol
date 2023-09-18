@@ -515,6 +515,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
         emit NewVAIVaultInfo(vault_, releaseStartBlock_, minReleaseAmount_);
     }
 
+    /**
+     * @notice Enables forced liquidations for a market. If forced liquidation is enabled,
+     * borrows in the market may be liquidated regardless of the account liquidity
+     * @param vTokenBorrowed Borrowed vToken
+     * @param enable Whether to enable forced liquidations
+     */
     function _setForcedLiquidation(address vTokenBorrowed, bool enable) external {
         ensureAllowed("_setForcedLiquidation(address,bool)");
         if (vTokenBorrowed != address(vaiController)) {
