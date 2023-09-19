@@ -588,7 +588,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         return _interestAccrued(vToken, user);
     }
 
-    function _interestAccrued(address vToken, address user) internal returns (uint256) {
+    function _interestAccrued(address vToken, address user) internal view returns (uint256) {
         uint256 index = markets[vToken].rewardIndex - interests[vToken][user].rewardIndex;
         uint256 score = interests[vToken][user].score;
 
