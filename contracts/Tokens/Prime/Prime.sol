@@ -772,7 +772,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice used to calculate the supply and borrow APR of the user
      * @param vToken the market for which to fetch the APR
-     * @param user the user whose APR we need to calculate
      * @param totalSupply the total token supply of the user
      * @param totalBorrow the total tokens borrowed by the user
      * @param totalCappedSupply the total token capped supply of the user
@@ -784,7 +783,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      */
     function _calculateUserAPR(
         address vToken,
-        address user,
         uint256 totalSupply,
         uint256 totalBorrow,
         uint256 totalCappedSupply,
@@ -831,7 +829,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             address(vToken)
         );
 
-        return _calculateUserAPR(market, user, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
+        return _calculateUserAPR(market, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
     }
 
     /**
@@ -864,7 +862,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         totalScore = totalScore + userScore;
 
-        return _calculateUserAPR(market, user, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
+        return _calculateUserAPR(market, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
     }
 
     //////////////////////////////////////////////////
