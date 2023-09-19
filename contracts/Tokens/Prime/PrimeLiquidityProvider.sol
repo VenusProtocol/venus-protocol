@@ -65,14 +65,14 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @notice Thrown when token is initialized
     error TokenAlreadyInitialized(address token);
 
-    ///@notice Error thrown when swapRouter's balance is less than sweep amount
+    ///@notice Error thrown when PrimeLiquidityProvider's balance is less than sweep amount
     error InsufficientBalance(uint256 sweepAmount, uint256 balance);
 
     /// @notice Emitted when funds transfer is paused
     error FundsTransferIsPaused();
 
     /**
-     * @notice RewardsDistributor initializer
+     * @notice PrimeLiquidityProvider initializer
      * @dev Initializes the deployer to owner
      * @param accessControlManager_ AccessControlManager contract address
      * @param tokens_ Array of addresses of the tokens
@@ -119,7 +119,6 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
 
     /**
      * @notice Pause fund transfer of tokens to Prime contract
-     * @custom:event Emits FundsTransferPaused on success
      * @custom:access Controlled by ACM
      */
     function pauseFundsTransfer() external {
@@ -129,7 +128,6 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
 
     /**
      * @notice Resume fund transfer of tokens to Prime contract
-     * @custom:event Emits FundsTransferResumed on success
      * @custom:access Controlled by ACM
      */
     function resumeFundsTransfer() external {

@@ -40,16 +40,16 @@ contract PrimeStorageV1 {
     mapping(address => Token) public tokens;
 
     /// @notice  Tracks total irrevocable tokens minted
-    uint256 public _totalIrrevocable;
+    uint256 public totalIrrevocable;
 
     /// @notice  Tracks total revocable tokens minted
-    uint256 public _totalRevocable;
+    uint256 public totalRevocable;
 
     /// @notice  Indicates maximum revocable tokens that can be minted
-    uint256 public _revocableLimit;
+    uint256 public revocableLimit;
 
     /// @notice  Indicates maximum irrevocable tokens that can be minted
-    uint256 public _irrevocableLimit;
+    uint256 public irrevocableLimit;
 
     /// @notice Tracks when prime token eligible users started staking for claiming prime token
     mapping(address => uint256) public stakedAt;

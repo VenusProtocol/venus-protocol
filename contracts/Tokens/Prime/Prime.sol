@@ -147,18 +147,18 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /**
      * @notice Update multipliers for a market
-     * @param _supplyMultiplier new supply multiplier for the market
-     * @param _borrowMultiplier new borrow multiplier for the market
+     * @param supplyMultiplier new supply multiplier for the market, scaled by 1e18
+     * @param borrowMultiplier new borrow multiplier for the market, scaled by 1e18
      */
-    function updateMultipliers(address market, uint256 _supplyMultiplier, uint256 _borrowMultiplier) external {
+    function updateMultipliers(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
         if (!markets[market].exists) revert MarketNotSupported();
 
         accrueInterest(market);
 
-        emit MultiplierUpdated(market, markets[market].supplyMultiplier, markets[market].borrowMultiplier, _supplyMultiplier, _borrowMultiplier);
-        markets[market].supplyMultiplier = _supplyMultiplier;
-        markets[market].borrowMultiplier = _borrowMultiplier;
+        emit MultiplierUpdated(market, markets[market].supplyMultiplier, markets[market].borrowMultiplier, supplyMultiplier, borrowMultiplier);
+        markets[market].supplyMultiplier = supplyMultiplier;
+        markets[market].borrowMultiplier = borrowMultiplier;
 
         _startScoreUpdateRound();
     }
@@ -190,23 +190,23 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
-     * @notice Set limits for total tokens that can be mined
-     * @param irrevocableLimit total number of irrevocable tokens that can be minted
-     * @param revocableLimit total number of revocable tokens that can be minted
+     * @notice Set limits for total tokens that can be minted
+     * @param _irrevocableLimit total number of irrevocable tokens that can be minted
+     * @param _revocableLimit total number of revocable tokens that can be minted
      */
-    function setLimit(uint256 irrevocableLimit, uint256 revocableLimit) external {
+    function setLimit(uint256 _irrevocableLimit, uint256 _revocableLimit) external {
         _checkAccessAllowed("setLimit(uint256,uint256)");
-        if (irrevocableLimit < _totalIrrevocable || revocableLimit < _totalRevocable) revert InvalidLimit();
+        if (_irrevocableLimit < totalIrrevocable || _revocableLimit < totalRevocable) revert InvalidLimit();
 
-        emit MintLimitsUpdated(_irrevocableLimit, _revocableLimit, irrevocableLimit, revocableLimit);
+        emit MintLimitsUpdated(irrevocableLimit, revocableLimit, _irrevocableLimit, _revocableLimit);
 
-        _revocableLimit = revocableLimit;
-        _irrevocableLimit = irrevocableLimit;
+        revocableLimit = _revocableLimit;
+        irrevocableLimit = _irrevocableLimit;
     }
 
     /**
      * @notice Directly issue prime tokens to users
-     * @param isIrrevocable is the tokens being issued is irrevocable
+     * @param isIrrevocable are the tokens being issued
      * @param users list of address to issue tokens to
      */
     function issue(bool isIrrevocable, address[] calldata users) external {
@@ -344,7 +344,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /**
      * @notice fetch the current XVS balance of user in the XVSVault
-     * @param user the account address for which markets needs to be initialized
+     * @param user the account address
      * @return xvsBalance the XVS balance of user
      */
     function _xvsBalanceOfUser(address user) internal view returns (uint256) {
@@ -382,7 +382,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
-     * @notice calcukate the current XVS balance that will be used in calculation of score
+     * @notice calculate the current XVS balance that will be used in calculation of score
      * @param xvs the actual XVS balance of user
      * @return xvsBalanceForScore the XVS balance to use in score
      */
@@ -443,12 +443,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         tokens[user].isIrrevocable = isIrrevocable;
 
         if (isIrrevocable) {
-            _totalIrrevocable++;
+            totalIrrevocable++;
         } else {
-            _totalRevocable++;
+            totalRevocable++;
         }
 
-        if (_totalIrrevocable > _irrevocableLimit || _totalRevocable > _revocableLimit) revert InvalidLimit();
+        if (totalIrrevocable > irrevocableLimit || totalRevocable > revocableLimit) revert InvalidLimit();
 
         emit Mint(user, isIrrevocable);
     }
@@ -477,9 +477,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         }
 
         if (tokens[user].isIrrevocable) {
-            _totalIrrevocable--;
+            totalIrrevocable--;
         } else {
-            _totalRevocable--;
+            totalRevocable--;
         }
 
         tokens[user].exists = false;
@@ -613,7 +613,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /**
      * @notice To transfer the accrued interest to user
-     * @param vToken the market for which claim the accrued interest
+     * @param vToken the market for which to claim
      * @param user the account for which to get the accrued interest
      */
     function _claimInterest(address vToken, address user) internal {
@@ -711,7 +711,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      */
     function _startScoreUpdateRound() internal {
         nextScoreUpdateRoundId++;
-        totalScoreUpdatesRequired = _totalIrrevocable + _totalRevocable;
+        totalScoreUpdatesRequired = totalIrrevocable + totalRevocable;
         pendingScoreUpdates = totalScoreUpdatesRequired;
     }
 
@@ -808,8 +808,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @notice Returns supply and borrow APR for user for a given market
      * @param market the market for which to fetch the APR
      * @param user the account for which to get the APR
-     * @return supplyAPR supply APR of the user
-     * @return borrowAPR borrow APR of the user
+     * @return supplyAPR supply APR of the user in BPS
+     * @return borrowAPR borrow APR of the user in BPS
      */
     function calculateAPR(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
         IVToken vToken = IVToken(market);
@@ -869,7 +869,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     //////////////// (Un)Pause Claim ////////////////
     ////////////////////////////////////////////////
     /**
-     * @notice To pause or unpuase claiming of interest
+     * @notice To pause or unpause claiming of interest
      */
     function togglePause() external {
         _checkAccessAllowed("togglePause()");
