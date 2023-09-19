@@ -4,7 +4,7 @@ import "../Tokens/VTokens/VToken.sol";
 import "../Oracle/PriceOracle.sol";
 import "../Tokens/VAI/VAIControllerInterface.sol";
 
-contract ComptrollerInterfaceG1 {
+contract ComptrollerInterface {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     bool public constant isComptroller = true;
 
@@ -89,27 +89,14 @@ contract ComptrollerInterfaceG1 {
     ) external view returns (uint, uint);
 
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
-}
 
-contract ComptrollerInterfaceG2 is ComptrollerInterfaceG1 {
     function liquidateVAICalculateSeizeTokens(
         address vTokenCollateral,
         uint repayAmount
     ) external view returns (uint, uint);
-}
 
-contract ComptrollerInterfaceG3 is ComptrollerInterfaceG2 {
-    function liquidateVAICalculateSeizeTokens(
-        address vTokenCollateral,
-        uint repayAmount
-    ) external view returns (uint, uint);
-}
-
-contract ComptrollerInterfaceG4 is ComptrollerInterfaceG3 {
     function getXVSAddress() public view returns (address);
-}
 
-contract ComptrollerInterface is ComptrollerInterfaceG4 {
     function markets(address) external view returns (bool, uint);
 
     function oracle() external view returns (PriceOracle);
