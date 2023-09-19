@@ -51,6 +51,24 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /// @notice Emitted asset state is update by protocol share reserve
     event UpdatedAssetsState(address indexed comptroller, address indexed asset);
 
+    /// @notice Emitted when a market is added to prime program
+    event MarketAdded(address indexed market, uint256 indexed supplyMultiplier, uint256 indexed borrowMultiplier);
+
+    /// @notice Emitted when mint limits are updated
+    event MintLimitsUpdated(uint256 indexed oldIrrevocableLimit, uint256 indexed oldRevocableLimit, uint256 indexed newIrrevocableLimit, uint256 newRevocableLimit);
+
+    /// @notice Emitted when user score is updated
+    event UserScoreUpdated(address indexed user);
+
+    /// @notice Emitted when alpha is updated
+    event AlphaUpdated(uint128 indexed oldNumerator, uint128 indexed oldDenominator, uint128 indexed newNumerator, uint128 newDenominator);
+
+    /// @notice Emitted when multiplier is updated
+    event MultiplierUpdated(address indexed market, uint256 indexed oldSupplyMultiplier, uint256 indexed oldBorrowMultiplier, uint256 newSupplyMultiplier, uint256 newBorrowMultiplier);
+
+    /// @notice Emitted when interest is claimed
+    event InterestClaimed(address indexed user, address indexed market, uint256 amount);
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) {
         if (_wbnb == address(0)) revert InvalidAddress();
@@ -111,6 +129,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     function updateAlpha(uint128 _alphaNumerator, uint128 _alphaDenominator) external {
         _checkAccessAllowed("updateAlpha(uint128,uint128)");
 
+        emit AlphaUpdated(alphaNumerator, alphaDenominator, _alphaNumerator, _alphaDenominator);
+
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
 
@@ -135,6 +155,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (!markets[market].exists) revert MarketNotSupported();
 
         accrueInterest(market);
+
+        emit MultiplierUpdated(market, markets[market].supplyMultiplier, markets[market].borrowMultiplier, _supplyMultiplier, _borrowMultiplier);
         markets[market].supplyMultiplier = _supplyMultiplier;
         markets[market].borrowMultiplier = _borrowMultiplier;
 
@@ -163,6 +185,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         _startScoreUpdateRound();
 
         _ensureMaxLoops(allMarkets.length);
+
+        emit MarketAdded(vToken, supplyMultiplier, borrowMultiplier);
     }
 
     /**
@@ -173,6 +197,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     function setLimit(uint256 irrevocableLimit, uint256 revocableLimit) external {
         _checkAccessAllowed("setLimit(uint256,uint256)");
         if (irrevocableLimit < _totalIrrevocable || revocableLimit < _totalRevocable) revert InvalidLimit();
+
+        emit MintLimitsUpdated(_irrevocableLimit, _revocableLimit, irrevocableLimit, revocableLimit);
 
         _revocableLimit = revocableLimit;
         _irrevocableLimit = irrevocableLimit;
@@ -611,6 +637,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         }
 
         asset.safeTransfer(user, amount);
+
+        emit InterestClaimed(user, vToken, amount);
     }
 
     /**
@@ -673,6 +701,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             unchecked {
                 i++;
             }
+
+            emit UserScoreUpdated(user);
         }
     }
 
