@@ -49,7 +49,7 @@ describe("Comptroller", () => {
           [convertToUnit(1, 15)],
           [convertToUnit(1, 15), convertToUnit(1, 15)],
         ),
-      ).to.be.revertedWith("Comptroller::_setVenusSpeeds invalid input");
+      ).to.be.revertedWith("invalid input");
     });
 
     it("Revert on invalid borrowSpeeds input", async () => {
@@ -59,7 +59,7 @@ describe("Comptroller", () => {
           [convertToUnit(1, 15), convertToUnit(1, 15)],
           [convertToUnit(1, 15)],
         ),
-      ).to.be.revertedWith("Comptroller::_setVenusSpeeds invalid input");
+      ).to.be.revertedWith("invalid input");
     });
 
     it("Revert for unlisted market", async () => {
