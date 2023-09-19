@@ -4,6 +4,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
 
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
@@ -79,7 +80,7 @@ error NoScoreUpdatesRequired();
 error MarketAlreadyExists();
 error InvalidAddress();
 
-contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, PrimeStorageV1 {
+contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice total blocks per year
@@ -127,7 +128,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
         address _protocolShareReserve,
         address _primeLiquidityProvider,
         address _comptroller,
-        address _oracle
+        address _oracle,
+        uint256 _loopsLimit
     ) external virtual initializer {
         if (_xvsVault == address(0)) revert InvalidAddress();
         if (_xvsVaultRewardToken == address(0)) revert InvalidAddress();
@@ -149,6 +151,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
 
         __AccessControlled_init(_accessControlManager);
         __Pausable_init();
+        _setMaxLoopsLimit(_loopsLimit);
 
         _pause();
     }
@@ -207,6 +210,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, P
 
         allMarkets.push(vToken);
         _startScoreUpdateRound();
+
+        _ensureMaxLoops(allMarkets.length);
     }
 
     /**

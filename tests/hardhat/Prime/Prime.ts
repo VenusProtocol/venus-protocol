@@ -202,6 +202,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       primeLiquidityProvider.address,
       comptroller.address,
       oracle.address,
+      10
     ],
     {
       constructorArgs: [wbnb.address, vbnb.address, 10512000],

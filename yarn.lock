@@ -2156,7 +2156,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openzeppelin/contracts-upgradeable@npm:^4.6.0, @openzeppelin/contracts-upgradeable@npm:^4.7.3, @openzeppelin/contracts-upgradeable@npm:^4.8.0":
+"@openzeppelin/contracts-upgradeable@npm:^4.7.3, @openzeppelin/contracts-upgradeable@npm:^4.8.0, @openzeppelin/contracts-upgradeable@npm:^4.8.3":
   version: 4.9.3
   resolution: "@openzeppelin/contracts-upgradeable@npm:4.9.3"
   checksum: bda0240b1d44c913ec5a4e109c622f216c2bbd7b468d210822f75782a5f7fe0609d08bf03b78b253333625e99e507cf2f75212f1de3b274bd9fc64ae967aeec3
@@ -2987,17 +2987,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/isolated-pools@npm:0.0.5":
-  version: 0.0.5
-  resolution: "@venusprotocol/isolated-pools@npm:0.0.5"
+"@venusprotocol/isolated-pools@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@venusprotocol/isolated-pools@npm:2.0.0"
   dependencies:
-    "@openzeppelin/contracts": ^4.6.0
-    "@openzeppelin/contracts-upgradeable": ^4.6.0
+    "@openzeppelin/contracts": ^4.8.3
+    "@openzeppelin/contracts-upgradeable": ^4.8.3
+    "@openzeppelin/hardhat-upgrades": ^1.21.0
     "@solidity-parser/parser": ^0.13.2
     ethers: ^5.7.0
     hardhat-deploy: ^0.11.14
-    sleep-promise: ^9.1.0
-  checksum: 73bd75046d123bfb589bece93bfba8f15f9ac205e9d8b3d385615eef1cff6afd5df8bb6c2f61704d037bbad28c0b5e43b3692b9efe2cdf3d638cb06d9ea1869d
+    module-alias: ^2.2.2
+  checksum: b68c5c5c93547f56482731c3ae28a7de7bc7077c95fbb6d9daa454417a18d6bd90ed373a8754586bba95636e5da9b76bd4e0a880919474e47f7ca15b2f0fddf5
   languageName: node
   linkType: hard
 
@@ -3064,7 +3065,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": ^5.40.0
     "@typescript-eslint/parser": ^5.40.0
     "@venusprotocol/governance-contracts": ^0.0.2
-    "@venusprotocol/isolated-pools": 0.0.5
+    "@venusprotocol/isolated-pools": ^2.0.0
     "@venusprotocol/oracle": 1.7.1
     bignumber.js: ^9.1.2
     chai: ^4.3.6
@@ -10922,13 +10923,6 @@ __metadata:
   version: 3.0.0
   resolution: "slash@npm:3.0.0"
   checksum: 94a93fff615f25a999ad4b83c9d5e257a7280c90a32a7cb8b4a87996e4babf322e469c42b7f649fd5796edd8687652f3fb452a86dc97a816f01113183393f11c
-  languageName: node
-  linkType: hard
-
-"sleep-promise@npm:^9.1.0":
-  version: 9.1.0
-  resolution: "sleep-promise@npm:9.1.0"
-  checksum: a93359c18d2e4d586f2ecd4575cbdbc92bcbd9d387bd4bca249892abb512ca4e80075f67e53ec1279ea4555e8a1f6dc9df9e90f8aa71178ad943e9ba1f27debb
   languageName: node
   linkType: hard
 
