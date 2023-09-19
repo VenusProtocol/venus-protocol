@@ -1,3 +1,10 @@
+## [3.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0...v3.1.0-dev.1) (2023-09-18)
+
+
+### Features
+
+* implement forced liqudations and optimize aggressively ([71afed8](https://github.com/VenusProtocol/venus-protocol/commit/71afed80aa291d277c4a9e93cae779fdc1fe965f))
+
 ## [3.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v2.2.1...v3.0.0) (2023-09-07)
 
 
