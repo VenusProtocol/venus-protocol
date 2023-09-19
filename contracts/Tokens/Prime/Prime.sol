@@ -25,6 +25,7 @@ error InvalidComptroller();
 error NoScoreUpdatesRequired();
 error MarketAlreadyExists();
 error InvalidAddress();
+error InvalidBlocksPerYear();
 
 contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -52,9 +53,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) {
-        require(_wbnb != address(0), "Prime: WBNB address invalid");
-        require(_vbnb != address(0), "Prime: vBNB address invalid");
-        require(_blocksPerYear != 0, "Prime: Invalid blocks per year");
+        if (_wbnb == address(0)) revert InvalidAddress();
+        if (_vbnb == address(0)) revert InvalidAddress();
+        if (_blocksPerYear == 0) revert InvalidBlocksPerYear();
         WBNB = _wbnb;
         vBNB = _vbnb;
         BLOCKS_PER_YEAR = _blocksPerYear;
