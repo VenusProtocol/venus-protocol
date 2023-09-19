@@ -1,19 +1,19 @@
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import { SafeERC20Upgradeable, IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
 
-import "./PrimeStorage.sol";
-import "./libs/Scores.sol";
+import { PrimeStorageV1 } from "./PrimeStorage.sol";
+import { Scores } from "./libs/Scores.sol";
 
-import "./Interfaces/IPrimeLiquidityProvider.sol";
-import "./Interfaces/IXVSVault.sol";
-import "./Interfaces/IVToken.sol";
-import "./Interfaces/IProtocolShareReserve.sol";
-import "./Interfaces/IIncomeDestination.sol";
+import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
+import { IXVSVault } from "./Interfaces/IXVSVault.sol";
+import { IVToken } from "./Interfaces/IVToken.sol";
+import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
+import { IIncomeDestination } from "./Interfaces/IIncomeDestination.sol";
 
 error MarketNotSupported();
 error InvalidLimit();
