@@ -9,6 +9,8 @@ import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/Max
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
+import "hardhat/console.sol";
+
 interface IVToken {
     function borrowBalanceStored(address account) external view returns (uint);
 
@@ -23,6 +25,8 @@ interface IVToken {
     function borrowRatePerBlock() external view returns (uint);
 
     function reserveFactorMantissa() external view returns (uint);
+
+    function decimals() external view returns (uint8);
 }
 
 interface IXVSVault {
@@ -383,6 +387,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         oracle.updatePrice(market);
 
         (uint256 capital, , ) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
+        capital = capital * (10 ** (18 - vToken.decimals()));
 
         return Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
     }
