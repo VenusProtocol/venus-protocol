@@ -822,10 +822,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (totalScore == 0) return (0, 0);
 
         uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
-        uint256 totalValue = totalSupply + totalBorrow;
         uint256 totalCappedValue = totalCappedSupply + totalCappedBorrow;
 
-        if (totalValue == 0 || totalCappedValue == 0) return (0, 0);
+        if (totalCappedValue == 0) return (0, 0);
 
         uint256 userSupplyIncomeYearly = (userYearlyIncome * totalCappedSupply) / totalCappedValue;
         uint256 userBorrowIncomeYearly = (userYearlyIncome * totalCappedBorrow) / totalCappedValue;
