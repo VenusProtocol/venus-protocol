@@ -545,7 +545,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         address underlying = _getUnderlying(vToken);
 
-        IPrimeLiquidityProvider primeLiquidityProvider = IPrimeLiquidityProvider(primeLiquidityProvider);
+        IPrimeLiquidityProvider _primeLiquidityProvider = IPrimeLiquidityProvider(primeLiquidityProvider);
 
         uint totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
             comptroller,
@@ -556,8 +556,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         uint256 distributionIncome = totalIncomeUnreleased - unreleasedPSRIncome[underlying];
 
-        primeLiquidityProvider.accrueTokens(underlying);
-        uint256 totalAccruedInPLP = primeLiquidityProvider.tokenAmountAccrued(underlying);
+        _primeLiquidityProvider.accrueTokens(underlying);
+        uint256 totalAccruedInPLP = _primeLiquidityProvider.tokenAmountAccrued(underlying);
         uint256 unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
 
         distributionIncome += unreleasedPLPAccruedInterest;
