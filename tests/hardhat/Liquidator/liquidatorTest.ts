@@ -129,12 +129,14 @@ describe("Liquidator", () => {
   let liquidatorContract: MockContract<Liquidator>;
   let accessControlManager: FakeContract<IAccessControlManager>;
   let collateralUnderlying: FakeContract<FaucetToken>;
+  let comptroller: FakeContract<Comptroller>;
 
   beforeEach(async () => {
     [liquidator, borrower] = await ethers.getSigners();
     const contracts = await loadFixture(deployLiquidator);
     configure(contracts);
     ({
+      comptroller,
       vTokenBorrowed,
       borrowedUnderlying,
       vai,
@@ -381,9 +383,22 @@ describe("Liquidator", () => {
       await expect(liquidate()).to.be.revertedWithCustomError(liquidatorContract, "VAIDebtTooHigh");
     });
 
+    it("Should able to liquidate any token when VAI debt is greater than minLiquidatableVAI but forced liquidation is enabled", async () => {
+      vaiController.getVAIRepayAmount.returns(2000);
+      comptroller.isForcedLiquidationEnabled.returns(true);
+      expect(
+        liquidatorContract.liquidateBorrow(
+          vaiController.address,
+          borrower.address,
+          repayAmount,
+          vTokenCollateral.address,
+        ),
+      ).to.be.emit(liquidatorContract, "LiquidateBorrowedTokens");
+    });
+
     it("Should able to liquidate VAI token when VAI debt is greater than minLiquidatableVAI", async () => {
       vaiController.getVAIRepayAmount.returns(2000);
-      expect(
+      await expect(
         liquidatorContract.liquidateBorrow(
           vaiController.address,
           borrower.address,
@@ -395,7 +410,8 @@ describe("Liquidator", () => {
 
     it("Should able to liquidate any token and VAI token when force Liquidation is off", async () => {
       vaiController.getVAIRepayAmount.returns(2000);
-      expect(
+      await liquidatorContract.pauseForceVAILiquidate();
+      await expect(
         liquidatorContract.liquidateBorrow(
           vTokenBorrowed.address,
           borrower.address,

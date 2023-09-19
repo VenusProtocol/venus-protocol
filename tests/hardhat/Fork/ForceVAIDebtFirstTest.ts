@@ -7,16 +7,19 @@ import { convertToUnit } from "../../../helpers/utils";
 import {
   Comptroller,
   Comptroller__factory,
+  FaucetToken__factory,
   IAccessControlManagerV8__factory,
   IProtocolShareReserve,
   Liquidator,
   Liquidator__factory,
   PriceOracle,
   ProxyAdmin__factory,
+  Unitroller__factory,
   VAI,
   VAIController,
   VAIController__factory,
   VAI__factory,
+  VBep20Delegate__factory,
 } from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 import { initMainnetUser, setForkBlock } from "./utils";
@@ -76,6 +79,15 @@ async function deployAndConfigureLiquidator() {
   liquidatorNew = Liquidator__factory.connect(LIQUIDATOR, impersonatedTimelock);
 }
 
+async function deployAndConfigureComptroller() {
+  const comptrollerFactory = await ethers.getContractFactory("Comptroller");
+  const comptrollerImpl = await comptrollerFactory.deploy();
+  await comptrollerImpl.deployed();
+  const comptrollerProxy = Unitroller__factory.connect(UNITROLLER, impersonatedTimelock);
+  await comptrollerProxy.connect(impersonatedTimelock)._setPendingImplementation(comptrollerImpl.address);
+  await comptrollerImpl.connect(impersonatedTimelock)._become(UNITROLLER);
+}
+
 async function grantPermissions() {
   accessControlManager = await IAccessControlManagerV8__factory.connect(ACM, impersonatedTimelock);
   let tx = await accessControlManager
@@ -99,6 +111,10 @@ async function grantPermissions() {
     .connect(impersonatedTimelock)
     .giveCallPermission(LIQUIDATOR, "setPendingRedeemChunkLength(uint256)", NORMAL_TIMELOCK);
   await tx.wait();
+  tx = await accessControlManager
+    .connect(impersonatedTimelock)
+    .giveCallPermission(UNITROLLER, "_setForcedLiquidation(address,bool)", NORMAL_TIMELOCK);
+  await tx.wait();
 }
 
 async function configureOldliquidator() {
@@ -112,6 +128,7 @@ async function configureOldliquidator() {
 }
 async function configure() {
   await deployAndConfigureLiquidator();
+  await deployAndConfigureComptroller();
   await grantPermissions();
   vai = VAI__factory.connect("0x4bd17003473389a42daf6a0a729f6fdb328bbbd7", impersonatedTimelock);
   comptroller = Comptroller__factory.connect(UNITROLLER, impersonatedTimelock);
@@ -178,5 +195,34 @@ if (FORK_MAINNET) {
 
       await liquidatorNew.connect(liquidatorSigner).liquidateBorrow(VAI_CONTROLLER, borrower, 100, VBNB);
     });
+  });
+
+  it("Should able to liquidate any token when forced liquidation is enable and VAIdebt > minLiquidatableVAI, force VAI liquidation = true, liquidating assset ! VAI ", async () => {
+    const blockNumber = 31877440;
+    const borrowedVToken = "0xecA88125a5ADbe82614ffC12D0DB554E2e2867C8"; // VUSDC
+    const borrowedUnderlying = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"; // USDC
+    const borrower = "0x016699fb47d0816d71ebed2f24473d57c762af51";
+    const liquidator = "0xB6F6D86a8f9879A9c87f643768d9efc38c1Da6E7";
+    await setForkBlock(blockNumber);
+    await configure();
+
+    const vToken = VBep20Delegate__factory.connect(borrowedVToken, impersonatedTimelock);
+
+    const borrowerSigner = await initMainnetUser(borrower, ethers.utils.parseEther("2"));
+    await vToken.connect(borrowerSigner).borrow(1000);
+
+    // Manipulate price to decrease liquidity and introdue shortfall
+    const priceOracle = await smock.fake<PriceOracle>("PriceOracle");
+    priceOracle.getUnderlyingPrice.returns(1);
+    await comptroller.connect(impersonatedTimelock)._setPriceOracle(priceOracle.address);
+    await comptroller.connect(impersonatedTimelock)._setForcedLiquidation(borrowedVToken, true);
+
+    const liquidatorSigner = await initMainnetUser(liquidator, ethers.utils.parseEther("2"));
+    const tokenBorrowedUnderlying = FaucetToken__factory.connect(borrowedUnderlying, impersonatedTimelock);
+    await tokenBorrowedUnderlying.connect(liquidatorSigner).approve(LIQUIDATOR, 1000000000);
+
+    await expect(
+      liquidatorNew.connect(liquidatorSigner).liquidateBorrow(borrowedVToken, borrower, 1000, VBNB),
+    ).to.be.emit(liquidatorNew, "LiquidateBorrowedTokens");
   });
 }

@@ -54,6 +54,8 @@ interface IComptroller {
     function actionPaused(address market, Action action) external view returns (bool);
 
     function markets(address) external view returns (bool, uint256, bool);
+
+    function isForcedLiquidationEnabled(address) external view returns (bool);
 }
 
 interface IProtocolShareReserve {
