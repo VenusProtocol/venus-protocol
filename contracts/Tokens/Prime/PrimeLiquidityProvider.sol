@@ -162,6 +162,8 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /**
      * @notice Set the prime token contract address
      * @param prime_ The new address of the prime token contract
+     * @custom:event Emits PrimeTokenUpdated event
+     * @custom:access Only owner
      */
     function setPrimeToken(address prime_) external onlyOwner {
         _ensureZeroAddress(prime_);
@@ -175,6 +177,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
      * @param token_ The list of tokens to claim tokens
      * @custom:event Emits TokenTransferredToPrime event
      * @custom:error Throw InvalidArguments on Zero address(token)
+     * @custom:error Throw FundsTransferIsPaused is paused
      */
     function releaseFunds(address token_) external {
         if (msg.sender != prime) revert InvalidCaller();
@@ -240,6 +243,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     }
 
     /// @notice Get the latest block number
+    /// @return blockNumber returns the block number
     function getBlockNumber() public view virtual returns (uint256) {
         return block.number;
     }
