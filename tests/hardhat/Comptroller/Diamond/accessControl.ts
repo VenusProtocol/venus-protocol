@@ -1,6 +1,7 @@
 import { FakeContract, smock } from "@defi-wonderland/smock";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { Signer, constants } from "ethers";
+import { constants } from "ethers";
 import { ethers } from "hardhat";
 
 import { ComptrollerMock, IAccessControlManager } from "../../../typechain";
@@ -10,7 +11,7 @@ const { expect } = chai;
 chai.use(smock.matchers);
 
 describe("Comptroller", () => {
-  let user: Signer;
+  let user: SignerWithAddress;
   let userAddress: string;
   let unitroller: ComptrollerMock;
   let accessControl: FakeContract<IAccessControlManager>;
@@ -19,7 +20,7 @@ describe("Comptroller", () => {
   beforeEach(async () => {
     const signers = await ethers.getSigners();
     user = signers[1];
-    userAddress = await user.getAddress();
+    userAddress = user.address;
     accessControl = await smock.fake<IAccessControlManager>(
       "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
     );
@@ -30,11 +31,13 @@ describe("Comptroller", () => {
 
   describe("_setAccessControlManager", () => {
     it("Reverts if called by non-admin", async () => {
-      expect(comptroller.connect(user)._setAccessControl(userAddress)).to.be.revertedWith("only admin can");
+      await expect(comptroller.connect(user)._setAccessControl(userAddress)).to.be.revertedWith("only admin can");
     });
 
     it("Reverts if ACM is zero address", async () => {
-      expect(comptroller._setAccessControl(constants.AddressZero)).to.be.revertedWith("can't be zero address");
+      await expect(comptroller._setAccessControl(constants.AddressZero)).to.be.revertedWith(
+        "old address is same as new address",
+      );
     });
 
     it("Sets ACM address in storage", async () => {
