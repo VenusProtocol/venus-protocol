@@ -48,7 +48,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates mint and reverts on rejection. May emit logs.
+     * @notice Validates mint, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vToken Asset being minted
      * @param minter The address minting the tokens
      * @param actualMintAmount The amount of the underlying asset being minted
@@ -84,7 +84,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates redeem and reverts on rejection. May emit log
+     * @notice Validates redeem, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vToken Asset being redeemed
      * @param redeemer The address redeeming the tokens
      * @param redeemAmount The amount of the underlying asset being redeemed
@@ -155,7 +155,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates borrow and reverts on rejection. May emit log
+     * @notice Validates borrow, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vToken Asset whose underlying is being borrowed
      * @param borrower The address borrowing the underlying
      * @param borrowAmount The amount of the underlying asset requested to borrow
@@ -196,7 +196,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates repayBorrow and reverts on rejection. May emit log
+     * @notice Validates repayBorrow, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vToken Asset being repaid
      * @param payer The address repaying the borrow
      * @param borrower The address of the borrower
@@ -274,7 +274,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates liquidateBorrow and reverts on rejection. May emit logs.
+     * @notice Validates liquidateBorrow, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vTokenBorrowed Asset which was borrowed by the borrower
      * @param vTokenCollateral Asset which was used as collateral and will be seized
      * @param liquidator The address repaying the borrow and seizing the collateral
@@ -341,7 +341,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates seize and reverts on rejection. May emit log
+     * @notice Validates seize, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vTokenCollateral Asset which was used as collateral and will be seized
      * @param vTokenBorrowed Asset which was borrowed by the borrower
      * @param liquidator The address repaying the borrow and seizing the collateral
@@ -396,7 +396,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates transfer and reverts on rejection. May emit log
+     * @notice Validates transfer, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vToken Asset being transferred
      * @param src The account which sources the tokens
      * @param dst The account which receives the tokens

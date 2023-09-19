@@ -689,7 +689,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         emit Mint(minter, vars.actualMintAmount, vars.mintTokens, vars.accountTokensNew);
         emit Transfer(address(this), minter, vars.mintTokens);
 
-        /* We call the defense hook */
+        /* We call the defense and prime accrue interest hook */
         comptroller.mintVerify(address(this), minter, vars.actualMintAmount, vars.mintTokens);
 
         return (uint(Error.NO_ERROR), vars.actualMintAmount);
@@ -784,7 +784,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         emit MintBehalf(payer, receiver, vars.actualMintAmount, vars.mintTokens, vars.accountTokensNew);
         emit Transfer(address(this), receiver, vars.mintTokens);
 
-        /* We call the defense hook */
+        /* We call the defense and prime accrue interest hook */
         comptroller.mintVerify(address(this), receiver, vars.actualMintAmount, vars.mintTokens);
 
         return (uint(Error.NO_ERROR), vars.actualMintAmount);
@@ -956,7 +956,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         emit Transfer(redeemer, address(this), vars.redeemTokens);
         emit Redeem(redeemer, remainedAmount, vars.redeemTokens, vars.accountTokensNew);
 
-        /* We call the defense hook */
+        /* We call the defense and prime accrue interest hook */
         comptroller.redeemVerify(address(this), redeemer, vars.redeemAmount, vars.redeemTokens);
 
         return uint(Error.NO_ERROR);
@@ -1050,7 +1050,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* We emit a Borrow event */
         emit Borrow(borrower, borrowAmount, vars.accountBorrowsNew, vars.totalBorrowsNew);
 
-        /* We call the defense hook */
+        /* We call the defense and prime accrue interest hook */
         comptroller.borrowVerify(address(this), borrower, borrowAmount);
 
         return uint(Error.NO_ERROR);
@@ -1166,7 +1166,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* We emit a RepayBorrow event */
         emit RepayBorrow(payer, borrower, vars.actualRepayAmount, vars.accountBorrowsNew, vars.totalBorrowsNew);
 
-        /* We call the defense hook */
+        /* We call the defense and prime accrue interest hook */
         comptroller.repayBorrowVerify(address(this), payer, borrower, vars.actualRepayAmount, vars.borrowerIndex);
 
         return (uint(Error.NO_ERROR), vars.actualRepayAmount);
@@ -1289,7 +1289,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* We emit a LiquidateBorrow event */
         emit LiquidateBorrow(liquidator, borrower, actualRepayAmount, address(vTokenCollateral), seizeTokens);
 
-        /* We call the defense hook */
+        /* We call the defense and prime accrue interest hook */
         comptroller.liquidateBorrowVerify(
             address(this),
             address(vTokenCollateral),
@@ -1359,7 +1359,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         /* Emit a Transfer event */
         emit Transfer(borrower, liquidator, seizeTokens);
 
-        /* We call the defense hook */
+        /* We call the defense and prime accrue interest hook */
         comptroller.seizeVerify(address(this), seizerToken, liquidator, borrower, seizeTokens);
 
         return uint(Error.NO_ERROR);
