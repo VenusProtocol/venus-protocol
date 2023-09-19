@@ -70,6 +70,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     event InterestClaimed(address indexed user, address indexed market, uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
+    /**
+     * @notice Prime constructor
+     * @param _wbnb Address of WBNB
+     * @param _vbnb Address of vBNB
+     * @param _blocksPerYear total blocks per year
+     */
     constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) {
         if (_wbnb == address(0)) revert InvalidAddress();
         if (_vbnb == address(0)) revert InvalidAddress();
@@ -83,6 +89,20 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         _disableInitializers();
     }
 
+    /**
+     * @notice Prime initializer
+     * @param _xvsVault Address of XVSVault
+     * @param _xvsVaultRewardToken Address of XVSVault reward token
+     * @param _xvsVaultPoolId Pool id of XVSVault
+     * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1
+     * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2
+     * @param _accessControlManager Address of AccessControlManager
+     * @param _protocolShareReserve Address of ProtocolShareReserve
+     * @param _primeLiquidityProvider Address of PrimeLiquidityProvider
+     * @param _comptroller Address of Comptroller
+     * @param _oracle Address of Oracle
+     * @param _loopsLimit Maximum number of loops allowed in a single transaction
+     */
     function initialize(
         address _xvsVault,
         address _xvsVaultRewardToken,
@@ -147,6 +167,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /**
      * @notice Update multipliers for a market
+     * @param market address of the market vToken
      * @param supplyMultiplier new supply multiplier for the market, scaled by 1e18
      * @param borrowMultiplier new borrow multiplier for the market, scaled by 1e18
      */
@@ -259,12 +280,16 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /**
      * @notice Retrieves an array of all available markets
-     * @return An array of addresses representing all available markets
+     * @return markets an array of addresses representing all available markets
      */
     function getAllMarkets() external view returns (address[] memory) {
         return allMarkets;
     }
 
+    /**
+     * @notice accrues interes and updates score of all markets for an user
+     * @return user the account address for which to accrue interest and update score
+     */
     function _accrueInterestAndUpdateScore(address user) internal {
         address[] storage _allMarkets = allMarkets;
         for (uint i = 0; i < _allMarkets.length;) {
@@ -277,6 +302,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         }
     }
 
+    /**
+     * @notice accrues interes and updates score for an user for a specific market
+     * @return user the account address for which to accrue interest and update score
+     * @return market the market for which to accrue interest and update score
+     */
     function accrueInterestAndUpdateScore(address user, address market) public {
         _executeBoost(user, market);
         _updateScore(user, market);
