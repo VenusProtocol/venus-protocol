@@ -171,8 +171,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
 
-        for (uint i = 0; i < allMarkets.length; i++) {
+        for (uint i = 0; i < allMarkets.length;) {
             accrueInterest(allMarkets[i]);
+
+            unchecked {
+                i++;
+            }
         }
 
         _startScoreUpdateRound();
@@ -240,15 +244,23 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         _checkAccessAllowed("issue(bool,address[])");
 
         if (isIrrevocable) {
-            for (uint i = 0; i < users.length; i++) {
+            for (uint i = 0; i < users.length;) {
                 _mint(true, users[i]);
                 _initializeMarkets(users[i]);
+
+                unchecked {
+                    i++;
+                }
             }
         } else {
-            for (uint i = 0; i < users.length; i++) {
+            for (uint i = 0; i < users.length;) {
                 _mint(false, users[i]);
                 _initializeMarkets(users[i]);
                 delete stakedAt[users[i]];
+
+                unchecked {
+                    i++;
+                }
             }
         }
     }
@@ -286,9 +298,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     function _accrueInterestAndUpdateScore(address user) internal {
         address[] storage _allMarkets = allMarkets;
-        for (uint i = 0; i < _allMarkets.length; i++) {
+        for (uint i = 0; i < _allMarkets.length;) {
             _executeBoost(user, _allMarkets[i]);
             _updateScore(user, _allMarkets[i]);
+
+            unchecked {
+                i++;
+            }
         }
     }
 
@@ -341,7 +357,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      */
     function _initializeMarkets(address account) internal {
         address[] storage _allMarkets = allMarkets;
-        for (uint i = 0; i < _allMarkets.length; i++) {
+        for (uint i = 0; i < _allMarkets.length;) {
             address market = _allMarkets[i];
             accrueInterest(market);
 
@@ -350,6 +366,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             uint score = _calculateScore(market, account);
             interests[market][account].score = score;
             markets[market].sumOfMembersScore = markets[market].sumOfMembersScore + score;
+
+            unchecked {
+                i++;
+            }
         }
     }
 
@@ -473,7 +493,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         address[] storage _allMarkets = allMarkets;
 
-        for (uint i = 0; i < _allMarkets.length; i++) {
+        for (uint i = 0; i < _allMarkets.length;) {
             _executeBoost(user, _allMarkets[i]);
 
             markets[_allMarkets[i]].sumOfMembersScore =
@@ -481,6 +501,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
                 interests[_allMarkets[i]][user].score;
             interests[_allMarkets[i]][user].score = 0;
             interests[_allMarkets[i]][user].rewardIndex = 0;
+
+            unchecked {
+                i++;
+            }
         }
 
         if (tokens[user].isIrrevocable) {
@@ -684,20 +708,28 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
         if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
 
-        for (uint256 i = 0; i < users.length; i++) {
+        for (uint256 i = 0; i < users.length;) {
             address user = users[i];
 
             if (!tokens[user].exists) revert UserHasNoPrimeToken();
             if (isScoreUpdated[nextScoreUpdateRoundId][user]) continue;
 
             address[] storage _allMarkets = allMarkets;
-            for (uint i = 0; i < _allMarkets.length; i++) {
-                address market = _allMarkets[i];
+            for (uint j = 0; j < _allMarkets.length;) {
+                address market = _allMarkets[j];
                 accrueInterestAndUpdateScore(user, market);
+
+                unchecked {
+                    j++;
+                }
             }
 
             pendingScoreUpdates--;
             isScoreUpdated[nextScoreUpdateRoundId][user] = true;
+
+            unchecked {
+                i++;
+            }
         }
     }
 
