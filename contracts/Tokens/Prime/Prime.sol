@@ -9,69 +9,11 @@ import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/Max
 import "./PrimeStorage.sol";
 import "./libs/Scores.sol";
 
-import "hardhat/console.sol";
-
-interface IVToken {
-    function borrowBalanceStored(address account) external view returns (uint);
-
-    function exchangeRateStored() external view returns (uint);
-
-    function balanceOf(address account) external view returns (uint);
-
-    function underlying() external view returns (address);
-
-    function totalBorrows() external view returns (uint);
-
-    function borrowRatePerBlock() external view returns (uint);
-
-    function reserveFactorMantissa() external view returns (uint);
-
-    function decimals() external view returns (uint8);
-}
-
-interface IXVSVault {
-    function getUserInfo(
-        address _rewardToken,
-        uint256 _pid,
-        address _user
-    ) external view returns (uint256 amount, uint256 rewardDebt, uint256 pendingWithdrawals);
-
-    function xvsAddress() external view returns (address);
-}
-
-interface IProtocolShareReserve {
-    enum Schema {
-        DEFAULT,
-        SPREAD_PRIME_CORE
-    }
-
-    function getUnreleasedFunds(
-        address comptroller,
-        Schema schema,
-        address destination,
-        address asset
-    ) external view returns (uint256);
-
-    function releaseFunds(address comptroller, address[] memory assets) external;
-
-    function getPercentageDistribution(address destination, Schema schema) external view returns (uint256);
-
-    function MAX_PERCENT() external view returns (uint256);
-}
-
-interface IIncomeDestination {
-    function updateAssetsState(address comptroller, address asset) external;
-}
-
-interface IPrimeLiquidityProvider {
-    function releaseFunds(address token_) external;
-
-    function accrueTokens(address token_) external;
-
-    function tokenAmountAccrued(address token_) external view returns (uint256);
-
-    function getEffectiveDistributionSpeed(address token_) external view returns (uint256);
-}
+import "./Interfaces/IPrimeLiquidityProvider.sol";
+import "./Interfaces/IXVSVault.sol";
+import "./Interfaces/IVToken.sol";
+import "./Interfaces/IProtocolShareReserve.sol";
+import "./Interfaces/IIncomeDestination.sol";
 
 error MarketNotSupported();
 error InvalidLimit();
