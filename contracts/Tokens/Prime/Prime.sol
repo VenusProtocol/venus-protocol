@@ -802,7 +802,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         uint256 totalIncomePerBlockFromMarket = _incomePerBlock(vToken);
         uint256 incomePerBlockForDistributionFromMarket = (totalIncomePerBlockFromMarket * _distributionPercentage()) /
             IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
-        amount += BLOCKS_PER_YEAR * incomePerBlockForDistributionFromMarket;
+        amount = BLOCKS_PER_YEAR * incomePerBlockForDistributionFromMarket;
 
         uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
             .getEffectiveDistributionSpeed(_getUnderlying(vToken));
