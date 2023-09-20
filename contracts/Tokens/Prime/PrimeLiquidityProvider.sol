@@ -342,7 +342,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     function _ensureTokenInitialized(address token_) internal view {
         uint256 lastBlockAccrued = lastAccruedBlock[token_];
 
-        if (!(lastBlockAccrued > 0)) {
+        if (lastBlockAccrued == 0)) {
             revert TokenNotInitialized(token_);
         }
     }
