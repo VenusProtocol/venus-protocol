@@ -280,7 +280,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /**
      * @notice Retrieves an array of all available markets
-     * @return markets an array of addresses representing all available markets
+     * @return an array of addresses representing all available markets
      */
     function getAllMarkets() external view returns (address[] memory) {
         return allMarkets;
@@ -288,7 +288,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /**
      * @notice accrues interes and updates score of all markets for an user
-     * @return user the account address for which to accrue interest and update score
+     * @param user the account address for which to accrue interest and update score
      */
     function _accrueInterestAndUpdateScore(address user) internal {
         address[] storage _allMarkets = allMarkets;
@@ -304,8 +304,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /**
      * @notice accrues interes and updates score for an user for a specific market
-     * @return user the account address for which to accrue interest and update score
-     * @return market the market for which to accrue interest and update score
+     * @param user the account address for which to accrue interest and update score
+     * @param market the market for which to accrue interest and update score
      */
     function accrueInterestAndUpdateScore(address user, address market) public {
         _executeBoost(user, market);
