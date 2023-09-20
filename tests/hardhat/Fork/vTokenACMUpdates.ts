@@ -48,6 +48,7 @@ async function configure() {
   await vBusd.setAccessControlManager(ACM);
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   await grantPermission("setReduceReservesBlockDelta(uint256)");
+  await expect(vBusd.connect(impersonatedTimelock).setReduceReservesBlockDelta(0)).to.be.revertedWith("Invalid Input");
   await vBusd.connect(impersonatedTimelock).setReduceReservesBlockDelta(1000);
   await vBusd.connect(impersonatedTimelock).setProtocolShareReserve(protocolShareReserve.address);
 }
@@ -75,14 +76,6 @@ if (FORK_MAINNET) {
       ).to.be.revertedWith("access denied");
     });
 
-    it("should success if permission is granted for set new reserve factor", async () => {
-      await grantPermission("_setReserveFactor(uint256)");
-      const oldReserveFactor = await vBusd.reserveFactorMantissa();
-      await expect(vBusd.connect(impersonatedTimelock)._setReserveFactor(convertToUnit(1, 16)))
-        .to.be.emit(vBusd, "NewReserveFactor")
-        .withArgs(oldReserveFactor, convertToUnit(1, 16));
-    });
-
     it("should success if permission is granted for reduce reserves", async () => {
       await grantPermission("_reduceReserves(uint256)");
       const reduceAmount = await vBusd.totalReserves();
@@ -90,6 +83,14 @@ if (FORK_MAINNET) {
         vBusd,
         "ReservesReduced",
       );
+    });
+
+    it("should success if permission is granted for set new reserve factor", async () => {
+      await grantPermission("_setReserveFactor(uint256)");
+      const oldReserveFactor = await vBusd.reserveFactorMantissa();
+      await expect(vBusd.connect(impersonatedTimelock)._setReserveFactor(convertToUnit(1, 16)))
+        .to.be.emit(vBusd, "NewReserveFactor")
+        .withArgs(oldReserveFactor, convertToUnit(1, 16));
     });
 
     it("should success if permission is granted for set new interest model", async () => {

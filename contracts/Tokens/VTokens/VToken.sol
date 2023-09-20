@@ -328,6 +328,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param newReduceReservesBlockDelta_ block difference value
      */
     function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external returns (uint) {
+        require(newReduceReservesBlockDelta_ > 0, "Invalid Input");
         ensureAllowed("setReduceReservesBlockDelta(uint256)");
         emit NewReduceReservesBlockDelta(reduceReservesBlockDelta, newReduceReservesBlockDelta_);
         reduceReservesBlockDelta = newReduceReservesBlockDelta_;
@@ -509,7 +510,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalBorrows = totalBorrowsNew;
         totalReserves = totalReservesNew;
 
-        if (currentBlockNumber - reduceReservesBlockNumber >= reduceReservesBlockDelta) {
+        (mathErr, blockDelta) = subUInt(currentBlockNumber, reduceReservesBlockNumber);
+        ensureNoMathError(mathErr);
+        if (blockDelta >= reduceReservesBlockDelta) {
             reduceReservesBlockNumber = currentBlockNumber;
             _reduceReservesFresh(totalReservesNew);
         }
@@ -1487,8 +1490,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         if (reduceAmount == 0) {
             return uint(Error.NO_ERROR);
         }
-        // totalReserves - reduceAmount
-        uint totalReservesNew;
 
         // We fail gracefully unless market's block number equals current block number
         if (accrualBlockNumber != block.number) {
@@ -1509,7 +1510,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // EFFECTS & INTERACTIONS
         // (No safe failures beyond this point)
 
-        totalReservesNew = totalReserves - reduceAmount;
+        // totalReserves - reduceAmount
+        uint totalReservesNew = totalReserves - reduceAmount;
 
         // Store reserves[n+1] = reserves[n] - reduceAmount
         totalReserves = totalReservesNew;
