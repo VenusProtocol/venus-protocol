@@ -15,7 +15,7 @@ import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
 import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 import { IIncomeDestination } from "./Interfaces/IIncomeDestination.sol";
-import { InterfaceComptroller } from "../../Swap/interfaces/InterfaceComptroller.sol";
+import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
 
 error MarketNotSupported();
 error InvalidLimit();
