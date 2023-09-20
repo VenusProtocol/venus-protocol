@@ -88,6 +88,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /// @notice Emitted when interest is claimed
     event InterestClaimed(address indexed user, address indexed market, uint256 amount);
 
+    /// @notice Emitted when revocable token is upgraded to irrevocable token
+    event TokenUpgraded(address indexed user);
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     /**
      * @notice Prime constructor
@@ -265,8 +268,18 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         if (isIrrevocable) {
             for (uint i = 0; i < users.length; ) {
-                _mint(true, users[i]);
-                _initializeMarkets(users[i]);
+                Token storage userToken = tokens[users[i]];
+                if (userToken.exists && !userToken.isIrrevocable) {
+                    //upgrade to irrevocable token
+                    userToken.isIrrevocable = true;      
+                    totalIrrevocable++;
+                    totalRevocable--; 
+
+                    emit TokenUpgraded(users[i]);
+                } else {
+                    _mint(true, users[i]);
+                    _initializeMarkets(users[i]);
+                }
 
                 unchecked {
                     i++;

@@ -418,6 +418,28 @@ describe("PrimeScenario Token", () => {
       expect(token.isIrrevocable).to.be.equal(false);
       expect(token.exists).to.be.equal(true);
     });
+
+    it("upgrade", async () => {
+      await prime.issue(false, [user1.getAddress(), user2.getAddress()]);
+
+      let token = await prime.tokens(user1.getAddress());
+      expect(token.exists).to.be.equal(true);
+      expect(token.isIrrevocable).to.be.equal(false);
+
+      token = await prime.tokens(user2.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.exists).to.be.equal(true);
+
+      await prime.issue(true, [user1.getAddress()]);
+
+      token = await prime.tokens(user1.getAddress());
+      expect(token.isIrrevocable).to.be.equal(true);
+      expect(token.exists).to.be.equal(true);
+
+      token = await prime.tokens(user2.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.exists).to.be.equal(true);
+    });
   });
 
   describe("boosted yield", () => {
