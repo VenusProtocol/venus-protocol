@@ -12,10 +12,10 @@ contract VTreasuryV8 is Ownable {
     using SafeERC20 for IERC20;
 
     // WithdrawTreasuryToken Event
-    event WithdrawTreasuryToken(address tokenAddress, uint256 withdrawAmount, address withdrawAddress);
+    event WithdrawTreasuryToken(address indexed tokenAddress, uint256 withdrawAmount, address indexed withdrawAddress);
 
     // WithdrawTreasuryNative Event
-    event WithdrawTreasuryNative(uint256 withdrawAmount, address withdrawAddress);
+    event WithdrawTreasuryNative(uint256 withdrawAmount, address indexed withdrawAddress);
 
     /**
      * @notice To receive Native when msg.data is not empty
