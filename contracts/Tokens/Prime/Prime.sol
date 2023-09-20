@@ -553,11 +553,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param market the market for which we need to score
      */
     function _updateScore(address user, address market) internal {
-        if (!markets[market].exists) {
-            return;
-        }
-
-        if (!tokens[user].exists) {
+        if (!markets[market].exists || !tokens[user].exists) {
             return;
         }
 
@@ -869,8 +865,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param borrow hypothetical borrow amount
      * @param supply hypothetical supply amount
      * @param xvsStaked hypothetical staked XVS amount
-     * @return supplyAPR supply APR of the user
-     * @return borrowAPR borrow APR of the user
+     * @return supplyAPR supply APR of the user in BPS
+     * @return borrowAPR borrow APR of the user in BPS
      */
     function estimateAPR(
         address market,

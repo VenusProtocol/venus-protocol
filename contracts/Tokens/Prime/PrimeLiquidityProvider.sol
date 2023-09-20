@@ -174,10 +174,11 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
 
     /**
      * @notice Claim all the token accrued till last block
-     * @param token_ The list of tokens to claim tokens
+     * @param token_ The token to release to the Prime contract
      * @custom:event Emits TokenTransferredToPrime event
      * @custom:error Throw InvalidArguments on Zero address(token)
      * @custom:error Throw FundsTransferIsPaused is paused
+     * @custom:error Throw InvalidCaller if the sender is not the Prime contract
      */
     function releaseFunds(address token_) external {
         if (msg.sender != prime) revert InvalidCaller();
@@ -200,7 +201,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
      * @param to_ The address of the recipient
      * @param amount_ The amount of tokens needs to transfer
      * @custom:event Emits SweepToken event
-     * @custom:error Throw InsufficientBalance on Zero address(token)
+     * @custom:error Throw InsufficientBalance if amount_ is greater than the available balance of the token in the contract
      * @custom:access Only Governance
      */
     function sweepToken(IERC20Upgradeable token_, address to_, uint256 amount_) external onlyOwner {
@@ -274,9 +275,9 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     function _initializeToken(address token_) internal {
         _ensureZeroAddress(token_);
         uint256 blockNumber = getBlockNumber();
-        uint256 intializedBlock = lastAccruedBlock[token_];
+        uint256 initializedBlock = lastAccruedBlock[token_];
 
-        if (intializedBlock > 0) {
+        if (initializedBlock > 0) {
             revert TokenAlreadyInitialized(token_);
         }
 
