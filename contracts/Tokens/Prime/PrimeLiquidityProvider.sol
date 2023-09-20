@@ -195,9 +195,9 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         uint256 accruedAmount = tokenAmountAccrued[token_];
         tokenAmountAccrued[token_] = 0;
 
-        IERC20Upgradeable(token_).safeTransfer(prime, accruedAmount);
-
         emit TokenTransferredToPrime(token_, accruedAmount);
+
+        IERC20Upgradeable(token_).safeTransfer(prime, accruedAmount);
     }
 
     /**
@@ -215,9 +215,9 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
             revert InsufficientBalance(amount_, balance);
         }
 
-        token_.safeTransfer(to_, amount_);
-
         emit SweepToken(address(token_), to_, amount_);
+
+        token_.safeTransfer(to_, amount_);
     }
 
     /**
