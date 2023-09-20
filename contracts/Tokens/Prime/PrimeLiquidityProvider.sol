@@ -68,8 +68,11 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     ///@notice Error thrown when PrimeLiquidityProvider's balance is less than sweep amount
     error InsufficientBalance(uint256 sweepAmount, uint256 balance);
 
-    /// @notice Emitted when funds transfer is paused
+    /// @notice Error thrown when funds transfer is paused
     error FundsTransferIsPaused();
+
+    /// @notice Error thrown when intrest accrue is called for not initialized token
+    error TokenNotInitialized(address token_);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -156,6 +159,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         }
 
         for (uint256 i; i < numTokens; ) {
+            _ensureTokenInitialized(tokens_[i]);
             _setTokenDistributionSpeed(tokens_[i], distributionSpeeds_[i]);
 
             unchecked {
@@ -227,6 +231,8 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
      */
     function accrueTokens(address token_) public {
         _ensureZeroAddress(token_);
+
+        _ensureTokenInitialized(token_);
 
         uint256 blockNumber = getBlockNumber();
         uint256 deltaBlocks = blockNumber - lastAccruedBlock[token_];
@@ -326,6 +332,18 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     function _ensureZeroAddress(address address_) internal pure {
         if (address_ == address(0)) {
             revert InvalidArguments();
+        }
+    }
+
+    /**
+     * @notice Revert on non initialized token
+     * @param token_ Token Address to be verified for
+     */
+    function _ensureTokenInitialized(address token_) internal view {
+        uint256 lastBlockAccrued = lastAccruedBlock[token_];
+
+        if (!(lastBlockAccrued > 0)) {
+            revert TokenNotInitialized(token_);
         }
     }
 }

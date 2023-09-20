@@ -184,7 +184,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const primeLiquidityProviderFactory = await ethers.getContractFactory("PrimeLiquidityProvider");
   const primeLiquidityProvider = await upgrades.deployProxy(
     primeLiquidityProviderFactory,
-    [accessControl.address, [], []],
+    [accessControl.address, [xvs.address, usdt.address, eth.address], [10, 10, 10]],
     {},
   );
 
@@ -206,6 +206,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     ],
     {
       constructorArgs: [wbnb.address, vbnb.address, 10512000],
+      unsafeAllow: "constructor",
     },
   );
 
@@ -350,7 +351,7 @@ describe("PrimeScenario Token", () => {
       await mine(90 * 24 * 60 * 60);
       await prime.connect(user).claim();
 
-      expect(await prime._totalRevocable()).to.be.equal(1);
+      expect(await prime.totalRevocable()).to.be.equal(1);
 
       await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000));
 
@@ -364,7 +365,7 @@ describe("PrimeScenario Token", () => {
       expect(token.exists).to.be.equal(false);
       expect(token.isIrrevocable).to.be.equal(false);
 
-      expect(await prime._totalRevocable()).to.be.equal(0);
+      expect(await prime.totalRevocable()).to.be.equal(0);
     });
 
     it("cannot burn irrevocable token", async () => {
@@ -430,9 +431,10 @@ describe("PrimeScenario Token", () => {
     let xvs: XVS;
     let oracle: FakeContract<ResilientOracleInterface>;
     let protocolShareReserve: FakeContract<IProtocolShareReserve>;
+    let primeLiquidityProvider: PrimeLiquidityProvider;
 
     beforeEach(async () => {
-      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, oracle, protocolShareReserve } = await loadFixture(
+      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, oracle, protocolShareReserve, primeLiquidityProvider } = await loadFixture(
         deployProtocol,
       ));
 
@@ -562,6 +564,7 @@ describe("PrimeScenario Token", () => {
         )) as VBep20Harness;
 
         await vbnb._setReserveFactor(bigNumber16.mul(20));
+        await primeLiquidityProvider.initializeTokens([bnb.address])
 
         oracle.getUnderlyingPrice.returns((vToken: string) => {
           if (vToken == vusdt.address) {
@@ -798,7 +801,6 @@ describe("PrimeScenario Token", () => {
 
       await protocolShareReserve.getUnreleasedFunds.returns("0");
       await protocolShareReserve.getPercentageDistribution.returns("100");
-
       await primeLiquidityProvider.setPrimeToken(prime.address);
 
       const tokenFactory = await ethers.getContractFactory("BEP20Harness");
@@ -809,6 +811,7 @@ describe("PrimeScenario Token", () => {
         "BEP20 MATIC",
       )) as BEP20Harness;
 
+      await primeLiquidityProvider.initializeTokens([matic.address])
       const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
       const InterestRateModelHarness = (await interestRateModelHarnessFactory.deploy(
         BigNumber.from(18).mul(5),

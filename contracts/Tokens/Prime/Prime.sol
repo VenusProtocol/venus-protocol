@@ -14,6 +14,7 @@ import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
 import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 import { IIncomeDestination } from "./Interfaces/IIncomeDestination.sol";
+import { InterfaceComptroller } from "../../Swap/interfaces/InterfaceComptroller.sol";
 
 error MarketNotSupported();
 error InvalidLimit();
@@ -26,6 +27,8 @@ error NoScoreUpdatesRequired();
 error MarketAlreadyExists();
 error InvalidAddress();
 error InvalidBlocksPerYear();
+error InvalidAlphaArguments();
+error InvalidVToken();
 
 contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -55,16 +58,32 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     event MarketAdded(address indexed market, uint256 indexed supplyMultiplier, uint256 indexed borrowMultiplier);
 
     /// @notice Emitted when mint limits are updated
-    event MintLimitsUpdated(uint256 indexed oldIrrevocableLimit, uint256 indexed oldRevocableLimit, uint256 indexed newIrrevocableLimit, uint256 newRevocableLimit);
+    event MintLimitsUpdated(
+        uint256 indexed oldIrrevocableLimit,
+        uint256 indexed oldRevocableLimit,
+        uint256 indexed newIrrevocableLimit,
+        uint256 newRevocableLimit
+    );
 
     /// @notice Emitted when user score is updated
     event UserScoreUpdated(address indexed user);
 
     /// @notice Emitted when alpha is updated
-    event AlphaUpdated(uint128 indexed oldNumerator, uint128 indexed oldDenominator, uint128 indexed newNumerator, uint128 newDenominator);
+    event AlphaUpdated(
+        uint128 indexed oldNumerator,
+        uint128 indexed oldDenominator,
+        uint128 indexed newNumerator,
+        uint128 newDenominator
+    );
 
     /// @notice Emitted when multiplier is updated
-    event MultiplierUpdated(address indexed market, uint256 indexed oldSupplyMultiplier, uint256 indexed oldBorrowMultiplier, uint256 newSupplyMultiplier, uint256 newBorrowMultiplier);
+    event MultiplierUpdated(
+        address indexed market,
+        uint256 indexed oldSupplyMultiplier,
+        uint256 indexed oldBorrowMultiplier,
+        uint256 newSupplyMultiplier,
+        uint256 newBorrowMultiplier
+    );
 
     /// @notice Emitted when interest is claimed
     event InterestClaimed(address indexed user, address indexed market, uint256 amount);
@@ -122,6 +141,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (_comptroller == address(0)) revert InvalidAddress();
         if (_oracle == address(0)) revert InvalidAddress();
         if (_primeLiquidityProvider == address(0)) revert InvalidAddress();
+        _checkAlphaArguments(_alphaNumerator, _alphaDenominator);
 
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
@@ -148,13 +168,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      */
     function updateAlpha(uint128 _alphaNumerator, uint128 _alphaDenominator) external {
         _checkAccessAllowed("updateAlpha(uint128,uint128)");
+        _checkAlphaArguments(_alphaNumerator, _alphaDenominator);
 
         emit AlphaUpdated(alphaNumerator, alphaDenominator, _alphaNumerator, _alphaDenominator);
 
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
 
-        for (uint i = 0; i < allMarkets.length;) {
+        for (uint i = 0; i < allMarkets.length; ) {
             accrueInterest(allMarkets[i]);
 
             unchecked {
@@ -177,7 +198,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         accrueInterest(market);
 
-        emit MultiplierUpdated(market, markets[market].supplyMultiplier, markets[market].borrowMultiplier, supplyMultiplier, borrowMultiplier);
+        emit MultiplierUpdated(
+            market,
+            markets[market].supplyMultiplier,
+            markets[market].borrowMultiplier,
+            supplyMultiplier,
+            borrowMultiplier
+        );
         markets[market].supplyMultiplier = supplyMultiplier;
         markets[market].borrowMultiplier = borrowMultiplier;
 
@@ -193,6 +220,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     function addMarket(address vToken, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
         if (markets[vToken].exists) revert MarketAlreadyExists();
+
+        bool isMarketExist = InterfaceComptroller(comptroller).markets(vToken);
+        if (!isMarketExist) revert InvalidVToken();
 
         markets[vToken].rewardIndex = 0;
         markets[vToken].supplyMultiplier = supplyMultiplier;
@@ -234,7 +264,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         _checkAccessAllowed("issue(bool,address[])");
 
         if (isIrrevocable) {
-            for (uint i = 0; i < users.length;) {
+            for (uint i = 0; i < users.length; ) {
                 _mint(true, users[i]);
                 _initializeMarkets(users[i]);
 
@@ -243,7 +273,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
                 }
             }
         } else {
-            for (uint i = 0; i < users.length;) {
+            for (uint i = 0; i < users.length; ) {
                 _mint(false, users[i]);
                 _initializeMarkets(users[i]);
                 delete stakedAt[users[i]];
@@ -292,7 +322,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      */
     function _accrueInterestAndUpdateScore(address user) internal {
         address[] storage _allMarkets = allMarkets;
-        for (uint i = 0; i < _allMarkets.length;) {
+        for (uint i = 0; i < _allMarkets.length; ) {
             _executeBoost(user, _allMarkets[i]);
             _updateScore(user, _allMarkets[i]);
 
@@ -351,12 +381,23 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
+     * @notice Verify new alpha arguments
+     * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1
+     * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2
+     */
+    function _checkAlphaArguments(uint128 _alphaNumerator, uint128 _alphaDenominator) internal pure {
+        if (!(_alphaDenominator > 0) || _alphaNumerator >= _alphaDenominator) {
+            revert InvalidAlphaArguments();
+        }
+    }
+
+    /**
      * @notice Initializes all the markets for the user when a prime token is minted
      * @param account the account address for which markets needs to be initialized
      */
     function _initializeMarkets(address account) internal {
         address[] storage _allMarkets = allMarkets;
-        for (uint i = 0; i < _allMarkets.length;) {
+        for (uint i = 0; i < _allMarkets.length; ) {
             address market = _allMarkets[i];
             accrueInterest(market);
 
@@ -492,7 +533,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         address[] storage _allMarkets = allMarkets;
 
-        for (uint i = 0; i < _allMarkets.length;) {
+        for (uint i = 0; i < _allMarkets.length; ) {
             _executeBoost(user, _allMarkets[i]);
 
             markets[_allMarkets[i]].sumOfMembersScore =
@@ -719,14 +760,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
         if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
 
-        for (uint256 i = 0; i < users.length;) {
+        for (uint256 i = 0; i < users.length; ) {
             address user = users[i];
 
             if (!tokens[user].exists) revert UserHasNoPrimeToken();
             if (isScoreUpdated[nextScoreUpdateRoundId][user]) continue;
 
             address[] storage _allMarkets = allMarkets;
-            for (uint j = 0; j < _allMarkets.length;) {
+            for (uint j = 0; j < _allMarkets.length; ) {
                 address market = _allMarkets[j];
                 accrueInterestAndUpdateScore(user, market);
 

@@ -40,8 +40,6 @@ library Scores {
         // To avoid overflows, use (1) when xvs < capital and
         // use (2) when capital < xvs
 
-        assert(alphaNumerator <= alphaDenominator);
-
         // If any side is 0, exit early
         if (xvs == 0 || capital == 0) return 0;
 

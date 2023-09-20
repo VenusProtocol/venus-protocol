@@ -124,9 +124,15 @@ describe("PrimeLiquidityProvider: tests", () => {
       await expect(tx).to.be.revertedWithCustomError(primeLiquidityProvider, "InvalidArguments");
     });
 
+    it("Revert on non initialized token", async () => {
+      await expect(primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [tokenCSpeed])).to.be.revertedWithCustomError(primeLiquidityProvider, "TokenNotInitialized");
+    })
+
     it("Revert on invalid distribution speed for setTokensDistributionSpeed", async () => {
       const maxDistributionSpeed = convertToUnit(1, 18);
       const speedMoreThanMaxSpeed = convertToUnit(1, 19);
+
+      await primeLiquidityProvider.initializeTokens([tokenC.address]);
       const tx = primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [convertToUnit(1, 19)]);
 
       await expect(tx)
@@ -135,6 +141,7 @@ describe("PrimeLiquidityProvider: tests", () => {
     });
 
     it("setTokensDistributionSpeed success", async () => {
+      await primeLiquidityProvider.initializeTokens([tokenC.address]);
       const tx = await primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [tokenCSpeed]);
       tx.wait();
 
@@ -170,6 +177,10 @@ describe("PrimeLiquidityProvider: tests", () => {
       await tokenA.transfer(primeLiquidityProvider.address, tokenAInitialFund);
       await tokenB.transfer(primeLiquidityProvider.address, tokenBInitialFund);
     });
+
+    it("Revert on non initialized token", async () => {
+      await expect(primeLiquidityProvider.accrueTokens(tokenC.address)).to.be.revertedWithCustomError(primeLiquidityProvider, "TokenNotInitialized");
+    })
 
     it("Accrue amount for tokenA", async () => {
       await mine(10);
@@ -260,6 +271,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
       await mine(10);
 
+      await primeLiquidityProvider.initializeTokens([tokenC.address]);
       await primeLiquidityProvider.accrueTokens(tokenC.address);
       const balanceC = await primeLiquidityProvider.tokenAmountAccrued(tokenC.address);
 
