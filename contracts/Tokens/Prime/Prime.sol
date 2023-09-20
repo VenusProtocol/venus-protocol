@@ -400,7 +400,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2
      */
     function _checkAlphaArguments(uint128 _alphaNumerator, uint128 _alphaDenominator) internal pure {
-        if (!(_alphaDenominator > 0) || _alphaNumerator >= _alphaDenominator) {
+        if (_alphaDenominator == 0 || _alphaNumerator > _alphaDenominator) {
             revert InvalidAlphaArguments();
         }
     }
