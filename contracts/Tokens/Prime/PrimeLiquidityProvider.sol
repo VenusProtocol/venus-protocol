@@ -71,6 +71,11 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @notice Emitted when funds transfer is paused
     error FundsTransferIsPaused();
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     /**
      * @notice PrimeLiquidityProvider initializer
      * @dev Initializes the deployer to owner
