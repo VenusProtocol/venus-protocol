@@ -210,7 +210,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
             revert InsufficientBalance(amount_, balance);
         }
 
-        token_.safeTransfer(to_, balance);
+        token_.safeTransfer(to_, amount_);
 
         emit SweepToken(address(token_), to_, amount_);
     }

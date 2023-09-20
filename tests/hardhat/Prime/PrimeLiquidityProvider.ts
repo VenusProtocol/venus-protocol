@@ -334,12 +334,15 @@ describe("PrimeLiquidityProvider: tests", () => {
       const sweepAmount = 1000;
       await tokenA.transfer(primeLiquidityProvider.address, sweepAmount);
 
+      const balanceBefore = await tokenA.balanceOf(signer.address);
       const tx = await primeLiquidityProvider.sweepToken(tokenA.address, signer.address, sweepAmount);
       tx.wait();
 
       await expect(tx)
         .to.emit(primeLiquidityProvider, "SweepToken")
         .withArgs(tokenA.address, signer.address, sweepAmount);
+
+      expect(await tokenA.balanceOf(signer.address)).to.be.equal(balanceBefore.add(sweepAmount));
     });
   });
 });
