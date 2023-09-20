@@ -523,6 +523,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice Used to get if the XVS balance is eligible for prime token
      * @param amount amount of XVS
+     * @return isEligible true if the staked XVS amount is enough to consider the associated user eligible for a Prime token, false otherwise
      */
     function isEligible(uint256 amount) internal view returns (bool) {
         if (amount >= MINIMUM_STAKED_XVS) {
@@ -607,6 +608,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @notice Returns boosted interest accrued for a user
      * @param vToken the market for which to fetch the accrued interest
      * @param user the account for which to get the accrued interest
+     * @return interestAccrued the number of underlying tokens accrued by the user since the last accrual
      */
     function getInterestAccrued(address vToken, address user) public returns (uint256) {
         accrueInterest(vToken);
@@ -614,6 +616,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         return _interestAccrued(vToken, user);
     }
 
+    /**
+     * @notice Calculate the interests accrued by the user in the market, since the last accrual
+     * @param vToken the market for which calculate the accrued interest
+     * @param user the user for which calculate the accrued interest
+     * @return interestAccrued the number of underlying tokens accrued by the user since the last accrual
+     */
     function _interestAccrued(address vToken, address user) internal view returns (uint256) {
         uint256 index = markets[vToken].rewardIndex - interests[vToken][user].rewardIndex;
         uint256 score = interests[vToken][user].score;
@@ -632,6 +640,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
+     * @param user the user for which claim the accrued interest
      */
     function claimInterest(address vToken, address user) external whenNotPaused {
         _claimInterest(vToken, user);
@@ -685,6 +694,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         emit UpdatedAssetsState(comptroller, asset);
     }
 
+    /**
+     * @notice Returns the underlying token associated with the VToken, or WBNB if the market is vBNB
+     * @param vToken the market whose underlying token will be returned
+     * @return underlying The address of the underlying token associated with the VToken, or the address of the WBNB token if the market is vBNB
+     */
     function _getUnderlying(address vToken) internal view returns (address) {
         if (vToken == vBNB) {
             return WBNB;
