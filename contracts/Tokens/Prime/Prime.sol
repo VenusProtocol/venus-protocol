@@ -178,7 +178,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
 
-        for (uint i = 0; i < allMarkets.length; ) {
+        for (uint256 i = 0; i < allMarkets.length; ) {
             accrueInterest(allMarkets[i]);
 
             unchecked {
@@ -267,7 +267,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         _checkAccessAllowed("issue(bool,address[])");
 
         if (isIrrevocable) {
-            for (uint i = 0; i < users.length; ) {
+            for (uint256 i = 0; i < users.length; ) {
                 Token storage userToken = tokens[users[i]];
                 if (userToken.exists && !userToken.isIrrevocable) {
                     //upgrade to irrevocable token
@@ -286,7 +286,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
                 }
             }
         } else {
-            for (uint i = 0; i < users.length; ) {
+            for (uint256 i = 0; i < users.length; ) {
                 _mint(false, users[i]);
                 _initializeMarkets(users[i]);
                 delete stakedAt[users[i]];
@@ -335,7 +335,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      */
     function _accrueInterestAndUpdateScore(address user) internal {
         address[] storage _allMarkets = allMarkets;
-        for (uint i = 0; i < _allMarkets.length; ) {
+        for (uint256 i = 0; i < _allMarkets.length; ) {
             _executeBoost(user, _allMarkets[i]);
             _updateScore(user, _allMarkets[i]);
 
@@ -410,13 +410,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      */
     function _initializeMarkets(address account) internal {
         address[] storage _allMarkets = allMarkets;
-        for (uint i = 0; i < _allMarkets.length; ) {
+        for (uint256 i = 0; i < _allMarkets.length; ) {
             address market = _allMarkets[i];
             accrueInterest(market);
 
             interests[market][account].rewardIndex = markets[market].rewardIndex;
 
-            uint score = _calculateScore(market, account);
+            uint256 score = _calculateScore(market, account);
             interests[market][account].score = score;
             markets[market].sumOfMembersScore = markets[market].sumOfMembersScore + score;
 
@@ -546,7 +546,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         address[] storage _allMarkets = allMarkets;
 
-        for (uint i = 0; i < _allMarkets.length; ) {
+        for (uint256 i = 0; i < _allMarkets.length; ) {
             _executeBoost(user, _allMarkets[i]);
 
             markets[_allMarkets[i]].sumOfMembersScore =
@@ -612,7 +612,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             return;
         }
 
-        uint score = _calculateScore(market, user);
+        uint256 score = _calculateScore(market, user);
         markets[market].sumOfMembersScore = markets[market].sumOfMembersScore - interests[market][user].score + score;
         interests[market][user].score = score;
     }
@@ -628,7 +628,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         IPrimeLiquidityProvider _primeLiquidityProvider = IPrimeLiquidityProvider(primeLiquidityProvider);
 
-        uint totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
+        uint256 totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
             comptroller,
             IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
             address(this),
@@ -780,7 +780,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             if (isScoreUpdated[nextScoreUpdateRoundId][user]) continue;
 
             address[] storage _allMarkets = allMarkets;
-            for (uint j = 0; j < _allMarkets.length; ) {
+            for (uint256 j = 0; j < _allMarkets.length; ) {
                 address market = _allMarkets[j];
                 accrueInterestAndUpdateScore(user, market);
 
