@@ -271,12 +271,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             for (uint256 i = 0; i < users.length; ) {
                 Token storage userToken = tokens[users[i]];
                 if (userToken.exists && !userToken.isIrrevocable) {
-                    //upgrade to irrevocable token
-                    userToken.isIrrevocable = true;      
-                    totalIrrevocable++;
-                    totalRevocable--; 
-
-                    emit TokenUpgraded(users[i]);
+                    _upgrade(users[i]);
                 } else {
                     _mint(true, users[i]);
                     _initializeMarkets(users[i]);
@@ -573,6 +568,22 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         _updateRoundAfterTokenBurned(user);
 
         emit Burn(user);
+    }
+
+    /**
+     * @notice Used to upgrade an token
+     * @param user owner whose prime token to upgrade
+     */
+    function _upgrade(address user) internal {
+        Token storage userToken = tokens[user];
+
+        userToken.isIrrevocable = true;      
+        totalIrrevocable++;
+        totalRevocable--; 
+
+        if (totalIrrevocable > irrevocableLimit) revert InvalidLimit();
+
+        emit TokenUpgraded(user);
     }
 
     /**
