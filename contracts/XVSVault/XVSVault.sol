@@ -874,6 +874,8 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         require(address(_primeToken) != address(0), "prime token cannot be zero address");
         require(_primeRewardToken != address(0), "reward cannot be zero address");
 
+        _ensureValidPool(_primeRewardToken, _primePoolId);
+
         emit NewPrimeToken(primeToken, _primeToken, primeRewardToken, _primeRewardToken, primePoolId, _primePoolId);
 
         primeToken = _primeToken;
