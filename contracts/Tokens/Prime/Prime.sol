@@ -698,26 +698,29 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
+     * @return amount the amount of tokens transferred to the user
      */
-    function claimInterest(address vToken) external whenNotPaused {
-        _claimInterest(vToken, msg.sender);
+    function claimInterest(address vToken) external whenNotPaused returns (uint256) {
+        return _claimInterest(vToken, msg.sender);
     }
 
     /**
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
      * @param user the user for which claim the accrued interest
+     * @return amount the amount of tokens transferred to the user
      */
-    function claimInterest(address vToken, address user) external whenNotPaused {
-        _claimInterest(vToken, user);
+    function claimInterest(address vToken, address user) external whenNotPaused returns (uint256) {
+        return _claimInterest(vToken, user);
     }
 
     /**
      * @notice To transfer the accrued interest to user
      * @param vToken the market for which to claim
      * @param user the account for which to get the accrued interest
+     * @return amount the amount of tokens transferred to the user
      */
-    function _claimInterest(address vToken, address user) internal {
+    function _claimInterest(address vToken, address user) internal returns (uint256) {
         uint256 amount = getInterestAccrued(vToken, user);
         amount += interests[vToken][user].accrued;
 
@@ -740,6 +743,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         asset.safeTransfer(user, amount);
 
         emit InterestClaimed(user, vToken, amount);
+
+        return amount;
     }
 
     /**
@@ -771,6 +776,33 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         } else {
             return IVToken(vToken).underlying();
         }
+    }
+
+    /**
+     * @notice Returns boosted pending interest accrued for a user for all markets
+     * @param user the account for which to get the accrued interests
+     * @return pendingInterests the number of underlying tokens accrued by the user for all markets
+     */
+    function getPendingInterests(address user) external returns (PendingInterest[] memory pendingInterests) {
+        address[] storage _allMarkets = allMarkets;
+        PendingInterest[] memory pendingInterests = new PendingInterest[](_allMarkets.length);
+
+        for (uint256 i = 0; i < _allMarkets.length; ) {
+            address market = _allMarkets[i];
+            uint256 interestAccrued = getInterestAccrued(market, user);
+            uint256 accrued = interests[market][user].accrued;
+
+            pendingInterests[i] = PendingInterest({
+                market: IVToken(market).underlying(),
+                amount: interestAccrued + accrued
+            });
+
+            unchecked {
+                i++;
+            }
+        }
+
+        return pendingInterests;
     }
 
     //////////////////////////////////////////////////

@@ -23,6 +23,11 @@ contract PrimeStorageV1 {
         uint256 rewardIndex;
     }
 
+    struct PendingInterest {
+        address market;
+        uint256 amount;
+    }
+
     uint256 internal constant EXP_SCALE = 1e18;
 
     /// @notice minimum amount of XVS user needs to stake to become a prime member

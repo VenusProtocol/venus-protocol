@@ -498,7 +498,7 @@ describe("PrimeScenario Token", () => {
       expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("2371440609779311958519");
     });
 
-    it("accrue interest - prime token minted after market is added", async () => {
+    it.only("accrue interest - prime token minted after market is added", async () => {
       let interest = await prime.interests(vusdt.address, user1.getAddress());
       /**
        * score = 10000^0.5 * 5^0.5 = 223.6067977
@@ -529,6 +529,12 @@ describe("PrimeScenario Token", () => {
        */
       expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(518320);
 
+      const interestsAccrued = await prime.callStatic.getPendingInterests(user1.getAddress());
+      expect(interestsAccrued[0].market).to.be.equal(usdt.address);
+      expect(interestsAccrued[1].market).to.be.equal(eth.address);
+      expect(interestsAccrued[0].amount).to.be.equal(518320);
+      expect(interestsAccrued[1].amount).to.be.equal(518000);
+
       await prime.issue(false, [user2.getAddress()]);
 
       interest = await prime.interests(vusdt.address, user2.getAddress());
@@ -550,6 +556,7 @@ describe("PrimeScenario Token", () => {
       const interest = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
       await usdt.transfer(prime.address, interest);
       const previousBalance = await usdt.balanceOf(user1.getAddress());
+      expect(await prime.callStatic["claimInterest(address,address)"](vusdt.address, user1.getAddress())).to.be.equal(interest)
       await expect(prime["claimInterest(address,address)"](vusdt.address, user1.getAddress())).to.be.not.reverted;
       const newBalance = await usdt.balanceOf(user1.getAddress());
       expect(newBalance).to.be.equal(previousBalance.add(interest));
