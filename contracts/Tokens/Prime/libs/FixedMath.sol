@@ -8,6 +8,8 @@ import "./FixedMath0x.sol";
 
 using SafeCastUpgradeable for uint256;
 
+error InvalidFixedPoint();
+
 library FixedMath {
     error InvalidFraction(uint256 n, uint256 d);
 
@@ -30,6 +32,7 @@ library FixedMath {
      * @return unsigned int quotient
      */
     function uintDiv(uint256 u, int256 f) internal pure returns (uint256) {
+        if (f < 0) revert InvalidFixedPoint();
         // multiply `u` by FIXED_1 to cancel out the built-in FIXED_1 in f
         return uint256((u.toInt256() * FixedMath0x.FIXED_1) / f);
     }
@@ -41,6 +44,7 @@ library FixedMath {
      * @return unsigned int product
      */
     function uintMul(uint256 u, int256 f) internal pure returns (uint256) {
+        if (f < 0) revert InvalidFixedPoint();
         // divide the product by FIXED_1 to cancel out the built-in FIXED_1 in f
         return uint256((u.toInt256() * f) / FixedMath0x.FIXED_1);
     }

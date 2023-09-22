@@ -498,7 +498,7 @@ describe("PrimeScenario Token", () => {
       expect((await prime.calculateScore(xvsBalance, capital)).toString()).to.be.equal("2371440609779311958519");
     });
 
-    it.only("accrue interest - prime token minted after market is added", async () => {
+    it("accrue interest - prime token minted after market is added", async () => {
       let interest = await prime.interests(vusdt.address, user1.getAddress());
       /**
        * score = 10000^0.5 * 5^0.5 = 223.6067977
