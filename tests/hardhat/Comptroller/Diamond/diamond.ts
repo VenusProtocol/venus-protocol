@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { FacetCutAction, getSelectors } from "./scripts/diamond";
+import { FacetCutAction, getSelectors } from "../../../../script/deploy/comptroller/diamond";
 
 describe("Comptroller", async () => {
   let diamond;

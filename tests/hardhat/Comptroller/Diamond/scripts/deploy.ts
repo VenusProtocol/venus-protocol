@@ -1,8 +1,8 @@
 import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
 import hre from "hardhat";
 
+import { FacetCutAction, getSelectors } from "../../../../../script/deploy/comptroller/diamond";
 import { Unitroller__factory } from "../../../../../typechain";
-import { FacetCutAction, getSelectors } from "./diamond";
 
 require("dotenv").config();
 
