@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
-import "./FixedMath.sol";
+import { SafeCastUpgradeable } from  "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
+import { FixedMath } from "./FixedMath.sol";
 
 using SafeCastUpgradeable for uint256;
 
