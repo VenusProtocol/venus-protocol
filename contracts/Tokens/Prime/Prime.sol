@@ -31,6 +31,7 @@ error InvalidBlocksPerYear();
 error InvalidAlphaArguments();
 error InvalidVToken();
 
+/// @custom:security-contact https://github.com/VenusProtocol/venus-protocol
 contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
