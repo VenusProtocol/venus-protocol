@@ -15,7 +15,7 @@ import "./Unitroller.sol";
  * @title Venus's Comptroller Contract
  * @author Venus
  */
-contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
+contract Comptroller is ComptrollerV12Storage, ComptrollerInterfaceG2, ComptrollerErrorReporter, ExponentialNoError {
     /// @notice Emitted when an admin supports a market
     event MarketListed(VToken vToken);
 
@@ -112,6 +112,9 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
 
     /// @notice Emitted when the borrowing delegate rights are updated for an account
     event DelegateUpdated(address borrower, address delegate, bool allowDelegatedBorrows);
+
+    /// @notice Emitted when forced liquidation is enabled or disabled for a market
+    event IsForcedLiquidationEnabledUpdated(address indexed vToken, bool enable);
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
@@ -536,8 +539,20 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         }
 
         ensureListed(markets[vTokenCollateral]);
+
+        uint borrowBalance;
         if (address(vTokenBorrowed) != address(vaiController)) {
             ensureListed(markets[vTokenBorrowed]);
+            borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
+        } else {
+            borrowBalance = vaiController.getVAIRepayAmount(borrower);
+        }
+
+        if (isForcedLiquidationEnabled[vTokenBorrowed]) {
+            if (repayAmount > borrowBalance) {
+                return uint(Error.TOO_MUCH_REPAY);
+            }
+            return uint(Error.NO_ERROR);
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
@@ -549,13 +564,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
             return uint(Error.INSUFFICIENT_SHORTFALL);
         }
 
-        /* The liquidator may not repay more than what is allowed by the closeFactor */
-        uint borrowBalance;
-        if (address(vTokenBorrowed) != address(vaiController)) {
-            borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
-        } else {
-            borrowBalance = vaiController.getVAIRepayAmount(borrower);
-        }
+        // The liquidator may not repay more than what is allowed by the closeFactor
         // maxClose = multipy of closeFactorMantissa and borrowBalance
         if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactorMantissa }), borrowBalance)) {
             return uint(Error.TOO_MUCH_REPAY);
@@ -885,7 +894,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
     function _setLiquidationIncentive(uint newLiquidationIncentiveMantissa) external returns (uint) {
         ensureAllowed("_setLiquidationIncentive(uint256)");
 
-        require(newLiquidationIncentiveMantissa >= 1e18, "incentive must be over 1e18");
+        require(newLiquidationIncentiveMantissa >= 1e18, "incentive < 1e18");
 
         // Save current value for use in log
         uint oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
@@ -905,6 +914,21 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         address oldLiquidatorContract = liquidatorContract;
         liquidatorContract = newLiquidatorContract_;
         emit NewLiquidatorContract(oldLiquidatorContract, newLiquidatorContract_);
+    }
+
+    /**
+     * @notice Enables forced liquidations for a market. If forced liquidation is enabled,
+     * borrows in the market may be liquidated regardless of the account liquidity
+     * @param vTokenBorrowed Borrowed vToken
+     * @param enable Whether to enable forced liquidations
+     */
+    function _setForcedLiquidation(address vTokenBorrowed, bool enable) external {
+        ensureAllowed("_setForcedLiquidation(address,bool)");
+        if (vTokenBorrowed != address(vaiController)) {
+            ensureListed(markets[vTokenBorrowed]);
+        }
+        isForcedLiquidationEnabled[address(vTokenBorrowed)] = enable;
+        emit IsForcedLiquidationEnabledUpdated(vTokenBorrowed, enable);
     }
 
     /**
@@ -935,13 +959,13 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
 
     function _addMarketInternal(VToken vToken) internal {
         for (uint i; i < allMarkets.length; ++i) {
-            require(allMarkets[i] != vToken, "market already added");
+            require(allMarkets[i] != vToken, "already added");
         }
         allMarkets.push(vToken);
     }
 
     function _initializeMarket(address vToken) internal {
-        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
+        uint32 blockNumber = getBlockNumberAsUint32();
 
         VenusMarketState storage supplyState = venusSupplyState[vToken];
         VenusMarketState storage borrowState = venusBorrowState[vToken];
@@ -1102,7 +1126,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         // Check caller is admin
         ensureAdminOr(treasuryGuardian);
 
-        require(newTreasuryPercent < 1e18, "treasury percent cap overflow");
+        require(newTreasuryPercent < 1e18, "percent >= 100%");
         ensureNonzeroAddress(newTreasuryGuardian);
         ensureNonzeroAddress(newTreasuryAddress);
 
@@ -1175,16 +1199,13 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
     function updateVenusSupplyIndex(address vToken) internal {
         VenusMarketState storage supplyState = venusSupplyState[vToken];
         uint supplySpeed = venusSupplySpeeds[vToken];
-        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
+        uint32 blockNumber = getBlockNumberAsUint32();
         uint deltaBlocks = sub_(uint(blockNumber), uint(supplyState.block));
         if (deltaBlocks > 0 && supplySpeed > 0) {
             uint supplyTokens = VToken(vToken).totalSupply();
             uint venusAccrued = mul_(deltaBlocks, supplySpeed);
             Double memory ratio = supplyTokens > 0 ? fraction(venusAccrued, supplyTokens) : Double({ mantissa: 0 });
-            supplyState.index = safe224(
-                add_(Double({ mantissa: supplyState.index }), ratio).mantissa,
-                "new index exceeds 224 bits"
-            );
+            supplyState.index = safe224(add_(Double({ mantissa: supplyState.index }), ratio).mantissa, "224");
             supplyState.block = blockNumber;
         } else if (deltaBlocks > 0) {
             supplyState.block = blockNumber;
@@ -1198,16 +1219,13 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
     function updateVenusBorrowIndex(address vToken, Exp memory marketBorrowIndex) internal {
         VenusMarketState storage borrowState = venusBorrowState[vToken];
         uint borrowSpeed = venusBorrowSpeeds[vToken];
-        uint32 blockNumber = safe32(getBlockNumber(), "block number exceeds 32 bits");
+        uint32 blockNumber = getBlockNumberAsUint32();
         uint deltaBlocks = sub_(uint(blockNumber), uint(borrowState.block));
         if (deltaBlocks > 0 && borrowSpeed > 0) {
             uint borrowAmount = div_(VToken(vToken).totalBorrows(), marketBorrowIndex);
             uint venusAccrued = mul_(deltaBlocks, borrowSpeed);
             Double memory ratio = borrowAmount > 0 ? fraction(venusAccrued, borrowAmount) : Double({ mantissa: 0 });
-            borrowState.index = safe224(
-                add_(Double({ mantissa: borrowState.index }), ratio).mantissa,
-                "new index exceeds 224 bits"
-            );
+            borrowState.index = safe224(add_(Double({ mantissa: borrowState.index }), ratio).mantissa, "224");
             borrowState.block = blockNumber;
         } else if (deltaBlocks > 0) {
             borrowState.block = blockNumber;
@@ -1401,15 +1419,15 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         // vXVS token and mint vXVS for the user.
         //
         // If mintBehalf failed, don't grant any xvs
-        require(collateral, "bankrupt accounts can only collateralize their pending xvs rewards");
+        require(collateral, "bankrupt");
 
         xvs.approve(getXVSVTokenAddress(), amount);
         require(
             VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint(Error.NO_ERROR),
-            "mint behalf error during collateralize xvs"
+            "mint behalf error"
         );
 
-        // set venusAccrue[user] to 0
+        // set venusAccrued[user] to 0
         return 0;
     }
 
@@ -1424,7 +1442,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
     function _grantXVS(address recipient, uint amount) external {
         ensureAdminOr(comptrollerImplementation);
         uint amountLeft = grantXVSInternal(recipient, amount, 0, false);
-        require(amountLeft == 0, "insufficient xvs for grant");
+        require(amountLeft == 0, "no xvs");
         emit VenusGranted(recipient, amount);
     }
 
@@ -1470,10 +1488,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         ensureAdminOr(comptrollerImplementation);
 
         uint numTokens = vTokens.length;
-        require(
-            numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length,
-            "Comptroller::_setVenusSpeeds invalid input"
-        );
+        require(numTokens == supplySpeeds.length && numTokens == borrowSpeeds.length, "invalid input");
 
         for (uint i; i < numTokens; ++i) {
             ensureNonzeroAddress(address(vTokens[i]));
@@ -1490,7 +1505,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         return allMarkets;
     }
 
-    function getBlockNumber() public view returns (uint) {
+    function getBlockNumber() internal view returns (uint) {
         return block.number;
     }
 
@@ -1544,7 +1559,7 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
     /**
      * @notice Transfer XVS to VAI Vault
      */
-    function releaseToVault() public {
+    function releaseToVault() internal {
         if (releaseStartBlock == 0 || getBlockNumber() < releaseStartBlock) {
             return;
         }
@@ -1577,5 +1592,9 @@ contract Comptroller is ComptrollerV11Storage, ComptrollerInterfaceG2, Comptroll
         emit DistributedVAIVaultVenus(actualAmount);
 
         IVAIVault(vaiVaultAddress).updatePendingRewards();
+    }
+
+    function getBlockNumberAsUint32() internal view returns (uint32) {
+        return safe32(getBlockNumber(), "block # > 32 bits");
     }
 }
