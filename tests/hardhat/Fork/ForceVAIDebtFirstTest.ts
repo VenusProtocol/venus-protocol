@@ -14,7 +14,6 @@ import {
   Liquidator__factory,
   PriceOracle,
   ProxyAdmin__factory,
-  Unitroller__factory,
   VAI,
   VAIController,
   VAIController__factory,
@@ -78,16 +77,6 @@ async function deployAndConfigureLiquidator() {
 
   liquidatorNew = Liquidator__factory.connect(LIQUIDATOR, impersonatedTimelock);
 }
-
-async function deployAndConfigureComptroller() {
-  const comptrollerFactory = await ethers.getContractFactory("Comptroller");
-  const comptrollerImpl = await comptrollerFactory.deploy();
-  await comptrollerImpl.deployed();
-  const comptrollerProxy = Unitroller__factory.connect(UNITROLLER, impersonatedTimelock);
-  await comptrollerProxy.connect(impersonatedTimelock)._setPendingImplementation(comptrollerImpl.address);
-  await comptrollerImpl.connect(impersonatedTimelock)._become(UNITROLLER);
-}
-
 async function grantPermissions() {
   accessControlManager = await IAccessControlManagerV8__factory.connect(ACM, impersonatedTimelock);
   let tx = await accessControlManager
@@ -128,7 +117,7 @@ async function configureOldliquidator() {
 }
 async function configure() {
   await deployAndConfigureLiquidator();
-  await deployAndConfigureComptroller();
+  // await deployAndConfigureComptroller();
   await grantPermissions();
   vai = VAI__factory.connect("0x4bd17003473389a42daf6a0a729f6fdb328bbbd7", impersonatedTimelock);
   comptroller = Comptroller__factory.connect(UNITROLLER, impersonatedTimelock);
@@ -141,7 +130,7 @@ async function configure() {
 if (FORK_MAINNET) {
   describe("FORCE VAI DEBT FIRST TEST", async () => {
     it("Should match storage slots", async () => {
-      const blockNumber = 27670044;
+      const blockNumber = 31937695;
       await setForkBlock(blockNumber);
       await configureOldliquidator();
       await configure();
@@ -151,11 +140,16 @@ if (FORK_MAINNET) {
     });
 
     it("Should not able to liquidate any token when VAI debt is greater than minLiquidatableVAI", async () => {
-      const blockNumber = 27884587;
-      const borowedToken = "0x95c78222B3D6e262426483D42CfA53685A67Ab9D"; // VBUSD
-      const borrower = "0xcdc4757ff570dcd6933f8d384293789907db6791";
+      const blockNumber = 31937695;
+      const borowedToken = "0xecA88125a5ADbe82614ffC12D0DB554E2e2867C8"; // VUSDC
+      const borrower = "0x016699fb47d0816d71ebed2f24473d57c762af51";
       await setForkBlock(blockNumber);
       await configure();
+
+      const minLiquidatableVAI = await liquidatorNew.minLiquidatableVAI();
+      const vaiDebt = await vaiController.getVAIRepayAmount(borrower);
+      expect(vaiDebt).to.greaterThan(minLiquidatableVAI);
+
       await expect(liquidatorNew.liquidateBorrow(borowedToken, borrower, 10000, VBNB)).to.be.revertedWithCustomError(
         liquidatorNew,
         "VAIDebtTooHigh",
@@ -165,7 +159,7 @@ if (FORK_MAINNET) {
     it("Should be able to liquidate any token when VAI debt is less than minLiquidatableVAI", async () => {
       const borrower = "0x6B7a803BB85C7D1F67470C50358d11902d3169e0";
       const liquidator = "0x2237ca42fe3522848dcb5a2f13571f5a4e2c5c14";
-      const blockNumber = 27670044;
+      const blockNumber = 31937695;
       await setForkBlock(blockNumber);
       await configure();
       const liquidatorSigner = await initMainnetUser(liquidator, ethers.utils.parseEther("2"));
@@ -175,7 +169,7 @@ if (FORK_MAINNET) {
     });
 
     it("Should able to liquidate any token when VAI debt is greater than minLiquidatableVAI but force VAI liquidation is off", async () => {
-      const blockNumber = 27939619;
+      const blockNumber = 31937695;
       const borrower = "0x016699fb47d0816d71ebed2f24473d57c762af51";
       const liquidator = "0xce74a760b754f7717e7a62e389d4b153aa753e0e";
       await setForkBlock(blockNumber);
@@ -184,7 +178,7 @@ if (FORK_MAINNET) {
       await liquidatorNew.connect(impersonatedTimelock).pauseForceVAILiquidate();
       await vai.connect(liquidatorSigner).approve(LIQUIDATOR, 10000000000000);
 
-      // Manipulate price to decrease liquidity and introdue shortfall
+      // Manipulate price to decrease liquidity and introduce shortfall
       const priceOracle = await smock.fake<PriceOracle>("PriceOracle");
       priceOracle.getUnderlyingPrice.returns(1);
       await comptroller.connect(impersonatedTimelock)._setPriceOracle(priceOracle.address);
@@ -198,7 +192,7 @@ if (FORK_MAINNET) {
   });
 
   it("Should able to liquidate any token when forced liquidation is enable and VAIdebt > minLiquidatableVAI, force VAI liquidation = true, liquidating assset ! VAI ", async () => {
-    const blockNumber = 31877440;
+    const blockNumber = 31937695;
     const borrowedVToken = "0xecA88125a5ADbe82614ffC12D0DB554E2e2867C8"; // VUSDC
     const borrowedUnderlying = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"; // USDC
     const borrower = "0x016699fb47d0816d71ebed2f24473d57c762af51";
@@ -211,7 +205,7 @@ if (FORK_MAINNET) {
     const borrowerSigner = await initMainnetUser(borrower, ethers.utils.parseEther("2"));
     await vToken.connect(borrowerSigner).borrow(1000);
 
-    // Manipulate price to decrease liquidity and introdue shortfall
+    // Manipulate price to decrease liquidity and introduce shortfall
     const priceOracle = await smock.fake<PriceOracle>("PriceOracle");
     priceOracle.getUnderlyingPrice.returns(1);
     await comptroller.connect(impersonatedTimelock)._setPriceOracle(priceOracle.address);
