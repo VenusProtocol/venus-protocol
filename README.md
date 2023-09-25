@@ -131,10 +131,6 @@ Jest contract tests are defined under the [tests directory](https://github.com/V
 
     yarn test
 
-## Integration Specs
-
-There are additional tests under the [spec/scenario](https://github.com/VenusProtocol/venus-protocol/tree/master/spec/scenario) folder. These are high-level integration tests based on the scenario runner depicted above. The aim of these tests is to be highly literate and have high coverage in the interaction of contracts.
-
 ## Formal Verification Specs
 
 The Venus Protocol has a number of formal verification specifications, powered by [Certik](https://certik.foundation/projects/swipe). The Certik Verification evaluates smart contracts for vulnerabilities and certifies their behavior with respect to a custom function specification.
