@@ -125,8 +125,10 @@ describe("PrimeLiquidityProvider: tests", () => {
     });
 
     it("Revert on non initialized token", async () => {
-      await expect(primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [tokenCSpeed])).to.be.revertedWithCustomError(primeLiquidityProvider, "TokenNotInitialized");
-    })
+      await expect(
+        primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [tokenCSpeed]),
+      ).to.be.revertedWithCustomError(primeLiquidityProvider, "TokenNotInitialized");
+    });
 
     it("Revert on invalid distribution speed for setTokensDistributionSpeed", async () => {
       const maxDistributionSpeed = convertToUnit(1, 18);
@@ -179,8 +181,11 @@ describe("PrimeLiquidityProvider: tests", () => {
     });
 
     it("Revert on non initialized token", async () => {
-      await expect(primeLiquidityProvider.accrueTokens(tokenC.address)).to.be.revertedWithCustomError(primeLiquidityProvider, "TokenNotInitialized");
-    })
+      await expect(primeLiquidityProvider.accrueTokens(tokenC.address)).to.be.revertedWithCustomError(
+        primeLiquidityProvider,
+        "TokenNotInitialized",
+      );
+    });
 
     it("Accrue amount for tokenA", async () => {
       await mine(10);

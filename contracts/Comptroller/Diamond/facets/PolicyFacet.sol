@@ -178,11 +178,9 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function repayBorrowAllowed(
         address vToken,
-        // solhint-disable-next-line no-unused-vars
-        address payer,
+        address payer, // solhint-disable-line no-unused-vars
         address borrower,
-        // solhint-disable-next-line no-unused-vars
-        uint256 repayAmount
+        uint256 repayAmount // solhint-disable-line no-unused-vars
     ) external returns (uint256) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REPAY);
@@ -204,13 +202,11 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param actualRepayAmount The amount of underlying being repaid
      */
     function repayBorrowVerify(
-        /* solhint-disable no-unused-vars */
         address vToken,
-        address payer,
+        address payer, // solhint-disable-line no-unused-vars
         address borrower,
-        uint256 actualRepayAmount,
-        uint256 borrowerIndex
-        /* solhint-enable no-unused-vars */
+        uint256 actualRepayAmount, // solhint-disable-line no-unused-vars
+        uint256 borrowerIndex // solhint-disable-line no-unused-vars
     ) external {
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vToken);
@@ -286,14 +282,12 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param seizeTokens The amount of collateral token that will be seized
      */
     function liquidateBorrowVerify(
-        /* solhint-disable no-unused-vars */
         address vTokenBorrowed,
-        address vTokenCollateral,
+        address vTokenCollateral, // solhint-disable-line no-unused-vars
         address liquidator,
         address borrower,
-        uint256 actualRepayAmount,
-        uint256 seizeTokens
-        /* solhint-enable no-unused-vars */
+        uint256 actualRepayAmount, // solhint-disable-line no-unused-vars
+        uint256 seizeTokens // solhint-disable-line no-unused-vars
     ) external {
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vTokenBorrowed);
@@ -353,15 +347,12 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param borrower The address of the borrower
      * @param seizeTokens The number of collateral tokens to seize
      */
-    // solhint-disable-next-line no-unused-vars
     function seizeVerify(
-        /* solhint-disable no-unused-vars */
         address vTokenCollateral,
-        address vTokenBorrowed,
+        address vTokenBorrowed, // solhint-disable-line no-unused-vars
         address liquidator,
         address borrower,
-        uint256 seizeTokens
-        /* solhint-enable no-unused-vars */
+        uint256 seizeTokens // solhint-disable-line no-unused-vars
     ) external {
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vTokenCollateral);

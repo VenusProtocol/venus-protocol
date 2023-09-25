@@ -444,7 +444,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         return _claimInterest(vToken, user);
     }
 
-     /**
+    /**
      * @notice Callback by ProtocolShareReserve to update assets state when funds are released to this contract
      * @param _comptroller The address of the Comptroller whose income is distributed
      * @param asset The address of the asset whose income is distributed
@@ -461,7 +461,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         emit UpdatedAssetsState(comptroller, asset);
     }
-
 
     /**
      * @notice Retrieves an array of all available markets
@@ -487,7 +486,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         }
     }
 
-     /**
+    /**
      * @notice Returns supply and borrow APR for user for a given market
      * @param market the market for which to fetch the APR
      * @param user the account for which to get the APR
@@ -548,7 +547,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         return _calculateUserAPR(market, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
     }
 
-    
     /**
      * @notice Distributes income from market since last distribution
      * @param vToken the market for which to distribute the income
@@ -601,7 +599,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         return _interestAccrued(vToken, user);
     }
-
 
     /**
      * @notice accrues interes and updates score of all markets for an user
@@ -765,16 +762,16 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     function _upgrade(address user) internal {
         Token storage userToken = tokens[user];
 
-        userToken.isIrrevocable = true;      
+        userToken.isIrrevocable = true;
         totalIrrevocable++;
-        totalRevocable--; 
+        totalRevocable--;
 
         if (totalIrrevocable > irrevocableLimit) revert InvalidLimit();
 
         emit TokenUpgraded(user);
     }
 
-     /**
+    /**
      * @notice Accrue rewards for the user. Must be called by Comptroller before changing account's borrow or supply balance.
      * @param user account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
@@ -937,8 +934,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             return IVToken(vToken).underlying();
         }
     }
-
-    
 
     //////////////////////////////////////////////////
     //////////////// APR Calculation ////////////////

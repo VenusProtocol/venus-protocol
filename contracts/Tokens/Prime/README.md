@@ -1,18 +1,18 @@
 # Venus Prime
 
-* [Overview](#overview)
-* [Venus Prime essentials](#venus-prime-essentials)
-* [Prime tokens](#prime-tokens)
-* [Expected impact and launch](#expected-impact-and-launch)
-* [Rewards](#rewards)
-  * [User rewards example](#user-rewards-example)
-  * [Implementation of the rewards in solidity](#implementation-of-the-rewards-in-solidity)
-* [Income collection and distribution](#income-collection-and-distribution)
-* [Update cap multipliers and alpha](#update-cap-multipliers-and-alpha)
-* [Calculate APR associated with a Prime market and user](#calculate-apr-associated-with-a-prime-market-and-user)
-* [Bootstrap liquidity for the Prime program](#bootstrap-liquidity-for-the-prime-program)
-* [Pause `claimInterest`](#pause-claiminterest)
-* [Calculate income per block](#calculate-income-per-block)
+- [Overview](#overview)
+- [Venus Prime essentials](#venus-prime-essentials)
+- [Prime tokens](#prime-tokens)
+- [Expected impact and launch](#expected-impact-and-launch)
+- [Rewards](#rewards)
+  - [User rewards example](#user-rewards-example)
+  - [Implementation of the rewards in solidity](#implementation-of-the-rewards-in-solidity)
+- [Income collection and distribution](#income-collection-and-distribution)
+- [Update cap multipliers and alpha](#update-cap-multipliers-and-alpha)
+- [Calculate APR associated with a Prime market and user](#calculate-apr-associated-with-a-prime-market-and-user)
+- [Bootstrap liquidity for the Prime program](#bootstrap-liquidity-for-the-prime-program)
+- [Pause `claimInterest`](#pause-claiminterest)
+- [Calculate income per block](#calculate-income-per-block)
 
 ## Overview
 
@@ -30,12 +30,12 @@ Venus Prime encourages user commitment through two unique Prime Tokens:
 
 1.  **Revocable Prime Token:**
 
-    * Users need to stake at least 1,000 XVS for 90 days in a row.
-    * After these 90 days, users can mint their Prime Token.
-    * If a user decides to withdraw XVS and their balance falls below 1,000 XVS, their Prime Token will be automatically revoked.
+    - Users need to stake at least 1,000 XVS for 90 days in a row.
+    - After these 90 days, users can mint their Prime Token.
+    - If a user decides to withdraw XVS and their balance falls below 1,000 XVS, their Prime Token will be automatically revoked.
 
-2. **Irrevocable "OG" Prime Token (Phase 2):**
-   * _To be defined_
+2.  **Irrevocable "OG" Prime Token (Phase 2):**
+    - _To be defined_
 
 <figure><img src="https://github.com/VenusProtocol/venus-protocol-documentation/blob/127301b54fb5aa7048aaa65256615690d2c807fb/.gitbook/assets/6e01c33d-ac9e-41d6-9542-fc2f3b0ecb90.png" alt=""><figcaption></figcaption></figure>
 
@@ -59,19 +59,19 @@ $$
 
 Where:
 
-* $$Rewards_{i,m}$$ = Rewards for user $$i$$ in market $$m$$
-* $$\Gamma_m$$ = Protocol Reserve Revenue for market $$m$$
-* $$μ$$ = Proportion to be distributed as rewards
-* $$α$$ = Protocol stake and supply & borrow amplification weight
-* $$τ_{i}​$$ = XVS staked amount for user $$i$$
-* $$\sigma_i$$ = Sum of **qualified** supply and borrow balance for user $$i$$
-* $$∑_{j,m}​$$ = Sum for all users $$j$$ in markets $$m$$
+- $$Rewards_{i,m}$$ = Rewards for user $$i$$ in market $$m$$
+- $$\Gamma_m$$ = Protocol Reserve Revenue for market $$m$$
+- $$μ$$ = Proportion to be distributed as rewards
+- $$α$$ = Protocol stake and supply & borrow amplification weight
+- $$τ_{i}​$$ = XVS staked amount for user $$i$$
+- $$\sigma_i$$ = Sum of **qualified** supply and borrow balance for user $$i$$
+- $$∑_{j,m}​$$ = Sum for all users $$j$$ in markets $$m$$
 
 **Qualifiable XVS Staked:**
 
 $$
-\tau_i = 
-\begin{cases} 
+\tau_i =
+\begin{cases}
 \min(100000, \tau_i) & \text{if } \tau_i \geq 1000 \\
 0 & \text{otherwise}
 \end{cases}
@@ -111,7 +111,6 @@ else {
 return borrowQVL + supplyQVL
 ```
 
-
 **Significance of α**
 
 A higher value of α increases the weight on stake contributions in the determination of rewards and decreases the weight on supply/borrow contributions. The value of α is between 0-1
@@ -142,33 +141,27 @@ user B score: 501.1872336
 
 **Model Parameters**
 
-* $$α$$ = 0.5
-* $${\sum_{j,BTC} \tau_{j}^\alpha \times \sigma_{j,BTC}^{1-\alpha}}$$ = 744,164
-* $$\Gamma_{BTC}$$  = 8 BTC
-* $$\mu$$ = 0.2
-* BTC Supply Multiplier = 2
-* XVS Price = $4.0
+- $$α$$ = 0.5
+- $${\sum_{j,BTC} \tau_{j}^\alpha \times \sigma_{j,BTC}^{1-\alpha}}$$ = 744,164
+- $$\Gamma_{BTC}$$ = 8 BTC
+- $$\mu$$ = 0.2
+- BTC Supply Multiplier = 2
+- XVS Price = $4.0
 
 **User Parameters**
 
-| User Parameters | Token Value    | USD Value |
-| --------------- | -------------- | --------- |
-| Staked XVS      | 1,200 XVS      | $4,800    |
-| BTC Supply      | 0.097 BTC      | $2,500    |
-
-
+| User Parameters | Token Value | USD Value |
+| --------------- | ----------- | --------- |
+| Staked XVS      | 1,200 XVS   | $4,800    |
+| BTC Supply      | 0.097 BTC   | $2,500    |
 
 **Qualifiable Staked XVS**
 
 $$\tau_i=min(100000,\text{ } 1200)$$
 
-
-
 **Qualifiable Supply and Borrow**
 
 $$σ_{i,BTC} =min($9600,\text{ } $2500)$$
-
-
 
 **User Rewards**
 
@@ -188,23 +181,23 @@ The graph above demonstrates the relationship between an increased XVS staked am
 
 ### Implementation of the rewards in solidity
 
-There is a global `rewardIndex` and `sumOfMembersScore` variables per supported market. `sumOfMembersScore` represents the current sum of all the Prime token holders score. And `rewardIndex` needs to be updated whenever a user’s staked XVS or supply/borrow changes. 
+There is a global `rewardIndex` and `sumOfMembersScore` variables per supported market. `sumOfMembersScore` represents the current sum of all the Prime token holders score. And `rewardIndex` needs to be updated whenever a user’s staked XVS or supply/borrow changes.
 
 ```jsx
 // every time accrueInterest is called. delta is interest per score
-delta = totalIncomeToDistribute / sumOfMembersScore
-rewardIndex += delta
+delta = totalIncomeToDistribute / sumOfMembersScore;
+rewardIndex += delta;
 ```
 
 Whenever a user’s supply/borrow or XVS vault balance changes we will calculate the rewards accrued and add them to their account:
 
-* In Comptroller (specifically in the `PolicyFacet`), after executing any operation that could impact the Prime score or interest, we accrue the interest and update the score for the Prime user by calling `accrueInterestAndUpdateScore`.
-* In the `XVSVault`, after depositing or requesting a withdrawal, the function `xvsUpdated` is invoked, to review the requirements of Prime holders.
+- In Comptroller (specifically in the `PolicyFacet`), after executing any operation that could impact the Prime score or interest, we accrue the interest and update the score for the Prime user by calling `accrueInterestAndUpdateScore`.
+- In the `XVSVault`, after depositing or requesting a withdrawal, the function `xvsUpdated` is invoked, to review the requirements of Prime holders.
 
 This is how we will calculate the user rewards:
 
 ```jsx
-rewards = (rewardIndex - userRewardIndex) * scoreOfUser
+rewards = (rewardIndex - userRewardIndex) * scoreOfUser;
 ```
 
 Then we will update the `userRewardIndex` (`interests[market][account]`) to their current global values.
@@ -221,9 +214,9 @@ When a user claims their rewards and if the contract doesn’t have enough funds
 
 Two key integration points in the PSR contract related with the `Prime` contract:
 
-* When a distribution configuration changes the PSR contract first calls `accrueInterest` on the `Prime` contract and releases funds to Prime (also invoking the `updateAssetsState` function on the `Prime` contract) before saving the changes. This ensures pending funds for Prime are distributed and allocated per the schema by which they were accrued before applying new changes to the percentage of the protocol income allocated to Prime.
+- When a distribution configuration changes the PSR contract first calls `accrueInterest` on the `Prime` contract and releases funds to Prime (also invoking the `updateAssetsState` function on the `Prime` contract) before saving the changes. This ensures pending funds for Prime are distributed and allocated per the schema by which they were accrued before applying new changes to the percentage of the protocol income allocated to Prime.
 
-* Prior to releasing funds to the `Prime` contract, the PSR contract calls `accrueInterest` and then after funds are sent it calls `updateAssetsState`.
+- Prior to releasing funds to the `Prime` contract, the PSR contract calls `accrueInterest` and then after funds are sent it calls `updateAssetsState`.
 
 More information about Income collection and distribution [here](https://docs-v4.venus.io/whats-new/automatic-income-allocation).
 
@@ -231,14 +224,14 @@ More information about Income collection and distribution [here](https://docs-v4
 
 Market multipliers and alpha can be updated at anytime and need to be propagated to all users. Changes will be gradually applied to users as they borrow/supply assets and their individual scores are recalculated. This strategy has limitations because the scores will be wrong in aggregate.
 
-To mitigate this issue, Venus will supply a script that will use the permission-less function `updateScores` to update the scores of all users. This script won’t pause the market or `Prime` contract. Scores need to be updated in multiple transactions because it will run out of gas trying to update all scores in 1 transaction. 
+To mitigate this issue, Venus will supply a script that will use the permission-less function `updateScores` to update the scores of all users. This script won’t pause the market or `Prime` contract. Scores need to be updated in multiple transactions because it will run out of gas trying to update all scores in 1 transaction.
 
-As the market won't be paused, there could be inconsistencies because there will be user supply/borrow transactions in between updating scores transactions. These inconsistencies will be very minor compared to letting it update gradually when users will borrow/supply. 
+As the market won't be paused, there could be inconsistencies because there will be user supply/borrow transactions in between updating scores transactions. These inconsistencies will be very minor compared to letting it update gradually when users will borrow/supply.
 
 There are two main objectives for creating this script:
 
-* If the Venus community wants to update the scores of all users when multipliers or alpha are updated then we have an immediate option.
-* After minting Prime tokens if the Venus community decides to add an existing market to the Prime token program then the score of all users has to be updated to start giving them rewards. The scores cannot be applied gradually in this case as the initial Prime users for the market will get large rewards for some time. So this script will prevent this scenario.
+- If the Venus community wants to update the scores of all users when multipliers or alpha are updated then we have an immediate option.
+- After minting Prime tokens if the Venus community decides to add an existing market to the Prime token program then the score of all users has to be updated to start giving them rewards. The scores cannot be applied gradually in this case as the initial Prime users for the market will get large rewards for some time. So this script will prevent this scenario.
 
 There is a variable named `totalScoreUpdatesRequired` to track how many scores updates are pending. This is for tracking purposes and visibility to the community.
 
@@ -258,17 +251,17 @@ The steps to perform this calculation are:
 
 1. Income per block 0.0003 USDT
 2. Percentage to Prime: 0.1 (10%)
-3. Income per block sent to Prime: 0.0003 * 0.1 = 0.00003 USDT. Multiply per 10512000 blocks/year = 315.36 USDT
+3. Income per block sent to Prime: 0.0003 \* 0.1 = 0.00003 USDT. Multiply per 10512000 blocks/year = 315.36 USDT
 4. Assuming the user score for USDT: 3, and the sum of scores for USDT: 10, then we would have 94.608 USDT (yearly income for this user, generated by Prime)
 5. Assuming the user has the following positions:
-    1. borrow: 30 USDT. Let's say it's capped at 15 USDT, so we'll consider 15 USDT
-    2. supply: 10 USDT. Let's say it's also capped at 15 USDT, so we'll consider 10 USDT
+   1. borrow: 30 USDT. Let's say it's capped at 15 USDT, so we'll consider 15 USDT
+   2. supply: 10 USDT. Let's say it's also capped at 15 USDT, so we'll consider 10 USDT
 6. Allocating the rewards (94.608 USDT), considering these capped versions, we would have:
-    1. borrow: 94.608 * 15/25 = 56.76 USDT
-    2. supply: 94.608 * 10/25 = 37.84 USDT
+   1. borrow: 94.608 \* 15/25 = 56.76 USDT
+   2. supply: 94.608 \* 10/25 = 37.84 USDT
 7. Calculating the APR with these allocations, we would have:
-    1. borrow: 56.76/30 = 1.89 = 189%
-    2. supply: 37.84/10 = 3.78 = 378%
+   1. borrow: 56.76/30 = 1.89 = 189%
+   2. supply: 37.84/10 = 3.78 = 378%
 
 Only part of the supplied and borrowed amounts (the capped amounts) are actually "working" to increase the Prime rewards. The rest of the supplied or borrowed amounts do not generate extra rewards. In the example, if the user supplies more USDT, they won't generate more rewards (because the supply amount to be considered is capped at 15 USDT). So, it would make sense that the supply APR would decrease if they supply more USDT.
 
@@ -276,25 +269,25 @@ Only part of the supplied and borrowed amounts (the capped amounts) are actually
 
 There will be a bootstrap liquidity available for the Prime program. This liquidity:
 
-* should be uniformly distributed during a period of time, configurable via VIP
-* is defined in the multiple tokens enabled for the Prime program
+- should be uniformly distributed during a period of time, configurable via VIP
+- is defined in the multiple tokens enabled for the Prime program
 
 This requirement will be mainly satisfied with the `PrimeLiquidityProvider` contract:
 
-* The `Prime` contract has a reference to the `PrimeLiquidityProvider` contract
-* The `Prime` contract will transfer to itself the available liquidity from the `PrimeLiquidityProvider` as soon as it’s needed when a user claims interests (as it's done with the `ProtocolShareReserve` contract), to reduce the number of transfers
-* The `Prime` contract takes into account the tokens available in the `PrimeLiquidityProvider` contract, when the interests are accrued and the estimated APR calculated
+- The `Prime` contract has a reference to the `PrimeLiquidityProvider` contract
+- The `Prime` contract will transfer to itself the available liquidity from the `PrimeLiquidityProvider` as soon as it’s needed when a user claims interests (as it's done with the `ProtocolShareReserve` contract), to reduce the number of transfers
+- The `Prime` contract takes into account the tokens available in the `PrimeLiquidityProvider` contract, when the interests are accrued and the estimated APR calculated
 
 Regarding the `PrimeLiquidityProvider`,
 
-* The `PrimeLiquidityProvider` contract maintains a speed per token (see `tokenDistributionSpeeds`, with the number of tokens to release each block), and the needed indexes, to release the required funds per block
-* Anyone could send tokens to the `PrimeLiquidityProvider` contract
-* Only accounts authorized via ACM will be able to change the `tokenDistributionSpeeds` attribute
-* The `PrimeLiquidityProvider` provides a view function to get the available funds that could be transferred for a specific token, taking into account:
-    * the current block number
-    * the speed associated with the token
-    * the last time those tokens were released
-* The `PrimeLiquidityProvider` provides a function to transfer the available funds to the `Prime` contract.
+- The `PrimeLiquidityProvider` contract maintains a speed per token (see `tokenDistributionSpeeds`, with the number of tokens to release each block), and the needed indexes, to release the required funds per block
+- Anyone could send tokens to the `PrimeLiquidityProvider` contract
+- Only accounts authorized via ACM will be able to change the `tokenDistributionSpeeds` attribute
+- The `PrimeLiquidityProvider` provides a view function to get the available funds that could be transferred for a specific token, taking into account:
+  - the current block number
+  - the speed associated with the token
+  - the last time those tokens were released
+- The `PrimeLiquidityProvider` provides a function to transfer the available funds to the `Prime` contract.
 
 ## Pause `claimInterest`
 
@@ -309,37 +302,38 @@ _Note: This calculation should only be used to estimate the reward emissions. Th
 First, we need to calculate the total protocol income per block:
 
 ```jsx
-totalIncomePerBlock = (borrowRatePerBlock * borrows) - (supplyRatePerBlock * (cash + borrows - reserves))
+totalIncomePerBlock = borrowRatePerBlock * borrows - supplyRatePerBlock * (cash + borrows - reserves);
 ```
 
 According to the Venus interest rate models:
 
 ```jsx
-supplyRatePerBlock = utilizationRate * borrowRatePerBlock * (1 - reserveFactor)
-utilizationRate = borrows / (cash + borrows - reserves)
+supplyRatePerBlock = utilizationRate * borrowRatePerBlock * (1 - reserveFactor);
+utilizationRate = borrows / (cash + borrows - reserves);
 
-supplyRatePerBlock = borrows * borrowRatePerBlock * (1 - reserveFactor) / (cash + borrows - reserves)
+supplyRatePerBlock = (borrows * borrowRatePerBlock * (1 - reserveFactor)) / (cash + borrows - reserves);
 ```
 
 If we then substitute `supplyRatePerBlock` to the first formula, we’ll get
 
 ```jsx
-totalIncomePerBlock = (borrowRatePerBlock * borrows) - (borrows * borrowRatePerBlock * (1 - reserveFactor) * (cash + borrows - reserves) / (cash + borrows - reserves)) 
+totalIncomePerBlock =
+  borrowRatePerBlock * borrows -
+  (borrows * borrowRatePerBlock * (1 - reserveFactor) * (cash + borrows - reserves)) / (cash + borrows - reserves);
 ```
 
 or, simplifying
 
 ```jsx
-totalIncomePerBlock = (borrowRatePerBlock * borrows) - (borrows * borrowRatePerBlock * (1 - reserveFactor))
-totalIncomePerBlock = (borrowRatePerBlock * borrows) * (1 - (1 - reserveFactor))
+totalIncomePerBlock = borrowRatePerBlock * borrows - borrows * borrowRatePerBlock * (1 - reserveFactor);
+totalIncomePerBlock = borrowRatePerBlock * borrows * (1 - (1 - reserveFactor));
 
-totalIncomePerBlock = borrowRatePerBlock * borrows * reserveFactor
+totalIncomePerBlock = borrowRatePerBlock * borrows * reserveFactor;
 ```
 
 So we just need `borrowRatePerBlock`, `borrows` and `reserveFactor` to compute the income from variable interest rate
 
-
 ## Audit reports
 
-* [Peckshield (2023/August/26)](https://github.com/VenusProtocol/venus-protocol/blob/25f863877a8ef7731652a6209b23ca0c703060ba/audits/055_prime_peckshield_20230826.pdf)
-* [Fairyproof (2023/September/10)](https://github.com/VenusProtocol/venus-protocol/blob/25f863877a8ef7731652a6209b23ca0c703060ba/audits/056_prime_fairyproof_20230910.pdf)
+- [Peckshield (2023/August/26)](https://github.com/VenusProtocol/venus-protocol/blob/25f863877a8ef7731652a6209b23ca0c703060ba/audits/055_prime_peckshield_20230826.pdf)
+- [Fairyproof (2023/September/10)](https://github.com/VenusProtocol/venus-protocol/blob/25f863877a8ef7731652a6209b23ca0c703060ba/audits/056_prime_fairyproof_20230910.pdf)

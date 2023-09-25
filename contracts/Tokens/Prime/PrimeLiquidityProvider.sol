@@ -241,7 +241,6 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         return 0;
     }
 
-
     /**
      * @notice Accrue token by updating the distribution state
      * @param token_ Address of the token
@@ -325,7 +324,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
             emit TokenDistributionSpeedUpdated(token_, distributionSpeed_);
         }
     }
-   
+
     /**
      * @notice Revert on non initialized token
      * @param token_ Token Address to be verified for
@@ -338,7 +337,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         }
     }
 
-     /**
+    /**
      * @notice Revert on zero address
      * @param address_ Address to be verified
      */
@@ -347,5 +346,4 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
             revert InvalidArguments();
         }
     }
-
 }

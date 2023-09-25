@@ -202,7 +202,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       primeLiquidityProvider.address,
       comptroller.address,
       oracle.address,
-      10
+      10,
     ],
     {
       constructorArgs: [wbnb.address, vbnb.address, 10512000],
@@ -456,9 +456,19 @@ describe("PrimeScenario Token", () => {
     let primeLiquidityProvider: PrimeLiquidityProvider;
 
     beforeEach(async () => {
-      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, oracle, protocolShareReserve, primeLiquidityProvider } = await loadFixture(
-        deployProtocol,
-      ));
+      ({
+        comptroller,
+        prime,
+        vusdt,
+        veth,
+        usdt,
+        eth,
+        xvsVault,
+        xvs,
+        oracle,
+        protocolShareReserve,
+        primeLiquidityProvider,
+      } = await loadFixture(deployProtocol));
 
       await protocolShareReserve.getUnreleasedFunds.returns("0");
       await protocolShareReserve.getPercentageDistribution.returns("100");
@@ -556,7 +566,9 @@ describe("PrimeScenario Token", () => {
       const interest = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
       await usdt.transfer(prime.address, interest);
       const previousBalance = await usdt.balanceOf(user1.getAddress());
-      expect(await prime.callStatic["claimInterest(address,address)"](vusdt.address, user1.getAddress())).to.be.equal(interest)
+      expect(await prime.callStatic["claimInterest(address,address)"](vusdt.address, user1.getAddress())).to.be.equal(
+        interest,
+      );
       await expect(prime["claimInterest(address,address)"](vusdt.address, user1.getAddress())).to.be.not.reverted;
       const newBalance = await usdt.balanceOf(user1.getAddress());
       expect(newBalance).to.be.equal(previousBalance.add(interest));
@@ -593,7 +605,7 @@ describe("PrimeScenario Token", () => {
         )) as VBep20Harness;
 
         await vbnb._setReserveFactor(bigNumber16.mul(20));
-        await primeLiquidityProvider.initializeTokens([bnb.address])
+        await primeLiquidityProvider.initializeTokens([bnb.address]);
 
         oracle.getUnderlyingPrice.returns((vToken: string) => {
           if (vToken == vusdt.address) {
@@ -840,7 +852,7 @@ describe("PrimeScenario Token", () => {
         "BEP20 MATIC",
       )) as BEP20Harness;
 
-      await primeLiquidityProvider.initializeTokens([matic.address])
+      await primeLiquidityProvider.initializeTokens([matic.address]);
       const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
       const InterestRateModelHarness = (await interestRateModelHarnessFactory.deploy(
         BigNumber.from(18).mul(5),

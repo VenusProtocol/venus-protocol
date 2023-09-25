@@ -79,7 +79,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /// @notice Emitted when prime token contract address is changed
     event NewPrimeToken(IPrime oldPrimeToken, IPrime newPrimeToken);
-    
+
     /// @notice Emitted when force liquidation enabled for a market
     event IsForcedLiquidationEnabledUpdated(address indexed vToken, bool enable);
 
@@ -533,7 +533,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         return uint(Error.NO_ERROR);
     }
-    
+
     /** @notice Enables forced liquidations for a market. If forced liquidation is enabled,
      * borrows in the market may be liquidated regardless of the account liquidity
      * @param vTokenBorrowed Borrowed vToken
