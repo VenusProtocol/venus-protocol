@@ -2,7 +2,7 @@
 
 # Venus Protocol
 
-The Venus Protocol is a BNB Chain smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain _supply_ capital (BNB or BEP-20 tokens) to receive vTokens or _borrow_ assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers.
+The Venus Protocol is a BNB Chain collection of smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain _supply_ capital (BNB or BEP-20 tokens) to receive vTokens or _borrow_ assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers and suppliers.
 
 Before getting started with this repo, please read:
 
@@ -10,7 +10,7 @@ Before getting started with this repo, please read:
 
 Interested in contributing? Please checkout our [contributing guidelines](./docs/CONTRIBUTING.md)
 
-[Isolated pool](https://github.com/VenusProtocol/isolated-pools) is the updated version of the Venus protocol. The "Core pool" of Venus uses the codebase in this repository. On the other hand, Isolated pools use the codebase in the [isolated-pools](https://github.com/VenusProtocol/isolated-pools) repository.
+[Isolated pool](https://github.com/VenusProtocol/isolated-pools) is the updated version of the Venus protocol. The  Venus "Core Pool" uses the codebase in this repository. On the other hand, Isolated pools use the codebase in the [isolated-pools](https://github.com/VenusProtocol/isolated-pools) repository.
 
 # Contracts
 
@@ -18,7 +18,7 @@ We detail a few of the core contracts in the Venus protocol.
 
 <dl>
   <dt>VToken, VBep20 and VBNB</dt>
-  <dd>The Venus vTokens, which are self-contained borrowing and lending contracts. VToken contains the core logic and VBep20 and VBNB add public interfaces for Bep20 tokens and BNB, respectively. Each VToken is assigned an interest rate and risk model (see InterestRateModel and Comptroller sections), and allows accounts to *mint* (supply capital), *redeem* (withdraw capital), *borrow* and *repay a borrow*. Each VToken is an BEP-20 compliant token where balances represent ownership of the market.</dd>
+  <dd>The vTokens are self-contained borrowing and lending contracts. VToken contain the core logic and vBep20 and vBNB add public interfaces for Bep20 tokens and BNB, respectively. Each vToken is assigned an interest rate and risk model (see InterestRateModel and Comptroller sections), and allows accounts to *mint* (supply capital), *redeem* (withdraw capital), *borrow* and *repay a borrow*. Each vToken is an BEP-20 compliant token where balances represent ownership of the market.</dd>
 </dl>
 
 <dl>

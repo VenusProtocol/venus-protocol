@@ -1,18 +1,18 @@
 # Venus Prime
 
-* [Overview](./overview)
-* [Venus Prime essentials](./venus-prime-essentials)
-* [Prime tokens](./prime-tokens)
-* [Expected impact and launch](./expected-impact-and-launch)
-* [Rewards](./rewards)
-  * [User rewards example](./user-rewards-example)
-  * [Implementation of the rewards in solidity](./implementation-of-the-rewards-in-solidity)
-* [Income collection and distribution](./income-collection-and-distribution)
-* [Update cap multipliers and alpha](./update-cap-multipliers-and-alpha)
-* [Calculate APR associated with a Prime market and user](./calculate-apr-associated-with-a-prime-market-and-user)
-* [Bootstrap liquidity for the Prime program](./bootstrap-liquidity-for-the-prime-program)
-* [Pause `claimInterest`](./pause-claiminterest)
-* [Calculate income per block](./calculate-income-per-block)
+* [Overview](#overview)
+* [Venus Prime essentials](#venus-prime-essentials)
+* [Prime tokens](#prime-tokens)
+* [Expected impact and launch](#expected-impact-and-launch)
+* [Rewards](#rewards)
+  * [User rewards example](#user-rewards-example)
+  * [Implementation of the rewards in solidity](#implementation-of-the-rewards-in-solidity)
+* [Income collection and distribution](#income-collection-and-distribution)
+* [Update cap multipliers and alpha](#update-cap-multipliers-and-alpha)
+* [Calculate APR associated with a Prime market and user](#calculate-apr-associated-with-a-prime-market-and-user)
+* [Bootstrap liquidity for the Prime program](#bootstrap-liquidity-for-the-prime-program)
+* [Pause `claimInterest`](#pause-claiminterest)
+* [Calculate income per block](#calculate-income-per-block)
 
 ## Overview
 
@@ -49,7 +49,7 @@ Stake your $XVS tokens today to be eligible for Venus Prime, an exciting new ven
 
 ## Rewards
 
-This section explains the usage of the cobb-douglas function to calculate scores and rewards for users, inspired by the [Goldfinch rewards mechanism](https://docs.goldfinch.finance/goldfinch/protocol-mechanics/membership).
+This section explains the usage of the Cobb-Douglas function to calculate scores and rewards for users, inspired by the [Goldfinch rewards mechanism](https://docs.goldfinch.finance/goldfinch/protocol-mechanics/membership).
 
 **Reward Formula: Cobb-Douglas function**
 
@@ -86,7 +86,7 @@ $$
 \end{align*}
 $$
 
-There will be a limit for the qualifiable supply and borrow amounts, set by the staked XVS limit and the market multiplier. The USD values of the tokens and the USD value of XVS will be taken into account to calculate these caps. The following pseudecode shows how $$\sigma_{i,m}$$ considering the caps:
+A limit for qualifiable supply and borrow amounts is set by the staked XVS limit and the market multiplier. The USD values of the tokens and the USD value of XVS will be taken into account to calculate these caps. The following pseudecode shows how $$\sigma_{i,m}$$ considering the caps:
 
 ```jsx
 borrowUSDCap = toUSD(xvsBalanceOfUser * marketBorrowMultipler)
@@ -116,7 +116,7 @@ return borrowQVL + supplyQVL
 
 A higher value of α increases the weight on stake contributions in the determination of rewards and decreases the weight on supply/borrow contributions. The value of α is between 0-1
 
-A default weight of 0.5 weight has been evaluated as a good ratio and is not likely to be changed. A higher value will only be needed if we want to attract more XVS stake from the prime token holders at the expense of supply/ borrow rewards.
+A default weight of 0.5 weight has been evaluated as a good ratio and is not likely to be changed. A higher value will only be needed if we want to attract more XVS stake from the Prime token holders at the expense of supply/ borrow rewards.
 
 Here is an example to show how the score is impacted based on the value of α:
 
@@ -188,17 +188,20 @@ The graph above demonstrates the relationship between an increased XVS staked am
 
 ### Implementation of the rewards in solidity
 
-There is a global `rewardIndex` and `sumOfMembersScore` variables per supported market. `sumOfMembersScore` represents the current sum of all the prime token holders score. And `rewardIndex` needs to be updated whenever a user’s staked XVS or supply/borrow changes. 
+There is a global `rewardIndex` and `sumOfMembersScore` variables per supported market. `sumOfMembersScore` represents the current sum of all the Prime token holders score. And `rewardIndex` needs to be updated whenever a user’s staked XVS or supply/borrow changes. 
 
 ```jsx
-totalIncomeToDistribute = N
-
 // every time accrueInterest is called. delta is interest per score
 delta = totalIncomeToDistribute / sumOfMembersScore
 rewardIndex += delta
 ```
 
-Whenever a user’s supply/borrow or XVS vault balance changes we will calculate the rewards accrued and add them to their account. This is how we will calculate:
+Whenever a user’s supply/borrow or XVS vault balance changes we will calculate the rewards accrued and add them to their account:
+
+* In Comptroller (specifically in the `PolicyFacet`), after executing any operation that could impact the Prime score or interest, we accrue the interest and update the score for the Prime user by calling `accrueInterestAndUpdateScore`.
+* In the `XVSVault`, after depositing or requesting a withdrawal, the function `xvsUpdated` is invoked, to review the requirements of Prime holders.
+
+This is how we will calculate the user rewards:
 
 ```jsx
 rewards = (rewardIndex - userRewardIndex) * scoreOfUser
@@ -208,13 +211,19 @@ Then we will update the `userRewardIndex` (`interests[market][account]`) to thei
 
 ## Income collection and distribution
 
-Interest reserves (part of the protocol income) from core pool markets is sent to PSR ([Protocol Share Reserve](https://github.com/VenusProtocol/protocol-reserve)). Based on configuration a certain percentage of spread income from Prime markets is reserved for prime token holders. The interest reserves will be sent to the PSR every 10 blocks (this can be changed by the community via [VIP](https://app.venus.io/governance)).
+Interest reserves (part of the protocol income) from core pool markets are sent to the PSR ([Protocol Share Reserve](https://github.com/VenusProtocol/protocol-reserve/blob/develop/contracts/ProtocolReserve/ProtocolShareReserve.sol)) contract. Based on configuration a certain percentage of spread income from Prime markets is reserved for Prime token holders. The interest reserves will be sent to the PSR every 10 blocks (this can be changed by the community via [VIP](https://app.venus.io/governance)).
 
-The PSR has a function `releaseFunds` that needs to be invoked to release the funds to the Prime contract and it also has a function `getUnreleasedFunds` to get the unreleased funds for a given destination target.
+The PSR has a function `releaseFunds` that needs to be invoked to release the funds to the `Prime` contract, and it also has a function `getUnreleasedFunds` to get the unreleased funds for a given destination target.
 
-Prime contract takes the total released + unreleased funds and distributes to prime token holders each block. The distribution is proportional to the score of the prime token holders.
+The `Prime` contract takes the total released + unreleased funds and distributes to Prime token holders each block. The distribution is proportional to the score of the Prime token holders.
 
-When a user claims their rewards and if the contract doesn’t have enough funds then we trigger the release of funds from PSR to Prime contract in the same transaction i.e., in the `claim` function.
+When a user claims their rewards and if the contract doesn’t have enough funds then we trigger the release of funds from PSR to `Prime` contract in the same transaction i.e., in the `claim` function.
+
+Two key integration points in the PSR contract related with the `Prime` contract:
+
+* When a distribution configuration changes the PSR contract first calls `accrueInterest` on the `Prime` contract and releases funds to Prime (also invoking the `updateAssetsState` function on the `Prime` contract) before saving the changes. This ensures pending funds for Prime are distributed and allocated per the schema by which they were accrued before applying new changes to the percentage of the protocol income allocated to Prime.
+
+* Prior to releasing funds to the `Prime` contract, the PSR contract calls `accrueInterest` and then after funds are sent it calls `updateAssetsState`.
 
 More information about Income collection and distribution [here](https://docs-v4.venus.io/whats-new/automatic-income-allocation).
 
@@ -222,14 +231,14 @@ More information about Income collection and distribution [here](https://docs-v4
 
 Market multipliers and alpha can be updated at anytime and need to be propagated to all users. Changes will be gradually applied to users as they borrow/supply assets and their individual scores are recalculated. This strategy has limitations because the scores will be wrong in aggregate.
 
-To mitigate this issue, Venus will supply a script that will use the permission-less function `updateScores` to update the scores of all users. This script won’t pause the market or prime contract. This script will update scores in multiple transactions because it will run out of gas trying to update all scores in 1 transaction. 
+To mitigate this issue, Venus will supply a script that will use the permission-less function `updateScores` to update the scores of all users. This script won’t pause the market or `Prime` contract. Scores need to be updated in multiple transactions because it will run out of gas trying to update all scores in 1 transaction. 
 
 As the market won't be paused, there could be inconsistencies because there will be user supply/borrow transactions in between updating scores transactions. These inconsistencies will be very minor compared to letting it update gradually when users will borrow/supply. 
 
 There are two main objectives for creating this script:
 
 * If the Venus community wants to update the scores of all users when multipliers or alpha are updated then we have an immediate option.
-* After minting prime tokens if the Venus community decides to add an existing market to the prime token program then the score of all users has to be updated to start giving them rewards. The scores cannot be applied gradually in this case as the initial prime users for the market will get large rewards for some time. So this script will prevent this scenario.
+* After minting Prime tokens if the Venus community decides to add an existing market to the Prime token program then the score of all users has to be updated to start giving them rewards. The scores cannot be applied gradually in this case as the initial Prime users for the market will get large rewards for some time. So this script will prevent this scenario.
 
 There is a variable named `totalScoreUpdatesRequired` to track how many scores updates are pending. This is for tracking purposes and visibility to the community.
 
@@ -239,8 +248,8 @@ The goal is to offer a view function that allows the [Venus UI](https://app.venu
 
 The steps to perform this calculation are:
 
-1. Calculate the income per block (see below) // TODO link
-2. Get from the [ProtocolShareReserve](https://github.com/VenusProtocol/protocol-reserve/blob/develop/contracts/ProtocolReserve/ProtocolShareReserve.sol) the percentage associated with Prime (`distributionTarget` where the destination is `address(Prime)` and `schema` is `SPREAD_PRIME_CORE`
+1. Calculate the income per block (see [below](#calculate-income-per-block))
+2. Get from the [ProtocolShareReserve](https://github.com/VenusProtocol/protocol-reserve/blob/develop/contracts/ProtocolReserve/ProtocolShareReserve.sol) the percentage associated with Prime (`distributionTarget` where the destination is `address(prime)` and `schema` is `SPREAD_PRIME_CORE`
 3. Calculate the income per block sent to Prime (1 times 2), sum the funds provided by the Prime Liquidity Provider contract, and multiply it by the number of blocks in one year
 4. Multiply (3) by the user score in that market, and divide it by the sum of scores in that market. This is the extrapolation of income generated by Prime for this user
 5. Split (4) proportional to the (capped) borrow and supply amounts of the user in that market at that moment, and divide these numbers to calculate the APR
@@ -261,7 +270,7 @@ The steps to perform this calculation are:
     1. borrow: 56.76/30 = 1.89 = 189%
     2. supply: 37.84/10 = 3.78 = 378%
 
-Only part of the supplied and borrowed amounts (the capped amounts) are actually "working" to increase the prime rewards. The rest of the supplied or borrowed amounts do not generate extra rewards. In the example, if the user supplies more USDT, they won't generate more rewards (because the supply amount to be considered is capped at 15 USDT). So, it would make sense that the supply APR would decrease if they supply more USDT.
+Only part of the supplied and borrowed amounts (the capped amounts) are actually "working" to increase the Prime rewards. The rest of the supplied or borrowed amounts do not generate extra rewards. In the example, if the user supplies more USDT, they won't generate more rewards (because the supply amount to be considered is capped at 15 USDT). So, it would make sense that the supply APR would decrease if they supply more USDT.
 
 ## Bootstrap liquidity for the Prime program
 
@@ -274,7 +283,7 @@ This requirement will be mainly satisfied with the `PrimeLiquidityProvider` cont
 
 * The `Prime` contract has a reference to the `PrimeLiquidityProvider` contract
 * The `Prime` contract will transfer to itself the available liquidity from the `PrimeLiquidityProvider` as soon as it’s needed when a user claims interests (as it's done with the `ProtocolShareReserve` contract), to reduce the number of transfers
-* The Prime contract takes into account the tokens available in the `PrimeLiquidityProvider` contract, when the interests are accrued and the estimated APR calculated
+* The `Prime` contract takes into account the tokens available in the `PrimeLiquidityProvider` contract, when the interests are accrued and the estimated APR calculated
 
 Regarding the `PrimeLiquidityProvider`,
 
@@ -295,7 +304,9 @@ The OpenZeppelin Plausable contract is used. Only the `claimInterest` function i
 
 ## Calculate income per block
 
-First of all, we need to calculate the total protocol income per block. These are the formulas from @Kirill on how we can calculate this.
+_Note: This calculation should only be used to estimate the reward emissions. The exact rewards are calculated as it is explained in the [Rewards](#rewards) section._
+
+First, we need to calculate the total protocol income per block:
 
 ```jsx
 totalIncomePerBlock = (borrowRatePerBlock * borrows) - (supplyRatePerBlock * (cash + borrows - reserves))
