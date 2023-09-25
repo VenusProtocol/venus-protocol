@@ -1,30 +1,32 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, setBalance } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
+import { Signer } from "ethers";
 import { ethers } from "hardhat";
 
-import { convertToUnit } from "../../../helpers/utils";
+import { convertToUnit } from "../../../../helpers/utils";
 import {
-  Comptroller,
   ComptrollerLens,
   ComptrollerLens__factory,
-  Comptroller__factory,
+  ComptrollerMock,
   IAccessControlManager,
   PriceOracle,
+  Unitroller,
   VBep20Immutable,
-} from "../../../typechain";
-import { ComptrollerErrorReporter } from "../util/Errors";
+} from "../../../../typechain";
+import { ComptrollerErrorReporter } from "../../util/Errors";
+import { deployDiamond } from "./scripts/deploy";
 
 const { expect } = chai;
 chai.use(smock.matchers);
 
 const { Error } = ComptrollerErrorReporter;
 
-describe("assetListTest", () => {
-  let root: SignerWithAddress; // eslint-disable-line @typescript-eslint/no-unused-vars
-  let customer: SignerWithAddress;
-  let comptroller: MockContract<Comptroller>;
+describe("Comptroller: assetListTest", () => {
+  let root: Signer; // eslint-disable-line @typescript-eslint/no-unused-vars
+  let customer: Signer;
+  let unitroller: Unitroller;
+  let comptroller: ComptrollerMock;
   let OMG: FakeContract<VBep20Immutable>;
   let ZRX: FakeContract<VBep20Immutable>;
   let BAT: FakeContract<VBep20Immutable>;
@@ -32,7 +34,7 @@ describe("assetListTest", () => {
   let allTokens: FakeContract<VBep20Immutable>[];
 
   type AssetListFixture = {
-    comptroller: MockContract<Comptroller>;
+    unitroller: MockContract<ComptrollerMock>;
     comptrollerLens: MockContract<ComptrollerLens>;
     oracle: FakeContract<PriceOracle>;
     OMG: FakeContract<VBep20Immutable>;
@@ -44,20 +46,26 @@ describe("assetListTest", () => {
   };
 
   async function assetListFixture(): Promise<AssetListFixture> {
-    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
-    const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+    const accessControl = await smock.fake<IAccessControlManager>(
+      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
+    );
+    // const ComptrollerFactory = await smock.mock<Comptroller__factory>("ComptrollerMock");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
-    const comptroller = await ComptrollerFactory.deploy();
+    const result = await deployDiamond("");
+    unitroller = result.unitroller;
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-    const oracle = await smock.fake<PriceOracle>("PriceOracle");
+    const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);
+    comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
     const names = ["OMG", "ZRX", "BAT", "sketch"];
     const [OMG, ZRX, BAT, SKT] = await Promise.all(
       names.map(async name => {
-        const vToken = await smock.fake<VBep20Immutable>("VBep20Immutable");
+        const vToken = await smock.fake<VBep20Immutable>(
+          "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
+        );
         if (name !== "sketch") {
           await comptroller._supportMarket(vToken.address);
         }
@@ -65,7 +73,7 @@ describe("assetListTest", () => {
       }),
     );
     const allTokens = [OMG, ZRX, BAT, SKT];
-    return { comptroller, comptrollerLens, oracle, OMG, ZRX, BAT, SKT, allTokens, names };
+    return { unitroller, comptrollerLens, oracle, OMG, ZRX, BAT, SKT, allTokens, names };
   }
 
   function configure({ oracle, allTokens, names }: AssetListFixture) {
@@ -82,14 +90,14 @@ describe("assetListTest", () => {
     [root, customer] = await ethers.getSigners();
     const contracts = await loadFixture(assetListFixture);
     configure(contracts);
-    ({ comptroller, OMG, ZRX, BAT, SKT, allTokens } = contracts);
+    ({ unitroller, OMG, ZRX, BAT, SKT, allTokens } = contracts);
   });
 
   async function checkMarkets(expectedTokens: FakeContract<VBep20Immutable>[]) {
     // eslint-disable-next-line prefer-const
     for (let token of allTokens) {
       const isExpected = expectedTokens.some(e => e == token);
-      expect(await comptroller.checkMembership(customer.address, token.address)).to.equal(isExpected);
+      expect(await comptroller.checkMembership(await customer.getAddress(), token.address)).to.equal(isExpected);
     }
   }
 
@@ -100,13 +108,16 @@ describe("assetListTest", () => {
   ) {
     const reply = await comptroller.connect(customer).callStatic.enterMarkets(enterTokens.map(t => t.address));
     const receipt = await comptroller.connect(customer).enterMarkets(enterTokens.map(t => t.address));
-    const assetsIn = await comptroller.getAssetsIn(customer.address);
+
+    const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
 
     const expectedErrors_ = expectedErrors || enterTokens.map(_ => Error.NO_ERROR);
 
     reply.forEach((tokenReply, i) => {
       expect(tokenReply).to.equal(expectedErrors_[i]);
     });
+
+    expect(receipt).to.emit(unitroller, "MarketEntered");
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
 
     await checkMarkets(expectedTokens);
@@ -127,9 +138,11 @@ describe("assetListTest", () => {
   ) {
     const reply = await comptroller.connect(customer).callStatic.exitMarket(exitToken.address);
     const receipt = await comptroller.connect(customer).exitMarket(exitToken.address);
-    const assetsIn = await comptroller.getAssetsIn(customer.address);
+    const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
+
     expect(reply).to.equal(expectedError);
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
+
     await checkMarkets(expectedTokens);
     return receipt;
   }
@@ -138,9 +151,9 @@ describe("assetListTest", () => {
     it("properly emits events", async () => {
       const tx1 = await enterAndCheckMarkets([OMG], [OMG]);
       const tx2 = await enterAndCheckMarkets([OMG], [OMG]);
-      await expect(tx1).to.emit(comptroller, "MarketEntered").withArgs(OMG.address, customer.address);
-      console.log("D");
-      expect((await tx2.wait()).events).to.be.empty;
+      expect(tx1).to.emit(unitroller, "MarketEntered").withArgs(OMG.address, customer);
+      const tx2Value = await tx2.wait();
+      expect(tx2Value.events?.length).to.be.equals(0);
     });
 
     it("adds to the asset list only once", async () => {
@@ -229,9 +242,9 @@ describe("assetListTest", () => {
 
     it("enters when called by a vtoken", async () => {
       await setBalance(await BAT.wallet.getAddress(), 10n ** 18n);
-      await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, customer.address, 1);
+      await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, await customer.getAddress(), 1);
 
-      const assetsIn = await comptroller.getAssetsIn(customer.address);
+      const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
 
       expect(assetsIn).to.deep.equal([BAT.address]);
 
@@ -239,11 +252,11 @@ describe("assetListTest", () => {
     });
 
     it("reverts when called by not a vtoken", async () => {
-      await expect(comptroller.connect(customer).borrowAllowed(BAT.address, customer.address, 1)).to.be.revertedWith(
-        "sender must be vToken",
-      );
+      await expect(
+        comptroller.connect(customer).borrowAllowed(BAT.address, await customer.getAddress(), 1),
+      ).to.be.revertedWith("sender must be vToken");
 
-      const assetsIn = await comptroller.getAssetsIn(customer.address);
+      const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
 
       expect(assetsIn).to.deep.equal([]);
 
@@ -252,12 +265,12 @@ describe("assetListTest", () => {
 
     it("adds to the asset list only once", async () => {
       await setBalance(await BAT.wallet.getAddress(), 10n ** 18n);
-      await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, customer.address, 1);
+      await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, await customer.getAddress(), 1);
 
       await enterAndCheckMarkets([BAT], [BAT]);
 
-      await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, customer.address, 1);
-      const assetsIn = await comptroller.getAssetsIn(customer.address);
+      await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, await customer.getAddress(), 1);
+      const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
       expect(assetsIn).to.deep.equal([BAT.address]);
     });
   });

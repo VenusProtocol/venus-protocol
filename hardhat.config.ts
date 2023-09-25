@@ -13,6 +13,7 @@ import { HardhatUserConfig, task } from "hardhat/config";
 import "solidity-coverage";
 import "solidity-docgen";
 
+require("hardhat-contract-sizer");
 require("dotenv").config();
 
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY;
@@ -154,7 +155,7 @@ function isFork() {
           blockNumber: 21068448,
         },
         accounts: {
-          accountsBalance: "1000000000000000000",
+          accountsBalance: "1000000000000000000000",
         },
         live: false,
       }

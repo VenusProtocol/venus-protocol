@@ -4,7 +4,7 @@ import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
-import { Comptroller, GovernorBravoDelegate, IAccessControlManager } from "../../../typechain";
+import { ComptrollerInterface, GovernorBravoDelegate, IAccessControlManager } from "../../../typechain";
 import { TimelockInterface } from "../../../typechain/contracts/Governance/GovernorAlpha2.sol";
 import { getCalldatas, setForkBlock } from "./vip-framework/utils";
 
@@ -51,7 +51,7 @@ const PROPOSAL_TYPES = {
   CRITICAL: 2,
 };
 
-let comptrollerProxy: Comptroller;
+let comptrollerProxy: ComptrollerInterface;
 let accessControl: IAccessControlManager;
 let governorProxy: GovernorBravoDelegate;
 let proposer: SignerWithAddress;
@@ -74,7 +74,7 @@ const governanceFixture = async (): Promise<void> => {
   governorAdmin = await initMainnetUser("0x1c2cac6ec528c20800b2fe734820d87b581eaa6b", ethers.utils.parseEther("1.0"));
   aclAdmin = await initMainnetUser(NORMAL_VIP_TIMELOCK, ethers.utils.parseEther("1.0"));
 
-  comptrollerProxy = await ethers.getContractAt("Comptroller", COMPTROLLER_PROXY_MAINNET);
+  comptrollerProxy = await ethers.getContractAt("ComptrollerInterface", COMPTROLLER_PROXY_MAINNET);
   const Timelock = await ethers.getContractFactory("Timelock");
   timeLockFastTrack = await Timelock.deploy(GOVERNOR_PROXY_MAINNET, TIMELOCK_DELAYS_MAINNET.FAST_TRACK);
   timeLockCritical = await Timelock.deploy(GOVERNOR_PROXY_MAINNET, TIMELOCK_DELAYS_MAINNET.CRITICAL);

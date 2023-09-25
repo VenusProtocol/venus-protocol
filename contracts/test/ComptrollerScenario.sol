@@ -1,21 +1,21 @@
 pragma solidity ^0.5.16;
 
-import "../Comptroller/Comptroller.sol";
+import "./ComptrollerMock.sol";
 
-contract ComptrollerScenario is Comptroller {
+contract ComptrollerScenario is ComptrollerMock {
     uint public blockNumber;
     address public xvsAddress;
     address public vaiAddress;
 
-    constructor() public Comptroller() {}
+    constructor() public ComptrollerMock() {}
 
     function setXVSAddress(address xvsAddress_) public {
         xvsAddress = xvsAddress_;
     }
 
-    function getXVSAddress() public view returns (address) {
-        return xvsAddress;
-    }
+    // function getXVSAddress() public view returns (address) {
+    //     return xvsAddress;
+    // }
 
     function setVAIAddress(address vaiAddress_) public {
         vaiAddress = vaiAddress_;

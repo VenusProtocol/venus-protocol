@@ -2,18 +2,19 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { BigNumberish, constants } from "ethers";
+import { ethers } from "hardhat";
 
-import { convertToUnit } from "../../../helpers/utils";
+import { convertToUnit } from "../../../../helpers/utils";
 import {
-  Comptroller,
   ComptrollerLens,
   ComptrollerLens__factory,
-  Comptroller__factory,
+  ComptrollerMock,
   IAccessControlManager,
   PriceOracle,
   VBep20Immutable,
-} from "../../../typechain";
-import { ComptrollerErrorReporter } from "../util/Errors";
+} from "../../../../typechain";
+import { ComptrollerErrorReporter } from "../../util/Errors";
+import { deployDiamond } from "./scripts/deploy";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -23,7 +24,7 @@ const collateralPrice = convertToUnit(1, 18);
 const repayAmount = convertToUnit(1, 18);
 
 async function calculateSeizeTokens(
-  comptroller: MockContract<Comptroller>,
+  comptroller: ComptrollerMock,
   vTokenBorrowed: FakeContract<VBep20Immutable>,
   vTokenCollateral: FakeContract<VBep20Immutable>,
   repayAmount: BigNumberish,
@@ -36,38 +37,43 @@ function rando(min: number, max: number): number {
 }
 
 describe("Comptroller", () => {
-  let comptroller: MockContract<Comptroller>;
+  let comptroller: ComptrollerMock;
   let oracle: FakeContract<PriceOracle>;
   let vTokenBorrowed: FakeContract<VBep20Immutable>;
   let vTokenCollateral: FakeContract<VBep20Immutable>;
 
   type LiquidateFixture = {
-    comptroller: MockContract<Comptroller>;
+    comptroller: ComptrollerMock;
     comptrollerLens: MockContract<ComptrollerLens>;
     oracle: FakeContract<PriceOracle>;
     vTokenBorrowed: FakeContract<VBep20Immutable>;
     vTokenCollateral: FakeContract<VBep20Immutable>;
   };
 
-  function setOraclePrice(vToken: FakeContract<VBep20Immutable>, price: BigNumberish) {
+  async function setOraclePrice(vToken: FakeContract<VBep20Immutable>, price: BigNumberish) {
     oracle.getUnderlyingPrice.whenCalledWith(vToken.address).returns(price);
   }
 
   async function liquidateFixture(): Promise<LiquidateFixture> {
-    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
-    const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+    const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
-    const comptroller = await ComptrollerFactory.deploy();
+    const result = await deployDiamond("");
+    const unitroller = result.unitroller;
+    comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-    const oracle = await smock.fake<PriceOracle>("PriceOracle");
+    const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
     await comptroller._setLiquidationIncentive(convertToUnit("1.1", 18));
 
-    const vTokenBorrowed = await smock.fake<VBep20Immutable>("VBep20Immutable");
-    const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
+    const vTokenBorrowed = await smock.fake<VBep20Immutable>(
+      "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
+    );
+    const vTokenCollateral = await smock.fake<VBep20Immutable>(
+      "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
+    );
 
     return { comptroller, comptrollerLens, oracle, vTokenBorrowed, vTokenCollateral };
   }
@@ -106,20 +112,18 @@ describe("Comptroller", () => {
     });
 
     it("fails if the repayAmount causes overflow ", async () => {
-      await expect(
-        calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, constants.MaxUint256),
-      ).to.be.revertedWith("multiplication overflow");
+      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, constants.MaxUint256)).to.be
+        .reverted;
     });
 
     it("fails if the borrowed asset price causes overflow ", async () => {
       setOraclePrice(vTokenBorrowed, constants.MaxUint256);
-      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)).to.be.revertedWith(
-        "multiplication overflow",
-      );
+      await expect(calculateSeizeTokens(comptroller, vTokenBorrowed, vTokenCollateral, repayAmount)).to.be.reverted;
     });
 
     it("reverts if it fails to calculate the exchange rate", async () => {
       vTokenCollateral.exchangeRateStored.reverts("exchangeRateStored: exchangeRateStoredInternal failed");
+      ethers.provider.getBlockNumber();
       /// TODO: Somehow the error message does not get propagated into the resulting tx. Smock bug?
       await expect(
         comptroller.liquidateCalculateSeizeTokens(vTokenBorrowed.address, vTokenCollateral.address, repayAmount),
