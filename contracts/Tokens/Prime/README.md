@@ -330,5 +330,5 @@ So we just need `borrowRatePerBlock`, `borrows` and `reserveFactor` to compute t
 
 ## Audit reports
 
-* [Peckshield (2023/August/26)](https://github.com/VenusProtocol/venus-protocol/blob/27b80486a5104447cac5536b8b0d1226b560a789/audits/055_prime_peckshield_20230826.pdf)
-* [Fairyproof (2023/September/10)](https://github.com/VenusProtocol/venus-protocol/blob/27b80486a5104447cac5536b8b0d1226b560a789/audits/056_prime_fairyproof_20230910.pdf)
+* [Peckshield (2023/August/26)](https://github.com/VenusProtocol/venus-protocol/blob/25f863877a8ef7731652a6209b23ca0c703060ba/audits/055_prime_peckshield_20230826.pdf)
+* [Fairyproof (2023/September/10)](https://github.com/VenusProtocol/venus-protocol/blob/25f863877a8ef7731652a6209b23ca0c703060ba/audits/056_prime_fairyproof_20230910.pdf)
