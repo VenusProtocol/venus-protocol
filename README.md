@@ -16,12 +16,12 @@ We detail a few of the core contracts in the Venus protocol.
 
 <dl>
   <dt>VToken, VBep20 and VBNB</dt>
-  <dd>The Venus vTokens, which are self-contained borrowing and lending contracts. VToken contains the core logic and VBep20, VBUSD, VSXP and VBNB add public interfaces for Bep20 tokens and bnb, respectively. Each VToken is assigned an interest rate and risk model (see InterestRateModel and Comptroller sections), and allows accounts to *mint* (supply capital), *redeem* (withdraw capital), *borrow* and *repay a borrow*. Each VToken is an BEP-20 compliant token where balances represent ownership of the market.</dd>
+  <dd>The Venus vTokens, which are self-contained borrowing and lending contracts. VToken contains the core logic and VBep20, VBUSD, and VBNB add public interfaces for BEP-20 tokens and bnb, respectively. Each VToken is assigned an interest rate and risk model (see InterestRateModel and Comptroller sections), and allows accounts to *mint* (supply capital), *redeem* (withdraw capital), *borrow* and *repay a borrow*. Each VToken is an BEP-20 compliant token where balances represent ownership of the market.</dd>
 </dl>
 
 <dl>
-  <dt>Comptroller</dt>
-  <dd>The risk model contract, which validates permissible user actions and disallows actions if they do not fit certain risk parameters. For instance, the Comptroller enforces that each borrowing user must maintain a sufficient collateral balance across all vTokens.</dd>
+  <dt>Diamond Comptroller</dt>
+  <dd>The risk model contract, which validates permissible user actions and disallows actions if they do not fit certain risk parameters. For instance, the Comptroller enforces that each borrowing user must maintain a sufficient collateral balance across all vTokens. The Comptroller is implemented as a Diamond proxy with several facets (MarketFacet, PolicyFacet, RewardFacet, SetterFacet) corresponding to the particular parts of the Comptroller functionality.</dd>
 </dl>
 
 <dl>
@@ -30,17 +30,12 @@ We detail a few of the core contracts in the Venus protocol.
 </dl>
 
 <dl>
-  <dt>SXP</dt>
-  <dd>The Venus Governance Token (SXP). Holders of this token have the ability to govern the protocol via the governor contract.</dd>
+  <dt>Governor Bravo</dt>
+  <dd>The administrator of the Venus Timelock contracts. Holders of XVS token who have locked their tokens in XVSVault may create and vote on proposals which will be queued into the Venus Timelock and then have effects on other Venus contracts.</dd>
 </dl>
 
 <dl>
-  <dt>Governor Alpha</dt>
-  <dd>The administrator of the Venus timelock contract. Holders of XVS(SXP) token may create and vote on proposals which will be queued into the Venus timelock and then have effects on Venus vToken and Comptroller contracts. This contract may be replaced in the future with a beta version.</dd>
-</dl>
-
-<dl>
-  <dt>InterestRateModel</dt>
+  <dt>InterestRateModel, JumpRateModel, WhitepaperInterestRateModel</dt>
   <dd>Contracts which define interest rate models. These models algorithmically determine interest rates based on the current utilization of a given market (that is, how much of the supplied assets are liquid versus borrowed).</dd>
 </dl>
 
@@ -57,16 +52,6 @@ We detail a few of the core contracts in the Venus protocol.
 <dl>
   <dt>Exponential</dt>
   <dd>Library for handling fixed-point decimal numbers.</dd>
-</dl>
-
-<dl>
-  <dt>SafeToken</dt>
-  <dd>Library for safely handling Bep20 interaction.</dd>
-</dl>
-
-<dl>
-  <dt>WhitePaperInterestRateModel</dt>
-  <dd>Initial interest rate model, as defined in the Whitepaper. This contract accepts a base rate and slope parameter in its constructor.</dd>
 </dl>
 
 ### Documentation
@@ -130,10 +115,6 @@ To run venus, pull the repository from GitHub and install its dependencies. You 
 Jest contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
 
     yarn test
-
-## Formal Verification Specs
-
-The Venus Protocol has a number of formal verification specifications, powered by [Certik](https://certik.foundation/projects/swipe). The Certik Verification evaluates smart contracts for vulnerabilities and certifies their behavior with respect to a custom function specification.
 
 ## Testing
 
@@ -225,4 +206,4 @@ For any concerns with the protocol, open an issue or visit us on [Telegram](http
 
 For security concerns, please contact the administrators of our telegram chat.
 
-© Copyright 2021, Venus Protocol
+© Copyright 2023, Venus Protocol
