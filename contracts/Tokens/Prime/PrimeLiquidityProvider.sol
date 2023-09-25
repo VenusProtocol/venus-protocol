@@ -225,6 +225,24 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     }
 
     /**
+     * @notice Get rewards per block for token
+     * @param token_ Address of the token
+     * @return speed returns the per block reward
+     */
+    function getEffectiveDistributionSpeed(address token_) external view returns (uint256) {
+        uint256 distributionSpeed = tokenDistributionSpeeds[token_];
+        uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
+        uint256 accrued = tokenAmountAccrued[token_];
+
+        if (balance - accrued > 0) {
+            return distributionSpeed;
+        }
+
+        return 0;
+    }
+
+
+    /**
      * @notice Accrue token by updating the distribution state
      * @param token_ Address of the token
      * @custom:event Emits TokensAccrued event
@@ -258,23 +276,6 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @return blockNumber returns the block number
     function getBlockNumber() public view virtual returns (uint256) {
         return block.number;
-    }
-
-    /**
-     * @notice Get rewards per block for token
-     * @param token_ Address of the token
-     * @return speed returns the per block reward
-     */
-    function getEffectiveDistributionSpeed(address token_) external view returns (uint256) {
-        uint256 distributionSpeed = tokenDistributionSpeeds[token_];
-        uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
-        uint256 accrued = tokenAmountAccrued[token_];
-
-        if (balance - accrued > 0) {
-            return distributionSpeed;
-        }
-
-        return 0;
     }
 
     /**
@@ -324,17 +325,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
             emit TokenDistributionSpeedUpdated(token_, distributionSpeed_);
         }
     }
-
-    /**
-     * @notice Revert on zero address
-     * @param address_ Address to be verified
-     */
-    function _ensureZeroAddress(address address_) internal pure {
-        if (address_ == address(0)) {
-            revert InvalidArguments();
-        }
-    }
-
+   
     /**
      * @notice Revert on non initialized token
      * @param token_ Token Address to be verified for
@@ -346,4 +337,15 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
             revert TokenNotInitialized(token_);
         }
     }
+
+     /**
+     * @notice Revert on zero address
+     * @param address_ Address to be verified
+     */
+    function _ensureZeroAddress(address address_) internal pure {
+        if (address_ == address(0)) {
+            revert InvalidArguments();
+        }
+    }
+
 }

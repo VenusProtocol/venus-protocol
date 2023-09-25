@@ -7,14 +7,14 @@ interface IProtocolShareReserve {
         SPREAD_PRIME_CORE
     }
 
+    function releaseFunds(address comptroller, address[] memory assets) external;
+
     function getUnreleasedFunds(
         address comptroller,
         Schema schema,
         address destination,
         address asset
     ) external view returns (uint256);
-
-    function releaseFunds(address comptroller, address[] memory assets) external;
 
     function getPercentageDistribution(address destination, Schema schema) external view returns (uint256);
 

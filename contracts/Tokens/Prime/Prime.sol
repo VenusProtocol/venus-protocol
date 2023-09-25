@@ -43,9 +43,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable WBNB;
 
-    /// @notice address of vBNB contract
+    /// @notice address of VBNB contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable vBNB;
+    address public immutable VBNB;
 
     /// @notice Emitted when prime token is minted
     event Mint(address indexed user, bool isIrrevocable);
@@ -97,7 +97,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice Prime constructor
      * @param _wbnb Address of WBNB
-     * @param _vbnb Address of vBNB
+     * @param _vbnb Address of VBNB
      * @param _blocksPerYear total blocks per year
      */
     constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) {
@@ -105,7 +105,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (_vbnb == address(0)) revert InvalidAddress();
         if (_blocksPerYear == 0) revert InvalidBlocksPerYear();
         WBNB = _wbnb;
-        vBNB = _vbnb;
+        VBNB = _vbnb;
         BLOCKS_PER_YEAR = _blocksPerYear;
 
         // Note that the contract is upgradeable. Use initialize() or reinitializers
@@ -164,6 +164,69 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         _setMaxLoopsLimit(_loopsLimit);
 
         _pause();
+    }
+
+    /**
+     * @notice Returns boosted pending interest accrued for a user for all markets
+     * @param user the account for which to get the accrued interests
+     * @return pendingInterests the number of underlying tokens accrued by the user for all markets
+     */
+    function getPendingInterests(address user) external returns (PendingInterest[] memory pendingInterests) {
+        address[] storage _allMarkets = allMarkets;
+        PendingInterest[] memory pendingInterests = new PendingInterest[](_allMarkets.length);
+
+        for (uint256 i = 0; i < _allMarkets.length; ) {
+            address market = _allMarkets[i];
+            uint256 interestAccrued = getInterestAccrued(market, user);
+            uint256 accrued = interests[market][user].accrued;
+
+            pendingInterests[i] = PendingInterest({
+                market: IVToken(market).underlying(),
+                amount: interestAccrued + accrued
+            });
+
+            unchecked {
+                i++;
+            }
+        }
+
+        return pendingInterests;
+    }
+
+    /**
+     * @notice Update total score of multiple users and market
+     * @param users accounts for which we need to update score
+     */
+    function updateScores(address[] memory users) external {
+        if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
+        if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
+
+        for (uint256 i = 0; i < users.length; ) {
+            address user = users[i];
+
+            if (!tokens[user].exists) revert UserHasNoPrimeToken();
+            if (isScoreUpdated[nextScoreUpdateRoundId][user]) continue;
+
+            address[] storage _allMarkets = allMarkets;
+            for (uint256 j = 0; j < _allMarkets.length; ) {
+                address market = _allMarkets[j];
+                _executeBoost(user, market);
+                _updateScore(user, market);
+
+                unchecked {
+                    j++;
+                }
+            }
+
+            pendingScoreUpdates--;
+            isScoreUpdated[nextScoreUpdateRoundId][user] = true;
+
+            unchecked {
+                i++;
+            }
+
+            emit UserScoreUpdated(user);
+        }
     }
 
     /**
@@ -319,35 +382,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
-     * @notice Retrieves an array of all available markets
-     * @return an array of addresses representing all available markets
-     */
-    function getAllMarkets() external view returns (address[] memory) {
-        return allMarkets;
-    }
-
-    /**
-     * @notice accrues interes and updates score of all markets for an user
-     * @param user the account address for which to accrue interest and update score
-     */
-    function _accrueInterestAndUpdateScore(address user) internal {
-        address[] storage _allMarkets = allMarkets;
-        for (uint256 i = 0; i < _allMarkets.length; ) {
-            _executeBoost(user, _allMarkets[i]);
-            _updateScore(user, _allMarkets[i]);
-
-            unchecked {
-                i++;
-            }
-        }
-    }
-
-    /**
      * @notice accrues interes and updates score for an user for a specific market
      * @param user the account address for which to accrue interest and update score
      * @param market the market for which to accrue interest and update score
      */
-    function accrueInterestAndUpdateScore(address user, address market) public {
+    function accrueInterestAndUpdateScore(address user, address market) external {
         _executeBoost(user, market);
         _updateScore(user, market);
     }
@@ -375,6 +414,64 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
+     * @notice To pause or unpause claiming of interest
+     */
+    function togglePause() external {
+        _checkAccessAllowed("togglePause()");
+        if (paused()) {
+            _unpause();
+        } else {
+            _pause();
+        }
+    }
+
+    /**
+     * @notice For user to claim boosted yield
+     * @param vToken the market for which claim the accrued interest
+     * @return amount the amount of tokens transferred to the user
+     */
+    function claimInterest(address vToken) external whenNotPaused returns (uint256) {
+        return _claimInterest(vToken, msg.sender);
+    }
+
+    /**
+     * @notice For user to claim boosted yield
+     * @param vToken the market for which claim the accrued interest
+     * @param user the user for which claim the accrued interest
+     * @return amount the amount of tokens transferred to the user
+     */
+    function claimInterest(address vToken, address user) external whenNotPaused returns (uint256) {
+        return _claimInterest(vToken, user);
+    }
+
+     /**
+     * @notice Callback by ProtocolShareReserve to update assets state when funds are released to this contract
+     * @param _comptroller The address of the Comptroller whose income is distributed
+     * @param asset The address of the asset whose income is distributed
+     */
+    function updateAssetsState(address _comptroller, address asset) external {
+        if (msg.sender != protocolShareReserve) revert InvalidCaller();
+        if (comptroller != _comptroller) revert InvalidComptroller();
+
+        address vToken = vTokenForAsset[asset];
+        if (vToken == address(0)) revert MarketNotSupported();
+
+        IVToken market = IVToken(vToken);
+        unreleasedPSRIncome[_getUnderlying(address(market))] = 0;
+
+        emit UpdatedAssetsState(comptroller, asset);
+    }
+
+
+    /**
+     * @notice Retrieves an array of all available markets
+     * @return an array of addresses representing all available markets
+     */
+    function getAllMarkets() external view returns (address[] memory) {
+        return allMarkets;
+    }
+
+    /**
      * @notice fetch the numbers of seconds remaining for staking period to complete
      * @param user the account address for which we are checking the remaining time
      * @return timeRemaining the number of seconds the user needs to wait to claim prime token
@@ -390,14 +487,135 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         }
     }
 
-    /**
-     * @notice Verify new alpha arguments
-     * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1
-     * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2
+     /**
+     * @notice Returns supply and borrow APR for user for a given market
+     * @param market the market for which to fetch the APR
+     * @param user the account for which to get the APR
+     * @return supplyAPR supply APR of the user in BPS
+     * @return borrowAPR borrow APR of the user in BPS
      */
-    function _checkAlphaArguments(uint128 _alphaNumerator, uint128 _alphaDenominator) internal pure {
-        if (_alphaDenominator == 0 || _alphaNumerator > _alphaDenominator) {
-            revert InvalidAlphaArguments();
+    function calculateAPR(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
+        IVToken vToken = IVToken(market);
+        uint256 borrow = vToken.borrowBalanceStored(user);
+        uint256 exchangeRate = vToken.exchangeRateStored();
+        uint256 balanceOfAccount = vToken.balanceOf(user);
+        uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
+
+        uint256 userScore = interests[market][user].score;
+        uint256 totalScore = markets[market].sumOfMembersScore;
+
+        uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(user));
+        (, uint256 cappedSupply, uint256 cappedBorrow) = _capitalForScore(
+            xvsBalanceForScore,
+            borrow,
+            supply,
+            address(vToken)
+        );
+
+        return _calculateUserAPR(market, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
+    }
+
+    /**
+     * @notice Returns supply and borrow APR for estimated supply, borrow and XVS staked
+     * @param market the market for which to fetch the APR
+     * @param user the account for which to get the APR
+     * @param borrow hypothetical borrow amount
+     * @param supply hypothetical supply amount
+     * @param xvsStaked hypothetical staked XVS amount
+     * @return supplyAPR supply APR of the user in BPS
+     * @return borrowAPR borrow APR of the user in BPS
+     */
+    function estimateAPR(
+        address market,
+        address user,
+        uint256 borrow,
+        uint256 supply,
+        uint256 xvsStaked
+    ) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
+        uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
+
+        uint256 xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
+        (uint256 capital, uint256 cappedSupply, uint256 cappedBorrow) = _capitalForScore(
+            xvsBalanceForScore,
+            borrow,
+            supply,
+            market
+        );
+        uint256 userScore = Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
+
+        totalScore = totalScore + userScore;
+
+        return _calculateUserAPR(market, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
+    }
+
+    
+    /**
+     * @notice Distributes income from market since last distribution
+     * @param vToken the market for which to distribute the income
+     */
+    function accrueInterest(address vToken) public {
+        if (!markets[vToken].exists) revert MarketNotSupported();
+
+        address underlying = _getUnderlying(vToken);
+
+        IPrimeLiquidityProvider _primeLiquidityProvider = IPrimeLiquidityProvider(primeLiquidityProvider);
+
+        uint256 totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
+            comptroller,
+            IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
+            address(this),
+            underlying
+        );
+
+        uint256 distributionIncome = totalIncomeUnreleased - unreleasedPSRIncome[underlying];
+
+        _primeLiquidityProvider.accrueTokens(underlying);
+        uint256 totalAccruedInPLP = _primeLiquidityProvider.tokenAmountAccrued(underlying);
+        uint256 unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
+
+        distributionIncome += unreleasedPLPAccruedInterest;
+
+        if (distributionIncome == 0) {
+            return;
+        }
+
+        unreleasedPSRIncome[underlying] = totalIncomeUnreleased;
+        unreleasedPLPIncome[underlying] = totalAccruedInPLP;
+
+        uint256 delta;
+        if (markets[vToken].sumOfMembersScore > 0) {
+            delta = ((distributionIncome * EXP_SCALE) / markets[vToken].sumOfMembersScore);
+        }
+
+        markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;
+    }
+
+    /**
+     * @notice Returns boosted interest accrued for a user
+     * @param vToken the market for which to fetch the accrued interest
+     * @param user the account for which to get the accrued interest
+     * @return interestAccrued the number of underlying tokens accrued by the user since the last accrual
+     */
+    function getInterestAccrued(address vToken, address user) public returns (uint256) {
+        accrueInterest(vToken);
+
+        return _interestAccrued(vToken, user);
+    }
+
+
+    /**
+     * @notice accrues interes and updates score of all markets for an user
+     * @param user the account address for which to accrue interest and update score
+     */
+    function _accrueInterestAndUpdateScore(address user) internal {
+        address[] storage _allMarkets = allMarkets;
+        for (uint256 i = 0; i < _allMarkets.length; ) {
+            _executeBoost(user, _allMarkets[i]);
+            _updateScore(user, _allMarkets[i]);
+
+            unchecked {
+                i++;
+            }
         }
     }
 
@@ -421,20 +639,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
                 i++;
             }
         }
-    }
-
-    /**
-     * @notice fetch the current XVS balance of user in the XVSVault
-     * @param user the account address
-     * @return xvsBalance the XVS balance of user
-     */
-    function _xvsBalanceOfUser(address user) internal view returns (uint256) {
-        (uint256 xvs, , uint256 pendingWithdrawals) = IXVSVault(xvsVault).getUserInfo(
-            xvsVaultRewardToken,
-            xvsVaultPoolId,
-            user
-        );
-        return (xvs - pendingWithdrawals);
     }
 
     /**
@@ -463,53 +667,36 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
-     * @notice calculate the current XVS balance that will be used in calculation of score
-     * @param xvs the actual XVS balance of user
-     * @return xvsBalanceForScore the XVS balance to use in score
+     * @notice To transfer the accrued interest to user
+     * @param vToken the market for which to claim
+     * @param user the account for which to get the accrued interest
+     * @return amount the amount of tokens transferred to the user
      */
-    function _xvsBalanceForScore(uint256 xvs) internal view returns (uint256) {
-        if (xvs > MAXIMUM_XVS_CAP) {
-            return MAXIMUM_XVS_CAP;
-        } else {
-            return xvs;
-        }
-    }
+    function _claimInterest(address vToken, address user) internal returns (uint256) {
+        uint256 amount = getInterestAccrued(vToken, user);
+        amount += interests[vToken][user].accrued;
 
-    /**
-     * @notice calculate the capital for calculation of score
-     * @param xvs the actual XVS balance of user
-     * @param borrow the borrow balance of user
-     * @param supply the supply balance of user
-     * @param market the market vToken address
-     * @return capital the capital to use in calculation of score
-     * @return cappedSupply the capped supply of user
-     * @return cappedBorrow the capped borrow of user
-     */
-    function _capitalForScore(
-        uint256 xvs,
-        uint256 borrow,
-        uint256 supply,
-        address market
-    ) internal view returns (uint256, uint256, uint256) {
-        address xvsToken = IXVSVault(xvsVault).xvsAddress();
+        interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
+        interests[vToken][user].accrued = 0;
 
-        uint256 xvsPrice = oracle.getPrice(xvsToken);
-        uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
-        uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
+        address underlying = _getUnderlying(vToken);
+        IERC20Upgradeable asset = IERC20Upgradeable(underlying);
 
-        uint256 tokenPrice = oracle.getUnderlyingPrice(market);
-        uint256 supplyUSD = (tokenPrice * supply) / EXP_SCALE;
-        uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
-
-        if (supplyUSD >= supplyCapUSD) {
-            supply = supplyUSD > 0 ? (supply * supplyCapUSD) / supplyUSD : 0;
+        if (amount > asset.balanceOf(address(this))) {
+            address[] memory assets = new address[](1);
+            assets[0] = address(asset);
+            IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
+            if (amount > asset.balanceOf(address(this))) {
+                IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
+                unreleasedPLPIncome[underlying] = 0;
+            }
         }
 
-        if (borrowUSD >= borrowCapUSD) {
-            borrow = borrowUSD > 0 ? (borrow * borrowCapUSD) / borrowUSD : 0;
-        }
+        asset.safeTransfer(user, amount);
 
-        return ((supply + borrow), supply, borrow);
+        emit InterestClaimed(user, vToken, amount);
+
+        return amount;
     }
 
     /**
@@ -587,20 +774,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         emit TokenUpgraded(user);
     }
 
-    /**
-     * @notice Used to get if the XVS balance is eligible for prime token
-     * @param amount amount of XVS
-     * @return isEligible true if the staked XVS amount is enough to consider the associated user eligible for a Prime token, false otherwise
-     */
-    function isEligible(uint256 amount) internal view returns (bool) {
-        if (amount >= MINIMUM_STAKED_XVS) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
+     /**
      * @notice Accrue rewards for the user. Must be called by Comptroller before changing account's borrow or supply balance.
      * @param user account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
@@ -631,217 +805,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
-     * @notice Distributes income from market since last distribution
-     * @param vToken the market for which to distribute the income
+     * @notice Verify new alpha arguments
+     * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1
+     * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2
      */
-    function accrueInterest(address vToken) public {
-        if (!markets[vToken].exists) revert MarketNotSupported();
-
-        address underlying = _getUnderlying(vToken);
-
-        IPrimeLiquidityProvider _primeLiquidityProvider = IPrimeLiquidityProvider(primeLiquidityProvider);
-
-        uint256 totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
-            comptroller,
-            IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
-            address(this),
-            underlying
-        );
-
-        uint256 distributionIncome = totalIncomeUnreleased - unreleasedPSRIncome[underlying];
-
-        _primeLiquidityProvider.accrueTokens(underlying);
-        uint256 totalAccruedInPLP = _primeLiquidityProvider.tokenAmountAccrued(underlying);
-        uint256 unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
-
-        distributionIncome += unreleasedPLPAccruedInterest;
-
-        if (distributionIncome == 0) {
-            return;
-        }
-
-        unreleasedPSRIncome[underlying] = totalIncomeUnreleased;
-        unreleasedPLPIncome[underlying] = totalAccruedInPLP;
-
-        uint256 delta;
-        if (markets[vToken].sumOfMembersScore > 0) {
-            delta = ((distributionIncome * EXP_SCALE) / markets[vToken].sumOfMembersScore);
-        }
-
-        markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;
-    }
-
-    /**
-     * @notice Returns boosted interest accrued for a user
-     * @param vToken the market for which to fetch the accrued interest
-     * @param user the account for which to get the accrued interest
-     * @return interestAccrued the number of underlying tokens accrued by the user since the last accrual
-     */
-    function getInterestAccrued(address vToken, address user) public returns (uint256) {
-        accrueInterest(vToken);
-
-        return _interestAccrued(vToken, user);
-    }
-
-    /**
-     * @notice Calculate the interests accrued by the user in the market, since the last accrual
-     * @param vToken the market for which calculate the accrued interest
-     * @param user the user for which calculate the accrued interest
-     * @return interestAccrued the number of underlying tokens accrued by the user since the last accrual
-     */
-    function _interestAccrued(address vToken, address user) internal view returns (uint256) {
-        uint256 index = markets[vToken].rewardIndex - interests[vToken][user].rewardIndex;
-        uint256 score = interests[vToken][user].score;
-
-        return (index * score) / EXP_SCALE;
-    }
-
-    /**
-     * @notice For user to claim boosted yield
-     * @param vToken the market for which claim the accrued interest
-     * @return amount the amount of tokens transferred to the user
-     */
-    function claimInterest(address vToken) external whenNotPaused returns (uint256) {
-        return _claimInterest(vToken, msg.sender);
-    }
-
-    /**
-     * @notice For user to claim boosted yield
-     * @param vToken the market for which claim the accrued interest
-     * @param user the user for which claim the accrued interest
-     * @return amount the amount of tokens transferred to the user
-     */
-    function claimInterest(address vToken, address user) external whenNotPaused returns (uint256) {
-        return _claimInterest(vToken, user);
-    }
-
-    /**
-     * @notice To transfer the accrued interest to user
-     * @param vToken the market for which to claim
-     * @param user the account for which to get the accrued interest
-     * @return amount the amount of tokens transferred to the user
-     */
-    function _claimInterest(address vToken, address user) internal returns (uint256) {
-        uint256 amount = getInterestAccrued(vToken, user);
-        amount += interests[vToken][user].accrued;
-
-        interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
-        interests[vToken][user].accrued = 0;
-
-        address underlying = _getUnderlying(vToken);
-        IERC20Upgradeable asset = IERC20Upgradeable(underlying);
-
-        if (amount > asset.balanceOf(address(this))) {
-            address[] memory assets = new address[](1);
-            assets[0] = address(asset);
-            IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
-            if (amount > asset.balanceOf(address(this))) {
-                IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
-                unreleasedPLPIncome[underlying] = 0;
-            }
-        }
-
-        asset.safeTransfer(user, amount);
-
-        emit InterestClaimed(user, vToken, amount);
-
-        return amount;
-    }
-
-    /**
-     * @notice Callback by ProtocolShareReserve to update assets state when funds are released to this contract
-     * @param _comptroller The address of the Comptroller whose income is distributed
-     * @param asset The address of the asset whose income is distributed
-     */
-    function updateAssetsState(address _comptroller, address asset) external {
-        if (msg.sender != protocolShareReserve) revert InvalidCaller();
-        if (comptroller != _comptroller) revert InvalidComptroller();
-
-        address vToken = vTokenForAsset[asset];
-        if (vToken == address(0)) revert MarketNotSupported();
-
-        IVToken market = IVToken(vToken);
-        unreleasedPSRIncome[_getUnderlying(address(market))] = 0;
-
-        emit UpdatedAssetsState(comptroller, asset);
-    }
-
-    /**
-     * @notice Returns the underlying token associated with the VToken, or WBNB if the market is vBNB
-     * @param vToken the market whose underlying token will be returned
-     * @return underlying The address of the underlying token associated with the VToken, or the address of the WBNB token if the market is vBNB
-     */
-    function _getUnderlying(address vToken) internal view returns (address) {
-        if (vToken == vBNB) {
-            return WBNB;
-        } else {
-            return IVToken(vToken).underlying();
-        }
-    }
-
-    /**
-     * @notice Returns boosted pending interest accrued for a user for all markets
-     * @param user the account for which to get the accrued interests
-     * @return pendingInterests the number of underlying tokens accrued by the user for all markets
-     */
-    function getPendingInterests(address user) external returns (PendingInterest[] memory pendingInterests) {
-        address[] storage _allMarkets = allMarkets;
-        PendingInterest[] memory pendingInterests = new PendingInterest[](_allMarkets.length);
-
-        for (uint256 i = 0; i < _allMarkets.length; ) {
-            address market = _allMarkets[i];
-            uint256 interestAccrued = getInterestAccrued(market, user);
-            uint256 accrued = interests[market][user].accrued;
-
-            pendingInterests[i] = PendingInterest({
-                market: IVToken(market).underlying(),
-                amount: interestAccrued + accrued
-            });
-
-            unchecked {
-                i++;
-            }
-        }
-
-        return pendingInterests;
-    }
-
-    //////////////////////////////////////////////////
-    /////// Update Scores after Config Change ///////
-    ////////////////////////////////////////////////
-
-    /**
-     * @notice Update total score of multiple users and market
-     * @param users accounts for which we need to update score
-     */
-    function updateScores(address[] memory users) external {
-        if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
-        if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
-
-        for (uint256 i = 0; i < users.length; ) {
-            address user = users[i];
-
-            if (!tokens[user].exists) revert UserHasNoPrimeToken();
-            if (isScoreUpdated[nextScoreUpdateRoundId][user]) continue;
-
-            address[] storage _allMarkets = allMarkets;
-            for (uint256 j = 0; j < _allMarkets.length; ) {
-                address market = _allMarkets[j];
-                accrueInterestAndUpdateScore(user, market);
-
-                unchecked {
-                    j++;
-                }
-            }
-
-            pendingScoreUpdates--;
-            isScoreUpdated[nextScoreUpdateRoundId][user] = true;
-
-            unchecked {
-                i++;
-            }
-
-            emit UserScoreUpdated(user);
+    function _checkAlphaArguments(uint128 _alphaNumerator, uint128 _alphaDenominator) internal {
+        if (_alphaDenominator == 0 || _alphaNumerator > _alphaDenominator) {
+            revert InvalidAlphaArguments();
         }
     }
 
@@ -864,6 +834,111 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             pendingScoreUpdates--;
         }
     }
+
+    /**
+     * @notice fetch the current XVS balance of user in the XVSVault
+     * @param user the account address
+     * @return xvsBalance the XVS balance of user
+     */
+    function _xvsBalanceOfUser(address user) internal view returns (uint256) {
+        (uint256 xvs, , uint256 pendingWithdrawals) = IXVSVault(xvsVault).getUserInfo(
+            xvsVaultRewardToken,
+            xvsVaultPoolId,
+            user
+        );
+        return (xvs - pendingWithdrawals);
+    }
+
+    /**
+     * @notice calculate the current XVS balance that will be used in calculation of score
+     * @param xvs the actual XVS balance of user
+     * @return xvsBalanceForScore the XVS balance to use in score
+     */
+    function _xvsBalanceForScore(uint256 xvs) internal view returns (uint256) {
+        if (xvs > MAXIMUM_XVS_CAP) {
+            return MAXIMUM_XVS_CAP;
+        } else {
+            return xvs;
+        }
+    }
+
+    /**
+     * @notice calculate the capital for calculation of score
+     * @param xvs the actual XVS balance of user
+     * @param borrow the borrow balance of user
+     * @param supply the supply balance of user
+     * @param market the market vToken address
+     * @return capital the capital to use in calculation of score
+     * @return cappedSupply the capped supply of user
+     * @return cappedBorrow the capped borrow of user
+     */
+    function _capitalForScore(
+        uint256 xvs,
+        uint256 borrow,
+        uint256 supply,
+        address market
+    ) internal view returns (uint256, uint256, uint256) {
+        address xvsToken = IXVSVault(xvsVault).xvsAddress();
+
+        uint256 xvsPrice = oracle.getPrice(xvsToken);
+        uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
+        uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
+
+        uint256 tokenPrice = oracle.getUnderlyingPrice(market);
+        uint256 supplyUSD = (tokenPrice * supply) / EXP_SCALE;
+        uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
+
+        if (supplyUSD >= supplyCapUSD) {
+            supply = supplyUSD > 0 ? (supply * supplyCapUSD) / supplyUSD : 0;
+        }
+
+        if (borrowUSD >= borrowCapUSD) {
+            borrow = borrowUSD > 0 ? (borrow * borrowCapUSD) / borrowUSD : 0;
+        }
+
+        return ((supply + borrow), supply, borrow);
+    }
+
+    /**
+     * @notice Used to get if the XVS balance is eligible for prime token
+     * @param amount amount of XVS
+     * @return isEligible true if the staked XVS amount is enough to consider the associated user eligible for a Prime token, false otherwise
+     */
+    function isEligible(uint256 amount) internal view returns (bool) {
+        if (amount >= MINIMUM_STAKED_XVS) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @notice Calculate the interests accrued by the user in the market, since the last accrual
+     * @param vToken the market for which calculate the accrued interest
+     * @param user the user for which calculate the accrued interest
+     * @return interestAccrued the number of underlying tokens accrued by the user since the last accrual
+     */
+    function _interestAccrued(address vToken, address user) internal view returns (uint256) {
+        uint256 index = markets[vToken].rewardIndex - interests[vToken][user].rewardIndex;
+        uint256 score = interests[vToken][user].score;
+
+        return (index * score) / EXP_SCALE;
+    }
+
+    /**
+     * @notice Returns the underlying token associated with the VToken, or WBNB if the market is VBNB
+     * @param vToken the market whose underlying token will be returned
+     * @return underlying The address of the underlying token associated with the VToken, or the address of the WBNB token if the market is VBNB
+     */
+    function _getUnderlying(address vToken) internal view returns (address) {
+        if (vToken == VBNB) {
+            return WBNB;
+        } else {
+            return IVToken(vToken).underlying();
+        }
+    }
+
+    
 
     //////////////////////////////////////////////////
     //////////////// APR Calculation ////////////////
@@ -941,81 +1016,5 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         supplyAPR = totalSupply == 0 ? 0 : ((userSupplyIncomeYearly * MAXIMUM_BPS) / totalSupply);
         borrowAPR = totalBorrow == 0 ? 0 : ((userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow);
-    }
-
-    /**
-     * @notice Returns supply and borrow APR for user for a given market
-     * @param market the market for which to fetch the APR
-     * @param user the account for which to get the APR
-     * @return supplyAPR supply APR of the user in BPS
-     * @return borrowAPR borrow APR of the user in BPS
-     */
-    function calculateAPR(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
-        IVToken vToken = IVToken(market);
-        uint256 borrow = vToken.borrowBalanceStored(user);
-        uint256 exchangeRate = vToken.exchangeRateStored();
-        uint256 balanceOfAccount = vToken.balanceOf(user);
-        uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
-
-        uint256 userScore = interests[market][user].score;
-        uint256 totalScore = markets[market].sumOfMembersScore;
-
-        uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(user));
-        (, uint256 cappedSupply, uint256 cappedBorrow) = _capitalForScore(
-            xvsBalanceForScore,
-            borrow,
-            supply,
-            address(vToken)
-        );
-
-        return _calculateUserAPR(market, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
-    }
-
-    /**
-     * @notice Returns supply and borrow APR for estimated supply, borrow and XVS staked
-     * @param market the market for which to fetch the APR
-     * @param user the account for which to get the APR
-     * @param borrow hypothetical borrow amount
-     * @param supply hypothetical supply amount
-     * @param xvsStaked hypothetical staked XVS amount
-     * @return supplyAPR supply APR of the user in BPS
-     * @return borrowAPR borrow APR of the user in BPS
-     */
-    function estimateAPR(
-        address market,
-        address user,
-        uint256 borrow,
-        uint256 supply,
-        uint256 xvsStaked
-    ) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
-        uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
-
-        uint256 xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
-        (uint256 capital, uint256 cappedSupply, uint256 cappedBorrow) = _capitalForScore(
-            xvsBalanceForScore,
-            borrow,
-            supply,
-            market
-        );
-        uint256 userScore = Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
-
-        totalScore = totalScore + userScore;
-
-        return _calculateUserAPR(market, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
-    }
-
-    //////////////////////////////////////////////////
-    //////////////// (Un)Pause Claim ////////////////
-    ////////////////////////////////////////////////
-    /**
-     * @notice To pause or unpause claiming of interest
-     */
-    function togglePause() external {
-        _checkAccessAllowed("togglePause()");
-        if (paused()) {
-            _unpause();
-        } else {
-            _pause();
-        }
     }
 }

@@ -26,17 +26,16 @@ pragma solidity 0.8.13;
   limitations under the License.
 
 */
+/// Thrown when the natural log function is given too large of an argument
+error LnTooLarge(int256 x);
+/// Thrown when the natural log would have returned a number outside of ℝ
+error LnNonRealResult(int256 x);
+/// Thrown when exp is given too large of an argument
+error ExpTooLarge(int256 x);
+/// Thrown when an unsigned value is too large to be converted to a signed value
+error UnsignedValueTooLarge(uint256 x);
 
 library FixedMath0x {
-    /// Thrown when the natural log function is given too large of an argument
-    error LnTooLarge(int256 x);
-    /// Thrown when the natural log would have returned a number outside of ℝ
-    error LnNonRealResult(int256 x);
-    /// Thrown when exp is given too large of an argument
-    error ExpTooLarge(int256 x);
-    /// Thrown when an unsigned value is too large to be converted to a signed value
-    error UnsignedValueTooLarge(uint256 x);
-
     // Base for the fixed point numbers (this is our 1)
     int256 internal constant FIXED_1 = int256(0x0000000000000000000000000000000080000000000000000000000000000000);
     // Maximum ln argument (1)
