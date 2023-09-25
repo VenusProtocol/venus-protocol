@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
-import { Comptroller } from "../../../typechain";
+import { ComptrollerInterface } from "../../../typechain";
 import COMPTROLLER_ABI from "./vip-104/comptroller.json";
 import { forking, pretendExecutingVip, testVip } from "./vip-framework";
 import { ProposalType } from "./vip-framework/types";
@@ -73,10 +73,10 @@ export const vip104 = () => {
 };
 
 forking(26881099, () => {
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerInterface;
 
   before(async () => {
-    comptroller = await ethers.getContractAt("Comptroller", COMPTROLLER);
+    comptroller = await ethers.getContractAt("ComptrollerInterface", COMPTROLLER);
   });
 
   describe("Pre-VIP behavior", async () => {
@@ -130,10 +130,10 @@ forking(26881099, () => {
 });
 
 forking(26881099, () => {
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerInterface;
 
   before(async () => {
-    comptroller = await ethers.getContractAt("Comptroller", COMPTROLLER);
+    comptroller = await ethers.getContractAt("ComptrollerInterface", COMPTROLLER);
     await pretendExecutingVip(vip104());
   });
 

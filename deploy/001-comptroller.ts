@@ -14,7 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  await deploy("Comptroller", {
+  await deploy("ComptrollerMock", {
     from: deployer,
     log: true,
     autoMine: true,

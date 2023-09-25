@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
-import { Comptroller, IERC20Upgradeable, PriceOracle, VBep20 } from "../../../typechain";
+import { ComptrollerInterface, IERC20Upgradeable, PriceOracle, VBep20 } from "../../../typechain";
 import { forking, pretendExecutingVip, testVip } from "./vip-framework";
 import { ProposalType } from "./vip-framework/types";
 import { makeProposal } from "./vip-framework/utils";
@@ -144,14 +144,14 @@ forking(25892445, () => {
 });
 
 forking(25892445, () => {
-  let comptroller: Comptroller;
+  let comptroller: ComptrollerInterface;
   let trx: IERC20Upgradeable;
   let vTrxOld: VBep20;
   let vTrx: VBep20;
   let oracle: PriceOracle;
 
   before(async () => {
-    comptroller = await ethers.getContractAt("Comptroller", COMPTROLLER);
+    comptroller = await ethers.getContractAt("ComptrollerInterface", COMPTROLLER);
     const oracleAddress = await comptroller.oracle();
     oracle = await ethers.getContractAt("PriceOracle", oracleAddress);
     trx = await ethers.getContractAt("IERC20Upgradeable", NEW_TRX);

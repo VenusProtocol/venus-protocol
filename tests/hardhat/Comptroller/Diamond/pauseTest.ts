@@ -1,21 +1,17 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
+import { ethers } from "hardhat";
 
-import {
-  Comptroller,
-  Comptroller__factory,
-  IAccessControlManager,
-  PriceOracle,
-  VBep20Immutable,
-} from "../../../typechain";
+import { ComptrollerMock, IAccessControlManager, PriceOracle, VBep20Immutable } from "../../../../typechain";
+import { deployDiamond } from "./scripts/deploy";
 
 const { expect } = chai;
 chai.use(smock.matchers);
 
 type PauseFixture = {
   accessControl: FakeContract<IAccessControlManager>;
-  comptroller: MockContract<Comptroller>;
+  comptroller: ComptrollerMock;
   oracle: FakeContract<PriceOracle>;
   OMG: FakeContract<VBep20Immutable>;
   ZRX: FakeContract<VBep20Immutable>;
@@ -26,18 +22,19 @@ type PauseFixture = {
 };
 
 async function pauseFixture(): Promise<PauseFixture> {
-  const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
-  const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
-  const comptroller = await ComptrollerFactory.deploy();
+  const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  const result = await deployDiamond("");
+  const unitroller = result.unitroller;
+  const comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
   await comptroller._setAccessControl(accessControl.address);
-  const oracle = await smock.fake<PriceOracle>("PriceOracle");
+  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
 
   accessControl.isAllowedToCall.returns(true);
   await comptroller._setPriceOracle(oracle.address);
   const names = ["OMG", "ZRX", "BAT", "sketch"];
   const [OMG, ZRX, BAT, SKT] = await Promise.all(
     names.map(async name => {
-      const vToken = await smock.fake<VBep20Immutable>("VBep20Immutable");
+      const vToken = await smock.fake<VBep20Immutable>("contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable");
       if (name !== "sketch") {
         await comptroller._supportMarket(vToken.address);
       }
@@ -59,8 +56,8 @@ function configure({ accessControl, allTokens, names }: PauseFixture) {
   });
 }
 
-describe("Comptroller", () => {
-  let comptroller: MockContract<Comptroller>;
+describe("ComptrollerMock", () => {
+  let comptroller: MockContract<ComptrollerMock>;
   let OMG: FakeContract<VBep20Immutable>;
   let ZRX: FakeContract<VBep20Immutable>;
   let BAT: FakeContract<VBep20Immutable>;
