@@ -380,7 +380,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @return timeRemaining the number of seconds the user needs to wait to claim prime token
      */
     function claimTimeRemaining(address user) external view returns (uint256) {
-        if (stakedAt[user] == 0) revert IneligibleToClaim();
+        if (stakedAt[user] == 0) return STAKING_PERIOD;
 
         uint256 totalTimeStaked = block.timestamp - stakedAt[user];
         if (totalTimeStaked < STAKING_PERIOD) {
