@@ -1,7 +1,7 @@
 import fs from "fs";
 import { ethers } from "hardhat";
 
-import { FacetCutAction, getSelectors } from "../../../tests/hardhat/Comptroller/Diamond/scripts/diamond";
+import { FacetCutAction, getSelectors } from "./diamond";
 
 /**
  * This script is used to generate the cut-params which will be used in diamond proxy vip

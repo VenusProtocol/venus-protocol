@@ -1,8 +1,8 @@
 import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
 import hre from "hardhat";
 
+import { FacetCutAction, getSelectors } from "../../../../../script/deploy/comptroller/diamond";
 import { Unitroller__factory } from "../../../../../typechain";
-import { FacetCutAction, getSelectors } from "./diamond";
 
 require("dotenv").config();
 
@@ -10,7 +10,7 @@ const ethers = hre.ethers;
 
 const Owner = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
 
-async function deployFacets() {
+export async function deployFacets() {
   // deploy Diamond
   const Diamond = await ethers.getContractFactory("Diamond");
   const diamond = await Diamond.deploy();
@@ -40,7 +40,7 @@ async function deployFacets() {
   };
 }
 
-async function deployDiamond(unitrollerAddress) {
+export async function deployDiamond(unitrollerAddress) {
   let unitroller;
   let unitrollerAdmin;
 
@@ -81,6 +81,3 @@ if (require.main === module) {
       process.exit(1);
     });
 }
-
-exports.deployDiamond = deployDiamond;
-exports.deployFacets = deployFacets;

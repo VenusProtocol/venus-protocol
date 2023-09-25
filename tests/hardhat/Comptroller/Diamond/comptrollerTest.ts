@@ -1,7 +1,8 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { Signer, constants } from "ethers";
+import { constants } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../../helpers/utils";
@@ -64,8 +65,8 @@ async function configureVToken(vToken: FakeContract<VToken>, unitroller: MockCon
 }
 
 describe("Comptroller", () => {
-  let root: Signer;
-  let accounts: Signer[];
+  let root: SignerWithAddress;
+  let accounts: SignerWithAddress[];
   let comptroller: ComptrollerMock;
 
   before(async () => {
@@ -83,7 +84,7 @@ describe("Comptroller", () => {
   describe("constructor", () => {
     it("on success it sets admin to creator and pendingAdmin is unset", async () => {
       const { comptroller } = await loadFixture(deploySimpleComptroller);
-      expect(await comptroller.admin()).to.equal(await root.getAddress());
+      expect(await comptroller.admin()).to.equal(root.address);
       expect(await comptroller.pendingAdmin()).to.equal(constants.AddressZero);
     });
   });
@@ -562,11 +563,7 @@ describe("Comptroller", () => {
         vToken.exchangeRateStored.returns(exchangeRate);
         await comptroller._setMarketSupplyCaps([vToken.address], [cap]);
         expect(
-          await comptroller.callStatic.mintAllowed(
-            vToken.address,
-            await root.getAddress(),
-            convertToUnit("0.9999", 18),
-          ),
+          await comptroller.callStatic.mintAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
         ).to.equal(0); // 0 means "no error"
       });
 
@@ -580,29 +577,29 @@ describe("Comptroller", () => {
         vToken.exchangeRateStored.returns(exchangeRate);
         await comptroller._setMarketSupplyCaps([vToken.address], [cap]);
         await expect(
-          comptroller.mintAllowed(vToken.address, await root.getAddress(), convertToUnit("1.01", 18)),
+          comptroller.mintAllowed(vToken.address, root.address, convertToUnit("1.01", 18)),
         ).to.be.revertedWith("market supply cap reached");
       });
 
       it("reverts if market is not listed", async () => {
         const someVToken = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
         await expect(
-          comptroller.mintAllowed(someVToken.address, await root.getAddress(), convertToUnit("1", 18)),
+          comptroller.mintAllowed(someVToken.address, root.address, convertToUnit("1", 18)),
         ).to.be.revertedWith("market not listed");
       });
     });
 
     describe("redeemVerify", () => {
       it("should allow you to redeem 0 underlying for 0 tokens", async () => {
-        await comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 0, 0);
+        await comptroller.redeemVerify(vToken.address, accounts[0].address, 0, 0);
       });
 
       it("should allow you to redeem 5 underlyig for 5 tokens", async () => {
-        await comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 5);
+        await comptroller.redeemVerify(vToken.address, accounts[0].address, 5, 5);
       });
 
       it("should not allow you to redeem 5 underlying for 0 tokens", async () => {
-        await expect(comptroller.redeemVerify(vToken.address, await accounts[0].getAddress(), 5, 0)).to.be.revertedWith(
+        await expect(comptroller.redeemVerify(vToken.address, accounts[0].address, 5, 0)).to.be.revertedWith(
           "redeemTokens zero",
         );
       });
