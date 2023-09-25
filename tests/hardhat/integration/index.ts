@@ -213,6 +213,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       primeLiquidityProvider.address,
       comptroller.address,
       oracle.address,
+      10,
     ],
     {
       constructorArgs: [wbnb.address, vbnb.address, 10512000],
@@ -317,11 +318,11 @@ describe("Prime Token", () => {
 
       await mine(90 * 24 * 60 * 60);
       await prime.connect(user).claim();
-      expect(await prime._totalRevocable()).to.be.equal(1);
+      expect(await prime.totalRevocable()).to.be.equal(1);
 
       await prime.connect(user2).claim();
 
-      expect(await prime._totalRevocable()).to.be.equal(2);
+      expect(await prime.totalRevocable()).to.be.equal(2);
 
       await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(5000));
 
@@ -335,7 +336,7 @@ describe("Prime Token", () => {
       expect(token.exists).to.be.equal(false);
       expect(token.isIrrevocable).to.be.equal(false);
 
-      expect(await prime._totalRevocable()).to.be.equal(1);
+      expect(await prime.totalRevocable()).to.be.equal(1);
     });
 
     it("cannot burn irrevocable token", async () => {

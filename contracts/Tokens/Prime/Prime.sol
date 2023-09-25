@@ -93,13 +93,13 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /// @notice Emitted when revocable token is upgraded to irrevocable token
     event TokenUpgraded(address indexed user);
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
     /**
      * @notice Prime constructor
      * @param _wbnb Address of WBNB
      * @param _vbnb Address of VBNB
      * @param _blocksPerYear total blocks per year
      */
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) {
         if (_wbnb == address(0)) revert InvalidAddress();
         if (_vbnb == address(0)) revert InvalidAddress();

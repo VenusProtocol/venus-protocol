@@ -54,6 +54,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param actualMintAmount The amount of the underlying asset being minted
      * @param mintTokens The number of tokens being minted
      */
+    // solhint-disable-next-line no-unused-vars
     function mintVerify(address vToken, address minter, uint256 actualMintAmount, uint256 mintTokens) external {
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(minter, vToken);
@@ -203,11 +204,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param actualRepayAmount The amount of underlying being repaid
      */
     function repayBorrowVerify(
+        /* solhint-disable no-unused-vars */
         address vToken,
         address payer,
         address borrower,
         uint256 actualRepayAmount,
         uint256 borrowerIndex
+        /* solhint-enable no-unused-vars */
     ) external {
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vToken);
@@ -283,12 +286,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param seizeTokens The amount of collateral token that will be seized
      */
     function liquidateBorrowVerify(
+        /* solhint-disable no-unused-vars */
         address vTokenBorrowed,
         address vTokenCollateral,
         address liquidator,
         address borrower,
         uint256 actualRepayAmount,
         uint256 seizeTokens
+        /* solhint-enable no-unused-vars */
     ) external {
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vTokenBorrowed);
@@ -350,11 +355,13 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     // solhint-disable-next-line no-unused-vars
     function seizeVerify(
+        /* solhint-disable no-unused-vars */
         address vTokenCollateral,
         address vTokenBorrowed,
         address liquidator,
         address borrower,
         uint256 seizeTokens
+        /* solhint-enable no-unused-vars */
     ) external {
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vTokenCollateral);
