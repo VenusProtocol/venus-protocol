@@ -67,49 +67,6 @@ To run venus, pull the repository from GitHub and install its dependencies. You 
     cd venus-protocol
     yarn install --lock-file # or `npm install`
 
-## Solidity Compiler Installation on MacOS
-
-- Solidity smart contracts in venus-protocol use `solc` version 0.5.16
-
-- To install solidity compiler `solc`, follow the instructions listed here:
-
-  1. clone `homebrew-ethereum` project that provides homebrew formulae for `solc`:
-
-  ```sh
-  git clone git@github.com:ethereum/homebrew-ethereum.git
-  ```
-
-  2. change to project directory
-
-  ```sh
-    cd homebrew-ethereum
-  ```
-
-  3. checkout the commit hash for version 0.5.16
-
-  ```sh
-    git checkout 5df4d76a780813a0ad625619572afb358d46c1d4
-  ```
-
-  4. Install compiler version 0.5.16 by executing command
-
-  ```sh
-    brew install solidity@5
-  ```
-
-  5. Verify the installed solidity version
-
-  ```sh
-    solc --version
-  ```
-
-  - the command should print the console log:
-
-  ```
-  solc, the solidity compiler commandline interface
-  Version: 0.5.16+commit.9c3226ce.Darwin.appleclang
-  ```
-
 ## Testing
 
 Jest contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
