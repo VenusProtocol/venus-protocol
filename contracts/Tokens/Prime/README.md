@@ -116,7 +116,7 @@ return borrowQVL + supplyQVL
 
 A higher value of α increases the weight on stake contributions in the determination of rewards and decreases the weight on supply/borrow contributions. The value of α is between 0-1
 
-0.5 weight seems to be a good value to keep constant and not change it. A higher value will only be required if we want to attract more XVS stake from the prime token holders.
+A default weight of 0.5 weight has been evaluated as a good ratio and is not likely to be changed. A higher value will only be needed if we want to attract more XVS stake from the prime token holders at the expense of supply/ borrow rewards.
 
 Here is an example to show how the score is impacted based on the value of α:
 
@@ -180,7 +180,7 @@ $$\text{User APY Increase} = \dfrac{0.00372}{0.097} = 3.88\%$$
 
 **Expected Rewards Function**
 
-Rewards in the Venus Prime program will automatically increase as a user increases its XVS Stake, so long as the amount staked and market participation fall within the limits outlined in the "Rewards" section above.
+Venus Prime program rewards will automatically increase as a user increases their XVS stake, as long as the amount staked and market participation fall within the limits outlined in the "Rewards" section above.
 
 <figure><img src="https://github.com/VenusProtocol/venus-protocol-documentation/blob/127301b54fb5aa7048aaa65256615690d2c807fb/.gitbook/assets/apy_graph_transparent_2500_corrected_labels.png" alt=""><figcaption><p><em>Please note that the rewards can vary based on the total market participation and the amount of XVS staked, as illustrated by the formula and example above.</em></p></figcaption></figure>
 
@@ -220,15 +220,15 @@ More information about Income collection and distribution [here](https://docs-v4
 
 ## Update cap multipliers and alpha
 
-We need the ability to update market multipliers and alpha anytime. When these values are updated changes will be gradually applied instead of applying changes instantly. So as users will borrow/supply their individual scores and the sum of total scores will be updated.
+Market multipliers and alpha can be updated at anytime and need to be propagated to all users. Changes will be gradually applied to users as they borrow/supply assets and their individual scores are recalculated. This strategy has limitations because the scores will be wrong in aggregate.
 
-There will be also a script that will call the permission-less function `updateScores` to update the scores of all users at any time. This script won’t pause the market or prime contract. This script updates scores in multiple transactions as in 1 transaction it will run out of gas. 
+To mitigate this issue, Venus will supply a script that will use the permission-less function `updateScores` to update the scores of all users. This script won’t pause the market or prime contract. This script will update scores in multiple transactions because it will run out of gas trying to update all scores in 1 transaction. 
 
-As the market won't be paused, there could be inconsistencies as there will be user supply/borrow transactions in between update transactions. But the inconsistencies will be very minor compared to letting it update gradually when users will borrow/supply. 
+As the market won't be paused, there could be inconsistencies because there will be user supply/borrow transactions in between updating scores transactions. These inconsistencies will be very minor compared to letting it update gradually when users will borrow/supply. 
 
 There are two main objectives for creating this script:
 
-* If the Venus community wants to update the scores of all users when multipliers or alpha are updated then we have an immediate option
+* If the Venus community wants to update the scores of all users when multipliers or alpha are updated then we have an immediate option.
 * After minting prime tokens if the Venus community decides to add an existing market to the prime token program then the score of all users has to be updated to start giving them rewards. The scores cannot be applied gradually in this case as the initial prime users for the market will get large rewards for some time. So this script will prevent this scenario.
 
 There is a variable named `totalScoreUpdatesRequired` to track how many scores updates are pending. This is for tracking purposes and visibility to the community.
@@ -239,11 +239,11 @@ The goal is to offer a view function that allows the [Venus UI](https://app.venu
 
 The steps to perform this calculation are:
 
-1. calculate the income per block (see below) // TODO link
-2. get from the [ProtocolShareReserve](https://github.com/VenusProtocol/protocol-reserve/blob/develop/contracts/ProtocolReserve/ProtocolShareReserve.sol) the percentage associated with Prime (`distributionTarget` where the destination is `address(Prime)` and `schema` is `SPREAD_PRIME_CORE`
-3. calculate the income per block sent to Prime (1 times 2), sum the funds provided by the Prime Liquidity Provider contract, and multiply it by the number of blocks in one year
-4. multiply (3) by the user score in that market, and divide it by the sum of scores in that market. This is the extrapolation of income generated by Prime to this user
-5. split (4) proportional to the (capped) borrow and supply amounts of the user in that market at that moment, and divide these numbers to calculate the APR
+1. Calculate the income per block (see below) // TODO link
+2. Get from the [ProtocolShareReserve](https://github.com/VenusProtocol/protocol-reserve/blob/develop/contracts/ProtocolReserve/ProtocolShareReserve.sol) the percentage associated with Prime (`distributionTarget` where the destination is `address(Prime)` and `schema` is `SPREAD_PRIME_CORE`
+3. Calculate the income per block sent to Prime (1 times 2), sum the funds provided by the Prime Liquidity Provider contract, and multiply it by the number of blocks in one year
+4. Multiply (3) by the user score in that market, and divide it by the sum of scores in that market. This is the extrapolation of income generated by Prime for this user
+5. Split (4) proportional to the (capped) borrow and supply amounts of the user in that market at that moment, and divide these numbers to calculate the APR
 
 **Example:**
 
@@ -261,7 +261,7 @@ The steps to perform this calculation are:
     1. borrow: 56.76/30 = 1.89 = 189%
     2. supply: 37.84/10 = 3.78 = 378%
 
-Only part of the supplied and borrowed amounts (the capped amounts) are really "working" to increase the prime rewards. The rest of the supplied or borrowed amounts do not generate extra rewards. In the example, if the user supplies more USDT, they won't generate more rewards (because the supply amount to be considered is capped at 15 USDT). So, it would make sense that the supply APR would decrease if they supply more USDT.
+Only part of the supplied and borrowed amounts (the capped amounts) are actually "working" to increase the prime rewards. The rest of the supplied or borrowed amounts do not generate extra rewards. In the example, if the user supplies more USDT, they won't generate more rewards (because the supply amount to be considered is capped at 15 USDT). So, it would make sense that the supply APR would decrease if they supply more USDT.
 
 ## Bootstrap liquidity for the Prime program
 
@@ -289,7 +289,7 @@ Regarding the `PrimeLiquidityProvider`,
 
 ## Pause `claimInterest`
 
-It is desired to have a feature flag to enable/disabled the function `claimInterest`. By having this feature paused, non users will be able to invoke this function.
+It is desired to have a feature flag to enable/disable the function `claimInterest`. When this feature paused, no users will be able to invoke this function.
 
 The OpenZeppelin Plausable contract is used. Only the `claimInterest` function is under control of this pause mechanism.
 

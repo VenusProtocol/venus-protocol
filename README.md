@@ -18,7 +18,7 @@ We detail a few of the core contracts in the Venus protocol.
 
 <dl>
   <dt>VToken, VBep20 and VBNB</dt>
-  <dd>The Venus vTokens, which are self-contained borrowing and lending contracts. VToken contains the core logic and VBep20 and VBNB add public interfaces for Bep20 tokens and bnb, respectively. Each VToken is assigned an interest rate and risk model (see InterestRateModel and Comptroller sections), and allows accounts to *mint* (supply capital), *redeem* (withdraw capital), *borrow* and *repay a borrow*. Each VToken is an BEP-20 compliant token where balances represent ownership of the market.</dd>
+  <dd>The Venus vTokens, which are self-contained borrowing and lending contracts. VToken contains the core logic and VBep20 and VBNB add public interfaces for Bep20 tokens and BNB, respectively. Each VToken is assigned an interest rate and risk model (see InterestRateModel and Comptroller sections), and allows accounts to *mint* (supply capital), *redeem* (withdraw capital), *borrow* and *repay a borrow*. Each VToken is an BEP-20 compliant token where balances represent ownership of the market.</dd>
 </dl>
 
 <dl>
