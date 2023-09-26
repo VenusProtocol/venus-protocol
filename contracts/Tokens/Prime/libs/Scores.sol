@@ -12,7 +12,7 @@ library Scores {
      * @notice Calculate a membership score given some amount of `xvs` and `capital`, along
      *  with some 𝝰 = `alphaNumerator` / `alphaDenominator`.
      * @param xvs amount of xvs (xvs, 1e18 decimal places)
-     * @param capital amount of capital (USDC, 1e6 decimal places)
+     * @param capital amount of capital (1e18 decimal places)
      * @param alphaNumerator alpha param numerator
      * @param alphaDenominator alpha param denominator
      * @return membership score with 1e18 decimal places
