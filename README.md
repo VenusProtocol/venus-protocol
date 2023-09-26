@@ -1,3 +1,7 @@
+# This repository is temporarily read-only
+
+This repository is being audited. It has been temporarily frozen to avoid any unexpected change in the reviewed code. It will be unarchived in 10 days.
+
 [![GitHub Actions](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml/badge.svg)](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml)
 
 # Venus Protocol
