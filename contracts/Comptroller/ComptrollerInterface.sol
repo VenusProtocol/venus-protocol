@@ -105,6 +105,8 @@ contract ComptrollerInterface {
 
     function getAssetsIn(address) external view returns (VToken[] memory);
 
+    function swapBorrowRateModeAllowed(address vToken) external;
+
     function claimVenus(address) external;
 
     function venusAccrued(address) external view returns (uint);

@@ -90,6 +90,18 @@ contract VBep20 is VToken, VBep20Interface {
     }
 
     /**
+     * @notice Sender borrows assets from the protocol to their own address
+     * @param borrowAmount The amount of the underlying asset to borrow
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     */
+    // @custom:event Emits Borrow event on success
+    function borrowStable(uint borrowAmount) external returns (uint) {
+        address borrower = msg.sender;
+        address payable receiver = msg.sender;
+        return borrowStableInternal(borrower, receiver, borrowAmount);
+    }
+
+    /**
      * @notice Sender repays their own borrow
      * @param repayAmount The amount to repay
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
@@ -98,6 +110,10 @@ contract VBep20 is VToken, VBep20Interface {
     function repayBorrow(uint repayAmount) external returns (uint) {
         (uint err, ) = repayBorrowInternal(repayAmount);
         return err;
+    }
+
+    function repayStableBorrow(uint repayAmount) external returns (uint) {
+        return repayBorrowStable(repayAmount);
     }
 
     /**
@@ -110,6 +126,10 @@ contract VBep20 is VToken, VBep20Interface {
     function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint) {
         (uint err, ) = repayBorrowBehalfInternal(borrower, repayAmount);
         return err;
+    }
+
+    function repayStableBorrowBehalf(address borrower, uint repayAmount) external returns (uint) {
+        return repayBorrowStableBehalf(borrower, repayAmount);
     }
 
     /**

@@ -455,6 +455,13 @@ contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface
         return abi.decode(data, (uint256));
     }
 
+    function setStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256) {
+        bytes memory data = delegateToImplementation(
+            abi.encodeWithSignature("setStableInterestRateModel(address)", newStableInterestRateModel)
+        );
+        return abi.decode(data, (uint));
+    }
+
     /**
      * @notice Internal method to delegate execution to another contract
      * @dev It returns to the external caller whatever the implementation returns or forwards reverts

@@ -183,6 +183,10 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
         return token.balanceOf(address(this));
     }
 
+    function setStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256) {
+        return _setStableInterestRateModelFresh(newStableInterestRateModel);
+    }
+
     /**
      * @dev Similar to EIP20 transfer, except it handles a False result from `transferFrom` and reverts in that case.
      *      This will revert due to insufficient balance or insufficient allowance.

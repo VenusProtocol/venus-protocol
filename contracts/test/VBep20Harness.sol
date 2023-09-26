@@ -35,6 +35,21 @@ contract VBep20Harness is VBep20Immutable {
         )
     {}
 
+    function initializeHarness(
+        address underlying_,
+        ComptrollerInterface comptroller_,
+        InterestRateModel interestRateModel_,
+        uint initialExchangeRateMantissa_,
+        string calldata name_,
+        string calldata symbol_,
+        uint8 decimals_
+    ) external {
+        super.initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
+        // Set underlying and sanity check it
+        underlying = underlying_;
+        EIP20Interface(underlying).totalSupply();
+    }
+
     function doTransferOut(address payable to, uint amount) internal {
         require(failTransferToAddresses[to] == false, "TOKEN_TRANSFER_OUT_FAILED");
         return super.doTransferOut(to, amount);
@@ -51,8 +66,16 @@ contract VBep20Harness is VBep20Immutable {
         return blockNumber;
     }
 
+    function harnessGetBlockNumber() public view returns (uint) {
+        return blockNumber;
+    }
+
     function getBorrowRateMaxMantissa() public pure returns (uint) {
         return borrowRateMaxMantissa;
+    }
+
+    function getStableBorrowRateMaxMantissa() external pure returns (uint256) {
+        return stableBorrowRateMaxMantissa;
     }
 
     function harnessSetAccrualBlockNumber(uint _accrualblockNumber) public {
@@ -79,8 +102,21 @@ contract VBep20Harness is VBep20Immutable {
         totalBorrows = totalBorrows_;
     }
 
+    function harnessSetStableBorrows(uint256 stableBorrows_) external {
+        stableBorrows = stableBorrows_;
+    }
+
     function harnessSetTotalReserves(uint totalReserves_) public {
         totalReserves = totalReserves_;
+    }
+
+    function harnessSetStableInterestRateModel(StableRateModel newStableInterestRateModel) public returns (uint256) {
+        uint err = setStableInterestRateModel(newStableInterestRateModel);
+        return err;
+    }
+
+    function harnessRepayBorrowStable(uint amount) public {
+        repayBorrowStable(amount);
     }
 
     function harnessExchangeRateDetails(uint totalSupply_, uint totalBorrows_, uint totalReserves_) public {
@@ -121,20 +157,59 @@ contract VBep20Harness is VBep20Immutable {
         return (snapshot.principal, snapshot.interestIndex);
     }
 
+    function harnessAccountStableBorrows(
+        address account
+    )
+        external
+        view
+        returns (uint256 principal, uint256 stableRateMantissa, uint256 interestIndex, uint256 lastBlockAccrued)
+    {
+        StableBorrowSnapshot memory snapshot = accountStableBorrows[account];
+        return (snapshot.principal, snapshot.stableRateMantissa, snapshot.interestIndex, snapshot.lastBlockAccrued);
+    }
+
     function harnessSetAccountBorrows(address account, uint principal, uint interestIndex) public {
         accountBorrows[account] = BorrowSnapshot({ principal: principal, interestIndex: interestIndex });
+    }
+
+    function harnessSetAccountStableBorrows(
+        address account,
+        uint256 principal,
+        uint256 interestIndex,
+        uint256 stableRateMantissa,
+        uint256 lastBlock
+    ) external {
+        accountStableBorrows[account] = StableBorrowSnapshot({
+            principal: principal,
+            interestIndex: interestIndex,
+            stableRateMantissa: stableRateMantissa,
+            lastBlockAccrued: lastBlock
+        });
     }
 
     function harnessSetBorrowIndex(uint borrowIndex_) public {
         borrowIndex = borrowIndex_;
     }
 
+    function harnessSetStableBorrowIndex(uint256 stableBorrowIndex_) external {
+        stableBorrowIndex = stableBorrowIndex_;
+    }
+
     function harnessBorrowFresh(address payable account, uint borrowAmount) public returns (uint) {
-        return borrowFresh(account, account, borrowAmount);
+        borrowFresh(account, account, borrowAmount, InterestRateMode.VARIABLE);
+    }
+
+    function harnessBorrowStableFresh(address payable account, uint borrowAmount) public returns (uint) {
+        borrowFresh(account, account, borrowAmount, InterestRateMode.STABLE);
     }
 
     function harnessRepayBorrowFresh(address payer, address account, uint repayAmount) public returns (uint) {
-        (uint err, ) = repayBorrowFresh(payer, account, repayAmount);
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount, InterestRateMode.VARIABLE);
+        return err;
+    }
+
+    function harnessRepayBorrowStableFresh(address payer, address account, uint repayAmount) public returns (uint) {
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount, InterestRateMode.STABLE);
         return err;
     }
 
@@ -166,6 +241,22 @@ contract VBep20Harness is VBep20Immutable {
 
     function harnessCallBorrowAllowed(uint amount) public returns (uint) {
         return comptroller.borrowAllowed(address(this), msg.sender, amount);
+    }
+
+    function harnessSetAvgStableBorrowRate(uint256 averageStableBorrowRate_) public {
+        averageStableBorrowRate = averageStableBorrowRate_;
+    }
+
+    function harnessStableBorrows(uint256 stableBorrows_) public {
+        stableBorrows = stableBorrows_;
+    }
+
+    function accrueStableInterest(uint256 blockDelta) public returns (uint256) {
+        return _accrueStableInterest(blockDelta);
+    }
+
+    function harnessUpdateUserStableBorrowBalance(address account) public returns (uint256) {
+        return _updateUserStableBorrowBalance(account);
     }
 }
 
@@ -382,11 +473,20 @@ contract VBep20DelegateHarness is VBep20Delegate {
     }
 
     function harnessBorrowFresh(address payable account, uint borrowAmount) public returns (uint) {
-        return borrowFresh(account, account, borrowAmount);
+        borrowFresh(account, account, borrowAmount, InterestRateMode.VARIABLE);
+    }
+
+    function harnessBorrowStableFresh(address payable account, uint256 borrowAmount) public returns (uint) {
+        borrowFresh(account, account, borrowAmount, InterestRateMode.STABLE);
     }
 
     function harnessRepayBorrowFresh(address payer, address account, uint repayAmount) public returns (uint) {
-        (uint err, ) = repayBorrowFresh(payer, account, repayAmount);
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount, InterestRateMode.VARIABLE);
+        return err;
+    }
+
+    function harnessRepayBorrowStableFresh(address payer, address account, uint repayAmount) public returns (uint) {
+        (uint err, ) = repayBorrowFresh(payer, account, repayAmount, InterestRateMode.STABLE);
         return err;
     }
 

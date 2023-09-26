@@ -382,6 +382,14 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     function transferVerify(address vToken, address src, address dst, uint256 transferTokens) external {}
 
     /**
+     * @notice Check for the borrow rate swap is allowed.
+     * @param vToken Address of the vToken, borrow rate swap has to perform.
+     */
+    function swapBorrowRateModeAllowed(address vToken) external view {
+        checkActionPauseState(vToken, Action.SWAP_RATE_MODE);
+    }
+
+    /**
      * @notice Determine the current account liquidity wrt collateral requirements
      * @return (possible error code (semi-opaque),
                 account liquidity in excess of collateral requirements,

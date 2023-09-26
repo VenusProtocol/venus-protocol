@@ -76,6 +76,8 @@ interface IPolicyFacet {
 
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256);
 
+    function swapBorrowRateModeAllowed(address vToken) external view;
+
     function getHypotheticalAccountLiquidity(
         address account,
         address vTokenModify,
