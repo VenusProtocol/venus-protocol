@@ -5,14 +5,15 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
-import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "./Interfaces.sol";
+import { ensureNonzeroAddress } from "./zeroAddress.sol";
+import { ILiquidator, IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "./Interfaces.sol";
 
 /**
  * @title Liquidator
  * @author Venus
  * @notice The Liquidator contract is responsible for liquidating underwater accounts.
  */
-contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
+contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice Address of vBNB contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IVBNB public immutable vBnb;
@@ -94,9 +95,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice Thrown if BNB amount sent with the transaction doesn't correspond to the
     ///         intended BNB repayment
     error WrongTransactionAmount(uint256 expected, uint256 actual);
-
-    /// @notice Thrown if the argument is a zero address because probably it is a mistake
-    error UnexpectedZeroAddress();
 
     /// @notice Thrown if trying to set treasury percent larger than the liquidation profit
     error TreasuryPercentTooHigh(uint256 maxTreasuryPercentMantissa, uint256 treasuryPercentMantissa_);
@@ -305,12 +303,6 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         }
 
         revert LiquidationFailed(errCode);
-    }
-
-    function ensureNonzeroAddress(address address_) internal pure {
-        if (address_ == address(0)) {
-            revert UnexpectedZeroAddress();
-        }
     }
 
     function checkRestrictions(address borrower, address liquidator) internal view {
