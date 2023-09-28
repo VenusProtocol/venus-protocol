@@ -17,20 +17,6 @@ import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 import { IIncomeDestination } from "./Interfaces/IIncomeDestination.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
 
-error MarketNotSupported();
-error InvalidLimit();
-error IneligibleToClaim();
-error WaitMoreTime();
-error UserHasNoPrimeToken();
-error InvalidCaller();
-error InvalidComptroller();
-error NoScoreUpdatesRequired();
-error MarketAlreadyExists();
-error InvalidAddress();
-error InvalidBlocksPerYear();
-error InvalidAlphaArguments();
-error InvalidVToken();
-
 /// @custom:security-contact https://github.com/VenusProtocol/venus-protocol
 contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -93,11 +79,52 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /// @notice Emitted when revocable token is upgraded to irrevocable token
     event TokenUpgraded(address indexed user);
 
+    /// @notice Error thrown when market is not supported
+    error MarketNotSupported();
+
+    /// @notice Error thrown when mint limit is reached
+    error InvalidLimit();
+
+    /// @notice Error thrown when user is not eligible to claim prime token
+    error IneligibleToClaim();
+
+    /// @notice Error thrown when user needs to wait more time to claim prime token
+    error WaitMoreTime();
+
+    /// @notice Error thrown when user has no prime token
+    error UserHasNoPrimeToken();
+
+    /// @notice Error thrown when msg.sender is not allowed to call the function
+    error InvalidCaller();
+
+    /// @notice Error thrown when comptroller is not valid
+    error InvalidComptroller();
+
+    /// @notice Error thrown when no score updates are required
+    error NoScoreUpdatesRequired();
+
+    /// @notice Error thrown when market already exists
+    error MarketAlreadyExists();
+
+    /// @notice Error thrown when invalid address is passed
+    error InvalidAddress();
+
+    /// @notice Error thrown when blocks per year is passed as 0
+    error InvalidBlocksPerYear();
+
+    /// @notice Error thrown when invalid alpha arguments are passed
+    error InvalidAlphaArguments();
+
+    /// @notice Error thrown when invalid vToken is passed
+    error InvalidVToken();
+
     /**
      * @notice Prime constructor
      * @param _wbnb Address of WBNB
      * @param _vbnb Address of VBNB
      * @param _blocksPerYear total blocks per year
+     * @custom:error Throw InvalidAddress if any of the address is invalid
+     * @custom:error Throw InvalidBlocksPerYear if blocks per year is 0
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) {
@@ -126,6 +153,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param _comptroller Address of Comptroller
      * @param _oracle Address of Oracle
      * @param _loopsLimit Maximum number of loops allowed in a single transaction
+     * @custom:error Throw InvalidAddress if any of the address is invalid
      */
     function initialize(
         address _xvsVault,
@@ -196,6 +224,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice Update total score of multiple users and market
      * @param users accounts for which we need to update score
+     * @custom:error Throw NoScoreUpdatesRequired if no score updates are required
+     * @custom:error Throw UserHasNoPrimeToken if user has no prime token
      */
     function updateScores(address[] memory users) external {
         if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
@@ -259,6 +289,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param market address of the market vToken
      * @param supplyMultiplier new supply multiplier for the market, scaled by 1e18
      * @param borrowMultiplier new borrow multiplier for the market, scaled by 1e18
+     * @custom:error Throw MarketNotSupported if market is not supported
      */
     function updateMultipliers(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
@@ -284,6 +315,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param market address of the market vToken
      * @param supplyMultiplier the multiplier for supply cap. It should be converted to 1e18
      * @param borrowMultiplier the multiplier for borrow cap. It should be converted to 1e18
+     * @custom:error Throw MarketAlreadyExists if market already exists
+     * @custom:error Throw InvalidVToken if market is not valid
      */
     function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
@@ -312,6 +345,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @notice Set limits for total tokens that can be minted
      * @param _irrevocableLimit total number of irrevocable tokens that can be minted
      * @param _revocableLimit total number of revocable tokens that can be minted
+     * @custom:error Throw InvalidLimit if any of the limit is less than total tokens minted
      */
     function setLimit(uint256 _irrevocableLimit, uint256 _revocableLimit) external {
         _checkAccessAllowed("setLimit(uint256,uint256)");
@@ -437,7 +471,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
-     * @param user the user for which claim the accrued interest
+     * @param user the user for which to claim the accrued interest
      * @return amount the amount of tokens transferred to the user
      */
     function claimInterest(address vToken, address user) external whenNotPaused returns (uint256) {
@@ -448,6 +482,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @notice Callback by ProtocolShareReserve to update assets state when funds are released to this contract
      * @param _comptroller The address of the Comptroller whose income is distributed
      * @param asset The address of the asset whose income is distributed
+     * @custom:error Throw InvalidCaller if caller is not protocol share reserve
+     * @custom:error Throw InvalidComptroller if comptroller is not valid
+     * @custom:error Throw MarketNotSupported if market is not supported
      */
     function updateAssetsState(address _comptroller, address asset) external {
         if (msg.sender != protocolShareReserve) revert InvalidCaller();
@@ -550,6 +587,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice Distributes income from market since last distribution
      * @param vToken the market for which to distribute the income
+     * @custom:error Throw MarketNotSupported if market is not supported
      */
     function accrueInterest(address vToken) public {
         if (!markets[vToken].exists) revert MarketNotSupported();
@@ -700,6 +738,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @notice Used to mint a new prime token
      * @param isIrrevocable is the tokens being issued is irrevocable
      * @param user token owner
+     * @custom:error Throw IneligibleToClaim if user is not eligible to claim prime token
      */
     function _mint(bool isIrrevocable, address user) internal {
         if (tokens[user].exists) revert IneligibleToClaim();
@@ -721,6 +760,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice Used to burn a new prime token
      * @param user owner whose prime token to burn
+     * @custom:error Throw UserHasNoPrimeToken if user has no prime token
      */
     function _burn(address user) internal {
         if (!tokens[user].exists) revert UserHasNoPrimeToken();
@@ -758,6 +798,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice Used to upgrade an token
      * @param user owner whose prime token to upgrade
+     * @custom:error Throw InvalidLimit if total irrevocable tokens exceeds the limit
      */
     function _upgrade(address user) internal {
         Token storage userToken = tokens[user];
@@ -805,6 +846,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @notice Verify new alpha arguments
      * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1
      * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2
+     * @custom:error Throw InvalidAlphaArguments if alpha is invalid
      */
     function _checkAlphaArguments(uint128 _alphaNumerator, uint128 _alphaDenominator) internal {
         if (_alphaDenominator == 0 || _alphaNumerator > _alphaDenominator) {
