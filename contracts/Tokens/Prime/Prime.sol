@@ -281,31 +281,31 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /**
      * @notice Add a market to prime program
-     * @param vToken address of the market vToken
+     * @param market address of the market vToken
      * @param supplyMultiplier the multiplier for supply cap. It should be converted to 1e18
      * @param borrowMultiplier the multiplier for borrow cap. It should be converted to 1e18
      */
-    function addMarket(address vToken, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
+    function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
-        if (markets[vToken].exists) revert MarketAlreadyExists();
+        if (markets[market].exists) revert MarketAlreadyExists();
 
-        bool isMarketExist = InterfaceComptroller(comptroller).markets(vToken);
+        bool isMarketExist = InterfaceComptroller(comptroller).markets(market);
         if (!isMarketExist) revert InvalidVToken();
 
-        markets[vToken].rewardIndex = 0;
-        markets[vToken].supplyMultiplier = supplyMultiplier;
-        markets[vToken].borrowMultiplier = borrowMultiplier;
-        markets[vToken].sumOfMembersScore = 0;
-        markets[vToken].exists = true;
+        markets[market].rewardIndex = 0;
+        markets[market].supplyMultiplier = supplyMultiplier;
+        markets[market].borrowMultiplier = borrowMultiplier;
+        markets[market].sumOfMembersScore = 0;
+        markets[market].exists = true;
 
-        vTokenForAsset[_getUnderlying(vToken)] = vToken;
+        vTokenForAsset[_getUnderlying(market)] = market;
 
-        allMarkets.push(vToken);
+        allMarkets.push(market);
         _startScoreUpdateRound();
 
         _ensureMaxLoops(allMarkets.length);
 
-        emit MarketAdded(vToken, supplyMultiplier, borrowMultiplier);
+        emit MarketAdded(market, supplyMultiplier, borrowMultiplier);
     }
 
     /**
