@@ -265,6 +265,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1
      * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2
      * @custom:event Emits AlphaUpdated event
+     * @custom:access Controlled by ACM
      */
     function updateAlpha(uint128 _alphaNumerator, uint128 _alphaDenominator) external {
         _checkAccessAllowed("updateAlpha(uint128,uint128)");
@@ -293,6 +294,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param borrowMultiplier new borrow multiplier for the market, scaled by 1e18
      * @custom:error Throw MarketNotSupported if market is not supported
      * @custom:event Emits MultiplierUpdated event
+     * @custom:access Controlled by ACM
      */
     function updateMultipliers(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
@@ -321,6 +323,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @custom:error Throw MarketAlreadyExists if market already exists
      * @custom:error Throw InvalidVToken if market is not valid
      * @custom:event Emits MarketAdded event
+     * @custom:access Controlled by ACM
      */
     function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
@@ -351,6 +354,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param _revocableLimit total number of revocable tokens that can be minted
      * @custom:error Throw InvalidLimit if any of the limit is less than total tokens minted
      * @custom:event Emits MintLimitsUpdated event
+     * @custom:access Controlled by ACM
      */
     function setLimit(uint256 _irrevocableLimit, uint256 _revocableLimit) external {
         _checkAccessAllowed("setLimit(uint256,uint256)");
@@ -366,6 +370,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @notice Directly issue prime tokens to users
      * @param isIrrevocable are the tokens being issued
      * @param users list of address to issue tokens to
+     * @custom:access Controlled by ACM
      */
     function issue(bool isIrrevocable, address[] calldata users) external {
         _checkAccessAllowed("issue(bool,address[])");
@@ -446,6 +451,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /**
      * @notice For burning any prime token
      * @param user the account address for which the prime token will be burned
+     * @custom:access Controlled by ACM
      */
     function burn(address user) external {
         _checkAccessAllowed("burn(address)");
@@ -454,6 +460,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
     /**
      * @notice To pause or unpause claiming of interest
+     * @custom:access Controlled by ACM
      */
     function togglePause() external {
         _checkAccessAllowed("togglePause()");
