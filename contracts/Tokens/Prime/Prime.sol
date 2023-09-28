@@ -186,7 +186,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             });
 
             unchecked {
-                i++;
+                ++i;
             }
         }
 
@@ -214,7 +214,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
                 _updateScore(user, market);
 
                 unchecked {
-                    j++;
+                    ++j;
                 }
             }
 
@@ -222,7 +222,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             isScoreUpdated[nextScoreUpdateRoundId][user] = true;
 
             unchecked {
-                i++;
+                ++i;
             }
 
             emit UserScoreUpdated(user);
@@ -247,7 +247,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             accrueInterest(allMarkets[i]);
 
             unchecked {
-                i++;
+                ++i;
             }
         }
 
@@ -342,7 +342,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
                 }
 
                 unchecked {
-                    i++;
+                    ++i;
                 }
             }
         } else {
@@ -352,7 +352,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
                 delete stakedAt[users[i]];
 
                 unchecked {
-                    i++;
+                    ++i;
                 }
             }
         }
@@ -611,7 +611,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             _updateScore(user, _allMarkets[i]);
 
             unchecked {
-                i++;
+                ++i;
             }
         }
     }
@@ -633,7 +633,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             markets[market].sumOfMembersScore = markets[market].sumOfMembersScore + score;
 
             unchecked {
-                i++;
+                ++i;
             }
         }
     }
@@ -737,7 +737,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             interests[_allMarkets[i]][user].rewardIndex = 0;
 
             unchecked {
-                i++;
+                ++i;
             }
         }
 
