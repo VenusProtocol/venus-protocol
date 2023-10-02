@@ -841,7 +841,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
-     * @notice Accrue rewards for the user. Must be called by Comptroller before changing account's borrow or supply balance.
+     * @notice Accrue rewards for the user. Must be called before updating score
      * @param user account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
      */
