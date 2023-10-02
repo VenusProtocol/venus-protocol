@@ -237,7 +237,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             address user = users[i];
 
             if (!tokens[user].exists) revert UserHasNoPrimeToken();
-            if (isScoreUpdated[nextScoreUpdateRoundId][user]) continue;
+            if (isScoreUpdated[nextScoreUpdateRoundId][user]) {
+                ++i;
+                continue;
+            }
 
             address[] storage _allMarkets = allMarkets;
             for (uint256 j = 0; j < _allMarkets.length; ) {

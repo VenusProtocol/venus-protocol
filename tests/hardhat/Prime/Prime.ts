@@ -734,7 +734,7 @@ describe("PrimeScenario Token", () => {
         expect(pendingScoreUpdates).to.be.equal(2);
         expect(isScoreUpdated).to.be.equal(false);
 
-        await prime.updateScores([user1.getAddress(), user3.getAddress()]);
+        await prime.updateScores([user1.getAddress(), user1.getAddress(), user3.getAddress()]);
 
         nextScoreUpdateRoundId = await prime.nextScoreUpdateRoundId();
         totalScoreUpdatesRequired = await prime.totalScoreUpdatesRequired();
