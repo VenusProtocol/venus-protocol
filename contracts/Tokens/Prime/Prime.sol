@@ -591,6 +591,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             supply,
             market
         );
+
+        IVToken vToken = IVToken(market);
+        uint256 decimals = IERC20MetadataUpgradeable(vToken.underlying()).decimals();
+        capital = capital * (10 ** (18 - decimals));
+
         uint256 userScore = Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
 
         totalScore = totalScore + userScore;
