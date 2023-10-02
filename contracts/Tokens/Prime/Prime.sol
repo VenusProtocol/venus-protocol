@@ -6,6 +6,7 @@ import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contract
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
+import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 
 import { PrimeStorageV1 } from "./PrimeStorage.sol";
 import { Scores } from "./libs/Scores.sol";
@@ -709,7 +710,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         oracle.updatePrice(market);
 
         (uint256 capital, , ) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
-        capital = capital * (10 ** (18 - vToken.decimals()));
+        uint256 decimals = IERC20MetadataUpgradeable(vToken.underlying()).decimals();
+
+        capital = capital * (10 ** (18 - decimals));
 
         return Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
     }
