@@ -168,7 +168,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         address _comptroller,
         address _oracle,
         uint256 _loopsLimit
-    ) external virtual initializer {
+    ) external initializer {
         if (_xvsVault == address(0)) revert InvalidAddress();
         if (_xvsVaultRewardToken == address(0)) revert InvalidAddress();
         if (_protocolShareReserve == address(0)) revert InvalidAddress();
