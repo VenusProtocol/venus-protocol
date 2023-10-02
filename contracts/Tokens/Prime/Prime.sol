@@ -107,6 +107,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /// @notice Error thrown when market already exists
     error MarketAlreadyExists();
 
+    /// @notice Error thrown when asset already exists
+    error AssetAlreadyExists();
+
     /// @notice Error thrown when invalid address is passed
     error InvalidAddress();
 
@@ -342,7 +345,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         markets[market].sumOfMembersScore = 0;
         markets[market].exists = true;
 
-        vTokenForAsset[_getUnderlying(market)] = market;
+        address underlying = _getUnderlying(market);
+        
+        if (vTokenForAsset[underlying] != address(0)) revert AssetAlreadyExists();
+        vTokenForAsset[underlying] = market;
 
         allMarkets.push(market);
         _startScoreUpdateRound();
