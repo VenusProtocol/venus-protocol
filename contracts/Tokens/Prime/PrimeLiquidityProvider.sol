@@ -37,7 +37,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     event TokenDistributionSpeedUpdated(address indexed token, uint256 newSpeed);
 
     /// @notice Emitted when prime token contract address is changed
-    event PrimeTokenUpdated(address oldPrimeToken, address newPrimeToken);
+    event PrimeTokenUpdated(address oldPrimeToken, address indexed newPrimeToken);
 
     /// @notice Emitted when distribution state(Index and block) is updated
     event TokensAccrued(address indexed token, uint256 amount);
