@@ -75,7 +75,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @notice Error thrown when funds transfer is paused
     error FundsTransferIsPaused();
 
-    /// @notice Error thrown when intrest accrue is called for not initialized token
+    /// @notice Error thrown when interest accrue is called for not initialized token
     error TokenNotInitialized(address token_);
 
     /// @custom:oz-upgrades-unsafe-allow constructor

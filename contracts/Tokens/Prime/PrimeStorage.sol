@@ -40,7 +40,7 @@ contract PrimeStorageV1 {
     /// @notice number of days user need to stake to claim prime token
     uint256 public constant STAKING_PERIOD = 90 * 24 * 60 * 60;
 
-    /// @notice maxmimum BPS = 100%
+    /// @notice maximum BPS = 100%
     uint256 internal constant MAXIMUM_BPS = 10000;
 
     /// @notice Mapping to get prime token's metadata
@@ -70,7 +70,7 @@ contract PrimeStorageV1 {
     /// @notice A list of boosted markets
     address[] internal allMarkets;
 
-    /// @notice numberator of alpha. Ex: if alpha is 0.5 then this will be 1
+    /// @notice numerator of alpha. Ex: if alpha is 0.5 then this will be 1
     uint128 public alphaNumerator;
 
     /// @notice denominator of alpha. Ex: if alpha is 0.5 then this will be 2
@@ -107,11 +107,11 @@ contract PrimeStorageV1 {
     address public comptroller;
 
     /// @notice unreleased income from PSR that's already distributed to prime holders
-    /// @dev mapping of asset adress => amount
+    /// @dev mapping of asset address => amount
     mapping(address => uint256) public unreleasedPSRIncome;
 
     /// @notice unreleased income from PLP that's already distributed to prime holders
-    /// @dev mapping of asset adress => amount
+    /// @dev mapping of asset address => amount
     mapping(address => uint256) public unreleasedPLPIncome;
 
     /// @notice The address of PLP contract
