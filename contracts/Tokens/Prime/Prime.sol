@@ -551,9 +551,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         uint256 totalTimeStaked = block.timestamp - stakedAt[user];
         if (totalTimeStaked < STAKING_PERIOD) {
             return STAKING_PERIOD - totalTimeStaked;
-        } else {
-            return 0;
         }
+        return 0;
     }
 
     /**
@@ -961,9 +960,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     function _xvsBalanceForScore(uint256 xvs) internal view returns (uint256) {
         if (xvs > MAXIMUM_XVS_CAP) {
             return MAXIMUM_XVS_CAP;
-        } else {
-            return xvs;
         }
+        return xvs;
     }
 
     /**
@@ -1037,9 +1035,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     function _getUnderlying(address vToken) internal view returns (address) {
         if (vToken == VBNB) {
             return WBNB;
-        } else {
-            return IVToken(vToken).underlying();
         }
+        return IVToken(vToken).underlying();
     }
 
     //////////////////////////////////////////////////
