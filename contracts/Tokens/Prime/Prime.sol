@@ -178,6 +178,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (_comptroller == address(0)) revert InvalidAddress();
         if (_oracle == address(0)) revert InvalidAddress();
         if (_primeLiquidityProvider == address(0)) revert InvalidAddress();
+        if (_accessControlManager == address(0)) revert InvalidAddress();
+
         _checkAlphaArguments(_alphaNumerator, _alphaDenominator);
 
         alphaNumerator = _alphaNumerator;

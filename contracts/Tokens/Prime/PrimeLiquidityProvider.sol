@@ -92,6 +92,8 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         address[] calldata tokens_,
         uint256[] calldata distributionSpeeds_
     ) external initializer {
+        _ensureZeroAddress(accessControlManager_);
+
         __AccessControlled_init(accessControlManager_);
         __Pausable_init();
 
@@ -101,6 +103,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         }
 
         for (uint256 i; i < numTokens; ) {
+            _ensureZeroAddress(tokens_[i]);
             _initializeToken(tokens_[i]);
             _setTokenDistributionSpeed(tokens_[i], distributionSpeeds_[i]);
 
