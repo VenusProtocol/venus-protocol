@@ -239,6 +239,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
 
         uint256 usersLength = users.length;
+        _ensureMaxLoops(usersLength);
 
         for (uint256 i; i < usersLength; ) {
             address user = users[i];
@@ -394,6 +395,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         _checkAccessAllowed("issue(bool,address[])");
 
         uint256 usersLength = users.length;
+        _ensureMaxLoops(usersLength);
 
         if (isIrrevocable) {
             for (uint256 i; i < usersLength; ) {
