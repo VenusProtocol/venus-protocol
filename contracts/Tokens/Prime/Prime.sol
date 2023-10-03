@@ -41,7 +41,12 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     event Burn(address indexed user);
 
     /// @notice Emitted asset state is update by protocol share reserve
-    event UpdatedAssetsState(address indexed comptroller, address indexed asset);
+    event UpdatedAssetsState(
+        address indexed comptroller,
+        address indexed asset,
+        uint256 unreleasedPSRIncomeOld,
+        uint256 unreleasedPSRIncomeNew
+    );
 
     /// @notice Emitted when a market is added to prime program
     event MarketAdded(address indexed market, uint256 indexed supplyMultiplier, uint256 indexed borrowMultiplier);
@@ -528,10 +533,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         address vToken = vTokenForAsset[asset];
         if (vToken == address(0)) revert MarketNotSupported();
 
-        IVToken market = IVToken(vToken);
-        delete unreleasedPSRIncome[_getUnderlying(address(market))];
-
-        emit UpdatedAssetsState(comptroller, asset);
+        emit UpdatedAssetsState(comptroller, asset, unreleasedPSRIncome[asset], 0);
+        delete unreleasedPSRIncome[asset];
     }
 
     /**

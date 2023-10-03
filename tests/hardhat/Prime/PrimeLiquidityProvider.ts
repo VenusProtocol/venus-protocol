@@ -149,7 +149,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
       await expect(tx)
         .to.emit(primeLiquidityProvider, "TokenDistributionSpeedUpdated")
-        .withArgs(tokenC.address, tokenCSpeed);
+        .withArgs(tokenC.address, tokenCSpeed, 0);
     });
 
     it("Revert on invalid prime token address", async () => {

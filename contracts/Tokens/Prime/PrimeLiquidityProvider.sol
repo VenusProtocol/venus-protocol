@@ -34,7 +34,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     event TokenDistributionInitialized(address indexed token);
 
     /// @notice Emitted when a new token distribution speed is set
-    event TokenDistributionSpeedUpdated(address indexed token, uint256 newSpeed);
+    event TokenDistributionSpeedUpdated(address indexed token, uint256 newSpeed, uint256 oldSpeed);
 
     /// @notice Emitted when prime token contract address is changed
     event PrimeTokenUpdated(address oldPrimeToken, address indexed newPrimeToken);
@@ -319,7 +319,8 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
             revert InvalidDistributionSpeed(distributionSpeed_, MAX_DISTRIBUTION_SPEED);
         }
 
-        if (tokenDistributionSpeeds[token_] != distributionSpeed_) {
+        uint256 oldDistributionSpeed = tokenDistributionSpeeds[token_];
+        if (oldDistributionSpeed != distributionSpeed_) {
             // Distribution speed updated so let's update distribution state to ensure that
             //  1. Token accrued properly for the old speed, and
             //  2. Token accrued at the new speed starts after this block.
@@ -328,7 +329,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
             // Update speed
             tokenDistributionSpeeds[token_] = distributionSpeed_;
 
-            emit TokenDistributionSpeedUpdated(token_, distributionSpeed_);
+            emit TokenDistributionSpeedUpdated(token_, distributionSpeed_, oldDistributionSpeed);
         }
     }
 
