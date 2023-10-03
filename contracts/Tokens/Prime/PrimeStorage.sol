@@ -28,6 +28,7 @@ contract PrimeStorageV1 {
         uint256 amount;
     }
 
+    /// @notice exp scale
     uint256 internal constant EXP_SCALE = 1e18;
 
     /// @notice minimum amount of XVS user needs to stake to become a prime member
