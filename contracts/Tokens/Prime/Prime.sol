@@ -207,7 +207,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      */
     function getPendingInterests(address user) external returns (PendingInterest[] memory pendingInterests) {
         address[] storage _allMarkets = allMarkets;
-        PendingInterest[] memory pendingInterests = new PendingInterest[](_allMarkets.length);
+        pendingInterests = new PendingInterest[](_allMarkets.length);
 
         uint256 marketsLength = _allMarkets.length;
 
@@ -225,8 +225,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
                 ++i;
             }
         }
-
-        return pendingInterests;
     }
 
     /**
@@ -583,7 +581,15 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             address(vToken)
         );
 
-        return _calculateUserAPR(market, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
+        (supplyAPR, borrowAPR) = _calculateUserAPR(
+            market,
+            supply,
+            borrow,
+            cappedSupply,
+            cappedBorrow,
+            userScore,
+            totalScore
+        );
     }
 
     /**
@@ -621,7 +627,15 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
 
         totalScore = totalScore + userScore;
 
-        return _calculateUserAPR(market, supply, borrow, cappedSupply, cappedBorrow, userScore, totalScore);
+        (supplyAPR, borrowAPR) = _calculateUserAPR(
+            market,
+            supply,
+            borrow,
+            cappedSupply,
+            cappedBorrow,
+            userScore,
+            totalScore
+        );
     }
 
     /**

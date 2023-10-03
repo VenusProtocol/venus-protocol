@@ -50,12 +50,12 @@ library FixedMath {
     }
 
     /// @notice see FixedMath0x
-    function ln(int256 x) internal pure returns (int256 r) {
+    function ln(int256 x) internal pure returns (int256) {
         return FixedMath0x.ln(x);
     }
 
     /// @notice see FixedMath0x
-    function exp(int256 x) internal pure returns (int256 r) {
+    function exp(int256 x) internal pure returns (int256) {
         return FixedMath0x.exp(x);
     }
 }
