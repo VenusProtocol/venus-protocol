@@ -234,7 +234,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @custom:error Throw UserHasNoPrimeToken if user has no prime token
      * @custom:event Emits UserScoreUpdated event
      */
-    function updateScores(address[] memory users) external {
+    function updateScores(address[] calldata users) external {
         if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
         if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
 
