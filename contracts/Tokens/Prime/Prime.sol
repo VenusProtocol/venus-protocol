@@ -782,8 +782,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             assets[0] = address(asset);
             IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
             if (amount > asset.balanceOf(address(this))) {
-                IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
                 delete unreleasedPLPIncome[underlying];
+                IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
             }
         }
 
