@@ -346,7 +346,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         markets[market].exists = true;
 
         address underlying = _getUnderlying(market);
-        
+
         if (vTokenForAsset[underlying] != address(0)) revert AssetAlreadyExists();
         vTokenForAsset[underlying] = market;
 
