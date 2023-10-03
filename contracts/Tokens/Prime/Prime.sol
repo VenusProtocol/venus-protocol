@@ -341,10 +341,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         bool isMarketExist = InterfaceComptroller(comptroller).markets(market);
         if (!isMarketExist) revert InvalidVToken();
 
-        markets[market].rewardIndex = 0;
+        delete markets[market].rewardIndex;
         markets[market].supplyMultiplier = supplyMultiplier;
         markets[market].borrowMultiplier = borrowMultiplier;
-        markets[market].sumOfMembersScore = 0;
+        delete markets[market].sumOfMembersScore;
         markets[market].exists = true;
 
         address underlying = _getUnderlying(market);
@@ -429,7 +429,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
                 _burn(user);
             }
         } else if (!isAccountEligible && !tokens[user].exists && stakedAt[user] > 0) {
-            stakedAt[user] = 0;
+            delete stakedAt[user];
         } else if (stakedAt[user] == 0 && isAccountEligible && !tokens[user].exists) {
             stakedAt[user] = block.timestamp;
         } else if (tokens[user].exists && isAccountEligible) {
@@ -454,7 +454,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (stakedAt[msg.sender] == 0) revert IneligibleToClaim();
         if (block.timestamp - stakedAt[msg.sender] < STAKING_PERIOD) revert WaitMoreTime();
 
-        stakedAt[msg.sender] = 0;
+        delete stakedAt[msg.sender];
 
         _mint(false, msg.sender);
         _initializeMarkets(msg.sender);
@@ -519,7 +519,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (vToken == address(0)) revert MarketNotSupported();
 
         IVToken market = IVToken(vToken);
-        unreleasedPSRIncome[_getUnderlying(address(market))] = 0;
+        delete unreleasedPSRIncome[_getUnderlying(address(market))];
 
         emit UpdatedAssetsState(comptroller, asset);
     }
@@ -745,7 +745,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         amount += interests[vToken][user].accrued;
 
         interests[vToken][user].rewardIndex = markets[vToken].rewardIndex;
-        interests[vToken][user].accrued = 0;
+        delete interests[vToken][user].accrued;
 
         address underlying = _getUnderlying(vToken);
         IERC20Upgradeable asset = IERC20Upgradeable(underlying);
@@ -756,7 +756,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
             if (amount > asset.balanceOf(address(this))) {
                 IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
-                unreleasedPLPIncome[underlying] = 0;
+                delete unreleasedPLPIncome[underlying];
             }
         }
 
@@ -808,8 +808,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             markets[_allMarkets[i]].sumOfMembersScore =
                 markets[_allMarkets[i]].sumOfMembersScore -
                 interests[_allMarkets[i]][user].score;
-            interests[_allMarkets[i]][user].score = 0;
-            interests[_allMarkets[i]][user].rewardIndex = 0;
+            delete interests[_allMarkets[i]][user].score;
+            delete interests[_allMarkets[i]][user].rewardIndex;
 
             unchecked {
                 ++i;
@@ -822,8 +822,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             totalRevocable--;
         }
 
-        tokens[user].exists = false;
-        tokens[user].isIrrevocable = false;
+        delete tokens[user].exists;
+        delete tokens[user].isIrrevocable;
 
         _updateRoundAfterTokenBurned(user);
 

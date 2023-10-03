@@ -204,7 +204,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
 
         accrueTokens(token_);
         uint256 accruedAmount = tokenAmountAccrued[token_];
-        tokenAmountAccrued[token_] = 0;
+        delete tokenAmountAccrued[token_];
 
         emit TokenTransferredToPrime(token_, accruedAmount);
 
