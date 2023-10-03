@@ -209,7 +209,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         address[] storage _allMarkets = allMarkets;
         PendingInterest[] memory pendingInterests = new PendingInterest[](_allMarkets.length);
 
-        for (uint256 i = 0; i < _allMarkets.length; ) {
+        uint256 marketsLength = _allMarkets.length;
+
+        for (uint256 i; i < marketsLength; ) {
             address market = _allMarkets[i];
             uint256 interestAccrued = getInterestAccrued(market, user);
             uint256 accrued = interests[market][user].accrued;
@@ -238,7 +240,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
         if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
 
-        for (uint256 i = 0; i < users.length; ) {
+        uint256 usersLength = users.length;
+
+        for (uint256 i; i < usersLength; ) {
             address user = users[i];
 
             if (!tokens[user].exists) revert UserHasNoPrimeToken();
@@ -248,7 +252,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             }
 
             address[] storage _allMarkets = allMarkets;
-            for (uint256 j = 0; j < _allMarkets.length; ) {
+            uint256 marketsLength = _allMarkets.length;
+
+            for (uint256 j; j < marketsLength; ) {
                 address market = _allMarkets[j];
                 _executeBoost(user, market);
                 _updateScore(user, market);
@@ -285,7 +291,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
 
-        for (uint256 i = 0; i < allMarkets.length; ) {
+        uint256 marketslength = allMarkets.length;
+
+        for (uint256 i; i < marketslength; ) {
             accrueInterest(allMarkets[i]);
 
             unchecked {
@@ -387,8 +395,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     function issue(bool isIrrevocable, address[] calldata users) external {
         _checkAccessAllowed("issue(bool,address[])");
 
+        uint256 usersLength = users.length;
+
         if (isIrrevocable) {
-            for (uint256 i = 0; i < users.length; ) {
+            for (uint256 i; i < usersLength; ) {
                 Token storage userToken = tokens[users[i]];
                 if (userToken.exists && !userToken.isIrrevocable) {
                     _upgrade(users[i]);
@@ -402,7 +412,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
                 }
             }
         } else {
-            for (uint256 i = 0; i < users.length; ) {
+            for (uint256 i; i < usersLength; ) {
                 _mint(false, users[i]);
                 _initializeMarkets(users[i]);
                 delete stakedAt[users[i]];
@@ -674,7 +684,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      */
     function _accrueInterestAndUpdateScore(address user) internal {
         address[] storage _allMarkets = allMarkets;
-        for (uint256 i = 0; i < _allMarkets.length; ) {
+        uint256 marketsLength = _allMarkets.length;
+
+        for (uint256 i; i < marketsLength; ) {
             _executeBoost(user, _allMarkets[i]);
             _updateScore(user, _allMarkets[i]);
 
@@ -690,7 +702,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      */
     function _initializeMarkets(address account) internal {
         address[] storage _allMarkets = allMarkets;
-        for (uint256 i = 0; i < _allMarkets.length; ) {
+        uint256 marketsLength = _allMarkets.length;
+
+        for (uint256 i; i < marketsLength; ) {
             address market = _allMarkets[i];
             accrueInterest(market);
 
@@ -801,8 +815,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         if (!tokens[user].exists) revert UserHasNoPrimeToken();
 
         address[] storage _allMarkets = allMarkets;
+        uint256 marketsLength = _allMarkets.length;
 
-        for (uint256 i = 0; i < _allMarkets.length; ) {
+        for (uint256 i; i < marketsLength; ) {
             _executeBoost(user, _allMarkets[i]);
 
             markets[_allMarkets[i]].sumOfMembersScore =
