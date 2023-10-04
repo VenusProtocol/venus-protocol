@@ -156,56 +156,56 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
     /**
      * @notice Prime initializer
-     * @param _xvsVault Address of XVSVault
-     * @param _xvsVaultRewardToken Address of XVSVault reward token
-     * @param _xvsVaultPoolId Pool id of XVSVault
-     * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1
-     * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2
-     * @param _accessControlManager Address of AccessControlManager
-     * @param _protocolShareReserve Address of ProtocolShareReserve
-     * @param _primeLiquidityProvider Address of PrimeLiquidityProvider
-     * @param _comptroller Address of Comptroller
-     * @param _oracle Address of Oracle
-     * @param _loopsLimit Maximum number of loops allowed in a single transaction
+     * @param xvsVault_ Address of XVSVault
+     * @param xvsVaultRewardToken_ Address of XVSVault reward token
+     * @param xvsVaultPoolId_ Pool id of XVSVault
+     * @param alphaNumerator_ numerator of alpha. If alpha is 0.5 then numerator is 1
+     * @param alphaDenominator_ denominator of alpha. If alpha is 0.5 then denominator is 2
+     * @param accessControlManager_ Address of AccessControlManager
+     * @param protocolShareReserve_ Address of ProtocolShareReserve
+     * @param primeLiquidityProvider_ Address of PrimeLiquidityProvider
+     * @param comptroller_ Address of Comptroller
+     * @param oracle_ Address of Oracle
+     * @param loopsLimit_ Maximum number of loops allowed in a single transaction
      * @custom:error Throw InvalidAddress if any of the address is invalid
      */
     function initialize(
-        address _xvsVault,
-        address _xvsVaultRewardToken,
-        uint256 _xvsVaultPoolId,
-        uint128 _alphaNumerator,
-        uint128 _alphaDenominator,
-        address _accessControlManager,
-        address _protocolShareReserve,
-        address _primeLiquidityProvider,
-        address _comptroller,
-        address _oracle,
-        uint256 _loopsLimit
+        address xvsVault_,
+        address xvsVaultRewardToken_,
+        uint256 xvsVaultPoolId_,
+        uint128 alphaNumerator_,
+        uint128 alphaDenominator_,
+        address accessControlManager_,
+        address protocolShareReserve_,
+        address primeLiquidityProvider_,
+        address comptroller_,
+        address oracle_,
+        uint256 loopsLimit_
     ) external initializer {
-        if (_xvsVault == address(0)) revert InvalidAddress();
-        if (_xvsVaultRewardToken == address(0)) revert InvalidAddress();
-        if (_protocolShareReserve == address(0)) revert InvalidAddress();
-        if (_comptroller == address(0)) revert InvalidAddress();
-        if (_oracle == address(0)) revert InvalidAddress();
-        if (_primeLiquidityProvider == address(0)) revert InvalidAddress();
-        if (_accessControlManager == address(0)) revert InvalidAddress();
+        if (xvsVault_ == address(0)) revert InvalidAddress();
+        if (xvsVaultRewardToken_ == address(0)) revert InvalidAddress();
+        if (protocolShareReserve_ == address(0)) revert InvalidAddress();
+        if (comptroller_ == address(0)) revert InvalidAddress();
+        if (oracle_ == address(0)) revert InvalidAddress();
+        if (primeLiquidityProvider_ == address(0)) revert InvalidAddress();
+        if (accessControlManager_ == address(0)) revert InvalidAddress();
 
-        _checkAlphaArguments(_alphaNumerator, _alphaDenominator);
+        _checkAlphaArguments(alphaNumerator_, alphaDenominator_);
 
-        alphaNumerator = _alphaNumerator;
-        alphaDenominator = _alphaDenominator;
-        xvsVaultRewardToken = _xvsVaultRewardToken;
-        xvsVaultPoolId = _xvsVaultPoolId;
-        xvsVault = _xvsVault;
+        alphaNumerator = alphaNumerator_;
+        alphaDenominator = alphaDenominator_;
+        _xvsVaultRewardToken = xvsVaultRewardToken_;
+        _xvsVaultPoolId = xvsVaultPoolId_;
+        _xvsVault = xvsVault_;
         nextScoreUpdateRoundId = 0;
-        protocolShareReserve = _protocolShareReserve;
-        primeLiquidityProvider = _primeLiquidityProvider;
-        comptroller = _comptroller;
-        oracle = ResilientOracleInterface(_oracle);
+        protocolShareReserve = protocolShareReserve_;
+        primeLiquidityProvider = primeLiquidityProvider_;
+        comptroller = comptroller_;
+        oracle = ResilientOracleInterface(oracle_);
 
-        __AccessControlled_init(_accessControlManager);
+        __AccessControlled_init(accessControlManager_);
         __Pausable_init();
-        _setMaxLoopsLimit(_loopsLimit);
+        _setMaxLoopsLimit(loopsLimit_);
 
         _pause();
     }
@@ -216,13 +216,13 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return pendingInterests the number of underlying tokens accrued by the user for all markets
      */
     function getPendingInterests(address user) external returns (PendingInterest[] memory pendingInterests) {
-        address[] storage _allMarkets = allMarkets;
-        pendingInterests = new PendingInterest[](_allMarkets.length);
+        address[] storage allMarkets = _allMarkets;
+        pendingInterests = new PendingInterest[](allMarkets.length);
 
-        uint256 marketsLength = _allMarkets.length;
+        uint256 marketsLength = allMarkets.length;
 
         for (uint256 i; i < marketsLength; ) {
-            address market = _allMarkets[i];
+            address market = allMarkets[i];
             uint256 interestAccrued = getInterestAccrued(market, user);
             uint256 accrued = interests[market][user].accrued;
 
@@ -260,11 +260,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
                 continue;
             }
 
-            address[] storage _allMarkets = allMarkets;
-            uint256 marketsLength = _allMarkets.length;
+            address[] storage allMarkets = _allMarkets;
+            uint256 marketsLength = allMarkets.length;
 
             for (uint256 j; j < marketsLength; ) {
-                address market = _allMarkets[j];
+                address market = allMarkets[j];
                 _executeBoost(user, market);
                 _updateScore(user, market);
 
@@ -300,10 +300,10 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         alphaNumerator = _alphaNumerator;
         alphaDenominator = _alphaDenominator;
 
-        uint256 marketslength = allMarkets.length;
+        uint256 marketslength = _allMarkets.length;
 
         for (uint256 i; i < marketslength; ) {
-            accrueInterest(allMarkets[i]);
+            accrueInterest(_allMarkets[i]);
 
             unchecked {
                 ++i;
@@ -369,10 +369,10 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         if (vTokenForAsset[underlying] != address(0)) revert AssetAlreadyExists();
         vTokenForAsset[underlying] = market;
 
-        allMarkets.push(market);
+        _allMarkets.push(market);
         _startScoreUpdateRound();
 
-        _ensureMaxLoops(allMarkets.length);
+        _ensureMaxLoops(_allMarkets.length);
 
         emit MarketAdded(market, supplyMultiplier, borrowMultiplier);
     }
@@ -547,7 +547,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return an array of addresses representing all available markets
      */
     function getAllMarkets() external view returns (address[] memory) {
-        return allMarkets;
+        return _allMarkets;
     }
 
     /**
@@ -706,12 +706,12 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param user the account address for which to accrue interest and update score
      */
     function _accrueInterestAndUpdateScore(address user) internal {
-        address[] storage _allMarkets = allMarkets;
-        uint256 marketsLength = _allMarkets.length;
+        address[] storage allMarkets = _allMarkets;
+        uint256 marketsLength = allMarkets.length;
 
         for (uint256 i; i < marketsLength; ) {
-            _executeBoost(user, _allMarkets[i]);
-            _updateScore(user, _allMarkets[i]);
+            _executeBoost(user, allMarkets[i]);
+            _updateScore(user, allMarkets[i]);
 
             unchecked {
                 ++i;
@@ -724,11 +724,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param account the account address for which markets needs to be initialized
      */
     function _initializeMarkets(address account) internal {
-        address[] storage _allMarkets = allMarkets;
-        uint256 marketsLength = _allMarkets.length;
+        address[] storage allMarkets = _allMarkets;
+        uint256 marketsLength = allMarkets.length;
 
         for (uint256 i; i < marketsLength; ) {
-            address market = _allMarkets[i];
+            address market = allMarkets[i];
             accrueInterest(market);
 
             interests[market][account].rewardIndex = markets[market].rewardIndex;
@@ -758,7 +758,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 balanceOfAccount = vToken.balanceOf(user);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
-        address xvsToken = IXVSVault(xvsVault).xvsAddress();
+        address xvsToken = IXVSVault(_xvsVault).xvsAddress();
         oracle.updateAssetPrice(xvsToken);
         oracle.updatePrice(market);
 
@@ -837,17 +837,17 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function _burn(address user) internal {
         if (!tokens[user].exists) revert UserHasNoPrimeToken();
 
-        address[] storage _allMarkets = allMarkets;
-        uint256 marketsLength = _allMarkets.length;
+        address[] storage allMarkets = _allMarkets;
+        uint256 marketsLength = allMarkets.length;
 
         for (uint256 i; i < marketsLength; ) {
-            _executeBoost(user, _allMarkets[i]);
+            _executeBoost(user, allMarkets[i]);
 
-            markets[_allMarkets[i]].sumOfMembersScore =
-                markets[_allMarkets[i]].sumOfMembersScore -
-                interests[_allMarkets[i]][user].score;
-            delete interests[_allMarkets[i]][user].score;
-            delete interests[_allMarkets[i]][user].rewardIndex;
+            markets[allMarkets[i]].sumOfMembersScore =
+                markets[allMarkets[i]].sumOfMembersScore -
+                interests[allMarkets[i]][user].score;
+            delete interests[allMarkets[i]][user].score;
+            delete interests[allMarkets[i]][user].rewardIndex;
 
             unchecked {
                 ++i;
@@ -954,9 +954,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return xvsBalance the XVS balance of user
      */
     function _xvsBalanceOfUser(address user) internal view returns (uint256) {
-        (uint256 xvs, , uint256 pendingWithdrawals) = IXVSVault(xvsVault).getUserInfo(
-            xvsVaultRewardToken,
-            xvsVaultPoolId,
+        (uint256 xvs, , uint256 pendingWithdrawals) = IXVSVault(_xvsVault).getUserInfo(
+            _xvsVaultRewardToken,
+            _xvsVaultPoolId,
             user
         );
         return (xvs - pendingWithdrawals);
@@ -990,7 +990,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 supply,
         address market
     ) internal view returns (uint256, uint256, uint256) {
-        address xvsToken = IXVSVault(xvsVault).xvsAddress();
+        address xvsToken = IXVSVault(_xvsVault).xvsAddress();
 
         uint256 xvsPrice = oracle.getPrice(xvsToken);
         uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
