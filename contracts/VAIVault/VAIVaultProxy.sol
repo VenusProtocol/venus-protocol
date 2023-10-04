@@ -3,6 +3,11 @@ pragma solidity ^0.5.16;
 import "./VAIVaultStorage.sol";
 import "./VAIVaultErrorReporter.sol";
 
+/**
+ * @title VAI Vault Proxy
+ * @author Venus
+ * @notice Proxy contract for the VAI Vault
+ */
 contract VAIVaultProxy is VAIVaultAdminStorage, VAIVaultErrorReporter {
     /**
      * @notice Emitted when pendingVAIVaultImplementation is changed
