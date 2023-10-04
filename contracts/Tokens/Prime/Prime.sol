@@ -325,7 +325,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function updateMultipliers(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
 
-        Market memory _markets = markets[market];
+        Market storage _markets = markets[market];
         if (!_markets.exists) revert MarketNotSupported();
 
         accrueInterest(market);
@@ -337,8 +337,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             supplyMultiplier,
             borrowMultiplier
         );
-        markets[market].supplyMultiplier = supplyMultiplier;
-        markets[market].borrowMultiplier = borrowMultiplier;
+        _markets.supplyMultiplier = supplyMultiplier;
+        _markets.borrowMultiplier = borrowMultiplier;
 
         _startScoreUpdateRound();
     }
@@ -355,16 +355,18 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
-        if (markets[market].exists) revert MarketAlreadyExists();
+
+        Market storage _market = markets[market];
+        if (_market.exists) revert MarketAlreadyExists();
 
         bool isMarketExist = InterfaceComptroller(comptroller).markets(market);
         if (!isMarketExist) revert InvalidVToken();
 
-        delete markets[market].rewardIndex;
-        markets[market].supplyMultiplier = supplyMultiplier;
-        markets[market].borrowMultiplier = borrowMultiplier;
-        delete markets[market].sumOfMembersScore;
-        markets[market].exists = true;
+        delete _market.rewardIndex;
+        _market.supplyMultiplier = supplyMultiplier;
+        _market.borrowMultiplier = borrowMultiplier;
+        delete _market.sumOfMembersScore;
+        _market.exists = true;
 
         address underlying = _getUnderlying(market);
 
@@ -443,8 +445,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function xvsUpdated(address user) external {
         uint256 totalStaked = _xvsBalanceOfUser(user);
         bool isAccountEligible = _isEligible(totalStaked);
-        uint256 userStakedAt = stakedAt[user];
 
+        uint256 userStakedAt = stakedAt[user];
         Token memory token = tokens[user];
 
         if (token.exists && !isAccountEligible) {
@@ -680,7 +682,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @custom:error Throw MarketNotSupported if market is not supported
      */
     function accrueInterest(address vToken) public {
-        Market memory market = markets[vToken];
+        Market storage market = markets[vToken];
 
         if (!market.exists) revert MarketNotSupported();
 
@@ -723,7 +725,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             }
         }
 
-        markets[vToken].rewardIndex += delta;
+        market.rewardIndex += delta;
     }
 
     /**
@@ -747,8 +749,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 marketsLength = allMarkets.length;
 
         for (uint256 i; i < marketsLength; ) {
-            _executeBoost(user, allMarkets[i]);
-            _updateScore(user, allMarkets[i]);
+            address market = allMarkets[i];
+            _executeBoost(user, market);
+            _updateScore(user, market);
 
             unchecked {
                 ++i;
@@ -852,10 +855,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @custom:event Emits Mint event
      */
     function _mint(bool isIrrevocable, address user) internal {
-        if (tokens[user].exists) revert IneligibleToClaim();
+        Token storage token = tokens[user];
+        if (token.exists) revert IneligibleToClaim();
 
-        tokens[user].exists = true;
-        tokens[user].isIrrevocable = isIrrevocable;
+        token.exists = true;
+        token.isIrrevocable = isIrrevocable;
 
         if (isIrrevocable) {
             ++totalIrrevocable;
@@ -882,15 +886,14 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 marketsLength = allMarkets.length;
 
         for (uint256 i; i < marketsLength; ) {
-            _executeBoost(user, allMarkets[i]);
+            address market = allMarkets[i];
+            _executeBoost(user, market);
             unchecked {
-                markets[allMarkets[i]].sumOfMembersScore =
-                    markets[allMarkets[i]].sumOfMembersScore -
-                    interests[allMarkets[i]][user].score;
+                markets[market].sumOfMembersScore = markets[market].sumOfMembersScore - interests[market][user].score;
             }
 
-            delete interests[allMarkets[i]][user].score;
-            delete interests[allMarkets[i]][user].rewardIndex;
+            delete interests[market][user].score;
+            delete interests[market][user].rewardIndex;
 
             unchecked {
                 ++i;
@@ -950,14 +953,14 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param market the market for which we need to score
      */
     function _updateScore(address user, address market) internal {
-        Market memory _market = markets[market];
+        Market storage _market = markets[market];
         if (!_market.exists || !tokens[user].exists) {
             return;
         }
 
         uint256 score = _calculateScore(market, user);
         unchecked {
-            markets[market].sumOfMembersScore = _market.sumOfMembersScore - interests[market][user].score + score;
+            _market.sumOfMembersScore = _market.sumOfMembersScore - interests[market][user].score + score;
         }
 
         interests[market][user].score = score;
