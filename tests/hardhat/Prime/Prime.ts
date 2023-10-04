@@ -184,7 +184,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const primeLiquidityProviderFactory = await ethers.getContractFactory("PrimeLiquidityProvider");
   const primeLiquidityProvider = await upgrades.deployProxy(
     primeLiquidityProviderFactory,
-    [accessControl.address, [xvs.address, usdt.address, eth.address], [10, 10, 10]],
+    [accessControl.address, [xvs.address, usdt.address, eth.address], [10, 10, 10], 10],
     {},
   );
 

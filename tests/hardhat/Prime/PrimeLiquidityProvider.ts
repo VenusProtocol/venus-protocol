@@ -45,6 +45,7 @@ const fixture = async () => {
     accessControl.address,
     [tokenA.address, tokenB.address],
     [tokenASpeed, tokenBSpeed],
+    10,
   ]);
 
   await primeLiquidityProvider.setPrimeToken(prime.address);

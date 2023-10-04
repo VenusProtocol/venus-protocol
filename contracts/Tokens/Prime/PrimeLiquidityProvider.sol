@@ -5,13 +5,19 @@ import { SafeERC20Upgradeable, IERC20Upgradeable } from "@openzeppelin/contracts
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
+import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
 
 /**
  * @title PrimeLiquidityProvider
  * @author Venus
  * @notice PrimeLiquidityProvider is used to fund Prime
  */
-contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, PausableUpgradeable {
+contract PrimeLiquidityProvider is
+    IPrimeLiquidityProvider,
+    AccessControlledV8,
+    PausableUpgradeable,
+    MaxLoopsLimitHelper
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice The max token distribution speed
@@ -101,19 +107,24 @@ contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, 
      * @param accessControlManager_ AccessControlManager contract address
      * @param tokens_ Array of addresses of the tokens
      * @param distributionSpeeds_ New distribution speeds for tokens
+     * @param loopsLimit_ Maximum number of loops allowed in a single transaction
      * @custom:error Throw InvalidArguments on different length of tokens and speeds array
      */
     function initialize(
         address accessControlManager_,
         address[] calldata tokens_,
-        uint256[] calldata distributionSpeeds_
+        uint256[] calldata distributionSpeeds_,
+        uint256 loopsLimit_
     ) external initializer {
         _ensureZeroAddress(accessControlManager_);
 
         __AccessControlled_init(accessControlManager_);
         __Pausable_init();
+        _setMaxLoopsLimit(loopsLimit_);
 
         uint256 numTokens = tokens_.length;
+        _ensureMaxLoops(numTokens);
+
         if (numTokens != distributionSpeeds_.length) {
             revert InvalidArguments();
         }
@@ -135,7 +146,10 @@ contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, 
      * @custom:access Only Governance
      */
     function initializeTokens(address[] calldata tokens_) external onlyOwner {
-        for (uint256 i; i < tokens_.length; ) {
+        uint256 tokensLength = tokens_.length;
+        _ensureMaxLoops(tokensLength);
+
+        for (uint256 i; i < tokensLength; ) {
             _initializeToken(tokens_[i]);
 
             unchecked {
@@ -172,6 +186,7 @@ contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, 
     function setTokensDistributionSpeed(address[] calldata tokens_, uint256[] calldata distributionSpeeds_) external {
         _checkAccessAllowed("setTokensDistributionSpeed(address[],uint256[])");
         uint256 numTokens = tokens_.length;
+        _ensureMaxLoops(numTokens);
 
         if (numTokens != distributionSpeeds_.length) {
             revert InvalidArguments();

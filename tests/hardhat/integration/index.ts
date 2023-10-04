@@ -89,6 +89,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     accessControl.address,
     [usdt.address, eth.address, wbnb.address],
     [convertToUnit("1", 16), convertToUnit("1", 16), convertToUnit("1", 16)],
+    10,
   ]);
 
   const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
