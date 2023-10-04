@@ -271,7 +271,10 @@ contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, 
         _ensureTokenInitialized(token_);
 
         uint256 blockNumber = getBlockNumber();
-        uint256 deltaBlocks = blockNumber - lastAccruedBlock[token_];
+        uint256 deltaBlocks;
+        unchecked {
+            deltaBlocks = blockNumber - lastAccruedBlock[token_];
+        }
 
         if (deltaBlocks != 0) {
             uint256 distributionSpeed = tokenDistributionSpeeds[token_];

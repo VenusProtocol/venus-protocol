@@ -472,7 +472,12 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function claim() external {
         if (stakedAt[msg.sender] == 0) revert IneligibleToClaim();
-        if (block.timestamp - stakedAt[msg.sender] < STAKING_PERIOD) revert WaitMoreTime();
+
+        uint256 timeDifference;
+        unchecked {
+            timeDifference = block.timestamp - stakedAt[msg.sender];
+        }
+        if (timeDifference < STAKING_PERIOD) revert WaitMoreTime();
 
         delete stakedAt[msg.sender];
 
@@ -558,9 +563,15 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function claimTimeRemaining(address user) external view returns (uint256) {
         if (stakedAt[user] == 0) return STAKING_PERIOD;
 
-        uint256 totalTimeStaked = block.timestamp - stakedAt[user];
+        uint256 totalTimeStaked;
+        unchecked {
+            totalTimeStaked = block.timestamp - stakedAt[user];
+        }
+
         if (totalTimeStaked < STAKING_PERIOD) {
-            return STAKING_PERIOD - totalTimeStaked;
+            unchecked {
+                return STAKING_PERIOD - totalTimeStaked;
+            }
         }
         return 0;
     }
@@ -618,7 +629,10 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 supply,
         uint256 xvsStaked
     ) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
-        uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
+        uint256 totalScore;
+        unchecked {
+            totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
+        }
 
         uint256 xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
         (uint256 capital, uint256 cappedSupply, uint256 cappedBorrow) = _capitalForScore(
@@ -666,11 +680,17 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             underlying
         );
 
-        uint256 distributionIncome = totalIncomeUnreleased - unreleasedPSRIncome[underlying];
+        uint256 distributionIncome;
+        unchecked {
+            distributionIncome = totalIncomeUnreleased - unreleasedPSRIncome[underlying];
+        }
 
         _primeLiquidityProvider.accrueTokens(underlying);
         uint256 totalAccruedInPLP = _primeLiquidityProvider.tokenAmountAccrued(underlying);
-        uint256 unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
+        uint256 unreleasedPLPAccruedInterest;
+        unchecked {
+            unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
+        }
 
         distributionIncome += unreleasedPLPAccruedInterest;
 
@@ -842,10 +862,12 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         for (uint256 i; i < marketsLength; ) {
             _executeBoost(user, allMarkets[i]);
+            unchecked {
+                markets[allMarkets[i]].sumOfMembersScore =
+                    markets[allMarkets[i]].sumOfMembersScore -
+                    interests[allMarkets[i]][user].score;
+            }
 
-            markets[allMarkets[i]].sumOfMembersScore =
-                markets[allMarkets[i]].sumOfMembersScore -
-                interests[allMarkets[i]][user].score;
             delete interests[allMarkets[i]][user].score;
             delete interests[allMarkets[i]][user].rewardIndex;
 
@@ -912,7 +934,13 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         }
 
         uint256 score = _calculateScore(market, user);
-        markets[market].sumOfMembersScore = markets[market].sumOfMembersScore - interests[market][user].score + score;
+        unchecked {
+            markets[market].sumOfMembersScore =
+                markets[market].sumOfMembersScore -
+                interests[market][user].score +
+                score;
+        }
+
         interests[market][user].score = score;
     }
 
@@ -1031,7 +1059,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return interestAccrued the number of underlying tokens accrued by the user since the last accrual
      */
     function _interestAccrued(address vToken, address user) internal view returns (uint256) {
-        uint256 index = markets[vToken].rewardIndex - interests[vToken][user].rewardIndex;
+        uint256 index;
+        unchecked {
+            index = markets[vToken].rewardIndex - interests[vToken][user].rewardIndex;
+        }
+
         uint256 score = interests[vToken][user].score;
 
         return (index * score) / EXP_SCALE;
