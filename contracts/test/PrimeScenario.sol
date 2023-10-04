@@ -7,6 +7,6 @@ contract PrimeScenario is Prime {
     constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) Prime(_wbnb, _vbnb, _blocksPerYear) {}
 
     function calculateScore(uint256 xvs, uint256 capital) external view returns (uint256) {
-        return Scores.calculateScore(xvs, capital, alphaNumerator, alphaDenominator);
+        return Scores._calculateScore(xvs, capital, alphaNumerator, alphaDenominator);
     }
 }

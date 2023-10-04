@@ -52,7 +52,7 @@ library FixedMath0x {
     int256 private constant EXP_MIN_VAL = -int256(0x0000000000000000000000000000001ff0000000000000000000000000000000);
 
     /// @dev Get the natural logarithm of a fixed-point number 0 < `x` <= LN_MAX_VAL
-    function ln(int256 x) internal pure returns (int256 r) {
+    function _ln(int256 x) internal pure returns (int256 r) {
         if (x > LN_MAX_VAL) {
             revert LnTooLarge(x);
         }
@@ -141,7 +141,7 @@ library FixedMath0x {
     }
 
     /// @dev Compute the natural exponent for a fixed-point number EXP_MIN_VAL <= `x` <= 1
-    function exp(int256 x) internal pure returns (int256 r) {
+    function _exp(int256 x) internal pure returns (int256 r) {
         if (x < EXP_MIN_VAL) {
             // Saturate to zero below EXP_MIN_VAL.
             return 0;

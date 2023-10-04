@@ -440,7 +440,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function xvsUpdated(address user) external {
         uint256 totalStaked = _xvsBalanceOfUser(user);
-        bool isAccountEligible = isEligible(totalStaked);
+        bool isAccountEligible = _isEligible(totalStaked);
 
         if (tokens[user].exists && !isAccountEligible) {
             if (tokens[user].isIrrevocable) {
@@ -632,7 +632,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 decimals = IERC20MetadataUpgradeable(vToken.underlying()).decimals();
         capital = capital * (10 ** (18 - decimals));
 
-        uint256 userScore = Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
+        uint256 userScore = Scores._calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
 
         totalScore = totalScore + userScore;
 
@@ -767,7 +767,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         capital = capital * (10 ** (18 - decimals));
 
-        return Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
+        return Scores._calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
     }
 
     /**
@@ -1016,7 +1016,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param amount amount of XVS
      * @return isEligible true if the staked XVS amount is enough to consider the associated user eligible for a Prime token, false otherwise
      */
-    function isEligible(uint256 amount) internal view returns (bool) {
+    function _isEligible(uint256 amount) internal view returns (bool) {
         if (amount >= MINIMUM_STAKED_XVS) {
             return true;
         }

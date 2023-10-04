@@ -24,7 +24,7 @@ library FixedMath {
      * @param d denominator
      * @return fixed-point number
      */
-    function toFixed(uint256 n, uint256 d) internal pure returns (int256) {
+    function _toFixed(uint256 n, uint256 d) internal pure returns (int256) {
         if (d.toInt256() < n.toInt256()) revert InvalidFraction(n, d);
 
         return (n.toInt256() * FixedMath0x.FIXED_1) / int256(d.toInt256());
@@ -36,7 +36,7 @@ library FixedMath {
      * @param f fixed point divisor, in FIXED_1 units
      * @return unsigned int quotient
      */
-    function uintDiv(uint256 u, int256 f) internal pure returns (uint256) {
+    function _uintDiv(uint256 u, int256 f) internal pure returns (uint256) {
         if (f < 0) revert InvalidFixedPoint();
         // multiply `u` by FIXED_1 to cancel out the built-in FIXED_1 in f
         return uint256((u.toInt256() * FixedMath0x.FIXED_1) / f);
@@ -48,19 +48,19 @@ library FixedMath {
      * @param f fixed point multiplier, in FIXED_1 units
      * @return unsigned int product
      */
-    function uintMul(uint256 u, int256 f) internal pure returns (uint256) {
+    function _uintMul(uint256 u, int256 f) internal pure returns (uint256) {
         if (f < 0) revert InvalidFixedPoint();
         // divide the product by FIXED_1 to cancel out the built-in FIXED_1 in f
         return uint256((u.toInt256() * f) / FixedMath0x.FIXED_1);
     }
 
     /// @notice see FixedMath0x
-    function ln(int256 x) internal pure returns (int256) {
-        return FixedMath0x.ln(x);
+    function _ln(int256 x) internal pure returns (int256) {
+        return FixedMath0x._ln(x);
     }
 
     /// @notice see FixedMath0x
-    function exp(int256 x) internal pure returns (int256) {
-        return FixedMath0x.exp(x);
+    function _exp(int256 x) internal pure returns (int256) {
+        return FixedMath0x._exp(x);
     }
 }
