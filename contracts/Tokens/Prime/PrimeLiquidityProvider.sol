@@ -4,13 +4,14 @@ pragma solidity 0.8.13;
 import { SafeERC20Upgradeable, IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
 
 /**
  * @title PrimeLiquidityProvider
  * @author Venus
  * @notice PrimeLiquidityProvider is used to fund Prime
  */
-contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
+contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice The max token distribution speed
@@ -274,8 +275,10 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         }
     }
 
-    /// @notice Get the latest block number
-    /// @return blockNumber returns the block number
+    /**
+     * @notice Get the latest block number
+     * @return blockNumber returns the block number
+     */
     function getBlockNumber() public view virtual returns (uint256) {
         return block.number;
     }

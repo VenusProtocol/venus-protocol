@@ -12,10 +12,10 @@ import { PrimeStorageV1 } from "./PrimeStorage.sol";
 import { Scores } from "./libs/Scores.sol";
 
 import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
+import { IPrime } from "./Interfaces/IPrime.sol";
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
 import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
-import { IIncomeDestination } from "./Interfaces/IIncomeDestination.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
 
 /**
@@ -24,7 +24,7 @@ import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
  * @notice Prime Token is used to provide extra rewards to the users who have staked a minimum of 1000 XVS in the XVSVault for 90 days
  * @custom:security-contact https://github.com/VenusProtocol/venus-protocol
  */
-contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
+contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice total blocks per year
