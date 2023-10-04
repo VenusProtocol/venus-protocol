@@ -273,7 +273,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
                 }
             }
 
-            pendingScoreUpdates--;
+            --pendingScoreUpdates;
             isScoreUpdated[nextScoreUpdateRoundId][user] = true;
 
             unchecked {
@@ -324,14 +324,16 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function updateMultipliers(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
-        if (!markets[market].exists) revert MarketNotSupported();
+
+        Market memory _markets = markets[market];
+        if (!_markets.exists) revert MarketNotSupported();
 
         accrueInterest(market);
 
         emit MultiplierUpdated(
             market,
-            markets[market].supplyMultiplier,
-            markets[market].borrowMultiplier,
+            _markets.supplyMultiplier,
+            _markets.borrowMultiplier,
             supplyMultiplier,
             borrowMultiplier
         );
@@ -441,18 +443,21 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function xvsUpdated(address user) external {
         uint256 totalStaked = _xvsBalanceOfUser(user);
         bool isAccountEligible = _isEligible(totalStaked);
+        uint256 userStakedAt = stakedAt[user];
 
-        if (tokens[user].exists && !isAccountEligible) {
-            if (tokens[user].isIrrevocable) {
+        Token memory token = tokens[user];
+
+        if (token.exists && !isAccountEligible) {
+            if (token.isIrrevocable) {
                 _accrueInterestAndUpdateScore(user);
             } else {
                 _burn(user);
             }
-        } else if (!isAccountEligible && !tokens[user].exists && stakedAt[user] != 0) {
+        } else if (!isAccountEligible && !token.exists && userStakedAt != 0) {
             delete stakedAt[user];
-        } else if (stakedAt[user] == 0 && isAccountEligible && !tokens[user].exists) {
+        } else if (userStakedAt == 0 && isAccountEligible && !token.exists) {
             stakedAt[user] = block.timestamp;
-        } else if (tokens[user].exists && isAccountEligible) {
+        } else if (token.exists && isAccountEligible) {
             _accrueInterestAndUpdateScore(user);
         }
     }
@@ -471,11 +476,12 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @notice For claiming prime token when staking period is completed
      */
     function claim() external {
-        if (stakedAt[msg.sender] == 0) revert IneligibleToClaim();
+        uint256 userStakedAt = stakedAt[msg.sender];
+        if (userStakedAt == 0) revert IneligibleToClaim();
 
         uint256 timeDifference;
         unchecked {
-            timeDifference = block.timestamp - stakedAt[msg.sender];
+            timeDifference = block.timestamp - userStakedAt;
         }
         if (timeDifference < STAKING_PERIOD) revert WaitMoreTime();
 
@@ -538,12 +544,13 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function updateAssetsState(address _comptroller, address asset) external {
         if (msg.sender != protocolShareReserve) revert InvalidCaller();
-        if (comptroller != _comptroller) revert InvalidComptroller();
+        address comptroller_ = comptroller;
+        if (comptroller_ != _comptroller) revert InvalidComptroller();
 
         address vToken = vTokenForAsset[asset];
         if (vToken == address(0)) revert MarketNotSupported();
 
-        emit UpdatedAssetsState(comptroller, asset, unreleasedPSRIncome[asset], 0);
+        emit UpdatedAssetsState(comptroller_, asset, unreleasedPSRIncome[asset], 0);
         delete unreleasedPSRIncome[asset];
     }
 
@@ -561,16 +568,19 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return timeRemaining the number of seconds the user needs to wait to claim prime token
      */
     function claimTimeRemaining(address user) external view returns (uint256) {
-        if (stakedAt[user] == 0) return STAKING_PERIOD;
+        uint256 userStakedAt = stakedAt[user];
+        uint256 stakingPeriod = STAKING_PERIOD;
+
+        if (userStakedAt == 0) return stakingPeriod;
 
         uint256 totalTimeStaked;
         unchecked {
-            totalTimeStaked = block.timestamp - stakedAt[user];
+            totalTimeStaked = block.timestamp - userStakedAt;
         }
 
-        if (totalTimeStaked < STAKING_PERIOD) {
+        if (totalTimeStaked < stakingPeriod) {
             unchecked {
-                return STAKING_PERIOD - totalTimeStaked;
+                return stakingPeriod - totalTimeStaked;
             }
         }
         return 0;
@@ -670,7 +680,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @custom:error Throw MarketNotSupported if market is not supported
      */
     function accrueInterest(address vToken) public {
-        if (!markets[vToken].exists) revert MarketNotSupported();
+        Market memory market = markets[vToken];
+
+        if (!market.exists) revert MarketNotSupported();
 
         address underlying = _getUnderlying(vToken);
 
@@ -705,13 +717,13 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         unreleasedPLPIncome[underlying] = totalAccruedInPLP;
 
         uint256 delta;
-        if (markets[vToken].sumOfMembersScore != 0) {
+        if (market.sumOfMembersScore != 0) {
             unchecked {
-                delta = ((distributionIncome * EXP_SCALE) / markets[vToken].sumOfMembersScore);
+                delta = ((distributionIncome * EXP_SCALE) / market.sumOfMembersScore);
             }
         }
 
-        markets[vToken].rewardIndex = markets[vToken].rewardIndex + delta;
+        markets[vToken].rewardIndex += delta;
     }
 
     /**
@@ -846,9 +858,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         tokens[user].isIrrevocable = isIrrevocable;
 
         if (isIrrevocable) {
-            totalIrrevocable++;
+            ++totalIrrevocable;
         } else {
-            totalRevocable++;
+            ++totalRevocable;
         }
 
         if (totalIrrevocable > irrevocableLimit || totalRevocable > revocableLimit) revert InvalidLimit();
@@ -863,7 +875,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @custom:event Emits Burn event
      */
     function _burn(address user) internal {
-        if (!tokens[user].exists) revert UserHasNoPrimeToken();
+        Token memory token = tokens[user];
+        if (!token.exists) revert UserHasNoPrimeToken();
 
         address[] storage allMarkets = _allMarkets;
         uint256 marketsLength = allMarkets.length;
@@ -884,7 +897,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             }
         }
 
-        if (tokens[user].isIrrevocable) {
+        if (token.isIrrevocable) {
             totalIrrevocable--;
         } else {
             totalRevocable--;
@@ -908,8 +921,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         Token storage userToken = tokens[user];
 
         userToken.isIrrevocable = true;
-        totalIrrevocable++;
-        totalRevocable--;
+        ++totalIrrevocable;
+        --totalRevocable;
 
         if (totalIrrevocable > irrevocableLimit) revert InvalidLimit();
 
@@ -937,16 +950,14 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param market the market for which we need to score
      */
     function _updateScore(address user, address market) internal {
-        if (!markets[market].exists || !tokens[user].exists) {
+        Market memory _market = markets[market];
+        if (!_market.exists || !tokens[user].exists) {
             return;
         }
 
         uint256 score = _calculateScore(market, user);
         unchecked {
-            markets[market].sumOfMembersScore =
-                markets[market].sumOfMembersScore -
-                interests[market][user].score +
-                score;
+            markets[market].sumOfMembersScore = _market.sumOfMembersScore - interests[market][user].score + score;
         }
 
         interests[market][user].score = score;
@@ -977,10 +988,10 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @notice update the required score updates when token is burned before round is completed
      */
     function _updateRoundAfterTokenBurned(address user) internal {
-        if (totalScoreUpdatesRequired != 0) totalScoreUpdatesRequired--;
+        if (totalScoreUpdatesRequired != 0) --totalScoreUpdatesRequired;
 
         if (pendingScoreUpdates != 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
-            pendingScoreUpdates--;
+            --pendingScoreUpdates;
         }
     }
 
@@ -1004,8 +1015,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return xvsBalanceForScore the XVS balance to use in score
      */
     function _xvsBalanceForScore(uint256 xvs) internal view returns (uint256) {
-        if (xvs > MAXIMUM_XVS_CAP) {
-            return MAXIMUM_XVS_CAP;
+        uint256 maximumXvsCap = MAXIMUM_XVS_CAP;
+        if (xvs > maximumXvsCap) {
+            return maximumXvsCap;
         }
         return xvs;
     }
@@ -1029,15 +1041,17 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         address xvsToken = IXVSVault(_xvsVault).xvsAddress();
 
         uint256 xvsPrice = oracle.getPrice(xvsToken);
-        uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
-        uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
+        uint256 expScale = EXP_SCALE;
+
+        uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / expScale)) / expScale;
+        uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / expScale)) / expScale;
 
         uint256 tokenPrice = oracle.getUnderlyingPrice(market);
         uint256 supplyUSD;
         uint256 borrowUSD;
         unchecked {
-            supplyUSD = (tokenPrice * supply) / EXP_SCALE;
-            borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
+            supplyUSD = (tokenPrice * supply) / expScale;
+            borrowUSD = (tokenPrice * borrow) / expScale;
         }
 
         if (supplyUSD >= supplyCapUSD) {
@@ -1075,12 +1089,13 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return interestAccrued the number of underlying tokens accrued by the user since the last accrual
      */
     function _interestAccrued(address vToken, address user) internal view returns (uint256) {
+        Interest memory interest = interests[vToken][user];
         uint256 index;
         unchecked {
-            index = markets[vToken].rewardIndex - interests[vToken][user].rewardIndex;
+            index = markets[vToken].rewardIndex - interest.rewardIndex;
         }
 
-        uint256 score = interests[vToken][user].score;
+        uint256 score = interest.score;
 
         unchecked {
             return (index * score) / EXP_SCALE;
@@ -1110,10 +1125,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function _incomePerBlock(address vToken) internal view returns (uint256) {
         IVToken market = IVToken(vToken);
+        uint256 expScale = EXP_SCALE;
 
         unchecked {
-            return ((((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) *
-                market.reserveFactorMantissa()) / EXP_SCALE);
+            return ((((market.totalBorrows() * market.borrowRatePerBlock()) / expScale) *
+                market.reserveFactorMantissa()) / expScale);
         }
     }
 
@@ -1136,6 +1152,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function _incomeDistributionYearly(address vToken) internal view returns (uint256 amount) {
         uint256 totalIncomePerBlockFromMarket = _incomePerBlock(vToken);
+        uint256 blocksPerYear = BLOCKS_PER_YEAR;
         uint256 incomePerBlockForDistributionFromMarket;
         unchecked {
             incomePerBlockForDistributionFromMarket =
@@ -1143,11 +1160,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
                 IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
         }
 
-        amount = BLOCKS_PER_YEAR * incomePerBlockForDistributionFromMarket;
+        amount = blocksPerYear * incomePerBlockForDistributionFromMarket;
 
         uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
             .getEffectiveDistributionSpeed(_getUnderlying(vToken));
-        amount += BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
+        amount += blocksPerYear * totalIncomePerBlockFromPLP;
     }
 
     /**
@@ -1182,13 +1199,14 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         if (totalCappedValue == 0) return (0, 0);
 
+        uint256 maximumBps = MAXIMUM_BPS;
         uint256 userSupplyIncomeYearly;
         uint256 userBorrowIncomeYearly;
         unchecked {
             userSupplyIncomeYearly = (userYearlyIncome * totalCappedSupply) / totalCappedValue;
             userBorrowIncomeYearly = (userYearlyIncome * totalCappedBorrow) / totalCappedValue;
-            supplyAPR = totalSupply == 0 ? 0 : ((userSupplyIncomeYearly * MAXIMUM_BPS) / totalSupply);
-            borrowAPR = totalBorrow == 0 ? 0 : ((userBorrowIncomeYearly * MAXIMUM_BPS) / totalBorrow);
+            supplyAPR = totalSupply == 0 ? 0 : ((userSupplyIncomeYearly * maximumBps) / totalSupply);
+            borrowAPR = totalBorrow == 0 ? 0 : ((userBorrowIncomeYearly * maximumBps) / totalBorrow);
         }
     }
 }

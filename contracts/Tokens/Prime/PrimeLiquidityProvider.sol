@@ -209,7 +209,8 @@ contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, 
      * @custom:error Throw InvalidCaller if the sender is not the Prime contract
      */
     function releaseFunds(address token_) external {
-        if (msg.sender != prime) revert InvalidCaller();
+        address _prime = prime;
+        if (msg.sender != _prime) revert InvalidCaller();
         if (paused()) {
             revert FundsTransferIsPaused();
         }
@@ -220,7 +221,7 @@ contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, 
 
         emit TokenTransferredToPrime(token_, accruedAmount);
 
-        IERC20Upgradeable(token_).safeTransfer(prime, accruedAmount);
+        IERC20Upgradeable(token_).safeTransfer(_prime, accruedAmount);
     }
 
     /**
@@ -332,8 +333,9 @@ contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, 
      * @custom:error Throw InvalidDistributionSpeed if speed is greater than max speed
      */
     function _setTokenDistributionSpeed(address token_, uint256 distributionSpeed_) internal {
-        if (distributionSpeed_ > MAX_DISTRIBUTION_SPEED) {
-            revert InvalidDistributionSpeed(distributionSpeed_, MAX_DISTRIBUTION_SPEED);
+        uint256 maxDistributionSpeed = MAX_DISTRIBUTION_SPEED;
+        if (distributionSpeed_ > maxDistributionSpeed) {
+            revert InvalidDistributionSpeed(distributionSpeed_, maxDistributionSpeed);
         }
 
         uint256 oldDistributionSpeed = tokenDistributionSpeeds[token_];
