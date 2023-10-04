@@ -53,15 +53,6 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @notice Emitted on sweep token success
     event SweepToken(address indexed token, address indexed to, uint256 sweepAmount);
 
-    /// @notice Emitted on updation of initial balance for token
-    event TokenInitialBalanceUpdated(address indexed token, uint256 balance);
-
-    /// @notice Emitted when funds transfer is paused
-    event FundsTransferPaused();
-
-    /// @notice Emitted when funds transfer is resumed
-    event FundsTransferResumed();
-
     /// @notice Thrown when arguments are passed are invalid
     error InvalidArguments();
 
