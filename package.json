@@ -31,7 +31,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.8.3",
+    "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
     "@venusprotocol/governance-contracts": "^0.0.2",
     "bignumber.js": "^9.1.2",
