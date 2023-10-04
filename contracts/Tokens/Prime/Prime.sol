@@ -448,7 +448,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             } else {
                 _burn(user);
             }
-        } else if (!isAccountEligible && !tokens[user].exists && stakedAt[user] > 0) {
+        } else if (!isAccountEligible && !tokens[user].exists && stakedAt[user] != 0) {
             delete stakedAt[user];
         } else if (stakedAt[user] == 0 && isAccountEligible && !tokens[user].exists) {
             stakedAt[user] = block.timestamp;
@@ -682,7 +682,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         unreleasedPLPIncome[underlying] = totalAccruedInPLP;
 
         uint256 delta;
-        if (markets[vToken].sumOfMembersScore > 0) {
+        if (markets[vToken].sumOfMembersScore != 0) {
             delta = ((distributionIncome * EXP_SCALE) / markets[vToken].sumOfMembersScore);
         }
 
@@ -941,9 +941,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @notice update the required score updates when token is burned before round is completed
      */
     function _updateRoundAfterTokenBurned(address user) internal {
-        if (totalScoreUpdatesRequired > 0) totalScoreUpdatesRequired--;
+        if (totalScoreUpdatesRequired != 0) totalScoreUpdatesRequired--;
 
-        if (pendingScoreUpdates > 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
+        if (pendingScoreUpdates != 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
             pendingScoreUpdates--;
         }
     }
@@ -1001,11 +1001,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
 
         if (supplyUSD >= supplyCapUSD) {
-            supply = supplyUSD > 0 ? (supply * supplyCapUSD) / supplyUSD : 0;
+            supply = supplyUSD != 0 ? (supply * supplyCapUSD) / supplyUSD : 0;
         }
 
         if (borrowUSD >= borrowCapUSD) {
-            borrow = borrowUSD > 0 ? (borrow * borrowCapUSD) / borrowUSD : 0;
+            borrow = borrowUSD != 0 ? (borrow * borrowCapUSD) / borrowUSD : 0;
         }
 
         return ((supply + borrow), supply, borrow);

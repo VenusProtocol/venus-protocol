@@ -257,12 +257,12 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         uint256 blockNumber = getBlockNumber();
         uint256 deltaBlocks = blockNumber - lastAccruedBlock[token_];
 
-        if (deltaBlocks > 0) {
+        if (deltaBlocks != 0) {
             uint256 distributionSpeed = tokenDistributionSpeeds[token_];
             uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
 
             uint256 balanceDiff = balance - tokenAmountAccrued[token_];
-            if (distributionSpeed > 0 && balanceDiff > 0) {
+            if (distributionSpeed != 0 && balanceDiff != 0) {
                 uint256 accruedSinceUpdate = deltaBlocks * distributionSpeed;
                 uint256 tokenAccrued = (balanceDiff <= accruedSinceUpdate ? balanceDiff : accruedSinceUpdate);
 
@@ -291,7 +291,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         uint256 blockNumber = getBlockNumber();
         uint256 initializedBlock = lastAccruedBlock[token_];
 
-        if (initializedBlock > 0) {
+        if (initializedBlock != 0) {
             revert TokenAlreadyInitialized(token_);
         }
 
