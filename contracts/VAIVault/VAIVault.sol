@@ -12,6 +12,10 @@ interface IVAIVaultProxy {
     function admin() external returns (address);
 }
 
+/**
+ * @title VAI Vault
+ * @author Venus
+ */
 contract VAIVault is VAIVaultStorage, AccessControlledV5 {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
