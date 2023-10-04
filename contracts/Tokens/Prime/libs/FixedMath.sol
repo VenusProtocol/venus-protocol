@@ -10,6 +10,11 @@ using SafeCastUpgradeable for uint256;
 
 error InvalidFixedPoint();
 
+/**
+ * @title FixedMath
+ * @author Venus
+ * @notice FixedMath library is used for complex mathematical operations
+ */
 library FixedMath {
     error InvalidFraction(uint256 n, uint256 d);
 

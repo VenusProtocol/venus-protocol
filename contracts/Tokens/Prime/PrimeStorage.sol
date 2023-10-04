@@ -3,6 +3,11 @@ pragma solidity 0.8.13;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
+/**
+ * @title PrimeStorageV1
+ * @author Venus
+ * @notice Storage for Prime Token
+ */
 contract PrimeStorageV1 {
     struct Token {
         bool exists;

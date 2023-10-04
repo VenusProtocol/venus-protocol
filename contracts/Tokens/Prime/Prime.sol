@@ -18,7 +18,12 @@ import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 import { IIncomeDestination } from "./Interfaces/IIncomeDestination.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
 
-/// @custom:security-contact https://github.com/VenusProtocol/venus-protocol
+/**
+ * @title Prime
+ * @author Venus
+ * @notice Prime Token is used to provide extra rewards to the users who have staked a minimum of 1000 XVS in the XVSVault for 90 days
+ * @custom:security-contact https://github.com/VenusProtocol/venus-protocol
+ */
 contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 

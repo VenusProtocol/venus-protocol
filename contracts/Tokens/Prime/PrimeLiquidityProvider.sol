@@ -5,6 +5,11 @@ import { SafeERC20Upgradeable, IERC20Upgradeable } from "@openzeppelin/contracts
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 
+/**
+ * @title PrimeLiquidityProvider
+ * @author Venus
+ * @notice PrimeLiquidityProvider is used to fund Prime
+ */
 contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 

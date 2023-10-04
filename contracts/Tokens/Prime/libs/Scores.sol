@@ -7,6 +7,11 @@ import { FixedMath } from "./FixedMath.sol";
 
 using SafeCastUpgradeable for uint256;
 
+/**
+ * @title Scores
+ * @author Venus
+ * @notice Scores library is used to calculate score of users
+ */
 library Scores {
     /**
      * @notice Calculate a membership score given some amount of `xvs` and `capital`, along

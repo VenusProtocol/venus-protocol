@@ -35,6 +35,10 @@ error ExpTooLarge(int256 x);
 /// Thrown when an unsigned value is too large to be converted to a signed value
 error UnsignedValueTooLarge(uint256 x);
 
+/**
+ * @title FixedMath0x
+ * @notice Signed, fixed-point, 127-bit precision math library
+ */
 library FixedMath0x {
     // Base for the fixed point numbers (this is our 1)
     int256 internal constant FIXED_1 = int256(0x0000000000000000000000000000000080000000000000000000000000000000);
