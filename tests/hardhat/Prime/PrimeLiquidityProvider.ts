@@ -152,6 +152,12 @@ describe("PrimeLiquidityProvider: tests", () => {
         .withArgs(tokenC.address, tokenCSpeed, 0);
     });
 
+    it("Reverts on setting prime address same as previous", async () => {
+      const tx = primeLiquidityProvider.setPrimeToken(prime.address);
+
+      await expect(tx).to.be.revertedWithCustomError(primeLiquidityProvider, "AddressesMustDiffer");
+    });
+
     it("Revert on invalid prime token address", async () => {
       const tx = primeLiquidityProvider.setPrimeToken(ethers.constants.AddressZero);
 

@@ -75,6 +75,21 @@ contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, 
     /// @notice Error thrown when interest accrue is called for not initialized token
     error TokenNotInitialized(address token_);
 
+    /// @notice Error thrown when argument value in setter is same as previous value
+    error AddressesMustDiffer();
+
+    /**
+     * @notice Compares two addresses to ensure they are different
+     * @param oldAddress The original address to compare
+     * @param newAddress The new address to compare
+     */
+    modifier compareAddress(address oldAddress, address newAddress) {
+        if (newAddress == oldAddress) {
+            revert AddressesMustDiffer();
+        }
+        _;
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -178,7 +193,7 @@ contract PrimeLiquidityProvider is IPrimeLiquidityProvider, AccessControlledV8, 
      * @custom:event Emits PrimeTokenUpdated event
      * @custom:access Only owner
      */
-    function setPrimeToken(address prime_) external onlyOwner {
+    function setPrimeToken(address prime_) external onlyOwner compareAddress(prime, prime_) {
         _ensureZeroAddress(prime_);
 
         emit PrimeTokenUpdated(prime, prime_);
