@@ -319,9 +319,6 @@ describe("PrimeScenario Token", () => {
       const token = await prime.tokens(user.getAddress());
       expect(token.isIrrevocable).to.be.equal(false);
       expect(token.exists).to.be.equal(true);
-
-      stake = await prime.stakedAt(user.getAddress());
-      expect(stake).be.equal(0);
     });
 
     it("stake and unstake", async () => {
@@ -440,6 +437,63 @@ describe("PrimeScenario Token", () => {
       expect(token.isIrrevocable).to.be.equal(false);
       expect(token.exists).to.be.equal(true);
     });
+
+    it("stake, issue and unstake", async () => {
+      const user = user1;
+
+      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
+
+      let stake = await prime.stakedAt(user.getAddress());
+      expect(stake).be.gt(0);
+
+      await prime.issue(true, [user.getAddress()]);
+
+      stake = await prime.stakedAt(user.getAddress());
+      expect(stake).be.gt(0);
+
+      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(1));
+
+      stake = await prime.stakedAt(user.getAddress());
+      expect(stake).be.gt(0);
+
+      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(9999));
+      stake = await prime.stakedAt(user.getAddress());
+      expect(stake).be.equal(0);
+
+      await mine(90 * 24 * 60 * 60);
+
+      await expect(prime.connect(user).claim()).to.be.revertedWithCustomError(prime, "IneligibleToClaim");
+    })
+
+    it("issue, stake and burn", async () => {
+      const user = user1;
+
+      await prime.issue(true, [user.getAddress()]);
+
+      let token = await prime.tokens(user.getAddress());
+      expect(token.isIrrevocable).to.be.equal(true);
+      expect(token.exists).to.be.equal(true);
+
+      await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
+      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
+
+      let stake = await prime.stakedAt(user.getAddress());
+      expect(stake).be.gt(0);
+
+      await mine(100 * 24 * 60 * 60);
+
+      await prime.burn(user.getAddress());
+
+      token = await prime.tokens(user.getAddress());
+      expect(token.exists).to.be.equal(false);
+
+      await prime.connect(user).claim()
+
+      token = await prime.tokens(user.getAddress());
+      expect(token.isIrrevocable).to.be.equal(false);
+      expect(token.exists).to.be.equal(true);
+    })
   });
 
   describe("boosted yield", () => {

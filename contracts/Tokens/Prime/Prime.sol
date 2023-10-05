@@ -403,7 +403,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             for (uint256 i = 0; i < users.length; ) {
                 _mint(false, users[i]);
                 _initializeMarkets(users[i]);
-                delete stakedAt[users[i]];
 
                 unchecked {
                     ++i;
@@ -421,6 +420,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         bool isAccountEligible = isEligible(totalStaked);
 
         if (tokens[user].exists && !isAccountEligible) {
+            stakedAt[user] = 0;
+
             if (tokens[user].isIrrevocable) {
                 _accrueInterestAndUpdateScore(user);
             } else {
@@ -432,6 +433,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             stakedAt[user] = block.timestamp;
         } else if (tokens[user].exists && isAccountEligible) {
             _accrueInterestAndUpdateScore(user);
+
+            if (stakedAt[user] == 0) {
+                stakedAt[user] = block.timestamp;
+            }
         }
     }
 
@@ -451,8 +456,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     function claim() external {
         if (stakedAt[msg.sender] == 0) revert IneligibleToClaim();
         if (block.timestamp - stakedAt[msg.sender] < STAKING_PERIOD) revert WaitMoreTime();
-
-        stakedAt[msg.sender] = 0;
 
         _mint(false, msg.sender);
         _initializeMarkets(msg.sender);
