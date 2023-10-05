@@ -27,7 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await deploy("SwapRouter", {
     contract: "SwapRouter",
     from: deployer,
-    args: [WBNBAddress, pancakeFactoryAddress, ADDRESSES[networkName].Unitroller],
+    args: [WBNBAddress, pancakeFactoryAddress, ADDRESSES[networkName].Unitroller, ADDRESSES[networkName].vBNB],
     log: true,
     autoMine: true,
   });

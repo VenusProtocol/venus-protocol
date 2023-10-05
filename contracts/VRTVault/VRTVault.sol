@@ -15,8 +15,8 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
-    /// @notice Event emitted when admin changed
-    event AdminTransfered(address indexed oldAdmin, address indexed newAdmin);
+    /// @notice The upper bound for lastAccruingBlock. Close to year 3,000, considering 3 seconds per block. Used to avoid a value absurdly high
+    uint256 public constant MAX_LAST_ACCRUING_BLOCK = 9999999999;
 
     /// @notice Event emitted when vault is paused
     event VaultPaused(address indexed admin);
@@ -73,7 +73,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
     }
 
     modifier isActive() {
-        require(vaultPaused == false, "Vault is paused");
+        require(!vaultPaused, "Vault is paused");
         _;
     }
 
@@ -94,7 +94,7 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
 
     modifier userHasPosition(address userAddress) {
         UserInfo storage user = userInfo[userAddress];
-        require(user.userAddress != address(0), "User doesnot have any position in the Vault.");
+        require(user.userAddress != address(0), "User does not have any position in the Vault.");
         _;
     }
 
@@ -279,6 +279,8 @@ contract VRTVault is VRTVaultStorage, AccessControlledV5 {
 
     function setLastAccruingBlock(uint256 _lastAccruingBlock) external {
         _checkAccessAllowed("setLastAccruingBlock(uint256)");
+        require(_lastAccruingBlock < MAX_LAST_ACCRUING_BLOCK, "_lastAccruingBlock is absurdly high");
+
         uint256 oldLastAccruingBlock = lastAccruingBlock;
         uint256 currentBlock = getBlockNumber();
         if (oldLastAccruingBlock != 0) {

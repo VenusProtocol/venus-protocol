@@ -5,38 +5,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
-interface IComptroller {
-    function liquidationIncentiveMantissa() external view returns (uint256);
+import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "./Interfaces.sol";
 
-    function vaiController() external view returns (IVAIController);
-}
-
-interface IVToken is IERC20Upgradeable {}
-
-interface IVBep20 is IVToken {
-    function underlying() external view returns (address);
-
-    function liquidateBorrow(
-        address borrower,
-        uint256 repayAmount,
-        IVToken vTokenCollateral
-    ) external returns (uint256);
-}
-
-interface IVBNB is IVToken {
-    function liquidateBorrow(address borrower, IVToken vTokenCollateral) external payable;
-}
-
-interface IVAIController {
-    function liquidateVAI(
-        address borrower,
-        uint256 repayAmount,
-        IVToken vTokenCollateral
-    ) external returns (uint256, uint256);
-
-    function getVAIAddress() external view returns (address);
-}
-
+/**
+ * @title Liquidator
+ * @author Venus
+ * @notice The Liquidator contract is responsible for liquidating underwater accounts.
+ */
 contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @notice Address of vBNB contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable

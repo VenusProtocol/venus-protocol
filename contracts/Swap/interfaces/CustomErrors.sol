@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.13;
+
 // **************
 // *** ERRORS ***
 // **************
@@ -14,7 +15,7 @@ error RepayError(address repayer, address vToken, uint256 errorCode);
 error WrongAddress(address expectedAdddress, address passedAddress);
 
 ///@notice Error thrown when deadline for swap has expired
-error SwapDeadlineExpire(uint256 deadline, uint256 currentBlock);
+error SwapDeadlineExpire(uint256 deadline, uint256 timestemp);
 
 ///@notice Error thrown where the input amount parameter for a token is 0
 error InsufficientInputAmount();
@@ -62,10 +63,10 @@ error SafeApproveFailed();
 error SafeTransferFailed();
 
 ///@notice Error thrown when transferFrom failed
-error TransferFromFailed();
+error SafeTransferFromFailed();
 
-///@notice Error thrown when safeTransferETH failed
-error SafeTransferETHFailed();
+///@notice Error thrown when safeTransferBNB failed
+error SafeTransferBNBFailed();
 
 ///@notice Error thrown when reentrant check fails
 error ReentrantCheck();

@@ -3,6 +3,7 @@ import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network
 import { NumberLike } from "@nomicfoundation/hardhat-network-helpers/dist/src/types";
 import { expect } from "chai";
 import { ContractInterface, TransactionResponse } from "ethers";
+import { ParamType } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 
 import { Command, Proposal, ProposalMeta, ProposalType } from "./types";
@@ -13,7 +14,7 @@ export async function setForkBlock(blockNumber: number) {
     params: [
       {
         forking: {
-          jsonRpcUrl: process.env.BSC_ARCHIVE_NODE,
+          jsonRpcUrl: process.env.BSC_ARCHIVE_NODE_URL,
           blockNumber: blockNumber,
         },
       },
@@ -28,22 +29,23 @@ export function getCalldatas({ signatures, params }: { signatures: string[]; par
   });
 }
 
-const getArgs = (func: string) => {
-  if (func === "") return [];
-  // First match everything inside the function argument parens.
-  const match = func.match(/.*?\(([^)]*)\)/);
-  const args = match ? match[1] : "";
-  // Split the arguments string into an array comma delimited.
-  return args
-    .split(",")
-    .map(arg => {
-      // Ensure no inline comments are parsed and trim the whitespace.
-      return arg.replace(/\/\*.*\*\//, "").trim();
-    })
-    .filter(arg => {
-      // Ensure no undefined values are added.
-      return arg;
-    });
+const formatParamType = (paramType: ParamType): string => {
+  if (paramType.type === "tuple") {
+    return `tuple(${paramType.components.map(formatParamType).join(", ")})`;
+  }
+
+  if (paramType.type === "tuple[]") {
+    return `tuple(${paramType.components.map(formatParamType).join(", ")})[]`;
+  }
+
+  return paramType.type;
+};
+
+const getArgs = (signature: string) => {
+  if (signature === "") return [];
+  const fragment = ethers.utils.FunctionFragment.from(signature);
+
+  return fragment.inputs.map(formatParamType);
 };
 
 export const initMainnetUser = async (user: string, balance: NumberLike) => {
@@ -67,7 +69,7 @@ export const setMaxStalePeriodInOracle = async (
   comptrollerAddress: string,
   maxStalePeriodInSeconds: number = 31536000 /* 1 year */,
 ) => {
-  const comptroller = await ethers.getContractAt("Comptroller", comptrollerAddress);
+  const comptroller = await ethers.getContractAt("ComptrollerInterface", comptrollerAddress);
   const oracle = await ethers.getContractAt("VenusChainlinkOracle", await comptroller.oracle());
   const oracleAdmin = await initMainnetUser(await oracle.admin(), ethers.utils.parseEther("1.0"));
 

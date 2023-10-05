@@ -218,6 +218,49 @@ describe("XVSVault", async () => {
     });
   });
 
+  describe("setWithdrawalLockingPeriod", async () => {
+    it("reverts if ACM does not allow the call", async () => {
+      accessControl.isAllowedToCall.returns(false);
+      await expect(xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, 1)).to.be.revertedWith("Unauthorized");
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("reverts if pool does not exist", async () => {
+      await expect(xvsVault.setWithdrawalLockingPeriod(xvs.address, 1, 1)).to.be.revertedWith("vault: pool exists?");
+    });
+
+    it("reverts if the lock period is 0", async () => {
+      await expect(xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, 0)).to.be.revertedWith(
+        "Invalid new locking period",
+      );
+    });
+
+    it("reverts if the lock period is absurdly high", async () => {
+      const secondsInTwentyYears = 60 * 60 * 24 * 365 * 20;
+      await expect(xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, secondsInTwentyYears)).to.be.revertedWith(
+        "Invalid new locking period",
+      );
+    });
+
+    it("emits WithdrawalLockingPeriodUpdated event", async () => {
+      const tx = await xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, 1);
+      await expect(tx).to.emit(xvsVault, "WithdrawalLockingPeriodUpdated").withArgs(xvs.address, poolId, lockPeriod, 1);
+      await xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, lockPeriod);
+    });
+
+    it("updates lock period", async () => {
+      let poolInfo = await xvsVault.poolInfos(xvs.address, poolId);
+      expect(poolInfo.lockPeriod).to.equal(lockPeriod);
+
+      await xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, 1);
+      poolInfo = await xvsVault.poolInfos(xvs.address, poolId);
+
+      expect(poolInfo.lockPeriod).to.equal(1);
+
+      await xvsVault.setWithdrawalLockingPeriod(xvs.address, poolId, lockPeriod);
+    });
+  });
+
   describe("pendingReward", async () => {
     it("includes the old withdrawal requests in the rewards computation", async () => {
       const otherGuy = deployer;

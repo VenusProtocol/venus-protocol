@@ -5,7 +5,7 @@ import chai from "chai";
 import { ethers, upgrades } from "hardhat";
 
 import { convertToBigInt } from "../../../helpers/utils";
-import { Comptroller, Liquidator, Liquidator__factory, MockVBNB, VBep20Immutable } from "../../../typechain";
+import { ComptrollerMock, Liquidator, Liquidator__factory, MockVBNB, VBep20Immutable } from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -13,7 +13,7 @@ chai.use(smock.matchers);
 type LiquidatorFixture = {
   vBep20: FakeContract<VBep20Immutable>;
   vBnb: FakeContract<MockVBNB>;
-  comptroller: FakeContract<Comptroller>;
+  comptroller: FakeContract<ComptrollerMock>;
   liquidator: MockContract<Liquidator>;
 };
 
@@ -21,7 +21,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const [, treasury] = await ethers.getSigners();
   const treasuryPercentMantissa = convertToBigInt("0.05", 18);
 
-  const comptroller = await smock.fake<Comptroller>("Comptroller");
+  const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
   comptroller.liquidationIncentiveMantissa.returns(convertToBigInt("1.1", 18));
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");
