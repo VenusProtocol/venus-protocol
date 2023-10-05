@@ -6,8 +6,6 @@
 name: Venus-Protocol
 
 on:
-  push:
-    branches: [master, develop]
   pull_request:
     branches: [main, develop]
 
