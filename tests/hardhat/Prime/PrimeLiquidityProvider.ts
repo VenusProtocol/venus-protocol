@@ -150,7 +150,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
       await expect(tx)
         .to.emit(primeLiquidityProvider, "TokenDistributionSpeedUpdated")
-        .withArgs(tokenC.address, tokenCSpeed, 0);
+        .withArgs(tokenC.address, 0, tokenCSpeed);
     });
 
     it("Reverts on setting prime address same as previous", async () => {
@@ -176,6 +176,28 @@ describe("PrimeLiquidityProvider: tests", () => {
       tx.wait();
 
       await expect(tx).to.emit(primeLiquidityProvider, "PrimeTokenUpdated").withArgs(prime.address, signers[2].address);
+    });
+
+    it("Revert when maxLoopsLimit setter is called by non-owner", async () => {
+      await accessControl.isAllowedToCall.returns(false);
+
+      const tx = primeLiquidityProvider.setMaxLoopsLimit(11);
+
+      await expect(tx).to.be.revertedWithCustomError(primeLiquidityProvider, "Unauthorized");
+    });
+
+    it("Revert when new loops limit is less than old limit", async () => {
+      const tx = primeLiquidityProvider.setMaxLoopsLimit(9);
+
+      await expect(tx).to.be.revertedWith("Comptroller: Invalid maxLoopsLimit");
+    });
+
+    it("maxLoopsLimit setter success", async () => {
+      const tx = await primeLiquidityProvider.setMaxLoopsLimit(11);
+      tx.wait();
+
+      await expect(tx).to.emit(primeLiquidityProvider, "MaxLoopsLimitUpdated").withArgs(10, 11);
+      expect(await primeLiquidityProvider.maxLoopsLimit()).to.be.equal(11);
     });
   });
 

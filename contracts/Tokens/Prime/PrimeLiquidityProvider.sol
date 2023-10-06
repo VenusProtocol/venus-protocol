@@ -23,7 +23,7 @@ contract PrimeLiquidityProvider is
     /// @notice The max token distribution speed
     uint256 public constant MAX_DISTRIBUTION_SPEED = 1e18;
 
-    /// @notice exp scale
+    /// @notice Base unit for computations, usually used in scaling (multiplications, divisions)
     uint256 internal constant EXP_SCALE = 1e18;
 
     /// @notice Address of the Prime contract
@@ -40,16 +40,16 @@ contract PrimeLiquidityProvider is
 
     /// @dev This empty reserved space is put in place to allow future versions to add new
     /// variables without shifting down storage in the inheritance chain.
-    uint256[44] private __gap;
+    uint256[46] private __gap;
 
     /// @notice Emitted when a token distribution is initialized
     event TokenDistributionInitialized(address indexed token);
 
     /// @notice Emitted when a new token distribution speed is set
-    event TokenDistributionSpeedUpdated(address indexed token, uint256 newSpeed, uint256 oldSpeed);
+    event TokenDistributionSpeedUpdated(address indexed token, uint256 oldSpeed, uint256 newSpeed);
 
     /// @notice Emitted when prime token contract address is changed
-    event PrimeTokenUpdated(address oldPrimeToken, address indexed newPrimeToken);
+    event PrimeTokenUpdated(address indexed oldPrimeToken, address indexed newPrimeToken);
 
     /// @notice Emitted when distribution state(Index and block) is updated
     event TokensAccrued(address indexed token, uint256 amount);
@@ -130,7 +130,6 @@ contract PrimeLiquidityProvider is
         }
 
         for (uint256 i; i < numTokens; ) {
-            _ensureZeroAddress(tokens_[i]);
             _initializeToken(tokens_[i]);
             _setTokenDistributionSpeed(tokens_[i], distributionSpeeds_[i]);
 
@@ -213,6 +212,17 @@ contract PrimeLiquidityProvider is
 
         emit PrimeTokenUpdated(prime, prime_);
         prime = prime_;
+    }
+
+    /**
+     * @notice Set the limit for the loops can iterate to avoid the DOS
+     * @param loopsLimit Limit for the max loops can execute at a time
+     * @custom:event Emits MaxLoopsLimitUpdated event on success
+     * @custom:access Controlled by ACM
+     */
+    function setMaxLoopsLimit(uint256 loopsLimit) external {
+        _checkAccessAllowed("setMaxLoopsLimit(uint256)");
+        _setMaxLoopsLimit(loopsLimit);
     }
 
     /**
@@ -363,7 +373,7 @@ contract PrimeLiquidityProvider is
             // Update speed
             tokenDistributionSpeeds[token_] = distributionSpeed_;
 
-            emit TokenDistributionSpeedUpdated(token_, distributionSpeed_, oldDistributionSpeed);
+            emit TokenDistributionSpeedUpdated(token_, oldDistributionSpeed, distributionSpeed_);
         }
     }
 

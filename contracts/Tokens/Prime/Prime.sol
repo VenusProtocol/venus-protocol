@@ -325,20 +325,20 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function updateMultipliers(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
         _checkAccessAllowed("updateMultipliers(address,uint256,uint256)");
 
-        Market storage _markets = markets[market];
-        if (!_markets.exists) revert MarketNotSupported();
+        Market storage _market = markets[market];
+        if (!_market.exists) revert MarketNotSupported();
 
         accrueInterest(market);
 
         emit MultiplierUpdated(
             market,
-            _markets.supplyMultiplier,
-            _markets.borrowMultiplier,
+            _market.supplyMultiplier,
+            _market.borrowMultiplier,
             supplyMultiplier,
             borrowMultiplier
         );
-        _markets.supplyMultiplier = supplyMultiplier;
-        _markets.borrowMultiplier = borrowMultiplier;
+        _market.supplyMultiplier = supplyMultiplier;
+        _market.borrowMultiplier = borrowMultiplier;
 
         _startScoreUpdateRound();
     }
@@ -397,6 +397,17 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         revocableLimit = _revocableLimit;
         irrevocableLimit = _irrevocableLimit;
+    }
+
+    /**
+     * @notice Set the limit for the loops can iterate to avoid the DOS
+     * @param loopsLimit Number of loops limit
+     * @custom:event Emits MaxLoopsLimitUpdated event on success
+     * @custom:access Controlled by ACM
+     */
+    function setMaxLoopsLimit(uint256 loopsLimit) external {
+        _checkAccessAllowed("setMaxLoopsLimit(uint256)");
+        _setMaxLoopsLimit(loopsLimit);
     }
 
     /**
@@ -537,22 +548,22 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
     /**
      * @notice Callback by ProtocolShareReserve to update assets state when funds are released to this contract
-     * @param _comptroller The address of the Comptroller whose income is distributed
+     * @param comptroller_ The address of the Comptroller whose income is distributed
      * @param asset The address of the asset whose income is distributed
      * @custom:error Throw InvalidCaller if caller is not protocol share reserve
      * @custom:error Throw InvalidComptroller if comptroller is not valid
      * @custom:error Throw MarketNotSupported if market is not supported
      * @custom:event Emits UpdatedAssetsState event
      */
-    function updateAssetsState(address _comptroller, address asset) external {
+    function updateAssetsState(address comptroller_, address asset) external {
         if (msg.sender != protocolShareReserve) revert InvalidCaller();
-        address comptroller_ = comptroller;
-        if (comptroller_ != _comptroller) revert InvalidComptroller();
+        address _comptroller = comptroller;
+        if (_comptroller != comptroller_) revert InvalidComptroller();
 
         address vToken = vTokenForAsset[asset];
         if (vToken == address(0)) revert MarketNotSupported();
 
-        emit UpdatedAssetsState(comptroller_, asset, unreleasedPSRIncome[asset], 0);
+        emit UpdatedAssetsState(_comptroller, asset, unreleasedPSRIncome[asset], 0);
         delete unreleasedPSRIncome[asset];
     }
 
@@ -571,18 +582,16 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function claimTimeRemaining(address user) external view returns (uint256) {
         uint256 userStakedAt = stakedAt[user];
-        uint256 stakingPeriod = STAKING_PERIOD;
-
-        if (userStakedAt == 0) return stakingPeriod;
+        if (userStakedAt == 0) return STAKING_PERIOD;
 
         uint256 totalTimeStaked;
         unchecked {
             totalTimeStaked = block.timestamp - userStakedAt;
         }
 
-        if (totalTimeStaked < stakingPeriod) {
+        if (totalTimeStaked < STAKING_PERIOD) {
             unchecked {
-                return stakingPeriod - totalTimeStaked;
+                return STAKING_PERIOD - totalTimeStaked;
             }
         }
         return 0;
@@ -1018,9 +1027,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return xvsBalanceForScore the XVS balance to use in score
      */
     function _xvsBalanceForScore(uint256 xvs) internal view returns (uint256) {
-        uint256 maximumXvsCap = MAXIMUM_XVS_CAP;
-        if (xvs > maximumXvsCap) {
-            return maximumXvsCap;
+        if (xvs > MAXIMUM_XVS_CAP) {
+            return MAXIMUM_XVS_CAP;
         }
         return xvs;
     }
@@ -1044,17 +1052,15 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         address xvsToken = IXVSVault(_xvsVault).xvsAddress();
 
         uint256 xvsPrice = oracle.getPrice(xvsToken);
-        uint256 expScale = EXP_SCALE;
-
-        uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / expScale)) / expScale;
-        uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / expScale)) / expScale;
+        uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
+        uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
 
         uint256 tokenPrice = oracle.getUnderlyingPrice(market);
         uint256 supplyUSD;
         uint256 borrowUSD;
         unchecked {
-            supplyUSD = (tokenPrice * supply) / expScale;
-            borrowUSD = (tokenPrice * borrow) / expScale;
+            supplyUSD = (tokenPrice * supply) / EXP_SCALE;
+            borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
         }
 
         if (supplyUSD >= supplyCapUSD) {
@@ -1128,11 +1134,10 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function _incomePerBlock(address vToken) internal view returns (uint256) {
         IVToken market = IVToken(vToken);
-        uint256 expScale = EXP_SCALE;
 
         unchecked {
-            return ((((market.totalBorrows() * market.borrowRatePerBlock()) / expScale) *
-                market.reserveFactorMantissa()) / expScale);
+            return ((((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) *
+                market.reserveFactorMantissa()) / EXP_SCALE);
         }
     }
 
@@ -1155,7 +1160,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function _incomeDistributionYearly(address vToken) internal view returns (uint256 amount) {
         uint256 totalIncomePerBlockFromMarket = _incomePerBlock(vToken);
-        uint256 blocksPerYear = BLOCKS_PER_YEAR;
         uint256 incomePerBlockForDistributionFromMarket;
         unchecked {
             incomePerBlockForDistributionFromMarket =
@@ -1163,11 +1167,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
                 IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
         }
 
-        amount = blocksPerYear * incomePerBlockForDistributionFromMarket;
+        amount = BLOCKS_PER_YEAR * incomePerBlockForDistributionFromMarket;
 
         uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
             .getEffectiveDistributionSpeed(_getUnderlying(vToken));
-        amount += blocksPerYear * totalIncomePerBlockFromPLP;
+        amount += BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
     }
 
     /**

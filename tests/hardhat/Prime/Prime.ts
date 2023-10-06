@@ -250,6 +250,41 @@ describe("PrimeScenario Token", () => {
     [deployer, user1, user2, user3] = await ethers.getSigners();
   });
 
+  describe("setMaxLoopsLimit()", async () => {
+    let accessControl: FakeContract<IAccessControlManager>;
+    let prime: PrimeScenario;
+
+    before(async () => {
+      ({ accessControl, prime } = await loadFixture(deployProtocol));
+    });
+
+    it("Revert when maxLoopsLimit setter is called by non-owner", async () => {
+      await accessControl.isAllowedToCall.returns(false);
+
+      const tx = prime.setMaxLoopsLimit(11);
+
+      await expect(tx).to.be.revertedWithCustomError(prime, "Unauthorized");
+    });
+
+    it("Revert when new loops limit is less than old limit", async () => {
+      await accessControl.isAllowedToCall.returns(true);
+
+      const tx = prime.setMaxLoopsLimit(9);
+
+      // await expect(tx).to.be.revertedWithCustomError(prime, "Unauthorized");
+
+      await expect(tx).to.be.revertedWith("Comptroller: Invalid maxLoopsLimit");
+    });
+
+    it("maxLoopsLimit setter success", async () => {
+      const tx = await prime.setMaxLoopsLimit(11);
+      tx.wait();
+
+      await expect(tx).to.emit(prime, "MaxLoopsLimitUpdated").withArgs(10, 11);
+      expect(await prime.maxLoopsLimit()).to.be.equal(11);
+    });
+  });
+
   describe("protocol setup", () => {
     let comptroller: MockContract<ComptrollerMock>;
     let prime: PrimeScenario;

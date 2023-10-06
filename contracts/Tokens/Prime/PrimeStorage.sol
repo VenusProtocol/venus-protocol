@@ -33,7 +33,7 @@ contract PrimeStorageV1 {
         uint256 amount;
     }
 
-    /// @notice exp scale
+    /// @notice Base unit for computations, usually used in scaling (multiplications, divisions)
     uint256 internal constant EXP_SCALE = 1e18;
 
     /// @notice minimum amount of XVS user needs to stake to become a prime member
