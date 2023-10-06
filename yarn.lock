@@ -3038,6 +3038,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@venusprotocol/governance-contracts@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "@venusprotocol/governance-contracts@npm:1.1.0"
+  checksum: 5ce93189101f2c827721abbc2df945550c3e74b701c6b64fa9eb0ad66720c096bf64f6318d482614080588007594bbd70d4deae282a920b53619cc5e694bf7e0
+  languageName: node
+  linkType: hard
+
 "@venusprotocol/isolated-pools@npm:^2.0.0":
   version: 2.0.0
   resolution: "@venusprotocol/isolated-pools@npm:2.0.0"
@@ -3115,7 +3122,7 @@ __metadata:
     "@types/node": ^18.7.1
     "@typescript-eslint/eslint-plugin": ^5.40.0
     "@typescript-eslint/parser": ^5.40.0
-    "@venusprotocol/governance-contracts": ^0.0.2
+    "@venusprotocol/governance-contracts": ^1.1.0
     "@venusprotocol/isolated-pools": ^2.0.0
     "@venusprotocol/oracle": 1.7.1
     bignumber.js: ^9.1.2
