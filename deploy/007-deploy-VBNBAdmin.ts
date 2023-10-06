@@ -46,10 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [
-          acmAddresses[networkName],
-          treasuryAddresses[networkName],
-        ],
+        args: [acmAddresses[networkName], treasuryAddresses[networkName]],
       },
     },
   });

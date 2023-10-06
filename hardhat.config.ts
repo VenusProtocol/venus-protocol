@@ -103,7 +103,7 @@ const config: HardhatUserConfig = {
       timeout: 12000000,
     },
     bscmainnet: {
-      url:  "https://bsc-dataseed.binance.org",
+      url: "https://bsc-dataseed.binance.org",
       chainId: 56,
       live: true,
       timeout: 1200000, // 20 minutes
