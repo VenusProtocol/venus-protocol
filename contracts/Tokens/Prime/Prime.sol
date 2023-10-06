@@ -149,8 +149,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param _xvsVault Address of XVSVault
      * @param _xvsVaultRewardToken Address of XVSVault reward token
      * @param _xvsVaultPoolId Pool id of XVSVault
-     * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1
-     * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2
+     * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1. _alphaNumerator must be greater than _alphaDenominator and _alphaDenominator cannot be zero
+     * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2. alpha is _alphaNumerator/_alphaDenominator. So, 0 < alpha <=1
      * @param _accessControlManager Address of AccessControlManager
      * @param _protocolShareReserve Address of ProtocolShareReserve
      * @param _primeLiquidityProvider Address of PrimeLiquidityProvider
