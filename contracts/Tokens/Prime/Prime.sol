@@ -6,6 +6,7 @@ import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contract
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
+import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 
 import { PrimeStorageV1 } from "./PrimeStorage.sol";
 import { Scores } from "./libs/Scores.sol";
@@ -106,6 +107,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /// @notice Error thrown when market already exists
     error MarketAlreadyExists();
 
+    /// @notice Error thrown when asset already exists
+    error AssetAlreadyExists();
+
     /// @notice Error thrown when invalid address is passed
     error InvalidAddress();
 
@@ -167,7 +171,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         address _comptroller,
         address _oracle,
         uint256 _loopsLimit
-    ) external virtual initializer {
+    ) external initializer {
         if (_xvsVault == address(0)) revert InvalidAddress();
         if (_xvsVaultRewardToken == address(0)) revert InvalidAddress();
         if (_protocolShareReserve == address(0)) revert InvalidAddress();
@@ -236,7 +240,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             address user = users[i];
 
             if (!tokens[user].exists) revert UserHasNoPrimeToken();
-            if (isScoreUpdated[nextScoreUpdateRoundId][user]) continue;
+            if (isScoreUpdated[nextScoreUpdateRoundId][user]) {
+                ++i;
+                continue;
+            }
 
             address[] storage _allMarkets = allMarkets;
             for (uint256 j = 0; j < _allMarkets.length; ) {
@@ -338,7 +345,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         markets[market].sumOfMembersScore = 0;
         markets[market].exists = true;
 
-        vTokenForAsset[_getUnderlying(market)] = market;
+        address underlying = _getUnderlying(market);
+        
+        if (vTokenForAsset[underlying] != address(0)) revert AssetAlreadyExists();
+        vTokenForAsset[underlying] = market;
 
         allMarkets.push(market);
         _startScoreUpdateRound();
@@ -393,7 +403,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             for (uint256 i = 0; i < users.length; ) {
                 _mint(false, users[i]);
                 _initializeMarkets(users[i]);
-                delete stakedAt[users[i]];
 
                 unchecked {
                     ++i;
@@ -411,6 +420,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         bool isAccountEligible = isEligible(totalStaked);
 
         if (tokens[user].exists && !isAccountEligible) {
+            stakedAt[user] = 0;
+
             if (tokens[user].isIrrevocable) {
                 _accrueInterestAndUpdateScore(user);
             } else {
@@ -422,6 +433,10 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             stakedAt[user] = block.timestamp;
         } else if (tokens[user].exists && isAccountEligible) {
             _accrueInterestAndUpdateScore(user);
+
+            if (stakedAt[user] == 0) {
+                stakedAt[user] = block.timestamp;
+            }
         }
     }
 
@@ -441,8 +456,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     function claim() external {
         if (stakedAt[msg.sender] == 0) revert IneligibleToClaim();
         if (block.timestamp - stakedAt[msg.sender] < STAKING_PERIOD) revert WaitMoreTime();
-
-        stakedAt[msg.sender] = 0;
 
         _mint(false, msg.sender);
         _initializeMarkets(msg.sender);
@@ -590,6 +603,11 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
             supply,
             market
         );
+
+        IVToken vToken = IVToken(market);
+        uint256 decimals = IERC20MetadataUpgradeable(vToken.underlying()).decimals();
+        capital = capital * (10 ** (18 - decimals));
+
         uint256 userScore = Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
 
         totalScore = totalScore + userScore;
@@ -709,7 +727,9 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         oracle.updatePrice(market);
 
         (uint256 capital, , ) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
-        capital = capital * (10 ** (18 - vToken.decimals()));
+        uint256 decimals = IERC20MetadataUpgradeable(vToken.underlying()).decimals();
+
+        capital = capital * (10 ** (18 - decimals));
 
         return Scores.calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
     }
@@ -830,7 +850,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
-     * @notice Accrue rewards for the user. Must be called by Comptroller before changing account's borrow or supply balance.
+     * @notice Accrue rewards for the user. Must be called before updating score
      * @param user account for which we need to accrue rewards
      * @param vToken the market for which we need to accrue rewards
      */
@@ -866,7 +886,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @custom:error Throw InvalidAlphaArguments if alpha is invalid
      */
     function _checkAlphaArguments(uint128 _alphaNumerator, uint128 _alphaDenominator) internal {
-        if (_alphaDenominator == 0 || _alphaNumerator > _alphaDenominator) {
+        if (_alphaDenominator == 0 || _alphaNumerator > _alphaDenominator || _alphaNumerator == 0) {
             revert InvalidAlphaArguments();
         }
     }

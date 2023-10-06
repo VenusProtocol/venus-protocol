@@ -11,9 +11,6 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @notice The max token distribution speed
     uint256 public constant MAX_DISTRIBUTION_SPEED = 1e18;
 
-    /// @notice exp scale
-    uint256 internal constant EXP_SCALE = 1e18;
-
     /// @notice Address of the Prime contract
     address public prime;
 
