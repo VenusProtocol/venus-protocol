@@ -1,3 +1,10 @@
+## [4.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v4.0.0...v4.1.0-dev.1) (2023-10-09)
+
+
+### Features
+
+* add contract with the consolidated interface of the Comptroller Diamond ([41f6725](https://github.com/VenusProtocol/venus-protocol/commit/41f6725459168c58aa53a92e16822d9d37835af8))
+
 ## [4.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v3.1.0...v4.0.0) (2023-09-25)
 
 
