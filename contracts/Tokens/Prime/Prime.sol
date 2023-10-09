@@ -159,8 +159,10 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param xvsVault_ Address of XVSVault
      * @param xvsVaultRewardToken_ Address of XVSVault reward token
      * @param xvsVaultPoolId_ Pool id of XVSVault
-     * @param alphaNumerator_ numerator of alpha. If alpha is 0.5 then numerator is 1
-     * @param alphaDenominator_ denominator of alpha. If alpha is 0.5 then denominator is 2
+     * @param alphaNumerator_ numerator of alpha. If alpha is 0.5 then numerator is 1.
+              alphaNumerator_ must be greater than alphaDenominator_ and alphaDenominator_ cannot be zero
+     * @param alphaDenominator_ denominator of alpha. If alpha is 0.5 then denominator is 2.
+              alpha is alphaNumerator_/alphaDenominator_. So, 0 < alpha <=1
      * @param accessControlManager_ Address of AccessControlManager
      * @param protocolShareReserve_ Address of ProtocolShareReserve
      * @param primeLiquidityProvider_ Address of PrimeLiquidityProvider
@@ -440,7 +442,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             for (uint256 i; i < usersLength; ) {
                 _mint(false, users[i]);
                 _initializeMarkets(users[i]);
-                delete stakedAt[users[i]];
 
                 unchecked {
                     ++i;
@@ -461,6 +462,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         Token memory token = tokens[user];
 
         if (token.exists && !isAccountEligible) {
+            stakedAt[user] = 0;
+
             if (token.isIrrevocable) {
                 _accrueInterestAndUpdateScore(user);
             } else {
@@ -472,6 +475,10 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             stakedAt[user] = block.timestamp;
         } else if (token.exists && isAccountEligible) {
             _accrueInterestAndUpdateScore(user);
+
+            if (stakedAt[user] == 0) {
+                stakedAt[user] = block.timestamp;
+            }
         }
     }
 
@@ -491,14 +498,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function claim() external {
         uint256 userStakedAt = stakedAt[msg.sender];
         if (userStakedAt == 0) revert IneligibleToClaim();
-
-        uint256 timeDifference;
-        unchecked {
-            timeDifference = block.timestamp - userStakedAt;
-        }
-        if (timeDifference < STAKING_PERIOD) revert WaitMoreTime();
-
-        delete stakedAt[msg.sender];
+        if (block.timestamp - userStakedAt < STAKING_PERIOD) revert WaitMoreTime();
 
         _mint(false, msg.sender);
         _initializeMarkets(msg.sender);

@@ -291,9 +291,6 @@ describe("Prime Token", () => {
       expect(token.isIrrevocable).to.be.equal(false);
       expect(token.exists).to.be.equal(true);
 
-      stake = await prime.stakedAt(user1.getAddress());
-      expect(stake).be.equal(0);
-
       await expect(prime.connect(user2).claim()).to.be.revertedWithCustomError(prime, "IneligibleToClaim");
 
       await xvs.connect(user2).approve(xvsVault.address, bigNumber18.mul(10000));

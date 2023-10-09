@@ -23,9 +23,6 @@ contract PrimeLiquidityProvider is
     /// @notice The max token distribution speed
     uint256 public constant MAX_DISTRIBUTION_SPEED = 1e18;
 
-    /// @notice Base unit for computations, usually used in scaling (multiplications, divisions)
-    uint256 internal constant EXP_SCALE = 1e18;
-
     /// @notice Address of the Prime contract
     address public prime;
 
