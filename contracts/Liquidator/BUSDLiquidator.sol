@@ -124,7 +124,6 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
         IERC20Upgradeable busd = IERC20Upgradeable(vBUSD.underlying());
 
         uint256 actualRepayAmount = _transferIn(busd, msg.sender, repayAmount);
-        approveOrRevert(busd, address(liquidatorContract), 0);
         approveOrRevert(busd, address(liquidatorContract), actualRepayAmount);
         uint256 balanceBefore = vTokenCollateral.balanceOf(address(this));
         liquidatorContract.liquidateBorrow(address(vBUSD), borrower, actualRepayAmount, vTokenCollateral);
