@@ -30,9 +30,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bscmainnet: "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555",
   };
 
-  const treasuryAddresses: { [network: string]: string } = {
-    bsctestnet: "0x8b293600C50D6fbdc6Ed4251cc75ECe29880276f",
-    bscmainnet: "0xF322942f644A996A617BD29c16bd7d231d9F35E9",
+  const protocolShareReserve: { [network: string]: string } = {
+    bsctestnet: "0xF1d8bcED87d5e077e662160490797cd2B5494d4A",
+    bscmainnet: "0x09272ee826C5293bde7dA3C6767176994653E94C",
   };
 
   await deploy("VBNBAdmin", {
@@ -46,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [treasuryAddresses[networkName], acmAddresses[networkName]],
+        args: [protocolShareReserve[networkName], acmAddresses[networkName]],
       },
     },
   });
