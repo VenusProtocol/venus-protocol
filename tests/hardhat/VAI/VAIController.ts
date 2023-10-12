@@ -65,9 +65,7 @@ describe("VAIController", async () => {
       "BEP20 usdt",
     )) as BEP20Harness;
 
-    const accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-    );
+    const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
     accessControl.isAllowedToCall.returns(true);
 
     const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
