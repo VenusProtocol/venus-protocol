@@ -30,6 +30,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@openzeppelin/contracts": "^4.8.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
     "dotenv": "^16.0.1",
