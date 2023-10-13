@@ -20,14 +20,14 @@ contract PrimeLiquidityProvider is
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    /// @notice The max token distribution speed
-    uint256 public constant MAX_DISTRIBUTION_SPEED = 1e18;
-
     /// @notice Address of the Prime contract
     address public prime;
 
     /// @notice The rate at which token is distributed (per block)
     mapping(address => uint256) public tokenDistributionSpeeds;
+
+    /// @notice The max token distribution speed for token
+    mapping(address => uint256) public maxTokenDistributionSpeeds;
 
     /// @notice The rate at which token is distributed to the Prime contract
     mapping(address => uint256) public lastAccruedBlock;
@@ -37,13 +37,16 @@ contract PrimeLiquidityProvider is
 
     /// @dev This empty reserved space is put in place to allow future versions to add new
     /// variables without shifting down storage in the inheritance chain.
-    uint256[46] private __gap;
+    uint256[45] private __gap;
 
     /// @notice Emitted when a token distribution is initialized
     event TokenDistributionInitialized(address indexed token);
 
     /// @notice Emitted when a new token distribution speed is set
     event TokenDistributionSpeedUpdated(address indexed token, uint256 oldSpeed, uint256 newSpeed);
+
+    /// @notice Emitted when a new max distribution speed for token is set
+    event MaxTokenDistributionSpeedUpdated(address indexed token, uint256 oldSpeed, uint256 newSpeed);
 
     /// @notice Emitted when prime token contract address is changed
     event PrimeTokenUpdated(address indexed oldPrimeToken, address indexed newPrimeToken);
@@ -60,7 +63,7 @@ contract PrimeLiquidityProvider is
     /// @notice Thrown when arguments are passed are invalid
     error InvalidArguments();
 
-    /// @notice Thrown when distribution speed is greater than MAX_DISTRIBUTION_SPEED
+    /// @notice Thrown when distribution speed is greater than maxTokenDistributionSpeeds[tokenAddress]
     error InvalidDistributionSpeed(uint256 speed, uint256 maxSpeed);
 
     /// @notice Thrown when caller is not the desired caller
@@ -111,6 +114,7 @@ contract PrimeLiquidityProvider is
         address accessControlManager_,
         address[] calldata tokens_,
         uint256[] calldata distributionSpeeds_,
+        uint256[] calldata maxDistributionSpeeds_,
         uint256 loopsLimit_
     ) external initializer {
         _ensureZeroAddress(accessControlManager_);
@@ -122,12 +126,13 @@ contract PrimeLiquidityProvider is
         uint256 numTokens = tokens_.length;
         _ensureMaxLoops(numTokens);
 
-        if (numTokens != distributionSpeeds_.length) {
+        if ((numTokens != distributionSpeeds_.length) || (numTokens != maxDistributionSpeeds_.length)) {
             revert InvalidArguments();
         }
 
         for (uint256 i; i < numTokens; ) {
             _initializeToken(tokens_[i]);
+            _setMaxTokenDistributionSpeed(tokens_[i], maxDistributionSpeeds_[i]);
             _setTokenDistributionSpeed(tokens_[i], distributionSpeeds_[i]);
 
             unchecked {
@@ -191,6 +196,34 @@ contract PrimeLiquidityProvider is
         for (uint256 i; i < numTokens; ) {
             _ensureTokenInitialized(tokens_[i]);
             _setTokenDistributionSpeed(tokens_[i], distributionSpeeds_[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /**
+     * @notice Set max distribution speed for token (amount of maximum token distribute per block)
+     * @param tokens_ Array of addresses of the tokens
+     * @param maxDistributionSpeeds_ New distribution speeds for tokens
+     * @custom:access Controlled by ACM
+     * @custom:error Throw InvalidArguments on different length of tokens and speeds array
+     */
+    function setMaxTokensDistributionSpeed(
+        address[] calldata tokens_,
+        uint256[] calldata maxDistributionSpeeds_
+    ) external {
+        _checkAccessAllowed("setMaxTokensDistributionSpeed(address[],uint256[])");
+        uint256 numTokens = tokens_.length;
+        _ensureMaxLoops(numTokens);
+
+        if (numTokens != maxDistributionSpeeds_.length) {
+            revert InvalidArguments();
+        }
+
+        for (uint256 i; i < numTokens; ) {
+            _setMaxTokenDistributionSpeed(tokens_[i], maxDistributionSpeeds_[i]);
 
             unchecked {
                 ++i;
@@ -355,7 +388,7 @@ contract PrimeLiquidityProvider is
      * @custom:error Throw InvalidDistributionSpeed if speed is greater than max speed
      */
     function _setTokenDistributionSpeed(address token_, uint256 distributionSpeed_) internal {
-        uint256 maxDistributionSpeed = MAX_DISTRIBUTION_SPEED;
+        uint256 maxDistributionSpeed = maxTokenDistributionSpeeds[token_];
         if (distributionSpeed_ > maxDistributionSpeed) {
             revert InvalidDistributionSpeed(distributionSpeed_, maxDistributionSpeed);
         }
@@ -372,6 +405,17 @@ contract PrimeLiquidityProvider is
 
             emit TokenDistributionSpeedUpdated(token_, oldDistributionSpeed, distributionSpeed_);
         }
+    }
+
+    /**
+     * @notice Set max distribution speed (amount of maximum token distribute per block)
+     * @param token_ Address of the token
+     * @param maxDistributionSpeed_ New max distribution speed for token
+     * @custom:event Emits MaxTokenDistributionSpeedUpdated event
+     */
+    function _setMaxTokenDistributionSpeed(address token_, uint256 maxDistributionSpeed_) internal {
+        emit MaxTokenDistributionSpeedUpdated(token_, tokenDistributionSpeeds[token_], maxDistributionSpeed_);
+        maxTokenDistributionSpeeds[token_] = maxDistributionSpeed_;
     }
 
     /**

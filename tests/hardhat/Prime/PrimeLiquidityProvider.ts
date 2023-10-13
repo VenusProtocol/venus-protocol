@@ -45,6 +45,7 @@ const fixture = async () => {
     accessControl.address,
     [tokenA.address, tokenB.address],
     [tokenASpeed, tokenBSpeed],
+    [convertToUnit(1, 18), convertToUnit(1, 18)],
     10,
   ]);
 
@@ -135,6 +136,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       const maxDistributionSpeed = convertToUnit(1, 18);
       const speedMoreThanMaxSpeed = convertToUnit(1, 19);
 
+      await primeLiquidityProvider.setMaxTokensDistributionSpeed([tokenC.address], [maxDistributionSpeed]);
       await primeLiquidityProvider.initializeTokens([tokenC.address]);
       const tx = primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [convertToUnit(1, 19)]);
 
@@ -145,11 +147,21 @@ describe("PrimeLiquidityProvider: tests", () => {
 
     it("setTokensDistributionSpeed success", async () => {
       await primeLiquidityProvider.initializeTokens([tokenC.address]);
+      await primeLiquidityProvider.setMaxTokensDistributionSpeed([tokenC.address], [convertToUnit(1, 18)]);
       const tx = await primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [tokenCSpeed]);
       tx.wait();
 
       await expect(tx)
         .to.emit(primeLiquidityProvider, "TokenDistributionSpeedUpdated")
+        .withArgs(tokenC.address, 0, tokenCSpeed);
+    });
+
+    it("setMaxTokensDistributionSpeed success", async () => {
+      const tx = await primeLiquidityProvider.setMaxTokensDistributionSpeed([tokenC.address], [tokenCSpeed]);
+      tx.wait();
+
+      await expect(tx)
+        .to.emit(primeLiquidityProvider, "MaxTokenDistributionSpeedUpdated")
         .withArgs(tokenC.address, 0, tokenCSpeed);
     });
 

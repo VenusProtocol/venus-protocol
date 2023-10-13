@@ -184,7 +184,13 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const primeLiquidityProviderFactory = await ethers.getContractFactory("PrimeLiquidityProvider");
   const primeLiquidityProvider = await upgrades.deployProxy(
     primeLiquidityProviderFactory,
-    [accessControl.address, [xvs.address, usdt.address, eth.address], [10, 10, 10], 10],
+    [
+      accessControl.address,
+      [xvs.address, usdt.address, eth.address],
+      [10, 10, 10],
+      [convertToUnit(1, 18), convertToUnit(1, 18), convertToUnit(1, 18)],
+      10,
+    ],
     {},
   );
 
@@ -990,6 +996,8 @@ describe("PrimeScenario Token", () => {
       await vmatic.connect(user1).mint(bigNumber18.mul(90));
 
       const speed = convertToUnit(1, 18);
+      const maxSpeed = convertToUnit(1.1, 18);
+      await primeLiquidityProvider.setMaxTokensDistributionSpeed([matic.address], [maxSpeed]);
       await primeLiquidityProvider.setTokensDistributionSpeed([matic.address], [speed]);
       await matic.transfer(primeLiquidityProvider.address, bigNumber18.mul(10000));
     });
