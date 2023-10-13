@@ -20,6 +20,9 @@ contract PrimeLiquidityProvider is
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
+    /// @notice The default max token distribution speed
+    uint256 public constant DEFAULT_MAX_DISTRIBUTION_SPEED = 1e18;
+
     /// @notice Address of the Prime contract
     address public prime;
 
@@ -389,6 +392,10 @@ contract PrimeLiquidityProvider is
      */
     function _setTokenDistributionSpeed(address token_, uint256 distributionSpeed_) internal {
         uint256 maxDistributionSpeed = maxTokenDistributionSpeeds[token_];
+        if (maxDistributionSpeed == 0) {
+            maxTokenDistributionSpeeds[token_] = maxDistributionSpeed = DEFAULT_MAX_DISTRIBUTION_SPEED;
+        }
+
         if (distributionSpeed_ > maxDistributionSpeed) {
             revert InvalidDistributionSpeed(distributionSpeed_, maxDistributionSpeed);
         }

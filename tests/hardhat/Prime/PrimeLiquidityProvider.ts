@@ -145,6 +145,18 @@ describe("PrimeLiquidityProvider: tests", () => {
         .withArgs(speedMoreThanMaxSpeed, maxDistributionSpeed);
     });
 
+    it("setTokensDistributionSpeed success with default max speed", async () => {
+      const defaultMaxSpeed = convertToUnit(1, 18);
+      await primeLiquidityProvider.initializeTokens([tokenC.address]);
+      const tx = await primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [tokenCSpeed]);
+      tx.wait();
+
+      await expect(tx)
+        .to.emit(primeLiquidityProvider, "TokenDistributionSpeedUpdated")
+        .withArgs(tokenC.address, 0, tokenCSpeed);
+      expect(await primeLiquidityProvider.maxTokenDistributionSpeeds(tokenC.address)).to.be.equal(defaultMaxSpeed);
+    });
+
     it("setTokensDistributionSpeed success", async () => {
       await primeLiquidityProvider.initializeTokens([tokenC.address]);
       await primeLiquidityProvider.setMaxTokensDistributionSpeed([tokenC.address], [convertToUnit(1, 18)]);
