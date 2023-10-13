@@ -162,7 +162,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param alphaNumerator_ numerator of alpha. If alpha is 0.5 then numerator is 1.
               alphaNumerator_ must be greater than alphaDenominator_ and alphaDenominator_ cannot be zero
      * @param alphaDenominator_ denominator of alpha. If alpha is 0.5 then denominator is 2.
-              alpha is alphaNumerator_/alphaDenominator_. So, 0 < alpha <=1
+              alpha is alphaNumerator_/alphaDenominator_. So, 0 < alpha < 1
      * @param accessControlManager_ Address of AccessControlManager
      * @param protocolShareReserve_ Address of ProtocolShareReserve
      * @param primeLiquidityProvider_ Address of PrimeLiquidityProvider
@@ -982,7 +982,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @custom:error Throw InvalidAlphaArguments if alpha is invalid
      */
     function _checkAlphaArguments(uint128 _alphaNumerator, uint128 _alphaDenominator) internal {
-        if (_alphaDenominator == 0 || _alphaNumerator > _alphaDenominator) {
+        if (_alphaDenominator == 0 || _alphaNumerator >= _alphaDenominator) {
             revert InvalidAlphaArguments();
         }
     }
