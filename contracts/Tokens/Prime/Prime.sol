@@ -229,7 +229,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             uint256 accrued = interests[market][user].accrued;
 
             pendingInterests[i] = PendingInterest({
-                market: IVToken(market).underlying(),
+                market: _getUnderlying(market),
                 amount: interestAccrued + accrued
             });
 
@@ -666,8 +666,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             market
         );
 
-        IVToken vToken = IVToken(market);
-        uint256 decimals = IERC20MetadataUpgradeable(vToken.underlying()).decimals();
+        uint256 decimals = IERC20MetadataUpgradeable(_getUnderlying(market)).decimals();
         capital = capital * (10 ** (18 - decimals));
 
         uint256 userScore = Scores._calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
@@ -815,7 +814,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         oracle.updatePrice(market);
 
         (uint256 capital, , ) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
-        uint256 decimals = IERC20MetadataUpgradeable(vToken.underlying()).decimals();
+        uint256 decimals = IERC20MetadataUpgradeable(_getUnderlying(market)).decimals();
 
         capital = capital * (10 ** (18 - decimals));
 
