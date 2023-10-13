@@ -19,12 +19,12 @@ const OTHER_ADDRESSES: any = {
   bsctestnet: {
     acm: "0x45f8a08F534f34A97187626E05d4b6648Eeaa9AA",
     psr: "0xF1d8bcED87d5e077e662160490797cd2B5494d4A",
-    oracle: "0x3cD69251D04A28d887Ac14cbe2E14c52F3D57823"
+    oracle: "0x3cD69251D04A28d887Ac14cbe2E14c52F3D57823",
   },
   bscmainnet: {
     acm: "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555",
     psr: "0x3DA3619EE1FE1031051c3d0dfFe252a145F2630D",
-    oracle: "0x6592b5DE802159F3E74B2486b091D11a8256ab8A"
+    oracle: "0x6592b5DE802159F3E74B2486b091D11a8256ab8A",
   },
 };
 
@@ -34,8 +34,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
 
   const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
-  const WBNBAddress = ADDRESSES[networkName].WBNB;
-  const pancakeFactoryAddress = ADDRESSES[networkName].pancakeFactory;
 
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
@@ -47,24 +45,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [
-          OTHER_ADDRESSES[networkName].acm,
-          [],
-          []
-        ],
+        args: [OTHER_ADDRESSES[networkName].acm, [], []],
       },
     },
   });
+
+  const plp = await ethers.getContract("PrimeLiquidityProvider");
 
   await deploy("Prime", {
     from: deployer,
     log: true,
     deterministicDeployment: false,
-    args: [
-      ADDRESSES[networkName].WBNB,
-      ADDRESSES[networkName].vBNB,
-      10512000
-    ],
+    args: [ADDRESSES[networkName].WBNB, ADDRESSES[networkName].vBNB, 10512000],
     proxy: {
       owner: ADDRESSES[networkName].Timelock,
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -78,14 +70,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           2,
           OTHER_ADDRESSES[networkName].acm,
           OTHER_ADDRESSES[networkName].psr,
+          plp.address,
           ADDRESSES[networkName].Unitroller,
-          ADDRESSES[networkName].Comptroller,
           OTHER_ADDRESSES[networkName].oracle,
-          20
+          20,
         ],
       },
     },
-  });  
+  });
+
+  await plp.setPrimeToken((await ethers.getContract("Prime")).address);
 };
 
 func.tags = ["Prime"];

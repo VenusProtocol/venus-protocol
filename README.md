@@ -156,21 +156,20 @@ npx hardhat coverage
 
 TS_NODE_FILES=true npx ts-node scripts/deploy.ts
 
-npx eslint '**/*.{js,ts}'
+npx eslint '\*_/_.{js,ts}'
 
-npx eslint '**/*.{js,ts}' --fix
+npx eslint '\*_/_.{js,ts}' --fix
 
-npx prettier '**/*.{json,sol,md}' --check
+npx prettier '\*_/_.{json,sol,md}' --check
 
-npx prettier '**/*.{json,sol,md}' --write
+npx prettier '\*_/_.{json,sol,md}' --write
 
-npx solhint 'contracts/**/*.sol'
+npx solhint 'contracts/\*_/_.sol'
 
-npx solhint 'contracts/**/*.sol' --fix
-
-
+npx solhint 'contracts/\*_/_.sol' --fix
 
 MNEMONIC="<>" BSC_API_KEY="<>" npx hardhat run ./script/hardhat/deploy.ts --network testnet
+
 ```
 
 ## Discussion
@@ -180,3 +179,4 @@ For any concerns with the protocol, open an issue or visit us on [Telegram](http
 For security concerns, please contact the administrators of our telegram chat.
 
 © Copyright 2023, Venus Protocol
+```

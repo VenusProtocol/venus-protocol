@@ -464,7 +464,7 @@ describe("PrimeScenario Token", () => {
       await mine(90 * 24 * 60 * 60);
 
       await expect(prime.connect(user).claim()).to.be.revertedWithCustomError(prime, "IneligibleToClaim");
-    })
+    });
 
     it("issue, stake and burn", async () => {
       const user = user1;
@@ -488,12 +488,12 @@ describe("PrimeScenario Token", () => {
       token = await prime.tokens(user.getAddress());
       expect(token.exists).to.be.equal(false);
 
-      await prime.connect(user).claim()
+      await prime.connect(user).claim();
 
       token = await prime.tokens(user.getAddress());
       expect(token.isIrrevocable).to.be.equal(false);
       expect(token.exists).to.be.equal(true);
-    })
+    });
   });
 
   describe("boosted yield", () => {
