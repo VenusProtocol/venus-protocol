@@ -308,7 +308,7 @@ describe("PrimeScenario Token", () => {
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
 
-      let stake = await prime.stakedAt(user.getAddress());
+      const stake = await prime.stakedAt(user.getAddress());
       expect(stake).be.gt(0);
 
       await expect(prime.connect(user).claim()).to.be.revertedWithCustomError(prime, "WaitMoreTime");
@@ -478,7 +478,7 @@ describe("PrimeScenario Token", () => {
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
 
-      let stake = await prime.stakedAt(user.getAddress());
+      const stake = await prime.stakedAt(user.getAddress());
       expect(stake).be.gt(0);
 
       await mine(100 * 24 * 60 * 60);
