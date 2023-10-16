@@ -31,8 +31,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   };
 
   const protocolShareReserve: { [network: string]: string } = {
-    bsctestnet: "0xF1d8bcED87d5e077e662160490797cd2B5494d4A",
-    bscmainnet: "0x3DA3619EE1FE1031051c3d0dfFe252a145F2630D",
+    bsctestnet: "0x25c7c7D6Bf710949fD7f03364E9BA19a1b3c10E3",
+    bscmainnet: "0xCa01D5A9A248a830E9D93231e791B1afFed7c446",
   };
 
   await deploy("VBNBAdmin", {
