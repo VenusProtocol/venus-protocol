@@ -5,7 +5,6 @@ import "../Tokens/VTokens/VBep20.sol";
 import "../Tokens/VTokens/VToken.sol";
 import "../Oracle/PriceOracle.sol";
 import "../Tokens/EIP20Interface.sol";
-import { GovernorBravoDelegate } from "@venusprotocol/governance-contracts/contracts/Governance/GovernorBravoDelegate.sol";
 import "../Tokens/XVS/XVS.sol";
 import "../Comptroller/ComptrollerInterface.sol";
 import "../Utils/SafeMath.sol";
