@@ -34,6 +34,18 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable VBNB;
 
+    /// @notice minimum amount of XVS user needs to stake to become a prime member
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable MINIMUM_STAKED_XVS;
+
+    /// @notice maximum XVS taken in account when calculating user score
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable MAXIMUM_XVS_CAP;
+
+    /// @notice number of days user need to stake to claim prime token
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable STAKING_PERIOD;
+
     /// @notice Emitted when prime token is minted
     event Mint(address indexed user, bool isIrrevocable);
 
@@ -127,17 +139,30 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param _wbnb Address of WBNB
      * @param _vbnb Address of VBNB
      * @param _blocksPerYear total blocks per year
+     * @param _stakingPeriod total number of days for which user needs to stake to claim prime token
+     * @param _minimumStakedXVS minimum amount of XVS user needs to stake to become a prime member (scaled by 1e18)
+     * @param _maximumXVSCap maximum XVS taken in account when calculating user score (scaled by 1e18)
      * @custom:error Throw InvalidAddress if any of the address is invalid
      * @custom:error Throw InvalidBlocksPerYear if blocks per year is 0
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) {
+    constructor(
+        address _wbnb, 
+        address _vbnb, 
+        uint256 _blocksPerYear,
+        uint256 _stakingPeriod,
+        uint256 _minimumStakedXVS,
+        uint256 _maximumXVSCap
+    ) {
         if (_wbnb == address(0)) revert InvalidAddress();
         if (_vbnb == address(0)) revert InvalidAddress();
         if (_blocksPerYear == 0) revert InvalidBlocksPerYear();
         WBNB = _wbnb;
         VBNB = _vbnb;
         BLOCKS_PER_YEAR = _blocksPerYear;
+        STAKING_PERIOD = _stakingPeriod;
+        MINIMUM_STAKED_XVS = _minimumStakedXVS;
+        MAXIMUM_XVS_CAP = _maximumXVSCap;
 
         // Note that the contract is upgradeable. Use initialize() or reinitializers
         // to set the state variables.

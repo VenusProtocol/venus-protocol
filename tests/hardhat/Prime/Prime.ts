@@ -188,6 +188,10 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     {},
   );
 
+  const stakingPeriod = 90 * 24 * 60 * 60;
+  const maximumXVSCap = ethers.utils.parseEther("100000");
+  const minimumXVS = ethers.utils.parseEther("1000");
+
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
   const prime: PrimeScenario = await upgrades.deployProxy(
     primeFactory,
@@ -205,7 +209,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       10,
     ],
     {
-      constructorArgs: [wbnb.address, vbnb.address, 10512000],
+      constructorArgs: [
+        wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap
+      ],
       unsafeAllow: "constructor",
     },
   );
