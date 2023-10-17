@@ -139,7 +139,7 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param _wbnb Address of WBNB
      * @param _vbnb Address of VBNB
      * @param _blocksPerYear total blocks per year
-     * @param _stakingPeriod total number of days for which user needs to stake to claim prime token
+     * @param _stakingPeriod total number of seconds for which user needs to stake to claim prime token
      * @param _minimumStakedXVS minimum amount of XVS user needs to stake to become a prime member (scaled by 1e18)
      * @param _maximumXVSCap maximum XVS taken in account when calculating user score (scaled by 1e18)
      * @custom:error Throw InvalidAddress if any of the address is invalid
