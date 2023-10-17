@@ -45,15 +45,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       )
     : await deployments.get("AccessControlManager");
 
-    // Become Implementation of XVSVaultProxy
-    await xvsVaultProxy._setPendingImplementation(xvsVaultAddress);
-    await xvsVault._become(xvsVaultProxyAddress);
-    
-    let txn = await xvsVault.setXvsStore(xvs.address, xvsStore.address);
-    await txn.wait(1);
-  
-    txn = await xvsVault.setAccessControl(accessControlManager.address);
-    await txn.wait(1);
+  // Become Implementation of XVSVaultProxy
+  await xvsVaultProxy._setPendingImplementation(xvsVaultAddress);
+  await xvsVault._become(xvsVaultProxyAddress);
+
+  let txn = await xvsVaultProxy.setXvsStore(xvs.address, xvsStore.address);
+  await txn.wait(1);
+
+  txn = await xvsVaultProxy.setAccessControl(accessControlManager.address);
+  await txn.wait(1);
 
   // Set new owner to xvs store
   await xvsStore.setNewOwner(xvsVaultAddress);
