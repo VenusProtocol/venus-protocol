@@ -5,7 +5,8 @@ pragma solidity 0.5.16;
 import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
 import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV13Storage } from "../../../Comptroller/ComptrollerStorage.sol";
-import { IAccessControlManager } from "../../../Governance/IAccessControlManager.sol";
+import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
+
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 
 /**
@@ -63,7 +64,7 @@ contract FacetBase is ComptrollerV13Storage, ExponentialNoError, ComptrollerErro
 
     /// @notice Checks the caller is allowed to call the specified fuction
     function ensureAllowed(string memory functionSig) internal view {
-        require(IAccessControlManager(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+        require(IAccessControlManagerV5(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /**
