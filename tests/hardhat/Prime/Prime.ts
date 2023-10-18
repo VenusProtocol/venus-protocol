@@ -209,9 +209,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       10,
     ],
     {
-      constructorArgs: [
-        wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap
-      ],
+      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap],
       unsafeAllow: "constructor",
     },
   );

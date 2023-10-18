@@ -5,8 +5,8 @@ import "../Tokens/Prime/Prime.sol";
 contract PrimeScenario is Prime {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
-        address _wbnb, 
-        address _vbnb, 
+        address _wbnb,
+        address _vbnb,
         uint256 _blocksPerYear,
         uint256 _stakingPeriod,
         uint256 _minimumStakedXVS,

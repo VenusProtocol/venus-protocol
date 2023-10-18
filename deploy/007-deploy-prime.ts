@@ -1,6 +1,6 @@
+import { ethers } from "hardhat";
 import { Address, DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { ethers } from "hardhat";
 
 import { Contracts as Mainnet } from "../networks/mainnet.json";
 import { Contracts as Testnet } from "../networks/testnet.json";
@@ -35,9 +35,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
 
   const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
-  const stakingPeriod = networkName === "bscmainnet" ?  90 * 24 * 60 * 60 : 60 * 10;
-  const maximumXVSCap = networkName === "bscmainnet" ?  ethers.utils.parseEther("100000") : ethers.utils.parseEther("100");
-  const minimumXVS = networkName === "bscmainnet" ?  ethers.utils.parseEther("1000") : ethers.utils.parseEther("10");
+  const stakingPeriod = networkName === "bscmainnet" ? 90 * 24 * 60 * 60 : 60 * 10;
+  const maximumXVSCap =
+    networkName === "bscmainnet" ? ethers.utils.parseEther("100000") : ethers.utils.parseEther("100");
+  const minimumXVS = networkName === "bscmainnet" ? ethers.utils.parseEther("1000") : ethers.utils.parseEther("10");
 
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
@@ -60,7 +61,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     log: true,
     deterministicDeployment: false,
-    args: [ADDRESSES[networkName].WBNB, ADDRESSES[networkName].vBNB, 10512000, stakingPeriod, minimumXVS, maximumXVSCap],
+    args: [
+      ADDRESSES[networkName].WBNB,
+      ADDRESSES[networkName].vBNB,
+      10512000,
+      stakingPeriod,
+      minimumXVS,
+      maximumXVSCap,
+    ],
     proxy: {
       owner: ADDRESSES[networkName].Timelock,
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -88,37 +96,38 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await plp.setPrimeToken((await ethers.getContract("Prime")).address);
   }
 
-  // const assets = [
-  //   ADDRESSES[networkName].ETH,
-  //   ADDRESSES[networkName].BTCB,
-  //   ADDRESSES[networkName].USDC,
-  //   ADDRESSES[networkName].USDT,
-  // ];
+  const assets = [
+    ADDRESSES[networkName].ETH,
+    ADDRESSES[networkName].BTCB,
+    ADDRESSES[networkName].USDC,
+    ADDRESSES[networkName].USDT,
+  ];
 
-  // const markets = [
-  //   ADDRESSES[networkName].vETH,
-  //   ADDRESSES[networkName].vBTC,
-  //   ADDRESSES[networkName].vUSDC,
-  //   ADDRESSES[networkName].vUSDT,
-  // ];
+  const markets = [
+    ADDRESSES[networkName].vETH,
+    ADDRESSES[networkName].vBTC,
+    ADDRESSES[networkName].vUSDC,
+    ADDRESSES[networkName].vUSDT,
+  ];
 
-  // const speeds = [100, 10, 10, 10];
+  const speeds = [100, 10, 10, 10];
 
-  // console.log("Initializing tokens in PLP");
-  // await plp.initializeTokens(assets);
+  console.log("Initializing tokens in PLP");
+  await plp.initializeTokens(assets);
 
-  // console.log("Setting speeds in PLP");
-  // await plp.setTokensDistributionSpeed(assets, speeds);
+  console.log("Setting speeds in PLP");
+  console.log(assets, speeds);
+  await plp.setTokensDistributionSpeed(assets, speeds);
 
-  // const prime = await ethers.getContract("Prime");
+  const prime = await ethers.getContract("Prime");
 
-  // console.log("Adding markets to Prime");
-  // for (let i = 0; i < markets.length; i++) {
-  //   await prime.addMarket(markets[i], ethers.utils.parseEther("1"), ethers.utils.parseEther("1"));
-  // }
+  console.log("Adding markets to Prime");
+  for (let i = 0; i < markets.length; i++) {
+    await prime.addMarket(markets[i], ethers.utils.parseEther("1"), ethers.utils.parseEther("1"));
+  }
 
-  // console.log("Setting Prime token limits");
-  // await prime.setLimit(100, 100);
+  console.log("Setting Prime token limits");
+  await prime.setLimit(100, 100);
 };
 
 func.tags = ["Prime"];
