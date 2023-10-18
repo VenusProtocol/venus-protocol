@@ -7,6 +7,8 @@ interface IVToken is IERC20Upgradeable {
     function borrowBalanceCurrent(address borrower) external returns (uint256);
 
     function transfer(address dst, uint256 amount) external returns (bool);
+
+    function redeem(uint256 redeemTokens) external returns (uint256);
 }
 
 interface IVBep20 is IVToken {
