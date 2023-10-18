@@ -14,12 +14,12 @@ import { Scores } from "./libs/Scores.sol";
 import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
-import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
-import { IIncomeDestination } from "./Interfaces/IIncomeDestination.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
 
+import "hardhat/console.sol";
+
 /// @custom:security-contact https://github.com/VenusProtocol/venus-protocol
-contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
+contract Prime is AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice total blocks per year
@@ -177,7 +177,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
      * @param _alphaNumerator numerator of alpha. If alpha is 0.5 then numerator is 1. _alphaNumerator must be greater than _alphaDenominator and _alphaDenominator cannot be zero
      * @param _alphaDenominator denominator of alpha. If alpha is 0.5 then denominator is 2. alpha is _alphaNumerator/_alphaDenominator. So, 0 < alpha <=1
      * @param _accessControlManager Address of AccessControlManager
-     * @param _protocolShareReserve Address of ProtocolShareReserve
      * @param _primeLiquidityProvider Address of PrimeLiquidityProvider
      * @param _comptroller Address of Comptroller
      * @param _oracle Address of Oracle
@@ -191,7 +190,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         uint128 _alphaNumerator,
         uint128 _alphaDenominator,
         address _accessControlManager,
-        address _protocolShareReserve,
         address _primeLiquidityProvider,
         address _comptroller,
         address _oracle,
@@ -199,7 +197,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     ) external initializer {
         if (_xvsVault == address(0)) revert InvalidAddress();
         if (_xvsVaultRewardToken == address(0)) revert InvalidAddress();
-        if (_protocolShareReserve == address(0)) revert InvalidAddress();
         if (_comptroller == address(0)) revert InvalidAddress();
         if (_oracle == address(0)) revert InvalidAddress();
         if (_primeLiquidityProvider == address(0)) revert InvalidAddress();
@@ -211,7 +208,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         xvsVaultPoolId = _xvsVaultPoolId;
         xvsVault = _xvsVault;
         nextScoreUpdateRoundId = 0;
-        protocolShareReserve = _protocolShareReserve;
         primeLiquidityProvider = _primeLiquidityProvider;
         comptroller = _comptroller;
         oracle = ResilientOracleInterface(_oracle);
@@ -529,28 +525,6 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
-     * @notice Callback by ProtocolShareReserve to update assets state when funds are released to this contract
-     * @param _comptroller The address of the Comptroller whose income is distributed
-     * @param asset The address of the asset whose income is distributed
-     * @custom:error Throw InvalidCaller if caller is not protocol share reserve
-     * @custom:error Throw InvalidComptroller if comptroller is not valid
-     * @custom:error Throw MarketNotSupported if market is not supported
-     * @custom:event Emits UpdatedAssetsState event
-     */
-    function updateAssetsState(address _comptroller, address asset) external {
-        if (msg.sender != protocolShareReserve) revert InvalidCaller();
-        if (comptroller != _comptroller) revert InvalidComptroller();
-
-        address vToken = vTokenForAsset[asset];
-        if (vToken == address(0)) revert MarketNotSupported();
-
-        IVToken market = IVToken(vToken);
-        unreleasedPSRIncome[_getUnderlying(address(market))] = 0;
-
-        emit UpdatedAssetsState(comptroller, asset);
-    }
-
-    /**
      * @notice Retrieves an array of all available markets
      * @return an array of addresses representing all available markets
      */
@@ -651,27 +625,15 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         address underlying = _getUnderlying(vToken);
 
         IPrimeLiquidityProvider _primeLiquidityProvider = IPrimeLiquidityProvider(primeLiquidityProvider);
-
-        uint256 totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
-            comptroller,
-            IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
-            address(this),
-            underlying
-        );
-
-        uint256 distributionIncome = totalIncomeUnreleased - unreleasedPSRIncome[underlying];
-
         _primeLiquidityProvider.accrueTokens(underlying);
         uint256 totalAccruedInPLP = _primeLiquidityProvider.tokenAmountAccrued(underlying);
         uint256 unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
-
-        distributionIncome += unreleasedPLPAccruedInterest;
+        uint256 distributionIncome = unreleasedPLPAccruedInterest;
 
         if (distributionIncome == 0) {
             return;
         }
 
-        unreleasedPSRIncome[underlying] = totalIncomeUnreleased;
         unreleasedPLPIncome[underlying] = totalAccruedInPLP;
 
         uint256 delta;
@@ -777,13 +739,8 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
         IERC20Upgradeable asset = IERC20Upgradeable(underlying);
 
         if (amount > asset.balanceOf(address(this))) {
-            address[] memory assets = new address[](1);
-            assets[0] = address(asset);
-            IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
-            if (amount > asset.balanceOf(address(this))) {
-                IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
-                unreleasedPLPIncome[underlying] = 0;
-            }
+            IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
+            unreleasedPLPIncome[underlying] = 0;
         }
 
         asset.safeTransfer(user, amount);
@@ -1055,31 +1012,14 @@ contract Prime is IIncomeDestination, AccessControlledV8, PausableUpgradeable, M
     }
 
     /**
-     * @notice the percentage of income we distribute among the prime token holders
-     * @return percentage the percentage returned without mantissa
-     */
-    function _distributionPercentage() internal view returns (uint256) {
-        return
-            IProtocolShareReserve(protocolShareReserve).getPercentageDistribution(
-                address(this),
-                IProtocolShareReserve.Schema.SPREAD_PRIME_CORE
-            );
-    }
-
-    /**
      * @notice the total income that's going to be distributed in a year to prime token holders
      * @param vToken the market for which to fetch the total income that's going to distributed in a year
      * @return amount the total income
      */
     function _incomeDistributionYearly(address vToken) internal view returns (uint256 amount) {
-        uint256 totalIncomePerBlockFromMarket = _incomePerBlock(vToken);
-        uint256 incomePerBlockForDistributionFromMarket = (totalIncomePerBlockFromMarket * _distributionPercentage()) /
-            IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
-        amount = BLOCKS_PER_YEAR * incomePerBlockForDistributionFromMarket;
-
         uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
             .getEffectiveDistributionSpeed(_getUnderlying(vToken));
-        amount += BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
+        amount = BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
     }
 
     /**

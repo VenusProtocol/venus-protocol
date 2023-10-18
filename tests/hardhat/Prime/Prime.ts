@@ -12,10 +12,8 @@ import {
   ComptrollerMock,
   ComptrollerMock__factory,
   IAccessControlManager,
-  IProtocolShareReserve,
   InterestRateModelHarness,
   PrimeLiquidityProvider,
-  PrimeLiquidityProvider__factory,
   PrimeScenario,
   ResilientOracleInterface,
   VBep20Harness,
@@ -44,15 +42,14 @@ type SetupProtocolFixture = {
   xvs: XVS;
   xvsStore: XVSStore;
   prime: PrimeScenario;
-  protocolShareReserve: FakeContract<IProtocolShareReserve>;
-  primeLiquidityProvider: PrimeLiquidityProvider;
+  primeLiquidityProvider: FakeContract<PrimeLiquidityProvider>;
+  _primeLiquidityProvider: PrimeLiquidityProvider;
 };
 
 async function deployProtocol(): Promise<SetupProtocolFixture> {
   const [wallet, user1, user2, user3] = await ethers.getSigners();
 
   const oracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
@@ -63,7 +60,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await comptroller._setComptrollerLens(comptrollerLens.address);
   await comptroller._setPriceOracle(oracle.address);
   await comptroller._setLiquidationIncentive(convertToUnit("1", 18));
-  await protocolShareReserve.MAX_PERCENT.returns("100");
 
   const tokenFactory = await ethers.getContractFactory("BEP20Harness");
   const usdt = (await tokenFactory.deploy(
@@ -182,11 +178,13 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
 
   const primeLiquidityProviderFactory = await ethers.getContractFactory("PrimeLiquidityProvider");
-  const primeLiquidityProvider = await upgrades.deployProxy(
+  const _primeLiquidityProvider = await upgrades.deployProxy(
     primeLiquidityProviderFactory,
     [accessControl.address, [xvs.address, usdt.address, eth.address], [10, 10, 10]],
     {},
   );
+
+  const primeLiquidityProvider = await smock.fake<PrimeLiquidityProvider>("PrimeLiquidityProvider");
 
   const stakingPeriod = 90 * 24 * 60 * 60;
   const maximumXVSCap = ethers.utils.parseEther("100000");
@@ -202,7 +200,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       1,
       2,
       accessControl.address,
-      protocolShareReserve.address,
       primeLiquidityProvider.address,
       comptroller.address,
       oracle.address,
@@ -239,8 +236,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     xvs,
     xvsStore,
     prime,
-    protocolShareReserve,
     primeLiquidityProvider,
+    _primeLiquidityProvider,
   };
 }
 
@@ -510,26 +507,13 @@ describe("PrimeScenario Token", () => {
     let xvsVault: XVSVault;
     let xvs: XVS;
     let oracle: FakeContract<ResilientOracleInterface>;
-    let protocolShareReserve: FakeContract<IProtocolShareReserve>;
-    let primeLiquidityProvider: PrimeLiquidityProvider;
+    let primeLiquidityProvider: FakeContract<PrimeLiquidityProvider>;
 
     beforeEach(async () => {
-      ({
-        comptroller,
-        prime,
-        vusdt,
-        veth,
-        usdt,
-        eth,
-        xvsVault,
-        xvs,
-        oracle,
-        protocolShareReserve,
-        primeLiquidityProvider,
-      } = await loadFixture(deployProtocol));
+      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, oracle, primeLiquidityProvider } =
+        await loadFixture(deployProtocol));
 
-      await protocolShareReserve.getUnreleasedFunds.returns("0");
-      await protocolShareReserve.getPercentageDistribution.returns("100");
+      await primeLiquidityProvider.tokenAmountAccrued.returns("0");
 
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));
@@ -579,7 +563,7 @@ describe("PrimeScenario Token", () => {
       expect(market.sumOfMembersScore).to.be.equal("223606797749979014552");
       expect(market.rewardIndex).to.be.equal(0);
 
-      await protocolShareReserve.getUnreleasedFunds.returns("518436");
+      await primeLiquidityProvider.tokenAmountAccrued.returns("518436");
       await prime.accrueInterest(vusdt.address);
       market = await prime.markets(vusdt.address);
       expect(market.sumOfMembersScore).to.be.equal("223606797749979014552");
@@ -615,7 +599,7 @@ describe("PrimeScenario Token", () => {
     });
 
     it("claim interest", async () => {
-      await protocolShareReserve.getUnreleasedFunds.returns("518436");
+      await primeLiquidityProvider.tokenAmountAccrued.returns("518436");
       await prime.accrueInterest(vusdt.address);
       expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(518320);
 
@@ -637,6 +621,8 @@ describe("PrimeScenario Token", () => {
       let bnb: BEP20Harness;
 
       beforeEach(async () => {
+        await primeLiquidityProvider.tokenAmountAccrued.returns(0);
+
         const tokenFactory = await ethers.getContractFactory("BEP20Harness");
         bnb = (await tokenFactory.deploy(
           bigNumber18.mul(100000000),
@@ -663,7 +649,6 @@ describe("PrimeScenario Token", () => {
         )) as VBep20Harness;
 
         await vbnb._setReserveFactor(bigNumber16.mul(20));
-        await primeLiquidityProvider.initializeTokens([bnb.address]);
 
         oracle.getUnderlyingPrice.returns((vToken: string) => {
           if (vToken == vusdt.address) {
@@ -732,7 +717,7 @@ describe("PrimeScenario Token", () => {
         expect(market.rewardIndex).to.be.equal(0);
         expect(market.sumOfMembersScore).to.be.equal("200000000000000029058");
 
-        await protocolShareReserve.getUnreleasedFunds.returns(103683);
+        await primeLiquidityProvider.tokenAmountAccrued.returns("103683");
         await prime.accrueInterest(vbnb.address);
         market = await prime.markets(vbnb.address);
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
@@ -752,7 +737,7 @@ describe("PrimeScenario Token", () => {
          */
         expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(103529);
 
-        await protocolShareReserve.getUnreleasedFunds.returns(103683 * 2);
+        await primeLiquidityProvider.tokenAmountAccrued.returns(103683 * 2);
         await prime.accrueInterest(vbnb.address);
         market = await prime.markets(vbnb.address);
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
@@ -819,7 +804,7 @@ describe("PrimeScenario Token", () => {
         expect(market.rewardIndex).to.be.equal(0);
         expect(market.sumOfMembersScore).to.be.equal("200000000000000029058");
 
-        await protocolShareReserve.getUnreleasedFunds.returns(103687);
+        await primeLiquidityProvider.tokenAmountAccrued.returns(103687);
         await prime.accrueInterest(vbnb.address);
         market = await prime.markets(vbnb.address);
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
@@ -839,7 +824,7 @@ describe("PrimeScenario Token", () => {
         expect((await prime.interests(vusdt.address, user1.getAddress())).rewardIndex).to.be.equal("0");
         expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(103529);
 
-        await protocolShareReserve.getUnreleasedFunds.returns(103687 * 2);
+        await primeLiquidityProvider.tokenAmountAccrued.returns(103687 * 2);
         await prime.accrueInterest(vbnb.address);
         market = await prime.markets(vbnb.address);
         expect(market.supplyMultiplier).to.be.equal(bigNumber18.mul(1));
@@ -857,26 +842,6 @@ describe("PrimeScenario Token", () => {
         expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(207059);
       });
     });
-
-    it("track asset state", async () => {
-      await protocolShareReserve.getUnreleasedFunds.returns("518436");
-      await prime.accrueInterest(vusdt.address);
-      expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(518320);
-
-      await protocolShareReserve.getUnreleasedFunds.returns(518436 * 2);
-      await prime.accrueInterest(vusdt.address);
-      expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(1036641);
-
-      impersonateAccount(protocolShareReserve.address);
-      const protocolShareReserveSigner = await ethers.provider.getSigner(protocolShareReserve.address);
-      await user1.sendTransaction({ to: protocolShareReserve.address, value: ethers.utils.parseEther("10") });
-      await prime.connect(protocolShareReserveSigner).updateAssetsState(comptroller.address, usdt.address);
-
-      await protocolShareReserve.getUnreleasedFunds.returns("518436");
-      await prime.accrueInterest(vusdt.address);
-      // 1036641 + 518320
-      expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(1554961);
-    });
   });
 
   describe("PLP integration", () => {
@@ -886,21 +851,24 @@ describe("PrimeScenario Token", () => {
     let veth: VBep20Harness;
     let vmatic: VBep20Harness;
     let matic: BEP20Harness;
+    let usdt: BEP20Harness;
+    let eth: BEP20Harness;
     let xvsVault: XVSVault;
     let xvs: XVS;
     let oracle: FakeContract<ResilientOracleInterface>;
-    let protocolShareReserve: FakeContract<IProtocolShareReserve>;
-    let primeLiquidityProvider: PrimeLiquidityProvider;
+    let _primeLiquidityProvider: PrimeLiquidityProvider;
 
     beforeEach(async () => {
       const [wallet, user1] = await ethers.getSigners();
 
-      ({ comptroller, prime, vusdt, veth, xvsVault, xvs, oracle, protocolShareReserve, primeLiquidityProvider } =
+      ({ comptroller, prime, vusdt, veth, xvsVault, xvs, oracle, usdt, eth, _primeLiquidityProvider } =
         await loadFixture(deployProtocol));
 
-      await protocolShareReserve.getUnreleasedFunds.returns("0");
-      await protocolShareReserve.getPercentageDistribution.returns("100");
-      await primeLiquidityProvider.setPrimeToken(prime.address);
+      const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+      accessControl.isAllowedToCall.returns(true);
+
+      await _primeLiquidityProvider.setPrimeToken(prime.address);
+      await prime.setPLP(_primeLiquidityProvider.address);
 
       const tokenFactory = await ethers.getContractFactory("BEP20Harness");
       matic = (await tokenFactory.deploy(
@@ -910,7 +878,7 @@ describe("PrimeScenario Token", () => {
         "BEP20 MATIC",
       )) as BEP20Harness;
 
-      await primeLiquidityProvider.initializeTokens([matic.address]);
+      await _primeLiquidityProvider.initializeTokens([matic.address]);
       const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
       const InterestRateModelHarness = (await interestRateModelHarnessFactory.deploy(
         BigNumber.from(18).mul(5),
@@ -959,8 +927,8 @@ describe("PrimeScenario Token", () => {
       await vmatic.connect(user1).mint(bigNumber18.mul(90));
 
       const speed = convertToUnit(1, 18);
-      await primeLiquidityProvider.setTokensDistributionSpeed([matic.address], [speed]);
-      await matic.transfer(primeLiquidityProvider.address, bigNumber18.mul(10000));
+      await _primeLiquidityProvider.setTokensDistributionSpeed([matic.address], [speed]);
+      await matic.transfer(_primeLiquidityProvider.address, bigNumber18.mul(10000));
     });
 
     it("claim interest", async () => {
@@ -969,12 +937,12 @@ describe("PrimeScenario Token", () => {
       expect(interest.accrued).to.be.equal(0);
       expect(interest.rewardIndex).to.be.equal(0);
 
-      let plpAccrued = await primeLiquidityProvider.tokenAmountAccrued(matic.address);
+      let plpAccrued = await _primeLiquidityProvider.tokenAmountAccrued(matic.address);
       expect(plpAccrued).to.be.equal(0);
 
       await mine(100);
-      await primeLiquidityProvider.accrueTokens(matic.address);
-      plpAccrued = await primeLiquidityProvider.tokenAmountAccrued(matic.address);
+      await _primeLiquidityProvider.accrueTokens(matic.address);
+      plpAccrued = await _primeLiquidityProvider.tokenAmountAccrued(matic.address);
       expect(plpAccrued).to.be.equal(bigNumber18.mul(102)); // (1 * 100) + 2 = 102
 
       await prime.accrueInterest(vmatic.address);

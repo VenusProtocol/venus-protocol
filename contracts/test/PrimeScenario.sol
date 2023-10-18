@@ -16,4 +16,8 @@ contract PrimeScenario is Prime {
     function calculateScore(uint256 xvs, uint256 capital) external view returns (uint256) {
         return Scores.calculateScore(xvs, capital, alphaNumerator, alphaDenominator);
     }
+
+    function setPLP(address plp) external {
+        primeLiquidityProvider = plp;
+    }
 }
