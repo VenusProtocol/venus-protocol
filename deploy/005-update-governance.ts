@@ -7,7 +7,7 @@ import { Contracts as Mainnet } from "../networks/mainnet.json";
 //TESTNET DEPLOYED CONTRACTS
 import { Contracts as Testnet } from "../networks/testnet.json";
 //MAINNET DEPLOYED CONTRACTS
-import { GovernorBravoDelegate } from "../typechain/contracts/Governance/";
+import { GovernorBravoDelegate } from "../typechain";
 
 const networkName: string = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
 

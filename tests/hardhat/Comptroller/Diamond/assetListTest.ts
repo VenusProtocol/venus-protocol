@@ -9,7 +9,7 @@ import {
   ComptrollerLens,
   ComptrollerLens__factory,
   ComptrollerMock,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   PriceOracle,
   Unitroller,
   VBep20Immutable,
@@ -46,9 +46,7 @@ describe("Comptroller: assetListTest", () => {
   };
 
   async function assetListFixture(): Promise<AssetListFixture> {
-    const accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-    );
+    const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
     // const ComptrollerFactory = await smock.mock<Comptroller__factory>("ComptrollerMock");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const result = await deployDiamond("");

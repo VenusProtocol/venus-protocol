@@ -5,9 +5,9 @@ import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 
-import { initMainnetUser } from "../../../script/hardhat/fork/vip-framework/utils";
 import { IAccessControlManagerV5__factory, VBep20 } from "../../../typechain";
 import { deployDiamond } from "../Comptroller/Diamond/scripts/deploy";
+import { initMainnetUser } from "./utils";
 
 const { expect } = chai;
 chai.use(smock.matchers);

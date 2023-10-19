@@ -11,7 +11,7 @@ import {
   ComptrollerLens__factory,
   ComptrollerMock,
   EIP20Interface,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   PriceOracle,
   Unitroller,
   VAIController,
@@ -25,7 +25,7 @@ chai.use(smock.matchers);
 
 type SimpleComptrollerFixture = {
   oracle: FakeContract<PriceOracle>;
-  accessControl: FakeContract<IAccessControlManager>;
+  accessControl: FakeContract<IAccessControlManagerV5>;
   comptrollerLens: MockContract<ComptrollerLens>;
   unitroller: Unitroller;
   comptroller: ComptrollerMock;
@@ -33,9 +33,7 @@ type SimpleComptrollerFixture = {
 
 async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
-  const accessControl = await smock.fake<IAccessControlManager>(
-    "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-  );
+  const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   //   const ComptrollerFactory = await smock.mock<Comptroller__factory>("ComptrollerMock");
