@@ -1,3 +1,25 @@
+## [5.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v4.0.0...v5.0.0) (2023-10-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove Governance receipt and governance proposal function and structure
+
+### Features
+
+* add contract with the consolidated interface of the Comptroller Diamond ([41f6725](https://github.com/VenusProtocol/venus-protocol/commit/41f6725459168c58aa53a92e16822d9d37835af8))
+* add mainnet deployment of venus lens ([e4f0f50](https://github.com/VenusProtocol/venus-protocol/commit/e4f0f5015aaa55d0be428acd6cbfabc21b02f789))
+* remove governance contracts VEN-1719 ([55640a1](https://github.com/VenusProtocol/venus-protocol/commit/55640a1303f697dea33b516684d8889f16f439e7))
+* remove Governance receipt and governance proposal function and structure ([ff884bd](https://github.com/VenusProtocol/venus-protocol/commit/ff884bdd3ddf15a0188b2b7ce8702e3e36786adf))
+* updated venus lens deployment ([bfd09b2](https://github.com/VenusProtocol/venus-protocol/commit/bfd09b2a0b938b97fa87784283dbd39eee12e131))
+
+
+### Bug Fixes
+
+* lint ([3f6017d](https://github.com/VenusProtocol/venus-protocol/commit/3f6017d36ae084d20a03c8d1d1d7c9966c30ef34))
+* tests ([8b80a34](https://github.com/VenusProtocol/venus-protocol/commit/8b80a34e7f0950b6adf6dc8ee173860942df4081))
+* venus lens ([7c8f046](https://github.com/VenusProtocol/venus-protocol/commit/7c8f046a36c047f2de2996a696919161f1c1348f))
+
 ## [5.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v4.1.0-dev.2...v5.0.0-dev.1) (2023-10-18)
 
 
