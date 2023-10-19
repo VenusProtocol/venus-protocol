@@ -7,6 +7,7 @@ import {
   Comptroller,
   Comptroller__factory,
   IAccessControlManager,
+  IAccessControlManagerV8,
   IProtocolShareReserve,
   MockVBNB,
   MockVBNB__factory,
@@ -42,7 +43,7 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
 
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
 
-  const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  const accessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
   accessControl.isAllowedToCall.returns(true);
 
   const VBNBAdminFactory = await ethers.getContractFactory("VBNBAdmin");
