@@ -6,7 +6,7 @@ import { BigNumber, Signer } from "ethers";
 import {
   ComptrollerHarness,
   ComptrollerHarness__factory,
-  IAccessControlManager,
+  IAccessControlManagerV8,
   IProtocolShareReserve,
   InterestRateModelHarness,
   MockVBNB,
@@ -55,7 +55,7 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   const WBNBFactory = await smock.mock<WBNB__factory>("WBNB");
   const WBNB = await WBNBFactory.deploy();
 
-  const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  const accessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
   accessControl.isAllowedToCall.returns(true);
 
   const VBNBAdminFactory = await ethers.getContractFactory("VBNBAdmin");
