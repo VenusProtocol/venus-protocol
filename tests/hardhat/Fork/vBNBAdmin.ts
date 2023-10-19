@@ -6,7 +6,6 @@ import { Signer } from "ethers";
 import {
   Comptroller,
   Comptroller__factory,
-  IAccessControlManager,
   IAccessControlManagerV8,
   IProtocolShareReserve,
   MockVBNB,
