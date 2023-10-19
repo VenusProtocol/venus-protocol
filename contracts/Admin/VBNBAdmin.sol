@@ -6,6 +6,12 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "./VBNBAdminStorage.sol";
 
+/**
+ * @title VBNBAdmin
+ * @author Venus
+ * @notice This contract is the "admin" of the vBNB market, reducing the reserves of the market, sending them to the `ProtocolShareReserve` contract,
+ * and allowing the executions of the rest of the privileged functions in the vBNB contract (after checking if the sender has the required permissions).
+ */
 contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminStorage {
     using SafeERC20Upgradeable for IWBNB;
 
@@ -26,6 +32,8 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
     /// @notice Emitted reserves are reduced
     event ReservesReduced(uint256 reduceAmount);
 
+    /// @param _vBNB Address of the vBNB contract
+    /// @param _WBNB Address of the WBNB token
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(VTokenInterface _vBNB, IWBNB _WBNB) {
         require(address(_WBNB) != address(0), "WBNB address invalid");
@@ -39,6 +47,7 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
         _disableInitializers();
     }
 
+    /// @notice Used to initialize non-immutable variables
     function initialize(
         IProtocolShareReserve _protocolShareReserve,
         address accessControlManager
@@ -51,8 +60,10 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
     }
 
     /**
-     * @dev PSR setter.
+     * @notice PSR setter.
      * @param protocolShareReserve_ Address of the PSR contract
+     * @custom:access Only owner (Governance)
+     * @custom:event Emits ProtocolShareReserveUpdated event.
      */
     function setProtocolShareReserve(IProtocolShareReserve protocolShareReserve_) external onlyOwner {
         require(address(protocolShareReserve_) != address(0), "PSR address invalid");
@@ -61,8 +72,9 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
     }
 
     /**
-     * @notice Reduce reserves of vBNB
+     * @notice Reduce reserves of vBNB, wrap them and send them to the PSR contract
      * @param reduceAmount amount of reserves to reduce
+     * @custom:event Emits ReservesReduced event.
      */
     function reduceReserves(uint reduceAmount) external nonReentrant {
         require(vBNB._reduceReserves(reduceAmount) == 0, "reduceReserves failed");
@@ -89,13 +101,15 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
 
     /**
      * @notice Invoked when BNB is sent to this contract
+     * @custom:access Only vBNB is considered a valid sender
      */
     receive() external payable {
         require(msg.sender == address(vBNB), "only vBNB can send BNB to this contract");
     }
 
     /**
-     * @notice Invoked when called function does not exist in the contract
+     * @notice Invoked when called function does not exist in the contract. The function will be executed in the vBNB contract.
+     * @custom:access Only owner (Governance)
      */
     fallback(bytes calldata data) external payable onlyOwner returns (bytes memory) {
         (bool ok, bytes memory res) = address(vBNB).call{ value: msg.value }(data);
