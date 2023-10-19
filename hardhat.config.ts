@@ -103,13 +103,10 @@ const config: HardhatUserConfig = {
       timeout: 12000000,
     },
     bscmainnet: {
-      url: "https://bsc-dataseed.binance.org/",
+      url: "http://127.0.0.1:1248",
       chainId: 56,
       live: true,
       timeout: 1200000, // 20 minutes
-      accounts: {
-        mnemonic: process.env.MNEMONIC || "",
-      },
     },
   },
   etherscan: {
