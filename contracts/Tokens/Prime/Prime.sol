@@ -16,7 +16,6 @@ import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
 
-import "hardhat/console.sol";
 
 /// @custom:security-contact https://github.com/VenusProtocol/venus-protocol
 contract Prime is AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
