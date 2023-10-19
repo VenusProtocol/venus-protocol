@@ -36,15 +36,6 @@ contract PrimeStorageV1 {
     /// @notice Base unit for computations, usually used in scaling (multiplications, divisions)
     uint256 internal constant EXP_SCALE = 1e18;
 
-    /// @notice minimum amount of XVS user needs to stake to become a prime member
-    uint256 public constant MINIMUM_STAKED_XVS = 1e3 * EXP_SCALE;
-
-    /// @notice maximum XVS taken in account when calculating user score
-    uint256 public constant MAXIMUM_XVS_CAP = 1e5 * EXP_SCALE;
-
-    /// @notice number of days user need to stake to claim prime token
-    uint256 public constant STAKING_PERIOD = 90 days;
-
     /// @notice maximum BPS = 100%
     uint256 internal constant MAXIMUM_BPS = 1e4;
 

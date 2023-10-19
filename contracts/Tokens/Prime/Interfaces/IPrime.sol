@@ -1,14 +1,13 @@
 pragma solidity 0.8.13;
 
 import { PrimeStorageV1 } from "../PrimeStorage.sol";
-import { IIncomeDestination } from "./IIncomeDestination.sol";
 
 /**
  * @title IPrime
  * @author Venus
  * @notice Interface for Prime Token
  */
-interface IPrime is IIncomeDestination {
+interface IPrime {
     /**
      * @notice Returns boosted pending interest accrued for a user for all markets
      * @param user the account for which to get the accrued interests

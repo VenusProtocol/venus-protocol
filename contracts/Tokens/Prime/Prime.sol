@@ -15,7 +15,6 @@ import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.so
 import { IPrime } from "./Interfaces/IPrime.sol";
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
-import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
 
 /**
@@ -38,6 +37,18 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @notice address of VBNB contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable VBNB;
+
+    /// @notice minimum amount of XVS user needs to stake to become a prime member
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable MINIMUM_STAKED_XVS;
+
+    /// @notice maximum XVS taken in account when calculating user score
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable MAXIMUM_XVS_CAP;
+
+    /// @notice number of days user need to stake to claim prime token
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable STAKING_PERIOD;
 
     /// @notice Emitted when prime token is minted
     event Mint(address indexed user, bool isIrrevocable);
@@ -137,17 +148,30 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param _wbnb Address of WBNB
      * @param _vbnb Address of VBNB
      * @param _blocksPerYear total blocks per year
+     * @param _stakingPeriod total number of seconds for which user needs to stake to claim prime token
+     * @param _minimumStakedXVS minimum amount of XVS user needs to stake to become a prime member (scaled by 1e18)
+     * @param _maximumXVSCap maximum XVS taken in account when calculating user score (scaled by 1e18)
      * @custom:error Throw InvalidAddress if any of the address is invalid
      * @custom:error Throw InvalidBlocksPerYear if blocks per year is 0
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address _wbnb, address _vbnb, uint256 _blocksPerYear) {
+    constructor(
+        address _wbnb,
+        address _vbnb,
+        uint256 _blocksPerYear,
+        uint256 _stakingPeriod,
+        uint256 _minimumStakedXVS,
+        uint256 _maximumXVSCap
+    ) {
         if (_wbnb == address(0)) revert InvalidAddress();
         if (_vbnb == address(0)) revert InvalidAddress();
         if (_blocksPerYear == 0) revert InvalidBlocksPerYear();
         WBNB = _wbnb;
         VBNB = _vbnb;
         BLOCKS_PER_YEAR = _blocksPerYear;
+        STAKING_PERIOD = _stakingPeriod;
+        MINIMUM_STAKED_XVS = _minimumStakedXVS;
+        MAXIMUM_XVS_CAP = _maximumXVSCap;
 
         // Note that the contract is upgradeable. Use initialize() or reinitializers
         // to set the state variables.
@@ -164,7 +188,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param alphaDenominator_ denominator of alpha. If alpha is 0.5 then denominator is 2.
               alpha is alphaNumerator_/alphaDenominator_. So, 0 < alpha < 1
      * @param accessControlManager_ Address of AccessControlManager
-     * @param protocolShareReserve_ Address of ProtocolShareReserve
      * @param primeLiquidityProvider_ Address of PrimeLiquidityProvider
      * @param comptroller_ Address of Comptroller
      * @param oracle_ Address of Oracle
@@ -178,7 +201,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint128 alphaNumerator_,
         uint128 alphaDenominator_,
         address accessControlManager_,
-        address protocolShareReserve_,
         address primeLiquidityProvider_,
         address comptroller_,
         address oracle_,
@@ -186,11 +208,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     ) external initializer {
         if (xvsVault_ == address(0)) revert InvalidAddress();
         if (xvsVaultRewardToken_ == address(0)) revert InvalidAddress();
-        if (protocolShareReserve_ == address(0)) revert InvalidAddress();
         if (comptroller_ == address(0)) revert InvalidAddress();
         if (oracle_ == address(0)) revert InvalidAddress();
         if (primeLiquidityProvider_ == address(0)) revert InvalidAddress();
-        if (accessControlManager_ == address(0)) revert InvalidAddress();
 
         _checkAlphaArguments(alphaNumerator_, alphaDenominator_);
 
@@ -200,7 +220,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         _xvsVaultPoolId = xvsVaultPoolId_;
         _xvsVault = xvsVault_;
         nextScoreUpdateRoundId = 0;
-        protocolShareReserve = protocolShareReserve_;
         primeLiquidityProvider = primeLiquidityProvider_;
         comptroller = comptroller_;
         oracle = ResilientOracleInterface(oracle_);
@@ -547,27 +566,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     }
 
     /**
-     * @notice Callback by ProtocolShareReserve to update assets state when funds are released to this contract
-     * @param comptroller_ The address of the Comptroller whose income is distributed
-     * @param asset The address of the asset whose income is distributed
-     * @custom:error Throw InvalidCaller if caller is not protocol share reserve
-     * @custom:error Throw InvalidComptroller if comptroller is not valid
-     * @custom:error Throw MarketNotSupported if market is not supported
-     * @custom:event Emits UpdatedAssetsState event
-     */
-    function updateAssetsState(address comptroller_, address asset) external {
-        if (msg.sender != protocolShareReserve) revert InvalidCaller();
-        address _comptroller = comptroller;
-        if (_comptroller != comptroller_) revert InvalidComptroller();
-
-        address vToken = vTokenForAsset[asset];
-        if (vToken == address(0)) revert MarketNotSupported();
-
-        emit UpdatedAssetsState(_comptroller, asset, unreleasedPSRIncome[asset], 0);
-        delete unreleasedPSRIncome[asset];
-    }
-
-    /**
      * @notice Retrieves an array of all available markets
      * @return an array of addresses representing all available markets
      */
@@ -697,33 +695,18 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         address underlying = _getUnderlying(vToken);
 
         IPrimeLiquidityProvider _primeLiquidityProvider = IPrimeLiquidityProvider(primeLiquidityProvider);
-
-        uint256 totalIncomeUnreleased = IProtocolShareReserve(protocolShareReserve).getUnreleasedFunds(
-            comptroller,
-            IProtocolShareReserve.Schema.SPREAD_PRIME_CORE,
-            address(this),
-            underlying
-        );
-
-        uint256 distributionIncome;
-        unchecked {
-            distributionIncome = totalIncomeUnreleased - unreleasedPSRIncome[underlying];
-        }
-
         _primeLiquidityProvider.accrueTokens(underlying);
         uint256 totalAccruedInPLP = _primeLiquidityProvider.tokenAmountAccrued(underlying);
         uint256 unreleasedPLPAccruedInterest;
         unchecked {
             unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
         }
-
-        distributionIncome += unreleasedPLPAccruedInterest;
+        uint256 distributionIncome = unreleasedPLPAccruedInterest;
 
         if (distributionIncome == 0) {
             return;
         }
 
-        unreleasedPSRIncome[underlying] = totalIncomeUnreleased;
         unreleasedPLPIncome[underlying] = totalAccruedInPLP;
 
         uint256 delta;
@@ -839,13 +822,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         IERC20Upgradeable asset = IERC20Upgradeable(underlying);
 
         if (amount > asset.balanceOf(address(this))) {
-            address[] memory assets = new address[](1);
-            assets[0] = address(asset);
-            IProtocolShareReserve(protocolShareReserve).releaseFunds(comptroller, assets);
-            if (amount > asset.balanceOf(address(this))) {
-                delete unreleasedPLPIncome[underlying];
-                IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
-            }
+            delete unreleasedPLPIncome[underlying];
+            IPrimeLiquidityProvider(primeLiquidityProvider).releaseFunds(address(asset));
         }
 
         asset.safeTransfer(user, amount);
@@ -1133,23 +1111,10 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function _incomePerBlock(address vToken) internal view returns (uint256) {
         IVToken market = IVToken(vToken);
-
         unchecked {
             return ((((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) *
                 market.reserveFactorMantissa()) / EXP_SCALE);
         }
-    }
-
-    /**
-     * @notice the percentage of income we distribute among the prime token holders
-     * @return percentage the percentage returned without mantissa
-     */
-    function _distributionPercentage() internal view returns (uint256) {
-        return
-            IProtocolShareReserve(protocolShareReserve).getPercentageDistribution(
-                address(this),
-                IProtocolShareReserve.Schema.SPREAD_PRIME_CORE
-            );
     }
 
     /**
@@ -1158,19 +1123,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return amount the total income
      */
     function _incomeDistributionYearly(address vToken) internal view returns (uint256 amount) {
-        uint256 totalIncomePerBlockFromMarket = _incomePerBlock(vToken);
-        uint256 incomePerBlockForDistributionFromMarket;
-        unchecked {
-            incomePerBlockForDistributionFromMarket =
-                (totalIncomePerBlockFromMarket * _distributionPercentage()) /
-                IProtocolShareReserve(protocolShareReserve).MAX_PERCENT();
-        }
-
-        amount = BLOCKS_PER_YEAR * incomePerBlockForDistributionFromMarket;
-
         uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
             .getEffectiveDistributionSpeed(_getUnderlying(vToken));
-        amount += BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
+        amount = BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
     }
 
     /**

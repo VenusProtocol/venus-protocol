@@ -13,7 +13,6 @@ import {
   ComptrollerMock__factory,
   IAccessControlManager,
   InterestRateModelHarness,
-  MockProtocolShareReserve,
   Prime,
   PrimeLiquidityProvider,
   ResilientOracleInterface,
@@ -44,7 +43,6 @@ type SetupProtocolFixture = {
   xvsStore: XVSStore;
   prime: Prime;
   primeLiquidityProvider: PrimeLiquidityProvider;
-  protocolShareReserve: MockProtocolShareReserve;
 };
 
 async function deployProtocol(): Promise<SetupProtocolFixture> {
@@ -84,15 +82,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     "BEP20 wbnb",
   )) as BEP20Harness;
 
-  const PrimeLiquidityProviderFactory = await ethers.getContractFactory("PrimeLiquidityProvider");
-  const primeLiquidityProvider = await upgrades.deployProxy(PrimeLiquidityProviderFactory, [
-    accessControl.address,
-    [usdt.address, eth.address, wbnb.address],
-    [convertToUnit("1", 16), convertToUnit("1", 16), convertToUnit("1", 16)],
-    [convertToUnit("1", 18), convertToUnit("1", 18), convertToUnit("1", 18)],
-    10,
-  ]);
-
   const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
   const InterestRateModelHarness = (await interestRateModelHarnessFactory.deploy(
     BigNumber.from(18).mul(5),
@@ -130,14 +119,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     wallet.address,
   )) as VBep20Harness;
 
-  const protocolShareReserveFactory = await ethers.getContractFactory("MockProtocolShareReserve");
-  const protocolShareReserve = await upgrades.deployProxy(protocolShareReserveFactory, [accessControl.address, 100], {
-    Contract: protocolShareReserveFactory,
-    initializer: "initialize",
-    unsafeAllow: "constructor",
-    constructorArgs: [comptroller.address, wbnb.address, vbnb.address],
-  });
-
   //0.2 reserve factor
   await veth._setReserveFactor(bigNumber16.mul(20));
   await vusdt._setReserveFactor(bigNumber16.mul(20));
@@ -167,12 +148,12 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   await comptroller._setMarketSupplyCaps(
     [vusdt.address, veth.address],
-    [bigNumber18.mul(100000), bigNumber18.mul(1000)],
+    [bigNumber18.mul(100000000), bigNumber18.mul(1000000)],
   );
 
   await comptroller._setMarketBorrowCaps(
     [vusdt.address, veth.address],
-    [bigNumber18.mul(100000), bigNumber18.mul(1000)],
+    [bigNumber18.mul(100000000), bigNumber18.mul(1000000)],
   );
 
   const xvsFactory = await ethers.getContractFactory("XVS");
@@ -201,6 +182,23 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const rewardPerBlock = bigNumber18.mul(1);
   await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
 
+  const primeLiquidityProviderFactory = await ethers.getContractFactory("PrimeLiquidityProvider");
+  const primeLiquidityProvider = await upgrades.deployProxy(
+    primeLiquidityProviderFactory,
+    [
+      accessControl.address,
+      [xvs.address, usdt.address, eth.address],
+      [100, 100, 100],
+      [convertToUnit(1, 18), convertToUnit(1, 18), convertToUnit(1, 18)],
+      10,
+    ],
+    {},
+  );
+
+  const stakingPeriod = 90 * 24 * 60 * 60;
+  const maximumXVSCap = ethers.utils.parseEther("100000");
+  const minimumXVS = ethers.utils.parseEther("1000");
+
   const primeFactory = await ethers.getContractFactory("Prime");
   const prime: Prime = await upgrades.deployProxy(
     primeFactory,
@@ -211,18 +209,16 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       1,
       2,
       accessControl.address,
-      protocolShareReserve.address,
       primeLiquidityProvider.address,
       comptroller.address,
       oracle.address,
       10,
     ],
     {
-      constructorArgs: [wbnb.address, vbnb.address, 10512000],
+      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap],
+      unsafeAllow: "constructor",
     },
   );
-
-  await protocolShareReserve.setPrime(prime.address);
 
   await primeLiquidityProvider.setPrimeToken(prime.address);
 
@@ -252,7 +248,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     xvsStore,
     prime,
     primeLiquidityProvider,
-    protocolShareReserve,
   };
 }
 
@@ -384,19 +379,12 @@ describe("Prime Token", () => {
     let eth: BEP20Harness;
     let xvsVault: XVSVault;
     let xvs: XVS;
-    let protocolShareReserve: MockProtocolShareReserve;
     let primeLiquidityProvider: PrimeLiquidityProvider;
 
     beforeEach(async () => {
-      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, primeLiquidityProvider, protocolShareReserve } =
-        await loadFixture(deployProtocol));
-
-      const DistributionConfig1 = {
-        schema: 1,
-        percentage: 100,
-        destination: prime.address,
-      };
-      await protocolShareReserve.addOrUpdateDistributionConfigs([DistributionConfig1]);
+      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, primeLiquidityProvider } = await loadFixture(
+        deployProtocol,
+      ));
 
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));
@@ -421,34 +409,24 @@ describe("Prime Token", () => {
     });
 
     it("claim interest for multiple users", async () => {
-      let interestForUser1ForUsdt = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
-      let interestForUser1ForEth = await prime.callStatic.getInterestAccrued(veth.address, user1.getAddress());
+      const interestForUser1ForUsdt = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
+      const interestForUser1ForEth = await prime.callStatic.getInterestAccrued(veth.address, user1.getAddress());
 
       expect(interestForUser1ForEth).to.be.equal(0);
       expect(interestForUser1ForUsdt).to.be.equal(0);
-
-      // Transferring funds to PSR
-      await usdt.transfer(protocolShareReserve.address, convertToUnit("1", 6));
-      await eth.transfer(protocolShareReserve.address, convertToUnit("1", 6));
-
-      await protocolShareReserve.updateAssetsState(comptroller.address, usdt.address, 0);
-      await protocolShareReserve.updateAssetsState(comptroller.address, eth.address, 0);
-
-      interestForUser1ForUsdt = await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress());
-      interestForUser1ForEth = await prime.callStatic.getInterestAccrued(veth.address, user1.getAddress());
-
-      expect(interestForUser1ForEth).to.gt(0);
-      expect(interestForUser1ForUsdt).to.gt(0);
 
       // providing some liquidity to PLP
       await usdt.transfer(primeLiquidityProvider.address, convertToUnit("1", 6));
       await eth.transfer(primeLiquidityProvider.address, convertToUnit("1", 6));
 
-      const interestForUser1ForEthIncludingPlp = await prime.callStatic.getInterestAccrued(
+      await prime.accrueInterest(vusdt.address);
+      await prime.accrueInterest(veth.address);
+
+      const interestForUser1ForUsdtIncludingPlp = await prime.callStatic.getInterestAccrued(
         vusdt.address,
         user1.getAddress(),
       );
-      const interestForUser1ForUsdtIncludingPlp = await prime.callStatic.getInterestAccrued(
+      const interestForUser1ForEthIncludingPlp = await prime.callStatic.getInterestAccrued(
         veth.address,
         user1.getAddress(),
       );
@@ -504,13 +482,6 @@ describe("Prime Token", () => {
       // Transfering funds to primeLiquidityProvider
       await usdt.transfer(primeLiquidityProvider.address, convertToUnit("1", 10));
       await eth.transfer(primeLiquidityProvider.address, convertToUnit("1", 10));
-
-      // Providing funds to PSR
-      await usdt.transfer(protocolShareReserve.address, convertToUnit("1", 18));
-      await eth.transfer(protocolShareReserve.address, convertToUnit("1", 18));
-
-      await protocolShareReserve.updateAssetsState(comptroller.address, usdt.address, 0);
-      await protocolShareReserve.updateAssetsState(comptroller.address, eth.address, 0);
 
       interestForUser2ForUsdt = await prime.callStatic.getInterestAccrued(vusdt.address, user2.getAddress());
       interestForUser2ForEth = await prime.callStatic.getInterestAccrued(veth.address, user2.getAddress());
