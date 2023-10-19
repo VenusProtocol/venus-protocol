@@ -3,7 +3,7 @@ import chai from "chai";
 import { ethers, network } from "hardhat";
 
 import { convertToUnit } from "../../../../helpers/utils";
-import { ComptrollerMock, IAccessControlManager, Unitroller, VToken } from "../../../../typechain";
+import { ComptrollerMock, IAccessControlManagerV5, Unitroller, VToken } from "../../../../typechain";
 import { deployDiamond } from "./scripts/deploy";
 
 const { expect } = chai;
@@ -12,7 +12,7 @@ chai.use(smock.matchers);
 describe("Comptroller", () => {
   let unitroller: Unitroller;
   let comptroller: ComptrollerMock;
-  let accessControl: FakeContract<IAccessControlManager>;
+  let accessControl: FakeContract<IAccessControlManagerV5>;
   let vToken1: FakeContract<VToken>;
   let vToken2: FakeContract<VToken>;
 
@@ -21,9 +21,7 @@ describe("Comptroller", () => {
     unitroller = result.unitroller;
 
     comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
-    accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-    );
+    accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
     vToken1 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
     vToken2 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
 

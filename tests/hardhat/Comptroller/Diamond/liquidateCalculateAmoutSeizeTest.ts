@@ -9,7 +9,7 @@ import {
   ComptrollerLens,
   ComptrollerLens__factory,
   ComptrollerMock,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   PriceOracle,
   VBep20Immutable,
 } from "../../../../typechain";
@@ -55,7 +55,7 @@ describe("Comptroller", () => {
   }
 
   async function liquidateFixture(): Promise<LiquidateFixture> {
-    const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+    const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const result = await deployDiamond("");
     const unitroller = result.unitroller;

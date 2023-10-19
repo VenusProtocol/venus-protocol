@@ -4,7 +4,7 @@ import chai from "chai";
 import { constants } from "ethers";
 import { ethers } from "hardhat";
 
-import { ComptrollerMock, IAccessControlManager } from "../../../typechain";
+import { ComptrollerMock, IAccessControlManagerV5 } from "../../../typechain";
 import { deployDiamond } from "./scripts/deploy";
 
 const { expect } = chai;
@@ -14,16 +14,14 @@ describe("Comptroller", () => {
   let user: SignerWithAddress;
   let userAddress: string;
   let unitroller: ComptrollerMock;
-  let accessControl: FakeContract<IAccessControlManager>;
+  let accessControl: FakeContract<IAccessControlManagerV5>;
   let comptroller: ComptrollerMock;
 
   beforeEach(async () => {
     const signers = await ethers.getSigners();
     user = signers[1];
     userAddress = user.address;
-    accessControl = await smock.fake<IAccessControlManager>(
-      "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-    );
+    accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
     const result = await deployDiamond("");
     unitroller = result.unitroller;
     comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);

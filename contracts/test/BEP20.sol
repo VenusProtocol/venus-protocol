@@ -2,6 +2,9 @@ pragma solidity ^0.5.16;
 
 import "../Utils/SafeMath.sol";
 
+// Mock import
+import { GovernorBravoDelegate } from "@venusprotocol/governance-contracts/contracts/Governance/GovernorBravoDelegate.sol";
+
 interface BEP20Base {
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
