@@ -341,6 +341,21 @@ describe("PrimeScenario Token", () => {
       expect(stake).be.equal(0);
     });
 
+    it("stake manually", async () => {
+      const user = user1;
+      
+      await prime.setStakedAt([user.getAddress()], [100]);
+
+      let stake = await prime.stakedAt(user.getAddress());
+      expect(stake).be.equal(100);
+
+      await prime.connect(user).claim();
+
+      let token = await prime.tokens(user.getAddress());
+      expect(token.exists).to.be.equal(true);
+      expect(token.isIrrevocable).to.be.equal(false);
+    });
+
     it("burn revocable token", async () => {
       const user = user1;
 
