@@ -768,6 +768,7 @@ contract Prime is AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, 
         }
 
         if (totalIrrevocable > irrevocableLimit || totalRevocable > revocableLimit) revert InvalidLimit();
+        _updateRoundAfterTokenMinted(user);
 
         emit Mint(user, isIrrevocable);
     }
@@ -889,6 +890,13 @@ contract Prime is AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, 
         if (pendingScoreUpdates > 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
             pendingScoreUpdates--;
         }
+    }
+
+    /**
+     * @notice update the required score updates when token is minted before round is completed
+     */
+    function _updateRoundAfterTokenMinted(address user) internal {
+        if (totalScoreUpdatesRequired > 0) isScoreUpdated[nextScoreUpdateRoundId][user] = true;
     }
 
     /**
