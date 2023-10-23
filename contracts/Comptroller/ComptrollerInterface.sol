@@ -2,8 +2,9 @@ pragma solidity ^0.5.16;
 
 import "../Tokens/VTokens/VToken.sol";
 import "../Oracle/PriceOracle.sol";
+import "../Tokens/VAI/VAIControllerInterface.sol";
 
-contract ComptrollerInterfaceG1 {
+contract ComptrollerInterface {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     bool public constant isComptroller = true;
 
@@ -88,27 +89,14 @@ contract ComptrollerInterfaceG1 {
     ) external view returns (uint, uint);
 
     function setMintedVAIOf(address owner, uint amount) external returns (uint);
-}
 
-contract ComptrollerInterfaceG2 is ComptrollerInterfaceG1 {
     function liquidateVAICalculateSeizeTokens(
         address vTokenCollateral,
         uint repayAmount
     ) external view returns (uint, uint);
-}
 
-contract ComptrollerInterfaceG3 is ComptrollerInterfaceG2 {
-    function liquidateVAICalculateSeizeTokens(
-        address vTokenCollateral,
-        uint repayAmount
-    ) external view returns (uint, uint);
-}
-
-contract ComptrollerInterfaceG4 is ComptrollerInterfaceG3 {
     function getXVSAddress() public view returns (address);
-}
 
-contract ComptrollerInterface is ComptrollerInterfaceG4 {
     function markets(address) external view returns (bool, uint);
 
     function oracle() external view returns (PriceOracle);
@@ -138,6 +126,16 @@ contract ComptrollerInterface is ComptrollerInterfaceG4 {
     function venusSupplyState(address) external view returns (uint224, uint32);
 
     function approvedDelegates(address borrower, address delegate) external view returns (bool);
+
+    function vaiController() external view returns (VAIControllerInterface);
+
+    function liquidationIncentiveMantissa() external view returns (uint);
+
+    function protocolPaused() external view returns (bool);
+
+    function mintedVAIs(address user) external view returns (uint);
+
+    function vaiMintRate() external view returns (uint);
 }
 
 interface IVAIVault {

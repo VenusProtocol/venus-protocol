@@ -5,10 +5,10 @@ import { BigNumber, Wallet, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import {
-  Comptroller,
   ComptrollerLens__factory,
-  Comptroller__factory,
-  IAccessControlManager,
+  ComptrollerMock,
+  ComptrollerMock__factory,
+  IAccessControlManagerV5,
   IProtocolShareReserve,
   VAIControllerHarness__factory,
 } from "../../../typechain";
@@ -31,8 +31,8 @@ const BLOCKS_PER_YEAR = 1000;
 
 interface ComptrollerFixture {
   usdt: BEP20Harness;
-  accessControl: FakeContract<IAccessControlManager>;
-  comptroller: MockContract<Comptroller>;
+  accessControl: FakeContract<IAccessControlManagerV5>;
+  comptroller: MockContract<ComptrollerMock>;
   priceOracle: SimplePriceOracle;
   vai: VAIScenario;
   vaiController: MockContract<VAIControllerHarness>;
@@ -45,8 +45,8 @@ describe("VAIController", async () => {
   let wallet: Wallet;
   let treasuryGuardian: Wallet;
   let treasuryAddress: Wallet;
-  let accessControl: FakeContract<IAccessControlManager>;
-  let comptroller: MockContract<Comptroller>;
+  let accessControl: FakeContract<IAccessControlManagerV5>;
+  let comptroller: MockContract<ComptrollerMock>;
   let priceOracle: SimplePriceOracle;
   let vai: VAIScenario;
   let vaiController: MockContract<VAIControllerHarness>;
@@ -67,13 +67,15 @@ describe("VAIController", async () => {
       "BEP20 usdt",
     )) as BEP20Harness;
 
-    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+    const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
     accessControl.isAllowedToCall.returns(true);
 
-    protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+    protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserve",
+    );
     protocolShareReserve.updateAssetsState.returns(true);
 
-    const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+    const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
     const comptroller = await ComptrollerFactory.deploy();
 
     const priceOracleFactory = await ethers.getContractFactory("SimplePriceOracle");
@@ -93,7 +95,6 @@ describe("VAIController", async () => {
 
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setVAIController(vaiController.address);
@@ -544,9 +545,7 @@ describe("VAIController", async () => {
     });
 
     it("emits NewAccessControl event", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>(
-        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-      );
+      const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
       const tx = await vaiController.setAccessControl(newAccessControl.address);
       await expect(tx)
         .to.emit(vaiController, "NewAccessControl")
@@ -554,9 +553,7 @@ describe("VAIController", async () => {
     });
 
     it("sets ACM address in storage", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>(
-        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-      );
+      const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
       await vaiController.setAccessControl(newAccessControl.address);
       expect(await vaiController.getVariable("accessControl")).to.equal(newAccessControl.address);
     });

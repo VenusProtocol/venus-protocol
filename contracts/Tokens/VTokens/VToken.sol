@@ -7,7 +7,7 @@ import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 import "./VTokenInterfaces.sol";
-import "../../Governance/IAccessControlManager.sol";
+import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 
 /**
  * @title Venus's vToken Contract
@@ -1649,7 +1649,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     function ensureAllowed(string memory functionSig) private view {
-        require(IAccessControlManager(accessControlManager).isAllowedToCall(msg.sender, functionSig), "access denied");
+        require(
+            IAccessControlManagerV5(accessControlManager).isAllowedToCall(msg.sender, functionSig),
+            "access denied"
+        );
     }
 
     function ensureAdmin(address caller_) private view {

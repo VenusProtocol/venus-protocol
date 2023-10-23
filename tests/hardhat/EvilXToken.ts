@@ -3,7 +3,7 @@ import chai from "chai";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../helpers/utils";
-import { ComptrollerHarness__factory, IAccessControlManager, IProtocolShareReserve } from "../../typechain";
+import { ComptrollerHarness__factory, IAccessControlManagerV5, IProtocolShareReserve } from "../../typechain";
 
 const { expect } = chai;
 
@@ -13,7 +13,7 @@ describe("Evil Token test", async () => {
   beforeEach(async () => {
     const [root, account1] = await ethers.getSigners();
 
-    const accessControlMock = await smock.fake<IAccessControlManager>("AccessControlManager");
+    const accessControlMock = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
     accessControlMock.isAllowedToCall.returns(true);
 
     user = account1;
@@ -156,8 +156,9 @@ describe("Evil Token test", async () => {
     await vDelegator3.deployed();
 
     vToken3 = await ethers.getContractAt("EvilXToken", vDelegator3.address);
-
     await unitroller._supportMarket(vToken3.address);
+
+    await unitroller._setCollateralFactor(vToken3.address, convertToUnit(cf2, 18));
     await unitroller._setCollateralFactor(vToken3.address, convertToUnit(cf3, 18));
     await priceOracle.setUnderlyingPrice(vToken2.address, convertToUnit(up3, 18));
 
@@ -173,7 +174,9 @@ describe("Evil Token test", async () => {
     await vToken1.connect(user).mint(convertToUnit(1, 4));
     await underlying3.harnessSetBalance(vToken3.address, convertToUnit(1, 8));
 
-    const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+    const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserve",
+    );
     protocolShareReserve.updateAssetsState.returns(true);
     await vToken1.setProtocolShareReserve(protocolShareReserve.address);
     await vToken2.setProtocolShareReserve(protocolShareReserve.address);

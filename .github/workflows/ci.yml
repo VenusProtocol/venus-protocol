@@ -7,29 +7,51 @@ name: Venus-Protocol
 
 on:
   push:
-    branches: [master, develop]
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
 
 jobs:
   test:
     name: Test
-    runs-on: self-hosted
-
+    runs-on: ubuntu-22.04
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v2
 
-      - name: Clear
-        run: docker system prune -f -a --volumes
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18
+          cache: "yarn"
 
-      - name: Build docker
-        run: docker build -t venus:${GITHUB_SHA::7} .
+      - name: Install deps
+        run: yarn
 
-      - name: Run tests
-        run: docker run --name ${GITHUB_SHA::7} venus:${GITHUB_SHA::7} yarn test
+      - name: Run hardhat compile and tests coverage
+        run: |
+          source .env.example
+          yarn hardhat compile && yarn hardhat coverage
 
-      - name: Clear
-        run: docker rm ${GITHUB_SHA::7}
+      - name: Code Coverage Report
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage/**/cobertura-coverage.xml
+          badge: true
+          fail_below_min: false
+          format: markdown
+          hide_branch_rate: false
+          hide_complexity: true
+          indicators: true
+          output: both
+          thresholds: "50 80"
+
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          path: code-coverage-results.md
 
   lint:
     name: Lint
