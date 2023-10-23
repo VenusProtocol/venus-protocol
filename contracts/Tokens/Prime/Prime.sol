@@ -266,7 +266,9 @@ contract Prime is AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, 
 
             if (!tokens[user].exists) revert UserHasNoPrimeToken();
             if (isScoreUpdated[nextScoreUpdateRoundId][user]) {
-                ++i;
+                unchecked {
+                    ++i;
+                }
                 continue;
             }
 
