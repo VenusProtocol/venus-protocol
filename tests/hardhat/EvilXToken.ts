@@ -175,7 +175,7 @@ describe("Evil Token test", async () => {
     await underlying3.harnessSetBalance(vToken3.address, convertToUnit(1, 8));
 
     const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserve",
+      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserveV5",
     );
     protocolShareReserve.updateAssetsState.returns(true);
     await vToken1.setProtocolShareReserve(protocolShareReserve.address);

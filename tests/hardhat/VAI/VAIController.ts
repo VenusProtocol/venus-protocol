@@ -71,7 +71,7 @@ describe("VAIController", async () => {
     accessControl.isAllowedToCall.returns(true);
 
     protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserve",
+      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserveV5",
     );
     protocolShareReserve.updateAssetsState.returns(true);
 
