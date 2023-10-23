@@ -1519,10 +1519,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
         doTransferOut(protocolShareReserve, reduceAmount);
 
-        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
+        IProtocolShareReserveV5(protocolShareReserve).updateAssetsState(
             address(comptroller),
             underlying,
-            IProtocolShareReserve.IncomeType.SPREAD
+            IProtocolShareReserveV5.IncomeType.SPREAD
         );
 
         emit ReservesReduced(protocolShareReserve, reduceAmount, totalReservesNew);

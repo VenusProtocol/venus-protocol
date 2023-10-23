@@ -3,7 +3,7 @@ pragma solidity ^0.5.16;
 import "../../Comptroller/ComptrollerInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 
-interface IProtocolShareReserve {
+interface IProtocolShareReserveV5 {
     enum IncomeType {
         SPREAD,
         LIQUIDATION

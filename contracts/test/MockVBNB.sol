@@ -182,4 +182,190 @@ contract MockVBNB is VToken {
 
         require(errCode == uint(Error.NO_ERROR), string(fullMessage));
     }
+
+    /**
+     * @dev Function to simply retrieve block number
+     *  This exists mainly for inheriting test contracts to stub this result.
+     */
+    function getBlockNumber() internal view returns (uint) {
+        return block.number;
+    }
+
+    /**
+     * @notice Reduces reserves by transferring to admin
+     * @dev Requires fresh interest accrual
+     * @param reduceAmount Amount of reduction to reserves
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     */
+    function _reduceReservesFresh(uint reduceAmount) internal returns (uint) {
+        // totalReserves - reduceAmount
+        uint totalReservesNew;
+
+        // Check caller is admin
+        if (msg.sender != admin) {
+            return fail(Error.UNAUTHORIZED, FailureInfo.REDUCE_RESERVES_ADMIN_CHECK);
+        }
+
+        // We fail gracefully unless market's block number equals current block number
+        if (accrualBlockNumber != getBlockNumber()) {
+            return fail(Error.MARKET_NOT_FRESH, FailureInfo.REDUCE_RESERVES_FRESH_CHECK);
+        }
+
+        // Fail gracefully if protocol has insufficient underlying cash
+        if (getCashPrior() < reduceAmount) {
+            return fail(Error.TOKEN_INSUFFICIENT_CASH, FailureInfo.REDUCE_RESERVES_CASH_NOT_AVAILABLE);
+        }
+
+        // Check reduceAmount ≤ reserves[n] (totalReserves)
+        if (reduceAmount > totalReserves) {
+            return fail(Error.BAD_INPUT, FailureInfo.REDUCE_RESERVES_VALIDATION);
+        }
+
+        /////////////////////////
+        // EFFECTS & INTERACTIONS
+        // (No safe failures beyond this point)
+
+        totalReservesNew = totalReserves - reduceAmount;
+
+        // Store reserves[n+1] = reserves[n] - reduceAmount
+        totalReserves = totalReservesNew;
+
+        // // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
+        doTransferOut(admin, reduceAmount);
+
+        emit ReservesReduced(admin, reduceAmount, totalReservesNew);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Accrues interest and reduces reserves by transferring to admin
+     * @param reduceAmount Amount of reduction to reserves
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     */
+    // @custom:event Emits ReservesReduced event
+    function _reduceReserves(uint reduceAmount) external nonReentrant returns (uint) {
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
+            return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
+        }
+        // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
+        return _reduceReservesFresh(reduceAmount);
+    }
+
+    /**
+     * @notice Applies accrued interest to total borrows and reserves
+     * @dev This calculates interest accrued from the last checkpointed block
+     *   up to the current block and writes new checkpoint to storage.
+     */
+    // @custom:event Emits AccrueInterest event
+    function accrueInterest() public returns (uint) {
+        /* Remember the initial block number */
+        uint currentBlockNumber = getBlockNumber();
+        uint accrualBlockNumberPrior = accrualBlockNumber;
+
+        /* Short-circuit accumulating 0 interest */
+        if (accrualBlockNumberPrior == currentBlockNumber) {
+            return uint(Error.NO_ERROR);
+        }
+
+        /* Read the previous values out of storage */
+        uint cashPrior = getCashPrior();
+        uint borrowsPrior = totalBorrows;
+        uint reservesPrior = totalReserves;
+        uint borrowIndexPrior = borrowIndex;
+
+        /* Calculate the current borrow interest rate */
+        uint borrowRateMantissa = interestRateModel.getBorrowRate(cashPrior, borrowsPrior, reservesPrior);
+        require(borrowRateMantissa <= borrowRateMaxMantissa, "borrow rate is absurdly high");
+
+        /* Calculate the number of blocks elapsed since the last accrual */
+        (MathError mathErr, uint blockDelta) = subUInt(currentBlockNumber, accrualBlockNumberPrior);
+        require(mathErr == MathError.NO_ERROR, "could not calculate block delta");
+
+        /*
+         * Calculate the interest accumulated into borrows and reserves and the new index:
+         *  simpleInterestFactor = borrowRate * blockDelta
+         *  interestAccumulated = simpleInterestFactor * totalBorrows
+         *  totalBorrowsNew = interestAccumulated + totalBorrows
+         *  totalReservesNew = interestAccumulated * reserveFactor + totalReserves
+         *  borrowIndexNew = simpleInterestFactor * borrowIndex + borrowIndex
+         */
+
+        Exp memory simpleInterestFactor;
+        uint interestAccumulated;
+        uint totalBorrowsNew;
+        uint totalReservesNew;
+        uint borrowIndexNew;
+
+        (mathErr, simpleInterestFactor) = mulScalar(Exp({ mantissa: borrowRateMantissa }), blockDelta);
+        if (mathErr != MathError.NO_ERROR) {
+            return
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.ACCRUE_INTEREST_SIMPLE_INTEREST_FACTOR_CALCULATION_FAILED,
+                    uint(mathErr)
+                );
+        }
+
+        (mathErr, interestAccumulated) = mulScalarTruncate(simpleInterestFactor, borrowsPrior);
+        if (mathErr != MathError.NO_ERROR) {
+            return
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.ACCRUE_INTEREST_ACCUMULATED_INTEREST_CALCULATION_FAILED,
+                    uint(mathErr)
+                );
+        }
+
+        (mathErr, totalBorrowsNew) = addUInt(interestAccumulated, borrowsPrior);
+        if (mathErr != MathError.NO_ERROR) {
+            return
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.ACCRUE_INTEREST_NEW_TOTAL_BORROWS_CALCULATION_FAILED,
+                    uint(mathErr)
+                );
+        }
+
+        (mathErr, totalReservesNew) = mulScalarTruncateAddUInt(
+            Exp({ mantissa: reserveFactorMantissa }),
+            interestAccumulated,
+            reservesPrior
+        );
+        if (mathErr != MathError.NO_ERROR) {
+            return
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.ACCRUE_INTEREST_NEW_TOTAL_RESERVES_CALCULATION_FAILED,
+                    uint(mathErr)
+                );
+        }
+
+        (mathErr, borrowIndexNew) = mulScalarTruncateAddUInt(simpleInterestFactor, borrowIndexPrior, borrowIndexPrior);
+        if (mathErr != MathError.NO_ERROR) {
+            return
+                failOpaque(
+                    Error.MATH_ERROR,
+                    FailureInfo.ACCRUE_INTEREST_NEW_BORROW_INDEX_CALCULATION_FAILED,
+                    uint(mathErr)
+                );
+        }
+
+        /////////////////////////
+        // EFFECTS & INTERACTIONS
+        // (No safe failures beyond this point)
+
+        /* We write the previously calculated values into storage */
+        accrualBlockNumber = currentBlockNumber;
+        borrowIndex = borrowIndexNew;
+        totalBorrows = totalBorrowsNew;
+        totalReserves = totalReservesNew;
+
+        /* We emit an AccrueInterest event */
+        emit AccrueInterest(cashPrior, interestAccumulated, borrowIndexNew, totalBorrowsNew);
+
+        return uint(Error.NO_ERROR);
+    }
 }
