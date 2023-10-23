@@ -335,7 +335,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice An admin function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @notice Sets protocol share reserve contract address
      * @param protcolShareReserve_ The address of protocol share reserve contract
      */
     function setProtocolShareReserve(address payable protcolShareReserve_) external returns (uint) {
