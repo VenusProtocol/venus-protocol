@@ -9,7 +9,7 @@ import {
   ComptrollerMock,
   ComptrollerMock__factory,
   FaucetToken,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   IERC20,
   InterestRateModel,
   JumpRateModel,
@@ -24,7 +24,7 @@ import { PriceOracle } from "../../../typechain/contracts/Oracle/PriceOracle";
 type MaybeFake<T extends BaseContract> = T | FakeContract<T>;
 
 interface ComptrollerFixture {
-  accessControlManager: FakeContract<IAccessControlManager>;
+  accessControlManager: FakeContract<IAccessControlManagerV5>;
   oracle: FakeContract<PriceOracle>;
   vaiController: FakeContract<VAIController>;
   comptroller: ComptrollerMock;
@@ -87,10 +87,8 @@ export const deployLiquidatorContract = async ({
   return liquidator;
 };
 
-export const deployFakeAccessControlManager = async (): Promise<FakeContract<IAccessControlManager>> => {
-  const acm = await smock.fake<IAccessControlManager>(
-    "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-  );
+export const deployFakeAccessControlManager = async (): Promise<FakeContract<IAccessControlManagerV5>> => {
+  const acm = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   acm.isAllowedToCall.returns(true);
   return acm;
 };
@@ -103,7 +101,7 @@ export const deployFakeOracle = async (): Promise<FakeContract<PriceOracle>> => 
 
 export const deployComptroller = async (
   opts: Partial<{
-    accessControlManager: MaybeFake<IAccessControlManager>;
+    accessControlManager: MaybeFake<IAccessControlManagerV5>;
     oracle: MaybeFake<PriceOracle>;
     liquidationIncentiveMantissa: BigNumberish;
     closeFactorMantissa: BigNumberish;
