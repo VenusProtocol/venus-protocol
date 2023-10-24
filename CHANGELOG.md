@@ -1,3 +1,16 @@
+## [5.1.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v5.1.0-dev.2...v5.1.0-dev.3) (2023-10-24)
+
+
+### Features
+
+* add BUSD liquidator contract ([ecd8a0b](https://github.com/VenusProtocol/venus-protocol/commit/ecd8a0b423d115ab78cc870c7e02e43ad2b0eee8))
+
+
+### Bug Fixes
+
+* [PVE-001] remove redundand approval reset ([592b022](https://github.com/VenusProtocol/venus-protocol/commit/592b022723740c6b7b066445f407f12253d85637))
+* use factory for ACM in tests ([1d1f690](https://github.com/VenusProtocol/venus-protocol/commit/1d1f6903912a3d9f446220879f63c62977618808))
+
 ## [5.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v5.1.0-dev.1...v5.1.0-dev.2) (2023-10-24)
 
 ## [5.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v5.0.1-dev.1...v5.1.0-dev.1) (2023-10-20)
