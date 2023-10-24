@@ -881,9 +881,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         }
 
         if (token.isIrrevocable) {
-            totalIrrevocable--;
+            --totalIrrevocable;
         } else {
-            totalRevocable--;
+            --totalRevocable;
         }
 
         delete tokens[user].exists;
