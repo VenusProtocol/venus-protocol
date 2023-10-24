@@ -6,7 +6,13 @@ import { BigNumberish } from "ethers";
 import { parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
-import { BUSDLiquidator, ComptrollerMock, FaucetToken, VBep20 } from "../../../typechain";
+import {
+  BUSDLiquidator,
+  ComptrollerMock,
+  FaucetToken,
+  IAccessControlManagerV8__factory,
+  VBep20,
+} from "../../../typechain";
 import {
   deployComptrollerWithMarkets,
   deployJumpRateModel,
@@ -107,7 +113,7 @@ const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
 };
 
 const setupFork = async (): Promise<BUSDLiquidatorFixture> => {
-  const [, , borrower, someone] = await ethers.getSigners();
+  const [admin, , borrower, someone] = await ethers.getSigners();
 
   const zeroRateModel = await deployJumpRateModel({
     baseRatePerYear: 0,
@@ -121,7 +127,7 @@ const setupFork = async (): Promise<BUSDLiquidatorFixture> => {
   const busd = await ethers.getContractAt("contracts/Utils/IBEP20.sol:IBEP20", await vBUSD.underlying());
   const collateral = await ethers.getContractAt("contracts/Utils/IBEP20.sol:IBEP20", await vCollateral.underlying());
   const treasuryAddress = await comptroller.treasuryAddress();
-  const acm = await ethers.getContractAt("IAccessControlManager", addresses.bscmainnet.ACCESS_CONTROL_MANAGER);
+  const acm = IAccessControlManagerV8__factory.connect(addresses.bscmainnet.ACCESS_CONTROL_MANAGER, admin);
 
   const busdLiquidator = await deployBUSDLiquidator({
     comptroller,
