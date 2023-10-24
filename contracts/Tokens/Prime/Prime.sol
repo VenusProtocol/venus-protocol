@@ -431,9 +431,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function issue(bool isIrrevocable, address[] calldata users) external {
         _checkAccessAllowed("issue(bool,address[])");
 
-        uint256 usersLength = users.length;
-        _ensureMaxLoops(usersLength);
-
         if (isIrrevocable) {
             for (uint256 i; i < usersLength; ) {
                 Token storage userToken = tokens[users[i]];
