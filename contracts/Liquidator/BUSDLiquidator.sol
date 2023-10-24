@@ -139,12 +139,8 @@ contract BUSDLiquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @param token The token to transfer
     /// @param from The account to transfer from
     /// @param amount The amount to transfer
-    /// @return actualAmount The actual amount transferred
-    function _transferIn(
-        IERC20Upgradeable token,
-        address from,
-        uint256 amount
-    ) internal returns (uint256 actualAmount) {
+    /// @return The actual amount transferred
+    function _transferIn(IERC20Upgradeable token, address from, uint256 amount) internal returns (uint256) {
         uint256 prevBalance = token.balanceOf(address(this));
         token.safeTransferFrom(from, address(this), amount);
         return token.balanceOf(address(this)) - prevBalance;
