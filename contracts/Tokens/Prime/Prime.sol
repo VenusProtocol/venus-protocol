@@ -95,6 +95,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @notice Emitted when revocable token is upgraded to irrevocable token
     event TokenUpgraded(address indexed user);
 
+    /// @notice Emitted when stakedAt is updated
+    event StakedAtUpdated(address indexed user, uint256 timestamp);
+
     /// @notice Error thrown when market is not supported
     error MarketNotSupported();
 
@@ -136,6 +139,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
     /// @notice Error thrown when invalid vToken is passed
     error InvalidVToken();
+
+    /// @notice Error thrown when invalid length is passed
+    error InvalidLength();
 
     /**
      * @notice Prime constructor
@@ -268,7 +274,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
             if (!tokens[user].exists) revert UserHasNoPrimeToken();
             if (isScoreUpdated[nextScoreUpdateRoundId][user]) {
-                ++i;
+                unchecked {
+                    ++i;
+                }
                 continue;
             }
 
@@ -353,6 +361,28 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         _market.borrowMultiplier = borrowMultiplier;
 
         _startScoreUpdateRound();
+    }
+    
+    /**
+     * @notice Update staked at timestamp for multiple users
+     * @param users accounts for which we need to update staked at timestamp
+     * @param timestamps new staked at timestamp for the users
+     * @custom:error Throw InvalidLength if users and timestamps length are not equal
+     * @custom:event Emits StakedAtUpdated event for each user
+     * @custom:access Controlled by ACM
+     */
+    function setStakedAt(address[] calldata users, uint256[] calldata timestamps) external {
+        _checkAccessAllowed("setStakedAt(address[],uint256[])");
+        if (users.length != timestamps.length) revert InvalidLength();
+
+        for (uint256 i = 0; i < users.length; ) {
+            stakedAt[users[i]] = timestamps[i];
+             emit StakedAtUpdated(users[i], timestamps[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     /**
@@ -842,6 +872,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         }
 
         if (totalIrrevocable > irrevocableLimit || totalRevocable > revocableLimit) revert InvalidLimit();
+        _updateRoundAfterTokenMinted(user);
 
         emit Mint(user, isIrrevocable);
     }
@@ -970,6 +1001,13 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         if (pendingScoreUpdates != 0 && !isScoreUpdated[nextScoreUpdateRoundId][user]) {
             --pendingScoreUpdates;
         }
+    }
+
+    /**
+     * @notice update the required score updates when token is minted before round is completed
+     */
+    function _updateRoundAfterTokenMinted(address user) internal {
+        if (totalScoreUpdatesRequired > 0) isScoreUpdated[nextScoreUpdateRoundId][user] = true;
     }
 
     /**
