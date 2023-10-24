@@ -14,7 +14,7 @@ interface IPrime {
     function xvsUpdated(address user) external;
 
     /**
-     * @notice accrues interes and updates score for an user for a specific market
+     * @notice accrues interest and updates score for an user for a specific market
      * @param user the account address for which to accrue interest and update score
      * @param market the market for which to accrue interest and update score
      */
