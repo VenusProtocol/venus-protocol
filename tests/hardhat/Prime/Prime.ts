@@ -384,7 +384,7 @@ describe("PrimeScenario Token", () => {
 
     it("stake manually", async () => {
       const user = user1;
-      
+
       await prime.setStakedAt([user.getAddress()], [100]);
 
       let stake = await prime.stakedAt(user.getAddress());

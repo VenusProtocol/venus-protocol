@@ -39,6 +39,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const maximumXVSCap =
     networkName === "bscmainnet" ? ethers.utils.parseEther("100000") : ethers.utils.parseEther("100");
   const minimumXVS = networkName === "bscmainnet" ? ethers.utils.parseEther("1000") : ethers.utils.parseEther("10");
+  const xVSVaultPoolId = networkName === "bscmainnet" ? 1 : 1;
+  const xvsVaultAlphaNumerator = networkName === "bscmainnet" ? 1 : 1;
+  const xvsVaultAlphaDenominator = networkName === "bscmainnet" ? 2 : 2;
+  const blocksPeryear = networkName === "bscmainnet" ? 10512000 : 10512000;
+  const loopsLimit = networkName === "bscmainnet" ? 20 : 20;
 
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
@@ -50,7 +55,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [OTHER_ADDRESSES[networkName].acm, [], []],
+        args: [OTHER_ADDRESSES[networkName].acm, [], [], [], loopsLimit],
       },
     },
   });
@@ -64,7 +69,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [
       ADDRESSES[networkName].WBNB,
       ADDRESSES[networkName].vBNB,
-      10512000,
+      blocksPeryear,
       stakingPeriod,
       minimumXVS,
       maximumXVSCap,
@@ -77,57 +82,81 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         args: [
           ADDRESSES[networkName].XVSVault,
           ADDRESSES[networkName].XVS,
-          1,
-          1,
-          2,
+          xVSVaultPoolId,
+          xvsVaultAlphaNumerator,
+          xvsVaultAlphaDenominator,
           OTHER_ADDRESSES[networkName].acm,
-          OTHER_ADDRESSES[networkName].psr,
           plp.address,
           ADDRESSES[networkName].Unitroller,
           OTHER_ADDRESSES[networkName].oracle,
-          20,
+          loopsLimit,
         ],
       },
     },
   });
 
-  if ((await plp.prime()) === ethers.constants.AddressZero) {
-    console.log("Setting Prime token address in PLP");
-    await plp.setPrimeToken((await ethers.getContract("Prime")).address);
-  }
+  await deploy("XVSVault", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+    proxy: false,
+  });
 
-  const assets = [
-    ADDRESSES[networkName].ETH,
-    ADDRESSES[networkName].BTCB,
-    ADDRESSES[networkName].USDC,
-    ADDRESSES[networkName].USDT,
-  ];
+  await deploy("PolicyFacet", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+    proxy: false,
+  });
 
-  const markets = [
-    ADDRESSES[networkName].vETH,
-    ADDRESSES[networkName].vBTC,
-    ADDRESSES[networkName].vUSDC,
-    ADDRESSES[networkName].vUSDT,
-  ];
+  await deploy("SetterFacet", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+    proxy: false,
+  });
 
-  const speeds = [100, 10, 10, 10];
+  console.log("Transferring PLP ownership to Timelock");
+  await plp.transferOwnership(ADDRESSES[networkName].Timelock);
 
-  console.log("Initializing tokens in PLP");
-  await plp.initializeTokens(assets);
+  // console.log("Setting Prime token address in PLP");
+  // await plp.setPrimeToken((await ethers.getContract("Prime")).address);
 
-  console.log("Setting speeds in PLP");
-  console.log(assets, speeds);
-  await plp.setTokensDistributionSpeed(assets, speeds);
+  // const assets = [
+  //   ADDRESSES[networkName].ETH,
+  //   ADDRESSES[networkName].BTCB,
+  //   ADDRESSES[networkName].USDC,
+  //   ADDRESSES[networkName].USDT,
+  // ];
 
-  const prime = await ethers.getContract("Prime");
+  // const markets = [
+  //   ADDRESSES[networkName].vETH,
+  //   ADDRESSES[networkName].vBTC,
+  //   ADDRESSES[networkName].vUSDC,
+  //   ADDRESSES[networkName].vUSDT,
+  // ];
 
-  console.log("Adding markets to Prime");
-  for (let i = 0; i < markets.length; i++) {
-    await prime.addMarket(markets[i], ethers.utils.parseEther("1"), ethers.utils.parseEther("1"));
-  }
+  // const speeds = [100, 10, 10, 10];
 
-  console.log("Setting Prime token limits");
-  await prime.setLimit(100, 100);
+  // console.log("Initializing tokens in PLP");
+  // await plp.initializeTokens(assets);
+
+  // console.log("Setting speeds in PLP");
+  // console.log(assets, speeds);
+  // await plp.setTokensDistributionSpeed(assets, speeds);
+
+  // const prime = await ethers.getContract("Prime");
+
+  // console.log("Adding markets to Prime");
+  // for (let i = 0; i < markets.length; i++) {
+  //   await prime.addMarket(markets[i], ethers.utils.parseEther("1"), ethers.utils.parseEther("1"));
+  // }
+
+  // console.log("Setting Prime token limits");
+  // await prime.setLimit(100, 100);
 };
 
 func.tags = ["Prime"];

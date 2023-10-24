@@ -268,7 +268,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function updateScores(address[] calldata users) external {
         if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
         if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
-        
+
         for (uint256 i; i < users.length; ) {
             address user = users[i];
 
@@ -362,7 +362,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         _startScoreUpdateRound();
     }
-    
+
     /**
      * @notice Update staked at timestamp for multiple users
      * @param users accounts for which we need to update staked at timestamp
@@ -377,7 +377,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         for (uint256 i = 0; i < users.length; ) {
             stakedAt[users[i]] = timestamps[i];
-             emit StakedAtUpdated(users[i], timestamps[i]);
+            emit StakedAtUpdated(users[i], timestamps[i]);
 
             unchecked {
                 ++i;

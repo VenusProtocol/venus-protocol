@@ -92,11 +92,11 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: isFork(),
     bsctestnet: {
-      url: process.env.BSC_ARCHIVE_NODE_URL || "https://bsc-testnet.nodereal.io/v1/595f8f100ec24912925bf823d6deb4c4",
+      url: process.env.BSC_ARCHIVE_NODE_URL || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
       accounts: [process.env.DEPLOYER_PRIVATE_KEY || ""],
       // gasPrice: ethers.utils.parseUnits("10", "gwei").toNumber(),
-      gasMultiplier: 10,
+      // gasMultiplier: 10,
       timeout: 12000000,
     },
     bscmainnet: {
