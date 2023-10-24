@@ -268,8 +268,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function updateScores(address[] calldata users) external {
         if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
         if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
-
-        for (uint256 i; i < usersLength; ) {
+        
+        for (uint256 i; i < users.length; ) {
             address user = users[i];
 
             if (!tokens[user].exists) revert UserHasNoPrimeToken();
@@ -462,7 +462,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         _checkAccessAllowed("issue(bool,address[])");
 
         if (isIrrevocable) {
-            for (uint256 i; i < usersLength; ) {
+            for (uint256 i; i < users.length; ) {
                 Token storage userToken = tokens[users[i]];
                 if (userToken.exists && !userToken.isIrrevocable) {
                     _upgrade(users[i]);
@@ -476,7 +476,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
                 }
             }
         } else {
-            for (uint256 i; i < usersLength; ) {
+            for (uint256 i; i < users.length; ) {
                 _mint(false, users[i]);
                 _initializeMarkets(users[i]);
 
