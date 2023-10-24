@@ -20,7 +20,7 @@ import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
 /**
  * @title Prime
  * @author Venus
- * @notice Prime Token is used to provide extra rewards to the users who have staked a minimum of `MINIMUM_STAKED_XVS` XVS in the XVSVault for `STAKING_PERIOD` days
+ * @notice Prime Token is used to provide extra rewards to the users who have staked a minimum of 1000 XVS in the XVSVault for 90 days
  * @custom:security-contact https://github.com/VenusProtocol/venus-protocol
  */
 contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
@@ -262,9 +262,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function updateScores(address[] calldata users) external {
         if (pendingScoreUpdates == 0) revert NoScoreUpdatesRequired();
         if (nextScoreUpdateRoundId == 0) revert NoScoreUpdatesRequired();
-
-        uint256 usersLength = users.length;
-        _ensureMaxLoops(usersLength);
 
         for (uint256 i; i < usersLength; ) {
             address user = users[i];
