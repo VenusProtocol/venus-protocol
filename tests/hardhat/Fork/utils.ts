@@ -28,7 +28,7 @@ export const forking = (blockNumber: number, fn: () => void) => {
 
 export const initMainnetUser = async (user: string, balance?: NumberLike) => {
   await impersonateAccount(user);
-  if (balance) {
+  if (balance !== undefined) {
     await setBalance(user, balance);
   }
   return ethers.getSigner(user);
