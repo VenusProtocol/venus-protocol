@@ -387,12 +387,12 @@ describe("PrimeScenario Token", () => {
 
       await prime.setStakedAt([user.getAddress()], [100]);
 
-      let stake = await prime.stakedAt(user.getAddress());
+      const stake = await prime.stakedAt(user.getAddress());
       expect(stake).be.equal(100);
 
       await prime.connect(user).claim();
 
-      let token = await prime.tokens(user.getAddress());
+      const token = await prime.tokens(user.getAddress());
       expect(token.exists).to.be.equal(true);
       expect(token.isIrrevocable).to.be.equal(false);
     });
