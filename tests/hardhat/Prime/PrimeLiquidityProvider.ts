@@ -8,7 +8,7 @@ import { convertToUnit } from "../../../helpers/utils";
 import {
   FaucetToken,
   FaucetToken__factory,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   Prime,
   PrimeLiquidityProvider,
 } from "../../../typechain";
@@ -18,7 +18,7 @@ let tokenA: MockContract<FaucetToken>;
 let tokenB: MockContract<FaucetToken>;
 let tokenC: MockContract<FaucetToken>;
 let prime: FakeContract<Prime>;
-let accessControl: FakeContract<IAccessControlManager>;
+let accessControl: FakeContract<IAccessControlManagerV5>;
 let signer: ethers.signer;
 let signers: ethers.signers;
 
@@ -35,7 +35,7 @@ const fixture = async () => {
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
 
   prime = await smock.fake<Prime>("Prime");
-  accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   tokenA = await FaucetToken.deploy(parseUnits("10000", 18), "TOKENA", 18, "A");
   tokenB = await FaucetToken.deploy(parseUnits("10000", 18), "TOKENB", 18, "B");
   tokenC = await FaucetToken.deploy(parseUnits("10000", 18), "TOKENC", 18, "C");
