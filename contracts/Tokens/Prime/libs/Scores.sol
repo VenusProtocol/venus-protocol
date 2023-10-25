@@ -7,6 +7,11 @@ import { FixedMath } from "./FixedMath.sol";
 
 using SafeCastUpgradeable for uint256;
 
+/**
+ * @title Scores
+ * @author Venus
+ * @notice Scores library is used to calculate score of users
+ */
 library Scores {
     /**
      * @notice Calculate a membership score given some amount of `xvs` and `capital`, along
@@ -19,7 +24,7 @@ library Scores {
      *
      * @dev 𝝰 must be in the range [0, 1]
      */
-    function calculateScore(
+    function _calculateScore(
         uint256 xvs,
         uint256 capital,
         uint256 alphaNumerator,
@@ -52,19 +57,19 @@ library Scores {
         bool lessxvsThanCapital = xvs < capital;
 
         // (xvs / capital) or (capital / xvs), always in range (0, 1)
-        int256 ratio = lessxvsThanCapital ? FixedMath.toFixed(xvs, capital) : FixedMath.toFixed(capital, xvs);
+        int256 ratio = lessxvsThanCapital ? FixedMath._toFixed(xvs, capital) : FixedMath._toFixed(capital, xvs);
 
         // e ^ ( ln(ratio) * 𝝰 )
-        int256 exponentiation = FixedMath.exp(
-            (FixedMath.ln(ratio) * alphaNumerator.toInt256()) / alphaDenominator.toInt256()
+        int256 exponentiation = FixedMath._exp(
+            (FixedMath._ln(ratio) * alphaNumerator.toInt256()) / alphaDenominator.toInt256()
         );
 
         if (lessxvsThanCapital) {
             // capital * e ^ (𝝰 * ln(xvs / capital))
-            return FixedMath.uintMul(capital, exponentiation);
+            return FixedMath._uintMul(capital, exponentiation);
         }
 
         // capital / e ^ (𝝰 * ln(capital / xvs))
-        return FixedMath.uintDiv(capital, exponentiation);
+        return FixedMath._uintDiv(capital, exponentiation);
     }
 }

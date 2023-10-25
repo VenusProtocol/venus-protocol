@@ -35,6 +35,10 @@ error ExpTooLarge(int256 x);
 /// Thrown when an unsigned value is too large to be converted to a signed value
 error UnsignedValueTooLarge(uint256 x);
 
+/**
+ * @title FixedMath0x
+ * @notice Signed, fixed-point, 127-bit precision math library
+ */
 library FixedMath0x {
     // Base for the fixed point numbers (this is our 1)
     int256 internal constant FIXED_1 = int256(0x0000000000000000000000000000000080000000000000000000000000000000);
@@ -48,7 +52,7 @@ library FixedMath0x {
     int256 private constant EXP_MIN_VAL = -int256(0x0000000000000000000000000000001ff0000000000000000000000000000000);
 
     /// @dev Get the natural logarithm of a fixed-point number 0 < `x` <= LN_MAX_VAL
-    function ln(int256 x) internal pure returns (int256 r) {
+    function _ln(int256 x) internal pure returns (int256 r) {
         if (x > LN_MAX_VAL) {
             revert LnTooLarge(x);
         }
@@ -137,7 +141,7 @@ library FixedMath0x {
     }
 
     /// @dev Compute the natural exponent for a fixed-point number EXP_MIN_VAL <= `x` <= 1
-    function exp(int256 x) internal pure returns (int256 r) {
+    function _exp(int256 x) internal pure returns (int256 r) {
         if (x < EXP_MIN_VAL) {
             // Saturate to zero below EXP_MIN_VAL.
             return 0;

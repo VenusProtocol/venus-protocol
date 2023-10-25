@@ -3,6 +3,11 @@ pragma solidity 0.8.13;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
+/**
+ * @title PrimeStorageV1
+ * @author Venus
+ * @notice Storage for Prime Token
+ */
 contract PrimeStorageV1 {
     struct Token {
         bool exists;
@@ -28,10 +33,11 @@ contract PrimeStorageV1 {
         uint256 amount;
     }
 
+    /// @notice Base unit for computations, usually used in scaling (multiplications, divisions)
     uint256 internal constant EXP_SCALE = 1e18;
 
-    /// @notice maxmimum BPS = 100%
-    uint256 internal constant MAXIMUM_BPS = 10000;
+    /// @notice maximum BPS = 100%
+    uint256 internal constant MAXIMUM_BPS = 1e4;
 
     /// @notice Mapping to get prime token's metadata
     mapping(address => Token) public tokens;
@@ -58,22 +64,22 @@ contract PrimeStorageV1 {
     mapping(address => mapping(address => Interest)) public interests;
 
     /// @notice A list of boosted markets
-    address[] internal allMarkets;
+    address[] internal _allMarkets;
 
-    /// @notice numberator of alpha. Ex: if alpha is 0.5 then this will be 1
+    /// @notice numerator of alpha. Ex: if alpha is 0.5 then this will be 1
     uint128 public alphaNumerator;
 
     /// @notice denominator of alpha. Ex: if alpha is 0.5 then this will be 2
     uint128 public alphaDenominator;
 
     /// @notice address of XVS vault
-    address internal xvsVault;
+    address internal _xvsVault;
 
     /// @notice address of XVS vault reward token
-    address internal xvsVaultRewardToken;
+    address internal _xvsVaultRewardToken;
 
     /// @notice address of XVS vault pool id
-    uint256 internal xvsVaultPoolId;
+    uint256 internal _xvsVaultPoolId;
 
     /// @notice mapping to check if a account's score was updated in the round
     mapping(uint256 => mapping(address => bool)) public isScoreUpdated;
@@ -100,7 +106,7 @@ contract PrimeStorageV1 {
     /// @dev mapping of asset adress => amount
 
     /// @notice unreleased income from PLP that's already distributed to prime holders
-    /// @dev mapping of asset adress => amount
+    /// @dev mapping of asset address => amount
     mapping(address => uint256) public unreleasedPLPIncome;
 
     /// @notice The address of PLP contract

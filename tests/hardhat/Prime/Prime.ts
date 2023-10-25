@@ -1,5 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { impersonateAccount, loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { BigNumber, Signer } from "ethers";
 import { ethers } from "hardhat";
@@ -180,7 +180,13 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const primeLiquidityProviderFactory = await ethers.getContractFactory("PrimeLiquidityProvider");
   const _primeLiquidityProvider = await upgrades.deployProxy(
     primeLiquidityProviderFactory,
-    [accessControl.address, [xvs.address, usdt.address, eth.address], [10, 10, 10]],
+    [
+      accessControl.address,
+      [xvs.address, usdt.address, eth.address],
+      [10, 10, 10],
+      [convertToUnit(1, 18), convertToUnit(1, 18), convertToUnit(1, 18)],
+      10,
+    ],
     {},
   );
 
@@ -249,6 +255,41 @@ describe("PrimeScenario Token", () => {
 
   before(async () => {
     [deployer, user1, user2, user3] = await ethers.getSigners();
+  });
+
+  describe("setMaxLoopsLimit()", async () => {
+    let accessControl: FakeContract<IAccessControlManager>;
+    let prime: PrimeScenario;
+
+    before(async () => {
+      ({ accessControl, prime } = await loadFixture(deployProtocol));
+    });
+
+    it("Revert when maxLoopsLimit setter is called by non-owner", async () => {
+      await accessControl.isAllowedToCall.returns(false);
+
+      const tx = prime.setMaxLoopsLimit(11);
+
+      await expect(tx).to.be.revertedWithCustomError(prime, "Unauthorized");
+    });
+
+    it("Revert when new loops limit is less than old limit", async () => {
+      await accessControl.isAllowedToCall.returns(true);
+
+      const tx = prime.setMaxLoopsLimit(9);
+
+      // await expect(tx).to.be.revertedWithCustomError(prime, "Unauthorized");
+
+      await expect(tx).to.be.revertedWith("Comptroller: Invalid maxLoopsLimit");
+    });
+
+    it("maxLoopsLimit setter success", async () => {
+      const tx = await prime.setMaxLoopsLimit(11);
+      tx.wait();
+
+      await expect(tx).to.emit(prime, "MaxLoopsLimitUpdated").withArgs(10, 11);
+      expect(await prime.maxLoopsLimit()).to.be.equal(11);
+    });
   });
 
   describe("protocol setup", () => {
@@ -343,7 +384,7 @@ describe("PrimeScenario Token", () => {
 
     it("stake manually", async () => {
       const user = user1;
-      
+
       await prime.setStakedAt([user.getAddress()], [100]);
 
       let stake = await prime.stakedAt(user.getAddress());
@@ -866,8 +907,6 @@ describe("PrimeScenario Token", () => {
     let veth: VBep20Harness;
     let vmatic: VBep20Harness;
     let matic: BEP20Harness;
-    let usdt: BEP20Harness;
-    let eth: BEP20Harness;
     let xvsVault: XVSVault;
     let xvs: XVS;
     let oracle: FakeContract<ResilientOracleInterface>;
@@ -876,8 +915,9 @@ describe("PrimeScenario Token", () => {
     beforeEach(async () => {
       const [wallet, user1] = await ethers.getSigners();
 
-      ({ comptroller, prime, vusdt, veth, xvsVault, xvs, oracle, usdt, eth, _primeLiquidityProvider } =
-        await loadFixture(deployProtocol));
+      ({ comptroller, prime, vusdt, veth, xvsVault, xvs, oracle, _primeLiquidityProvider } = await loadFixture(
+        deployProtocol,
+      ));
 
       const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
       accessControl.isAllowedToCall.returns(true);

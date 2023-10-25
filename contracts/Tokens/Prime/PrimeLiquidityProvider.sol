@@ -4,12 +4,24 @@ pragma solidity 0.8.13;
 import { SafeERC20Upgradeable, IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
+import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
 
-contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
+/**
+ * @title PrimeLiquidityProvider
+ * @author Venus
+ * @notice PrimeLiquidityProvider is used to fund Prime
+ */
+contract PrimeLiquidityProvider is
+    IPrimeLiquidityProvider,
+    AccessControlledV8,
+    PausableUpgradeable,
+    MaxLoopsLimitHelper
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    /// @notice The max token distribution speed
-    uint256 public constant MAX_DISTRIBUTION_SPEED = 1e18;
+    /// @notice The default max token distribution speed
+    uint256 public constant DEFAULT_MAX_DISTRIBUTION_SPEED = 1e18;
 
     /// @notice Address of the Prime contract
     address public prime;
@@ -17,20 +29,30 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @notice The rate at which token is distributed (per block)
     mapping(address => uint256) public tokenDistributionSpeeds;
 
+    /// @notice The max token distribution speed for token
+    mapping(address => uint256) public maxTokenDistributionSpeeds;
+
     /// @notice The rate at which token is distributed to the Prime contract
     mapping(address => uint256) public lastAccruedBlock;
 
     /// @notice The token accrued but not yet transferred to prime contract
     mapping(address => uint256) public tokenAmountAccrued;
 
+    /// @dev This empty reserved space is put in place to allow future versions to add new
+    /// variables without shifting down storage in the inheritance chain.
+    uint256[45] private __gap;
+
     /// @notice Emitted when a token distribution is initialized
     event TokenDistributionInitialized(address indexed token);
 
     /// @notice Emitted when a new token distribution speed is set
-    event TokenDistributionSpeedUpdated(address indexed token, uint256 newSpeed);
+    event TokenDistributionSpeedUpdated(address indexed token, uint256 oldSpeed, uint256 newSpeed);
+
+    /// @notice Emitted when a new max distribution speed for token is set
+    event MaxTokenDistributionSpeedUpdated(address indexed token, uint256 oldSpeed, uint256 newSpeed);
 
     /// @notice Emitted when prime token contract address is changed
-    event PrimeTokenUpdated(address oldPrimeToken, address newPrimeToken);
+    event PrimeTokenUpdated(address indexed oldPrimeToken, address indexed newPrimeToken);
 
     /// @notice Emitted when distribution state(Index and block) is updated
     event TokensAccrued(address indexed token, uint256 amount);
@@ -41,19 +63,10 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @notice Emitted on sweep token success
     event SweepToken(address indexed token, address indexed to, uint256 sweepAmount);
 
-    /// @notice Emitted on updation of initial balance for token
-    event TokenInitialBalanceUpdated(address indexed token, uint256 balance);
-
-    /// @notice Emitted when funds transfer is paused
-    event FundsTransferPaused();
-
-    /// @notice Emitted when funds transfer is resumed
-    event FundsTransferResumed();
-
     /// @notice Thrown when arguments are passed are invalid
     error InvalidArguments();
 
-    /// @notice Thrown when distribution speed is greater than MAX_DISTRIBUTION_SPEED
+    /// @notice Thrown when distribution speed is greater than maxTokenDistributionSpeeds[tokenAddress]
     error InvalidDistributionSpeed(uint256 speed, uint256 maxSpeed);
 
     /// @notice Thrown when caller is not the desired caller
@@ -68,8 +81,23 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     /// @notice Error thrown when funds transfer is paused
     error FundsTransferIsPaused();
 
-    /// @notice Error thrown when intrest accrue is called for not initialized token
+    /// @notice Error thrown when interest accrue is called for not initialized token
     error TokenNotInitialized(address token_);
+
+    /// @notice Error thrown when argument value in setter is same as previous value
+    error AddressesMustDiffer();
+
+    /**
+     * @notice Compares two addresses to ensure they are different
+     * @param oldAddress The original address to compare
+     * @param newAddress The new address to compare
+     */
+    modifier compareAddress(address oldAddress, address newAddress) {
+        if (newAddress == oldAddress) {
+            revert AddressesMustDiffer();
+        }
+        _;
+    }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -82,23 +110,32 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
      * @param accessControlManager_ AccessControlManager contract address
      * @param tokens_ Array of addresses of the tokens
      * @param distributionSpeeds_ New distribution speeds for tokens
+     * @param loopsLimit_ Maximum number of loops allowed in a single transaction
      * @custom:error Throw InvalidArguments on different length of tokens and speeds array
      */
     function initialize(
         address accessControlManager_,
         address[] calldata tokens_,
-        uint256[] calldata distributionSpeeds_
+        uint256[] calldata distributionSpeeds_,
+        uint256[] calldata maxDistributionSpeeds_,
+        uint256 loopsLimit_
     ) external initializer {
+        _ensureZeroAddress(accessControlManager_);
+
         __AccessControlled_init(accessControlManager_);
         __Pausable_init();
+        _setMaxLoopsLimit(loopsLimit_);
 
         uint256 numTokens = tokens_.length;
-        if (numTokens != distributionSpeeds_.length) {
+        _ensureMaxLoops(numTokens);
+
+        if ((numTokens != distributionSpeeds_.length) || (numTokens != maxDistributionSpeeds_.length)) {
             revert InvalidArguments();
         }
 
         for (uint256 i; i < numTokens; ) {
             _initializeToken(tokens_[i]);
+            _setMaxTokenDistributionSpeed(tokens_[i], maxDistributionSpeeds_[i]);
             _setTokenDistributionSpeed(tokens_[i], distributionSpeeds_[i]);
 
             unchecked {
@@ -113,7 +150,10 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
      * @custom:access Only Governance
      */
     function initializeTokens(address[] calldata tokens_) external onlyOwner {
-        for (uint256 i; i < tokens_.length; ) {
+        uint256 tokensLength = tokens_.length;
+        _ensureMaxLoops(tokensLength);
+
+        for (uint256 i; i < tokensLength; ) {
             _initializeToken(tokens_[i]);
 
             unchecked {
@@ -150,6 +190,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     function setTokensDistributionSpeed(address[] calldata tokens_, uint256[] calldata distributionSpeeds_) external {
         _checkAccessAllowed("setTokensDistributionSpeed(address[],uint256[])");
         uint256 numTokens = tokens_.length;
+        _ensureMaxLoops(numTokens);
 
         if (numTokens != distributionSpeeds_.length) {
             revert InvalidArguments();
@@ -166,16 +207,55 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
     }
 
     /**
+     * @notice Set max distribution speed for token (amount of maximum token distribute per block)
+     * @param tokens_ Array of addresses of the tokens
+     * @param maxDistributionSpeeds_ New distribution speeds for tokens
+     * @custom:access Controlled by ACM
+     * @custom:error Throw InvalidArguments on different length of tokens and speeds array
+     */
+    function setMaxTokensDistributionSpeed(
+        address[] calldata tokens_,
+        uint256[] calldata maxDistributionSpeeds_
+    ) external {
+        _checkAccessAllowed("setMaxTokensDistributionSpeed(address[],uint256[])");
+        uint256 numTokens = tokens_.length;
+        _ensureMaxLoops(numTokens);
+
+        if (numTokens != maxDistributionSpeeds_.length) {
+            revert InvalidArguments();
+        }
+
+        for (uint256 i; i < numTokens; ) {
+            _setMaxTokenDistributionSpeed(tokens_[i], maxDistributionSpeeds_[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /**
      * @notice Set the prime token contract address
      * @param prime_ The new address of the prime token contract
      * @custom:event Emits PrimeTokenUpdated event
      * @custom:access Only owner
      */
-    function setPrimeToken(address prime_) external onlyOwner {
+    function setPrimeToken(address prime_) external onlyOwner compareAddress(prime, prime_) {
         _ensureZeroAddress(prime_);
 
         emit PrimeTokenUpdated(prime, prime_);
         prime = prime_;
+    }
+
+    /**
+     * @notice Set the limit for the loops can iterate to avoid the DOS
+     * @param loopsLimit Limit for the max loops can execute at a time
+     * @custom:event Emits MaxLoopsLimitUpdated event on success
+     * @custom:access Controlled by ACM
+     */
+    function setMaxLoopsLimit(uint256 loopsLimit) external {
+        _checkAccessAllowed("setMaxLoopsLimit(uint256)");
+        _setMaxLoopsLimit(loopsLimit);
     }
 
     /**
@@ -187,18 +267,19 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
      * @custom:error Throw InvalidCaller if the sender is not the Prime contract
      */
     function releaseFunds(address token_) external {
-        if (msg.sender != prime) revert InvalidCaller();
+        address _prime = prime;
+        if (msg.sender != _prime) revert InvalidCaller();
         if (paused()) {
             revert FundsTransferIsPaused();
         }
 
         accrueTokens(token_);
         uint256 accruedAmount = tokenAmountAccrued[token_];
-        tokenAmountAccrued[token_] = 0;
+        delete tokenAmountAccrued[token_];
 
         emit TokenTransferredToPrime(token_, accruedAmount);
 
-        IERC20Upgradeable(token_).safeTransfer(prime, accruedAmount);
+        IERC20Upgradeable(token_).safeTransfer(_prime, accruedAmount);
     }
 
     /**
@@ -231,7 +312,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
         uint256 accrued = tokenAmountAccrued[token_];
 
-        if (balance - accrued > 0) {
+        if (balance > accrued) {
             return distributionSpeed;
         }
 
@@ -249,14 +330,17 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         _ensureTokenInitialized(token_);
 
         uint256 blockNumber = getBlockNumber();
-        uint256 deltaBlocks = blockNumber - lastAccruedBlock[token_];
+        uint256 deltaBlocks;
+        unchecked {
+            deltaBlocks = blockNumber - lastAccruedBlock[token_];
+        }
 
-        if (deltaBlocks > 0) {
+        if (deltaBlocks != 0) {
             uint256 distributionSpeed = tokenDistributionSpeeds[token_];
             uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
 
             uint256 balanceDiff = balance - tokenAmountAccrued[token_];
-            if (distributionSpeed > 0 && balanceDiff > 0) {
+            if (distributionSpeed != 0 && balanceDiff != 0) {
                 uint256 accruedSinceUpdate = deltaBlocks * distributionSpeed;
                 uint256 tokenAccrued = (balanceDiff <= accruedSinceUpdate ? balanceDiff : accruedSinceUpdate);
 
@@ -268,8 +352,10 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         }
     }
 
-    /// @notice Get the latest block number
-    /// @return blockNumber returns the block number
+    /**
+     * @notice Get the latest block number
+     * @return blockNumber returns the block number
+     */
     function getBlockNumber() public view virtual returns (uint256) {
         return block.number;
     }
@@ -285,7 +371,7 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
         uint256 blockNumber = getBlockNumber();
         uint256 initializedBlock = lastAccruedBlock[token_];
 
-        if (initializedBlock > 0) {
+        if (initializedBlock != 0) {
             revert TokenAlreadyInitialized(token_);
         }
 
@@ -305,11 +391,17 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
      * @custom:error Throw InvalidDistributionSpeed if speed is greater than max speed
      */
     function _setTokenDistributionSpeed(address token_, uint256 distributionSpeed_) internal {
-        if (distributionSpeed_ > MAX_DISTRIBUTION_SPEED) {
-            revert InvalidDistributionSpeed(distributionSpeed_, MAX_DISTRIBUTION_SPEED);
+        uint256 maxDistributionSpeed = maxTokenDistributionSpeeds[token_];
+        if (maxDistributionSpeed == 0) {
+            maxTokenDistributionSpeeds[token_] = maxDistributionSpeed = DEFAULT_MAX_DISTRIBUTION_SPEED;
         }
 
-        if (tokenDistributionSpeeds[token_] != distributionSpeed_) {
+        if (distributionSpeed_ > maxDistributionSpeed) {
+            revert InvalidDistributionSpeed(distributionSpeed_, maxDistributionSpeed);
+        }
+
+        uint256 oldDistributionSpeed = tokenDistributionSpeeds[token_];
+        if (oldDistributionSpeed != distributionSpeed_) {
             // Distribution speed updated so let's update distribution state to ensure that
             //  1. Token accrued properly for the old speed, and
             //  2. Token accrued at the new speed starts after this block.
@@ -318,8 +410,19 @@ contract PrimeLiquidityProvider is AccessControlledV8, PausableUpgradeable {
             // Update speed
             tokenDistributionSpeeds[token_] = distributionSpeed_;
 
-            emit TokenDistributionSpeedUpdated(token_, distributionSpeed_);
+            emit TokenDistributionSpeedUpdated(token_, oldDistributionSpeed, distributionSpeed_);
         }
+    }
+
+    /**
+     * @notice Set max distribution speed (amount of maximum token distribute per block)
+     * @param token_ Address of the token
+     * @param maxDistributionSpeed_ New max distribution speed for token
+     * @custom:event Emits MaxTokenDistributionSpeedUpdated event
+     */
+    function _setMaxTokenDistributionSpeed(address token_, uint256 maxDistributionSpeed_) internal {
+        emit MaxTokenDistributionSpeedUpdated(token_, tokenDistributionSpeeds[token_], maxDistributionSpeed_);
+        maxTokenDistributionSpeeds[token_] = maxDistributionSpeed_;
     }
 
     /**
