@@ -3,14 +3,14 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
 import { ethers } from "hardhat";
 
-import { ComptrollerMock, IAccessControlManager, PriceOracle, VBep20Immutable } from "../../../../typechain";
+import { ComptrollerMock, IAccessControlManagerV5, PriceOracle, VBep20Immutable } from "../../../../typechain";
 import { deployDiamond } from "./scripts/deploy";
 
 const { expect } = chai;
 chai.use(smock.matchers);
 
 type PauseFixture = {
-  accessControl: FakeContract<IAccessControlManager>;
+  accessControl: FakeContract<IAccessControlManagerV5>;
   comptroller: ComptrollerMock;
   oracle: FakeContract<PriceOracle>;
   OMG: FakeContract<VBep20Immutable>;
@@ -22,7 +22,7 @@ type PauseFixture = {
 };
 
 async function pauseFixture(): Promise<PauseFixture> {
-  const accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   const result = await deployDiamond("");
   const unitroller = result.unitroller;
   const comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);

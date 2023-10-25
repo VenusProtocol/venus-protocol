@@ -127,6 +127,10 @@ contract MockVBNB is VToken {
         requireNoError(err, "liquidateBorrow failed");
     }
 
+    function setTotalReserves(uint totalReserves_) external payable {
+        totalReserves = totalReserves_;
+    }
+
     /*** Safe Token ***/
 
     /**
