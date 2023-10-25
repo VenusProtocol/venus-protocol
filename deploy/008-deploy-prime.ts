@@ -121,42 +121,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log("Transferring PLP ownership to Timelock");
   await plp.transferOwnership(ADDRESSES[networkName].Timelock);
-
-  // console.log("Setting Prime token address in PLP");
-  // await plp.setPrimeToken((await ethers.getContract("Prime")).address);
-
-  // const assets = [
-  //   ADDRESSES[networkName].ETH,
-  //   ADDRESSES[networkName].BTCB,
-  //   ADDRESSES[networkName].USDC,
-  //   ADDRESSES[networkName].USDT,
-  // ];
-
-  // const markets = [
-  //   ADDRESSES[networkName].vETH,
-  //   ADDRESSES[networkName].vBTC,
-  //   ADDRESSES[networkName].vUSDC,
-  //   ADDRESSES[networkName].vUSDT,
-  // ];
-
-  // const speeds = [100, 10, 10, 10];
-
-  // console.log("Initializing tokens in PLP");
-  // await plp.initializeTokens(assets);
-
-  // console.log("Setting speeds in PLP");
-  // console.log(assets, speeds);
-  // await plp.setTokensDistributionSpeed(assets, speeds);
-
-  // const prime = await ethers.getContract("Prime");
-
-  // console.log("Adding markets to Prime");
-  // for (let i = 0; i < markets.length; i++) {
-  //   await prime.addMarket(markets[i], ethers.utils.parseEther("1"), ethers.utils.parseEther("1"));
-  // }
-
-  // console.log("Setting Prime token limits");
-  // await prime.setLimit(100, 100);
 };
 
 func.tags = ["Prime"];
