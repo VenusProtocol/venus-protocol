@@ -96,9 +96,6 @@ contract PrimeStorageV1 {
     /// @notice mapping used to find if an asset is part of prime markets
     mapping(address => address) public vTokenForAsset;
 
-    /// @notice address of protocol share reserve contract
-    address public protocolShareReserve;
-
     /// @notice address of core pool comptroller contract
     address public comptroller;
 
@@ -114,5 +111,5 @@ contract PrimeStorageV1 {
 
     /// @dev This empty reserved space is put in place to allow future versions to add new
     /// variables without shifting down storage in the inheritance chain.
-    uint256[26] private __gap;
+    uint256[27] private __gap;
 }
