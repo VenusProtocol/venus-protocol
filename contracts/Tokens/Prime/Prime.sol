@@ -56,8 +56,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @notice Emitted when prime token is burned
     event Burn(address indexed user);
 
-    /// @notice Emitted asset state is update by protocol share reserve
-
     /// @notice Emitted when a market is added to prime program
     event MarketAdded(address indexed market, uint256 indexed supplyMultiplier, uint256 indexed borrowMultiplier);
 
