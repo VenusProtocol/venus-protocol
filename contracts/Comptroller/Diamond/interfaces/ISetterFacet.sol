@@ -7,6 +7,7 @@ import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { ComptrollerV13Storage } from "../../ComptrollerStorage.sol";
 import { VAIControllerInterface } from "../../../Tokens/VAI/VAIController.sol";
 import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
+import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
 
 interface ISetterFacet {
     function _setPriceOracle(PriceOracle newOracle) external returns (uint256);
@@ -54,4 +55,6 @@ interface ISetterFacet {
     function _setVAIVaultInfo(address vault_, uint256 releaseStartBlock_, uint256 minReleaseAmount_) external;
 
     function _setForcedLiquidation(address vToken, bool enable) external;
+
+    function _setPrimeToken(IPrime _prime) external returns (uint);
 }
