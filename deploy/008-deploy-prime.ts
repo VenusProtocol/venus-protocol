@@ -95,32 +95,32 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     },
   });
 
-  // await deploy("XVSVault", {
-  //   from: deployer,
-  //   log: true,
-  //   deterministicDeployment: false,
-  //   args: [],
-  //   proxy: false,
-  // });
+  await deploy("XVSVault", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+    proxy: false,
+  });
 
-  // await deploy("PolicyFacet", {
-  //   from: deployer,
-  //   log: true,
-  //   deterministicDeployment: false,
-  //   args: [],
-  //   proxy: false,
-  // });
+  await deploy("PolicyFacet", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+    proxy: false,
+  });
 
-  // await deploy("SetterFacet", {
-  //   from: deployer,
-  //   log: true,
-  //   deterministicDeployment: false,
-  //   args: [],
-  //   proxy: false,
-  // });
+  await deploy("SetterFacet", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+    proxy: false,
+  });
 
-  // console.log("Transferring PLP ownership to Timelock");
-  // await plp.transferOwnership(ADDRESSES[networkName].Timelock);
+  console.log("Transferring PLP ownership to Timelock");
+  await plp.transferOwnership(ADDRESSES[networkName].Timelock);
 };
 
 func.tags = ["Prime"];
