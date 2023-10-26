@@ -214,9 +214,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         alphaNumerator = alphaNumerator_;
         alphaDenominator = alphaDenominator_;
-        _xvsVaultRewardToken = xvsVaultRewardToken_;
-        _xvsVaultPoolId = xvsVaultPoolId_;
-        _xvsVault = xvsVault_;
+        xvsVaultRewardToken = xvsVaultRewardToken_;
+        xvsVaultPoolId = xvsVaultPoolId_;
+        xvsVault = xvsVault_;
         nextScoreUpdateRoundId = 0;
         primeLiquidityProvider = primeLiquidityProvider_;
         comptroller = comptroller_;
@@ -808,7 +808,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
         }
 
-        address xvsToken = IXVSVault(_xvsVault).xvsAddress();
+        address xvsToken = IXVSVault(xvsVault).xvsAddress();
         oracle.updateAssetPrice(xvsToken);
         oracle.updatePrice(market);
 
@@ -1014,9 +1014,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return xvsBalance the XVS balance of user
      */
     function _xvsBalanceOfUser(address user) internal view returns (uint256) {
-        (uint256 xvs, , uint256 pendingWithdrawals) = IXVSVault(_xvsVault).getUserInfo(
-            _xvsVaultRewardToken,
-            _xvsVaultPoolId,
+        (uint256 xvs, , uint256 pendingWithdrawals) = IXVSVault(xvsVault).getUserInfo(
+            xvsVaultRewardToken,
+            xvsVaultPoolId,
             user
         );
         return (xvs - pendingWithdrawals);
@@ -1050,7 +1050,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 supply,
         address market
     ) internal view returns (uint256, uint256, uint256) {
-        address xvsToken = IXVSVault(_xvsVault).xvsAddress();
+        address xvsToken = IXVSVault(xvsVault).xvsAddress();
 
         uint256 xvsPrice = oracle.getPrice(xvsToken);
         uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;

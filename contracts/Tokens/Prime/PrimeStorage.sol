@@ -73,13 +73,13 @@ contract PrimeStorageV1 {
     uint128 public alphaDenominator;
 
     /// @notice address of XVS vault
-    address internal _xvsVault;
+    address public xvsVault;
 
     /// @notice address of XVS vault reward token
-    address internal _xvsVaultRewardToken;
+    address public xvsVaultRewardToken;
 
     /// @notice address of XVS vault pool id
-    uint256 internal _xvsVaultPoolId;
+    uint256 public xvsVaultPoolId;
 
     /// @notice mapping to check if a account's score was updated in the round
     mapping(uint256 => mapping(address => bool)) public isScoreUpdated;
