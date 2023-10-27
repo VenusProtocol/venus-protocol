@@ -637,9 +637,9 @@ describe("PrimeScenario Token", () => {
        */
       expect(await prime.callStatic.getInterestAccrued(vusdt.address, user1.getAddress())).to.be.equal(518320);
 
-      const interestsAccrued = await prime.callStatic.getPendingInterests(user1.getAddress());
-      expect(interestsAccrued[0].market).to.be.equal(usdt.address);
-      expect(interestsAccrued[1].market).to.be.equal(eth.address);
+      const interestsAccrued = await prime.callStatic.getPendingRewards(user1.getAddress());
+      expect(interestsAccrued[0].rewardToken).to.be.equal(usdt.address);
+      expect(interestsAccrued[1].rewardToken).to.be.equal(eth.address);
       expect(interestsAccrued[0].amount).to.be.equal(518320);
       expect(interestsAccrued[1].amount).to.be.equal(518000);
 

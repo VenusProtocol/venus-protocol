@@ -28,8 +28,9 @@ contract PrimeStorageV1 {
         uint256 rewardIndex;
     }
 
-    struct PendingInterest {
-        address market;
+    struct PendingReward {
+        address vToken;
+        address rewardToken;
         uint256 amount;
     }
 

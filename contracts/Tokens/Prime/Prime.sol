@@ -232,11 +232,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /**
      * @notice Returns boosted pending interest accrued for a user for all markets
      * @param user the account for which to get the accrued interests
-     * @return pendingInterests the number of underlying tokens accrued by the user for all markets
+     * @return pendingRewards the number of underlying tokens accrued by the user for all markets
      */
-    function getPendingInterests(address user) external returns (PendingInterest[] memory pendingInterests) {
+    function getPendingRewards(address user) external returns (PendingReward[] memory pendingRewards) {
         address[] storage allMarkets = _allMarkets;
-        pendingInterests = new PendingInterest[](allMarkets.length);
+        pendingRewards = new PendingReward[](allMarkets.length);
 
         uint256 marketsLength = allMarkets.length;
 
@@ -245,8 +245,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             uint256 interestAccrued = getInterestAccrued(market, user);
             uint256 accrued = interests[market][user].accrued;
 
-            pendingInterests[i] = PendingInterest({
-                market: _getUnderlying(market),
+            pendingRewards[i] = PendingReward({
+                vToken: market,
+                rewardToken: _getUnderlying(market),
                 amount: interestAccrued + accrued
             });
 

@@ -11,11 +11,9 @@ interface IPrime {
     /**
      * @notice Returns boosted pending interest accrued for a user for all markets
      * @param user the account for which to get the accrued interests
-     * @return pendingInterests the number of underlying tokens accrued by the user for all markets
+     * @return pendingRewards the number of underlying tokens accrued by the user for all markets
      */
-    function getPendingInterests(
-        address user
-    ) external returns (PrimeStorageV1.PendingInterest[] memory pendingInterests);
+    function getPendingRewards(address user) external returns (PrimeStorageV1.PendingReward[] memory pendingRewards);
 
     /**
      * @notice Update total score of multiple users and market
