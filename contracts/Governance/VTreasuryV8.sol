@@ -2,13 +2,14 @@ pragma solidity 0.8.19;
 
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
  * @title VTreasuryV8
  * @author Venus
  * @notice Protocol treasury that holds tokens owned by Venus
  */
-contract VTreasuryV8 is Ownable {
+contract VTreasuryV8 is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // WithdrawTreasuryToken Event
@@ -62,7 +63,7 @@ contract VTreasuryV8 is Ownable {
     function withdrawTreasuryNative(
         uint256 withdrawAmount,
         address payable withdrawAddress
-    ) external payable onlyOwner {
+    ) external payable onlyOwner nonReentrant {
         uint256 actualWithdrawAmount = withdrawAmount;
         // Get Treasury Native Balance
         uint256 nativeBalance = address(this).balance;
@@ -73,8 +74,8 @@ contract VTreasuryV8 is Ownable {
             actualWithdrawAmount = nativeBalance;
         }
         // Transfer the native token to withdrawAddress
-        withdrawAddress.transfer(actualWithdrawAmount);
-
+        (bool sent, ) = withdrawAddress.call{ value: actualWithdrawAmount }("");
+        require(sent, "Call failed");
         emit WithdrawTreasuryNative(actualWithdrawAmount, withdrawAddress);
     }
 
