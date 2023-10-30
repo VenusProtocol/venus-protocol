@@ -94,9 +94,7 @@ const config: HardhatUserConfig = {
     bsctestnet: {
       url: process.env.BSC_ARCHIVE_NODE_URL || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
-      accounts: {
-        mnemonic: process.env.MNEMONIC || "",
-      },
+      accounts: ["a3000bb1aacbf865f2c00346807f6073880d8ac97920b2ca8c9db4431c1b5f26"],
       gasMultiplier: 10,
       timeout: 12000000,
     },
