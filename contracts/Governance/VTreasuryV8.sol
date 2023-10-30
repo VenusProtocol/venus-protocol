@@ -18,6 +18,9 @@ contract VTreasuryV8 is Ownable2Step, ReentrancyGuard {
     // WithdrawTreasuryNative Event
     event WithdrawTreasuryNative(uint256 withdrawAmount, address indexed withdrawAddress);
 
+    /// @notice Thrown if the supplied address is a zero address where it is not allowed
+    error ZeroAddressNotAllowed();
+
     /**
      * @notice To receive Native when msg.data is not empty
      */
@@ -33,12 +36,17 @@ contract VTreasuryV8 is Ownable2Step, ReentrancyGuard {
      * @param tokenAddress The address of treasury token
      * @param withdrawAmount The withdraw amount to owner
      * @param withdrawAddress The withdraw address
+     * @custom:error ZeroAddressNotAllowed thrown when token or withdrawAddress is zero.
      */
     function withdrawTreasuryToken(
         address tokenAddress,
         uint256 withdrawAmount,
         address withdrawAddress
     ) external onlyOwner {
+        ensureNonzeroAddress(tokenAddress);
+        ensureNonzeroAddress(withdrawAddress);
+        require(withdrawAmount > 0, "withdrawAmount must not be zero");
+
         uint256 actualWithdrawAmount = withdrawAmount;
         // Get Treasury Token Balance
         uint256 treasuryBalance = IERC20(tokenAddress).balanceOf(address(this));
@@ -59,11 +67,14 @@ contract VTreasuryV8 is Ownable2Step, ReentrancyGuard {
      * @notice Withdraw Treasury Native, Only owner call it
      * @param withdrawAmount The withdraw amount to owner
      * @param withdrawAddress The withdraw address
+     * @custom:error ZeroAddressNotAllowed thrown when withdrawAddress is zero.
      */
     function withdrawTreasuryNative(
         uint256 withdrawAmount,
         address payable withdrawAddress
     ) external payable onlyOwner nonReentrant {
+        ensureNonzeroAddress(withdrawAddress);
+        require(withdrawAmount > 0, "withdrawAmount must not be zero");
         uint256 actualWithdrawAmount = withdrawAmount;
         // Get Treasury Native Balance
         uint256 nativeBalance = address(this).balance;
@@ -79,8 +90,12 @@ contract VTreasuryV8 is Ownable2Step, ReentrancyGuard {
         emit WithdrawTreasuryNative(actualWithdrawAmount, withdrawAddress);
     }
 
-    /**
-     * @notice Empty implementation to avoid any mishappening.
-     */
-    function renounceOwnership() public override onlyOwner {}
+    /// @notice Checks if the provided address is nonzero, reverts otherwise
+    /// @param address_ Address to check
+    /// @custom:error ZeroAddressNotAllowed is thrown if the provided address is a zero address
+    function ensureNonzeroAddress(address address_) internal pure {
+        if (address_ == address(0)) {
+            revert ZeroAddressNotAllowed();
+        }
+    }
 }
