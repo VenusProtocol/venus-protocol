@@ -1,3 +1,34 @@
+## [5.1.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v5.1.0-dev.3...v5.1.0-dev.4) (2023-10-31)
+
+
+### Features
+
+* add VToken version two ([6ca872d](https://github.com/VenusProtocol/venus-protocol/commit/6ca872df13dbdb8dbbb30faee46e5c48239d6aa6))
+* refactor storage and interface ([2bb5610](https://github.com/VenusProtocol/venus-protocol/commit/2bb56102da7e2436d80e0493371dcc960e436fc6))
+* remove v2 dependency for VToken ([aa64f64](https://github.com/VenusProtocol/venus-protocol/commit/aa64f647c24288f6ef994b99c11def41bf8129e0))
+* VEN-1214 integrate ACM in vToken ([9be81a5](https://github.com/VenusProtocol/venus-protocol/commit/9be81a5345081948b83fb7dbfbfa7226c243d205))
+
+
+### Bug Fixes
+
+* 1.1 VTokenInterfaces.sol ([e8714c8](https://github.com/VenusProtocol/venus-protocol/commit/e8714c8a98b59a6e87f153e505ecabbea6251c75))
+* 1.2 VToken.sol ([6e5176c](https://github.com/VenusProtocol/venus-protocol/commit/6e5176c0832533d6253c049011bd9137f3db3df1))
+* 12. [Info] Safe Math Function Not Used For Block Delta Calculation ([51bf6fd](https://github.com/VenusProtocol/venus-protocol/commit/51bf6fd75cc337d9c5716c9af4bbf667ca7914c0))
+* 4. [Low] Input Validation ([7f303f5](https://github.com/VenusProtocol/venus-protocol/commit/7f303f505d8278b846565485e4668e41f7206032))
+* BP12 ([4cd97d0](https://github.com/VenusProtocol/venus-protocol/commit/4cd97d0ee5762c36e0a8bd9e13cfae50a01b9ac5))
+* certik VPB-03 Typos and Inconsistencies ([e8fdf1b](https://github.com/VenusProtocol/venus-protocol/commit/e8fdf1b580a176229cebe743d84d26ec79eeeb8b))
+* certik VPB-05 ([df0c07b](https://github.com/VenusProtocol/venus-protocol/commit/df0c07bbead2b7204873ff64719a6617503bfba9))
+* certik VPI-01 MISSING ZERO ADDRESS VALIDATION ([e699b13](https://github.com/VenusProtocol/venus-protocol/commit/e699b139ffe3bd2bb037b48df659811656f98a31))
+* certik: VTV-02 Optimization ([0695114](https://github.com/VenusProtocol/venus-protocol/commit/0695114b8d10fcd46a3abaa76ee397b29bc63e4e))
+* contract size and tests ([42ae2af](https://github.com/VenusProtocol/venus-protocol/commit/42ae2afb00b88a4de41ad0f16496665965714827))
+* FairyProof 2.1 ([cc3231a](https://github.com/VenusProtocol/venus-protocol/commit/cc3231a729a18a1a5fa5deba4944dd956aea8b90))
+* fix natspec comment ([5312427](https://github.com/VenusProtocol/venus-protocol/commit/531242717019d18408ac659f14e3fe622206371b))
+* fixed vBNBAdmin tests ([e6ea28b](https://github.com/VenusProtocol/venus-protocol/commit/e6ea28b9089c7e440e25aef61f88d349593b005e))
+* PVE001 ([a575a70](https://github.com/VenusProtocol/venus-protocol/commit/a575a70d954948d223ec879f5962cb8c188c4b55))
+* require statement ([3629618](https://github.com/VenusProtocol/venus-protocol/commit/3629618d750f220cc915d99bf72faa4ab395de0e))
+* resolve comments ([ca4d1da](https://github.com/VenusProtocol/venus-protocol/commit/ca4d1dadb27dc1f20010303b3493a5984547b1a0))
+* tests ([d24f9f6](https://github.com/VenusProtocol/venus-protocol/commit/d24f9f6c444c1bddab18515dc671e5853f556869))
+
 ## [5.1.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v5.1.0-dev.2...v5.1.0-dev.3) (2023-10-24)
 
 
