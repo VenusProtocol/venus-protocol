@@ -36,14 +36,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
   const stakingPeriod = networkName === "bscmainnet" ? 90 * 24 * 60 * 60 : 60 * 10;
-  const maximumXVSCap =
-    networkName === "bscmainnet" ? ethers.utils.parseEther("100000") : ethers.utils.parseEther("100");
-  const minimumXVS = networkName === "bscmainnet" ? ethers.utils.parseEther("1000") : ethers.utils.parseEther("10");
+  const maximumXVSCap = ethers.utils.parseEther("100000");
+  const minimumXVS = ethers.utils.parseEther("1000");
   const xVSVaultPoolId = networkName === "bscmainnet" ? 0 : 1;
   const xvsVaultAlphaNumerator = 1;
   const xvsVaultAlphaDenominator = 2;
-  const blocksPeryear = networkName === "bscmainnet" ? 10512000 : 10512000;
-  const loopsLimit = networkName === "bscmainnet" ? 20 : 20;
+  const blocksPeryear = 10512000;
+  const loopsLimit = 20;
 
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
