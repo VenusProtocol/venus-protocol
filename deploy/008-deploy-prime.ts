@@ -45,83 +45,86 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const blocksPeryear = networkName === "bscmainnet" ? 10512000 : 10512000;
   const loopsLimit = networkName === "bscmainnet" ? 20 : 20;
 
-  // await deploy("PrimeLiquidityProvider", {
-  //   from: deployer,
-  //   log: true,
-  //   deterministicDeployment: false,
-  //   args: [],
-  //   proxy: {
-  //     owner: ADDRESSES[networkName].Timelock,
-  //     proxyContract: "OpenZeppelinTransparentProxy",
-  //     execute: {
-  //       methodName: "initialize",
-  //       args: [OTHER_ADDRESSES[networkName].acm, [], [], [], loopsLimit],
-  //     },
-  //   },
-  // });
+  await deploy("PrimeLiquidityProvider", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+    proxy: {
+      owner: ADDRESSES[networkName].Timelock,
+      proxyContract: "OpenZeppelinTransparentProxy",
+      execute: {
+        methodName: "initialize",
+        args: [OTHER_ADDRESSES[networkName].acm, [], [], [], loopsLimit],
+      },
+    },
+  });
 
   const plp = await ethers.getContract("PrimeLiquidityProvider");
 
-  // await deploy("Prime", {
-  //   from: deployer,
-  //   log: true,
-  //   deterministicDeployment: false,
-  //   args: [
-  //     ADDRESSES[networkName].WBNB,
-  //     ADDRESSES[networkName].vBNB,
-  //     blocksPeryear,
-  //     stakingPeriod,
-  //     minimumXVS,
-  //     maximumXVSCap,
-  //   ],
-  //   proxy: {
-  //     owner: ADDRESSES[networkName].Timelock,
-  //     proxyContract: "OpenZeppelinTransparentProxy",
-  //     execute: {
-  //       methodName: "initialize",
-  //       args: [
-  //         ADDRESSES[networkName].XVSVault,
-  //         ADDRESSES[networkName].XVS,
-  //         xVSVaultPoolId,
-  //         xvsVaultAlphaNumerator,
-  //         xvsVaultAlphaDenominator,
-  //         OTHER_ADDRESSES[networkName].acm,
-  //         plp.address,
-  //         ADDRESSES[networkName].Unitroller,
-  //         OTHER_ADDRESSES[networkName].oracle,
-  //         loopsLimit,
-  //       ],
-  //     },
-  //   },
-  // });
+  await deploy("Prime", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [
+      ADDRESSES[networkName].WBNB,
+      ADDRESSES[networkName].vBNB,
+      blocksPeryear,
+      stakingPeriod,
+      minimumXVS,
+      maximumXVSCap,
+    ],
+    proxy: {
+      owner: ADDRESSES[networkName].Timelock,
+      proxyContract: "OpenZeppelinTransparentProxy",
+      execute: {
+        methodName: "initialize",
+        args: [
+          ADDRESSES[networkName].XVSVault,
+          ADDRESSES[networkName].XVS,
+          xVSVaultPoolId,
+          xvsVaultAlphaNumerator,
+          xvsVaultAlphaDenominator,
+          OTHER_ADDRESSES[networkName].acm,
+          plp.address,
+          ADDRESSES[networkName].Unitroller,
+          OTHER_ADDRESSES[networkName].oracle,
+          loopsLimit,
+        ],
+      },
+    },
+  });
 
-  // await deploy("XVSVault", {
-  //   from: deployer,
-  //   log: true,
-  //   deterministicDeployment: false,
-  //   args: [],
-  //   proxy: false,
-  // });
+  await deploy("XVSVault", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+    proxy: false,
+  });
 
-  // await deploy("PolicyFacet", {
-  //   from: deployer,
-  //   log: true,
-  //   deterministicDeployment: false,
-  //   args: [],
-  //   proxy: false,
-  // });
+  await deploy("PolicyFacet", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+    proxy: false,
+  });
 
-  // await deploy("SetterFacet", {
-  //   from: deployer,
-  //   log: true,
-  //   deterministicDeployment: false,
-  //   args: [],
-  //   proxy: false,
-  // });
+  await deploy("SetterFacet", {
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+    proxy: false,
+  });
 
-  console.log("Transferring PLP ownership to Timelock", deployer);
+  console.log("Transferring Prime ownership to Timelock");
   const prime = await ethers.getContract("Prime");
   await prime.transferOwnership(ADDRESSES[networkName].Timelock);
+
+  console.log("Transferring PLP ownership to Timelock");
+  await plp.transferOwnership(ADDRESSES[networkName].Timelock);
 };
 
 func.tags = ["Prime"];
