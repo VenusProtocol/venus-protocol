@@ -7,6 +7,7 @@ import "../../Tokens/EIP20Interface.sol";
 import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 import "./VTokenInterfaces.sol";
+import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 
 /**
  * @title Venus's vToken Contract
@@ -95,9 +96,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     // @custom:event Emits Approval event on successful approve
     function approve(address spender, uint256 amount) external returns (bool) {
-        address src = msg.sender;
-        transferAllowances[src][spender] = amount;
-        emit Approval(src, spender, amount);
+        transferAllowances[msg.sender][spender] = amount;
+        emit Approval(msg.sender, spender, amount);
         return true;
     }
 
@@ -110,7 +110,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function balanceOfUnderlying(address owner) external returns (uint) {
         Exp memory exchangeRate = Exp({ mantissa: exchangeRateCurrent() });
         (MathError mErr, uint balance) = mulScalarTruncate(exchangeRate, accountTokens[owner]);
-        require(mErr == MathError.NO_ERROR, "balance could not be calculated");
+        ensureNoMathError(mErr);
         return balance;
     }
 
@@ -156,9 +156,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     // @custom:event Emits NewPendingAdmin event with old and new admin addresses
     function _setPendingAdmin(address payable newPendingAdmin) external returns (uint) {
         // Check caller = admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PENDING_ADMIN_OWNER_CHECK);
-        }
+        ensureAdmin(msg.sender);
 
         // Save current value, if any, for inclusion in log
         address oldPendingAdmin = pendingAdmin;
@@ -203,34 +201,57 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice accrues interest and sets a new reserve factor for the protocol using `_setReserveFactorFresh`
-     * @dev Admin function to accrue interest and set a new reserve factor
+     * @dev Governor function to accrue interest and set a new reserve factor
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits NewReserveFactor event
-    function _setReserveFactor(uint newReserveFactorMantissa) external nonReentrant returns (uint) {
+    function _setReserveFactor(uint newReserveFactorMantissa_) external nonReentrant returns (uint) {
+        ensureAllowed("_setReserveFactor(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reserve factor change failed.
             return fail(Error(error), FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
         }
         // _setReserveFactorFresh emits reserve-factor-specific logs on errors, so we don't need to.
-        return _setReserveFactorFresh(newReserveFactorMantissa);
+        return _setReserveFactorFresh(newReserveFactorMantissa_);
     }
 
     /**
-     * @notice Accrues interest and reduces reserves by transferring to admin
-     * @param reduceAmount Amount of reduction to reserves
+     * @notice Sets the address of the access control manager of this contract
+     * @dev Admin function to set the access control address
+     * @param newAccessControlManagerAddress New address for the access control
+     * @return uint 0=success, otherwise will revert
+     */
+    function setAccessControlManager(address newAccessControlManagerAddress) external returns (uint) {
+        // Check caller is admin
+        ensureAdmin(msg.sender);
+
+        ensureNonZeroAddress(newAccessControlManagerAddress);
+
+        emit NewAccessControlManager(accessControlManager, newAccessControlManagerAddress);
+        accessControlManager = newAccessControlManagerAddress;
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Accrues interest and reduces reserves by transferring to protocol share reserve
+     * @param reduceAmount_ Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // @custom:event Emits ReservesReduced event
-    function _reduceReserves(uint reduceAmount) external nonReentrant returns (uint) {
+    function _reduceReserves(uint reduceAmount_) external nonReentrant returns (uint) {
+        ensureAllowed("_reduceReserves(uint256)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
             return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
         }
+
+        // If reserves were reduced in accrueInterest
+        if (reduceReservesBlockNumber == block.number) return (uint(Error.NO_ERROR));
         // _reduceReservesFresh emits reserve-reduction-specific logs on errors, so we don't need to.
-        return _reduceReservesFresh(reduceAmount);
+        return _reduceReservesFresh(reduceAmount_);
     }
 
     /**
@@ -303,6 +324,29 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
+     * @notice Governance function to set new threshold of block difference after which funds will be sent to the protocol share reserve
+     * @param newReduceReservesBlockDelta_ block difference value
+     */
+    function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external returns (uint) {
+        require(newReduceReservesBlockDelta_ > 0, "Invalid Input");
+        ensureAllowed("setReduceReservesBlockDelta(uint256)");
+        emit NewReduceReservesBlockDelta(reduceReservesBlockDelta, newReduceReservesBlockDelta_);
+        reduceReservesBlockDelta = newReduceReservesBlockDelta_;
+    }
+
+    /**
+     * @notice Sets protocol share reserve contract address
+     * @param protcolShareReserve_ The address of protocol share reserve contract
+     */
+    function setProtocolShareReserve(address payable protcolShareReserve_) external returns (uint) {
+        // Check caller is admin
+        ensureAdmin(msg.sender);
+        ensureNonZeroAddress(protcolShareReserve_);
+        emit NewProtocolShareReserve(protocolShareReserve, protcolShareReserve_);
+        protocolShareReserve = protcolShareReserve_;
+    }
+
+    /**
      * @notice Initialize the money market
      * @param comptroller_ The address of the Comptroller
      * @param interestRateModel_ The address of the interest rate model
@@ -319,7 +363,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         string memory symbol_,
         uint8 decimals_
     ) public {
-        require(msg.sender == admin, "only admin may initialize the market");
+        ensureAdmin(msg.sender);
         require(accrualBlockNumber == 0 && borrowIndex == 0, "market may only be initialized once");
 
         // Set initial exchange rate
@@ -331,7 +375,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         require(err == uint(Error.NO_ERROR), "setting comptroller failed");
 
         // Initialize block number and borrow index (block number mocks depend on comptroller being set)
-        accrualBlockNumber = getBlockNumber();
+        accrualBlockNumber = block.number;
         borrowIndex = mantissaOne;
 
         // Set the interest rate model (depends on block number / borrow index)
@@ -358,12 +402,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     /**
      * @notice Applies accrued interest to total borrows and reserves
      * @dev This calculates interest accrued from the last checkpointed block
-     *   up to the current block and writes new checkpoint to storage.
+     * up to the current block and writes new checkpoint to storage and
+     * reduce spread reserves to protocol share reserve
+     * if currentBlock - reduceReservesBlockNumber >= blockDelta
      */
     // @custom:event Emits AccrueInterest event
     function accrueInterest() public returns (uint) {
         /* Remember the initial block number */
-        uint currentBlockNumber = getBlockNumber();
+        uint currentBlockNumber = block.number;
         uint accrualBlockNumberPrior = accrualBlockNumber;
 
         /* Short-circuit accumulating 0 interest */
@@ -383,7 +429,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /* Calculate the number of blocks elapsed since the last accrual */
         (MathError mathErr, uint blockDelta) = subUInt(currentBlockNumber, accrualBlockNumberPrior);
-        require(mathErr == MathError.NO_ERROR, "could not calculate block delta");
+        ensureNoMathError(mathErr);
 
         /*
          * Calculate the interest accumulated into borrows and reserves and the new index:
@@ -464,6 +510,13 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalBorrows = totalBorrowsNew;
         totalReserves = totalReservesNew;
 
+        (mathErr, blockDelta) = subUInt(currentBlockNumber, reduceReservesBlockNumber);
+        ensureNoMathError(mathErr);
+        if (blockDelta >= reduceReservesBlockDelta) {
+            reduceReservesBlockNumber = currentBlockNumber;
+            _reduceReservesFresh(totalReservesNew);
+        }
+
         /* We emit an AccrueInterest event */
         emit AccrueInterest(cashPrior, interestAccumulated, borrowIndexNew, totalBorrowsNew);
 
@@ -478,9 +531,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     // @custom:event Emits NewComptroller event
     function _setComptroller(ComptrollerInterface newComptroller) public returns (uint) {
         // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
+        ensureAdmin(msg.sender);
 
         ComptrollerInterface oldComptroller = comptroller;
         // Ensure invoke comptroller.isComptroller() returns true
@@ -497,18 +548,19 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Accrues interest and updates the interest rate model using _setInterestRateModelFresh
-     * @dev Admin function to accrue interest and update the interest rate model
-     * @param newInterestRateModel The new interest rate model to use
+     * @dev Governance function to accrue interest and update the interest rate model
+     * @param newInterestRateModel_ The new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function _setInterestRateModel(InterestRateModel newInterestRateModel) public returns (uint) {
+    function _setInterestRateModel(InterestRateModel newInterestRateModel_) public returns (uint) {
+        ensureAllowed("_setInterestRateModel(address)");
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted change of interest rate model failed
             return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
         }
         // _setInterestRateModelFresh emits interest-rate-model-update-specific logs on errors, so we don't need to.
-        return _setInterestRateModelFresh(newInterestRateModel);
+        return _setInterestRateModelFresh(newInterestRateModel_);
     }
 
     /**
@@ -518,7 +570,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function exchangeRateStored() public view returns (uint) {
         (MathError err, uint result) = exchangeRateStoredInternal();
-        require(err == MathError.NO_ERROR, "exchangeRateStored: exchangeRateStoredInternal failed");
+        ensureNoMathError(err);
         return result;
     }
 
@@ -529,7 +581,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function borrowBalanceStored(address account) public view returns (uint) {
         (MathError err, uint result) = borrowBalanceStoredInternal(account);
-        require(err == MathError.NO_ERROR, "borrowBalanceStored: borrowBalanceStoredInternal failed");
+        ensureNoMathError(err);
         return result;
     }
 
@@ -634,7 +686,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.MINT_FRESHNESS_CHECK), 0);
         }
 
@@ -668,7 +720,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             vars.actualMintAmount,
             Exp({ mantissa: vars.exchangeRateMantissa })
         );
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_EXCHANGE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /*
          * We calculate the new total supply of vTokens and minter token balance, checking for overflow:
@@ -676,10 +728,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  accountTokensNew = accountTokens[minter] + mintTokens
          */
         (vars.mathErr, vars.totalSupplyNew) = addUInt(totalSupply, vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_TOTAL_SUPPLY_CALCULATION_FAILED");
-
+        ensureNoMathError(vars.mathErr);
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[minter], vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /* We write previously calculated values into storage */
         totalSupply = vars.totalSupplyNew;
@@ -721,7 +772,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
      */
     function mintBehalfFresh(address payer, address receiver, uint mintAmount) internal returns (uint, uint) {
-        require(receiver != address(0), "receiver is invalid");
+        ensureNonZeroAddress(receiver);
         /* Fail if mint not allowed */
         uint allowed = comptroller.mintAllowed(address(this), receiver, mintAmount);
         if (allowed != 0) {
@@ -729,7 +780,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.MINT_FRESHNESS_CHECK), 0);
         }
 
@@ -763,7 +814,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             vars.actualMintAmount,
             Exp({ mantissa: vars.exchangeRateMantissa })
         );
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_EXCHANGE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /*
          * We calculate the new total supply of vTokens and receiver token balance, checking for overflow:
@@ -771,10 +822,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  accountTokensNew = accountTokens[receiver] + mintTokens
          */
         (vars.mathErr, vars.totalSupplyNew) = addUInt(totalSupply, vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_TOTAL_SUPPLY_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.accountTokensNew) = addUInt(accountTokens[receiver], vars.mintTokens);
-        require(vars.mathErr == MathError.NO_ERROR, "MINT_NEW_ACCOUNT_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /* We write previously calculated values into storage */
         totalSupply = vars.totalSupplyNew;
@@ -838,9 +889,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         /* exchangeRate = invoke Exchange Rate Stored() */
         (vars.mathErr, vars.exchangeRateMantissa) = exchangeRateStoredInternal();
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         /* If redeemTokensIn > 0: */
         if (redeemTokensIn > 0) {
@@ -855,9 +904,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
                 Exp({ mantissa: vars.exchangeRateMantissa }),
                 redeemTokensIn
             );
-            if (vars.mathErr != MathError.NO_ERROR) {
-                revert("math error");
-            }
+            ensureNoMathError(vars.mathErr);
         } else {
             /*
              * We get the current exchange rate and calculate the amount to be redeemed:
@@ -869,9 +916,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
                 redeemAmountIn,
                 Exp({ mantissa: vars.exchangeRateMantissa })
             );
-            if (vars.mathErr != MathError.NO_ERROR) {
-                revert("math error");
-            }
+            ensureNoMathError(vars.mathErr);
 
             vars.redeemAmount = redeemAmountIn;
         }
@@ -883,7 +928,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             revert("math error");
         }
 
@@ -893,14 +938,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  accountTokensNew = accountTokens[redeemer] - redeemTokens
          */
         (vars.mathErr, vars.totalSupplyNew) = subUInt(totalSupply, vars.redeemTokens);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.accountTokensNew) = subUInt(accountTokens[redeemer], vars.redeemTokens);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         /* Fail gracefully if protocol has insufficient cash */
         if (getCashPrior() < vars.redeemAmount) {
@@ -929,19 +970,13 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
                 vars.redeemAmount,
                 IComptroller(address(comptroller)).treasuryPercent()
             );
-            if (vars.mathErr != MathError.NO_ERROR) {
-                revert("math error");
-            }
+            ensureNoMathError(vars.mathErr);
 
             (vars.mathErr, feeAmount) = divUInt(feeAmount, 1e18);
-            if (vars.mathErr != MathError.NO_ERROR) {
-                revert("math error");
-            }
+            ensureNoMathError(vars.mathErr);
 
             (vars.mathErr, remainedAmount) = subUInt(vars.redeemAmount, feeAmount);
-            if (vars.mathErr != MathError.NO_ERROR) {
-                revert("math error");
-            }
+            ensureNoMathError(vars.mathErr);
 
             doTransferOut(address(uint160(IComptroller(address(comptroller)).treasuryAddress())), feeAmount);
 
@@ -989,21 +1024,21 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param borrower The borrower, on behalf of whom to borrow
      * @param receiver The account that would receive the funds (can be the same as the borrower)
      * @param borrowAmount The amount of the underlying asset to borrow
-     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     * @return uint Returns 0 on success, otherwise revert (see ErrorReporter.sol for details).
      */
     function borrowFresh(address borrower, address payable receiver, uint borrowAmount) internal returns (uint) {
-        /* Fail if borrow not allowed */
+        /* Revert if borrow not allowed */
         uint allowed = comptroller.borrowAllowed(address(this), borrower, borrowAmount);
         if (allowed != 0) {
             revert("math error");
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             revert("math error");
         }
 
-        /* Fail gracefully if protocol has insufficient underlying cash */
+        /* Revert if protocol has insufficient underlying cash */
         if (getCashPrior() < borrowAmount) {
             revert("math error");
         }
@@ -1016,19 +1051,13 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  totalBorrowsNew = totalBorrows + borrowAmount
          */
         (vars.mathErr, vars.accountBorrows) = borrowBalanceStoredInternal(borrower);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.accountBorrowsNew) = addUInt(vars.accountBorrows, borrowAmount);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.totalBorrowsNew) = addUInt(totalBorrows, borrowAmount);
-        if (vars.mathErr != MathError.NO_ERROR) {
-            revert("math error");
-        }
+        ensureNoMathError(vars.mathErr);
 
         /////////////////////////
         // EFFECTS & INTERACTIONS
@@ -1105,7 +1134,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.REPAY_BORROW_FRESHNESS_CHECK), 0);
         }
 
@@ -1153,10 +1182,10 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
          *  totalBorrowsNew = totalBorrows - actualRepayAmount
          */
         (vars.mathErr, vars.accountBorrowsNew) = subUInt(vars.accountBorrows, vars.actualRepayAmount);
-        require(vars.mathErr == MathError.NO_ERROR, "REPAY_BORROW_NEW_ACCOUNT_BORROW_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         (vars.mathErr, vars.totalBorrowsNew) = subUInt(totalBorrows, vars.actualRepayAmount);
-        require(vars.mathErr == MathError.NO_ERROR, "REPAY_BORROW_NEW_TOTAL_BALANCE_CALCULATION_FAILED");
+        ensureNoMathError(vars.mathErr);
 
         /* We write the previously calculated values into storage */
         accountBorrows[borrower].principal = vars.accountBorrowsNew;
@@ -1230,12 +1259,12 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         }
 
         /* Verify market's block number equals current block number */
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_FRESHNESS_CHECK), 0);
         }
 
         /* Verify vTokenCollateral market's block number equals current block number */
-        if (vTokenCollateral.accrualBlockNumber() != getBlockNumber()) {
+        if (vTokenCollateral.accrualBlockNumber() != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.LIQUIDATE_COLLATERAL_FRESHNESS_CHECK), 0);
         }
 
@@ -1367,17 +1396,12 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Sets a new reserve factor for the protocol (requires fresh interest accrual)
-     * @dev Admin function to set a new reserve factor
+     * @dev Governance function to set a new reserve factor
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setReserveFactorFresh(uint newReserveFactorMantissa) internal returns (uint) {
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_RESERVE_FACTOR_ADMIN_CHECK);
-        }
-
         // Verify market's block number equals current block number
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_RESERVE_FACTOR_FRESH_CHECK);
         }
 
@@ -1423,7 +1447,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint actualAddAmount;
 
         // We fail gracefully unless market's block number equals current block number
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return (fail(Error.MARKET_NOT_FRESH, FailureInfo.ADD_RESERVES_FRESH_CHECK), actualAddAmount);
         }
 
@@ -1457,22 +1481,18 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Reduces reserves by transferring to admin
+     * @notice Reduces reserves by transferring to protocol share reserve contract
      * @dev Requires fresh interest accrual
      * @param reduceAmount Amount of reduction to reserves
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _reduceReservesFresh(uint reduceAmount) internal returns (uint) {
-        // totalReserves - reduceAmount
-        uint totalReservesNew;
-
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.REDUCE_RESERVES_ADMIN_CHECK);
+        if (reduceAmount == 0) {
+            return uint(Error.NO_ERROR);
         }
 
         // We fail gracefully unless market's block number equals current block number
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.REDUCE_RESERVES_FRESH_CHECK);
         }
 
@@ -1490,36 +1510,37 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // EFFECTS & INTERACTIONS
         // (No safe failures beyond this point)
 
-        totalReservesNew = totalReserves - reduceAmount;
+        // totalReserves - reduceAmount
+        uint totalReservesNew = totalReserves - reduceAmount;
 
         // Store reserves[n+1] = reserves[n] - reduceAmount
         totalReserves = totalReservesNew;
 
         // doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
-        doTransferOut(admin, reduceAmount);
+        doTransferOut(protocolShareReserve, reduceAmount);
 
-        emit ReservesReduced(admin, reduceAmount, totalReservesNew);
+        IProtocolShareReserveV5(protocolShareReserve).updateAssetsState(
+            address(comptroller),
+            underlying,
+            IProtocolShareReserveV5.IncomeType.SPREAD
+        );
+
+        emit ReservesReduced(protocolShareReserve, reduceAmount, totalReservesNew);
 
         return uint(Error.NO_ERROR);
     }
 
     /**
      * @notice updates the interest rate model (requires fresh interest accrual)
-     * @dev Admin function to update the interest rate model
+     * @dev Governance function to update the interest rate model
      * @param newInterestRateModel the new interest rate model to use
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setInterestRateModelFresh(InterestRateModel newInterestRateModel) internal returns (uint) {
         // Used to store old model for use in the event that is emitted on success
         InterestRateModel oldInterestRateModel;
-
-        // Check caller is admin
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_INTEREST_RATE_MODEL_OWNER_CHECK);
-        }
-
         // We fail gracefully unless market's block number equals current block number
-        if (accrualBlockNumber != getBlockNumber()) {
+        if (accrualBlockNumber != block.number) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_INTEREST_RATE_MODEL_FRESH_CHECK);
         }
 
@@ -1552,14 +1573,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *  If caller has checked protocol's balance, and verified it is >= amount, this should not revert in normal conditions.
      */
     function doTransferOut(address payable to, uint amount) internal;
-
-    /**
-     * @dev Function to simply retrieve block number
-     *  This exists mainly for inheriting test contracts to stub this result.
-     */
-    function getBlockNumber() internal view returns (uint) {
-        return block.number;
-    }
 
     /**
      * @notice Return the borrow balance of account based on stored data
@@ -1633,6 +1646,25 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
             return (MathError.NO_ERROR, exchangeRate.mantissa);
         }
+    }
+
+    function ensureAllowed(string memory functionSig) private view {
+        require(
+            IAccessControlManagerV5(accessControlManager).isAllowedToCall(msg.sender, functionSig),
+            "access denied"
+        );
+    }
+
+    function ensureAdmin(address caller_) private view {
+        require(caller_ == admin, "Unauthorized");
+    }
+
+    function ensureNoMathError(MathError mErr) private pure {
+        require(mErr == MathError.NO_ERROR, "math error");
+    }
+
+    function ensureNonZeroAddress(address address_) private pure {
+        require(address_ != address(0), "zero address");
     }
 
     /*** Safe Token ***/

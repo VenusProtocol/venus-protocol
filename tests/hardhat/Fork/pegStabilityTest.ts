@@ -154,10 +154,10 @@ if (FORK_MAINNET) {
         before(async () => {
           defaultSigner = (await ethers.getSigners())[0];
           psm = await deployPegStability(stableTokenAddress);
-          tokenSigner = await initMainnetUser(tokenHolder);
-          vaiSigner = await initMainnetUser(VAI_HOLDER);
+          tokenSigner = await initMainnetUser(tokenHolder, ethers.utils.parseEther("2"));
+          vaiSigner = await initMainnetUser(VAI_HOLDER, ethers.utils.parseEther("2"));
           stableToken = FaucetToken__factory.connect(stableTokenAddress, tokenSigner);
-          vaiAdmin = await initMainnetUser(Contracts.Timelock);
+          vaiAdmin = await initMainnetUser(Contracts.Timelock, ethers.utils.parseEther("2"));
           VAI = VAI__factory.connect(Contracts.VAI, vaiAdmin);
           oracle = ResilientOracleInterface__factory.connect(resilientOracle, defaultSigner);
           stableTokenPrice = await oracle.getPrice(stableTokenAddress);

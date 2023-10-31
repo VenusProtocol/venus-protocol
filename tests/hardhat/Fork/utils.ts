@@ -1,9 +1,8 @@
-import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
-import { NumberLike } from "@nomicfoundation/hardhat-network-helpers/dist/src/types";
+import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { network } from "hardhat";
 
-async function setForkBlock(blockNumber: number) {
+export const setForkBlock = async (blockNumber: number) => {
   await network.provider.request({
     method: "hardhat_reset",
     params: [
@@ -15,7 +14,7 @@ async function setForkBlock(blockNumber: number) {
       },
     ],
   });
-}
+};
 
 export const forking = (blockNumber: number, fn: () => void) => {
   describe(`At block #${blockNumber}`, () => {

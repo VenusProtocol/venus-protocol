@@ -3,7 +3,7 @@ import chai from "chai";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../helpers/utils";
-import { ComptrollerHarness__factory, IAccessControlManagerV5 } from "../../typechain";
+import { ComptrollerHarness__factory, IAccessControlManagerV5, IProtocolShareReserve } from "../../typechain";
 
 const { expect } = chai;
 
@@ -97,6 +97,7 @@ describe("Evil Token test", async () => {
     await vDelegator1.deployed();
 
     vToken1 = await ethers.getContractAt("VBep20MockDelegate", vDelegator1.address);
+    await vToken1.setAccessControlManager(accessControlMock.address);
 
     await unitroller._supportMarket(vToken1.address);
     await unitroller._setCollateralFactor(vToken1.address, convertToUnit(cf1, 18));
@@ -169,8 +170,17 @@ describe("Evil Token test", async () => {
     await unitroller.connect(user).enterMarkets([vToken1.address, vToken2.address, vToken3.address]);
     await underlying1.harnessSetBalance(user.address, convertToUnit(1, 8));
     await underlying1.connect(user).approve(vToken1.address, convertToUnit(1, 10));
+    await vToken1.setReduceReservesBlockDelta(10000);
     await vToken1.connect(user).mint(convertToUnit(1, 4));
     await underlying3.harnessSetBalance(vToken3.address, convertToUnit(1, 8));
+
+    const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserveV5",
+    );
+    protocolShareReserve.updateAssetsState.returns(true);
+    await vToken1.setProtocolShareReserve(protocolShareReserve.address);
+    await vToken2.setProtocolShareReserve(protocolShareReserve.address);
+    await vToken3.setProtocolShareReserve(protocolShareReserve.address);
   });
 
   it("Check the updated vToken states after transfer out", async () => {
