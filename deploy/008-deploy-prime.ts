@@ -39,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const maximumXVSCap =
     networkName === "bscmainnet" ? ethers.utils.parseEther("100000") : ethers.utils.parseEther("100");
   const minimumXVS = networkName === "bscmainnet" ? ethers.utils.parseEther("1000") : ethers.utils.parseEther("10");
-  const xVSVaultPoolId = networkName === "bscmainnet" ? 1 : 1;
+  const xVSVaultPoolId = networkName === "bscmainnet" ? 0 : 1;
   const xvsVaultAlphaNumerator = networkName === "bscmainnet" ? 1 : 1;
   const xvsVaultAlphaDenominator = networkName === "bscmainnet" ? 2 : 2;
   const blocksPeryear = networkName === "bscmainnet" ? 10512000 : 10512000;
