@@ -77,7 +77,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       execute: {
         methodName: "initialize",
         args: [
-          ADDRESSES[networkName].XVSVault,
+          ADDRESSES[networkName].XVSVaultProxy,
           ADDRESSES[networkName].XVS,
           xVSVaultPoolId,
           xvsVaultAlphaNumerator,
