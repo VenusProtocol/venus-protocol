@@ -230,10 +230,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function getPendingRewards(address user) external returns (PendingReward[] memory pendingRewards) {
         address[] storage allMarkets = _allMarkets;
-        pendingRewards = new PendingReward[](allMarkets.length);
-
         uint256 marketsLength = allMarkets.length;
 
+        pendingRewards = new PendingReward[](marketsLength);
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
             uint256 interestAccrued = getInterestAccrued(market, user);
