@@ -135,6 +135,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @notice Error thrown when invalid length is passed
     error InvalidLength();
 
+    /// @notice Error thrown when timestamp is invalud
+    error InvalidTimestamp();
+
     /**
      * @notice Prime constructor
      * @param _wbnb Address of WBNB
@@ -368,6 +371,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         if (users.length != timestamps.length) revert InvalidLength();
 
         for (uint256 i; i < users.length; ) {
+            if (timestamps[i] > block.timestamp) revert InvalidTimestamp();
+
             stakedAt[users[i]] = timestamps[i];
             emit StakedAtUpdated(users[i], timestamps[i]);
 
