@@ -368,7 +368,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         _checkAccessAllowed("setStakedAt(address[],uint256[])");
         if (users.length != timestamps.length) revert InvalidLength();
 
-        for (uint256 i = 0; i < users.length; ) {
+        for (uint256 i; i < users.length; ) {
             stakedAt[users[i]] = timestamps[i];
             emit StakedAtUpdated(users[i], timestamps[i]);
 
