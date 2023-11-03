@@ -38,10 +38,6 @@ contract PrimeLiquidityProvider is
     /// @notice The token accrued but not yet transferred to prime contract
     mapping(address => uint256) public tokenAmountAccrued;
 
-    /// @dev This empty reserved space is put in place to allow future versions to add new
-    /// variables without shifting down storage in the inheritance chain.
-    uint256[45] private __gap;
-
     /// @notice Emitted when a token distribution is initialized
     event TokenDistributionInitialized(address indexed token);
 
