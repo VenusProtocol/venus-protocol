@@ -498,7 +498,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         Token memory token = tokens[user];
 
         if (token.exists && !isAccountEligible) {
-            stakedAt[user] = 0;
+            delete stakedAt[user];
 
             if (token.isIrrevocable) {
                 _accrueInterestAndUpdateScore(user);
