@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
@@ -42,7 +42,7 @@ contract VTreasuryV8 is Ownable2Step, ReentrancyGuard {
         address tokenAddress,
         uint256 withdrawAmount,
         address withdrawAddress
-    ) external onlyOwner {
+    ) external onlyOwner nonReentrant {
         ensureNonzeroAddress(tokenAddress);
         ensureNonzeroAddress(withdrawAddress);
         require(withdrawAmount > 0, "withdrawAmount must not be zero");
