@@ -957,7 +957,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @custom:error Throw InvalidAlphaArguments if alpha is invalid
      */
     function _checkAlphaArguments(uint128 _alphaNumerator, uint128 _alphaDenominator) internal pure {
-        if (_alphaDenominator == 0 || _alphaNumerator >= _alphaDenominator || _alphaNumerator == 0) {
+        if (_alphaNumerator >= _alphaDenominator || _alphaNumerator == 0) {
             revert InvalidAlphaArguments();
         }
     }
