@@ -33,6 +33,16 @@ interface IPrimeLiquidityProvider {
     function setTokensDistributionSpeed(address[] calldata tokens_, uint256[] calldata distributionSpeeds_) external;
 
     /**
+     * @notice Set max distribution speed for token (amount of maximum token distribute per block)
+     * @param tokens_ Array of addresses of the tokens
+     * @param maxDistributionSpeeds_ New distribution speeds for tokens
+     */
+    function setMaxTokensDistributionSpeed(
+        address[] calldata tokens_,
+        uint256[] calldata maxDistributionSpeeds_
+    ) external;
+
+    /**
      * @notice Set the prime token contract address
      * @param prime_ The new address of the prime token contract
      */
@@ -57,6 +67,12 @@ interface IPrimeLiquidityProvider {
      * @param token_ Address of the token
      */
     function accrueTokens(address token_) external;
+
+    /**
+     * @notice Set the limit for the loops can iterate to avoid the DOS
+     * @param loopsLimit Limit for the max loops can execute at a time
+     */
+    function setMaxLoopsLimit(uint256 loopsLimit) external;
 
     /**
      * @notice Get rewards per block for token
