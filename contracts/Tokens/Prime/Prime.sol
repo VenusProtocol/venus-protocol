@@ -111,12 +111,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @notice Error thrown when user has no prime token
     error UserHasNoPrimeToken();
 
-    /// @notice Error thrown when msg.sender is not allowed to call the function
-    error InvalidCaller();
-
-    /// @notice Error thrown when comptroller is not valid
-    error InvalidComptroller();
-
     /// @notice Error thrown when no score updates are required
     error NoScoreUpdatesRequired();
 
