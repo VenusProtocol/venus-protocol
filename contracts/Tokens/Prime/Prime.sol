@@ -1124,19 +1124,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     ////////////////////////////////////////////////
 
     /**
-     * @notice Returns the income the market generates per block
-     * @param vToken the market for which to fetch the income per block
-     * @return income the amount of tokens generated as income per block
-     */
-    function _incomePerBlock(address vToken) internal view returns (uint256) {
-        IVToken market = IVToken(vToken);
-        unchecked {
-            return ((((market.totalBorrows() * market.borrowRatePerBlock()) / EXP_SCALE) *
-                market.reserveFactorMantissa()) / EXP_SCALE);
-        }
-    }
-
-    /**
      * @notice the total income that's going to be distributed in a year to prime token holders
      * @param vToken the market for which to fetch the total income that's going to distributed in a year
      * @return amount the total income
