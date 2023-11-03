@@ -566,7 +566,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /**
      * @notice For user to claim boosted yield
      * @param vToken the market for which claim the accrued interest
-     * @return amount the amount of tokens transferred to the user
+     * @return amount the amount of tokens transferred to the msg.sender
      */
     function claimInterest(address vToken) external whenNotPaused returns (uint256) {
         return _claimInterest(vToken, msg.sender);
@@ -749,7 +749,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     }
 
     /**
-     * @notice accrues interes and updates score of all markets for an user
+     * @notice accrues interest and updates score of all markets for an user
      * @param user the account address for which to accrue interest and update score
      */
     function _accrueInterestAndUpdateScore(address user) internal {
@@ -1095,8 +1095,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
     /**
      * @notice Calculate the interests accrued by the user in the market, since the last accrual
-     * @param vToken the market for which calculate the accrued interest
-     * @param user the user for which calculate the accrued interest
+     * @param vToken the market for which to calculate the accrued interest
+     * @param user the user for which to calculate the accrued interest
      * @return interestAccrued the number of underlying tokens accrued by the user since the last accrual
      */
     function _interestAccrued(address vToken, address user) internal view returns (uint256) {
