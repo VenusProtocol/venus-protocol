@@ -622,10 +622,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 borrow = vToken.borrowBalanceStored(user);
         uint256 exchangeRate = vToken.exchangeRateStored();
         uint256 balanceOfAccount = vToken.balanceOf(user);
-        uint256 supply;
-        unchecked {
-            supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
-        }
+        uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
         uint256 userScore = interests[market][user].score;
         uint256 totalScore = markets[market].sumOfMembersScore;
@@ -666,10 +663,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 supply,
         uint256 xvsStaked
     ) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
-        uint256 totalScore;
-        unchecked {
-            totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
-        }
+        uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
 
         uint256 xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
         (uint256 capital, uint256 cappedSupply, uint256 cappedBorrow) = _capitalForScore(
@@ -712,10 +706,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         IPrimeLiquidityProvider _primeLiquidityProvider = IPrimeLiquidityProvider(primeLiquidityProvider);
         _primeLiquidityProvider.accrueTokens(underlying);
         uint256 totalAccruedInPLP = _primeLiquidityProvider.tokenAmountAccrued(underlying);
-        uint256 unreleasedPLPAccruedInterest;
-        unchecked {
-            unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
-        }
+        uint256 unreleasedPLPAccruedInterest = totalAccruedInPLP - unreleasedPLPIncome[underlying];
         uint256 distributionIncome = unreleasedPLPAccruedInterest;
 
         if (distributionIncome == 0) {
@@ -726,9 +717,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         uint256 delta;
         if (market.sumOfMembersScore != 0) {
-            unchecked {
                 delta = ((distributionIncome * EXP_SCALE) / market.sumOfMembersScore);
-            }
         }
 
         market.rewardIndex += delta;
@@ -802,10 +791,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 borrow = vToken.borrowBalanceStored(user);
         uint256 exchangeRate = vToken.exchangeRateStored();
         uint256 balanceOfAccount = vToken.balanceOf(user);
-        uint256 supply;
-        unchecked {
-            supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
-        }
+        uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
         address xvsToken = IXVSVault(xvsVault).xvsAddress();
         oracle.updateAssetPrice(xvsToken);
@@ -890,9 +876,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
             _executeBoost(user, market);
-            unchecked {
                 markets[market].sumOfMembersScore = markets[market].sumOfMembersScore - interests[market][user].score;
-            }
 
             delete interests[market][user].score;
             delete interests[market][user].rewardIndex;
@@ -961,9 +945,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         }
 
         uint256 score = _calculateScore(market, user);
-        unchecked {
             _market.sumOfMembersScore = _market.sumOfMembersScore - interests[market][user].score + score;
-        }
 
         interests[market][user].score = score;
     }
@@ -1056,23 +1038,15 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
 
         uint256 tokenPrice = oracle.getUnderlyingPrice(market);
-        uint256 supplyUSD;
-        uint256 borrowUSD;
-        unchecked {
-            supplyUSD = (tokenPrice * supply) / EXP_SCALE;
-            borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
-        }
+        uint256 supplyUSD = (tokenPrice * supply) / EXP_SCALE;
+        uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
 
         if (supplyUSD >= supplyCapUSD) {
-            unchecked {
                 supply = supplyUSD != 0 ? (supply * supplyCapUSD) / supplyUSD : 0;
-            }
         }
 
         if (borrowUSD >= borrowCapUSD) {
-            unchecked {
                 borrow = borrowUSD != 0 ? (borrow * borrowCapUSD) / borrowUSD : 0;
-            }
         }
 
         return ((supply + borrow), supply, borrow);
@@ -1099,16 +1073,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function _interestAccrued(address vToken, address user) internal view returns (uint256) {
         Interest memory interest = interests[vToken][user];
-        uint256 index;
-        unchecked {
-            index = markets[vToken].rewardIndex - interest.rewardIndex;
-        }
+        uint256 index = markets[vToken].rewardIndex - interest.rewardIndex;
 
         uint256 score = interest.score;
 
-        unchecked {
             return (index * score) / EXP_SCALE;
-        }
     }
 
     /**
@@ -1161,10 +1130,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
         if (totalScore == 0) return (0, 0);
 
-        uint256 userYearlyIncome;
-        unchecked {
-            userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
-        }
+        uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
 
         uint256 totalCappedValue = totalCappedSupply + totalCappedBorrow;
 
@@ -1173,11 +1139,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 maximumBps = MAXIMUM_BPS;
         uint256 userSupplyIncomeYearly;
         uint256 userBorrowIncomeYearly;
-        unchecked {
             userSupplyIncomeYearly = (userYearlyIncome * totalCappedSupply) / totalCappedValue;
             userBorrowIncomeYearly = (userYearlyIncome * totalCappedBorrow) / totalCappedValue;
             supplyAPR = totalSupply == 0 ? 0 : ((userSupplyIncomeYearly * maximumBps) / totalSupply);
             borrowAPR = totalBorrow == 0 ? 0 : ((userBorrowIncomeYearly * maximumBps) / totalBorrow);
-        }
     }
 }
