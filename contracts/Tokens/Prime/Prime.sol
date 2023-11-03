@@ -1004,7 +1004,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @notice update the required score updates when token is minted before round is completed
      */
     function _updateRoundAfterTokenMinted(address user) internal {
-        if (totalScoreUpdatesRequired > 0) isScoreUpdated[nextScoreUpdateRoundId][user] = true;
+        if (totalScoreUpdatesRequired != 0) isScoreUpdated[nextScoreUpdateRoundId][user] = true;
     }
 
     /**
