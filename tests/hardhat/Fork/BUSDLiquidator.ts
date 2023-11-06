@@ -233,14 +233,14 @@ const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {
 
     describe("liquidateEntireBorrow", async () => {
       it("should repay entire borrow", async () => {
-        const repayAmount = parseUnits("1000.000079908675795672", 18);
+        const repayAmount = parseUnits("1000", 18);
         const tx = await busdLiquidator.connect(someone).liquidateEntireBorrow(borrower.address, vCollateral.address);
         await expect(tx).to.changeTokenBalances(busd, [someone, vBUSD], [repayAmount.mul(-1), repayAmount]);
         expect(await vBUSD.callStatic.borrowBalanceCurrent(borrower.address)).to.equal(0);
       });
 
       it("should seize collateral", async () => {
-        const repayAmount = parseUnits("1000.000079908675795672", 18);
+        const repayAmount = parseUnits("1000", 18);
         const treasuryBalanceBefore = await vCollateral.callStatic.balanceOf(treasuryAddress);
         const liquidatorBalanceBefore = await vCollateral.callStatic.balanceOf(someone.address);
         const tx = await busdLiquidator.connect(someone).liquidateEntireBorrow(borrower.address, vCollateral.address);
@@ -267,9 +267,7 @@ const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {
           .connect(someone)
           .liquidateBorrow(borrower.address, repayAmount, vCollateral.address);
         await expect(tx).to.changeTokenBalances(busd, [someone, vBUSD], [repayAmount.mul(-1), repayAmount]);
-        expect(await vBUSD.callStatic.borrowBalanceCurrent(borrower.address)).to.equal(
-          parseUnits("900.000079908675795672", 18),
-        );
+        expect(await vBUSD.callStatic.borrowBalanceCurrent(borrower.address)).to.equal(parseUnits("900", 18));
       });
 
       it("should seize collateral", async () => {
