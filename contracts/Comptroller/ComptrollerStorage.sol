@@ -258,7 +258,9 @@ contract ComptrollerV13Storage is ComptrollerV12Storage {
     mapping(address => FacetFunctionSelectors) internal _facetFunctionSelectors;
     // facet addresses
     address[] internal _facetAddresses;
+}
 
+contract ComptrollerV14Storage is ComptrollerV13Storage {
     /// @notice Prime token address
     IPrime public prime;
 }
