@@ -267,7 +267,9 @@ const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {
           .connect(someone)
           .liquidateBorrow(borrower.address, repayAmount, vCollateral.address);
         await expect(tx).to.changeTokenBalances(busd, [someone, vBUSD], [repayAmount.mul(-1), repayAmount]);
-        expect(await vBUSD.callStatic.borrowBalanceCurrent(borrower.address)).to.equal(parseUnits("900.000079908675795672", 18));
+        expect(await vBUSD.callStatic.borrowBalanceCurrent(borrower.address)).to.equal(
+          parseUnits("900.000079908675795672", 18),
+        );
       });
 
       it("should seize collateral", async () => {
