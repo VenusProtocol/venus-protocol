@@ -13,6 +13,8 @@ contract AccessControlManagerMock {
             return true;
         }
 
+        functionSig;
+
         return false;
     }
 }

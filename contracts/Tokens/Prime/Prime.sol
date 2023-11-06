@@ -717,7 +717,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         uint256 delta;
         if (market.sumOfMembersScore != 0) {
-                delta = ((distributionIncome * EXP_SCALE) / market.sumOfMembersScore);
+            delta = ((distributionIncome * EXP_SCALE) / market.sumOfMembersScore);
         }
 
         market.rewardIndex += delta;
@@ -876,7 +876,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         for (uint256 i; i < marketsLength; ) {
             address market = allMarkets[i];
             _executeBoost(user, market);
-                markets[market].sumOfMembersScore = markets[market].sumOfMembersScore - interests[market][user].score;
+            markets[market].sumOfMembersScore = markets[market].sumOfMembersScore - interests[market][user].score;
 
             delete interests[market][user].score;
             delete interests[market][user].rewardIndex;
@@ -945,7 +945,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         }
 
         uint256 score = _calculateScore(market, user);
-            _market.sumOfMembersScore = _market.sumOfMembersScore - interests[market][user].score + score;
+        _market.sumOfMembersScore = _market.sumOfMembersScore - interests[market][user].score + score;
 
         interests[market][user].score = score;
     }
@@ -1042,11 +1042,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
 
         if (supplyUSD >= supplyCapUSD) {
-                supply = supplyUSD != 0 ? (supply * supplyCapUSD) / supplyUSD : 0;
+            supply = supplyUSD != 0 ? (supply * supplyCapUSD) / supplyUSD : 0;
         }
 
         if (borrowUSD >= borrowCapUSD) {
-                borrow = borrowUSD != 0 ? (borrow * borrowCapUSD) / borrowUSD : 0;
+            borrow = borrowUSD != 0 ? (borrow * borrowCapUSD) / borrowUSD : 0;
         }
 
         return ((supply + borrow), supply, borrow);
@@ -1077,7 +1077,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         uint256 score = interest.score;
 
-            return (index * score) / EXP_SCALE;
+        return (index * score) / EXP_SCALE;
     }
 
     /**
@@ -1139,9 +1139,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 maximumBps = MAXIMUM_BPS;
         uint256 userSupplyIncomeYearly;
         uint256 userBorrowIncomeYearly;
-            userSupplyIncomeYearly = (userYearlyIncome * totalCappedSupply) / totalCappedValue;
-            userBorrowIncomeYearly = (userYearlyIncome * totalCappedBorrow) / totalCappedValue;
-            supplyAPR = totalSupply == 0 ? 0 : ((userSupplyIncomeYearly * maximumBps) / totalSupply);
-            borrowAPR = totalBorrow == 0 ? 0 : ((userBorrowIncomeYearly * maximumBps) / totalBorrow);
+        userSupplyIncomeYearly = (userYearlyIncome * totalCappedSupply) / totalCappedValue;
+        userBorrowIncomeYearly = (userYearlyIncome * totalCappedBorrow) / totalCappedValue;
+        supplyAPR = totalSupply == 0 ? 0 : ((userSupplyIncomeYearly * maximumBps) / totalSupply);
+        borrowAPR = totalBorrow == 0 ? 0 : ((userBorrowIncomeYearly * maximumBps) / totalBorrow);
     }
 }
