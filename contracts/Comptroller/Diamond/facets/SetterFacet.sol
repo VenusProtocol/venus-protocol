@@ -536,6 +536,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /** @notice Enables forced liquidations for a market. If forced liquidation is enabled,
      * borrows in the market may be liquidated regardless of the account liquidity
+     * @dev Allows a privileged role to set enable/disable forced liquidations
      * @param vTokenBorrowed Borrowed vToken
      * @param enable Whether to enable forced liquidations
      */
