@@ -120,8 +120,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   )) as VBep20Harness;
 
   //0.2 reserve factor
-  await veth._setReserveFactor(bigNumber16.mul(20));
-  await vusdt._setReserveFactor(bigNumber16.mul(20));
+  await veth.harnessSetReserveFactorFresh(bigNumber16.mul(20));
+  await vusdt.harnessSetReserveFactorFresh(bigNumber16.mul(20));
 
   oracle.getUnderlyingPrice.returns((vToken: string) => {
     if (vToken == vusdt.address) {
