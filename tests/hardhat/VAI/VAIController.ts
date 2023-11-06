@@ -1,5 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { loadFixture, mineUpTo, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine, mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Wallet, constants } from "ethers";
 import { ethers } from "hardhat";
