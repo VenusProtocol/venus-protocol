@@ -77,7 +77,7 @@ contract PrimeLiquidityProvider is
     /// @notice Error thrown when funds transfer is paused
     error FundsTransferIsPaused();
 
-    /// @notice "Error thrown when accrueTokens is called for an uninitialized token
+    /// @notice Error thrown when accrueTokens is called for an uninitialized token
     error TokenNotInitialized(address token_);
 
     /// @notice Error thrown when argument value in setter is same as previous value
