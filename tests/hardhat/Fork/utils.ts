@@ -1,4 +1,5 @@
-import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
+import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
+import { NumberLike } from "@nomicfoundation/hardhat-network-helpers/dist/src/types";
 import { ethers } from "hardhat";
 import { network } from "hardhat";
 
