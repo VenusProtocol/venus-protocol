@@ -45,7 +45,7 @@ export const deployComptrollerWithMarkets = async ({
 
   const vTokens: VBep20[] = [];
   for (let i = 0; i < numBep20Tokens; i++) {
-    const vToken = await deployVToken({ comptroller });
+    const vToken = await deployVToken({ comptroller, accessControlManager });
     await comptroller._supportMarket(vToken.address);
     vTokens.push(vToken);
   }
@@ -179,6 +179,7 @@ export const deployMockToken = async ({
 
 export const deployVToken = async (
   opts: Partial<{
+    accessControlManager: MaybeFake<IAccessControlManagerV5>;
     underlying: IERC20;
     comptroller: ComptrollerMock;
     interestRateModel: InterestRateModel;
@@ -189,6 +190,7 @@ export const deployVToken = async (
     admin: string;
   }> = {},
 ): Promise<VBep20Harness> => {
+  const accessControlManager = opts.accessControlManager ?? (await deployFakeAccessControlManager());
   const underlying = opts.underlying ?? (await deployMockToken());
   const comptroller = opts.comptroller ?? (await deployComptroller());
   const interestRateModel = opts.interestRateModel ?? (await deployJumpRateModel());
@@ -210,6 +212,7 @@ export const deployVToken = async (
     admin,
   );
   await vToken.deployed();
+  await vToken.setAccessControlManager(accessControlManager.address);
   return vToken;
 };
 
