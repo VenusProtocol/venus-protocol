@@ -132,6 +132,15 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC || "",
       },
     },
+    ethereum: {
+      url: process.env.ETHEREUM_ARCHIVE_NODE_URL || "https://eth-mainnet.public.blastapi.io",
+      chainId: 1,
+      live: true,
+      timeout: 1200000, // 20 minutes
+      accounts: {
+        mnemonic: process.env.MNEMONIC || "",
+      },
+    },
   },
   etherscan: {
     apiKey: BSCSCAN_API_KEY,
