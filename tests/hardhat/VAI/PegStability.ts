@@ -9,7 +9,7 @@ import { ethers } from "hardhat";
 
 import {
   EIP20InterfaceExtended,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   IERC20MetadataUpgradeable,
   IPriceOracle,
   PegStability,
@@ -36,14 +36,14 @@ type ResetAllFakes = () => void;
 type PegStabilityFixture = {
   pegStability: MockContract<PegStability>;
   stableToken: FakeContract<IERC20MetadataUpgradeable>;
-  acm: FakeContract<IAccessControlManager>;
+  acm: FakeContract<IAccessControlManagerV5>;
   vai: FakeContract<VAI>;
   venusTreasury: FakeContract<VTreasury>;
   priceOracle: FakeContract<IPriceOracle>;
 };
 
 async function pegStabilityFixture(tokenDecimals: number): Promise<PegStabilityFixture> {
-  const acm = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  const acm = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   const venusTreasury = await smock.fake<VTreasury>("VTreasury");
   const stableToken = await smock.fake<IERC20MetadataUpgradeable>("IERC20MetadataUpgradeable");
   stableToken.decimals.returns(tokenDecimals);
@@ -116,7 +116,7 @@ describe("Peg Stability Module", () => {
     describe(`PSM: ${decimals} decimals`, () => {
       let pegStability: MockContract<PegStability>;
       let stableToken: FakeContract<EIP20InterfaceExtended>;
-      let acm: FakeContract<IAccessControlManager>;
+      let acm: FakeContract<IAccessControlManagerV5>;
       let vai: FakeContract<VAI>;
       let venusTreasury: FakeContract<VTreasury>;
       let priceOracle: FakeContract<IPriceOracle>;

@@ -1,3 +1,402 @@
+## [5.1.0](https://github.com/VenusProtocol/venus-protocol/compare/v5.0.0...v5.1.0) (2023-11-01)
+
+
+### Features
+
+* add BUSD liquidator contract ([ecd8a0b](https://github.com/VenusProtocol/venus-protocol/commit/ecd8a0b423d115ab78cc870c7e02e43ad2b0eee8))
+* add setter for PSR ([04ea03f](https://github.com/VenusProtocol/venus-protocol/commit/04ea03f1ddc7ffb7b78207f81cb0ef622934bda8))
+* add VToken version two ([6ca872d](https://github.com/VenusProtocol/venus-protocol/commit/6ca872df13dbdb8dbbb30faee46e5c48239d6aa6))
+* added fork tests ([d8b1c9c](https://github.com/VenusProtocol/venus-protocol/commit/d8b1c9cee094b013c7de0442f14dfd965180006c))
+* refactor storage and interface ([2bb5610](https://github.com/VenusProtocol/venus-protocol/commit/2bb56102da7e2436d80e0493371dcc960e436fc6))
+* remove v2 dependency for VToken ([aa64f64](https://github.com/VenusProtocol/venus-protocol/commit/aa64f647c24288f6ef994b99c11def41bf8129e0))
+* tests for VBNBAdmin ([88f5adf](https://github.com/VenusProtocol/venus-protocol/commit/88f5adfa28eea7f5a5cb9d05fc7c6718233d371e))
+* vBNBAdmin contract created ([87790de](https://github.com/VenusProtocol/venus-protocol/commit/87790de8148e9369f3aa2a3964f17b9a7f766da6))
+* VEN-1214 integrate ACM in vToken ([9be81a5](https://github.com/VenusProtocol/venus-protocol/commit/9be81a5345081948b83fb7dbfbfa7226c243d205))
+
+
+### Bug Fixes
+
+* [PVE-001] remove redundand approval reset ([592b022](https://github.com/VenusProtocol/venus-protocol/commit/592b022723740c6b7b066445f407f12253d85637))
+* 1.1 VTokenInterfaces.sol ([e8714c8](https://github.com/VenusProtocol/venus-protocol/commit/e8714c8a98b59a6e87f153e505ecabbea6251c75))
+* 1.2 VToken.sol ([6e5176c](https://github.com/VenusProtocol/venus-protocol/commit/6e5176c0832533d6253c049011bd9137f3db3df1))
+* 12. [Info] Safe Math Function Not Used For Block Delta Calculation ([51bf6fd](https://github.com/VenusProtocol/venus-protocol/commit/51bf6fd75cc337d9c5716c9af4bbf667ca7914c0))
+* 4. [Low] Input Validation ([7f303f5](https://github.com/VenusProtocol/venus-protocol/commit/7f303f505d8278b846565485e4668e41f7206032))
+* add ReservesReduced event ([6e21a37](https://github.com/VenusProtocol/venus-protocol/commit/6e21a37b974977debe1af7889cc6cd3c0ee554bc))
+* added old mainnet proxy admin ([9a5ea84](https://github.com/VenusProtocol/venus-protocol/commit/9a5ea847ac1a429515fde0c5225fe70f1abe59d8))
+* BP12 ([4cd97d0](https://github.com/VenusProtocol/venus-protocol/commit/4cd97d0ee5762c36e0a8bd9e13cfae50a01b9ac5))
+* certik VPB-03 Typos and Inconsistencies ([e8fdf1b](https://github.com/VenusProtocol/venus-protocol/commit/e8fdf1b580a176229cebe743d84d26ec79eeeb8b))
+* certik VPB-05 ([df0c07b](https://github.com/VenusProtocol/venus-protocol/commit/df0c07bbead2b7204873ff64719a6617503bfba9))
+* certik VPI-01 MISSING ZERO ADDRESS VALIDATION ([e699b13](https://github.com/VenusProtocol/venus-protocol/commit/e699b139ffe3bd2bb037b48df659811656f98a31))
+* certik: VTV-02 Optimization ([0695114](https://github.com/VenusProtocol/venus-protocol/commit/0695114b8d10fcd46a3abaa76ee397b29bc63e4e))
+* changed storage gap ([511d66c](https://github.com/VenusProtocol/venus-protocol/commit/511d66c6d1b3b6e85a37221c87eae467cb48c0c2))
+* contract size and tests ([42ae2af](https://github.com/VenusProtocol/venus-protocol/commit/42ae2afb00b88a4de41ad0f16496665965714827))
+* deployment for testnet ([a8450bc](https://github.com/VenusProtocol/venus-protocol/commit/a8450bc46c669460006287b3130f0ae55d25aadf))
+* FairyProof 2.1 ([cc3231a](https://github.com/VenusProtocol/venus-protocol/commit/cc3231a729a18a1a5fa5deba4944dd956aea8b90))
+* fix natspec comment ([5312427](https://github.com/VenusProtocol/venus-protocol/commit/531242717019d18408ac659f14e3fe622206371b))
+* fix yarn.lock ([f832640](https://github.com/VenusProtocol/venus-protocol/commit/f832640dfbd82b2ca4adf54ef2b8aa7ebe58e0f4))
+* fixed recieve due to 23000 gas limit ([0ea1ed1](https://github.com/VenusProtocol/venus-protocol/commit/0ea1ed147fb853b1d6bd4e8e92e92a7c580d5884))
+* fixed tests ([65e79e5](https://github.com/VenusProtocol/venus-protocol/commit/65e79e567745fe80ddea7a982cc565cba2500a6b))
+* fixed tests ([67a3ac8](https://github.com/VenusProtocol/venus-protocol/commit/67a3ac8f26eee25321bd8240f6a128a74cbb10da))
+* fixed vBNBAdmin tests ([e6ea28b](https://github.com/VenusProtocol/venus-protocol/commit/e6ea28b9089c7e440e25aef61f88d349593b005e))
+* get comptroller from vBNB ([43fd668](https://github.com/VenusProtocol/venus-protocol/commit/43fd6684c038a3b84fe029de349da16c822b2b4c))
+* mainnet deployment ([a237adc](https://github.com/VenusProtocol/venus-protocol/commit/a237adc8b28f8c5566e873bd5313b3c1b847b25b))
+* optimise gas when setting PSR ([1992f80](https://github.com/VenusProtocol/venus-protocol/commit/1992f805e6abe10fc957f357ab5d0192460e86d4))
+* PVE001 ([a575a70](https://github.com/VenusProtocol/venus-protocol/commit/a575a70d954948d223ec879f5962cb8c188c4b55))
+* redeploy with correct PSR and Admin proxy ([86677d4](https://github.com/VenusProtocol/venus-protocol/commit/86677d47a0bfc458f72e1797c54a79eac6ee981f))
+* redeployed contracts ([831222d](https://github.com/VenusProtocol/venus-protocol/commit/831222da535a7e0dd91d371236b92cae148a8fee))
+* redeployed mainnet contracts ([a1aaa20](https://github.com/VenusProtocol/venus-protocol/commit/a1aaa2059ce32c9078c9b01bdac301fbe0522b80))
+* redeployed mainnet contracts ([8039d2c](https://github.com/VenusProtocol/venus-protocol/commit/8039d2c148a1de161deb68368427182ba806587d))
+* remove @nomiclabs/hardhat-ethers ([8a27466](https://github.com/VenusProtocol/venus-protocol/commit/8a27466629a8fbac7f5dbac253b04ebbf4585b63))
+* remove acceptVBNBAdmin ([b11d297](https://github.com/VenusProtocol/venus-protocol/commit/b11d2972dbbf9855a7560f26745fae783bc15e7e))
+* remove ownable init ([9bd845f](https://github.com/VenusProtocol/venus-protocol/commit/9bd845fb70711893d7fce2f440d8d58f2848cc76))
+* remove Ownable2StepUpgradeable ([7f54165](https://github.com/VenusProtocol/venus-protocol/commit/7f54165c950d0162112f93386596f16a8a403a6d))
+* remove unwanted import ([8e63e9a](https://github.com/VenusProtocol/venus-protocol/commit/8e63e9a126e4a29071c4bbb4a0d5274227d0a892))
+* removed console.log ([8b55821](https://github.com/VenusProtocol/venus-protocol/commit/8b55821bc99267e8da8d60eb3eff55f1af44cc95))
+* require statement ([3629618](https://github.com/VenusProtocol/venus-protocol/commit/3629618d750f220cc915d99bf72faa4ab395de0e))
+* resolve comments ([ca4d1da](https://github.com/VenusProtocol/venus-protocol/commit/ca4d1dadb27dc1f20010303b3493a5984547b1a0))
+* resolved conflict ([cac6b1c](https://github.com/VenusProtocol/venus-protocol/commit/cac6b1cd9fe82d348fd8af85a93512dd120f0457))
+* revert config changes ([9e223f1](https://github.com/VenusProtocol/venus-protocol/commit/9e223f131a86e40f8f8725239f8c2f942d050022))
+* revert mainnet url ([4e4dcbc](https://github.com/VenusProtocol/venus-protocol/commit/4e4dcbc23a68404e4d684c8047aa31d01d20f803))
+* tests ([d24f9f6](https://github.com/VenusProtocol/venus-protocol/commit/d24f9f6c444c1bddab18515dc671e5853f556869))
+* trigger ci ([df315ff](https://github.com/VenusProtocol/venus-protocol/commit/df315ff05fc5305da6bf3b166c42aa1f0ce472f2))
+* updated proxy address ([dacce20](https://github.com/VenusProtocol/venus-protocol/commit/dacce2009280bc4989fd1c8d5069115e4407843a))
+* use factory for ACM in tests ([1d1f690](https://github.com/VenusProtocol/venus-protocol/commit/1d1f6903912a3d9f446220879f63c62977618808))
+* use onlyowner ([52f8efd](https://github.com/VenusProtocol/venus-protocol/commit/52f8efd6a9aeb7280e68e47efe983be41993e1d7))
+* VBB-01 ([bc6fd4e](https://github.com/VenusProtocol/venus-protocol/commit/bc6fd4e27232562a80265e4575418e4c5fb8536f))
+* VBN-02 ([04d5e1c](https://github.com/VenusProtocol/venus-protocol/commit/04d5e1c252801e14a7f056f554b556e2abcd5e63))
+* VPI-01 ([c2656c6](https://github.com/VenusProtocol/venus-protocol/commit/c2656c6f0b43a457366d64a4ea364044ed6f8e47))
+
+
+### Reverts
+
+* Revert "refactor: use function instead of modifier" ([ea216cd](https://github.com/VenusProtocol/venus-protocol/commit/ea216cdf7ee1a0ac1f015b5b088c37098e2d9a96))
+
+## [5.1.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v5.1.0-dev.3...v5.1.0-dev.4) (2023-10-31)
+
+
+### Features
+
+* add VToken version two ([6ca872d](https://github.com/VenusProtocol/venus-protocol/commit/6ca872df13dbdb8dbbb30faee46e5c48239d6aa6))
+* refactor storage and interface ([2bb5610](https://github.com/VenusProtocol/venus-protocol/commit/2bb56102da7e2436d80e0493371dcc960e436fc6))
+* remove v2 dependency for VToken ([aa64f64](https://github.com/VenusProtocol/venus-protocol/commit/aa64f647c24288f6ef994b99c11def41bf8129e0))
+* VEN-1214 integrate ACM in vToken ([9be81a5](https://github.com/VenusProtocol/venus-protocol/commit/9be81a5345081948b83fb7dbfbfa7226c243d205))
+
+
+### Bug Fixes
+
+* 1.1 VTokenInterfaces.sol ([e8714c8](https://github.com/VenusProtocol/venus-protocol/commit/e8714c8a98b59a6e87f153e505ecabbea6251c75))
+* 1.2 VToken.sol ([6e5176c](https://github.com/VenusProtocol/venus-protocol/commit/6e5176c0832533d6253c049011bd9137f3db3df1))
+* 12. [Info] Safe Math Function Not Used For Block Delta Calculation ([51bf6fd](https://github.com/VenusProtocol/venus-protocol/commit/51bf6fd75cc337d9c5716c9af4bbf667ca7914c0))
+* 4. [Low] Input Validation ([7f303f5](https://github.com/VenusProtocol/venus-protocol/commit/7f303f505d8278b846565485e4668e41f7206032))
+* BP12 ([4cd97d0](https://github.com/VenusProtocol/venus-protocol/commit/4cd97d0ee5762c36e0a8bd9e13cfae50a01b9ac5))
+* certik VPB-03 Typos and Inconsistencies ([e8fdf1b](https://github.com/VenusProtocol/venus-protocol/commit/e8fdf1b580a176229cebe743d84d26ec79eeeb8b))
+* certik VPB-05 ([df0c07b](https://github.com/VenusProtocol/venus-protocol/commit/df0c07bbead2b7204873ff64719a6617503bfba9))
+* certik VPI-01 MISSING ZERO ADDRESS VALIDATION ([e699b13](https://github.com/VenusProtocol/venus-protocol/commit/e699b139ffe3bd2bb037b48df659811656f98a31))
+* certik: VTV-02 Optimization ([0695114](https://github.com/VenusProtocol/venus-protocol/commit/0695114b8d10fcd46a3abaa76ee397b29bc63e4e))
+* contract size and tests ([42ae2af](https://github.com/VenusProtocol/venus-protocol/commit/42ae2afb00b88a4de41ad0f16496665965714827))
+* FairyProof 2.1 ([cc3231a](https://github.com/VenusProtocol/venus-protocol/commit/cc3231a729a18a1a5fa5deba4944dd956aea8b90))
+* fix natspec comment ([5312427](https://github.com/VenusProtocol/venus-protocol/commit/531242717019d18408ac659f14e3fe622206371b))
+* fixed vBNBAdmin tests ([e6ea28b](https://github.com/VenusProtocol/venus-protocol/commit/e6ea28b9089c7e440e25aef61f88d349593b005e))
+* PVE001 ([a575a70](https://github.com/VenusProtocol/venus-protocol/commit/a575a70d954948d223ec879f5962cb8c188c4b55))
+* require statement ([3629618](https://github.com/VenusProtocol/venus-protocol/commit/3629618d750f220cc915d99bf72faa4ab395de0e))
+* resolve comments ([ca4d1da](https://github.com/VenusProtocol/venus-protocol/commit/ca4d1dadb27dc1f20010303b3493a5984547b1a0))
+* tests ([d24f9f6](https://github.com/VenusProtocol/venus-protocol/commit/d24f9f6c444c1bddab18515dc671e5853f556869))
+
+## [5.1.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v5.1.0-dev.2...v5.1.0-dev.3) (2023-10-24)
+
+
+### Features
+
+* add BUSD liquidator contract ([ecd8a0b](https://github.com/VenusProtocol/venus-protocol/commit/ecd8a0b423d115ab78cc870c7e02e43ad2b0eee8))
+
+
+### Bug Fixes
+
+* [PVE-001] remove redundand approval reset ([592b022](https://github.com/VenusProtocol/venus-protocol/commit/592b022723740c6b7b066445f407f12253d85637))
+* use factory for ACM in tests ([1d1f690](https://github.com/VenusProtocol/venus-protocol/commit/1d1f6903912a3d9f446220879f63c62977618808))
+
+## [5.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v5.1.0-dev.1...v5.1.0-dev.2) (2023-10-24)
+
+## [5.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v5.0.1-dev.1...v5.1.0-dev.1) (2023-10-20)
+
+
+### Features
+
+* add setter for PSR ([04ea03f](https://github.com/VenusProtocol/venus-protocol/commit/04ea03f1ddc7ffb7b78207f81cb0ef622934bda8))
+* added fork tests ([d8b1c9c](https://github.com/VenusProtocol/venus-protocol/commit/d8b1c9cee094b013c7de0442f14dfd965180006c))
+* tests for VBNBAdmin ([88f5adf](https://github.com/VenusProtocol/venus-protocol/commit/88f5adfa28eea7f5a5cb9d05fc7c6718233d371e))
+* vBNBAdmin contract created ([87790de](https://github.com/VenusProtocol/venus-protocol/commit/87790de8148e9369f3aa2a3964f17b9a7f766da6))
+
+
+### Bug Fixes
+
+* add ReservesReduced event ([6e21a37](https://github.com/VenusProtocol/venus-protocol/commit/6e21a37b974977debe1af7889cc6cd3c0ee554bc))
+* added old mainnet proxy admin ([9a5ea84](https://github.com/VenusProtocol/venus-protocol/commit/9a5ea847ac1a429515fde0c5225fe70f1abe59d8))
+* changed storage gap ([511d66c](https://github.com/VenusProtocol/venus-protocol/commit/511d66c6d1b3b6e85a37221c87eae467cb48c0c2))
+* deployment for testnet ([a8450bc](https://github.com/VenusProtocol/venus-protocol/commit/a8450bc46c669460006287b3130f0ae55d25aadf))
+* fix yarn.lock ([f832640](https://github.com/VenusProtocol/venus-protocol/commit/f832640dfbd82b2ca4adf54ef2b8aa7ebe58e0f4))
+* fixed recieve due to 23000 gas limit ([0ea1ed1](https://github.com/VenusProtocol/venus-protocol/commit/0ea1ed147fb853b1d6bd4e8e92e92a7c580d5884))
+* fixed tests ([65e79e5](https://github.com/VenusProtocol/venus-protocol/commit/65e79e567745fe80ddea7a982cc565cba2500a6b))
+* fixed tests ([67a3ac8](https://github.com/VenusProtocol/venus-protocol/commit/67a3ac8f26eee25321bd8240f6a128a74cbb10da))
+* get comptroller from vBNB ([43fd668](https://github.com/VenusProtocol/venus-protocol/commit/43fd6684c038a3b84fe029de349da16c822b2b4c))
+* mainnet deployment ([a237adc](https://github.com/VenusProtocol/venus-protocol/commit/a237adc8b28f8c5566e873bd5313b3c1b847b25b))
+* optimise gas when setting PSR ([1992f80](https://github.com/VenusProtocol/venus-protocol/commit/1992f805e6abe10fc957f357ab5d0192460e86d4))
+* redeploy with correct PSR and Admin proxy ([86677d4](https://github.com/VenusProtocol/venus-protocol/commit/86677d47a0bfc458f72e1797c54a79eac6ee981f))
+* redeployed contracts ([831222d](https://github.com/VenusProtocol/venus-protocol/commit/831222da535a7e0dd91d371236b92cae148a8fee))
+* redeployed mainnet contracts ([a1aaa20](https://github.com/VenusProtocol/venus-protocol/commit/a1aaa2059ce32c9078c9b01bdac301fbe0522b80))
+* redeployed mainnet contracts ([8039d2c](https://github.com/VenusProtocol/venus-protocol/commit/8039d2c148a1de161deb68368427182ba806587d))
+* remove @nomiclabs/hardhat-ethers ([8a27466](https://github.com/VenusProtocol/venus-protocol/commit/8a27466629a8fbac7f5dbac253b04ebbf4585b63))
+* remove acceptVBNBAdmin ([b11d297](https://github.com/VenusProtocol/venus-protocol/commit/b11d2972dbbf9855a7560f26745fae783bc15e7e))
+* remove ownable init ([9bd845f](https://github.com/VenusProtocol/venus-protocol/commit/9bd845fb70711893d7fce2f440d8d58f2848cc76))
+* remove Ownable2StepUpgradeable ([7f54165](https://github.com/VenusProtocol/venus-protocol/commit/7f54165c950d0162112f93386596f16a8a403a6d))
+* remove unwanted import ([8e63e9a](https://github.com/VenusProtocol/venus-protocol/commit/8e63e9a126e4a29071c4bbb4a0d5274227d0a892))
+* removed console.log ([8b55821](https://github.com/VenusProtocol/venus-protocol/commit/8b55821bc99267e8da8d60eb3eff55f1af44cc95))
+* resolved conflict ([cac6b1c](https://github.com/VenusProtocol/venus-protocol/commit/cac6b1cd9fe82d348fd8af85a93512dd120f0457))
+* revert config changes ([9e223f1](https://github.com/VenusProtocol/venus-protocol/commit/9e223f131a86e40f8f8725239f8c2f942d050022))
+* revert mainnet url ([4e4dcbc](https://github.com/VenusProtocol/venus-protocol/commit/4e4dcbc23a68404e4d684c8047aa31d01d20f803))
+* trigger ci ([df315ff](https://github.com/VenusProtocol/venus-protocol/commit/df315ff05fc5305da6bf3b166c42aa1f0ce472f2))
+* updated proxy address ([dacce20](https://github.com/VenusProtocol/venus-protocol/commit/dacce2009280bc4989fd1c8d5069115e4407843a))
+* use onlyowner ([52f8efd](https://github.com/VenusProtocol/venus-protocol/commit/52f8efd6a9aeb7280e68e47efe983be41993e1d7))
+* VBB-01 ([bc6fd4e](https://github.com/VenusProtocol/venus-protocol/commit/bc6fd4e27232562a80265e4575418e4c5fb8536f))
+* VBN-02 ([04d5e1c](https://github.com/VenusProtocol/venus-protocol/commit/04d5e1c252801e14a7f056f554b556e2abcd5e63))
+* VPI-01 ([c2656c6](https://github.com/VenusProtocol/venus-protocol/commit/c2656c6f0b43a457366d64a4ea364044ed6f8e47))
+
+## [5.0.1-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v5.0.0...v5.0.1-dev.1) (2023-10-19)
+
+## [5.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v4.0.0...v5.0.0) (2023-10-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove Governance receipt and governance proposal function and structure
+
+### Features
+
+* add contract with the consolidated interface of the Comptroller Diamond ([41f6725](https://github.com/VenusProtocol/venus-protocol/commit/41f6725459168c58aa53a92e16822d9d37835af8))
+* add mainnet deployment of venus lens ([e4f0f50](https://github.com/VenusProtocol/venus-protocol/commit/e4f0f5015aaa55d0be428acd6cbfabc21b02f789))
+* remove governance contracts VEN-1719 ([55640a1](https://github.com/VenusProtocol/venus-protocol/commit/55640a1303f697dea33b516684d8889f16f439e7))
+* remove Governance receipt and governance proposal function and structure ([ff884bd](https://github.com/VenusProtocol/venus-protocol/commit/ff884bdd3ddf15a0188b2b7ce8702e3e36786adf))
+* updated venus lens deployment ([bfd09b2](https://github.com/VenusProtocol/venus-protocol/commit/bfd09b2a0b938b97fa87784283dbd39eee12e131))
+
+
+### Bug Fixes
+
+* lint ([3f6017d](https://github.com/VenusProtocol/venus-protocol/commit/3f6017d36ae084d20a03c8d1d1d7c9966c30ef34))
+* tests ([8b80a34](https://github.com/VenusProtocol/venus-protocol/commit/8b80a34e7f0950b6adf6dc8ee173860942df4081))
+* venus lens ([7c8f046](https://github.com/VenusProtocol/venus-protocol/commit/7c8f046a36c047f2de2996a696919161f1c1348f))
+
+## [5.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v4.1.0-dev.2...v5.0.0-dev.1) (2023-10-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove Governance receipt and governance proposal function and structure
+
+### Features
+
+* add mainnet deployment of venus lens ([e4f0f50](https://github.com/VenusProtocol/venus-protocol/commit/e4f0f5015aaa55d0be428acd6cbfabc21b02f789))
+* remove governance contracts VEN-1719 ([55640a1](https://github.com/VenusProtocol/venus-protocol/commit/55640a1303f697dea33b516684d8889f16f439e7))
+* remove Governance receipt and governance proposal function and structure ([ff884bd](https://github.com/VenusProtocol/venus-protocol/commit/ff884bdd3ddf15a0188b2b7ce8702e3e36786adf))
+* updated venus lens deployment ([bfd09b2](https://github.com/VenusProtocol/venus-protocol/commit/bfd09b2a0b938b97fa87784283dbd39eee12e131))
+
+
+### Bug Fixes
+
+* lint ([3f6017d](https://github.com/VenusProtocol/venus-protocol/commit/3f6017d36ae084d20a03c8d1d1d7c9966c30ef34))
+* tests ([8b80a34](https://github.com/VenusProtocol/venus-protocol/commit/8b80a34e7f0950b6adf6dc8ee173860942df4081))
+* venus lens ([7c8f046](https://github.com/VenusProtocol/venus-protocol/commit/7c8f046a36c047f2de2996a696919161f1c1348f))
+
+## [4.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v4.1.0-dev.1...v4.1.0-dev.2) (2023-10-10)
+
+## [4.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v4.0.0...v4.1.0-dev.1) (2023-10-09)
+
+
+### Features
+
+* add contract with the consolidated interface of the Comptroller Diamond ([41f6725](https://github.com/VenusProtocol/venus-protocol/commit/41f6725459168c58aa53a92e16822d9d37835af8))
+
+## [4.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v3.1.0...v4.0.0) (2023-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* Removal of comptroller.sol
+
+### Features
+
+* diamond proxy implementation of comptroller ([66f90f4](https://github.com/VenusProtocol/venus-protocol/commit/66f90f4564e73993b7885c4bbd15c8d9d7d74437))
+* force liquidation implementation ([cf9c7cb](https://github.com/VenusProtocol/venus-protocol/commit/cf9c7cb74519ae8fc8c99add9997f63087ac2f96))
+* ven-1619 3.4 added view methods for facets states ([d12981f](https://github.com/VenusProtocol/venus-protocol/commit/d12981f2cbb3962d170d0348ede45a07457419b5))
+
+
+### Bug Fixes
+
+* comptroller diamond test for script ([a87f3e7](https://github.com/VenusProtocol/venus-protocol/commit/a87f3e7aaa86cc29cadf86af971a1b137004cc17))
+* diamond layout test ([3adf806](https://github.com/VenusProtocol/venus-protocol/commit/3adf8064a8d07c993cb7dbeba427c684288bc943))
+* docgen issue ([a46b205](https://github.com/VenusProtocol/venus-protocol/commit/a46b20594e86d09e73f9049205ed8cec57f39896))
+* enter markets return empty array ([c57d257](https://github.com/VenusProtocol/venus-protocol/commit/c57d257e081823d153421467b323b3a385943e49))
+* gas-01 ([e762a5d](https://github.com/VenusProtocol/venus-protocol/commit/e762a5d7f83f378a041053a2b9f4b8e68b72d8be))
+* gas-02 ([b3503c2](https://github.com/VenusProtocol/venus-protocol/commit/b3503c2cf5dcd9e3997c7ad9695eda8390ad550e))
+* gas-06 ([0aea270](https://github.com/VenusProtocol/venus-protocol/commit/0aea270798c1dc7e74293c8de9adc02f2bbb2cf9))
+* lint ([a34816a](https://github.com/VenusProtocol/venus-protocol/commit/a34816aedbd76aa3c6ee113e5d8fa8413124c941))
+* lint ([d09d8d3](https://github.com/VenusProtocol/venus-protocol/commit/d09d8d37d7892609120403806b188be7b36f7d66))
+* lint errors. ([22e3887](https://github.com/VenusProtocol/venus-protocol/commit/22e3887988c0475a83d499898994a96f7b086a26))
+* lint fix ([a41278c](https://github.com/VenusProtocol/venus-protocol/commit/a41278cbd7ede42f382e5f2bfb8632e0ac7df1ca))
+* lint fix ([0f31c2a](https://github.com/VenusProtocol/venus-protocol/commit/0f31c2abaee04d9eab1bcd0bc0878afdd0c4ff1a))
+* lint issues. ([b234a2f](https://github.com/VenusProtocol/venus-protocol/commit/b234a2fe9162ce656a3eb4bb8eca35ea23691dcb))
+* merge branch 'develop' into feat/diamond-proxy ([e6e9ca5](https://github.com/VenusProtocol/venus-protocol/commit/e6e9ca5c1c6a016cce06fd15835798c6beb9dc13))
+* minor issues. ([5601101](https://github.com/VenusProtocol/venus-protocol/commit/56011013738d9ae5f924cb72f28fa016eb2c5ad1))
+* moved diamond's facets script ([a1d991f](https://github.com/VenusProtocol/venus-protocol/commit/a1d991f909800df6505b9b451d4ca0e291c1ba9f))
+* no of optimizer runs ([c9417cf](https://github.com/VenusProtocol/venus-protocol/commit/c9417cf68dca51ec11868b7aef69435c650a71d3))
+* pr comments ([0710b66](https://github.com/VenusProtocol/venus-protocol/commit/0710b66e4e51fc5170eeacd08164b4fb90ab2381))
+* pr comments ([35b5517](https://github.com/VenusProtocol/venus-protocol/commit/35b5517efac7618203782cfb6ff4f4dc0a8e0345))
+* pr comments ([68ef09b](https://github.com/VenusProtocol/venus-protocol/commit/68ef09b6792c90d85d908f0428c79305165fd09d))
+* pr comments, undo unwanted changes ([53a4dec](https://github.com/VenusProtocol/venus-protocol/commit/53a4dec8c9eac735959eb1d8e4c8f9f8205e2b5b))
+* pr comments, used external instead of public ([5cdaa26](https://github.com/VenusProtocol/venus-protocol/commit/5cdaa2632cf88e98986231cf01bc97e8f0ce11a8))
+* removed unwanted checks from setTreasuryData ([6982bc5](https://github.com/VenusProtocol/venus-protocol/commit/6982bc5b621b7b59cbc46796e925aa3bf9b54718))
+* replaced And operator with OR while checking cutoff ([fa26e52](https://github.com/VenusProtocol/venus-protocol/commit/fa26e52206ef47ea59728f90da9cb409149f574a))
+* resolve issues in script files ([2a634fb](https://github.com/VenusProtocol/venus-protocol/commit/2a634fba8fa4d1ef76d1f1197da436772b54eeea))
+* resolve merge conflicts ([e3621e3](https://github.com/VenusProtocol/venus-protocol/commit/e3621e397ff2e5d1b0099f2486d783ab24dcd34b))
+* resolved conflicts ([1f1b0f9](https://github.com/VenusProtocol/venus-protocol/commit/1f1b0f9f09654e8fbb0fa5d522852e7dc7a1ac8b))
+* resolved conflicts ([b4ddc09](https://github.com/VenusProtocol/venus-protocol/commit/b4ddc09dd38eb3eebd650ede4db6b9d984b046c5))
+* resolved conflicts, merged latest develop ([295609e](https://github.com/VenusProtocol/venus-protocol/commit/295609e440286ffc04ec9ca7c0ff9f60885bed39))
+* resolved merge conflicts with develop branch ([249eaee](https://github.com/VenusProtocol/venus-protocol/commit/249eaee4f84dbfe3bc7a9d0fc58dcaa3a69f4b0d))
+* script for unitrollerAddress empty ([1f8263e](https://github.com/VenusProtocol/venus-protocol/commit/1f8263ed005f66d5326da03e7b864736f2eb1db7))
+* script owner rights and facet calls ([7b2eeeb](https://github.com/VenusProtocol/venus-protocol/commit/7b2eeeb5a382d9c87ea6de0d12405adb9e05d9e9))
+* updated yarn.lock ([032cc8e](https://github.com/VenusProtocol/venus-protocol/commit/032cc8e227207932d7159d3437b7502229cff1e4))
+* ven-1619 1.1 unnecessary immutable function ([9ef6b75](https://github.com/VenusProtocol/venus-protocol/commit/9ef6b75b0bcd1198d89043d35ab6d51c7af8e141))
+* ven-1619 2.1 added missing methods ([b5f701f](https://github.com/VenusProtocol/venus-protocol/commit/b5f701f47397866fc068fd3107aa44c05267e131))
+* ven-1619 2.2, 2.3 moved MarketEntered event ([0225801](https://github.com/VenusProtocol/venus-protocol/commit/022580156da867e6f0e15f33da5b2bda332670f4))
+* ven-1619 3.1 re-entrancy check in claimVenus ([8f5eeb5](https://github.com/VenusProtocol/venus-protocol/commit/8f5eeb5ec7492342144c6cda7df079821cb0bb45))
+* ven-1619 3.3 shadowed variables in _setActionsPaused ([c256072](https://github.com/VenusProtocol/venus-protocol/commit/c2560727fd688e6c18ec80a3a5a3587a56b42b30))
+* ven-1630 check for market not as collateral ([05ff797](https://github.com/VenusProtocol/venus-protocol/commit/05ff7979ea182867dea39c104a3e09a8d60c3401))
+* VEN-1686 ([94bc2e4](https://github.com/VenusProtocol/venus-protocol/commit/94bc2e414e33ebf6c05d35c1605dcbd48fa932f5))
+* ven-1699 n1 ([4598d00](https://github.com/VenusProtocol/venus-protocol/commit/4598d0082f6fb5cd76c0c3a10f8062a01b5a15b9))
+* ven-1699 n2 ([13c0a92](https://github.com/VenusProtocol/venus-protocol/commit/13c0a929948bb36e8a64d041ba58f26d5893101f))
+* ven-1699 pve001 ([f285dd1](https://github.com/VenusProtocol/venus-protocol/commit/f285dd133d422de7289be384cb4cc888c655f107))
+* ven-1699 pve002 ([b5ef58e](https://github.com/VenusProtocol/venus-protocol/commit/b5ef58e71e0a3e99146b8062a89074daaa6cd048))
+* ven-1757 vai-01 unnecesary remnant casting ([53a08eb](https://github.com/VenusProtocol/venus-protocol/commit/53a08eb7b0d2ad567842660d76a5a7dc9a0d8a34))
+* ven-1759 ddc-04 ([7417d8f](https://github.com/VenusProtocol/venus-protocol/commit/7417d8f4b17eb156dd44a8b4d8eb6dbf3e6e4015))
+* ven-1759 ddc-04 diamond loupe methods ([c797f14](https://github.com/VenusProtocol/venus-protocol/commit/c797f14e8fba2aed8de3bb917a0721f6ec3080ae))
+* ven-1795 l-02 ([cfaa69a](https://github.com/VenusProtocol/venus-protocol/commit/cfaa69aea6ef1d55c7fc4e457780ca83cd58add1))
+* ven-1795 l-06 ([0aa7e17](https://github.com/VenusProtocol/venus-protocol/commit/0aa7e177fd47cbcb2c22fd8ea66a304ee7692868))
+* ven-1795 n-01 n-03 n-09 ([6d0a33c](https://github.com/VenusProtocol/venus-protocol/commit/6d0a33c3087701593b1470cace558baedaa3e6d1))
+* ven-1795 n-02 ([50761a0](https://github.com/VenusProtocol/venus-protocol/commit/50761a0573b019e6f59269f4ef45821dae955523))
+* ven-1795 n-04 ([0387b34](https://github.com/VenusProtocol/venus-protocol/commit/0387b3415d86d1c4bcb278ab9f3b9f5e9de0d854))
+* ven-1795 n-05 ([5533343](https://github.com/VenusProtocol/venus-protocol/commit/553334311197cce028da3031fe8ce2b281f6898e))
+* ven-1795 n-06 ([847afd7](https://github.com/VenusProtocol/venus-protocol/commit/847afd7f04dd3961eee11b359f0fc5502ea6fd50))
+* ven-1795 n-07 ([4596c2b](https://github.com/VenusProtocol/venus-protocol/commit/4596c2b7693d16a08ae6b1c3f8a5c39240cd33d7))
+* ven-1795 n-08 ([b0f39a1](https://github.com/VenusProtocol/venus-protocol/commit/b0f39a178720d36a570d28b1f8e6aea838dd4fea))
+* ven-1795 n-10 ([4c72e43](https://github.com/VenusProtocol/venus-protocol/commit/4c72e43e1e1264f274c9d5507a690366bb12af18))
+* ven-1795 test for n-08 ([4c72287](https://github.com/VenusProtocol/venus-protocol/commit/4c72287e635fa387e966647ebc445a17e2ab3892))
+* ven-1887 ven-04 ([c60497a](https://github.com/VenusProtocol/venus-protocol/commit/c60497ab220cb483b75df242ffd4fe08439a438e))
+* ven-1887 ven-08 ([b745623](https://github.com/VenusProtocol/venus-protocol/commit/b745623f6bb95b978b8bd3c62fac6fcff5ac277d))
+
+
+### Reverts
+
+* Revert "[VEN-1887]: Quantstamp audit fix for comptroller diamond proxy (#328)" (#337) ([9af2d4a](https://github.com/VenusProtocol/venus-protocol/commit/9af2d4ab1159770c76c50292e7d53025b06c47a3)), closes [#328](https://github.com/VenusProtocol/venus-protocol/issues/328) [#337](https://github.com/VenusProtocol/venus-protocol/issues/337)
+* ven-1795 changes for n-08 ([fd07edd](https://github.com/VenusProtocol/venus-protocol/commit/fd07edd871d4f1199e6676910351b6d2f8c5a760))
+
+## [4.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v3.1.0...v4.0.0-dev.1) (2023-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* Removal of comptroller.sol
+
+### Features
+
+* diamond proxy implementation of comptroller ([66f90f4](https://github.com/VenusProtocol/venus-protocol/commit/66f90f4564e73993b7885c4bbd15c8d9d7d74437))
+* force liquidation implementation ([cf9c7cb](https://github.com/VenusProtocol/venus-protocol/commit/cf9c7cb74519ae8fc8c99add9997f63087ac2f96))
+* ven-1619 3.4 added view methods for facets states ([d12981f](https://github.com/VenusProtocol/venus-protocol/commit/d12981f2cbb3962d170d0348ede45a07457419b5))
+
+
+### Bug Fixes
+
+* comptroller diamond test for script ([a87f3e7](https://github.com/VenusProtocol/venus-protocol/commit/a87f3e7aaa86cc29cadf86af971a1b137004cc17))
+* diamond layout test ([3adf806](https://github.com/VenusProtocol/venus-protocol/commit/3adf8064a8d07c993cb7dbeba427c684288bc943))
+* docgen issue ([a46b205](https://github.com/VenusProtocol/venus-protocol/commit/a46b20594e86d09e73f9049205ed8cec57f39896))
+* enter markets return empty array ([c57d257](https://github.com/VenusProtocol/venus-protocol/commit/c57d257e081823d153421467b323b3a385943e49))
+* gas-01 ([e762a5d](https://github.com/VenusProtocol/venus-protocol/commit/e762a5d7f83f378a041053a2b9f4b8e68b72d8be))
+* gas-02 ([b3503c2](https://github.com/VenusProtocol/venus-protocol/commit/b3503c2cf5dcd9e3997c7ad9695eda8390ad550e))
+* gas-06 ([0aea270](https://github.com/VenusProtocol/venus-protocol/commit/0aea270798c1dc7e74293c8de9adc02f2bbb2cf9))
+* lint ([a34816a](https://github.com/VenusProtocol/venus-protocol/commit/a34816aedbd76aa3c6ee113e5d8fa8413124c941))
+* lint ([d09d8d3](https://github.com/VenusProtocol/venus-protocol/commit/d09d8d37d7892609120403806b188be7b36f7d66))
+* lint errors. ([22e3887](https://github.com/VenusProtocol/venus-protocol/commit/22e3887988c0475a83d499898994a96f7b086a26))
+* lint fix ([a41278c](https://github.com/VenusProtocol/venus-protocol/commit/a41278cbd7ede42f382e5f2bfb8632e0ac7df1ca))
+* lint fix ([0f31c2a](https://github.com/VenusProtocol/venus-protocol/commit/0f31c2abaee04d9eab1bcd0bc0878afdd0c4ff1a))
+* lint issues. ([b234a2f](https://github.com/VenusProtocol/venus-protocol/commit/b234a2fe9162ce656a3eb4bb8eca35ea23691dcb))
+* merge branch 'develop' into feat/diamond-proxy ([e6e9ca5](https://github.com/VenusProtocol/venus-protocol/commit/e6e9ca5c1c6a016cce06fd15835798c6beb9dc13))
+* minor issues. ([5601101](https://github.com/VenusProtocol/venus-protocol/commit/56011013738d9ae5f924cb72f28fa016eb2c5ad1))
+* moved diamond's facets script ([a1d991f](https://github.com/VenusProtocol/venus-protocol/commit/a1d991f909800df6505b9b451d4ca0e291c1ba9f))
+* no of optimizer runs ([c9417cf](https://github.com/VenusProtocol/venus-protocol/commit/c9417cf68dca51ec11868b7aef69435c650a71d3))
+* pr comments ([0710b66](https://github.com/VenusProtocol/venus-protocol/commit/0710b66e4e51fc5170eeacd08164b4fb90ab2381))
+* pr comments ([35b5517](https://github.com/VenusProtocol/venus-protocol/commit/35b5517efac7618203782cfb6ff4f4dc0a8e0345))
+* pr comments ([68ef09b](https://github.com/VenusProtocol/venus-protocol/commit/68ef09b6792c90d85d908f0428c79305165fd09d))
+* pr comments, undo unwanted changes ([53a4dec](https://github.com/VenusProtocol/venus-protocol/commit/53a4dec8c9eac735959eb1d8e4c8f9f8205e2b5b))
+* pr comments, used external instead of public ([5cdaa26](https://github.com/VenusProtocol/venus-protocol/commit/5cdaa2632cf88e98986231cf01bc97e8f0ce11a8))
+* removed unwanted checks from setTreasuryData ([6982bc5](https://github.com/VenusProtocol/venus-protocol/commit/6982bc5b621b7b59cbc46796e925aa3bf9b54718))
+* replaced And operator with OR while checking cutoff ([fa26e52](https://github.com/VenusProtocol/venus-protocol/commit/fa26e52206ef47ea59728f90da9cb409149f574a))
+* resolve issues in script files ([2a634fb](https://github.com/VenusProtocol/venus-protocol/commit/2a634fba8fa4d1ef76d1f1197da436772b54eeea))
+* resolve merge conflicts ([e3621e3](https://github.com/VenusProtocol/venus-protocol/commit/e3621e397ff2e5d1b0099f2486d783ab24dcd34b))
+* resolved conflicts ([1f1b0f9](https://github.com/VenusProtocol/venus-protocol/commit/1f1b0f9f09654e8fbb0fa5d522852e7dc7a1ac8b))
+* resolved conflicts ([b4ddc09](https://github.com/VenusProtocol/venus-protocol/commit/b4ddc09dd38eb3eebd650ede4db6b9d984b046c5))
+* resolved conflicts, merged latest develop ([295609e](https://github.com/VenusProtocol/venus-protocol/commit/295609e440286ffc04ec9ca7c0ff9f60885bed39))
+* resolved merge conflicts with develop branch ([249eaee](https://github.com/VenusProtocol/venus-protocol/commit/249eaee4f84dbfe3bc7a9d0fc58dcaa3a69f4b0d))
+* script for unitrollerAddress empty ([1f8263e](https://github.com/VenusProtocol/venus-protocol/commit/1f8263ed005f66d5326da03e7b864736f2eb1db7))
+* script owner rights and facet calls ([7b2eeeb](https://github.com/VenusProtocol/venus-protocol/commit/7b2eeeb5a382d9c87ea6de0d12405adb9e05d9e9))
+* updated yarn.lock ([032cc8e](https://github.com/VenusProtocol/venus-protocol/commit/032cc8e227207932d7159d3437b7502229cff1e4))
+* ven-1619 1.1 unnecessary immutable function ([9ef6b75](https://github.com/VenusProtocol/venus-protocol/commit/9ef6b75b0bcd1198d89043d35ab6d51c7af8e141))
+* ven-1619 2.1 added missing methods ([b5f701f](https://github.com/VenusProtocol/venus-protocol/commit/b5f701f47397866fc068fd3107aa44c05267e131))
+* ven-1619 2.2, 2.3 moved MarketEntered event ([0225801](https://github.com/VenusProtocol/venus-protocol/commit/022580156da867e6f0e15f33da5b2bda332670f4))
+* ven-1619 3.1 re-entrancy check in claimVenus ([8f5eeb5](https://github.com/VenusProtocol/venus-protocol/commit/8f5eeb5ec7492342144c6cda7df079821cb0bb45))
+* ven-1619 3.3 shadowed variables in _setActionsPaused ([c256072](https://github.com/VenusProtocol/venus-protocol/commit/c2560727fd688e6c18ec80a3a5a3587a56b42b30))
+* ven-1630 check for market not as collateral ([05ff797](https://github.com/VenusProtocol/venus-protocol/commit/05ff7979ea182867dea39c104a3e09a8d60c3401))
+* VEN-1686 ([94bc2e4](https://github.com/VenusProtocol/venus-protocol/commit/94bc2e414e33ebf6c05d35c1605dcbd48fa932f5))
+* ven-1699 n1 ([4598d00](https://github.com/VenusProtocol/venus-protocol/commit/4598d0082f6fb5cd76c0c3a10f8062a01b5a15b9))
+* ven-1699 n2 ([13c0a92](https://github.com/VenusProtocol/venus-protocol/commit/13c0a929948bb36e8a64d041ba58f26d5893101f))
+* ven-1699 pve001 ([f285dd1](https://github.com/VenusProtocol/venus-protocol/commit/f285dd133d422de7289be384cb4cc888c655f107))
+* ven-1699 pve002 ([b5ef58e](https://github.com/VenusProtocol/venus-protocol/commit/b5ef58e71e0a3e99146b8062a89074daaa6cd048))
+* ven-1757 vai-01 unnecesary remnant casting ([53a08eb](https://github.com/VenusProtocol/venus-protocol/commit/53a08eb7b0d2ad567842660d76a5a7dc9a0d8a34))
+* ven-1759 ddc-04 ([7417d8f](https://github.com/VenusProtocol/venus-protocol/commit/7417d8f4b17eb156dd44a8b4d8eb6dbf3e6e4015))
+* ven-1759 ddc-04 diamond loupe methods ([c797f14](https://github.com/VenusProtocol/venus-protocol/commit/c797f14e8fba2aed8de3bb917a0721f6ec3080ae))
+* ven-1795 l-02 ([cfaa69a](https://github.com/VenusProtocol/venus-protocol/commit/cfaa69aea6ef1d55c7fc4e457780ca83cd58add1))
+* ven-1795 l-06 ([0aa7e17](https://github.com/VenusProtocol/venus-protocol/commit/0aa7e177fd47cbcb2c22fd8ea66a304ee7692868))
+* ven-1795 n-01 n-03 n-09 ([6d0a33c](https://github.com/VenusProtocol/venus-protocol/commit/6d0a33c3087701593b1470cace558baedaa3e6d1))
+* ven-1795 n-02 ([50761a0](https://github.com/VenusProtocol/venus-protocol/commit/50761a0573b019e6f59269f4ef45821dae955523))
+* ven-1795 n-04 ([0387b34](https://github.com/VenusProtocol/venus-protocol/commit/0387b3415d86d1c4bcb278ab9f3b9f5e9de0d854))
+* ven-1795 n-05 ([5533343](https://github.com/VenusProtocol/venus-protocol/commit/553334311197cce028da3031fe8ce2b281f6898e))
+* ven-1795 n-06 ([847afd7](https://github.com/VenusProtocol/venus-protocol/commit/847afd7f04dd3961eee11b359f0fc5502ea6fd50))
+* ven-1795 n-07 ([4596c2b](https://github.com/VenusProtocol/venus-protocol/commit/4596c2b7693d16a08ae6b1c3f8a5c39240cd33d7))
+* ven-1795 n-08 ([b0f39a1](https://github.com/VenusProtocol/venus-protocol/commit/b0f39a178720d36a570d28b1f8e6aea838dd4fea))
+* ven-1795 n-10 ([4c72e43](https://github.com/VenusProtocol/venus-protocol/commit/4c72e43e1e1264f274c9d5507a690366bb12af18))
+* ven-1795 test for n-08 ([4c72287](https://github.com/VenusProtocol/venus-protocol/commit/4c72287e635fa387e966647ebc445a17e2ab3892))
+* ven-1887 ven-04 ([c60497a](https://github.com/VenusProtocol/venus-protocol/commit/c60497ab220cb483b75df242ffd4fe08439a438e))
+* ven-1887 ven-08 ([b745623](https://github.com/VenusProtocol/venus-protocol/commit/b745623f6bb95b978b8bd3c62fac6fcff5ac277d))
+
+
+### Reverts
+
+* Revert "[VEN-1887]: Quantstamp audit fix for comptroller diamond proxy (#328)" (#337) ([9af2d4a](https://github.com/VenusProtocol/venus-protocol/commit/9af2d4ab1159770c76c50292e7d53025b06c47a3)), closes [#328](https://github.com/VenusProtocol/venus-protocol/issues/328) [#337](https://github.com/VenusProtocol/venus-protocol/issues/337)
+* ven-1795 changes for n-08 ([fd07edd](https://github.com/VenusProtocol/venus-protocol/commit/fd07edd871d4f1199e6676910351b6d2f8c5a760))
+
+## [3.1.0](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0...v3.1.0) (2023-09-22)
+
+
+### Features
+
+* implement forced liqudations and optimize aggressively ([71afed8](https://github.com/VenusProtocol/venus-protocol/commit/71afed80aa291d277c4a9e93cae779fdc1fe965f))
+
+## [3.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v3.1.0-dev.1...v3.1.0-dev.2) (2023-09-20)
+
+## [3.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v3.0.0...v3.1.0-dev.1) (2023-09-18)
+
+
+### Features
+
+* implement forced liqudations and optimize aggressively ([71afed8](https://github.com/VenusProtocol/venus-protocol/commit/71afed80aa291d277c4a9e93cae779fdc1fe965f))
+
 ## [3.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v2.2.1...v3.0.0) (2023-09-07)
 
 

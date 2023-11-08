@@ -6,8 +6,8 @@ import { ContractTransaction, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import {
-  Comptroller,
-  Comptroller__factory,
+  ComptrollerMock,
+  ComptrollerMock__factory,
   EchoTypesComptroller,
   EchoTypesComptroller__factory,
   Unitroller,
@@ -22,10 +22,10 @@ describe("Unitroller", () => {
   let root: SignerWithAddress;
   let accounts: SignerWithAddress[];
   let unitroller: MockContract<Unitroller>;
-  let brains: MockContract<Comptroller>;
+  let brains: MockContract<ComptrollerMock>;
 
   async function unitrollerFixture() {
-    const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+    const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
     const UnitrollerFactory = await smock.mock<Unitroller__factory>("Unitroller");
     brains = await ComptrollerFactory.deploy();
     unitroller = await UnitrollerFactory.deploy();
