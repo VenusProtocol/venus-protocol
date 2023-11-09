@@ -71,6 +71,15 @@ const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
   const [, supplier, borrower, someone, treasury] = await ethers.getSigners();
   const { comptroller, vTokens, vBNB } = await deployComptrollerWithMarkets({ numBep20Tokens: 2 });
   const [vBUSD, vCollateral] = vTokens;
+  const zeroRateModel = await deployJumpRateModel({
+    baseRatePerYear: 0,
+    multiplierPerYear: 0,
+    jumpMultiplierPerYear: 0,
+    kink: 0,
+  });
+  await zeroRateModel.deployed();
+  await vBUSD._setInterestRateModel(zeroRateModel.address);
+
   await deployLiquidatorContract({
     comptroller,
     vBNB,
