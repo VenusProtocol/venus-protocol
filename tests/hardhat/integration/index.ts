@@ -210,7 +210,6 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       2,
       accessControl.address,
       primeLiquidityProvider.address,
-      comptroller.address,
       oracle.address,
       10,
     ],
@@ -226,9 +225,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   await prime.setLimit(1000, 1000);
 
-  await prime.addMarket(vusdt.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
+  await prime.addMarket(comptroller.address, vusdt.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
-  await prime.addMarket(veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
+  await prime.addMarket(comptroller.address, veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
   await comptroller._setPrimeToken(prime.address);
 
