@@ -4,7 +4,7 @@ pragma solidity 0.5.16;
 
 import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
 import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV14Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { ComptrollerV15Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
@@ -14,13 +14,7 @@ import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
  * @author Venus
  * @notice This facet contract contains functions related to access and checks
  */
-contract FacetBase is ComptrollerV14Storage, ExponentialNoError, ComptrollerErrorReporter {
-    /// @notice Emitted when an account enters a market
-    event MarketEntered(VToken indexed vToken, address indexed account);
-
-    /// @notice Emitted when XVS is distributed to VAI Vault
-    event DistributedVAIVaultVenus(uint256 amount);
-
+contract FacetBase is ComptrollerV15Storage, ExponentialNoError, ComptrollerErrorReporter {
     using SafeBEP20 for IBEP20;
 
     /// @notice The initial Venus index for a market
@@ -31,6 +25,12 @@ contract FacetBase is ComptrollerV14Storage, ExponentialNoError, ComptrollerErro
     uint256 internal constant closeFactorMaxMantissa = 0.9e18; // 0.9
     // No collateralFactorMantissa may exceed this value
     uint256 internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
+
+    /// @notice Emitted when an account enters a market
+    event MarketEntered(VToken indexed vToken, address indexed account);
+
+    /// @notice Emitted when XVS is distributed to VAI Vault
+    event DistributedVAIVaultVenus(uint256 amount);
 
     /// @notice Reverts if the protocol is paused
     function checkProtocolPauseState() internal view {

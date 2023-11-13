@@ -239,6 +239,7 @@ contract ComptrollerV11Storage is ComptrollerV10Storage {
 }
 
 contract ComptrollerV12Storage is ComptrollerV11Storage {
+    /// @notice Whether forced liquidation is enabled for all users borrowing in a certain market
     mapping(address => bool) public isForcedLiquidationEnabled;
 }
 
@@ -263,4 +264,9 @@ contract ComptrollerV13Storage is ComptrollerV12Storage {
 contract ComptrollerV14Storage is ComptrollerV13Storage {
     /// @notice Prime token address
     IPrime public prime;
+}
+
+contract ComptrollerV15Storage is ComptrollerV14Storage {
+    /// @notice Whether forced liquidation is enabled for the borrows of a user in a market
+    mapping(address /* user */ => mapping(address /* market */ => bool)) public isForcedLiquidationEnabledForUser;
 }
