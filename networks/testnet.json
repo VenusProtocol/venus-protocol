@@ -61,7 +61,8 @@
     "SwapRouterDefi": "0x76B88ff4579B35D2722B7383b9B9ce831dc89B72",
     "SwapRouterStableCoins": "0x6cE131c2321e25d7b4C63283b75DB160Ce3Fb710",
     "SwapRouterTronFamily": "0x51Fd03aD1132e8cb5a5a793528c9F4ec918667d4",
-    "SwapRouterGamefi": "0xFdeBF4530F9c7d352ffFE88cd0e96C8Bb7391BD9"
+    "SwapRouterGamefi": "0xFdeBF4530F9c7d352ffFE88cd0e96C8Bb7391BD9",
+    "Prime": "0xe840F8EC2Dc50E7D22e5e2991975b9F6e34b62Ad"
   },
   "Accounts": {
     "admin": "0xfea1c651a47fe29db9b1bf3cc1f224d8d9cff68c",
