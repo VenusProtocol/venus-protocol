@@ -1,3 +1,10 @@
+## [5.2.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v5.2.0-dev.1...v5.2.0-dev.2) (2023-11-14)
+
+
+### Features
+
+* add Prime addresses ([aa181c0](https://github.com/VenusProtocol/venus-protocol/commit/aa181c0cc4746b8029bc202c2dcb9179bd7e94f5))
+
 ## [5.2.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v5.1.0...v5.2.0-dev.1) (2023-11-14)
 
 
