@@ -6,6 +6,7 @@ import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { PriceOracle } from "../Oracle/PriceOracle.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
+import { IPrime } from "../Tokens/Prime/IPrime.sol";
 
 contract UnitrollerAdminStorage {
     /**
@@ -257,4 +258,9 @@ contract ComptrollerV13Storage is ComptrollerV12Storage {
     mapping(address => FacetFunctionSelectors) internal _facetFunctionSelectors;
     // facet addresses
     address[] internal _facetAddresses;
+}
+
+contract ComptrollerV14Storage is ComptrollerV13Storage {
+    /// @notice Prime token address
+    IPrime public prime;
 }

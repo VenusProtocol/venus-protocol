@@ -2,6 +2,7 @@ pragma solidity ^0.5.16;
 
 import "../Utils/SafeMath.sol";
 import "../Utils/IBEP20.sol";
+import "../Tokens/Prime/IPrime.sol";
 
 contract XVSVaultAdminStorage {
     /**
@@ -122,10 +123,19 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
     /// @notice Amount we owe to users because of failed transfer attempts
     mapping(address => mapping(address => uint256)) public pendingRewardTransfers;
 
+    /// @notice Prime token contract address
+    IPrime public primeToken;
+
+    /// @notice Reward token for which prime token is issued for staking
+    address public primeRewardToken;
+
+    /// @notice Pool ID for which prime token is issued for staking
+    uint256 public primePoolId;
+
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[49] private __gap;
+    uint256[46] private __gap;
 }

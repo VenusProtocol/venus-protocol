@@ -7,6 +7,7 @@ import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
 import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
 import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
 import { FacetBase, VToken } from "./FacetBase.sol";
+import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
 
 /**
  * @title SetterFacet
@@ -75,6 +76,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /// @notice Emitted when Venus VAI Vault rate is changed
     event NewVenusVAIVaultRate(uint256 oldVenusVAIVaultRate, uint256 newVenusVAIVaultRate);
+
+    /// @notice Emitted when prime token contract address is changed
+    event NewPrimeToken(IPrime oldPrimeToken, IPrime newPrimeToken);
 
     /// @notice Emitted when force liquidation enabled for a market
     event IsForcedLiquidationEnabledUpdated(address indexed vToken, bool enable);
@@ -516,8 +520,23 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @notice Enables forced liquidations for a market. If forced liquidation is enabled,
+     * @notice Sets the prime token contract for the comptroller
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function _setPrimeToken(IPrime _prime) external returns (uint) {
+        ensureAdmin();
+        ensureNonzeroAddress(address(_prime));
+
+        IPrime oldPrime = prime;
+        prime = _prime;
+        emit NewPrimeToken(oldPrime, _prime);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /** @notice Enables forced liquidations for a market. If forced liquidation is enabled,
      * borrows in the market may be liquidated regardless of the account liquidity
+     * @dev Allows a privileged role to set enable/disable forced liquidations
      * @param vTokenBorrowed Borrowed vToken
      * @param enable Whether to enable forced liquidations
      */
