@@ -76,11 +76,9 @@ Contract tests are defined under the [tests directory](https://github.com/VenusP
 
 ```
 
-## Testing
-
-Contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
-
     yarn test
+
+```
 
 - To run fork tests add `FORK_MAINNET=true` and `BSC_ARCHIVE_NODE_URL `in the `.env` file.
 
@@ -179,4 +177,3 @@ For any concerns with the protocol, open an issue or visit us on [Telegram](http
 For security concerns, please contact the administrators of our telegram chat.
 
 © Copyright 2023, Venus Protocol
-```
