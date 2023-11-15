@@ -107,6 +107,16 @@ npx hardhat deploy
   - In the deployment scripts you have added `tags` for example: - `func.tags = ["MockTokens"];`
   - Once this is done, adding `--tags "<tag_name>,<tag_name>..."` to the deployment command will execute only the scripts containing the tags.
 
+### Deployed Contracts
+
+Contract addresses deployed before `hardhat-deploy` was adopted are available in the `networking` directory in JSON files by network name.
+
+Contract addresses and abis deployed with hardhat deploy are exported in the `deployments` directory. To create a summary export of all contracts deployed to a network run.
+
+```
+$ yarn hardhat --network <network-name> --export ./deployments/<network-name>.json
+```
+
 ### Source Code Verification
 
 In order to verify the source code of already deployed contracts, run:
