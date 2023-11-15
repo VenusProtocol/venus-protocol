@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
@@ -6,6 +8,7 @@ import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
 import "./XVSVaultStorage.sol";
 import "./XVSVaultErrorReporter.sol";
+import "../Tokens/Prime/IPrime.sol";
 import "../Utils/SafeCast.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
 
@@ -83,6 +86,16 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         address indexed userAddress,
         uint256 oldOwedAmount,
         uint256 newOwedAmount
+    );
+
+    /// @notice Emitted when prime token contract address is changed
+    event NewPrimeToken(
+        IPrime indexed oldPrimeToken,
+        IPrime indexed newPrimeToken,
+        address oldPrimeRewardToken,
+        address newPrimeRewardToken,
+        uint256 oldPrimePoolId,
+        uint256 newPrimePoolId
     );
 
     constructor() public {
@@ -283,6 +296,10 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
             _moveDelegates(address(0), delegates[msg.sender], safe96(_amount, "XVSVault::deposit: votes overflow"));
         }
 
+        if (primeRewardToken == _rewardToken && _pid == primePoolId) {
+            primeToken.xvsUpdated(msg.sender);
+        }
+
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
     }
 
@@ -480,6 +497,10 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
                 address(0),
                 safe96(_amount, "XVSVault::requestWithdrawal: votes overflow")
             );
+        }
+
+        if (primeRewardToken == _rewardToken && _pid == primePoolId) {
+            primeToken.xvsUpdated(msg.sender);
         }
 
         emit Claim(msg.sender, _rewardToken, _pid, pending);
@@ -843,6 +864,25 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         _notEntered = true;
 
         emit StoreUpdated(oldXvsContract, oldStore, _xvs, _xvsStore);
+    }
+
+    /**
+     * @notice Sets the address of the prime token contract
+     * @param _primeToken address of the prime token contract
+     * @param _primeRewardToken address of reward token
+     * @param _primePoolId pool id for reward
+     */
+    function setPrimeToken(IPrime _primeToken, address _primeRewardToken, uint256 _primePoolId) external onlyAdmin {
+        require(address(_primeToken) != address(0), "prime token cannot be zero address");
+        require(_primeRewardToken != address(0), "reward cannot be zero address");
+
+        _ensureValidPool(_primeRewardToken, _primePoolId);
+
+        emit NewPrimeToken(primeToken, _primeToken, primeRewardToken, _primeRewardToken, primePoolId, _primePoolId);
+
+        primeToken = _primeToken;
+        primeRewardToken = _primeRewardToken;
+        primePoolId = _primePoolId;
     }
 
     /**

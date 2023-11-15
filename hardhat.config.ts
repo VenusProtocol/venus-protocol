@@ -6,7 +6,6 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
-import { ethers } from "ethers";
 import fs from "fs";
 import "hardhat-deploy";
 import { HardhatUserConfig, task } from "hardhat/config";
@@ -98,7 +97,6 @@ const config: HardhatUserConfig = {
       accounts: {
         mnemonic: process.env.MNEMONIC || "",
       },
-      gasPrice: ethers.utils.parseUnits("10", "gwei").toNumber(),
       gasMultiplier: 10,
       timeout: 12000000,
     },

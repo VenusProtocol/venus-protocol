@@ -48,13 +48,18 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates mint and reverts on rejection. May emit logs.
+     * @notice Validates mint, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vToken Asset being minted
      * @param minter The address minting the tokens
      * @param actualMintAmount The amount of the underlying asset being minted
      * @param mintTokens The number of tokens being minted
      */
-    function mintVerify(address vToken, address minter, uint256 actualMintAmount, uint256 mintTokens) external {}
+    // solhint-disable-next-line no-unused-vars
+    function mintVerify(address vToken, address minter, uint256 actualMintAmount, uint256 mintTokens) external {
+        if (address(prime) != address(0)) {
+            prime.accrueInterestAndUpdateScore(minter, vToken);
+        }
+    }
 
     /**
      * @notice Checks if the account should be allowed to redeem tokens in the given market
@@ -80,15 +85,17 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates redeem and reverts on rejection. May emit log
+     * @notice Validates redeem, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vToken Asset being redeemed
      * @param redeemer The address redeeming the tokens
      * @param redeemAmount The amount of the underlying asset being redeemed
      * @param redeemTokens The number of tokens being redeemed
      */
-    // solhint-disable-next-line no-unused-vars
-    function redeemVerify(address vToken, address redeemer, uint256 redeemAmount, uint256 redeemTokens) external pure {
+    function redeemVerify(address vToken, address redeemer, uint256 redeemAmount, uint256 redeemTokens) external {
         require(redeemTokens != 0 || redeemAmount == 0, "redeemTokens zero");
+        if (address(prime) != address(0)) {
+            prime.accrueInterestAndUpdateScore(redeemer, vToken);
+        }
     }
 
     /**
@@ -149,13 +156,17 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates borrow and reverts on rejection. May emit log
+     * @notice Validates borrow, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vToken Asset whose underlying is being borrowed
      * @param borrower The address borrowing the underlying
      * @param borrowAmount The amount of the underlying asset requested to borrow
      */
     // solhint-disable-next-line no-unused-vars
-    function borrowVerify(address vToken, address borrower, uint256 borrowAmount) external {}
+    function borrowVerify(address vToken, address borrower, uint256 borrowAmount) external {
+        if (address(prime) != address(0)) {
+            prime.accrueInterestAndUpdateScore(borrower, vToken);
+        }
+    }
 
     /**
      * @notice Checks if the account should be allowed to repay a borrow in the given market
@@ -167,11 +178,9 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function repayBorrowAllowed(
         address vToken,
-        // solhint-disable-next-line no-unused-vars
-        address payer,
+        address payer, // solhint-disable-line no-unused-vars
         address borrower,
-        // solhint-disable-next-line no-unused-vars
-        uint256 repayAmount
+        uint256 repayAmount // solhint-disable-line no-unused-vars
     ) external returns (uint256) {
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.REPAY);
@@ -186,7 +195,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates repayBorrow and reverts on rejection. May emit log
+     * @notice Validates repayBorrow, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vToken Asset being repaid
      * @param payer The address repaying the borrow
      * @param borrower The address of the borrower
@@ -194,11 +203,15 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function repayBorrowVerify(
         address vToken,
-        address payer,
+        address payer, // solhint-disable-line no-unused-vars
         address borrower,
-        uint256 actualRepayAmount,
-        uint256 borrowerIndex
-    ) external {}
+        uint256 actualRepayAmount, // solhint-disable-line no-unused-vars
+        uint256 borrowerIndex // solhint-disable-line no-unused-vars
+    ) external {
+        if (address(prime) != address(0)) {
+            prime.accrueInterestAndUpdateScore(borrower, vToken);
+        }
+    }
 
     /**
      * @notice Checks if the liquidation should be allowed to occur
@@ -260,7 +273,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates liquidateBorrow and reverts on rejection. May emit logs.
+     * @notice Validates liquidateBorrow, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vTokenBorrowed Asset which was borrowed by the borrower
      * @param vTokenCollateral Asset which was used as collateral and will be seized
      * @param liquidator The address repaying the borrow and seizing the collateral
@@ -270,12 +283,17 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function liquidateBorrowVerify(
         address vTokenBorrowed,
-        address vTokenCollateral,
+        address vTokenCollateral, // solhint-disable-line no-unused-vars
         address liquidator,
         address borrower,
-        uint256 actualRepayAmount,
-        uint256 seizeTokens
-    ) external {}
+        uint256 actualRepayAmount, // solhint-disable-line no-unused-vars
+        uint256 seizeTokens // solhint-disable-line no-unused-vars
+    ) external {
+        if (address(prime) != address(0)) {
+            prime.accrueInterestAndUpdateScore(borrower, vTokenBorrowed);
+            prime.accrueInterestAndUpdateScore(liquidator, vTokenBorrowed);
+        }
+    }
 
     /**
      * @notice Checks if the seizing of assets should be allowed to occur
@@ -322,21 +340,25 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates seize and reverts on rejection. May emit log
+     * @notice Validates seize, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vTokenCollateral Asset which was used as collateral and will be seized
      * @param vTokenBorrowed Asset which was borrowed by the borrower
      * @param liquidator The address repaying the borrow and seizing the collateral
      * @param borrower The address of the borrower
      * @param seizeTokens The number of collateral tokens to seize
      */
-    // solhint-disable-next-line no-unused-vars
     function seizeVerify(
         address vTokenCollateral,
-        address vTokenBorrowed,
+        address vTokenBorrowed, // solhint-disable-line no-unused-vars
         address liquidator,
         address borrower,
-        uint256 seizeTokens
-    ) external {}
+        uint256 seizeTokens // solhint-disable-line no-unused-vars
+    ) external {
+        if (address(prime) != address(0)) {
+            prime.accrueInterestAndUpdateScore(borrower, vTokenCollateral);
+            prime.accrueInterestAndUpdateScore(liquidator, vTokenCollateral);
+        }
+    }
 
     /**
      * @notice Checks if the account should be allowed to transfer tokens in the given market
@@ -372,14 +394,19 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Validates transfer and reverts on rejection. May emit log
+     * @notice Validates transfer, accrues interest and updates score in prime. Reverts on rejection. May emit logs.
      * @param vToken Asset being transferred
      * @param src The account which sources the tokens
      * @param dst The account which receives the tokens
      * @param transferTokens The number of vTokens to transfer
      */
     // solhint-disable-next-line no-unused-vars
-    function transferVerify(address vToken, address src, address dst, uint256 transferTokens) external {}
+    function transferVerify(address vToken, address src, address dst, uint256 transferTokens) external {
+        if (address(prime) != address(0)) {
+            prime.accrueInterestAndUpdateScore(src, vToken);
+            prime.accrueInterestAndUpdateScore(dst, vToken);
+        }
+    }
 
     /**
      * @notice Determine the current account liquidity wrt collateral requirements

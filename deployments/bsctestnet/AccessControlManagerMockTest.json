@@ -1,0 +1,104 @@
+{
+  "address": "0x4eA05Cb383a258212C46D19299d6e7F14D79fDEC",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_owner",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "internalType": "string",
+          "name": "functionSig",
+          "type": "string"
+        }
+      ],
+      "name": "isAllowedToCall",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x2bbb93b5c0edd89107f3b96ac7f0099cd316a5ed8d774e8dd6ae360db2ceb130",
+  "receipt": {
+    "to": null,
+    "from": "0x2Ce1d0ffD7E869D9DF33e28552b12DdDed326706",
+    "contractAddress": "0x4eA05Cb383a258212C46D19299d6e7F14D79fDEC",
+    "transactionIndex": 1,
+    "gasUsed": "160392",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x2e28b1de8df664ca5af96c7cfb9f9ce67660ed3bf0b6f22057b61a5860f8b9b0",
+    "transactionHash": "0x2bbb93b5c0edd89107f3b96ac7f0099cd316a5ed8d774e8dd6ae360db2ceb130",
+    "logs": [],
+    "blockNumber": 34659733,
+    "cumulativeGasUsed": "184337",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": ["0x2Ce1d0ffD7E869D9DF33e28552b12DdDed326706"],
+  "numDeployments": 1,
+  "solcInputHash": "5c33d0845ae574d152662efa27eedc9f",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.13+commit.abaa5c0e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"functionSig\",\"type\":\"string\"}],\"name\":\"isAllowedToCall\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/test/AccessControlManagerMock.sol\":\"AccessControlManagerMock\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/test/AccessControlManagerMock.sol\":{\"content\":\"// SPDX-License-Identifier: BSD-3-Clause\\npragma solidity 0.8.13;\\n\\ncontract AccessControlManagerMock {\\n    address public owner;\\n\\n    constructor(address _owner) {\\n        owner = _owner;\\n    }\\n\\n    function isAllowedToCall(address account, string calldata functionSig) public view returns (bool) {\\n        if (account == owner) {\\n            return true;\\n        }\\n\\n        return false;\\n    }\\n}\\n\",\"keccak256\":\"0xf15184c9a43eccbb74ddafb9a6d317090519d7efcc6792e512f48fc968a4fc2c\",\"license\":\"BSD-3-Clause\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b5060405161021238038061021283398101604081905261002f91610054565b600080546001600160a01b0319166001600160a01b0392909216919091179055610084565b60006020828403121561006657600080fd5b81516001600160a01b038116811461007d57600080fd5b9392505050565b61017f806100936000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c806318c5e8ab1461003b5780638da5cb5b14610063575b600080fd5b61004e6100493660046100b8565b61008e565b60405190151581526020015b60405180910390f35b600054610076906001600160a01b031681565b6040516001600160a01b03909116815260200161005a565b600080546001600160a01b03908116908516036100ad575060016100b1565b5060005b9392505050565b6000806000604084860312156100cd57600080fd5b83356001600160a01b03811681146100e457600080fd5b9250602084013567ffffffffffffffff8082111561010157600080fd5b818601915086601f83011261011557600080fd5b81358181111561012457600080fd5b87602082850101111561013657600080fd5b602083019450809350505050925092509256fea26469706673582212208c9d6a9a6e6cacfa059785106d03e8bc905e91be8fb503b4558e74828b2a2ac064736f6c634300080d0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100365760003560e01c806318c5e8ab1461003b5780638da5cb5b14610063575b600080fd5b61004e6100493660046100b8565b61008e565b60405190151581526020015b60405180910390f35b600054610076906001600160a01b031681565b6040516001600160a01b03909116815260200161005a565b600080546001600160a01b03908116908516036100ad575060016100b1565b5060005b9392505050565b6000806000604084860312156100cd57600080fd5b83356001600160a01b03811681146100e457600080fd5b9250602084013567ffffffffffffffff8082111561010157600080fd5b818601915086601f83011261011557600080fd5b81358181111561012457600080fd5b87602082850101111561013657600080fd5b602083019450809350505050925092509256fea26469706673582212208c9d6a9a6e6cacfa059785106d03e8bc905e91be8fb503b4558e74828b2a2ac064736f6c634300080d0033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 3,
+        "contract": "contracts/test/AccessControlManagerMock.sol:AccessControlManagerMock",
+        "label": "owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    }
+  }
+}

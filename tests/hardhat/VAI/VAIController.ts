@@ -285,9 +285,9 @@ describe("VAIController", async () => {
 
     it("success for zero rate 0.2 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
-      await vaiController.harnessSetBlockNumber(BigNumber.from(100000));
+      await vaiController.harnessSetBlockNumber(BigNumber.from(100000000));
       await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
-      await mineUpTo(99999);
+      await mineUpTo(99999999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
       expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
@@ -296,14 +296,14 @@ describe("VAIController", async () => {
     it("success for 1.2 rate 0.3 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
 
-      const TEMP_BLOCKS_PER_YEAR = 100000;
+      const TEMP_BLOCKS_PER_YEAR = 100000000;
       await vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
 
       await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
 
       await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
-      await mineUpTo(99999);
+      await mineUpTo(99999999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
       expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(50));

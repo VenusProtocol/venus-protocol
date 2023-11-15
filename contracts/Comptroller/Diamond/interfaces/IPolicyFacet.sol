@@ -11,7 +11,7 @@ interface IPolicyFacet {
 
     function redeemAllowed(address vToken, address redeemer, uint256 redeemTokens) external returns (uint256);
 
-    function redeemVerify(address vToken, address redeemer, uint256 redeemAmount, uint256 redeemTokens) external pure;
+    function redeemVerify(address vToken, address redeemer, uint256 redeemAmount, uint256 redeemTokens) external;
 
     function borrowAllowed(address vToken, address borrower, uint256 borrowAmount) external returns (uint256);
 
