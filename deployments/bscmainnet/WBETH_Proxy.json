@@ -1,25 +1,15 @@
 {
-  "address": "0xBbCD063efE506c3D42a0Fa2dB5C08430288C71FC",
+  "address": "0xa2e3356610840701bdf5611a53974510ae27e2e1",
   "abi": [
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "_logic",
+          "name": "implementationContract",
           "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "admin_",
-          "type": "address"
-        },
-        {
-          "internalType": "bytes",
-          "name": "_data",
-          "type": "bytes"
         }
       ],
-      "stateMutability": "payable",
+      "stateMutability": "nonpayable",
       "type": "constructor"
     },
     {
@@ -45,20 +35,7 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": true,
-          "internalType": "address",
-          "name": "beacon",
-          "type": "address"
-        }
-      ],
-      "name": "BeaconUpgraded",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
+          "indexed": false,
           "internalType": "address",
           "name": "implementation",
           "type": "address"
@@ -77,11 +54,11 @@
       "outputs": [
         {
           "internalType": "address",
-          "name": "admin_",
+          "name": "",
           "type": "address"
         }
       ],
-      "stateMutability": "nonpayable",
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -103,11 +80,11 @@
       "outputs": [
         {
           "internalType": "address",
-          "name": "implementation_",
+          "name": "",
           "type": "address"
         }
       ],
-      "stateMutability": "nonpayable",
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -140,10 +117,6 @@
       "outputs": [],
       "stateMutability": "payable",
       "type": "function"
-    },
-    {
-      "stateMutability": "payable",
-      "type": "receive"
     }
   ],
   "numDeployments": 1

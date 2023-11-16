@@ -1,25 +1,9 @@
 {
-  "address": "0xBbCD063efE506c3D42a0Fa2dB5C08430288C71FC",
+  "address": "0x40af3827F39D0EAcBF4A168f8D4ee67c121D11c9",
   "abi": [
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_logic",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "admin_",
-          "type": "address"
-        },
-        {
-          "internalType": "bytes",
-          "name": "_data",
-          "type": "bytes"
-        }
-      ],
-      "stateMutability": "payable",
+      "inputs": [],
+      "stateMutability": "nonpayable",
       "type": "constructor"
     },
     {
@@ -28,17 +12,17 @@
         {
           "indexed": false,
           "internalType": "address",
-          "name": "previousAdmin",
+          "name": "currentOwner",
           "type": "address"
         },
         {
           "indexed": false,
           "internalType": "address",
-          "name": "newAdmin",
+          "name": "pendingOwner",
           "type": "address"
         }
       ],
-      "name": "AdminChanged",
+      "name": "NewPendingOwner",
       "type": "event"
     },
     {
@@ -47,11 +31,17 @@
         {
           "indexed": true,
           "internalType": "address",
-          "name": "beacon",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
           "type": "address"
         }
       ],
-      "name": "BeaconUpgraded",
+      "name": "ProxyOwnershipTransferred",
       "type": "event"
     },
     {
@@ -73,26 +63,7 @@
     },
     {
       "inputs": [],
-      "name": "admin",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "admin_",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "newAdmin",
-          "type": "address"
-        }
-      ],
-      "name": "changeAdmin",
+      "name": "claimProxyOwnership",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -103,10 +74,49 @@
       "outputs": [
         {
           "internalType": "address",
-          "name": "implementation_",
+          "name": "impl",
           "type": "address"
         }
       ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pendingProxyOwner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "pendingOwner",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "proxyOwner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferProxyOwnership",
+      "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -114,31 +124,13 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "newImplementation",
+          "name": "implementation",
           "type": "address"
         }
       ],
       "name": "upgradeTo",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "newImplementation",
-          "type": "address"
-        },
-        {
-          "internalType": "bytes",
-          "name": "data",
-          "type": "bytes"
-        }
-      ],
-      "name": "upgradeToAndCall",
-      "outputs": [],
-      "stateMutability": "payable",
       "type": "function"
     },
     {

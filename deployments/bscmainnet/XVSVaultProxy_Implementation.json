@@ -1,5 +1,5 @@
 {
-  "address": "0x4d067D2471406a778D103B5742eCC83668ea5345",
+  "address": "0x0cf9a22e790d89b8e58469f217b50bb4c3ab068c",
   "abi": [
     {
       "inputs": [],
@@ -442,6 +442,21 @@
           "internalType": "bytes32",
           "name": "",
           "type": "bytes32"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "MAX_LOCK_PERIOD",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
         }
       ],
       "payable": false,

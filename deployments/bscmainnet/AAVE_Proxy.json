@@ -1,25 +1,25 @@
 {
-  "address": "0xBbCD063efE506c3D42a0Fa2dB5C08430288C71FC",
+  "address": "0xfb6115445Bff7b52FeB98650C87f44907E58f802",
   "abi": [
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "_logic",
+          "name": "logic",
           "type": "address"
         },
         {
           "internalType": "address",
-          "name": "admin_",
+          "name": "admin",
           "type": "address"
         },
         {
           "internalType": "bytes",
-          "name": "_data",
+          "name": "data",
           "type": "bytes"
         }
       ],
-      "stateMutability": "payable",
+      "stateMutability": "nonpayable",
       "type": "constructor"
     },
     {
@@ -47,19 +47,6 @@
         {
           "indexed": true,
           "internalType": "address",
-          "name": "beacon",
-          "type": "address"
-        }
-      ],
-      "name": "BeaconUpgraded",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
           "name": "implementation",
           "type": "address"
         }
@@ -77,7 +64,7 @@
       "outputs": [
         {
           "internalType": "address",
-          "name": "admin_",
+          "name": "",
           "type": "address"
         }
       ],
@@ -103,7 +90,7 @@
       "outputs": [
         {
           "internalType": "address",
-          "name": "implementation_",
+          "name": "",
           "type": "address"
         }
       ],
