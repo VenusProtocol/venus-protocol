@@ -1,3 +1,35 @@
+## [6.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v5.2.0...v6.0.0-dev.1) (2023-11-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* use transfer method for native transfers
+* add VTresuryV8
+
+### fixup
+
+* use transfer method for native transfers ([80c7387](https://github.com/VenusProtocol/venus-protocol/commit/80c73874b647a85851cbcada95ce19e29cfbee1f))
+
+
+### Features
+
+* add sepolia deployments of treasury ([e470b53](https://github.com/VenusProtocol/venus-protocol/commit/e470b534e77168b0e2124c075f2a922bbd72b43b))
+* add treasury ethereum deployments ([43e2763](https://github.com/VenusProtocol/venus-protocol/commit/43e27639693024064f8cdc9e62e81a9b778f790e))
+* add VTresuryV8 ([2b87b14](https://github.com/VenusProtocol/venus-protocol/commit/2b87b148b61f4771eb2678b091982db31652a711))
+* commit deployment updates in CI ([7132ab9](https://github.com/VenusProtocol/venus-protocol/commit/7132ab98096366f2769631b43ad054649a2c7d59))
+* updating deployment files ([66493f6](https://github.com/VenusProtocol/venus-protocol/commit/66493f67a9bd0b5610aa27e54fab67d47b6bb0d5))
+* updating deployment files ([2f49cc0](https://github.com/VenusProtocol/venus-protocol/commit/2f49cc0bcecf0515d775e745b62e7ddf45baf2db))
+
+
+### Bug Fixes
+
+* comments ([ca7bb13](https://github.com/VenusProtocol/venus-protocol/commit/ca7bb135c9e182ac736e4ac8222699d68288d9a2))
+* typo ([acab6c6](https://github.com/VenusProtocol/venus-protocol/commit/acab6c6fb0c33387d0081b9797b8efb40127c362))
+* VMC-10 ([818631f](https://github.com/VenusProtocol/venus-protocol/commit/818631f05e33e52e85df9c1a5d4d1c4bef503ad5))
+* VMC-19 ([8a2da0f](https://github.com/VenusProtocol/venus-protocol/commit/8a2da0f2ede2cadc981531d5e226ac6aac558342))
+* VMC-20 ([83ceb36](https://github.com/VenusProtocol/venus-protocol/commit/83ceb365ba6ca55997be0e925c0b8ffa755ac626))
+* VMC-9 ([b9e3938](https://github.com/VenusProtocol/venus-protocol/commit/b9e3938dd2cba7605ff3aeb927dfb8ae6840a59e))
+
 ## [5.2.0](https://github.com/VenusProtocol/venus-protocol/compare/v5.1.0...v5.2.0) (2023-11-15)
 
 
