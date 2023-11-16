@@ -1,5 +1,5 @@
 {
-  "address": "0x30EE880177eCE5Bc2f8865fAefa072e7386D4264",
+  "address": "0x0fdbe58bbf3190d21a0589d0a448682d68de66a2",
   "abi": [
     {
       "inputs": [],
@@ -167,6 +167,49 @@
         }
       ],
       "name": "NewAccessControlManager",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "contract IPrime",
+          "name": "oldPrimeToken",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "contract IPrime",
+          "name": "newPrimeToken",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oldPrimeRewardToken",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newPrimeRewardToken",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldPrimePoolId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newPrimePoolId",
+          "type": "uint256"
+        }
+      ],
+      "name": "NewPrimeToken",
       "type": "event"
     },
     {
@@ -1191,6 +1234,51 @@
       "type": "function"
     },
     {
+      "constant": true,
+      "inputs": [],
+      "name": "primePoolId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "primeRewardToken",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "primeToken",
+      "outputs": [
+        {
+          "internalType": "contract IPrime",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "constant": false,
       "inputs": [
         {
@@ -1280,6 +1368,31 @@
         }
       ],
       "name": "setAccessControl",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "contract IPrime",
+          "name": "_primeToken",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_primeRewardToken",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_primePoolId",
+          "type": "uint256"
+        }
+      ],
+      "name": "setPrimeToken",
       "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
