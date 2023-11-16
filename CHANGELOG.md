@@ -1,3 +1,11 @@
+## [6.0.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.1...v6.0.0-dev.2) (2023-11-16)
+
+
+### Features
+
+* add vTreasury addresses to deployment files ([6aab03e](https://github.com/VenusProtocol/venus-protocol/commit/6aab03ed43537227a40229e09129bb3de4be3ce4))
+* updating deployment files ([e275883](https://github.com/VenusProtocol/venus-protocol/commit/e27588350b62ead61950d072e565c062ac0e0e01))
+
 ## [6.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v5.2.0...v6.0.0-dev.1) (2023-11-16)
 
 
