@@ -32,7 +32,7 @@ contract PrimeLiquidityProvider is
     /// @notice The max token distribution speed for token
     mapping(address => uint256) public maxTokenDistributionSpeeds;
 
-    /// @notice The block till which rewards are distributed for a asset
+    /// @notice The block till which rewards are distributed for an asset
     mapping(address => uint256) public lastAccruedBlock;
 
     /// @notice The token accrued but not yet transferred to prime contract
