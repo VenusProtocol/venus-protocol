@@ -535,7 +535,9 @@ contract CanReclaimToken is Ownable {
 // File: contracts/utils/OwnableContract.sol
 
 // empty block is used as this contract just inherits others.
-contract OwnableContract is CanReclaimToken, Claimable {} /* solhint-disable-line no-empty-blocks */
+contract OwnableContract is CanReclaimToken, Claimable {
+
+} /* solhint-disable-line no-empty-blocks */
 
 // File: contracts/token/WBTC.sol
 
