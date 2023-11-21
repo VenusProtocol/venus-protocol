@@ -3,6 +3,11 @@ pragma solidity ^0.5.16;
 import "./XVSVaultStorage.sol";
 import "./XVSVaultErrorReporter.sol";
 
+/**
+ * @title XVS Vault Proxy
+ * @author Venus
+ * @notice XVS Vault Proxy contract
+ */
 contract XVSVaultProxy is XVSVaultAdminStorage, XVSVaultErrorReporter {
     /**
      * @notice Emitted when pendingXVSVaultImplementation is changed

@@ -5,13 +5,13 @@ import "../Utils/IBEP20.sol";
 import "./VAIVaultStorage.sol";
 import "./VAIVaultErrorReporter.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
+import { VAIVaultProxy } from "./VAIVaultProxy.sol";
 
-interface IVAIVaultProxy {
-    function _acceptImplementation() external returns (uint);
-
-    function admin() external returns (address);
-}
-
+/**
+ * @title VAI Vault
+ * @author Venus
+ * @notice The VAI Vault is configured for users to stake VAI And receive XVS as a reward.
+ */
 contract VAIVault is VAIVaultStorage, AccessControlledV5 {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
@@ -213,7 +213,7 @@ contract VAIVault is VAIVaultStorage, AccessControlledV5 {
 
     /*** Admin Functions ***/
 
-    function _become(IVAIVaultProxy vaiVaultProxy) external {
+    function _become(VAIVaultProxy vaiVaultProxy) external {
         require(msg.sender == vaiVaultProxy.admin(), "only proxy admin can change brains");
         require(vaiVaultProxy._acceptImplementation() == 0, "change not authorized");
     }
