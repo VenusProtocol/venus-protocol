@@ -33,17 +33,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  const xvs = await ethers.getContract("XVS");
-  const xvsVault = await ethers.getContract("XVSVault");
-  const xvsStore = await ethers.getContract("XVSStore");
-  const xvsVaultProxy = await ethers.getContract("XVSVaultProxy");
   const chainId = (await hre.getChainId()) as keyof typeof deployedContracts;
+  const xvs = hre.network.live
+    ? await ethers.getContractAt("XVS", deployedContracts[chainId][0].contracts.XVS.address)
+    : await ethers.getContract("XVS");
+
   const accessControlManager = hre.network.live
     ? await ethers.getContractAt(
         "AccessControlManager",
         deployedContracts[chainId][0].contracts.AccessControlManager.address,
       )
     : await deployments.get("AccessControlManager");
+  const xvsVault = await ethers.getContract("XVSVault");
+  const xvsStore = await ethers.getContract("XVSStore");
+  const xvsVaultProxy = await ethers.getContract("XVSVaultProxy");
 
   // Become Implementation of XVSVaultProxy
   await xvsVaultProxy._setPendingImplementation(xvsVaultAddress);
