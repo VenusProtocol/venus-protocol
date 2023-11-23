@@ -44,7 +44,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await tx.wait();
 
   // Set new owner to xvs store
-  await xvsStore.setNewOwner(xvsVaultAddress);
+  await xvsStore.setNewOwner(xvsVaultProxyAddress);
   await tx.wait();
 };
 
