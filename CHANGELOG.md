@@ -1,3 +1,20 @@
+## [6.0.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.3...v6.0.0-dev.4) (2023-11-23)
+
+
+### Features
+
+* updating deployment files ([089231f](https://github.com/VenusProtocol/venus-protocol/commit/089231f63a25607011fb252f9c578df1b3835088))
+* updating deployment files ([5b71c61](https://github.com/VenusProtocol/venus-protocol/commit/5b71c615541fa867c222f81399e61232aaba8880))
+* updating deployment files ([c824671](https://github.com/VenusProtocol/venus-protocol/commit/c8246715f3f44d9bed5e41217d3eb9ce045e904f))
+
+
+### Bug Fixes
+
+* added tests ([f51f6f1](https://github.com/VenusProtocol/venus-protocol/commit/f51f6f1fa4fe71ef3a2e98af87aaef5ead3267e0))
+* emit event for stakedAt update ([a500579](https://github.com/VenusProtocol/venus-protocol/commit/a500579467040e79773cea2b083766463566916b))
+* re-deployed prime on mainnet ([012283c](https://github.com/VenusProtocol/venus-protocol/commit/012283c1f5280155f3ef90758485e5867c230411))
+* re-deployed prime to testnet ([b66f101](https://github.com/VenusProtocol/venus-protocol/commit/b66f1018d39b18aad5112b2944277944e1526020))
+
 ## [6.0.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.2...v6.0.0-dev.3) (2023-11-21)
 
 ## [6.0.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.1...v6.0.0-dev.2) (2023-11-16)
