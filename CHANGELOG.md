@@ -1,3 +1,10 @@
+## [6.0.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.4...v6.0.0-dev.5) (2023-11-23)
+
+
+### Bug Fixes
+
+* comment ([6128438](https://github.com/VenusProtocol/venus-protocol/commit/6128438a698cbd5d29cdf25da84b695e3044f5e0))
+
 ## [6.0.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.3...v6.0.0-dev.4) (2023-11-23)
 
 
