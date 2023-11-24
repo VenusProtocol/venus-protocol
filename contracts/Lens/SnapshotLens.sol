@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import { VToken } from   "../Tokens/VTokens/VToken.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import "../Utils/SafeMath.sol";
 import "../Comptroller/ComptrollerInterface.sol";
