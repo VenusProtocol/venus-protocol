@@ -2,9 +2,10 @@
 
 pragma solidity 0.5.16;
 
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
-import { XVSRewardsHelper, VToken } from "./XVSRewardsHelper.sol";
+import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 
 /**
  * @title PolicyFacet

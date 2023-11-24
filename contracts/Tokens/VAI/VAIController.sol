@@ -5,7 +5,7 @@ import "../../Utils/ErrorReporter.sol";
 import "../../Utils/Exponential.sol";
 import "../../Comptroller/ComptrollerInterface.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
-import "../VTokens/VToken.sol";
+import { VToken, EIP20Interface } from "../VTokens/VToken.sol";
 import "./VAIUnitroller.sol";
 import "./VAI.sol";
 
