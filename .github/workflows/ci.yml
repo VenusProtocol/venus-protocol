@@ -121,8 +121,11 @@ jobs:
         run: |
           yarn hardhat export --network bsctestnet --export ./deployments/bsctestnet.json
           yarn hardhat export --network bscmainnet --export ./deployments/bscmainnet.json
+          yarn hardhat export --network ethereum --export ./deployments/ethereum.json
+          yarn hardhat export --network sepolia --export ./deployments/sepolia.json
           yarn prettier
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "feat: updating deployment files"
+          file_pattern: "deployments/*.json"
