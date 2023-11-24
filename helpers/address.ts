@@ -1,7 +1,8 @@
-import governanceDeployments from "@venusprotocol/governance-contracts/deployments/deployments.json";
-import OracleMainnet from "@venusprotocol/oracle/deployments/bscmainnet/ResilientOracle_Proxy.json";
+import GovernanceBscMainnet from "@venusprotocol/governance-contracts/deployments/bscmainnet.json";
+import GovernanceBscTestnet from "@venusprotocol/governance-contracts/deployments/bsctestnet.json";
 import ProtocolShareReserveProxyMainnet from "@venusprotocol/protocol-reserve/deployments/bscmainnet/ProtocolShareReserve_Proxy.json";
 import ProtocolShareReserveProxyTestnet from "@venusprotocol/protocol-reserve/deployments/bsctestnet/ProtocolShareReserve_Proxy.json";
+import OracleMainnet from "@venusprotocol/oracle/deployments/bscmainnet/ResilientOracle_Proxy.json";
 import OracleTestnet from "@venusprotocol/protocol-reserve/deployments/bsctestnet/ResilientOracle_Proxy.json";
 
 //TESTNET DEPLOYED CONTRACTS
@@ -11,10 +12,10 @@ import Testnet from "../deployments/bsctestnet.json";
 
 const ADDRESSES = {
   bsctestnet: {
-    governorProxy: governanceDeployments[97][0].contracts.GovernorBravoDelegator.address,
-    normalVipTimelock: governanceDeployments[97][0].contracts.NormalTimelock.address,
+    governorProxy: GovernanceBscTestnet.contracts.GovernorBravoDelegator.address,
+    normalVipTimelock: GovernanceBscTestnet.contracts.NormalTimelock.address,
     xvsVault: Testnet.contracts.XVSVaultProxy.address,
-    acm: governanceDeployments[97][0].contracts.AccessControlManager.address,
+    acm: GovernanceBscTestnet.contracts.AccessControlManager.address,
     treasury: Testnet.contracts.VTreasury.address,
     oracle: OracleTestnet.address,
     vai: Testnet.contracts.VAI.address,
@@ -34,10 +35,10 @@ const ADDRESSES = {
     vusdt: Testnet.contracts.vUSDT.address,
   },
   bscmainnet: {
-    governorProxy: governanceDeployments[56][0].contracts.GovernorBravoDelegator.address,
-    normalVipTimelock: governanceDeployments[56][0].contracts.NormalTimelock.address,
+    governorProxy: GovernanceBscMainnet.contracts.GovernorBravoDelegator.address,
+    normalVipTimelock: GovernanceBscMainnet.contracts.NormalTimelock.address,
     xvsVault: Mainnet.contracts.XVSVaultProxy.address,
-    acm: governanceDeployments[56][0].contracts.AccessControlManager.address,
+    acm: GovernanceBscMainnet.contracts.AccessControlManager.address,
     treasury: Mainnet.contracts.VTreasury.address,
     oracle: OracleMainnet.address,
     vai: Mainnet.contracts.VAI.address,
