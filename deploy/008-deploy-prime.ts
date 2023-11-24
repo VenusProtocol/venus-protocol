@@ -41,8 +41,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     deterministicDeployment: false,
     args: [
-      ADDRESSES[networkName].wbnb.address,
-      ADDRESSES[networkName].vbnb.address,
+      ADDRESSES[networkName].wbnb,
+      ADDRESSES[networkName].vbnb,
       blocksPeryear,
       stakingPeriod,
       minimumXVS,
