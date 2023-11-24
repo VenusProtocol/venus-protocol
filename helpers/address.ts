@@ -1,9 +1,9 @@
 import GovernanceBscMainnet from "@venusprotocol/governance-contracts/deployments/bscmainnet.json";
 import GovernanceBscTestnet from "@venusprotocol/governance-contracts/deployments/bsctestnet.json";
+import OracleMainnet from "@venusprotocol/oracle/deployments/bscmainnet.json";
+import OracleTestnet from "@venusprotocol/oracle/deployments/bsctestnet.json";
 import ProtocolShareReserveProxyMainnet from "@venusprotocol/protocol-reserve/deployments/bscmainnet/ProtocolShareReserve_Proxy.json";
 import ProtocolShareReserveProxyTestnet from "@venusprotocol/protocol-reserve/deployments/bsctestnet/ProtocolShareReserve_Proxy.json";
-import OracleMainnet from "@venusprotocol/oracle/deployments/bscmainnet/ResilientOracle_Proxy.json";
-import OracleTestnet from "@venusprotocol/protocol-reserve/deployments/bsctestnet/ResilientOracle_Proxy.json";
 
 //TESTNET DEPLOYED CONTRACTS
 import Mainnet from "../deployments/bscmainnet.json";
@@ -17,7 +17,7 @@ const ADDRESSES = {
     xvsVault: Testnet.contracts.XVSVaultProxy.address,
     acm: GovernanceBscTestnet.contracts.AccessControlManager.address,
     treasury: Testnet.contracts.VTreasury.address,
-    oracle: OracleTestnet.address,
+    oracle: OracleTestnet.contracts.ResilientOracle_Proxy.address,
     vai: Testnet.contracts.VAI.address,
     wbnb: Testnet.contracts.WBNB.address,
     pancakeFactory: Testnet.contracts.pancakeFactory.address,
@@ -40,7 +40,7 @@ const ADDRESSES = {
     xvsVault: Mainnet.contracts.XVSVaultProxy.address,
     acm: GovernanceBscMainnet.contracts.AccessControlManager.address,
     treasury: Mainnet.contracts.VTreasury.address,
-    oracle: OracleMainnet.address,
+    oracle: OracleMainnet.contracts.ResilientOracle_Proxy.address,
     vai: Mainnet.contracts.VAI.address,
     wbnb: Mainnet.contracts.WBNB.address,
     pancakeFactory: Mainnet.contracts.pancakeFactory.address,
