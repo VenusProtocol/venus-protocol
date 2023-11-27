@@ -1,3 +1,10 @@
+## [6.0.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.6...v6.0.0-dev.7) (2023-11-27)
+
+
+### Features
+
+* updating deployment files ([e6cba2a](https://github.com/VenusProtocol/venus-protocol/commit/e6cba2a38013e0623d8392ae6519a1c73019bec2))
+
 ## [6.0.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.5...v6.0.0-dev.6) (2023-11-27)
 
 
