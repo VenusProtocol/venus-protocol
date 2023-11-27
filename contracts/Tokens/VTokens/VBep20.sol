@@ -1,6 +1,8 @@
 pragma solidity ^0.5.16;
 
-import "./VToken.sol";
+import { VToken, VBep20Interface, ComptrollerInterface, InterestRateModel, VTokenInterface } from "./VToken.sol";
+import { EIP20Interface } from "../EIP20Interface.sol";
+import { EIP20NonStandardInterface } from "../EIP20NonStandardInterface.sol";
 
 /**
  * @title Venus's VBep20 Contract
