@@ -1,3 +1,28 @@
+## [6.0.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.5...v6.0.0-dev.6) (2023-11-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* removes network directory
+
+### Features
+
+* add mainnet deployments ([a769239](https://github.com/VenusProtocol/venus-protocol/commit/a769239570641a57f503c37ad287886188f27c91))
+* add testnet deployments ([90019c4](https://github.com/VenusProtocol/venus-protocol/commit/90019c420280addc99d903e17d651cc39ce32eea))
+* support exporting sepolia and ethereum deployments ([e441ee8](https://github.com/VenusProtocol/venus-protocol/commit/e441ee8101ce30aa1eff368f04a5fedeaa04907e))
+* updating deployment files ([396d014](https://github.com/VenusProtocol/venus-protocol/commit/396d014bc67a7d1cf9869a8b6332d522a11560cc))
+* updating deployment files ([1eb0235](https://github.com/VenusProtocol/venus-protocol/commit/1eb0235f91ff549f6dbacaa4f7937e2dea5fc7f2))
+
+
+### Bug Fixes
+
+* reference to address on string ([2cde12a](https://github.com/VenusProtocol/venus-protocol/commit/2cde12acdf598c428dec9cb043ae904d66a7d96b))
+
+
+### Code Refactoring
+
+* remove network directory ([a46c54b](https://github.com/VenusProtocol/venus-protocol/commit/a46c54b9ec49a46b4b7bd6c32d70a064cbd022d0))
+
 ## [6.0.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.4...v6.0.0-dev.5) (2023-11-23)
 
 
