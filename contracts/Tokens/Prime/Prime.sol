@@ -57,7 +57,12 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     event Burn(address indexed user);
 
     /// @notice Emitted when a market is added to prime program
-    event MarketAdded(address indexed comptroller, address indexed market, uint256 supplyMultiplier, uint256 borrowMultiplier);
+    event MarketAdded(
+        address indexed comptroller,
+        address indexed market,
+        uint256 supplyMultiplier,
+        uint256 borrowMultiplier
+    );
 
     /// @notice Emitted when mint limits are updated
     event MintLimitsUpdated(
@@ -389,7 +394,12 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @custom:event Emits MarketAdded event
      * @custom:access Controlled by ACM
      */
-    function addMarket(address comptroller, address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
+    function addMarket(
+        address comptroller,
+        address market,
+        uint256 supplyMultiplier,
+        uint256 borrowMultiplier
+    ) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
 
         Market storage _market = markets[market];

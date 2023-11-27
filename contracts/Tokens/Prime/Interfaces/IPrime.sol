@@ -43,7 +43,12 @@ interface IPrime {
      * @param supplyMultiplier the multiplier for supply cap. It should be converted to 1e18
      * @param borrowMultiplier the multiplier for borrow cap. It should be converted to 1e18
      */
-    function addMarket(address comptroller, address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external;
+    function addMarket(
+        address comptroller,
+        address market,
+        uint256 supplyMultiplier,
+        uint256 borrowMultiplier
+    ) external;
 
     /**
      * @notice Set limits for total tokens that can be minted
