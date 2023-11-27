@@ -2,7 +2,8 @@ pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
 import "../Tokens/VTokens/VBep20.sol";
-import "../Tokens/VTokens/VToken.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import "../Tokens/EIP20Interface.sol";
 import "../Oracle/PriceOracle.sol";
 import "../Utils/ErrorReporter.sol";

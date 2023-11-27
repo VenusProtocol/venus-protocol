@@ -1,6 +1,7 @@
 pragma solidity ^0.5.16;
 
-import "./VBep20.sol";
+import { VBep20 } from "./VBep20.sol";
+import { VDelegateInterface } from "./VTokenInterfaces.sol";
 
 /**
  * @title Venus's VBep20Delegate Contract
