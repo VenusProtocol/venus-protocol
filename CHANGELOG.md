@@ -1,3 +1,58 @@
+## [6.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v5.2.0...v6.0.0) (2023-11-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* removes network directory
+* use transfer method for native transfers
+* add VTresuryV8
+
+### fixup
+
+* use transfer method for native transfers ([80c7387](https://github.com/VenusProtocol/venus-protocol/commit/80c73874b647a85851cbcada95ce19e29cfbee1f))
+
+
+### Features
+
+* add mainnet deployments ([a769239](https://github.com/VenusProtocol/venus-protocol/commit/a769239570641a57f503c37ad287886188f27c91))
+* add sepolia deployments of treasury ([e470b53](https://github.com/VenusProtocol/venus-protocol/commit/e470b534e77168b0e2124c075f2a922bbd72b43b))
+* add testnet deployments ([90019c4](https://github.com/VenusProtocol/venus-protocol/commit/90019c420280addc99d903e17d651cc39ce32eea))
+* add treasury ethereum deployments ([43e2763](https://github.com/VenusProtocol/venus-protocol/commit/43e27639693024064f8cdc9e62e81a9b778f790e))
+* add vTreasury addresses to deployment files ([6aab03e](https://github.com/VenusProtocol/venus-protocol/commit/6aab03ed43537227a40229e09129bb3de4be3ce4))
+* add VTresuryV8 ([2b87b14](https://github.com/VenusProtocol/venus-protocol/commit/2b87b148b61f4771eb2678b091982db31652a711))
+* commit deployment updates in CI ([7132ab9](https://github.com/VenusProtocol/venus-protocol/commit/7132ab98096366f2769631b43ad054649a2c7d59))
+* support exporting sepolia and ethereum deployments ([e441ee8](https://github.com/VenusProtocol/venus-protocol/commit/e441ee8101ce30aa1eff368f04a5fedeaa04907e))
+* updating deployment files ([e6cba2a](https://github.com/VenusProtocol/venus-protocol/commit/e6cba2a38013e0623d8392ae6519a1c73019bec2))
+* updating deployment files ([396d014](https://github.com/VenusProtocol/venus-protocol/commit/396d014bc67a7d1cf9869a8b6332d522a11560cc))
+* updating deployment files ([1eb0235](https://github.com/VenusProtocol/venus-protocol/commit/1eb0235f91ff549f6dbacaa4f7937e2dea5fc7f2))
+* updating deployment files ([089231f](https://github.com/VenusProtocol/venus-protocol/commit/089231f63a25607011fb252f9c578df1b3835088))
+* updating deployment files ([5b71c61](https://github.com/VenusProtocol/venus-protocol/commit/5b71c615541fa867c222f81399e61232aaba8880))
+* updating deployment files ([c824671](https://github.com/VenusProtocol/venus-protocol/commit/c8246715f3f44d9bed5e41217d3eb9ce045e904f))
+* updating deployment files ([e275883](https://github.com/VenusProtocol/venus-protocol/commit/e27588350b62ead61950d072e565c062ac0e0e01))
+* updating deployment files ([66493f6](https://github.com/VenusProtocol/venus-protocol/commit/66493f67a9bd0b5610aa27e54fab67d47b6bb0d5))
+* updating deployment files ([2f49cc0](https://github.com/VenusProtocol/venus-protocol/commit/2f49cc0bcecf0515d775e745b62e7ddf45baf2db))
+
+
+### Bug Fixes
+
+* added tests ([f51f6f1](https://github.com/VenusProtocol/venus-protocol/commit/f51f6f1fa4fe71ef3a2e98af87aaef5ead3267e0))
+* comment ([6128438](https://github.com/VenusProtocol/venus-protocol/commit/6128438a698cbd5d29cdf25da84b695e3044f5e0))
+* comments ([ca7bb13](https://github.com/VenusProtocol/venus-protocol/commit/ca7bb135c9e182ac736e4ac8222699d68288d9a2))
+* emit event for stakedAt update ([a500579](https://github.com/VenusProtocol/venus-protocol/commit/a500579467040e79773cea2b083766463566916b))
+* re-deployed prime on mainnet ([012283c](https://github.com/VenusProtocol/venus-protocol/commit/012283c1f5280155f3ef90758485e5867c230411))
+* re-deployed prime to testnet ([b66f101](https://github.com/VenusProtocol/venus-protocol/commit/b66f1018d39b18aad5112b2944277944e1526020))
+* reference to address on string ([2cde12a](https://github.com/VenusProtocol/venus-protocol/commit/2cde12acdf598c428dec9cb043ae904d66a7d96b))
+* typo ([acab6c6](https://github.com/VenusProtocol/venus-protocol/commit/acab6c6fb0c33387d0081b9797b8efb40127c362))
+* VMC-10 ([818631f](https://github.com/VenusProtocol/venus-protocol/commit/818631f05e33e52e85df9c1a5d4d1c4bef503ad5))
+* VMC-19 ([8a2da0f](https://github.com/VenusProtocol/venus-protocol/commit/8a2da0f2ede2cadc981531d5e226ac6aac558342))
+* VMC-20 ([83ceb36](https://github.com/VenusProtocol/venus-protocol/commit/83ceb365ba6ca55997be0e925c0b8ffa755ac626))
+* VMC-9 ([b9e3938](https://github.com/VenusProtocol/venus-protocol/commit/b9e3938dd2cba7605ff3aeb927dfb8ae6840a59e))
+
+
+### Code Refactoring
+
+* remove network directory ([a46c54b](https://github.com/VenusProtocol/venus-protocol/commit/a46c54b9ec49a46b4b7bd6c32d70a064cbd022d0))
+
 ## [6.0.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0-dev.6...v6.0.0-dev.7) (2023-11-27)
 
 
