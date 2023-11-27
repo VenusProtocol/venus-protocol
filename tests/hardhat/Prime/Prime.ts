@@ -488,7 +488,11 @@ describe("PrimeScenario Token", () => {
       const user = user1;
 
       await xvs.connect(user).approve(xvsVault.address, bigNumber18.mul(10000));
-      await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
+      let tx = await xvsVault.connect(user).deposit(xvs.address, 0, bigNumber18.mul(10000));
+
+      await expect(tx)
+        .to.emit(prime, "StakedAtUpdated")
+        .withArgs(await user.getAddress(), (await ethers.provider.getBlock(tx.blockNumber)).timestamp);
 
       let stake = await prime.stakedAt(user.getAddress());
       expect(stake).be.gt(0);
@@ -503,7 +507,11 @@ describe("PrimeScenario Token", () => {
       stake = await prime.stakedAt(user.getAddress());
       expect(stake).be.gt(0);
 
-      await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(9999));
+      tx = await xvsVault.connect(user).requestWithdrawal(xvs.address, 0, bigNumber18.mul(9999));
+      await expect(tx)
+        .to.emit(prime, "StakedAtUpdated")
+        .withArgs(await user.getAddress(), 0);
+
       stake = await prime.stakedAt(user.getAddress());
       expect(stake).be.equal(0);
 

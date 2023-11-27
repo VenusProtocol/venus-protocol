@@ -76,11 +76,9 @@ Contract tests are defined under the [tests directory](https://github.com/VenusP
 
 ```
 
-## Testing
-
-Contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
-
     yarn test
+
+```
 
 - To run fork tests add `FORK_MAINNET=true` and `BSC_ARCHIVE_NODE_URL `in the `.env` file.
 
@@ -108,6 +106,16 @@ npx hardhat deploy
 - Execution of single or custom set of scripts is possible, if:
   - In the deployment scripts you have added `tags` for example: - `func.tags = ["MockTokens"];`
   - Once this is done, adding `--tags "<tag_name>,<tag_name>..."` to the deployment command will execute only the scripts containing the tags.
+
+### Deployed Contracts
+
+Contract addresses deployed before `hardhat-deploy` was adopted are available in the `networking` directory in JSON files by network name.
+
+Contract addresses and abis deployed with hardhat deploy are exported in the `deployments` directory. To create a summary export of all contracts deployed to a network run.
+
+```
+$ yarn hardhat --network <network-name> --export ./deployments/<network-name>.json
+```
 
 ### Source Code Verification
 
@@ -179,4 +187,3 @@ For any concerns with the protocol, open an issue or visit us on [Telegram](http
 For security concerns, please contact the administrators of our telegram chat.
 
 © Copyright 2023, Venus Protocol
-```

@@ -504,6 +504,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         if (token.exists && !isAccountEligible) {
             delete stakedAt[user];
+            emit StakedAtUpdated(user, 0);
 
             if (token.isIrrevocable) {
                 _accrueInterestAndUpdateScore(user);
@@ -512,13 +513,16 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             }
         } else if (!isAccountEligible && !token.exists && userStakedAt != 0) {
             delete stakedAt[user];
+            emit StakedAtUpdated(user, 0);
         } else if (userStakedAt == 0 && isAccountEligible && !token.exists) {
             stakedAt[user] = block.timestamp;
+            emit StakedAtUpdated(user, block.timestamp);
         } else if (token.exists && isAccountEligible) {
             _accrueInterestAndUpdateScore(user);
 
             if (stakedAt[user] == 0) {
                 stakedAt[user] = block.timestamp;
+                emit StakedAtUpdated(user, block.timestamp);
             }
         }
     }

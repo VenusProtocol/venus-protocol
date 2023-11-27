@@ -2,8 +2,9 @@
 
 pragma solidity 0.5.16;
 
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { IRewardFacet } from "../interfaces/IRewardFacet.sol";
-import { XVSRewardsHelper, VToken } from "./XVSRewardsHelper.sol";
+import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 

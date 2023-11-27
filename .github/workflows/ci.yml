@@ -94,3 +94,38 @@ jobs:
 
       - name: Lint soliditidy and ts files
         run: yarn docgen
+
+  export-deployments:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.VENUS_TOOLS_TOKEN }}
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2
+        with:
+          node-version: 18
+          cache: "yarn"
+
+      - name: Install dependencies
+        # Hack to get around failing "ethereumjs-abi The remote archive doesn't match the expected checksum" error
+        run: YARN_CHECKSUM_BEHAVIOR=update yarn
+
+      - name: Export deployments
+        run: |
+          yarn hardhat export --network bsctestnet --export ./deployments/bsctestnet.json
+          yarn hardhat export --network bscmainnet --export ./deployments/bscmainnet.json
+          yarn hardhat export --network ethereum --export ./deployments/ethereum.json
+          yarn hardhat export --network sepolia --export ./deployments/sepolia.json
+          yarn prettier
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "feat: updating deployment files"
+          file_pattern: "deployments/*.json"

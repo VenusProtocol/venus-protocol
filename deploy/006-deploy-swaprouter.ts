@@ -1,19 +1,7 @@
-import { Address, DeployFunction } from "hardhat-deploy/types";
+import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { Contracts as Mainnet } from "../networks/mainnet.json";
-import { Contracts as Testnet } from "../networks/testnet.json";
-
-interface AddressConfig {
-  [key: string]: {
-    [key: string]: Address;
-  };
-}
-
-const ADDRESSES: AddressConfig = {
-  bsctestnet: Testnet,
-  bscmainnet: Mainnet,
-};
+import ADDRESSES from "../helpers/address";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
@@ -21,13 +9,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
 
   const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
-  const WBNBAddress = ADDRESSES[networkName].WBNB;
-  const pancakeFactoryAddress = ADDRESSES[networkName].pancakeFactory;
+  const addresses = ADDRESSES[networkName];
+  const WBNBAddress = addresses.wbnb;
+  const pancakeFactoryAddress = addresses.pancakeFactory;
 
   await deploy("SwapRouter", {
     contract: "SwapRouter",
     from: deployer,
-    args: [WBNBAddress, pancakeFactoryAddress, ADDRESSES[networkName].Unitroller, ADDRESSES[networkName].vBNB],
+    args: [WBNBAddress, pancakeFactoryAddress, addresses.unitroller, addresses.vbnb],
     log: true,
     autoMine: true,
   });

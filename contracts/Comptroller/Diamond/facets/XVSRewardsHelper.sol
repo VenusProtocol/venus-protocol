@@ -2,7 +2,8 @@
 
 pragma solidity 0.5.16;
 
-import { FacetBase, VToken } from "./FacetBase.sol";
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { FacetBase } from "./FacetBase.sol";
 
 /**
  * @title XVSRewardsHelper

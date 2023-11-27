@@ -1,31 +1,8 @@
 import { ethers } from "hardhat";
-import { Address, DeployFunction } from "hardhat-deploy/types";
+import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { Contracts as Mainnet } from "../networks/mainnet.json";
-import { Contracts as Testnet } from "../networks/testnet.json";
-
-interface AddressConfig {
-  [key: string]: {
-    [key: string]: Address;
-  };
-}
-
-const ADDRESSES: AddressConfig = {
-  bsctestnet: Testnet,
-  bscmainnet: Mainnet,
-};
-
-const OTHER_ADDRESSES: any = {
-  bsctestnet: {
-    acm: "0x45f8a08F534f34A97187626E05d4b6648Eeaa9AA",
-    oracle: "0x3cD69251D04A28d887Ac14cbe2E14c52F3D57823",
-  },
-  bscmainnet: {
-    acm: "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555",
-    oracle: "0x6592b5DE802159F3E74B2486b091D11a8256ab8A",
-  },
-};
+import ADDRESSES from "../helpers/address";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
@@ -48,11 +25,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deterministicDeployment: false,
     args: [],
     proxy: {
-      owner: ADDRESSES[networkName].Timelock,
+      owner: ADDRESSES[networkName].normalVipTimelock,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [OTHER_ADDRESSES[networkName].acm, [], [], [], loopsLimit],
+        args: [ADDRESSES[networkName].acm, [], [], [], loopsLimit],
       },
     },
   });
@@ -64,28 +41,28 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     deterministicDeployment: false,
     args: [
-      ADDRESSES[networkName].WBNB,
-      ADDRESSES[networkName].vBNB,
+      ADDRESSES[networkName].wbnb,
+      ADDRESSES[networkName].vbnb,
       blocksPeryear,
       stakingPeriod,
       minimumXVS,
       maximumXVSCap,
     ],
     proxy: {
-      owner: ADDRESSES[networkName].Timelock,
+      owner: ADDRESSES[networkName].normalVipTimelock,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
         args: [
-          ADDRESSES[networkName].XVSVaultProxy,
-          ADDRESSES[networkName].XVS,
+          ADDRESSES[networkName].xvsVault,
+          ADDRESSES[networkName].xvs,
           xVSVaultPoolId,
           xvsVaultAlphaNumerator,
           xvsVaultAlphaDenominator,
-          OTHER_ADDRESSES[networkName].acm,
+          ADDRESSES[networkName].acm,
           plp.address,
-          ADDRESSES[networkName].Unitroller,
-          OTHER_ADDRESSES[networkName].oracle,
+          ADDRESSES[networkName].unitroller,
+          ADDRESSES[networkName].oracle,
           loopsLimit,
         ],
       },
@@ -118,10 +95,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log("Transferring Prime ownership to Timelock");
   const prime = await ethers.getContract("Prime");
-  await prime.transferOwnership(ADDRESSES[networkName].Timelock);
+  await prime.transferOwnership(ADDRESSES[networkName].normalVipTimelock);
 
   console.log("Transferring PLP ownership to Timelock");
-  await plp.transferOwnership(ADDRESSES[networkName].Timelock);
+  await plp.transferOwnership(ADDRESSES[networkName].normalVipTimelock);
 };
 
 func.tags = ["Prime"];

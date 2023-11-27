@@ -3,7 +3,8 @@
 pragma solidity 0.5.16;
 
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
-import { FacetBase, VToken } from "./FacetBase.sol";
+import { FacetBase } from "./FacetBase.sol";
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 
 /**
  * @title MarketFacet

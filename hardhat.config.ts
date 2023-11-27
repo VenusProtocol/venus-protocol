@@ -87,6 +87,21 @@ const config: HardhatUserConfig = {
           },
         },
       },
+      {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          evmVersion: "paris",
+          outputSelection: {
+            "*": {
+              "*": ["storageLayout"],
+            },
+          },
+        },
+      },
     ],
   },
   networks: {
@@ -105,6 +120,24 @@ const config: HardhatUserConfig = {
       chainId: 56,
       live: true,
       timeout: 1200000, // 20 minutes
+    },
+    sepolia: {
+      url: process.env.RPC_URL || "https://rpc.notadegen.com/eth/sepolia",
+      chainId: 11155111,
+      live: true,
+      gasPrice: 20000000000, // 20 gwei
+      accounts: {
+        mnemonic: process.env.MNEMONIC || "",
+      },
+    },
+    ethereum: {
+      url: process.env.ETHEREUM_ARCHIVE_NODE_URL || "https://eth-mainnet.public.blastapi.io",
+      chainId: 1,
+      live: true,
+      timeout: 1200000, // 20 minutes
+      accounts: {
+        mnemonic: process.env.MNEMONIC || "",
+      },
     },
   },
   etherscan: {
