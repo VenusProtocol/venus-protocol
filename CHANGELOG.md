@@ -1,3 +1,11 @@
+## [6.0.1-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0...v6.0.1-dev.1) (2023-11-28)
+
+
+### Bug Fixes
+
+* fixed lint ([f139982](https://github.com/VenusProtocol/venus-protocol/commit/f139982c66b18552155de555aecd4848d3fafe5a))
+* pass comptroller in addMarket ([9efa9cf](https://github.com/VenusProtocol/venus-protocol/commit/9efa9cf68e9dd62a7485942d519ad71431d5fbb9))
+
 ## [6.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v5.2.0...v6.0.0) (2023-11-27)
 
 
