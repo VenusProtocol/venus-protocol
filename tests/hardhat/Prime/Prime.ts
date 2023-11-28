@@ -199,18 +199,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
   const prime: PrimeScenario = await upgrades.deployProxy(
     primeFactory,
-    [
-      xvsVault.address,
-      xvs.address,
-      0,
-      1,
-      2,
-      accessControl.address,
-      primeLiquidityProvider.address,
-      comptroller.address,
-      oracle.address,
-      10,
-    ],
+    [xvsVault.address, xvs.address, 0, 1, 2, accessControl.address, primeLiquidityProvider.address, oracle.address, 10],
     {
       constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap],
       unsafeAllow: "constructor",
@@ -221,9 +210,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   await prime.setLimit(1000, 1000);
 
-  await prime.addMarket(vusdt.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
+  await prime.addMarket(comptroller.address, vusdt.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
-  await prime.addMarket(veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
+  await prime.addMarket(comptroller.address, veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
   await comptroller._setPrimeToken(prime.address);
 
@@ -751,7 +740,7 @@ describe("PrimeScenario Token", () => {
         await xvs.connect(user3).approve(xvsVault.address, bigNumber18.mul(2000));
         await xvsVault.connect(user3).deposit(xvs.address, 0, bigNumber18.mul(2000));
         await prime.issue(false, [user3.getAddress()]);
-        await prime.addMarket(vbnb.address, bigNumber18.mul(1), bigNumber18.mul(1));
+        await prime.addMarket(comptroller.address, vbnb.address, bigNumber18.mul(1), bigNumber18.mul(1));
 
         let interest = await prime.interests(vbnb.address, user3.getAddress());
         expect(interest.accrued).to.be.equal(0);
@@ -819,7 +808,7 @@ describe("PrimeScenario Token", () => {
         await xvs.connect(user3).approve(xvsVault.address, bigNumber18.mul(2000));
         await xvsVault.connect(user3).deposit(xvs.address, 0, bigNumber18.mul(2000));
         await prime.issue(false, [user3.getAddress()]);
-        await prime.addMarket(vbnb.address, bigNumber18.mul(1), bigNumber18.mul(1));
+        await prime.addMarket(comptroller.address, vbnb.address, bigNumber18.mul(1), bigNumber18.mul(1));
 
         let interest = await prime.interests(vbnb.address, user3.getAddress());
         expect(interest.accrued).to.be.equal(0);
@@ -978,7 +967,7 @@ describe("PrimeScenario Token", () => {
       await comptroller._setMarketSupplyCaps([vmatic.address], [bigNumber18.mul(10000)]);
       await comptroller._setMarketBorrowCaps([vmatic.address], [bigNumber18.mul(10000)]);
 
-      await prime.addMarket(vmatic.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
+      await prime.addMarket(comptroller.address, vmatic.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));

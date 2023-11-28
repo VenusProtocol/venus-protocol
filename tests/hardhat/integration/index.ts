@@ -202,18 +202,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const primeFactory = await ethers.getContractFactory("Prime");
   const prime: Prime = await upgrades.deployProxy(
     primeFactory,
-    [
-      xvsVault.address,
-      xvs.address,
-      0,
-      1,
-      2,
-      accessControl.address,
-      primeLiquidityProvider.address,
-      comptroller.address,
-      oracle.address,
-      10,
-    ],
+    [xvsVault.address, xvs.address, 0, 1, 2, accessControl.address, primeLiquidityProvider.address, oracle.address, 10],
     {
       constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap],
       unsafeAllow: "constructor",
@@ -226,9 +215,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   await prime.setLimit(1000, 1000);
 
-  await prime.addMarket(vusdt.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
+  await prime.addMarket(comptroller.address, vusdt.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
-  await prime.addMarket(veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
+  await prime.addMarket(comptroller.address, veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
   await comptroller._setPrimeToken(prime.address);
 

@@ -57,7 +57,12 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     event Burn(address indexed user);
 
     /// @notice Emitted when a market is added to prime program
-    event MarketAdded(address indexed market, uint256 indexed supplyMultiplier, uint256 indexed borrowMultiplier);
+    event MarketAdded(
+        address indexed comptroller,
+        address indexed market,
+        uint256 supplyMultiplier,
+        uint256 borrowMultiplier
+    );
 
     /// @notice Emitted when mint limits are updated
     event MintLimitsUpdated(
@@ -184,7 +189,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
               alpha is alphaNumerator_/alphaDenominator_. So, 0 < alpha < 1
      * @param accessControlManager_ Address of AccessControlManager
      * @param primeLiquidityProvider_ Address of PrimeLiquidityProvider
-     * @param comptroller_ Address of Comptroller
      * @param oracle_ Address of Oracle
      * @param loopsLimit_ Maximum number of loops allowed in a single transaction
      * @custom:error Throw InvalidAddress if any of the address is invalid
@@ -197,13 +201,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint128 alphaDenominator_,
         address accessControlManager_,
         address primeLiquidityProvider_,
-        address comptroller_,
         address oracle_,
         uint256 loopsLimit_
     ) external initializer {
         if (xvsVault_ == address(0)) revert InvalidAddress();
         if (xvsVaultRewardToken_ == address(0)) revert InvalidAddress();
-        if (comptroller_ == address(0)) revert InvalidAddress();
         if (oracle_ == address(0)) revert InvalidAddress();
         if (primeLiquidityProvider_ == address(0)) revert InvalidAddress();
 
@@ -216,7 +218,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         xvsVault = xvsVault_;
         nextScoreUpdateRoundId = 0;
         primeLiquidityProvider = primeLiquidityProvider_;
-        comptroller = comptroller_;
         oracle = ResilientOracleInterface(oracle_);
 
         __AccessControlled_init(accessControlManager_);
@@ -384,6 +385,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
     /**
      * @notice Add a market to prime program
+     * @param comptroller address of the comptroller
      * @param market address of the market vToken
      * @param supplyMultiplier the multiplier for supply cap. It should be converted to 1e18
      * @param borrowMultiplier the multiplier for borrow cap. It should be converted to 1e18
@@ -392,7 +394,12 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @custom:event Emits MarketAdded event
      * @custom:access Controlled by ACM
      */
-    function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external {
+    function addMarket(
+        address comptroller,
+        address market,
+        uint256 supplyMultiplier,
+        uint256 borrowMultiplier
+    ) external {
         _checkAccessAllowed("addMarket(address,uint256,uint256)");
 
         Market storage _market = markets[market];
@@ -417,7 +424,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         _ensureMaxLoops(_allMarkets.length);
 
-        emit MarketAdded(market, supplyMultiplier, borrowMultiplier);
+        emit MarketAdded(comptroller, market, supplyMultiplier, borrowMultiplier);
     }
 
     /**

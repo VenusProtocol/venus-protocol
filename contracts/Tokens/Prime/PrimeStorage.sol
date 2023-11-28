@@ -97,7 +97,7 @@ contract PrimeStorageV1 {
     /// @notice mapping used to find if an asset is part of prime markets
     mapping(address => address) public vTokenForAsset;
 
-    /// @notice address of core pool comptroller contract
+    /// @notice Deprecated. Address of core pool comptroller contract
     address public comptroller;
 
     /// @notice unreleased income from PLP that's already distributed to prime holders
