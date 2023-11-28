@@ -3090,9 +3090,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/protocol-reserve@npm:^1.1.0":
-  version: 1.1.0
-  resolution: "@venusprotocol/protocol-reserve@npm:1.1.0"
+"@venusprotocol/protocol-reserve@npm:1.2.0-dev.2":
+  version: 1.2.0-dev.2
+  resolution: "@venusprotocol/protocol-reserve@npm:1.2.0-dev.2"
   dependencies:
     "@nomiclabs/hardhat-ethers": ^2.2.3
     "@openzeppelin/contracts": ^4.8.3
@@ -3103,7 +3103,7 @@ __metadata:
     ethers: ^5.7.0
     hardhat-deploy: ^0.11.14
     module-alias: ^2.2.2
-  checksum: 86e2da20ddb3824603c1f5e0931cc4715cd442624a03cc0fed7633ecbb5f2cab9a04ca5dcec805a4d9b0e04904799286210299f39935034f9fe85155f7b56da3
+  checksum: e644bc58b6b4646ce6b262e9e34646d65285dee97cb38a34ac99d35330b3f4bea4c9075d87ee6e6d1e813563c622a01e12eba82014e6d7952e17ea798673bac3
   languageName: node
   linkType: hard
 
@@ -3159,7 +3159,7 @@ __metadata:
     "@venusprotocol/governance-contracts": ^1.4.0-dev.1
     "@venusprotocol/isolated-pools": ^2.0.0
     "@venusprotocol/oracle": 1.8.0-dev.1
-    "@venusprotocol/protocol-reserve": ^1.1.0
+    "@venusprotocol/protocol-reserve": 1.2.0-dev.2
     bignumber.js: ^9.1.2
     chai: ^4.3.6
     dotenv: ^16.0.1
