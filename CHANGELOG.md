@@ -1,3 +1,10 @@
+## [6.0.1-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.1-dev.1...v6.0.1-dev.2) (2023-11-28)
+
+
+### Bug Fixes
+
+* update protocol-reserve package version ([3b79783](https://github.com/VenusProtocol/venus-protocol/commit/3b79783c218418f57764449307b6aedb9b4025a2))
+
 ## [6.0.1-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0...v6.0.1-dev.1) (2023-11-28)
 
 
