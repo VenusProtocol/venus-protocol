@@ -109,6 +109,7 @@ const config: HardhatUserConfig = {
     bsctestnet: {
       url: process.env.BSC_ARCHIVE_NODE_URL || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
+      live: true,
       accounts: {
         mnemonic: process.env.MNEMONIC || "",
       },
@@ -168,6 +169,26 @@ const config: HardhatUserConfig = {
         artifacts: "node_modules/@venusprotocol/governance-contracts/artifacts",
       },
     ],
+    deployments: {
+      bsctestnet: [
+        "node_modules/@venusprotocol/governance-contracts/deployments/bsctestnet",
+        "node_modules/@venusprotocol/venus-protocol/deployments/bsctestnet",
+        "node_modules/@venusprotocol/oracle/deployments/bsctestnet",
+        "node_modules/@venusprotocol/token-bridge/deployments/bsctestnet",
+      ],
+      bscmainnet: [
+        "node_modules/@venusprotocol/governance-contracts/deployments/bscmainnet",
+        "node_modules/@venusprotocol/venus-protocol/deployments/bscmainnet",
+        "node_modules/@venusprotocol/oracle/deployments/bscmainnet",
+        "node_modules/@venusprotocol/token-bridge/deployments/bscmainnet",
+      ],
+      sepolia: [
+        "node_modules/@venusprotocol/governance-contracts/deployments/sepolia",
+        "node_modules/@venusprotocol/oracle/deployments/sepolia",
+        "node_modules/@venusprotocol/token-bridge/deployments/sepolia",
+      ],
+      ethereum: ["node_modules/@venusprotocol/token-bridge/deployments/ethereum"],
+    },
   },
   docgen: {
     outputDir: "./docgen-docs",
