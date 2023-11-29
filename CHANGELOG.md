@@ -1,3 +1,10 @@
+## [6.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.1-dev.2...v6.1.0-dev.1) (2023-11-29)
+
+
+### Features
+
+* add forced liquidations for individual accounts ([61795fa](https://github.com/VenusProtocol/venus-protocol/commit/61795fa08fecadc7d239648d69c6cd3fe9470274))
+
 ## [6.0.1-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.1-dev.1...v6.0.1-dev.2) (2023-11-28)
 
 
