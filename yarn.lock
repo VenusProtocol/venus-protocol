@@ -3048,10 +3048,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/governance-contracts@npm:^1.4.0-dev.1":
-  version: 1.4.0-dev.1
-  resolution: "@venusprotocol/governance-contracts@npm:1.4.0-dev.1"
-  checksum: 5864f1c0b199187e772cff886e86967ca4add601ef2b5cad4a5cd7ad0f1b8b686ac3e31671f214bc26d033e458e5115c9868f41e96ceea71f537cd68987d7602
+"@venusprotocol/governance-contracts@npm:^1.4.0-dev.2":
+  version: 1.4.0-dev.2
+  resolution: "@venusprotocol/governance-contracts@npm:1.4.0-dev.2"
+  checksum: eea8efe2ef9bf1165d4f639049015d2acd8a1d98f643bb50c59f5b4c93762833709411c2d32b82e9be662f64a61605b4186fcacad44bd227c934f4b55f801880
   languageName: node
   linkType: hard
 
@@ -3141,7 +3141,7 @@ __metadata:
     "@types/node": ^18.7.1
     "@typescript-eslint/eslint-plugin": ^5.40.0
     "@typescript-eslint/parser": ^5.40.0
-    "@venusprotocol/governance-contracts": ^1.4.0-dev.1
+    "@venusprotocol/governance-contracts": ^1.4.0-dev.2
     "@venusprotocol/oracle": 1.8.0-dev.1
     "@venusprotocol/protocol-reserve": 1.2.0-dev.2
     "@venusprotocol/solidity-utilities": ^1.1.0
