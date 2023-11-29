@@ -1,4 +1,3 @@
-import deployedContracts from "@venusprotocol/governance-contracts/deployments/deployments.json";
 import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
@@ -15,13 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts } = hre;
   const { deployer } = await getNamedAccounts();
 
-  const chainId = (await hre.getChainId()) as keyof typeof deployedContracts;
-  const accessControlManager = hre.network.live
-    ? await ethers.getContractAt(
-        "AccessControlManager",
-        deployedContracts[chainId][0].contracts.AccessControlManager.address,
-      )
-    : await ethers.getContract("AccessControlManager");
+  const accessControlManager = await ethers.getContract("AccessControlManager");
 
   const xvs = await ethers.getContract("XVS");
   const xvsVaultProxyDeployment = await ethers.getContract("XVSVaultProxy");
