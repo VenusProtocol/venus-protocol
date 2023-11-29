@@ -5,7 +5,7 @@ import { SafeERC20Upgradeable, IERC20Upgradeable } from "@openzeppelin/contracts
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
-import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
+import { MaxLoopsLimitHelper } from "@venusprotocol/solidity-utilities/contracts/MaxLoopsLimitHelper.sol";
 
 /**
  * @title PrimeLiquidityProvider
