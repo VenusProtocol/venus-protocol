@@ -1,3 +1,12 @@
+## [6.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.1...v6.1.0-dev.2) (2023-11-29)
+
+
+### Bug Fixes
+
+* fix yarn.lock ([bcf9c7b](https://github.com/VenusProtocol/venus-protocol/commit/bcf9c7bf4153b8840b08fb94ae09f205606bc7f2))
+* import artifacts from governance-contracts ([c4d5b4e](https://github.com/VenusProtocol/venus-protocol/commit/c4d5b4eabddab146cfea90a0d5cca4e2e9582e5f))
+* remove il repo dependency ([99b78b8](https://github.com/VenusProtocol/venus-protocol/commit/99b78b85dcb9b54ee66520e4df83ee58570cb8f5))
+
 ## [6.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.1-dev.2...v6.1.0-dev.1) (2023-11-29)
 
 
