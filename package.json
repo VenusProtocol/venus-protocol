@@ -34,6 +34,7 @@
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
     "@venusprotocol/governance-contracts": "^1.4.0-dev.1",
     "@venusprotocol/protocol-reserve": "1.2.0-dev.2",
+    "@venusprotocol/solidity-utilities": "^1.1.0",
     "bignumber.js": "^9.1.2",
     "dotenv": "^16.0.1",
     "module-alias": "^2.2.2"
@@ -63,7 +64,6 @@
     "@types/node": "^18.7.1",
     "@typescript-eslint/eslint-plugin": "^5.40.0",
     "@typescript-eslint/parser": "^5.40.0",
-    "@venusprotocol/isolated-pools": "^2.0.0",
     "@venusprotocol/oracle": "1.8.0-dev.1",
     "bignumber.js": "^9.1.2",
     "chai": "^4.3.6",

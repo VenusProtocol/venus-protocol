@@ -3107,7 +3107,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/solidity-utilities@npm:^1.0.1":
+"@venusprotocol/solidity-utilities@npm:^1.0.1, @venusprotocol/solidity-utilities@npm:^1.1.0":
   version: 1.1.0
   resolution: "@venusprotocol/solidity-utilities@npm:1.1.0"
   checksum: 3b17ec451cd0ba5aaea76686c7bef35757fb158709214be094f73ebd0d643c79817159f7aa162cc694e1a5ee1f02b20e26211a65929113b985827959aae99fa7
@@ -3160,6 +3160,7 @@ __metadata:
     "@venusprotocol/isolated-pools": ^2.0.0
     "@venusprotocol/oracle": 1.8.0-dev.1
     "@venusprotocol/protocol-reserve": 1.2.0-dev.2
+    "@venusprotocol/solidity-utilities": ^1.1.0
     bignumber.js: ^9.1.2
     chai: ^4.3.6
     dotenv: ^16.0.1
