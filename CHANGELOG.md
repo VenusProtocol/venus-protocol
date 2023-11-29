@@ -1,3 +1,15 @@
+## [6.1.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.2...v6.1.0-dev.3) (2023-11-29)
+
+
+### Features
+
+* add deployments to hardhat config ([03581c8](https://github.com/VenusProtocol/venus-protocol/commit/03581c8b597b9c938efe9a0d6a768993807f7e87))
+* add xvs vault deployment script ([fd9d346](https://github.com/VenusProtocol/venus-protocol/commit/fd9d346b3a22a63a1c024853b175b425ec8dbd06))
+* add xvs vault sepolia deployments ([10ae503](https://github.com/VenusProtocol/venus-protocol/commit/10ae5036d38f8aa7ca216cb24442462da0452f45))
+* bump governance contract version ([3e1cf7f](https://github.com/VenusProtocol/venus-protocol/commit/3e1cf7f739050cbc31e298c6ff49f0b63e8a3018))
+* updating deployment files ([68be77a](https://github.com/VenusProtocol/venus-protocol/commit/68be77a9cae3c050d1a4989d862ec53407967575))
+* updating deployment files ([628e223](https://github.com/VenusProtocol/venus-protocol/commit/628e22352236dc1d56febdd1d5621461bb08d823))
+
 ## [6.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.1...v6.1.0-dev.2) (2023-11-29)
 
 
