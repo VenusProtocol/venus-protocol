@@ -4,14 +4,14 @@ pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
-import { Unitroller, ComptrollerV14Storage } from "../Unitroller.sol";
+import { Unitroller, ComptrollerV15Storage } from "../Unitroller.sol";
 
 /**
  * @title Diamond
  * @author Venus
  * @notice This contract contains functions related to facets
  */
-contract Diamond is IDiamondCut, ComptrollerV14Storage {
+contract Diamond is IDiamondCut, ComptrollerV15Storage {
     /// @notice Emitted when functions are added, replaced or removed to facets
     event DiamondCut(IDiamondCut.FacetCut[] _diamondCut);
 
@@ -72,7 +72,7 @@ contract Diamond is IDiamondCut, ComptrollerV14Storage {
      */
     function facetAddress(
         bytes4 functionSelector
-    ) external view returns (ComptrollerV14Storage.FacetAddressAndPosition memory) {
+    ) external view returns (ComptrollerV15Storage.FacetAddressAndPosition memory) {
         return _selectorToFacetAndPosition[functionSelector];
     }
 
