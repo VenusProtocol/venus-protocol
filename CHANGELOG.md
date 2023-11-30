@@ -1,3 +1,11 @@
+## [6.1.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.3...v6.1.0-dev.4) (2023-11-30)
+
+
+### Bug Fixes
+
+* fixed netspec ([ab9f887](https://github.com/VenusProtocol/venus-protocol/commit/ab9f88775f28e317fa202c391b63c137e61579f5))
+* optional native wrapped token and market ([fe3018d](https://github.com/VenusProtocol/venus-protocol/commit/fe3018d90b6e1654dccb3f717018ec9e3ab0fc50))
+
 ## [6.1.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.2...v6.1.0-dev.3) (2023-11-29)
 
 
