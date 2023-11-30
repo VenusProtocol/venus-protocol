@@ -30,13 +30,13 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable BLOCKS_PER_YEAR;
 
-    /// @notice address of WBNB contract
+    /// @notice address of WRAPPED_NATIVE_TOKEN contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable WBNB;
+    address public immutable WRAPPED_NATIVE_TOKEN;
 
-    /// @notice address of VBNB contract
+    /// @notice address of NATIVE_MARKET contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable VBNB;
+    address public immutable NATIVE_MARKET;
 
     /// @notice minimum amount of XVS user needs to stake to become a prime member
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
@@ -145,8 +145,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
     /**
      * @notice Prime constructor
-     * @param _wbnb Address of WBNB
-     * @param _vbnb Address of VBNB
+     * @param _wrappedNativeToken Address of wrapped native token
+     * @param _nativeMarket Address of NATIVE_MARKET
      * @param _blocksPerYear total blocks per year
      * @param _stakingPeriod total number of seconds for which user needs to stake to claim prime token
      * @param _minimumStakedXVS minimum amount of XVS user needs to stake to become a prime member (scaled by 1e18)
@@ -156,18 +156,16 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
-        address _wbnb,
-        address _vbnb,
+        address _wrappedNativeToken,
+        address _nativeMarket,
         uint256 _blocksPerYear,
         uint256 _stakingPeriod,
         uint256 _minimumStakedXVS,
         uint256 _maximumXVSCap
     ) {
-        if (_wbnb == address(0)) revert InvalidAddress();
-        if (_vbnb == address(0)) revert InvalidAddress();
         if (_blocksPerYear == 0) revert InvalidBlocksPerYear();
-        WBNB = _wbnb;
-        VBNB = _vbnb;
+        WRAPPED_NATIVE_TOKEN = _wrappedNativeToken;
+        NATIVE_MARKET = _nativeMarket;
         BLOCKS_PER_YEAR = _blocksPerYear;
         STAKING_PERIOD = _stakingPeriod;
         MINIMUM_STAKED_XVS = _minimumStakedXVS;
@@ -1092,13 +1090,13 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     }
 
     /**
-     * @notice Returns the underlying token associated with the VToken, or WBNB if the market is VBNB
+     * @notice Returns the underlying token associated with the VToken, or WRAPPED_NATIVE_TOKEN if the market is NATIVE_MARKET
      * @param vToken the market whose underlying token will be returned
-     * @return underlying The address of the underlying token associated with the VToken, or the address of the WBNB token if the market is VBNB
+     * @return underlying The address of the underlying token associated with the VToken, or the address of the WRAPPED_NATIVE_TOKEN token if the market is NATIVE_MARKET
      */
     function _getUnderlying(address vToken) internal view returns (address) {
-        if (vToken == VBNB) {
-            return WBNB;
+        if (vToken == NATIVE_MARKET) {
+            return WRAPPED_NATIVE_TOKEN;
         }
         return IVToken(vToken).underlying();
     }
