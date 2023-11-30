@@ -120,9 +120,9 @@ jobs:
       - name: Export deployments
         run: |
           for NETWORK in bsctestnet bscmainnet ethereum sepolia; do
-            echo $NETWORK
-            yarn hardhat export --network $NETWORK --export ./deployments/$NETWORK.json
-            jq -M '{name, chainId, addresses: .contracts | map_values(.address)}' ./deployments/$NETWORK.json > ./deployments/$NETWORK_addresses.json
+            echo ${NETWORK}
+            yarn hardhat export --network ${NETWORK} --export ./deployments/${NETWORK}.json
+            jq -M '{name, chainId, addresses: .contracts | map_values(.address)}' ./deployments/${NETWORK}.json > ./deployments/${NETWORK}_addresses.json
           done
           yarn prettier
 
