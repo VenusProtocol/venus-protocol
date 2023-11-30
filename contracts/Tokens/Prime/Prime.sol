@@ -30,11 +30,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable BLOCKS_PER_YEAR;
 
-    /// @notice address of WRAPPED_NATIVE_TOKEN contract
+    /// @notice address of wrapped native token contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable WRAPPED_NATIVE_TOKEN;
 
-    /// @notice address of NATIVE_MARKET contract
+    /// @notice address of native market contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable NATIVE_MARKET;
 
@@ -146,7 +146,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /**
      * @notice Prime constructor
      * @param _wrappedNativeToken Address of wrapped native token
-     * @param _nativeMarket Address of NATIVE_MARKET
+     * @param _nativeMarket Address of native market
      * @param _blocksPerYear total blocks per year
      * @param _stakingPeriod total number of seconds for which user needs to stake to claim prime token
      * @param _minimumStakedXVS minimum amount of XVS user needs to stake to become a prime member (scaled by 1e18)
@@ -1090,7 +1090,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     }
 
     /**
-     * @notice Returns the underlying token associated with the VToken, or WRAPPED_NATIVE_TOKEN if the market is NATIVE_MARKET
+     * @notice Returns the underlying token associated with the VToken, or wrapped native token if the market is native market
      * @param vToken the market whose underlying token will be returned
      * @return underlying The address of the underlying token associated with the VToken, or the address of the WRAPPED_NATIVE_TOKEN token if the market is NATIVE_MARKET
      */
