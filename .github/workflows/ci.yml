@@ -119,10 +119,11 @@ jobs:
 
       - name: Export deployments
         run: |
-          for NETWORK in bsctestnet bscmainnet ethereum sepolia; do;
+          for NETWORK in bsctestnet bscmainnet ethereum sepolia; do
+            echo $NETWORK
             yarn hardhat export --network $NETWORK --export ./deployments/$NETWORK.json
             jq -M '{name, chainId, addresses: .contracts | map_values(.address)}' ./deployments/$NETWORK.json > ./deployments/$NETWORK_addresses.json
-          done;
+          done
           yarn prettier
 
       - uses: stefanzweifel/git-auto-commit-action@v5
