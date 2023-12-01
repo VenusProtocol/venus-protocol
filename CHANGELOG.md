@@ -1,3 +1,11 @@
+## [6.1.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.4...v6.1.0-dev.5) (2023-12-01)
+
+
+### Features
+
+* generate file only with addresses of deployed contracts ([f9c92bd](https://github.com/VenusProtocol/venus-protocol/commit/f9c92bd442fa9edaa79d72af2474afcdaee2224d))
+* updating deployment files ([589cb36](https://github.com/VenusProtocol/venus-protocol/commit/589cb36b54fea49911f4d3a758b637292c8c2303))
+
 ## [6.1.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.3...v6.1.0-dev.4) (2023-11-30)
 
 
