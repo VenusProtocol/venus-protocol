@@ -132,6 +132,14 @@ const config: HardhatUserConfig = {
       live: true,
       timeout: 1200000, // 20 minutes
     },
+    opbnbtestnet: {
+      url: process.env.OPBNB_TESTNET_ARCHIVE_NODE_URL || "https://opbnb-testnet-rpc.bnbchain.org",
+      chainId: 5611,
+      live: true,
+      accounts: {
+        mnemonic: process.env.MNEMONIC || "",
+      },
+    },
   },
   etherscan: {
     apiKey: {
