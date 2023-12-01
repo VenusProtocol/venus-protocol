@@ -140,6 +140,14 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC || "",
       },
     },
+    opbnbtestnet: {
+      url: process.env.OPBNB_TESTNET_ARCHIVE_NODE_URL || "https://opbnb-testnet-rpc.bnbchain.org",
+      chainId: 5611,
+      live: true,
+      accounts: {
+        mnemonic: process.env.MNEMONIC || "",
+      },
+    },
   },
   etherscan: {
     apiKey: BSCSCAN_API_KEY,
