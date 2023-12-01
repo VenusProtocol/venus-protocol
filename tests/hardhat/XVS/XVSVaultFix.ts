@@ -7,7 +7,7 @@ import { ethers } from "hardhat";
 import { XVSVaultProxy__factory, XVSVault__factory, XVS__factory } from "../../../typechain";
 
 const hre = require("hardhat");
-const FORK_MAINNET = process.env.FORK_MAINNET === "true";
+const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
 let FORK_ENDPOINT;
 
 const poolId = 0;

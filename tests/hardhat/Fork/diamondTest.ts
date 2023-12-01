@@ -57,7 +57,7 @@ export async function setForkBlock(blockNumber: number) {
     params: [
       {
         forking: {
-          jsonRpcUrl: process.env.BSC_ARCHIVE_NODE_URL,
+          jsonRpcUrl: process.env[`ARCHIVE_NODE_${process.env.FORKED_NETWORK}`],
           blockNumber: blockNumber,
         },
       },
@@ -84,7 +84,7 @@ forking(31873700, () => {
   let ownerSigner: SignerWithAddress; //eslint-disable-line
   let diamondUnitroller;
 
-  if (process.env.FORK_MAINNET === "true") {
+  if (process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet") {
     before(async () => {
       /*
        *  Forking mainnet
