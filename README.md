@@ -80,7 +80,7 @@ Contract tests are defined under the [tests directory](https://github.com/VenusP
 
 ```
 
-- To run fork tests add `FORK_MAINNET=true` and `BSC_ARCHIVE_NODE_URL `in the `.env` file.
+- To run fork tests add `FORK=true`, `FORKED_NETWORK` and one `ARCHIVE_NODE` var in the `.env` file.
 
 ## Code Coverage
 

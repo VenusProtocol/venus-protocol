@@ -9,7 +9,7 @@ export const setForkBlock = async (blockNumber: number) => {
     params: [
       {
         forking: {
-          jsonRpcUrl: process.env.BSC_ARCHIVE_NODE_URL,
+          jsonRpcUrl: process.env[`ARCHIVE_NODE_${process.env.FORKED_NETWORK}`],
           blockNumber,
         },
       },
@@ -34,4 +34,4 @@ export const initMainnetUser = async (user: string, balance?: NumberLike) => {
   return ethers.getSigner(user);
 };
 
-export const FORK_MAINNET = process.env.FORK_MAINNET === "true";
+export const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";

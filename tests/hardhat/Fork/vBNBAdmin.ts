@@ -5,7 +5,7 @@ import { Signer } from "ethers";
 
 import {
   Comptroller,
-  Comptroller__factory,
+  ComptrollerMock__factory,
   IAccessControlManagerV8,
   IProtocolShareReserve,
   MockVBNB,
@@ -36,7 +36,7 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
 
   const [admin] = await ethers.getSigners();
 
-  const comptroller = Comptroller__factory.connect(COMPTROLLER_ADDRESS, admin);
+  const comptroller = ComptrollerMock__factory.connect(COMPTROLLER_ADDRESS, admin);
   const vBNB = MockVBNB__factory.connect(vBNB_ADDRESS, admin);
   const WBNB = WBNB__factory.connect(WBNB_ADDRESS, admin);
 
@@ -67,54 +67,52 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   };
 };
 
-const FORK_MAINNET = process.env.FORK_MAINNET === "true";
+const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
 
 if (FORK_MAINNET) {
   const blockNumber = 29244056;
   forking(blockNumber, () => {
     describe("VBNBAdmin", () => {
-      if (process.env.FORK_MAINNET === "true") {
-        let vBNB: MockVBNB;
-        let protocolShareReserve: FakeContract<IProtocolShareReserve>;
-        let WBNB: WBNB;
-        let VBNBAdmin: VBNBAdmin;
-        let VBNBAdminAsVBNB: MockVBNB;
-        let normalTimelock: Signer;
+      let vBNB: MockVBNB;
+      let protocolShareReserve: FakeContract<IProtocolShareReserve>;
+      let WBNB: WBNB;
+      let VBNBAdmin: VBNBAdmin;
+      let VBNBAdminAsVBNB: MockVBNB;
+      let normalTimelock: Signer;
 
+      beforeEach(async () => {
+        ({ vBNB, protocolShareReserve, WBNB, VBNBAdmin, VBNBAdminAsVBNB, normalTimelock } = await loadFixture(
+          setupMarketFixture,
+        ));
+      });
+
+      it("set VBNBAdmin as vBNB admin", async () => {
+        expect(await vBNB.admin()).to.be.equal(NORMAL_TIMELOCK);
+
+        await vBNB.connect(normalTimelock)._setPendingAdmin(VBNBAdmin.address);
+
+        await VBNBAdminAsVBNB._acceptAdmin();
+        expect(await vBNB.admin()).to.be.equal(VBNBAdmin.address);
+      });
+
+      describe("harvest income", () => {
         beforeEach(async () => {
-          ({ vBNB, protocolShareReserve, WBNB, VBNBAdmin, VBNBAdminAsVBNB, normalTimelock } = await loadFixture(
-            setupMarketFixture,
-          ));
-        });
-
-        it("set VBNBAdmin as vBNB admin", async () => {
-          expect(await vBNB.admin()).to.be.equal(NORMAL_TIMELOCK);
-
           await vBNB.connect(normalTimelock)._setPendingAdmin(VBNBAdmin.address);
-
           await VBNBAdminAsVBNB._acceptAdmin();
-          expect(await vBNB.admin()).to.be.equal(VBNBAdmin.address);
         });
 
-        describe("harvest income", () => {
-          beforeEach(async () => {
-            await vBNB.connect(normalTimelock)._setPendingAdmin(VBNBAdmin.address);
-            await VBNBAdminAsVBNB._acceptAdmin();
-          });
+        it("reduce BNB reserves", async () => {
+          const amount = await vBNB.totalReserves();
+          await VBNBAdmin.reduceReserves(amount); //4869.449631532919221682
 
-          it("reduce BNB reserves", async () => {
-            const amount = await vBNB.totalReserves();
-            await VBNBAdmin.reduceReserves(amount); //4869.449631532919221682
-
-            let balance = await vBNB.totalReserves();
-            expect(balance).to.be.equal("366663102033709224"); //0.366663102033709224
-            balance = await ethers.provider.getBalance(VBNBAdmin.address);
-            expect(balance).to.be.equal(0);
-            balance = await WBNB.balanceOf(protocolShareReserve.address);
-            expect(balance).to.be.equal(amount);
-          });
+          let balance = await vBNB.totalReserves();
+          expect(balance).to.be.equal("366663102033709224"); //0.366663102033709224
+          balance = await ethers.provider.getBalance(VBNBAdmin.address);
+          expect(balance).to.be.equal(0);
+          balance = await WBNB.balanceOf(protocolShareReserve.address);
+          expect(balance).to.be.equal(amount);
         });
-      }
+      });
     });
   });
 }
