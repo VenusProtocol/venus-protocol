@@ -1,0 +1,374 @@
+{
+  "address": "0x06473fB3f7bF11e2E8EfEcC95aC55ABEFCb2e0A0",
+  "abi": [
+    {
+      "inputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oldAdmin",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newAdmin",
+          "type": "address"
+        }
+      ],
+      "name": "AdminTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oldPendingAdmin",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newPendingAdmin",
+          "type": "address"
+        }
+      ],
+      "name": "NewPendingAdmin",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oldOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnerTransferred",
+      "type": "event"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "acceptAdmin",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "admin",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_tokenAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "emergencyRewardWithdraw",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "pendingAdmin",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "rewardTokens",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_to",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "safeRewardTransfer",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_owner",
+          "type": "address"
+        }
+      ],
+      "name": "setNewOwner",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_admin",
+          "type": "address"
+        }
+      ],
+      "name": "setPendingAdmin",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_tokenAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "status",
+          "type": "bool"
+        }
+      ],
+      "name": "setRewardToken",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xad57ab3a24f0e650f03fee008d67f00227d5e3366b9c62e73fa55b1a155363a2",
+  "receipt": {
+    "to": null,
+    "from": "0xFEA1c651A47FE29dB9b1bf3cC1f224d8D9CFF68C",
+    "contractAddress": "0x06473fB3f7bF11e2E8EfEcC95aC55ABEFCb2e0A0",
+    "transactionIndex": 8,
+    "gasUsed": "634388",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x8774e65511756b2d5a77db03b415edc72bddaaceba8a3072d9ed22acbe3f76df",
+    "transactionHash": "0xad57ab3a24f0e650f03fee008d67f00227d5e3366b9c62e73fa55b1a155363a2",
+    "logs": [],
+    "blockNumber": 14544760,
+    "cumulativeGasUsed": "1931595",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [],
+  "numDeployments": 1,
+  "solcInputHash": "6955f97c86c4a782497d93a270048fd7",
+  "metadata": "{\"compiler\":{\"version\":\"0.5.16+commit.9c3226ce\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"oldAdmin\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oldPendingAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newPendingAdmin\",\"type\":\"address\"}],\"name\":\"NewPendingAdmin\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"oldOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnerTransferred\",\"type\":\"event\"},{\"constant\":false,\"inputs\":[],\"name\":\"acceptAdmin\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"admin\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_tokenAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"emergencyRewardWithdraw\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"pendingAdmin\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"rewardTokens\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"safeRewardTransfer\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"}],\"name\":\"setNewOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_admin\",\"type\":\"address\"}],\"name\":\"setPendingAdmin\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"_tokenAddress\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"status\",\"type\":\"bool\"}],\"name\":\"setRewardToken\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"author\":\"Venus\",\"methods\":{\"emergencyRewardWithdraw(address,uint256)\":{\"params\":{\"_amount\":\"Amount of token to withdraw\",\"_tokenAddress\":\"Reward token address to withdraw\"}},\"safeRewardTransfer(address,address,uint256)\":{\"details\":\"Safe reward token transfer function, just in case if rounding error causes pool to not have enough tokens.\",\"params\":{\"_amount\":\"Amount to transfer\",\"_to\":\"Destination address of the reward\",\"token\":\"Reward token to transfer\"}},\"setNewOwner(address)\":{\"params\":{\"_owner\":\"The address of the owner to set Only callable admin\"}},\"setPendingAdmin(address)\":{\"params\":{\"_admin\":\"Propose an account as admin of the XVS store\"}},\"setRewardToken(address,bool)\":{\"params\":{\"_tokenAddress\":\"The address of a token to set as active or inactive\",\"status\":\"Set whether a reward token is active or not\"}}},\"title\":\"XVS Store\"},\"userdoc\":{\"methods\":{\"acceptAdmin()\":{\"notice\":\"Allows an account that is pending as admin to accept the role nly calllable by the pending admin\"},\"emergencyRewardWithdraw(address,uint256)\":{\"notice\":\"Security function to allow the owner of the contract to withdraw from the contract\"},\"safeRewardTransfer(address,address,uint256)\":{\"notice\":\"Safely transfer rewards. Only active reward tokens can be sent using this function. Only callable by owner\"},\"setNewOwner(address)\":{\"notice\":\"Set the contract owner\"},\"setPendingAdmin(address)\":{\"notice\":\"Allows the admin to propose a new admin Only callable admin\"},\"setRewardToken(address,bool)\":{\"notice\":\"Set or disable a reward token\"}},\"notice\":\"XVS Store responsible for distributing XVS rewards\"}},\"settings\":{\"compilationTarget\":{\"contracts/XVSVault/XVSStore.sol\":\"XVSStore\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/Utils/Address.sol\":{\"content\":\"pragma solidity ^0.5.5;\\n\\n/**\\n * @dev Collection of functions related to the address type\\n */\\nlibrary Address {\\n    /**\\n     * @dev Returns true if `account` is a contract.\\n     *\\n     * [IMPORTANT]\\n     * ====\\n     * It is unsafe to assume that an address for which this function returns\\n     * false is an externally-owned account (EOA) and not a contract.\\n     *\\n     * Among others, `isContract` will return false for the following\\n     * types of addresses:\\n     *\\n     *  - an externally-owned account\\n     *  - a contract in construction\\n     *  - an address where a contract will be created\\n     *  - an address where a contract lived, but was destroyed\\n     * ====\\n     */\\n    function isContract(address account) internal view returns (bool) {\\n        // According to EIP-1052, 0x0 is the value returned for not-yet created accounts\\n        // and 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470 is returned\\n        // for accounts without code, i.e. `keccak256('')`\\n        bytes32 codehash;\\n        bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;\\n        // solhint-disable-next-line no-inline-assembly\\n        assembly {\\n            codehash := extcodehash(account)\\n        }\\n        return (codehash != accountHash && codehash != 0x0);\\n    }\\n\\n    /**\\n     * @dev Converts an `address` into `address payable`. Note that this is\\n     * simply a type cast: the actual underlying value is not changed.\\n     *\\n     * _Available since v2.4.0._\\n     */\\n    function toPayable(address account) internal pure returns (address payable) {\\n        return address(uint160(account));\\n    }\\n\\n    /**\\n     * @dev Replacement for Solidity's `transfer`: sends `amount` wei to\\n     * `recipient`, forwarding all available gas and reverting on errors.\\n     *\\n     * https://eips.ethereum.org/EIPS/eip-1884[EIP1884] increases the gas cost\\n     * of certain opcodes, possibly making contracts go over the 2300 gas limit\\n     * imposed by `transfer`, making them unable to receive funds via\\n     * `transfer`. {sendValue} removes this limitation.\\n     *\\n     * https://diligence.consensys.net/posts/2019/09/stop-using-soliditys-transfer-now/[Learn more].\\n     *\\n     * IMPORTANT: because control is transferred to `recipient`, care must be\\n     * taken to not create reentrancy vulnerabilities. Consider using\\n     * {ReentrancyGuard} or the\\n     * https://solidity.readthedocs.io/en/v0.5.11/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].\\n     *\\n     * _Available since v2.4.0._\\n     */\\n    function sendValue(address payable recipient, uint256 amount) internal {\\n        require(address(this).balance >= amount, \\\"Address: insufficient balance\\\");\\n\\n        // solhint-disable-next-line avoid-call-value\\n        // solium-disable-next-line security/no-call-value\\n        (bool success, ) = recipient.call.value(amount)(\\\"\\\");\\n        require(success, \\\"Address: unable to send value, recipient may have reverted\\\");\\n    }\\n}\\n\",\"keccak256\":\"0x3c2ef780599a2ae6913282b982633f07e405a4a9c8511590df571e2b773aef9d\"},\"contracts/Utils/IBEP20.sol\":{\"content\":\"pragma solidity ^0.5.0;\\n\\n/**\\n * @dev Interface of the BEP20 standard as defined in the EIP. Does not include\\n * the optional functions; to access them see {BEP20Detailed}.\\n */\\ninterface IBEP20 {\\n    /**\\n     * @dev Returns the amount of tokens in existence.\\n     */\\n    function totalSupply() external view returns (uint256);\\n\\n    /**\\n     * @dev Returns the amount of tokens owned by `account`.\\n     */\\n    function balanceOf(address account) external view returns (uint256);\\n\\n    /**\\n     * @dev Moves `amount` tokens from the caller's account to `recipient`.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transfer(address recipient, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Returns the remaining number of tokens that `spender` will be\\n     * allowed to spend on behalf of `owner` through {transferFrom}. This is\\n     * zero by default.\\n     *\\n     * This value changes when {approve} or {transferFrom} are called.\\n     */\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /**\\n     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * IMPORTANT: Beware that changing an allowance with this method brings the risk\\n     * that someone may use both the old and the new allowance by unfortunate\\n     * transaction ordering. One possible solution to mitigate this race\\n     * condition is to first reduce the spender's allowance to 0 and set the\\n     * desired value afterwards:\\n     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\\n     *\\n     * Emits an {Approval} event.\\n     */\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Moves `amount` tokens from `sender` to `recipient` using the\\n     * allowance mechanism. `amount` is then deducted from the caller's\\n     * allowance.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Emitted when `value` tokens are moved from one account (`from`) to\\n     * another (`to`).\\n     *\\n     * Note that `value` may be zero.\\n     */\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n\\n    /**\\n     * @dev Emitted when the allowance of a `spender` for an `owner` is set by\\n     * a call to {approve}. `value` is the new allowance.\\n     */\\n    event Approval(address indexed owner, address indexed spender, uint256 value);\\n}\\n\",\"keccak256\":\"0x839b08895eb1ad83502d3631e8e9e3a856d2a8c63c46f070d604af7b26c62c07\"},\"contracts/Utils/SafeBEP20.sol\":{\"content\":\"pragma solidity ^0.5.0;\\n\\nimport \\\"./SafeMath.sol\\\";\\nimport \\\"./IBEP20.sol\\\";\\nimport \\\"./Address.sol\\\";\\n\\n/**\\n * @title SafeBEP20\\n * @dev Wrappers around BEP20 operations that throw on failure (when the token\\n * contract returns false). Tokens that return no value (and instead revert or\\n * throw on failure) are also supported, non-reverting calls are assumed to be\\n * successful.\\n * To use this library you can add a `using SafeBEP20 for BEP20;` statement to your contract,\\n * which allows you to call the safe operations as `token.safeTransfer(...)`, etc.\\n */\\nlibrary SafeBEP20 {\\n    using SafeMath for uint256;\\n    using Address for address;\\n\\n    function safeTransfer(IBEP20 token, address to, uint256 value) internal {\\n        callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));\\n    }\\n\\n    function safeTransferFrom(IBEP20 token, address from, address to, uint256 value) internal {\\n        callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));\\n    }\\n\\n    function safeApprove(IBEP20 token, address spender, uint256 value) internal {\\n        // safeApprove should only be called when setting an initial allowance,\\n        // or when resetting it to zero. To increase and decrease it, use\\n        // 'safeIncreaseAllowance' and 'safeDecreaseAllowance'\\n        // solhint-disable-next-line max-line-length\\n        require(\\n            (value == 0) || (token.allowance(address(this), spender) == 0),\\n            \\\"SafeBEP20: approve from non-zero to non-zero allowance\\\"\\n        );\\n        callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));\\n    }\\n\\n    function safeIncreaseAllowance(IBEP20 token, address spender, uint256 value) internal {\\n        uint256 newAllowance = token.allowance(address(this), spender).add(value);\\n        callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));\\n    }\\n\\n    function safeDecreaseAllowance(IBEP20 token, address spender, uint256 value) internal {\\n        uint256 newAllowance = token.allowance(address(this), spender).sub(\\n            value,\\n            \\\"SafeBEP20: decreased allowance below zero\\\"\\n        );\\n        callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));\\n    }\\n\\n    /**\\n     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement\\n     * on the return value: the return value is optional (but if data is returned, it must not be false).\\n     * @param token The token targeted by the call.\\n     * @param data The call data (encoded using abi.encode or one of its variants).\\n     */\\n    function callOptionalReturn(IBEP20 token, bytes memory data) private {\\n        // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since\\n        // we're implementing it ourselves.\\n\\n        // A Solidity high level call has three parts:\\n        //  1. The target address is checked to verify it contains contract code\\n        //  2. The call itself is made, and success asserted\\n        //  3. The return value is decoded, which in turn checks the size of the returned data.\\n        // solhint-disable-next-line max-line-length\\n        require(address(token).isContract(), \\\"SafeBEP20: call to non-contract\\\");\\n\\n        // solhint-disable-next-line avoid-low-level-calls\\n        (bool success, bytes memory returndata) = address(token).call(data);\\n        require(success, \\\"SafeBEP20: low-level call failed\\\");\\n\\n        if (returndata.length > 0) {\\n            // Return data is optional\\n            // solhint-disable-next-line max-line-length\\n            require(abi.decode(returndata, (bool)), \\\"SafeBEP20: BEP20 operation did not succeed\\\");\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x540ef6ddc47232a59d3ab0e95537f7a7d1c8a36f8dba315b010e60c6487bd768\"},\"contracts/Utils/SafeMath.sol\":{\"content\":\"pragma solidity ^0.5.16;\\n\\n/**\\n * @dev Wrappers over Solidity's arithmetic operations with added overflow\\n * checks.\\n *\\n * Arithmetic operations in Solidity wrap on overflow. This can easily result\\n * in bugs, because programmers usually assume that an overflow raises an\\n * error, which is the standard behavior in high level programming languages.\\n * `SafeMath` restores this intuition by reverting the transaction when an\\n * operation overflows.\\n *\\n * Using this library instead of the unchecked operations eliminates an entire\\n * class of bugs, so it's recommended to use it always.\\n */\\nlibrary SafeMath {\\n    /**\\n     * @dev Returns the addition of two unsigned integers, reverting on\\n     * overflow.\\n     *\\n     * Counterpart to Solidity's `+` operator.\\n     *\\n     * Requirements:\\n     * - Addition cannot overflow.\\n     */\\n    function add(uint256 a, uint256 b) internal pure returns (uint256) {\\n        return add(a, b, \\\"SafeMath: addition overflow\\\");\\n    }\\n\\n    /**\\n     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on\\n     * overflow (when the result is negative).\\n     *\\n     * Counterpart to Solidity's `-` operator.\\n     *\\n     * Requirements:\\n     * - Subtraction cannot overflow.\\n     */\\n    function add(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {\\n        uint256 c = a + b;\\n        require(c >= a, errorMessage);\\n\\n        return c;\\n    }\\n\\n    /**\\n     * @dev Returns the subtraction of two unsigned integers, reverting on\\n     * overflow (when the result is negative).\\n     *\\n     * Counterpart to Solidity's `-` operator.\\n     *\\n     * Requirements:\\n     * - Subtraction cannot overflow.\\n     */\\n    function sub(uint256 a, uint256 b) internal pure returns (uint256) {\\n        return sub(a, b, \\\"SafeMath: subtraction overflow\\\");\\n    }\\n\\n    /**\\n     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on\\n     * overflow (when the result is negative).\\n     *\\n     * Counterpart to Solidity's `-` operator.\\n     *\\n     * Requirements:\\n     * - Subtraction cannot overflow.\\n     */\\n    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {\\n        require(b <= a, errorMessage);\\n        uint256 c = a - b;\\n\\n        return c;\\n    }\\n\\n    /**\\n     * @dev Returns the multiplication of two unsigned integers, reverting on\\n     * overflow.\\n     *\\n     * Counterpart to Solidity's `*` operator.\\n     *\\n     * Requirements:\\n     * - Multiplication cannot overflow.\\n     */\\n    function mul(uint256 a, uint256 b) internal pure returns (uint256) {\\n        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the\\n        // benefit is lost if 'b' is also tested.\\n        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522\\n        if (a == 0) {\\n            return 0;\\n        }\\n\\n        uint256 c = a * b;\\n        require(c / a == b, \\\"SafeMath: multiplication overflow\\\");\\n\\n        return c;\\n    }\\n\\n    /**\\n     * @dev Returns the integer division of two unsigned integers. Reverts on\\n     * division by zero. The result is rounded towards zero.\\n     *\\n     * Counterpart to Solidity's `/` operator. Note: this function uses a\\n     * `revert` opcode (which leaves remaining gas untouched) while Solidity\\n     * uses an invalid opcode to revert (consuming all remaining gas).\\n     *\\n     * Requirements:\\n     * - The divisor cannot be zero.\\n     */\\n    function div(uint256 a, uint256 b) internal pure returns (uint256) {\\n        return div(a, b, \\\"SafeMath: division by zero\\\");\\n    }\\n\\n    /**\\n     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on\\n     * division by zero. The result is rounded towards zero.\\n     *\\n     * Counterpart to Solidity's `/` operator. Note: this function uses a\\n     * `revert` opcode (which leaves remaining gas untouched) while Solidity\\n     * uses an invalid opcode to revert (consuming all remaining gas).\\n     *\\n     * Requirements:\\n     * - The divisor cannot be zero.\\n     */\\n    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {\\n        // Solidity only automatically asserts when dividing by 0\\n        require(b > 0, errorMessage);\\n        uint256 c = a / b;\\n        // assert(a == b * c + a % b); // There is no case in which this doesn't hold\\n\\n        return c;\\n    }\\n\\n    /**\\n     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),\\n     * Reverts when dividing by zero.\\n     *\\n     * Counterpart to Solidity's `%` operator. This function uses a `revert`\\n     * opcode (which leaves remaining gas untouched) while Solidity uses an\\n     * invalid opcode to revert (consuming all remaining gas).\\n     *\\n     * Requirements:\\n     * - The divisor cannot be zero.\\n     */\\n    function mod(uint256 a, uint256 b) internal pure returns (uint256) {\\n        return mod(a, b, \\\"SafeMath: modulo by zero\\\");\\n    }\\n\\n    /**\\n     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),\\n     * Reverts with custom message when dividing by zero.\\n     *\\n     * Counterpart to Solidity's `%` operator. This function uses a `revert`\\n     * opcode (which leaves remaining gas untouched) while Solidity uses an\\n     * invalid opcode to revert (consuming all remaining gas).\\n     *\\n     * Requirements:\\n     * - The divisor cannot be zero.\\n     */\\n    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {\\n        require(b != 0, errorMessage);\\n        return a % b;\\n    }\\n}\\n\",\"keccak256\":\"0x9431fd772ed4abc038cdfe9ce6c0066897bd1685ad45848748d1952935d5b8ef\"},\"contracts/XVSVault/XVSStore.sol\":{\"content\":\"pragma solidity 0.5.16;\\nimport \\\"../Utils/SafeBEP20.sol\\\";\\nimport \\\"../Utils/IBEP20.sol\\\";\\n\\n/**\\n * @title XVS Store\\n * @author Venus\\n * @notice XVS Store responsible for distributing XVS rewards\\n */\\ncontract XVSStore {\\n    using SafeMath for uint256;\\n    using SafeBEP20 for IBEP20;\\n\\n    /// @notice The Admin Address\\n    address public admin;\\n\\n    /// @notice The pending admin address\\n    address public pendingAdmin;\\n\\n    /// @notice The Owner Address\\n    address public owner;\\n\\n    /// @notice The reward tokens\\n    mapping(address => bool) public rewardTokens;\\n\\n    /// @notice Emitted when pendingAdmin is changed\\n    event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);\\n\\n    /// @notice Event emitted when admin changed\\n    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);\\n\\n    /// @notice Event emitted when owner changed\\n    event OwnerTransferred(address indexed oldOwner, address indexed newOwner);\\n\\n    constructor() public {\\n        admin = msg.sender;\\n    }\\n\\n    modifier onlyAdmin() {\\n        require(msg.sender == admin, \\\"only admin can\\\");\\n        _;\\n    }\\n\\n    modifier onlyOwner() {\\n        require(msg.sender == owner, \\\"only owner can\\\");\\n        _;\\n    }\\n\\n    /**\\n     * @notice Safely transfer rewards. Only active reward tokens can be sent using this function.\\n     * Only callable by owner\\n     * @dev Safe reward token transfer function, just in case if rounding error causes pool to not have enough tokens.\\n     * @param token Reward token to transfer\\n     * @param _to Destination address of the reward\\n     * @param _amount Amount to transfer\\n     */\\n    function safeRewardTransfer(address token, address _to, uint256 _amount) external onlyOwner {\\n        require(rewardTokens[token] == true, \\\"only reward token can\\\");\\n\\n        if (address(token) != address(0)) {\\n            uint256 tokenBalance = IBEP20(token).balanceOf(address(this));\\n            if (_amount > tokenBalance) {\\n                IBEP20(token).safeTransfer(_to, tokenBalance);\\n            } else {\\n                IBEP20(token).safeTransfer(_to, _amount);\\n            }\\n        }\\n    }\\n\\n    /**\\n     * @notice Allows the admin to propose a new admin\\n     * Only callable admin\\n     * @param _admin Propose an account as admin of the XVS store\\n     */\\n    function setPendingAdmin(address _admin) external onlyAdmin {\\n        address oldPendingAdmin = pendingAdmin;\\n        pendingAdmin = _admin;\\n        emit NewPendingAdmin(oldPendingAdmin, _admin);\\n    }\\n\\n    /**\\n     * @notice Allows an account that is pending as admin to accept the role\\n     * nly calllable by the pending admin\\n     */\\n    function acceptAdmin() external {\\n        require(msg.sender == pendingAdmin, \\\"only pending admin\\\");\\n        address oldAdmin = admin;\\n        address oldPendingAdmin = pendingAdmin;\\n\\n        admin = pendingAdmin;\\n        pendingAdmin = address(0);\\n\\n        emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);\\n        emit AdminTransferred(oldAdmin, admin);\\n    }\\n\\n    /**\\n     * @notice Set the contract owner\\n     * @param _owner The address of the owner to set\\n     * Only callable admin\\n     */\\n    function setNewOwner(address _owner) external onlyAdmin {\\n        require(_owner != address(0), \\\"new owner is the zero address\\\");\\n        address oldOwner = owner;\\n        owner = _owner;\\n        emit OwnerTransferred(oldOwner, _owner);\\n    }\\n\\n    /**\\n     * @notice Set or disable a reward token\\n     * @param _tokenAddress The address of a token to set as active or inactive\\n     * @param status Set whether a reward token is active or not\\n     */\\n    function setRewardToken(address _tokenAddress, bool status) external {\\n        require(msg.sender == admin || msg.sender == owner, \\\"only admin or owner can\\\");\\n        rewardTokens[_tokenAddress] = status;\\n    }\\n\\n    /**\\n     * @notice Security function to allow the owner of the contract to withdraw from the contract\\n     * @param _tokenAddress Reward token address to withdraw\\n     * @param _amount Amount of token to withdraw\\n     */\\n    function emergencyRewardWithdraw(address _tokenAddress, uint256 _amount) external onlyOwner {\\n        IBEP20(_tokenAddress).safeTransfer(address(msg.sender), _amount);\\n    }\\n}\\n\",\"keccak256\":\"0x8082f92b13448bd4fa982c93c763439f10fe016a5f3be6d613dfe3cca68501ef\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b50600080546001600160a01b03191633179055610a1b806100326000396000f3fe608060405234801561001057600080fd5b506004361061009e5760003560e01c80639ad99e68116100665780639ad99e681461012b578063f5a1f5b414610161578063f5ab16cc14610187578063f851a440146101c1578063fb66fb4d146101c95761009e565b80630e18b681146100a357806326782247146100ad5780634dd18bf5146100d1578063804e523e146100f75780638da5cb5b14610123575b600080fd5b6100ab6101f7565b005b6100b56102f3565b604080516001600160a01b039092168252519081900360200190f35b6100ab600480360360208110156100e757600080fd5b50356001600160a01b0316610302565b6100ab6004803603604081101561010d57600080fd5b506001600160a01b0381351690602001356103b5565b6100b5610423565b6100ab6004803603606081101561014157600080fd5b506001600160a01b03813581169160208101359091169060400135610432565b6100ab6004803603602081101561017757600080fd5b50356001600160a01b03166105bb565b6101ad6004803603602081101561019d57600080fd5b50356001600160a01b03166106b8565b604080519115158252519081900360200190f35b6100b56106cd565b6100ab600480360360408110156101df57600080fd5b506001600160a01b03813516906020013515156106dc565b6001546001600160a01b0316331461024b576040805162461bcd60e51b815260206004820152601260248201527137b7363c903832b73234b7339030b236b4b760711b604482015290519081900360640190fd5b60008054600180546001600160a01b038082166001600160a01b0319808616821787559092169092556040805182815260208101959095528051929093169390927fca4f2f25d0898edd99413412fb94012f9e54ec8142f9b093e7720646a95b16a992918290030190a1600080546040516001600160a01b0391821692918516917ff8ccb027dfcd135e000e9d45e6cc2d662578a8825d4c45b5e32e0adf67e79ec691a35050565b6001546001600160a01b031681565b6000546001600160a01b03163314610352576040805162461bcd60e51b815260206004820152600e60248201526d37b7363c9030b236b4b71031b0b760911b604482015290519081900360640190fd5b600180546001600160a01b038381166001600160a01b0319831681179093556040805191909216808252602082019390935281517fca4f2f25d0898edd99413412fb94012f9e54ec8142f9b093e7720646a95b16a9929181900390910190a15050565b6002546001600160a01b03163314610405576040805162461bcd60e51b815260206004820152600e60248201526d37b7363c9037bbb732b91031b0b760911b604482015290519081900360640190fd5b61041f6001600160a01b038316338363ffffffff61077b16565b5050565b6002546001600160a01b031681565b6002546001600160a01b03163314610482576040805162461bcd60e51b815260206004820152600e60248201526d37b7363c9037bbb732b91031b0b760911b604482015290519081900360640190fd5b6001600160a01b03831660009081526003602052604090205460ff1615156001146104ec576040805162461bcd60e51b815260206004820152601560248201527437b7363c903932bbb0b932103a37b5b2b71031b0b760591b604482015290519081900360640190fd5b6001600160a01b038316156105b657604080516370a0823160e01b815230600482015290516000916001600160a01b038616916370a0823191602480820192602092909190829003018186803b15801561054557600080fd5b505afa158015610559573d6000803e3d6000fd5b505050506040513d602081101561056f57600080fd5b505190508082111561059a576105956001600160a01b038516848363ffffffff61077b16565b6105b4565b6105b46001600160a01b038516848463ffffffff61077b16565b505b505050565b6000546001600160a01b0316331461060b576040805162461bcd60e51b815260206004820152600e60248201526d37b7363c9030b236b4b71031b0b760911b604482015290519081900360640190fd5b6001600160a01b038116610666576040805162461bcd60e51b815260206004820152601d60248201527f6e6577206f776e657220697320746865207a65726f2061646472657373000000604482015290519081900360640190fd5b600280546001600160a01b038381166001600160a01b0319831681179093556040519116919082907f8934ce4adea8d9ce0d714d2c22b86790e41b7731c84b926fbbdc1d40ff6533c990600090a35050565b60036020526000908152604090205460ff1681565b6000546001600160a01b031681565b6000546001600160a01b03163314806106ff57506002546001600160a01b031633145b610750576040805162461bcd60e51b815260206004820152601760248201527f6f6e6c792061646d696e206f72206f776e65722063616e000000000000000000604482015290519081900360640190fd5b6001600160a01b03919091166000908152600360205260409020805460ff1916911515919091179055565b604080516001600160a01b038416602482015260448082018490528251808303909101815260649091019091526020810180516001600160e01b031663a9059cbb60e01b1790526105b69084906107da826001600160a01b0316610980565b61082b576040805162461bcd60e51b815260206004820152601f60248201527f5361666542455032303a2063616c6c20746f206e6f6e2d636f6e747261637400604482015290519081900360640190fd5b60006060836001600160a01b0316836040518082805190602001908083835b602083106108695780518252601f19909201916020918201910161084a565b6001836020036101000a0380198251168184511680821785525050505050509050019150506000604051808303816000865af19150503d80600081146108cb576040519150601f19603f3d011682016040523d82523d6000602084013e6108d0565b606091505b509150915081610927576040805162461bcd60e51b815260206004820181905260248201527f5361666542455032303a206c6f772d6c6576656c2063616c6c206661696c6564604482015290519081900360640190fd5b8051156105b45780806020019051602081101561094357600080fd5b50516105b45760405162461bcd60e51b815260040180806020018281038252602a8152602001806109bd602a913960400191505060405180910390fd5b6000813f7fc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a4708181148015906109b457508115155b94935050505056fe5361666542455032303a204245503230206f7065726174696f6e20646964206e6f742073756363656564a265627a7a723158209e938a047cf0499058d9e6866f246e93c241e398b266c69ad7069ce461bc206364736f6c63430005100032",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061009e5760003560e01c80639ad99e68116100665780639ad99e681461012b578063f5a1f5b414610161578063f5ab16cc14610187578063f851a440146101c1578063fb66fb4d146101c95761009e565b80630e18b681146100a357806326782247146100ad5780634dd18bf5146100d1578063804e523e146100f75780638da5cb5b14610123575b600080fd5b6100ab6101f7565b005b6100b56102f3565b604080516001600160a01b039092168252519081900360200190f35b6100ab600480360360208110156100e757600080fd5b50356001600160a01b0316610302565b6100ab6004803603604081101561010d57600080fd5b506001600160a01b0381351690602001356103b5565b6100b5610423565b6100ab6004803603606081101561014157600080fd5b506001600160a01b03813581169160208101359091169060400135610432565b6100ab6004803603602081101561017757600080fd5b50356001600160a01b03166105bb565b6101ad6004803603602081101561019d57600080fd5b50356001600160a01b03166106b8565b604080519115158252519081900360200190f35b6100b56106cd565b6100ab600480360360408110156101df57600080fd5b506001600160a01b03813516906020013515156106dc565b6001546001600160a01b0316331461024b576040805162461bcd60e51b815260206004820152601260248201527137b7363c903832b73234b7339030b236b4b760711b604482015290519081900360640190fd5b60008054600180546001600160a01b038082166001600160a01b0319808616821787559092169092556040805182815260208101959095528051929093169390927fca4f2f25d0898edd99413412fb94012f9e54ec8142f9b093e7720646a95b16a992918290030190a1600080546040516001600160a01b0391821692918516917ff8ccb027dfcd135e000e9d45e6cc2d662578a8825d4c45b5e32e0adf67e79ec691a35050565b6001546001600160a01b031681565b6000546001600160a01b03163314610352576040805162461bcd60e51b815260206004820152600e60248201526d37b7363c9030b236b4b71031b0b760911b604482015290519081900360640190fd5b600180546001600160a01b038381166001600160a01b0319831681179093556040805191909216808252602082019390935281517fca4f2f25d0898edd99413412fb94012f9e54ec8142f9b093e7720646a95b16a9929181900390910190a15050565b6002546001600160a01b03163314610405576040805162461bcd60e51b815260206004820152600e60248201526d37b7363c9037bbb732b91031b0b760911b604482015290519081900360640190fd5b61041f6001600160a01b038316338363ffffffff61077b16565b5050565b6002546001600160a01b031681565b6002546001600160a01b03163314610482576040805162461bcd60e51b815260206004820152600e60248201526d37b7363c9037bbb732b91031b0b760911b604482015290519081900360640190fd5b6001600160a01b03831660009081526003602052604090205460ff1615156001146104ec576040805162461bcd60e51b815260206004820152601560248201527437b7363c903932bbb0b932103a37b5b2b71031b0b760591b604482015290519081900360640190fd5b6001600160a01b038316156105b657604080516370a0823160e01b815230600482015290516000916001600160a01b038616916370a0823191602480820192602092909190829003018186803b15801561054557600080fd5b505afa158015610559573d6000803e3d6000fd5b505050506040513d602081101561056f57600080fd5b505190508082111561059a576105956001600160a01b038516848363ffffffff61077b16565b6105b4565b6105b46001600160a01b038516848463ffffffff61077b16565b505b505050565b6000546001600160a01b0316331461060b576040805162461bcd60e51b815260206004820152600e60248201526d37b7363c9030b236b4b71031b0b760911b604482015290519081900360640190fd5b6001600160a01b038116610666576040805162461bcd60e51b815260206004820152601d60248201527f6e6577206f776e657220697320746865207a65726f2061646472657373000000604482015290519081900360640190fd5b600280546001600160a01b038381166001600160a01b0319831681179093556040519116919082907f8934ce4adea8d9ce0d714d2c22b86790e41b7731c84b926fbbdc1d40ff6533c990600090a35050565b60036020526000908152604090205460ff1681565b6000546001600160a01b031681565b6000546001600160a01b03163314806106ff57506002546001600160a01b031633145b610750576040805162461bcd60e51b815260206004820152601760248201527f6f6e6c792061646d696e206f72206f776e65722063616e000000000000000000604482015290519081900360640190fd5b6001600160a01b03919091166000908152600360205260409020805460ff1916911515919091179055565b604080516001600160a01b038416602482015260448082018490528251808303909101815260649091019091526020810180516001600160e01b031663a9059cbb60e01b1790526105b69084906107da826001600160a01b0316610980565b61082b576040805162461bcd60e51b815260206004820152601f60248201527f5361666542455032303a2063616c6c20746f206e6f6e2d636f6e747261637400604482015290519081900360640190fd5b60006060836001600160a01b0316836040518082805190602001908083835b602083106108695780518252601f19909201916020918201910161084a565b6001836020036101000a0380198251168184511680821785525050505050509050019150506000604051808303816000865af19150503d80600081146108cb576040519150601f19603f3d011682016040523d82523d6000602084013e6108d0565b606091505b509150915081610927576040805162461bcd60e51b815260206004820181905260248201527f5361666542455032303a206c6f772d6c6576656c2063616c6c206661696c6564604482015290519081900360640190fd5b8051156105b45780806020019051602081101561094357600080fd5b50516105b45760405162461bcd60e51b815260040180806020018281038252602a8152602001806109bd602a913960400191505060405180910390fd5b6000813f7fc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a4708181148015906109b457508115155b94935050505056fe5361666542455032303a204245503230206f7065726174696f6e20646964206e6f742073756363656564a265627a7a723158209e938a047cf0499058d9e6866f246e93c241e398b266c69ad7069ce461bc206364736f6c63430005100032",
+  "devdoc": {
+    "author": "Venus",
+    "methods": {
+      "emergencyRewardWithdraw(address,uint256)": {
+        "params": {
+          "_amount": "Amount of token to withdraw",
+          "_tokenAddress": "Reward token address to withdraw"
+        }
+      },
+      "safeRewardTransfer(address,address,uint256)": {
+        "details": "Safe reward token transfer function, just in case if rounding error causes pool to not have enough tokens.",
+        "params": {
+          "_amount": "Amount to transfer",
+          "_to": "Destination address of the reward",
+          "token": "Reward token to transfer"
+        }
+      },
+      "setNewOwner(address)": {
+        "params": {
+          "_owner": "The address of the owner to set Only callable admin"
+        }
+      },
+      "setPendingAdmin(address)": {
+        "params": {
+          "_admin": "Propose an account as admin of the XVS store"
+        }
+      },
+      "setRewardToken(address,bool)": {
+        "params": {
+          "_tokenAddress": "The address of a token to set as active or inactive",
+          "status": "Set whether a reward token is active or not"
+        }
+      }
+    },
+    "title": "XVS Store"
+  },
+  "userdoc": {
+    "methods": {
+      "acceptAdmin()": {
+        "notice": "Allows an account that is pending as admin to accept the role nly calllable by the pending admin"
+      },
+      "emergencyRewardWithdraw(address,uint256)": {
+        "notice": "Security function to allow the owner of the contract to withdraw from the contract"
+      },
+      "safeRewardTransfer(address,address,uint256)": {
+        "notice": "Safely transfer rewards. Only active reward tokens can be sent using this function. Only callable by owner"
+      },
+      "setNewOwner(address)": {
+        "notice": "Set the contract owner"
+      },
+      "setPendingAdmin(address)": {
+        "notice": "Allows the admin to propose a new admin Only callable admin"
+      },
+      "setRewardToken(address,bool)": {
+        "notice": "Set or disable a reward token"
+      }
+    },
+    "notice": "XVS Store responsible for distributing XVS rewards"
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 30127,
+        "contract": "contracts/XVSVault/XVSStore.sol:XVSStore",
+        "label": "admin",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 30129,
+        "contract": "contracts/XVSVault/XVSStore.sol:XVSStore",
+        "label": "pendingAdmin",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 30131,
+        "contract": "contracts/XVSVault/XVSStore.sol:XVSStore",
+        "label": "owner",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_address"
+      },
+      {
+        "astId": 30135,
+        "contract": "contracts/XVSVault/XVSStore.sol:XVSStore",
+        "label": "rewardTokens",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_address,t_bool)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      }
+    }
+  }
+}
