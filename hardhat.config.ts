@@ -192,7 +192,7 @@ const config: HardhatUserConfig = {
         chainId: 5611,
         urls: {
           apiURL: `https://open-platform.nodereal.io/${process.env.ETHERSCAN_API_KEY}/op-bnb-testnet/contract/`,
-          browserURL: "https://opbnbscan.com/",
+          browserURL: "https://testnet.opbnbscan.com/",
         },
       },
       {
