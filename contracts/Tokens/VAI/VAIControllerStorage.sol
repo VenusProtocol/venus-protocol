@@ -84,3 +84,11 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
     /// @notice Access control manager address
     address public accessControl;
 }
+
+contract VAIControllerStorageG3 is VAIControllerStorageG2 {
+    /// @notice The address of the prime contract
+    address public prime;
+
+    /// @notice Tracks if minting is enabled only for prime token holders
+    bool public mintEnabledOnlyForPrimeHolder;
+}

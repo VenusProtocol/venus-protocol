@@ -10,6 +10,7 @@ import {
   ComptrollerMock__factory,
   IAccessControlManagerV5,
   IProtocolShareReserve,
+  PrimeScenario__factory,
   VAIControllerHarness__factory,
 } from "../../../typechain";
 import { SimplePriceOracle } from "../../../typechain";
@@ -132,6 +133,7 @@ describe("VAIController", async () => {
       BigNumber.from(18),
       wallet.address,
     )) as VBep20Harness;
+
     await priceOracle.setUnderlyingPrice(vusdt.address, bigNumber18);
     await priceOracle.setDirectPrice(vai.address, bigNumber18);
     await comptroller._supportMarket(vusdt.address);
@@ -556,6 +558,30 @@ describe("VAIController", async () => {
       const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
       await vaiController.setAccessControl(newAccessControl.address);
       expect(await vaiController.getVariable("accessControl")).to.equal(newAccessControl.address);
+    });
+  });
+
+  describe("#prime", async () => {
+    it("prime integration", async () => {
+      const PrimeScenarioFactory = await smock.mock<PrimeScenario__factory>("PrimeScenario");
+      const primeScenario = await PrimeScenarioFactory.deploy(wallet.address, wallet.address, 100, 100, 100, 100);
+
+      await primeScenario.mintForUser(user1.address);
+
+      expect(await vaiController.mintEnabledOnlyForPrimeHolder()).to.be.equal(false);
+      expect(await vaiController.prime()).to.be.equal(constants.AddressZero);
+
+      await vaiController._setPrimeToken(primeScenario.address);
+      expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("100000000000000000000");
+
+      await vaiController.toggleOnlyPrimeHolderMint(true);
+      expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("100000000000000000000");
+
+      await vaiController._setPrimeToken(constants.AddressZero);
+      expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("0");
+
+      await vaiController._setPrimeToken(primeScenario.address);
+      expect((await vaiController.getMintableVAI(user2.address))[1]).to.be.equal("0");
     });
   });
 });
