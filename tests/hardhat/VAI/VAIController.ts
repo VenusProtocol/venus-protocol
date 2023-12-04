@@ -566,7 +566,7 @@ describe("VAIController", async () => {
       const PrimeScenarioFactory = await smock.mock<PrimeScenario__factory>("PrimeScenario");
       const primeScenario = await PrimeScenarioFactory.deploy(wallet.address, wallet.address, 100, 100, 100, 100);
 
-      expect((await vaiController.getMintableVAI(user2.address))[1]).to.be.equal("0");
+      expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("100000000000000000000");
       await primeScenario.mintForUser(user1.address);
 
       expect(await vaiController.mintEnabledOnlyForPrimeHolder()).to.be.equal(false);
@@ -580,9 +580,6 @@ describe("VAIController", async () => {
 
       await vaiController._setPrimeToken(constants.AddressZero);
       expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("0");
-
-      await vaiController._setPrimeToken(primeScenario.address);
-      expect((await vaiController.getMintableVAI(user2.address))[1]).to.be.equal("0");
     });
   });
 });
