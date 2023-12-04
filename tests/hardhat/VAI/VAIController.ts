@@ -566,6 +566,7 @@ describe("VAIController", async () => {
       const PrimeScenarioFactory = await smock.mock<PrimeScenario__factory>("PrimeScenario");
       const primeScenario = await PrimeScenarioFactory.deploy(wallet.address, wallet.address, 100, 100, 100, 100);
 
+      expect((await vaiController.getMintableVAI(user2.address))[1]).to.be.equal("0");
       await primeScenario.mintForUser(user1.address);
 
       expect(await vaiController.mintEnabledOnlyForPrimeHolder()).to.be.equal(false);
