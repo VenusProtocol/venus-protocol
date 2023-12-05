@@ -16,6 +16,7 @@ import { IPrime } from "./Interfaces/IPrime.sol";
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
+import { TimeManager } from "../../Utils/TimeManager.sol";
 
 /**
  * @title Prime
@@ -23,7 +24,7 @@ import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
  * @notice Prime Token is used to provide extra rewards to the users who have staked a minimum of `MINIMUM_STAKED_XVS` XVS in the XVSVault for `STAKING_PERIOD` days
  * @custom:security-contact https://github.com/VenusProtocol/venus-protocol
  */
-contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
+contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1, TimeManager {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice total blocks per year
@@ -128,9 +129,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @notice Error thrown when invalid address is passed
     error InvalidAddress();
 
-    /// @notice Error thrown when blocks per year is passed as 0
-    error InvalidBlocksPerYear();
-
     /// @notice Error thrown when invalid alpha arguments are passed
     error InvalidAlphaArguments();
 
@@ -151,6 +149,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param _stakingPeriod total number of seconds for which user needs to stake to claim prime token
      * @param _minimumStakedXVS minimum amount of XVS user needs to stake to become a prime member (scaled by 1e18)
      * @param _maximumXVSCap maximum XVS taken in account when calculating user score (scaled by 1e18)
+     * @param _timeBased A boolean indicating whether the contract is based on time or block.
      * @custom:error Throw InvalidAddress if any of the address is invalid
      * @custom:error Throw InvalidBlocksPerYear if blocks per year is 0
      */
@@ -161,8 +160,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 _blocksPerYear,
         uint256 _stakingPeriod,
         uint256 _minimumStakedXVS,
-        uint256 _maximumXVSCap
-    ) {
+        uint256 _maximumXVSCap,
+        bool _timeBased
+    ) TimeManager(_timeBased, _blocksPerYear) {
         if (_blocksPerYear == 0) revert InvalidBlocksPerYear();
         WRAPPED_NATIVE_TOKEN = _wrappedNativeToken;
         NATIVE_MARKET = _nativeMarket;
@@ -370,7 +370,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         if (users.length != timestamps.length) revert InvalidLength();
 
         for (uint256 i; i < users.length; ) {
-            if (timestamps[i] > block.timestamp) revert InvalidTimestamp();
+            if (timestamps[i] > getBlockNumberOrTimestamp()) revert InvalidTimestamp();
 
             stakedAt[users[i]] = timestamps[i];
             emit StakedAtUpdated(users[i], timestamps[i]);
@@ -513,14 +513,14 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             delete stakedAt[user];
             emit StakedAtUpdated(user, 0);
         } else if (userStakedAt == 0 && isAccountEligible && !token.exists) {
-            stakedAt[user] = block.timestamp;
-            emit StakedAtUpdated(user, block.timestamp);
+            stakedAt[user] = getBlockNumberOrTimestamp();
+            emit StakedAtUpdated(user, getBlockNumberOrTimestamp());
         } else if (token.exists && isAccountEligible) {
             _accrueInterestAndUpdateScore(user);
 
             if (stakedAt[user] == 0) {
-                stakedAt[user] = block.timestamp;
-                emit StakedAtUpdated(user, block.timestamp);
+                stakedAt[user] = getBlockNumberOrTimestamp();
+                emit StakedAtUpdated(user, getBlockNumberOrTimestamp());
             }
         }
     }
@@ -541,7 +541,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function claim() external {
         uint256 userStakedAt = stakedAt[msg.sender];
         if (userStakedAt == 0) revert IneligibleToClaim();
-        if (block.timestamp - userStakedAt < STAKING_PERIOD) revert WaitMoreTime();
+        if (getBlockNumberOrTimestamp() - userStakedAt < STAKING_PERIOD) revert WaitMoreTime();
 
         _mint(false, msg.sender);
         _initializeMarkets(msg.sender);
@@ -608,7 +608,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         uint256 totalTimeStaked;
         unchecked {
-            totalTimeStaked = block.timestamp - userStakedAt;
+            totalTimeStaked = getBlockNumberOrTimestamp() - userStakedAt;
         }
 
         if (totalTimeStaked < STAKING_PERIOD) {
