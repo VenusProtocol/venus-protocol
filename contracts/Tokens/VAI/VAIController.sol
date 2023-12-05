@@ -444,11 +444,6 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
 
     // solhint-disable-next-line code-complexity
     function getMintableVAI(address minter) public view returns (uint, uint) {
-
-        if (mintEnabledOnlyForPrimeHolder && prime == address(0)) {
-            return (uint(Error.REJECTION), 0);
-        }
-
         if (mintEnabledOnlyForPrimeHolder && !IPrime(prime).isUserPrimeHolder(minter)) {
             return (uint(Error.REJECTION), 0);
         }
