@@ -86,9 +86,9 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
 }
 
 contract VAIControllerStorageG3 is VAIControllerStorageG2 {
-    /// @notice The address of the prime contract
+    /// @notice The address of the prime contract. It can be a ZERO address
     address public prime;
 
-    /// @notice Tracks if minting is enabled only for prime token holders
+    /// @notice Tracks if minting is enabled only for prime token holders. Only used if prime is set
     bool public mintEnabledOnlyForPrimeHolder;
 }

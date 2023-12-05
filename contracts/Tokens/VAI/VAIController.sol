@@ -25,7 +25,7 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
     /// @notice Emitted when mint for prime holder is changed
     event MintOnlyForPrimeHolder(bool previousMintEnabledOnlyForPrimeHolder, bool newMintEnabledOnlyForPrimeHolder);
 
-    /// @notice Emiitted when Prime is changed
+    /// @notice Emitted when Prime is changed
     event NewPrime(address oldPrime, address newPrime);
 
     /// @notice Event emitted when VAI is minted
@@ -397,17 +397,11 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
     /**
      * @notice Set the prime token contract address
      * @param prime_ The new address of the prime token contract
-     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setPrimeToken(address prime_) external returns (uint) {
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
-
+    function _setPrimeToken(address prime_) external onlyAdmin {
         emit NewPrime(prime, prime_);
         prime = prime_;
 
-        return uint(Error.NO_ERROR);
     }
 
     /**
@@ -416,12 +410,14 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function toggleOnlyPrimeHolderMint(bool _mintEnabledOnlyForPrimeHolder) external returns (uint) {
-        if (msg.sender != admin) {
-            return fail(Error.UNAUTHORIZED, FailureInfo.SET_COMPTROLLER_OWNER_CHECK);
-        }
+        _ensureAllowed("toggleOnlyPrimeHolderMint(bool)");
 
         emit MintOnlyForPrimeHolder(mintEnabledOnlyForPrimeHolder, _mintEnabledOnlyForPrimeHolder);
         mintEnabledOnlyForPrimeHolder = _mintEnabledOnlyForPrimeHolder;
+
+        if (mintEnabledOnlyForPrimeHolder && prime == address(0)) {
+            return uint(Error.REJECTION);
+        }
 
         return uint(Error.NO_ERROR);
     }
@@ -448,14 +444,13 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
 
     // solhint-disable-next-line code-complexity
     function getMintableVAI(address minter) public view returns (uint, uint) {
+
         if (mintEnabledOnlyForPrimeHolder && prime == address(0)) {
             return (uint(Error.REJECTION), 0);
         }
 
-        if (mintEnabledOnlyForPrimeHolder && prime != address(0)) {
-            if (!IPrime(prime).isUserPrimeHolder(minter)) {
-                return (uint(Error.REJECTION), 0);
-            }
+        if (mintEnabledOnlyForPrimeHolder && !IPrime(prime).isUserPrimeHolder(minter)) {
+            return (uint(Error.REJECTION), 0);
         }
 
         PriceOracle oracle = comptroller.oracle();
