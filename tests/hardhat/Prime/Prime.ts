@@ -187,7 +187,10 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       [convertToUnit(1, 18), convertToUnit(1, 18), convertToUnit(1, 18)],
       10,
     ],
-    {},
+    {
+      constructorArgs: [10512000, false],
+      unsafeAllow: "constructor",
+    },
   );
 
   const primeLiquidityProvider = await smock.fake<PrimeLiquidityProvider>("PrimeLiquidityProvider");

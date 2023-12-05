@@ -47,7 +47,10 @@ const fixture = async () => {
     [tokenASpeed, tokenBSpeed],
     [convertToUnit(1, 18), convertToUnit(1, 18)],
     10,
-  ]);
+  ], {
+    constructorArgs: [10512000, false],
+    unsafeAllow: "constructor",
+  });
 
   await primeLiquidityProvider.setPrimeToken(prime.address);
 };
@@ -245,7 +248,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
       const lastAccruedBlock = await primeLiquidityProvider.lastAccruedBlock(tokenA.address);
       await primeLiquidityProvider.accrueTokens(tokenA.address);
-      const currentBlock = await primeLiquidityProvider.getBlockNumber();
+      const currentBlock = await primeLiquidityProvider.getBlockNumberOrTimestamp();
 
       const balanceA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
       const deltaBlocks = Number(currentBlock) - Number(lastAccruedBlock);
@@ -259,7 +262,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
       let lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlock(tokenA.address);
       await primeLiquidityProvider.accrueTokens(tokenA.address);
-      let currentBlockTokenA = await primeLiquidityProvider.getBlockNumber();
+      let currentBlockTokenA = await primeLiquidityProvider.getBlockNumberOrTimestamp();
 
       await mine(10);
 
@@ -276,7 +279,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       let previousAccruedTokenA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
       lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlock(tokenA.address);
       await primeLiquidityProvider.accrueTokens(tokenA.address);
-      currentBlockTokenA = await primeLiquidityProvider.getBlockNumber();
+      currentBlockTokenA = await primeLiquidityProvider.getBlockNumberOrTimestamp();
 
       balanceA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
       deltaBlocksTokenA = Number(currentBlockTokenA) - Number(lastAccruedBlockTokenA);
@@ -292,7 +295,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       await mine(10);
       let lastAccruedBlockTokenB = await primeLiquidityProvider.lastAccruedBlock(tokenB.address);
       await primeLiquidityProvider.accrueTokens(tokenB.address);
-      let currentBlockTokenB = await primeLiquidityProvider.getBlockNumber();
+      let currentBlockTokenB = await primeLiquidityProvider.getBlockNumberOrTimestamp();
       let deltaBlocksTokenB = Number(currentBlockTokenB) - Number(lastAccruedBlockTokenB);
       let accruedTokenB = deltaBlocksTokenB * Number(tokenBSpeed);
 
@@ -306,7 +309,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       previousAccruedTokenA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
       lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlock(tokenA.address);
       await primeLiquidityProvider.accrueTokens(tokenA.address);
-      currentBlockTokenA = await primeLiquidityProvider.getBlockNumber();
+      currentBlockTokenA = await primeLiquidityProvider.getBlockNumberOrTimestamp();
 
       balanceA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
       deltaBlocksTokenA = Number(currentBlockTokenA) - Number(lastAccruedBlockTokenA);
@@ -316,7 +319,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       const previousAccruedTokenB = await primeLiquidityProvider.tokenAmountAccrued(tokenB.address);
       lastAccruedBlockTokenB = await primeLiquidityProvider.lastAccruedBlock(tokenB.address);
       await primeLiquidityProvider.accrueTokens(tokenB.address);
-      currentBlockTokenB = await primeLiquidityProvider.getBlockNumber();
+      currentBlockTokenB = await primeLiquidityProvider.getBlockNumberOrTimestamp();
       deltaBlocksTokenB = Number(currentBlockTokenB) - Number(lastAccruedBlockTokenB);
       accruedTokenB = deltaBlocksTokenB * Number(tokenBSpeed);
       const totalAccruedTokenB = Number(previousAccruedTokenB) + accruedTokenB;
@@ -381,7 +384,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       const tx = await primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
       tx.wait();
 
-      const currentBlockTokenA = await primeLiquidityProvider.getBlockNumber();
+      const currentBlockTokenA = await primeLiquidityProvider.getBlockNumberOrTimestamp();
       const deltaBlocksTokenA = Number(currentBlockTokenA) - Number(lastAccruedBlockTokenA);
       const accruedTokenA = deltaBlocksTokenA * Number(tokenASpeed);
 

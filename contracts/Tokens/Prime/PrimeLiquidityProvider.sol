@@ -6,6 +6,7 @@ import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contract
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
 import { MaxLoopsLimitHelper } from "@venusprotocol/solidity-utilities/contracts/MaxLoopsLimitHelper.sol";
+import { TimeManager } from "../../Utils/TimeManager.sol";
 
 /**
  * @title PrimeLiquidityProvider
@@ -16,7 +17,8 @@ contract PrimeLiquidityProvider is
     IPrimeLiquidityProvider,
     AccessControlledV8,
     PausableUpgradeable,
-    MaxLoopsLimitHelper
+    MaxLoopsLimitHelper,
+    TimeManager
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -95,8 +97,16 @@ contract PrimeLiquidityProvider is
         _;
     }
 
+    /**
+     * @notice Prime Liquidity Provider constructor
+     * @param _blocksPerYear total blocks per year
+     * @param _timeBased A boolean indicating whether the contract is based on time or block.
+     */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor(
+        uint256 _blocksPerYear,
+        bool _timeBased
+    ) TimeManager(_timeBased, _blocksPerYear) {
         _disableInitializers();
     }
 
@@ -325,7 +335,7 @@ contract PrimeLiquidityProvider is
 
         _ensureTokenInitialized(token_);
 
-        uint256 blockNumber = getBlockNumber();
+        uint256 blockNumber = getBlockNumberOrTimestamp();
         uint256 deltaBlocks;
         unchecked {
             deltaBlocks = blockNumber - lastAccruedBlock[token_];
@@ -349,14 +359,6 @@ contract PrimeLiquidityProvider is
     }
 
     /**
-     * @notice Get the latest block number
-     * @return blockNumber returns the block number
-     */
-    function getBlockNumber() public view virtual returns (uint256) {
-        return block.number;
-    }
-
-    /**
      * @notice Initialize the distribution of the token
      * @param token_ Address of the token to be intialized
      * @custom:event Emits TokenDistributionInitialized event
@@ -364,7 +366,7 @@ contract PrimeLiquidityProvider is
      */
     function _initializeToken(address token_) internal {
         _ensureZeroAddress(token_);
-        uint256 blockNumber = getBlockNumber();
+        uint256 blockNumber = getBlockNumberOrTimestamp();
         uint256 initializedBlock = lastAccruedBlock[token_];
 
         if (initializedBlock != 0) {
