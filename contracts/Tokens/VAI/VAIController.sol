@@ -408,7 +408,7 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function toggleOnlyPrimeHolderMint() external returns (uint) {
-        _ensureAllowed("toggleOnlyPrimeHolderMint(bool)");
+        _ensureAllowed("toggleOnlyPrimeHolderMint()");
 
         if (!mintEnabledOnlyForPrimeHolder && prime == address(0)) {
             return uint(Error.REJECTION);
