@@ -2,30 +2,14 @@
 
 pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
-interface IPriceOracle {
-    function getUnderlyingPrice(IVToken vToken) external view returns (uint256);
-}
-
-interface IComptroller {
-    function oracle() external view returns (IPriceOracle);
-}
-
-interface IVToken {
-    function borrowBehalf(address borrower, uint256 borrowAmount) external returns (uint256);
-
-    function repayBorrowBehalf(address borrower, uint256 repayAmount) external returns (uint256);
-
-    function borrowBalanceCurrent(address account) external returns (uint256);
-
-    function comptroller() external view returns (IComptroller);
-
-    function underlying() external view returns (address);
-}
+import { approveOrRevert } from "../lib/approveOrRevert.sol";
+import { IVBep20, IComptroller } from "../InterfacesV8.sol";
 
 contract SwapDebtDelegate is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
     /// @dev VToken return value signalling about successful execution
@@ -69,8 +53,8 @@ contract SwapDebtDelegate is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable
      */
     function swapDebt(
         address borrower,
-        IVToken repayTo,
-        IVToken borrowFrom,
+        IVBep20 repayTo,
+        IVBep20 borrowFrom,
         uint256 repayAmount
     ) external onlyOwner nonReentrant {
         uint256 actualRepaymentAmount = _repay(repayTo, borrower, repayAmount);
@@ -96,7 +80,7 @@ contract SwapDebtDelegate is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable
      * @param repayAmount The amount to repay in terms of underlying
      */
     function _repay(
-        IVToken vToken,
+        IVBep20 vToken,
         address borrower,
         uint256 repayAmount
     ) internal returns (uint256 actualRepaymentAmount) {
@@ -123,7 +107,7 @@ contract SwapDebtDelegate is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable
      * @param borrower The address of the borrower, who will own the borrow
      * @param borrowAmount The amount to borrow in terms of underlying
      */
-    function _borrow(IVToken vToken, address borrower, uint256 borrowAmount) internal {
+    function _borrow(IVBep20 vToken, address borrower, uint256 borrowAmount) internal {
         IERC20Upgradeable underlying = IERC20Upgradeable(vToken.underlying());
         uint256 balanceBefore = underlying.balanceOf(address(this));
         uint256 err = vToken.borrowBehalf(borrower, borrowAmount);
@@ -142,15 +126,15 @@ contract SwapDebtDelegate is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable
      * @param convertTo VToken to convert to
      * @param amount The amount in convertFrom.underlying()
      */
-    function _convert(IVToken convertFrom, IVToken convertTo, uint256 amount) internal view returns (uint256) {
+    function _convert(IVBep20 convertFrom, IVBep20 convertTo, uint256 amount) internal view returns (uint256) {
         IComptroller comptroller = convertFrom.comptroller();
         if (comptroller != convertTo.comptroller()) {
             revert ComptrollerMismatch();
         }
-        IPriceOracle oracle = comptroller.oracle();
+        ResilientOracleInterface oracle = comptroller.oracle();
 
         // Decimals are accounted for in the oracle contract
-        uint256 scaledUsdValue = oracle.getUnderlyingPrice(convertFrom) * amount; // the USD value here has 36 decimals
-        return scaledUsdValue / oracle.getUnderlyingPrice(convertTo);
+        uint256 scaledUsdValue = oracle.getUnderlyingPrice(address(convertFrom)) * amount; // the USD value here has 36 decimals
+        return scaledUsdValue / oracle.getUnderlyingPrice(address(convertTo));
     }
 }

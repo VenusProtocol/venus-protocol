@@ -1,22 +1,27 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.13;
 
-import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 interface IVToken is IERC20Upgradeable {
     function borrowBalanceCurrent(address borrower) external returns (uint256);
 
-    function transfer(address dst, uint256 amount) external returns (bool);
+    function comptroller() external view returns (IComptroller);
 }
 
 interface IVBep20 is IVToken {
-    function underlying() external view returns (address);
+    function borrowBehalf(address borrower, uint256 borrowAmount) external returns (uint256);
+
+    function repayBorrowBehalf(address borrower, uint256 repayAmount) external returns (uint256);
 
     function liquidateBorrow(
         address borrower,
         uint256 repayAmount,
         IVToken vTokenCollateral
     ) external returns (uint256);
+
+    function underlying() external view returns (address);
 }
 
 interface IVBNB is IVToken {
@@ -53,6 +58,8 @@ interface IComptroller {
     function vaiController() external view returns (IVAIController);
 
     function liquidatorContract() external view returns (address);
+
+    function oracle() external view returns (ResilientOracleInterface);
 }
 
 interface ILiquidator {
