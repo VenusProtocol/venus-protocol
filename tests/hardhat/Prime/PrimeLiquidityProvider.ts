@@ -41,16 +41,20 @@ const fixture = async () => {
   tokenC = await FaucetToken.deploy(parseUnits("10000", 18), "TOKENC", 18, "C");
 
   const PrimeLiquidityProvider = await ethers.getContractFactory("PrimeLiquidityProvider");
-  primeLiquidityProvider = await upgrades.deployProxy(PrimeLiquidityProvider, [
-    accessControl.address,
-    [tokenA.address, tokenB.address],
-    [tokenASpeed, tokenBSpeed],
-    [convertToUnit(1, 18), convertToUnit(1, 18)],
-    10,
-  ], {
-    constructorArgs: [10512000, false],
-    unsafeAllow: "constructor",
-  });
+  primeLiquidityProvider = await upgrades.deployProxy(
+    PrimeLiquidityProvider,
+    [
+      accessControl.address,
+      [tokenA.address, tokenB.address],
+      [tokenASpeed, tokenBSpeed],
+      [convertToUnit(1, 18), convertToUnit(1, 18)],
+      10,
+    ],
+    {
+      constructorArgs: [10512000, false],
+      unsafeAllow: "constructor",
+    },
+  );
 
   await primeLiquidityProvider.setPrimeToken(prime.address);
 };

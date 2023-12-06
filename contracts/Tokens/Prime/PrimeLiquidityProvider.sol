@@ -103,10 +103,7 @@ contract PrimeLiquidityProvider is
      * @param _timeBased A boolean indicating whether the contract is based on time or block.
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(
-        uint256 _blocksPerYear,
-        bool _timeBased
-    ) TimeManager(_timeBased, _blocksPerYear) {
+    constructor(uint256 _blocksPerYear, bool _timeBased) TimeManager(_timeBased, _blocksPerYear) {
         _disableInitializers();
     }
 

@@ -27,10 +27,6 @@ import { TimeManager } from "../../Utils/TimeManager.sol";
 contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1, TimeManager {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    /// @notice total blocks per year
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable BLOCKS_PER_YEAR;
-
     /// @notice address of wrapped native token contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     address public immutable WRAPPED_NATIVE_TOKEN;
@@ -163,10 +159,8 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 _maximumXVSCap,
         bool _timeBased
     ) TimeManager(_timeBased, _blocksPerYear) {
-        if (_blocksPerYear == 0) revert InvalidBlocksPerYear();
         WRAPPED_NATIVE_TOKEN = _wrappedNativeToken;
         NATIVE_MARKET = _nativeMarket;
-        BLOCKS_PER_YEAR = _blocksPerYear;
         STAKING_PERIOD = _stakingPeriod;
         MINIMUM_STAKED_XVS = _minimumStakedXVS;
         MAXIMUM_XVS_CAP = _maximumXVSCap;
@@ -370,7 +364,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         if (users.length != timestamps.length) revert InvalidLength();
 
         for (uint256 i; i < users.length; ) {
-            if (timestamps[i] > getBlockNumberOrTimestamp()) revert InvalidTimestamp();
+            if (timestamps[i] > block.timestamp) revert InvalidTimestamp();
 
             stakedAt[users[i]] = timestamps[i];
             emit StakedAtUpdated(users[i], timestamps[i]);
@@ -513,14 +507,14 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
             delete stakedAt[user];
             emit StakedAtUpdated(user, 0);
         } else if (userStakedAt == 0 && isAccountEligible && !token.exists) {
-            stakedAt[user] = getBlockNumberOrTimestamp();
-            emit StakedAtUpdated(user, getBlockNumberOrTimestamp());
+            stakedAt[user] = block.timestamp;
+            emit StakedAtUpdated(user, block.timestamp);
         } else if (token.exists && isAccountEligible) {
             _accrueInterestAndUpdateScore(user);
 
             if (stakedAt[user] == 0) {
-                stakedAt[user] = getBlockNumberOrTimestamp();
-                emit StakedAtUpdated(user, getBlockNumberOrTimestamp());
+                stakedAt[user] = block.timestamp;
+                emit StakedAtUpdated(user, block.timestamp);
             }
         }
     }
@@ -541,7 +535,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     function claim() external {
         uint256 userStakedAt = stakedAt[msg.sender];
         if (userStakedAt == 0) revert IneligibleToClaim();
-        if (getBlockNumberOrTimestamp() - userStakedAt < STAKING_PERIOD) revert WaitMoreTime();
+        if (block.timestamp - userStakedAt < STAKING_PERIOD) revert WaitMoreTime();
 
         _mint(false, msg.sender);
         _initializeMarkets(msg.sender);
@@ -608,7 +602,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
         uint256 totalTimeStaked;
         unchecked {
-            totalTimeStaked = getBlockNumberOrTimestamp() - userStakedAt;
+            totalTimeStaked = block.timestamp - userStakedAt;
         }
 
         if (totalTimeStaked < STAKING_PERIOD) {
@@ -1111,9 +1105,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return amount the total income
      */
     function _incomeDistributionYearly(address vToken) internal view returns (uint256 amount) {
-        uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
+        uint256 totalIncomePerBlockOrSecondFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
             .getEffectiveDistributionSpeed(_getUnderlying(vToken));
-        amount = BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
+        amount = blocksOrSecondsPerYear * totalIncomePerBlockOrSecondFromPLP;
     }
 
     /**
