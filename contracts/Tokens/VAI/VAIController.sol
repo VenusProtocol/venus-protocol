@@ -401,23 +401,21 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
     function _setPrimeToken(address prime_) external onlyAdmin {
         emit NewPrime(prime, prime_);
         prime = prime_;
-
     }
 
     /**
      * @notice Toggle mint only for prime holder
-     * @param _mintEnabledOnlyForPrimeHolder set to true to allow minting only for prime holders
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function toggleOnlyPrimeHolderMint(bool _mintEnabledOnlyForPrimeHolder) external returns (uint) {
+    function toggleOnlyPrimeHolderMint() external returns (uint) {
         _ensureAllowed("toggleOnlyPrimeHolderMint(bool)");
 
-        emit MintOnlyForPrimeHolder(mintEnabledOnlyForPrimeHolder, _mintEnabledOnlyForPrimeHolder);
-        mintEnabledOnlyForPrimeHolder = _mintEnabledOnlyForPrimeHolder;
-
-        if (mintEnabledOnlyForPrimeHolder && prime == address(0)) {
+        if (!mintEnabledOnlyForPrimeHolder && prime == address(0)) {
             return uint(Error.REJECTION);
         }
+
+        emit MintOnlyForPrimeHolder(mintEnabledOnlyForPrimeHolder, !mintEnabledOnlyForPrimeHolder);
+        mintEnabledOnlyForPrimeHolder = !mintEnabledOnlyForPrimeHolder;
 
         return uint(Error.NO_ERROR);
     }
