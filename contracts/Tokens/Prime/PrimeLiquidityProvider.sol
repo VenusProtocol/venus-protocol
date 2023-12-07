@@ -103,7 +103,7 @@ contract PrimeLiquidityProvider is
      * @param _blocksPerYear total blocks per year
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor( bool _timeBased, uint256 _blocksPerYear) TimeManager(_timeBased, _blocksPerYear) {
+    constructor(bool _timeBased, uint256 _blocksPerYear) TimeManager(_timeBased, _blocksPerYear) {
         _disableInitializers();
     }
 
