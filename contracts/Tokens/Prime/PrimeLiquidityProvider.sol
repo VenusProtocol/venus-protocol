@@ -99,11 +99,11 @@ contract PrimeLiquidityProvider is
 
     /**
      * @notice Prime Liquidity Provider constructor
-     * @param _blocksPerYear total blocks per year
      * @param _timeBased A boolean indicating whether the contract is based on time or block.
+     * @param _blocksPerYear total blocks per year
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(uint256 _blocksPerYear, bool _timeBased) TimeManager(_timeBased, _blocksPerYear) {
+    constructor( bool _timeBased, uint256 _blocksPerYear) TimeManager(_timeBased, _blocksPerYear) {
         _disableInitializers();
     }
 
