@@ -21,4 +21,12 @@ contract PrimeScenario is Prime {
     function setPLP(address plp) external {
         primeLiquidityProvider = plp;
     }
+
+    function mintForUser(address user) external {
+        tokens[user] = Token(true, true);
+    }
+
+    function burnForUser(address user) external {
+        tokens[user] = Token(false, false);
+    }
 }

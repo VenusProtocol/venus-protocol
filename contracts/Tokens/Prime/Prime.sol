@@ -614,6 +614,14 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     }
 
     /**
+     * @notice Returns if user is a prime holder
+     * @return isPrimeHolder true if user is a prime holder
+     */
+    function isUserPrimeHolder(address user) external view returns (bool) {
+        return tokens[user].exists;
+    }
+
+    /**
      * @notice Returns supply and borrow APR for user for a given market
      * @param market the market for which to fetch the APR
      * @param user the account for which to get the APR
