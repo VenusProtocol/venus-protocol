@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.13;
 
-import { SECONDS_PER_YEAR } from "./Constants.sol";
+import { SECONDS_PER_YEAR } from "@venusprotocol/solidity-utilities/contracts/constants.sol";
 
 abstract contract TimeManager {
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
