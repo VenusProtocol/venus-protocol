@@ -8,18 +8,25 @@ import "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlM
 import { VToken, EIP20Interface } from "../VTokens/VToken.sol";
 import "./VAIUnitroller.sol";
 import "./VAI.sol";
+import "../Prime/IPrime.sol";
 
 /**
  * @title VAI Comptroller
  * @author Venus
  * @notice This is the implementation contract for the VAIUnitroller proxy
  */
-contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Exponential {
+contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Exponential {
     /// @notice Initial index used in interest computations
     uint public constant INITIAL_VAI_MINT_INDEX = 1e18;
 
     /// @notice Emitted when Comptroller is changed
     event NewComptroller(ComptrollerInterface oldComptroller, ComptrollerInterface newComptroller);
+
+    /// @notice Emitted when mint for prime holder is changed
+    event MintOnlyForPrimeHolder(bool previousMintEnabledOnlyForPrimeHolder, bool newMintEnabledOnlyForPrimeHolder);
+
+    /// @notice Emitted when Prime is changed
+    event NewPrime(address oldPrime, address newPrime);
 
     /// @notice Event emitted when VAI is minted
     event MintVAI(address minter, uint mintVAIAmount);
@@ -388,6 +395,32 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
     }
 
     /**
+     * @notice Set the prime token contract address
+     * @param prime_ The new address of the prime token contract
+     */
+    function _setPrimeToken(address prime_) external onlyAdmin {
+        emit NewPrime(prime, prime_);
+        prime = prime_;
+    }
+
+    /**
+     * @notice Toggle mint only for prime holder
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function toggleOnlyPrimeHolderMint() external returns (uint) {
+        _ensureAllowed("toggleOnlyPrimeHolderMint()");
+
+        if (!mintEnabledOnlyForPrimeHolder && prime == address(0)) {
+            return uint(Error.REJECTION);
+        }
+
+        emit MintOnlyForPrimeHolder(mintEnabledOnlyForPrimeHolder, !mintEnabledOnlyForPrimeHolder);
+        mintEnabledOnlyForPrimeHolder = !mintEnabledOnlyForPrimeHolder;
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /**
      * @dev Local vars for avoiding stack-depth limits in calculating account total supply balance.
      *  Note that `vTokenBalance` is the number of vTokens the account owns in the market,
      *  whereas `borrowBalance` is the amount of underlying that the account has borrowed.
@@ -409,6 +442,10 @@ contract VAIController is VAIControllerStorageG2, VAIControllerErrorReporter, Ex
 
     // solhint-disable-next-line code-complexity
     function getMintableVAI(address minter) public view returns (uint, uint) {
+        if (mintEnabledOnlyForPrimeHolder && !IPrime(prime).isUserPrimeHolder(minter)) {
+            return (uint(Error.REJECTION), 0);
+        }
+
         PriceOracle oracle = comptroller.oracle();
         VToken[] memory enteredMarkets = comptroller.getAssetsIn(minter);
 
