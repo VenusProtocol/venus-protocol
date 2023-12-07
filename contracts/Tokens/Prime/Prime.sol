@@ -670,7 +670,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     ) external view returns (APRInfo memory aprInfo) {
         aprInfo.totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
 
-        uint256 xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
+        aprInfo.xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
         Capital memory capital = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
 
         aprInfo.capital = capital.capital;
