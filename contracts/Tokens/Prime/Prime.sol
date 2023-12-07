@@ -671,7 +671,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         aprInfo.totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
 
         aprInfo.xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
-        Capital memory capital = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
+        Capital memory capital = _capitalForScore(aprInfo.xvsBalanceForScore, borrow, supply, market);
 
         aprInfo.capital = capital.capital;
         aprInfo.cappedSupply = capital.cappedSupply;
