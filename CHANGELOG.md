@@ -1,3 +1,12 @@
+## [6.1.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.5...v6.1.0-dev.6) (2023-12-07)
+
+
+### Features
+
+* add opbnbmainnet and verify config ([c3c983e](https://github.com/VenusProtocol/venus-protocol/commit/c3c983e52fb70cf2c5dd589d691a87ba92e18de4))
+* add vtreasury for opbnb testnet ([e919595](https://github.com/VenusProtocol/venus-protocol/commit/e9195959c32fc7bcb309992f9ccb6075d3f2a525))
+* export vtreasury deployments ([8477fef](https://github.com/VenusProtocol/venus-protocol/commit/8477feff6da7adcdb3419bb4c4d28eae0c8b6298))
+
 ## [6.1.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.4...v6.1.0-dev.5) (2023-12-01)
 
 
