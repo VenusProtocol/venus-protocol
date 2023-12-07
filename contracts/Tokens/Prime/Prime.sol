@@ -683,7 +683,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         aprInfo.capital = aprInfo.capital * (10 ** (18 - decimals));
 
         aprInfo.userScore = Scores._calculateScore(
-            xvsBalanceForScore,
+            aprInfo.xvsBalanceForScore,
             aprInfo.capital,
             alphaNumerator,
             alphaDenominator
