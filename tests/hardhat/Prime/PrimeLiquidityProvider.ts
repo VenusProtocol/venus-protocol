@@ -103,14 +103,14 @@ describe("PrimeLiquidityProvider: tests", () => {
 
     it("initializeTokens success", async () => {
       const tx = await primeLiquidityProvider.initializeTokens([tokenC.address]);
-      tx.wait();
+      await tx.wait();
 
       await expect(tx).to.emit(primeLiquidityProvider, "TokenDistributionInitialized").withArgs(tokenC.address);
     });
 
     it("pauseFundsTransfer", async () => {
       const tx = await primeLiquidityProvider.pauseFundsTransfer();
-      tx.wait();
+      await tx.wait();
 
       await expect(tx).to.emit(primeLiquidityProvider, "Paused").withArgs(signer.address);
 
@@ -120,7 +120,7 @@ describe("PrimeLiquidityProvider: tests", () => {
     it("resumeFundsTransfer", async () => {
       await primeLiquidityProvider.pauseFundsTransfer();
       const tx = await primeLiquidityProvider.resumeFundsTransfer();
-      tx.wait();
+      await tx.wait();
 
       await expect(tx).to.emit(primeLiquidityProvider, "Unpaused").withArgs(signer.address);
 
@@ -156,7 +156,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       const defaultMaxSpeed = convertToUnit(1, 18);
       await primeLiquidityProvider.initializeTokens([tokenC.address]);
       const tx = await primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [tokenCSpeed]);
-      tx.wait();
+      await tx.wait();
 
       await expect(tx)
         .to.emit(primeLiquidityProvider, "TokenDistributionSpeedUpdated")
@@ -168,7 +168,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       await primeLiquidityProvider.initializeTokens([tokenC.address]);
       await primeLiquidityProvider.setMaxTokensDistributionSpeed([tokenC.address], [convertToUnit(1, 18)]);
       const tx = await primeLiquidityProvider.setTokensDistributionSpeed([tokenC.address], [tokenCSpeed]);
-      tx.wait();
+      await tx.wait();
 
       await expect(tx)
         .to.emit(primeLiquidityProvider, "TokenDistributionSpeedUpdated")
@@ -177,7 +177,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
     it("setMaxTokensDistributionSpeed success", async () => {
       const tx = await primeLiquidityProvider.setMaxTokensDistributionSpeed([tokenC.address], [tokenCSpeed]);
-      tx.wait();
+      await tx.wait();
 
       await expect(tx)
         .to.emit(primeLiquidityProvider, "MaxTokenDistributionSpeedUpdated")
@@ -204,7 +204,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
     it("setPrimeToken success", async () => {
       const tx = await primeLiquidityProvider.setPrimeToken(signers[2].address);
-      tx.wait();
+      await tx.wait();
 
       await expect(tx).to.emit(primeLiquidityProvider, "PrimeTokenUpdated").withArgs(prime.address, signers[2].address);
     });
@@ -225,7 +225,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
     it("maxLoopsLimit setter success", async () => {
       const tx = await primeLiquidityProvider.setMaxLoopsLimit(11);
-      tx.wait();
+      await tx.wait();
 
       await expect(tx).to.emit(primeLiquidityProvider, "MaxLoopsLimitUpdated").withArgs(10, 11);
       expect(await primeLiquidityProvider.maxLoopsLimit()).to.be.equal(11);
@@ -386,7 +386,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       await wallet.sendTransaction({ to: prime.address, value: ethers.utils.parseEther("10") });
 
       const tx = await primeLiquidityProvider.connect(primeSigner).releaseFunds(tokenA.address);
-      tx.wait();
+      await tx.wait();
 
       const currentBlockTokenA = await primeLiquidityProvider.getBlockNumberOrTimestamp();
       const deltaBlocksTokenA = Number(currentBlockTokenA) - Number(lastAccruedBlockTokenA);
@@ -413,7 +413,7 @@ describe("PrimeLiquidityProvider: tests", () => {
 
       const balanceBefore = await tokenA.balanceOf(signer.address);
       const tx = await primeLiquidityProvider.sweepToken(tokenA.address, signer.address, sweepAmount);
-      tx.wait();
+      await tx.wait();
 
       await expect(tx)
         .to.emit(primeLiquidityProvider, "SweepToken")
