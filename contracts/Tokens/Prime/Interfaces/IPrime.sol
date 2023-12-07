@@ -8,6 +8,42 @@ import { PrimeStorageV1 } from "../PrimeStorage.sol";
  * @notice Interface for Prime Token
  */
 interface IPrime {
+    struct APRInfo {
+        // supply APR of the user in BPS
+        uint256 supplyAPR;
+        // borrow APR of the user in BPS
+        uint256 borrowAPR;
+        // total score of the market
+        uint256 totalScore;
+        // score of the user
+        uint256 userScore;
+        // capped XVS balance of the user
+        uint256 xvsBalanceForScore;
+        // capital of the user
+        uint256 capital;
+        // capped supply of the user
+        uint256 cappedSupply;
+        // capped borrow of the user
+        uint256 cappedBorrow;
+        // capped supply of user in USD
+        uint256 supplyCapUSD;
+        // capped borrow of user in USD
+        uint256 borrowCapUSD;
+    }
+
+    struct Capital {
+        // capital of the user
+        uint256 capital;
+        // capped supply of the user
+        uint256 cappedSupply;
+        // capped borrow of the user
+        uint256 cappedBorrow;
+        // capped supply of user in USD
+        uint256 supplyCapUSD;
+        // capped borrow of user in USD
+        uint256 borrowCapUSD;
+    }
+
     /**
      * @notice Returns boosted pending interest accrued for a user for all markets
      * @param user the account for which to get the accrued interests
@@ -139,10 +175,9 @@ interface IPrime {
      * @notice Returns supply and borrow APR for user for a given market
      * @param market the market for which to fetch the APR
      * @param user the account for which to get the APR
-     * @return supplyAPR supply APR of the user in BPS
-     * @return borrowAPR borrow APR of the user in BPS
+     * @return aprInfo APR information for the user for the given market
      */
-    function calculateAPR(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR);
+    function calculateAPR(address market, address user) external view returns (APRInfo memory aprInfo);
 
     /**
      * @notice Returns supply and borrow APR for estimated supply, borrow and XVS staked
@@ -151,8 +186,7 @@ interface IPrime {
      * @param borrow hypothetical borrow amount
      * @param supply hypothetical supply amount
      * @param xvsStaked hypothetical staked XVS amount
-     * @return supplyAPR supply APR of the user in BPS
-     * @return borrowAPR borrow APR of the user in BPS
+     * @return aprInfo APR information for the user for the given market
      */
     function estimateAPR(
         address market,
@@ -160,5 +194,5 @@ interface IPrime {
         uint256 borrow,
         uint256 supply,
         uint256 xvsStaked
-    ) external view returns (uint256 supplyAPR, uint256 borrowAPR);
+    ) external view returns (APRInfo memory aprInfo);
 }

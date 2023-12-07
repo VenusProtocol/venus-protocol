@@ -623,35 +623,35 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @notice Returns supply and borrow APR for user for a given market
      * @param market the market for which to fetch the APR
      * @param user the account for which to get the APR
-     * @return supplyAPR supply APR of the user in BPS
-     * @return borrowAPR borrow APR of the user in BPS
+     * @return aprInfo APR information for the user for the given market
      */
-    function calculateAPR(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
+    function calculateAPR(address market, address user) external view returns (APRInfo memory aprInfo) {
         IVToken vToken = IVToken(market);
         uint256 borrow = vToken.borrowBalanceStored(user);
         uint256 exchangeRate = vToken.exchangeRateStored();
         uint256 balanceOfAccount = vToken.balanceOf(user);
         uint256 supply = (exchangeRate * balanceOfAccount) / EXP_SCALE;
 
-        uint256 userScore = interests[market][user].score;
-        uint256 totalScore = markets[market].sumOfMembersScore;
+        aprInfo.userScore = interests[market][user].score;
+        aprInfo.totalScore = markets[market].sumOfMembersScore;
 
-        uint256 xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(user));
-        (, uint256 cappedSupply, uint256 cappedBorrow) = _capitalForScore(
-            xvsBalanceForScore,
-            borrow,
-            supply,
-            address(vToken)
-        );
+        aprInfo.xvsBalanceForScore = _xvsBalanceForScore(_xvsBalanceOfUser(user));
+        Capital memory capital = _capitalForScore(aprInfo.xvsBalanceForScore, borrow, supply, address(vToken));
 
-        (supplyAPR, borrowAPR) = _calculateUserAPR(
+        aprInfo.capital = capital.capital;
+        aprInfo.cappedSupply = capital.cappedSupply;
+        aprInfo.cappedBorrow = capital.cappedBorrow;
+        aprInfo.supplyCapUSD = capital.supplyCapUSD;
+        aprInfo.borrowCapUSD = capital.borrowCapUSD;
+
+        (aprInfo.supplyAPR, aprInfo.borrowAPR) = _calculateUserAPR(
             market,
             supply,
             borrow,
-            cappedSupply,
-            cappedBorrow,
-            userScore,
-            totalScore
+            aprInfo.cappedSupply,
+            aprInfo.cappedBorrow,
+            aprInfo.userScore,
+            aprInfo.totalScore
         );
     }
 
@@ -659,11 +659,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @notice Returns supply and borrow APR for estimated supply, borrow and XVS staked
      * @param market the market for which to fetch the APR
      * @param user the account for which to get the APR
-     * @param borrow hypothetical borrow amount
-     * @param supply hypothetical supply amount
-     * @param xvsStaked hypothetical staked XVS amount
-     * @return supplyAPR supply APR of the user in BPS
-     * @return borrowAPR borrow APR of the user in BPS
+     * @return aprInfo APR information for the user for the given market
      */
     function estimateAPR(
         address market,
@@ -671,32 +667,38 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 borrow,
         uint256 supply,
         uint256 xvsStaked
-    ) external view returns (uint256 supplyAPR, uint256 borrowAPR) {
-        uint256 totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
+    ) external view returns (APRInfo memory aprInfo) {
+        aprInfo.totalScore = markets[market].sumOfMembersScore - interests[market][user].score;
 
-        uint256 xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
-        (uint256 capital, uint256 cappedSupply, uint256 cappedBorrow) = _capitalForScore(
-            xvsBalanceForScore,
-            borrow,
-            supply,
-            market
-        );
+        aprInfo.xvsBalanceForScore = _xvsBalanceForScore(xvsStaked);
+        Capital memory capital = _capitalForScore(aprInfo.xvsBalanceForScore, borrow, supply, market);
+
+        aprInfo.capital = capital.capital;
+        aprInfo.cappedSupply = capital.cappedSupply;
+        aprInfo.cappedBorrow = capital.cappedBorrow;
+        aprInfo.supplyCapUSD = capital.supplyCapUSD;
+        aprInfo.borrowCapUSD = capital.borrowCapUSD;
 
         uint256 decimals = IERC20MetadataUpgradeable(_getUnderlying(market)).decimals();
-        capital = capital * (10 ** (18 - decimals));
+        aprInfo.capital = aprInfo.capital * (10 ** (18 - decimals));
 
-        uint256 userScore = Scores._calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
+        aprInfo.userScore = Scores._calculateScore(
+            aprInfo.xvsBalanceForScore,
+            aprInfo.capital,
+            alphaNumerator,
+            alphaDenominator
+        );
 
-        totalScore = totalScore + userScore;
+        aprInfo.totalScore = aprInfo.totalScore + aprInfo.userScore;
 
-        (supplyAPR, borrowAPR) = _calculateUserAPR(
+        (aprInfo.supplyAPR, aprInfo.borrowAPR) = _calculateUserAPR(
             market,
             supply,
             borrow,
-            cappedSupply,
-            cappedBorrow,
-            userScore,
-            totalScore
+            aprInfo.cappedSupply,
+            aprInfo.cappedBorrow,
+            aprInfo.userScore,
+            aprInfo.totalScore
         );
     }
 
@@ -806,12 +808,13 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         oracle.updateAssetPrice(xvsToken);
         oracle.updatePrice(market);
 
-        (uint256 capital, , ) = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
+        Capital memory capital = _capitalForScore(xvsBalanceForScore, borrow, supply, market);
+
         uint256 decimals = IERC20MetadataUpgradeable(_getUnderlying(market)).decimals();
 
-        capital = capital * (10 ** (18 - decimals));
+        capital.capital = capital.capital * (10 ** (18 - decimals));
 
-        return Scores._calculateScore(xvsBalanceForScore, capital, alphaNumerator, alphaDenominator);
+        return Scores._calculateScore(xvsBalanceForScore, capital.capital, alphaNumerator, alphaDenominator);
     }
 
     /**
@@ -1031,34 +1034,34 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param supply the supply balance of user
      * @param market the market vToken address
      * @return capital the capital to use in calculation of score
-     * @return cappedSupply the capped supply of user
-     * @return cappedBorrow the capped borrow of user
      */
     function _capitalForScore(
         uint256 xvs,
         uint256 borrow,
         uint256 supply,
         address market
-    ) internal view returns (uint256, uint256, uint256) {
+    ) internal view returns (Capital memory capital) {
         address xvsToken = IXVSVault(xvsVault).xvsAddress();
 
         uint256 xvsPrice = oracle.getPrice(xvsToken);
-        uint256 borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
-        uint256 supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
+        capital.borrowCapUSD = (xvsPrice * ((xvs * markets[market].borrowMultiplier) / EXP_SCALE)) / EXP_SCALE;
+        capital.supplyCapUSD = (xvsPrice * ((xvs * markets[market].supplyMultiplier) / EXP_SCALE)) / EXP_SCALE;
 
         uint256 tokenPrice = oracle.getUnderlyingPrice(market);
         uint256 supplyUSD = (tokenPrice * supply) / EXP_SCALE;
         uint256 borrowUSD = (tokenPrice * borrow) / EXP_SCALE;
 
-        if (supplyUSD >= supplyCapUSD) {
-            supply = supplyUSD != 0 ? (supply * supplyCapUSD) / supplyUSD : 0;
+        if (supplyUSD >= capital.supplyCapUSD) {
+            supply = supplyUSD != 0 ? (supply * capital.supplyCapUSD) / supplyUSD : 0;
         }
 
-        if (borrowUSD >= borrowCapUSD) {
-            borrow = borrowUSD != 0 ? (borrow * borrowCapUSD) / borrowUSD : 0;
+        if (borrowUSD >= capital.borrowCapUSD) {
+            borrow = borrowUSD != 0 ? (borrow * capital.borrowCapUSD) / borrowUSD : 0;
         }
 
-        return ((supply + borrow), supply, borrow);
+        capital.capital = supply + borrow;
+        capital.cappedSupply = supply;
+        capital.cappedBorrow = borrow;
     }
 
     /**
@@ -1110,7 +1113,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param vToken the market for which to fetch the total income that's going to distributed in a year
      * @return amount the total income
      */
-    function _incomeDistributionYearly(address vToken) internal view returns (uint256 amount) {
+    function incomeDistributionYearly(address vToken) public view returns (uint256 amount) {
         uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
             .getEffectiveDistributionSpeed(_getUnderlying(vToken));
         amount = BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
@@ -1139,7 +1142,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     ) internal view returns (uint256 supplyAPR, uint256 borrowAPR) {
         if (totalScore == 0) return (0, 0);
 
-        uint256 userYearlyIncome = (userScore * _incomeDistributionYearly(vToken)) / totalScore;
+        uint256 userYearlyIncome = (userScore * incomeDistributionYearly(vToken)) / totalScore;
 
         uint256 totalCappedValue = totalCappedSupply + totalCappedBorrow;
 
