@@ -82,12 +82,6 @@ interface IPrimeLiquidityProvider {
     function getEffectiveDistributionSpeed(address token_) external view returns (uint256);
 
     /**
-     * @notice Get the latest block number
-     * @return blockNumber returns the block number
-     */
-    function getBlockNumber() external view returns (uint256);
-
-    /**
      * @notice Get the amount of tokens accrued
      * @param token_ Address of the token
      * @return Amount of tokens that are accrued

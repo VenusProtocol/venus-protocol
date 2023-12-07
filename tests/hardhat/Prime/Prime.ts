@@ -187,7 +187,10 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       [convertToUnit(1, 18), convertToUnit(1, 18), convertToUnit(1, 18)],
       10,
     ],
-    {},
+    {
+      constructorArgs: [false, 10512000],
+      unsafeAllow: "constructor",
+    },
   );
 
   const primeLiquidityProvider = await smock.fake<PrimeLiquidityProvider>("PrimeLiquidityProvider");
@@ -201,7 +204,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     primeFactory,
     [xvsVault.address, xvs.address, 0, 1, 2, accessControl.address, primeLiquidityProvider.address, oracle.address, 10],
     {
-      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap],
+      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap, false],
       unsafeAllow: "constructor",
     },
   );

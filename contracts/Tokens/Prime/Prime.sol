@@ -16,6 +16,7 @@ import { IPrime } from "./Interfaces/IPrime.sol";
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
+import { TimeManager } from "../../Utils/TimeManager.sol";
 
 /**
  * @title Prime
@@ -23,12 +24,8 @@ import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
  * @notice Prime Token is used to provide extra rewards to the users who have staked a minimum of `MINIMUM_STAKED_XVS` XVS in the XVSVault for `STAKING_PERIOD` days
  * @custom:security-contact https://github.com/VenusProtocol/venus-protocol
  */
-contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1 {
+contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1, TimeManager {
     using SafeERC20Upgradeable for IERC20Upgradeable;
-
-    /// @notice total blocks per year
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable BLOCKS_PER_YEAR;
 
     /// @notice address of wrapped native token contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
@@ -128,9 +125,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @notice Error thrown when invalid address is passed
     error InvalidAddress();
 
-    /// @notice Error thrown when blocks per year is passed as 0
-    error InvalidBlocksPerYear();
-
     /// @notice Error thrown when invalid alpha arguments are passed
     error InvalidAlphaArguments();
 
@@ -151,6 +145,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param _stakingPeriod total number of seconds for which user needs to stake to claim prime token
      * @param _minimumStakedXVS minimum amount of XVS user needs to stake to become a prime member (scaled by 1e18)
      * @param _maximumXVSCap maximum XVS taken in account when calculating user score (scaled by 1e18)
+     * @param _timeBased A boolean indicating whether the contract is based on time or block.
      * @custom:error Throw InvalidAddress if any of the address is invalid
      * @custom:error Throw InvalidBlocksPerYear if blocks per year is 0
      */
@@ -161,12 +156,11 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 _blocksPerYear,
         uint256 _stakingPeriod,
         uint256 _minimumStakedXVS,
-        uint256 _maximumXVSCap
-    ) {
-        if (_blocksPerYear == 0) revert InvalidBlocksPerYear();
+        uint256 _maximumXVSCap,
+        bool _timeBased
+    ) TimeManager(_timeBased, _blocksPerYear) {
         WRAPPED_NATIVE_TOKEN = _wrappedNativeToken;
         NATIVE_MARKET = _nativeMarket;
-        BLOCKS_PER_YEAR = _blocksPerYear;
         STAKING_PERIOD = _stakingPeriod;
         MINIMUM_STAKED_XVS = _minimumStakedXVS;
         MAXIMUM_XVS_CAP = _maximumXVSCap;
@@ -1122,9 +1116,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @return amount the total income
      */
     function incomeDistributionYearly(address vToken) public view returns (uint256 amount) {
-        uint256 totalIncomePerBlockFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
+        uint256 totalIncomePerBlockOrSecondFromPLP = IPrimeLiquidityProvider(primeLiquidityProvider)
             .getEffectiveDistributionSpeed(_getUnderlying(vToken));
-        amount = BLOCKS_PER_YEAR * totalIncomePerBlockFromPLP;
+        amount = blocksOrSecondsPerYear * totalIncomePerBlockOrSecondFromPLP;
     }
 
     /**
