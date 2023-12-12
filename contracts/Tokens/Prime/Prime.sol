@@ -146,8 +146,6 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @param _minimumStakedXVS minimum amount of XVS user needs to stake to become a prime member (scaled by 1e18)
      * @param _maximumXVSCap maximum XVS taken in account when calculating user score (scaled by 1e18)
      * @param _timeBased A boolean indicating whether the contract is based on time or block.
-     * @custom:error Throw InvalidAddress if any of the address is invalid
-     * @custom:error Throw InvalidBlocksPerYear if blocks per year is 0
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
