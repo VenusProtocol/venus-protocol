@@ -35,7 +35,7 @@ contract PrimeLiquidityProvider is
     mapping(address => uint256) public maxTokenDistributionSpeeds;
 
     /// @notice The block or second till which rewards are distributed for an asset
-    mapping(address => uint256) public lastAccruedBlockOrSecond;
+    mapping(address => uint256) public lastAccruedBlock;
 
     /// @notice The token accrued but not yet transferred to prime contract
     mapping(address => uint256) public tokenAmountAccrued;
@@ -335,7 +335,7 @@ contract PrimeLiquidityProvider is
         uint256 blockNumberOrSecond = getBlockNumberOrTimestamp();
         uint256 deltaBlocksOrSeconds;
         unchecked {
-            deltaBlocksOrSeconds = blockNumberOrSecond - lastAccruedBlockOrSecond[token_];
+            deltaBlocksOrSeconds = blockNumberOrSecond - lastAccruedBlock[token_];
         }
 
         if (deltaBlocksOrSeconds != 0) {
@@ -351,7 +351,7 @@ contract PrimeLiquidityProvider is
                 emit TokensAccrued(token_, tokenAccrued);
             }
 
-            lastAccruedBlockOrSecond[token_] = blockNumberOrSecond;
+            lastAccruedBlock[token_] = blockNumberOrSecond;
         }
     }
 
@@ -364,7 +364,7 @@ contract PrimeLiquidityProvider is
     function _initializeToken(address token_) internal {
         _ensureZeroAddress(token_);
         uint256 blockNumberOrSecond = getBlockNumberOrTimestamp();
-        uint256 initializedBlockOrSecond = lastAccruedBlockOrSecond[token_];
+        uint256 initializedBlockOrSecond = lastAccruedBlock[token_];
 
         if (initializedBlockOrSecond != 0) {
             revert TokenAlreadyInitialized(token_);
@@ -373,7 +373,7 @@ contract PrimeLiquidityProvider is
         /*
          * Update token state block number or second
          */
-        lastAccruedBlockOrSecond[token_] = blockNumberOrSecond;
+        lastAccruedBlock[token_] = blockNumberOrSecond;
 
         emit TokenDistributionInitialized(token_);
     }
@@ -425,7 +425,7 @@ contract PrimeLiquidityProvider is
      * @param token_ Token Address to be verified for
      */
     function _ensureTokenInitialized(address token_) internal view {
-        uint256 lastBlockOrSecondAccrued = lastAccruedBlockOrSecond[token_];
+        uint256 lastBlockOrSecondAccrued = lastAccruedBlock[token_];
 
         if (lastBlockOrSecondAccrued == 0) {
             revert TokenNotInitialized(token_);
