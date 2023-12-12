@@ -26,14 +26,14 @@ interface IPrimeLiquidityProvider {
     function resumeFundsTransfer() external;
 
     /**
-     * @notice Set distribution speed (amount of token distribute per block)
+     * @notice Set distribution speed (amount of token distribute per block or second)
      * @param tokens_ Array of addresses of the tokens
      * @param distributionSpeeds_ New distribution speeds for tokens
      */
     function setTokensDistributionSpeed(address[] calldata tokens_, uint256[] calldata distributionSpeeds_) external;
 
     /**
-     * @notice Set max distribution speed for token (amount of maximum token distribute per block)
+     * @notice Set max distribution speed for token (amount of maximum token distribute per block or second)
      * @param tokens_ Array of addresses of the tokens
      * @param maxDistributionSpeeds_ New distribution speeds for tokens
      */
@@ -49,7 +49,7 @@ interface IPrimeLiquidityProvider {
     function setPrimeToken(address prime_) external;
 
     /**
-     * @notice Claim all the token accrued till last block
+     * @notice Claim all the token accrued till last block or second
      * @param token_ The token to release to the Prime contract
      */
     function releaseFunds(address token_) external;
@@ -75,9 +75,9 @@ interface IPrimeLiquidityProvider {
     function setMaxLoopsLimit(uint256 loopsLimit) external;
 
     /**
-     * @notice Get rewards per block for token
+     * @notice Get rewards per block or second for token
      * @param token_ Address of the token
-     * @return speed returns the per block reward
+     * @return speed returns the per block or second reward
      */
     function getEffectiveDistributionSpeed(address token_) external view returns (uint256);
 

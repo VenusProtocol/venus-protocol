@@ -66,10 +66,10 @@ describe("PrimeLiquidityProvider: tests", () => {
 
   describe("Testing all initalized values", () => {
     it("Tokens intialized", async () => {
-      const tokenABlock = await primeLiquidityProvider.lastAccruedBlock(tokenA.address);
+      const tokenABlock = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenA.address);
       expect(tokenABlock).to.greaterThan(0);
 
-      const tokenBBlock = await primeLiquidityProvider.lastAccruedBlock(tokenB.address);
+      const tokenBBlock = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenB.address);
       expect(tokenBBlock).to.greaterThan(0);
     });
 
@@ -250,7 +250,7 @@ describe("PrimeLiquidityProvider: tests", () => {
     it("Accrue amount for tokenA", async () => {
       await mine(10);
 
-      const lastAccruedBlock = await primeLiquidityProvider.lastAccruedBlock(tokenA.address);
+      const lastAccruedBlock = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenA.address);
       await primeLiquidityProvider.accrueTokens(tokenA.address);
       const currentBlock = await primeLiquidityProvider.getBlockNumberOrTimestamp();
 
@@ -264,7 +264,7 @@ describe("PrimeLiquidityProvider: tests", () => {
     it("Accrue amount for multiple tokens", async () => {
       await mine(10);
 
-      let lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlock(tokenA.address);
+      let lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenA.address);
       await primeLiquidityProvider.accrueTokens(tokenA.address);
       let currentBlockTokenA = await primeLiquidityProvider.getBlockNumberOrTimestamp();
 
@@ -281,7 +281,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       expect(Number(balanceB)).to.equal(0);
 
       let previousAccruedTokenA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
-      lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlock(tokenA.address);
+      lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenA.address);
       await primeLiquidityProvider.accrueTokens(tokenA.address);
       currentBlockTokenA = await primeLiquidityProvider.getBlockNumberOrTimestamp();
 
@@ -297,7 +297,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       expect(balanceB).to.equal(0);
 
       await mine(10);
-      let lastAccruedBlockTokenB = await primeLiquidityProvider.lastAccruedBlock(tokenB.address);
+      let lastAccruedBlockTokenB = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenB.address);
       await primeLiquidityProvider.accrueTokens(tokenB.address);
       let currentBlockTokenB = await primeLiquidityProvider.getBlockNumberOrTimestamp();
       let deltaBlocksTokenB = Number(currentBlockTokenB) - Number(lastAccruedBlockTokenB);
@@ -311,7 +311,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       expect(Number(balanceB)).to.equal(accruedTokenB);
 
       previousAccruedTokenA = await primeLiquidityProvider.tokenAmountAccrued(tokenA.address);
-      lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlock(tokenA.address);
+      lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenA.address);
       await primeLiquidityProvider.accrueTokens(tokenA.address);
       currentBlockTokenA = await primeLiquidityProvider.getBlockNumberOrTimestamp();
 
@@ -321,7 +321,7 @@ describe("PrimeLiquidityProvider: tests", () => {
       totalAccruedTokenA = Number(previousAccruedTokenA) + accruedTokenA;
 
       const previousAccruedTokenB = await primeLiquidityProvider.tokenAmountAccrued(tokenB.address);
-      lastAccruedBlockTokenB = await primeLiquidityProvider.lastAccruedBlock(tokenB.address);
+      lastAccruedBlockTokenB = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenB.address);
       await primeLiquidityProvider.accrueTokens(tokenB.address);
       currentBlockTokenB = await primeLiquidityProvider.getBlockNumberOrTimestamp();
       deltaBlocksTokenB = Number(currentBlockTokenB) - Number(lastAccruedBlockTokenB);
@@ -379,7 +379,7 @@ describe("PrimeLiquidityProvider: tests", () => {
     it("Release funds success", async () => {
       const [wallet] = await ethers.getSigners();
 
-      const lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlock(tokenB.address);
+      const lastAccruedBlockTokenA = await primeLiquidityProvider.lastAccruedBlockOrSecond(tokenB.address);
 
       await impersonateAccount(prime.address);
       const primeSigner = await ethers.provider.getSigner(prime.address);

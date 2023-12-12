@@ -28,14 +28,14 @@ contract PrimeLiquidityProvider is
     /// @notice Address of the Prime contract
     address public prime;
 
-    /// @notice The rate at which token is distributed (per block)
+    /// @notice The rate at which token is distributed (per block or second)
     mapping(address => uint256) public tokenDistributionSpeeds;
 
     /// @notice The max token distribution speed for token
     mapping(address => uint256) public maxTokenDistributionSpeeds;
 
-    /// @notice The block till which rewards are distributed for an asset
-    mapping(address => uint256) public lastAccruedBlock;
+    /// @notice The block or second till which rewards are distributed for an asset
+    mapping(address => uint256) public lastAccruedBlockOrSecond;
 
     /// @notice The token accrued but not yet transferred to prime contract
     mapping(address => uint256) public tokenAmountAccrued;
@@ -52,7 +52,7 @@ contract PrimeLiquidityProvider is
     /// @notice Emitted when prime token contract address is changed
     event PrimeTokenUpdated(address indexed oldPrimeToken, address indexed newPrimeToken);
 
-    /// @notice Emitted when distribution state(Index and block) is updated
+    /// @notice Emitted when distribution state(Index and block/second) is updated
     event TokensAccrued(address indexed token, uint256 amount);
 
     /// @notice Emitted when token is transferred to the prime contract
@@ -184,7 +184,7 @@ contract PrimeLiquidityProvider is
     }
 
     /**
-     * @notice Set distribution speed (amount of token distribute per block)
+     * @notice Set distribution speed (amount of token distribute per block or second)
      * @param tokens_ Array of addresses of the tokens
      * @param distributionSpeeds_ New distribution speeds for tokens
      * @custom:access Controlled by ACM
@@ -210,7 +210,7 @@ contract PrimeLiquidityProvider is
     }
 
     /**
-     * @notice Set max distribution speed for token (amount of maximum token distribute per block)
+     * @notice Set max distribution speed for token (amount of maximum token distribute per block or second)
      * @param tokens_ Array of addresses of the tokens
      * @param maxDistributionSpeeds_ New distribution speeds for tokens
      * @custom:access Controlled by ACM
@@ -262,7 +262,7 @@ contract PrimeLiquidityProvider is
     }
 
     /**
-     * @notice Claim all the token accrued till last block
+     * @notice Claim all the token accrued till last block or second
      * @param token_ The token to release to the Prime contract
      * @custom:event Emits TokenTransferredToPrime event
      * @custom:error Throw InvalidArguments on Zero address(token)
@@ -306,9 +306,9 @@ contract PrimeLiquidityProvider is
     }
 
     /**
-     * @notice Get rewards per block for token
+     * @notice Get rewards per block or second for token
      * @param token_ Address of the token
-     * @return speed returns the per block reward
+     * @return speed returns the per block or second reward
      */
     function getEffectiveDistributionSpeed(address token_) external view returns (uint256) {
         uint256 distributionSpeed = tokenDistributionSpeeds[token_];
@@ -332,26 +332,26 @@ contract PrimeLiquidityProvider is
 
         _ensureTokenInitialized(token_);
 
-        uint256 blockNumber = getBlockNumberOrTimestamp();
-        uint256 deltaBlocks;
+        uint256 blockNumberOrSecond = getBlockNumberOrTimestamp();
+        uint256 deltaBlocksOrSeconds;
         unchecked {
-            deltaBlocks = blockNumber - lastAccruedBlock[token_];
+            deltaBlocksOrSeconds = blockNumberOrSecond - lastAccruedBlockOrSecond[token_];
         }
 
-        if (deltaBlocks != 0) {
+        if (deltaBlocksOrSeconds != 0) {
             uint256 distributionSpeed = tokenDistributionSpeeds[token_];
             uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
 
             uint256 balanceDiff = balance - tokenAmountAccrued[token_];
             if (distributionSpeed != 0 && balanceDiff != 0) {
-                uint256 accruedSinceUpdate = deltaBlocks * distributionSpeed;
+                uint256 accruedSinceUpdate = deltaBlocksOrSeconds * distributionSpeed;
                 uint256 tokenAccrued = (balanceDiff <= accruedSinceUpdate ? balanceDiff : accruedSinceUpdate);
 
                 tokenAmountAccrued[token_] += tokenAccrued;
                 emit TokensAccrued(token_, tokenAccrued);
             }
 
-            lastAccruedBlock[token_] = blockNumber;
+            lastAccruedBlockOrSecond[token_] = blockNumberOrSecond;
         }
     }
 
@@ -363,23 +363,23 @@ contract PrimeLiquidityProvider is
      */
     function _initializeToken(address token_) internal {
         _ensureZeroAddress(token_);
-        uint256 blockNumber = getBlockNumberOrTimestamp();
-        uint256 initializedBlock = lastAccruedBlock[token_];
+        uint256 blockNumberOrSecond = getBlockNumberOrTimestamp();
+        uint256 initializedBlockOrSecond = lastAccruedBlockOrSecond[token_];
 
-        if (initializedBlock != 0) {
+        if (initializedBlockOrSecond != 0) {
             revert TokenAlreadyInitialized(token_);
         }
 
         /*
-         * Update token state block number
+         * Update token state block number or second
          */
-        lastAccruedBlock[token_] = blockNumber;
+        lastAccruedBlockOrSecond[token_] = blockNumberOrSecond;
 
         emit TokenDistributionInitialized(token_);
     }
 
     /**
-     * @notice Set distribution speed (amount of token distribute per block)
+     * @notice Set distribution speed (amount of token distribute per block or second)
      * @param token_ Address of the token
      * @param distributionSpeed_ New distribution speed for token
      * @custom:event Emits TokenDistributionSpeedUpdated event
@@ -399,7 +399,7 @@ contract PrimeLiquidityProvider is
         if (oldDistributionSpeed != distributionSpeed_) {
             // Distribution speed updated so let's update distribution state to ensure that
             //  1. Token accrued properly for the old speed, and
-            //  2. Token accrued at the new speed starts after this block.
+            //  2. Token accrued at the new speed starts after this block or second.
             accrueTokens(token_);
 
             // Update speed
@@ -410,7 +410,7 @@ contract PrimeLiquidityProvider is
     }
 
     /**
-     * @notice Set max distribution speed (amount of maximum token distribute per block)
+     * @notice Set max distribution speed (amount of maximum token distribute per block or second)
      * @param token_ Address of the token
      * @param maxDistributionSpeed_ New max distribution speed for token
      * @custom:event Emits MaxTokenDistributionSpeedUpdated event
@@ -425,9 +425,9 @@ contract PrimeLiquidityProvider is
      * @param token_ Token Address to be verified for
      */
     function _ensureTokenInitialized(address token_) internal view {
-        uint256 lastBlockAccrued = lastAccruedBlock[token_];
+        uint256 lastBlockOrSecondAccrued = lastAccruedBlockOrSecond[token_];
 
-        if (lastBlockAccrued == 0) {
+        if (lastBlockOrSecondAccrued == 0) {
             revert TokenNotInitialized(token_);
         }
     }
