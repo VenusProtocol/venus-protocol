@@ -1,3 +1,15 @@
+## [6.1.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.6...v6.1.0-dev.7) (2023-12-12)
+
+
+### Features
+
+* updating deployment files ([f906fab](https://github.com/VenusProtocol/venus-protocol/commit/f906fab7a36535ef406b75588f6eac715875e721))
+
+
+### Bug Fixes
+
+* exclude external deployments when exporting ([6f01c43](https://github.com/VenusProtocol/venus-protocol/commit/6f01c4388f44094eaba865b52cbdc12c2e848493))
+
 ## [6.1.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.5...v6.1.0-dev.6) (2023-12-07)
 
 
