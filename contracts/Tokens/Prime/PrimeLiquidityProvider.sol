@@ -356,6 +356,15 @@ contract PrimeLiquidityProvider is
     }
 
     /**
+     * @notice Get the last accrued block or second for token
+     * @param token_ Address of the token
+     * @return blockNumberOrSecond returns the last accrued block or second
+     */
+    function lastAccruedBlock(address token_) external view returns (uint256) {
+        return lastAccruedBlockOrSecond[token_];
+    }
+
+    /**
      * @notice Initialize the distribution of the token
      * @param token_ Address of the token to be intialized
      * @custom:event Emits TokenDistributionInitialized event
