@@ -92,3 +92,8 @@ contract VAIControllerStorageG3 is VAIControllerStorageG2 {
     /// @notice Tracks if minting is enabled only for prime token holders. Only used if prime is set
     bool public mintEnabledOnlyForPrimeHolder;
 }
+
+contract VAIControllerStorageG4 is VAIControllerStorageG3 {
+    /// @notice The address of the VAI token
+    address internal vai;
+}

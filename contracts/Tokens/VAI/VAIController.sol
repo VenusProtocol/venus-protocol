@@ -16,7 +16,7 @@ import "../Prime/IPrime.sol";
  * @author Venus
  * @notice This is the implementation contract for the VAIUnitroller proxy
  */
-contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Exponential {
+contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Exponential {
     /// @notice Initial index used in interest computations
     uint public constant INITIAL_VAI_MINT_INDEX = 1e18;
 
@@ -71,6 +71,9 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
     /// @notice Emitted when access control address is changed by admin
     event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
 
+    /// @notice Emitted when VAI token address is changed by admin
+    event NewVaiToken(address oldVaiToken, address newVaiToken);
+
     /*** Main Actions ***/
     struct MintLocalVars {
         uint oErr;
@@ -113,7 +116,8 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
             MintLocalVars memory vars;
 
             address minter = msg.sender;
-            uint vaiTotalSupply = EIP20Interface(getVAIAddress()).totalSupply();
+            address _vai = vai;
+            uint vaiTotalSupply = EIP20Interface(_vai).totalSupply();
             uint vaiNewTotalSupply;
 
             (vars.mathErr, vaiNewTotalSupply) = addUInt(vaiTotalSupply, mintVAIAmount);
@@ -179,14 +183,14 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
                     return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
                 }
 
-                VAI(getVAIAddress()).mint(treasuryAddress, feeAmount);
+                VAI(_vai).mint(treasuryAddress, feeAmount);
 
                 emit MintFee(minter, feeAmount);
             } else {
                 remainedAmount = vars.mintAmount;
             }
 
-            VAI(getVAIAddress()).mint(minter, remainedAmount);
+            VAI(_vai).mint(minter, remainedAmount);
             vaiMinterInterestIndex[minter] = vaiMintIndex;
 
             emit MintVAI(minter, remainedAmount);
@@ -229,8 +233,9 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
             repayAmount
         );
 
-        VAI(getVAIAddress()).burn(payer, burn);
-        bool success = VAI(getVAIAddress()).transferFrom(payer, receiver, partOfCurrentInterest);
+        VAI _vai = VAI(vai);
+        _vai.burn(payer, burn);
+        bool success = _vai.transferFrom(payer, receiver, partOfCurrentInterest);
         require(success == true, "failed to transfer VAI fee");
 
         uint vaiBalanceBorrower = comptroller.mintedVAIs(borrower);
@@ -403,6 +408,15 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
         emit NewPrime(prime, prime_);
         prime = prime_;
     }
+
+    /**
+     * @notice Set the VAI token contract address
+     * @param vai_ The new address of the VAI token contract
+     */
+    // function _setVAIToken(address vai_) external onlyAdmin {
+    //     emit NewVaiToken(vai, vai_);
+    //     vai = vai_;
+    // }
 
     /**
      * @notice Toggle mint only for prime holder
@@ -802,7 +816,7 @@ contract VAIController is VAIControllerStorageG3, VAIControllerErrorReporter, Ex
      * @return The address of VAI
      */
     function getVAIAddress() public view returns (address) {
-        return 0x4BD17003473389A42DAF6a0a729f6Fdb328BbBd7;
+        return vai;
     }
 
     modifier onlyAdmin() {
