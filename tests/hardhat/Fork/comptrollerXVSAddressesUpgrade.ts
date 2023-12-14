@@ -2,10 +2,9 @@ import { smock } from "@defi-wonderland/smock";
 import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { parseUnits } from "ethers/lib/utils";
 import { ethers, network } from "hardhat";
 
-import { BEP20, Diamond, FacetBase, IAccessControlManagerV5__factory, RewardFacet, SetterFacet, VBep20 } from "../../../typechain";
+import { BEP20, Diamond, RewardFacet, SetterFacet } from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -45,22 +44,8 @@ forking(34340887, () => {
 
   if (process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet") {
     before(async () => {
-      /*
-       *  Forking mainnet
-       * */
-
-      /*
-        *  Upgrading Diamond
-        * */
-
       await impersonateAccount(Owner);
       owner = await ethers.getSigner(Owner);
-      // const [signer] = await ethers.getSigners();
-      // await signer.sendTransaction({
-      //   to: owner.address,
-      //   value: ethers.BigNumber.from("10000000000000000000"),
-      //   data: undefined,
-      // });
 
       diamond = await ethers.getContractAt("Diamond", UNITROLLER);
     });
@@ -70,19 +55,27 @@ forking(34340887, () => {
 
       expect(await rewardFacet.getXVSVTokenAddress()).to.be.equal("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D");
       expect(await rewardFacet.getXVSAddress()).to.be.equal("0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63");
-    })
+    });
 
     it("upgrade checks", async () => {
       const oldSetterFacet = await ethers.getContractAt("SetterFacet", diamond.address);
-      await expect(oldSetterFacet.connect(owner)._setXVSToken("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D")).to.be.revertedWith("Diamond: Function does not exist");
-      await expect(oldSetterFacet.connect(owner)._setXVSVToken("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D")).to.be.revertedWith("Diamond: Function does not exist");
-      
+      await expect(
+        oldSetterFacet.connect(owner)._setXVSToken("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D"),
+      ).to.be.revertedWith("Diamond: Function does not exist");
+      await expect(
+        oldSetterFacet.connect(owner)._setXVSVToken("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D"),
+      ).to.be.revertedWith("Diamond: Function does not exist");
+
       const setterFacetFactory = await ethers.getContractFactory("SetterFacet");
       const newSetterFacet: SetterFacet = await setterFacetFactory.deploy();
       await newSetterFacet.deployed();
 
-      const addXVSAddressFunctionSignature = newSetterFacet.interface.getSighash(newSetterFacet.interface.functions["_setXVSToken(address)"]); 
-      const addXVSVTokenAddressFunctionSignature = newSetterFacet.interface.getSighash(newSetterFacet.interface.functions["_setXVSVToken(address)"]);
+      const addXVSAddressFunctionSignature = newSetterFacet.interface.getSighash(
+        newSetterFacet.interface.functions["_setXVSToken(address)"],
+      );
+      const addXVSVTokenAddressFunctionSignature = newSetterFacet.interface.getSighash(
+        newSetterFacet.interface.functions["_setXVSVToken(address)"],
+      );
 
       const rewardFacetFactory = await ethers.getContractFactory("RewardFacet");
       const newRewardFacet: RewardFacet = await rewardFacetFactory.deploy();
@@ -91,19 +84,23 @@ forking(34340887, () => {
       const existingSetterFacetFunctions = await diamond.facetFunctionSelectors(OLD_SETTER_FACET);
       const existingRewardFacetFunctions = await diamond.facetFunctionSelectors(OLD_REWARD_FACET);
 
-      const cut = [{
-        facetAddress: newSetterFacet.address,
-        action: 0,
-        functionSelectors: [addXVSAddressFunctionSignature, addXVSVTokenAddressFunctionSignature]
-      }, {
-        facetAddress: newSetterFacet.address,
-        action: 1,
-        functionSelectors: existingSetterFacetFunctions
-      }, {
-        facetAddress: newRewardFacet.address,
-        action: 1,
-        functionSelectors: existingRewardFacetFunctions
-      }]   
+      const cut = [
+        {
+          facetAddress: newSetterFacet.address,
+          action: 0,
+          functionSelectors: [addXVSAddressFunctionSignature, addXVSVTokenAddressFunctionSignature],
+        },
+        {
+          facetAddress: newSetterFacet.address,
+          action: 1,
+          functionSelectors: existingSetterFacetFunctions,
+        },
+        {
+          facetAddress: newRewardFacet.address,
+          action: 1,
+          functionSelectors: existingRewardFacetFunctions,
+        },
+      ];
 
       await diamond.connect(owner).diamondCut(cut);
 
@@ -119,15 +116,18 @@ forking(34340887, () => {
       expect(await rewardFacet.getXVSVTokenAddress()).to.be.equal("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D");
       expect(await rewardFacet.getXVSAddress()).to.be.equal("0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63");
 
-      let XVS:BEP20 = await ethers.getContractAt("contracts/test/BEP20.sol:BEP20", "0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63");
+      const XVS: BEP20 = await ethers.getContractAt(
+        "contracts/test/BEP20.sol:BEP20",
+        "0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63",
+      );
 
-      const userAccount = "0xd8F32fe3eeA457bBa2e5e2E1533Ad5f34f591458"
+      const userAccount = "0xd8F32fe3eeA457bBa2e5e2E1533Ad5f34f591458";
       const previouseXVSBalance = await XVS.balanceOf(userAccount);
-      console.log()
-      
+      console.log();
+
       await rewardFacet["claimVenus(address)"](userAccount);
       const newXVSBalance = await XVS.balanceOf(userAccount);
       expect(newXVSBalance).to.be.gt(previouseXVSBalance);
-    })
+    });
   }
 });
