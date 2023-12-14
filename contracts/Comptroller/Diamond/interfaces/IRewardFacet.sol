@@ -16,9 +16,9 @@ interface IRewardFacet {
 
     function _grantXVS(address recipient, uint256 amount) external;
 
-    function getXVSAddress() external pure returns (address);
+    function getXVSAddress() external view returns (address);
 
-    function getXVSVTokenAddress() external pure returns (address);
+    function getXVSVTokenAddress() external view returns (address);
 
     function actionPaused(address market, ComptrollerTypes.Action action) external view returns (bool);
 

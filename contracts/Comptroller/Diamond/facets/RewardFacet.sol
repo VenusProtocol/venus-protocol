@@ -180,4 +180,20 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
             }
         }
     }
+
+    /**
+     * @notice Returns the XVS address
+     * @return The address of XVS token
+     */
+    function getXVSAddress() external view returns (address) {
+        return xvs;
+    }
+
+    /**
+     * @notice Returns the XVS vToken address
+     * @return The address of XVS vToken
+     */
+    function getXVSVTokenAddress() external view returns (address) {
+        return xvsVToken;
+    }
 }
