@@ -215,4 +215,12 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
         }
         return uint256(Error.NO_ERROR);
     }
+
+    /**
+     * @notice Returns the XVS address
+     * @return The address of XVS token
+     */
+    function getXVSAddress() external view returns (address) {
+        return xvs;
+    }
 }
