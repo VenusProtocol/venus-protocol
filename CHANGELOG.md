@@ -1,3 +1,11 @@
+## [6.1.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.7...v6.1.0-dev.8) (2023-12-14)
+
+
+### Features
+
+* add MoveDebt delegate borrower contract ([8e2c70c](https://github.com/VenusProtocol/venus-protocol/commit/8e2c70c926a5df863d1a24068ec4959ac9d389a8))
+* make moveDebt permissionless ([0889b85](https://github.com/VenusProtocol/venus-protocol/commit/0889b85ca01f89b63678e01e773d95cf1becc054))
+
 ## [6.1.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.6...v6.1.0-dev.7) (2023-12-12)
 
 
