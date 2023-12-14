@@ -105,10 +105,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
         xvs.safeApprove(_xvsVToken, 0);
         xvs.safeApprove(_xvsVToken, amount);
-        require(
-            VBep20Interface(_xvsVToken).mintBehalf(user, amount) == uint256(Error.NO_ERROR),
-            "mint behalf error"
-        );
+        require(VBep20Interface(_xvsVToken).mintBehalf(user, amount) == uint256(Error.NO_ERROR), "mint behalf error");
 
         // set venusAccrued[user] to 0
         return 0;
