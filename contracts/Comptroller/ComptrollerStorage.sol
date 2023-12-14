@@ -272,3 +272,11 @@ contract ComptrollerV15Storage is ComptrollerV14Storage {
     /// @notice Whether forced liquidation is enabled for the borrows of a user in a market
     mapping(address /* user */ => mapping(address /* market */ => bool)) public isForcedLiquidationEnabledForUser;
 }
+
+contract ComptrollerV16Storage is ComptrollerV15Storage {
+    /// @notice The XVS token contract address
+    address internal xvs;
+
+    /// @notice The XVS vToken contract address
+    address internal xvsVToken;
+}

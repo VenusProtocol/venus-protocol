@@ -87,6 +87,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when forced liquidation is enabled or disabled for a user borrowing in a market
     event IsForcedLiquidationEnabledForUserUpdated(address indexed borrower, address indexed vToken, bool enable);
 
+    /// @notice Emitted when XVS token address is changed
+    event NewXVSToken(address oldXVS, address newXVS);
+
+    /// @notice Emitted when XVS vToken address is changed
+    event NewXVSVToken(address oldXVSVToken, address newXVSVToken);
+
     /**
      * @notice Compare two addresses to ensure they are different
      * @param oldAddress The original address to compare
@@ -569,5 +575,29 @@ contract SetterFacet is ISetterFacet, FacetBase {
         }
         isForcedLiquidationEnabledForUser[borrower][vTokenBorrowed] = enable;
         emit IsForcedLiquidationEnabledForUserUpdated(borrower, vTokenBorrowed, enable);
+    }
+
+    /**
+     * @notice Set the address of the XVS token
+     * @param _xvs The address of the XVS token
+     */
+    function _setXVSToken(address _xvs) external {
+        ensureAdmin();
+        ensureNonzeroAddress(_xvs);
+
+        emit NewXVSToken(xvs, _xvs);
+        xvs = _xvs;
+    }
+
+    /**
+     * @notice Set the address of the XVS vToken
+     * @param _xvsVToken The address of the XVS vToken
+     */
+    function _setXVSVToken(address _xvsVToken) external {
+        ensureAdmin();
+        ensureNonzeroAddress(_xvsVToken);
+
+        emit NewXVSVToken(xvsVToken, _xvsVToken);
+        xvsVToken = _xvsVToken;
     }
 }

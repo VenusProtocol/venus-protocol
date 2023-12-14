@@ -84,12 +84,14 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
             "Blacklisted"
         );
 
-        if (amount == 0 || amount > IBEP20(getXVSAddress()).balanceOf(address(this))) {
+        IBEP20 xvs = IBEP20(xvs);
+
+        if (amount == 0 || amount > xvs.balanceOf(address(this))) {
             return amount;
         }
 
         if (shortfall == 0) {
-            IBEP20(getXVSAddress()).safeTransfer(user, amount);
+            xvs.safeTransfer(user, amount);
             return 0;
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
@@ -99,10 +101,12 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt");
 
-        IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), 0);
-        IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), amount);
+        address _xvsVToken = xvsVToken;
+
+        xvs.safeApprove(_xvsVToken, 0);
+        xvs.safeApprove(_xvsVToken, amount);
         require(
-            VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint256(Error.NO_ERROR),
+            VBep20Interface(_xvsVToken).mintBehalf(user, amount) == uint256(Error.NO_ERROR),
             "mint behalf error"
         );
 
@@ -124,14 +128,6 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         uint256 amountLeft = grantXVSInternal(recipient, amount, 0, false);
         require(amountLeft == 0, "no xvs");
         emit VenusGranted(recipient, amount);
-    }
-
-    /**
-     * @notice Return the address of the XVS vToken
-     * @return The address of XVS vToken
-     */
-    function getXVSVTokenAddress() public pure returns (address) {
-        return 0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D;
     }
 
     /**
