@@ -413,10 +413,10 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
      * @notice Set the VAI token contract address
      * @param vai_ The new address of the VAI token contract
      */
-    // function _setVAIToken(address vai_) external onlyAdmin {
-    //     emit NewVaiToken(vai, vai_);
-    //     vai = vai_;
-    // }
+    function _setVAIToken(address vai_) external onlyAdmin {
+        emit NewVaiToken(vai, vai_);
+        vai = vai_;
+    }
 
     /**
      * @notice Toggle mint only for prime holder
