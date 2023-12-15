@@ -13,8 +13,11 @@ abstract contract TimeManager {
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     function() view returns (uint256) private immutable _getCurrentSlot;
 
-    /// @notice Thrown on invaid arguments
+    /// @notice Thrown when blocks per year is invalid
     error InvalidBlocksPerYear();
+
+    /// @notice Thrown when time based but blocks per year is provided
+    error InvalidTimeBased();
 
     /**
      * @param timeBased_ A boolean indicating whether the contract is based on time or block.
@@ -26,6 +29,10 @@ abstract contract TimeManager {
     constructor(bool timeBased_, uint256 blocksPerYear_) {
         if (!timeBased_ && blocksPerYear_ == 0) {
             revert InvalidBlocksPerYear();
+        }
+
+        if (timeBased_ && blocksPerYear_ != 0) {
+            revert InvalidTimeBased();
         }
 
         isTimeBased = timeBased_;
