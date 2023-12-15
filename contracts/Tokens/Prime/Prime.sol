@@ -213,7 +213,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         xvsVault = xvsVault_;
         nextScoreUpdateRoundId = 0;
         primeLiquidityProvider = primeLiquidityProvider_;
-        comptroller = comptroller_;
+        corePoolComptroller = comptroller_;
         oracle = ResilientOracleInterface(oracle_);
 
         __AccessControlled_init(accessControlManager_);
@@ -389,7 +389,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
     /**
      * @notice Add a market to prime program
-     * @param comptroller_ address of the comptroller
+     * @param comptroller address of the comptroller
      * @param market address of the market vToken
      * @param supplyMultiplier the multiplier for supply cap. It should be converted to 1e18
      * @param borrowMultiplier the multiplier for borrow cap. It should be converted to 1e18
@@ -399,18 +399,18 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @custom:access Controlled by ACM
      */
     function addMarket(
-        address comptroller_,
+        address comptroller,
         address market,
         uint256 supplyMultiplier,
         uint256 borrowMultiplier
     ) external {
         _checkAccessAllowed("addMarket(address,address,uint256,uint256)");
 
-        if (comptroller_ == address(0)) revert InvalidComptroller();
+        if (comptroller == address(0)) revert InvalidComptroller();
 
         if (
-            comptroller_ != comptroller &&
-            PoolRegistryInterface(poolRegistry).getPoolByComptroller(comptroller_).comptroller != comptroller_
+            comptroller != corePoolComptroller &&
+            PoolRegistryInterface(poolRegistry).getPoolByComptroller(comptroller).comptroller != comptroller
         ) revert InvalidComptroller();
 
         Market storage _market = markets[market];
@@ -608,6 +608,14 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      */
     function getAllMarkets() external view returns (address[] memory) {
         return _allMarkets;
+    }
+
+    /**
+     * @notice Retrieves the core pool comptroller address
+     * @return the core pool comptroller address
+     */
+    function comptroller() external view returns (address) {
+        return corePoolComptroller;
     }
 
     /**

@@ -98,7 +98,7 @@ contract PrimeStorageV1 {
     mapping(address => address) public vTokenForAsset;
 
     /// @notice Address of core pool comptroller contract
-    address public comptroller;
+    address internal corePoolComptroller;
 
     /// @notice unreleased income from PLP that's already distributed to prime holders
     /// @dev mapping of asset address => amount
