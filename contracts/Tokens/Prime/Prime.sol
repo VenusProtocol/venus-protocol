@@ -134,7 +134,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @notice Error thrown when invalid length is passed
     error InvalidLength();
 
-    /// @notice Error thrown when timestamp is invalud
+    /// @notice Error thrown when timestamp is invalid
     error InvalidTimestamp();
 
     /**
