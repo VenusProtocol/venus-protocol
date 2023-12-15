@@ -390,7 +390,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 supplyMultiplier,
         uint256 borrowMultiplier
     ) external {
-        _checkAccessAllowed("addMarket(address,uint256,uint256)");
+        _checkAccessAllowed("addMarket(address,address,uint256,uint256)");
 
         Market storage _market = markets[market];
         if (_market.exists) revert MarketAlreadyExists();
