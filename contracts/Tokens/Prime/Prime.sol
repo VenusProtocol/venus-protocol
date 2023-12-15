@@ -183,6 +183,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
               alpha is alphaNumerator_/alphaDenominator_. So, 0 < alpha < 1
      * @param accessControlManager_ Address of AccessControlManager
      * @param primeLiquidityProvider_ Address of PrimeLiquidityProvider
+     * @param comptroller_ Address of core pool comptroller
      * @param oracle_ Address of Oracle
      * @param loopsLimit_ Maximum number of loops allowed in a single transaction
      * @custom:error Throw InvalidAddress if any of the address is invalid

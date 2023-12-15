@@ -110,6 +110,7 @@ contract PrimeStorageV1 {
     /// @notice The address of ResilientOracle contract
     ResilientOracleInterface public oracle;
 
+    /// @notice The address of PoolRegistry contract
     address public poolRegistry;
 
     /// @dev This empty reserved space is put in place to allow future versions to add new
