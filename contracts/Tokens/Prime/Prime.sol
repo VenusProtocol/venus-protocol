@@ -17,6 +17,7 @@ import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
 import { TimeManager } from "../../Utils/TimeManager.sol";
+import { PoolRegistryInterface } from "./Interfaces/IPoolRegistry.sol";
 
 /**
  * @title Prime
@@ -137,6 +138,9 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
     /// @notice Error thrown when timestamp is invalid
     error InvalidTimestamp();
 
+    /// @notice Error thrown when invalid comptroller is passed
+    error InvalidComptroller();
+
     /**
      * @notice Prime constructor
      * @param _wrappedNativeToken Address of wrapped native token
@@ -191,6 +195,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint128 alphaDenominator_,
         address accessControlManager_,
         address primeLiquidityProvider_,
+        address comptroller_,
         address oracle_,
         uint256 loopsLimit_
     ) external initializer {
@@ -208,6 +213,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         xvsVault = xvsVault_;
         nextScoreUpdateRoundId = 0;
         primeLiquidityProvider = primeLiquidityProvider_;
+        comptroller = comptroller_;
         oracle = ResilientOracleInterface(oracle_);
 
         __AccessControlled_init(accessControlManager_);
@@ -215,6 +221,14 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         _setMaxLoopsLimit(loopsLimit_);
 
         _pause();
+    }
+
+    /**
+     * @notice Prime initializer V2 for initializing pool registry
+     * @param poolRegistry_ Address of IL pool registry
+     */
+    function initializeV2(address poolRegistry_) external reinitializer(2) {
+        poolRegistry = poolRegistry_;
     }
 
     /**
@@ -375,7 +389,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
 
     /**
      * @notice Add a market to prime program
-     * @param comptroller address of the comptroller
+     * @param comptroller_ address of the comptroller
      * @param market address of the market vToken
      * @param supplyMultiplier the multiplier for supply cap. It should be converted to 1e18
      * @param borrowMultiplier the multiplier for borrow cap. It should be converted to 1e18
@@ -385,12 +399,19 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
      * @custom:access Controlled by ACM
      */
     function addMarket(
-        address comptroller,
+        address comptroller_,
         address market,
         uint256 supplyMultiplier,
         uint256 borrowMultiplier
     ) external {
         _checkAccessAllowed("addMarket(address,address,uint256,uint256)");
+
+        if (comptroller_ == address(0)) revert InvalidComptroller();
+
+        if (
+            comptroller_ != comptroller &&
+            PoolRegistryInterface(poolRegistry).getPoolByComptroller(comptroller_).comptroller != comptroller_
+        ) revert InvalidComptroller();
 
         Market storage _market = markets[market];
         if (_market.exists) revert MarketAlreadyExists();

@@ -1,7 +1,7 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
-import { BigNumber, Signer } from "ethers";
+import { BigNumber, Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
@@ -202,12 +202,25 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
   const prime: PrimeScenario = await upgrades.deployProxy(
     primeFactory,
-    [xvsVault.address, xvs.address, 0, 1, 2, accessControl.address, primeLiquidityProvider.address, oracle.address, 10],
+    [
+      xvsVault.address,
+      xvs.address,
+      0,
+      1,
+      2,
+      accessControl.address,
+      primeLiquidityProvider.address,
+      comptroller.address,
+      oracle.address,
+      10,
+    ],
     {
       constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap, false],
       unsafeAllow: "constructor",
     },
   );
+
+  await prime.initializeV2(constants.AddressZero);
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 

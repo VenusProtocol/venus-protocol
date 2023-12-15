@@ -97,7 +97,7 @@ contract PrimeStorageV1 {
     /// @notice mapping used to find if an asset is part of prime markets
     mapping(address => address) public vTokenForAsset;
 
-    /// @notice Deprecated. Address of core pool comptroller contract
+    /// @notice Address of core pool comptroller contract
     address public comptroller;
 
     /// @notice unreleased income from PLP that's already distributed to prime holders
@@ -110,7 +110,9 @@ contract PrimeStorageV1 {
     /// @notice The address of ResilientOracle contract
     ResilientOracleInterface public oracle;
 
+    address public poolRegistry;
+
     /// @dev This empty reserved space is put in place to allow future versions to add new
     /// variables without shifting down storage in the inheritance chain.
-    uint256[27] private __gap;
+    uint256[26] private __gap;
 }
