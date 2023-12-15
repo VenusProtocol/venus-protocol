@@ -195,4 +195,30 @@ interface IPrime {
         uint256 supply,
         uint256 xvsStaked
     ) external view returns (APRInfo memory aprInfo);
+
+    /**
+     * @notice the total income that's going to be distributed in a year to prime token holders
+     * @param vToken the market for which to fetch the total income that's going to distributed in a year
+     * @return amount the total income
+     */
+    function incomeDistributionYearly(address vToken) external view returns (uint256 amount);
+
+    /**
+     * @notice Returns if user is a prime holder
+     * @return isPrimeHolder true if user is a prime holder
+     */
+    function isUserPrimeHolder(address user) external view returns (bool);
+
+    /**
+     * @notice Set the limit for the loops can iterate to avoid the DOS
+     * @param loopsLimit Number of loops limit
+     */
+    function setMaxLoopsLimit(uint256 loopsLimit) external;
+
+    /**
+     * @notice Update staked at timestamp for multiple users
+     * @param users accounts for which we need to update staked at timestamp
+     * @param timestamps new staked at timestamp for the users
+     */
+    function setStakedAt(address[] calldata users, uint256[] calldata timestamps) external;
 }
