@@ -52,7 +52,7 @@ contract PrimeLiquidityProvider is
     /// @notice Emitted when prime token contract address is changed
     event PrimeTokenUpdated(address indexed oldPrimeToken, address indexed newPrimeToken);
 
-    /// @notice Emitted when distribution state(Index and block/second) is updated
+    /// @notice Emitted when distribution state(Index and block or second) is updated
     event TokensAccrued(address indexed token, uint256 amount);
 
     /// @notice Emitted when token is transferred to the prime contract
