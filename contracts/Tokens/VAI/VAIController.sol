@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.5.16;
 
-import "../../Oracle/PriceOracle.sol";
-import "../../Utils/ErrorReporter.sol";
-import "../../Utils/Exponential.sol";
-import "../../Comptroller/ComptrollerInterface.sol";
-import "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
-import { VToken, EIP20Interface } from "../VTokens/VToken.sol";
-import "./VAIUnitroller.sol";
-import "./VAI.sol";
-import "../Prime/IPrime.sol";
+import { PriceOracle } from "../../Oracle/PriceOracle.sol";
+import { VAIControllerErrorReporter } from "../../Utils/ErrorReporter.sol";
+import { Exponential } from "../../Utils/Exponential.sol";
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
+import { VToken, EIP20Interface, VTokenInterface } from "../VTokens/VToken.sol";
+import { VAIUnitroller, VAIControllerStorageG4 } from "./VAIUnitroller.sol";
+import { VAI } from "./VAI.sol";
+import { IPrime } from "../Prime/IPrime.sol";
 
 /**
  * @title VAI Comptroller
