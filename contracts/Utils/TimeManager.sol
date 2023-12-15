@@ -42,6 +42,7 @@ abstract contract TimeManager {
 
     /**
      * @dev Function to simply retrieve block number or block timestamp
+     * @return Current block number or block timestamp
      */
     function getBlockNumberOrTimestamp() public view virtual returns (uint256) {
         return _getCurrentSlot();
