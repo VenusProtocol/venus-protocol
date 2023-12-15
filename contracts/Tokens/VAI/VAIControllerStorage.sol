@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../Comptroller/ComptrollerInterface.sol";
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 
 contract VAIUnitrollerAdminStorage {
     /**
