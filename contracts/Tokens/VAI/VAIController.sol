@@ -404,7 +404,7 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
      * @notice Set the prime token contract address
      * @param prime_ The new address of the prime token contract
      */
-    function _setPrimeToken(address prime_) external onlyAdmin {
+    function setPrimeToken(address prime_) external onlyAdmin {
         emit NewPrime(prime, prime_);
         prime = prime_;
     }
@@ -413,7 +413,7 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
      * @notice Set the VAI token contract address
      * @param vai_ The new address of the VAI token contract
      */
-    function _setVAIToken(address vai_) external onlyAdmin {
+    function setVAIToken(address vai_) external onlyAdmin {
         emit NewVaiToken(vai, vai_);
         vai = vai_;
     }

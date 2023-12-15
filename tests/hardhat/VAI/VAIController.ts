@@ -582,7 +582,7 @@ describe("VAIController", async () => {
       expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("100000000000000000000");
 
       expect(await primeScenario.isUserPrimeHolder(user1.address)).to.be.equal(true);
-      await vaiController._setPrimeToken(primeScenario.address);
+      await vaiController.setPrimeToken(primeScenario.address);
       expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("100000000000000000000");
 
       expect(await vaiController.mintEnabledOnlyForPrimeHolder()).to.be.equal(false);
