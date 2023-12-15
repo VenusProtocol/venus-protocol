@@ -6,10 +6,11 @@ import { VAIControllerErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
-import { VToken, EIP20Interface, VTokenInterface } from "../VTokens/VToken.sol";
+import { VToken, EIP20Interface } from "../VTokens/VToken.sol";
 import { VAIUnitroller, VAIControllerStorageG4 } from "./VAIUnitroller.sol";
 import { VAI } from "./VAI.sol";
 import { IPrime } from "../Prime/IPrime.sol";
+import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
 
 /**
  * @title VAI Comptroller
