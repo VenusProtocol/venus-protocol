@@ -12,6 +12,7 @@ import {
   IAccessControlManagerV5,
   IERC20,
   InterestRateModel,
+  InterestRateModelHarness,
   JumpRateModel,
   Liquidator,
   MockVBNB,
@@ -31,21 +32,30 @@ interface ComptrollerFixture {
   comptrollerLens: ComptrollerLens;
   vTokens: VBep20[];
   vBNB: MockVBNB;
+  protocolShareReserve: BaseContract;
 }
 
 export const deployComptrollerWithMarkets = async ({
   numBep20Tokens,
+  interestRateModel,
 }: {
   numBep20Tokens: number;
+  interestRateModel?: InterestRateModel;
 }): Promise<ComptrollerFixture> => {
   const accessControlManager = await deployFakeAccessControlManager();
   const oracle = await deployFakeOracle();
   const comptrollerLens = await deployComptrollerLens();
   const comptroller = await deployComptroller({ accessControlManager, comptrollerLens });
+  const protocolShareReserve = await deployProtocolShareReserve(comptroller.address);
 
   const vTokens: VBep20[] = [];
   for (let i = 0; i < numBep20Tokens; i++) {
-    const vToken = await deployVToken({ comptroller, accessControlManager });
+    const vToken = await deployVToken({
+      comptroller,
+      accessControlManager,
+      interestRateModel,
+      protocolShareReserve: protocolShareReserve,
+    });
     await comptroller._supportMarket(vToken.address);
     vTokens.push(vToken);
   }
@@ -54,7 +64,16 @@ export const deployComptrollerWithMarkets = async ({
 
   const vaiController = await deployFakeVAIController();
   await comptroller._setVAIController(vaiController.address);
-  return { accessControlManager, oracle, comptroller, comptrollerLens, vTokens, vBNB, vaiController };
+  return {
+    accessControlManager,
+    oracle,
+    comptroller,
+    comptrollerLens,
+    vTokens,
+    vBNB,
+    vaiController,
+    protocolShareReserve,
+  };
 };
 
 export const deployFakeVAIController = async (
@@ -154,6 +173,26 @@ export const deployJumpRateModel = async ({
   return jumpRateModel;
 };
 
+export const deployInterestRateModelHarness = async ({
+  baseRatePerYear,
+}: Partial<{
+  baseRatePerYear: BigNumberish;
+}> = {}): Promise<InterestRateModelHarness> => {
+  const interestRateModelFactory = await ethers.getContractFactory("InterestRateModelHarness");
+  const interestRateModel = await interestRateModelFactory.deploy(baseRatePerYear ?? parseUnits("5", 10));
+  await interestRateModel.deployed();
+  return interestRateModel;
+};
+
+const deployProtocolShareReserve = async (comptroller: string) => {
+  const vBNB = await deployVBNB();
+  const wBNB = await deployMockToken();
+  const protocolShareReserveFactory = await ethers.getContractFactory("ProtocolShareReserve");
+  const protocolShareReserve = await protocolShareReserveFactory.deploy(comptroller, wBNB.address, vBNB.address);
+  await protocolShareReserve.deployed();
+  return protocolShareReserve;
+};
+
 export const deployMockToken = async ({
   name,
   symbol,
@@ -188,12 +227,15 @@ export const deployVToken = async (
     symbol: string;
     decimals: number;
     admin: string;
+    protocolShareReserve: BaseContract;
   }> = {},
 ): Promise<VBep20Harness> => {
   const accessControlManager = opts.accessControlManager ?? (await deployFakeAccessControlManager());
   const underlying = opts.underlying ?? (await deployMockToken());
   const comptroller = opts.comptroller ?? (await deployComptroller());
   const interestRateModel = opts.interestRateModel ?? (await deployJumpRateModel());
+  const protocolShareReserve = opts.protocolShareReserve ?? (await deployProtocolShareReserve(comptroller.address));
+
   const initialExchangeRateMantissa = opts.initialExchangeRateMantissa ?? parseUnits("1", 18);
   const name = opts.name ?? "VToken";
   const symbol = opts.symbol ?? "VT";
@@ -213,6 +255,7 @@ export const deployVToken = async (
   );
   await vToken.deployed();
   await vToken.setAccessControlManager(accessControlManager.address);
+  await vToken.setProtocolShareReserve(protocolShareReserve.address);
   return vToken;
 };
 

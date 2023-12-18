@@ -514,7 +514,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         ensureNoMathError(mathErr);
         if (blockDelta >= reduceReservesBlockDelta) {
             reduceReservesBlockNumber = currentBlockNumber;
-            _reduceReservesFresh(totalReservesNew);
+            if (cashPrior < totalReservesNew) {
+                _reduceReservesFresh(cashPrior);
+            } else {
+                _reduceReservesFresh(totalReservesNew);
+            }
         }
 
         /* We emit an AccrueInterest event */
