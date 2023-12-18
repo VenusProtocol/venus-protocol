@@ -1,3 +1,11 @@
+## [6.1.0-dev.10](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.9...v6.1.0-dev.10) (2023-12-18)
+
+
+### Features
+
+* add VTreasuryV8 opBnB Mainnet deployment ([d0bf4f5](https://github.com/VenusProtocol/venus-protocol/commit/d0bf4f5745d817ba4c7e08d414baf215c55d18eb))
+* updating deployment files ([754d193](https://github.com/VenusProtocol/venus-protocol/commit/754d193c66d2c5a82f6fd86580f656990dbf58d1))
+
 ## [6.1.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.8...v6.1.0-dev.9) (2023-12-18)
 
 
