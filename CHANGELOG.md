@@ -1,3 +1,49 @@
+## [6.1.0-dev.11](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.10...v6.1.0-dev.11) (2023-12-18)
+
+## [6.1.0-dev.10](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.9...v6.1.0-dev.10) (2023-12-18)
+
+
+### Features
+
+* add VTreasuryV8 opBnB Mainnet deployment ([d0bf4f5](https://github.com/VenusProtocol/venus-protocol/commit/d0bf4f5745d817ba4c7e08d414baf215c55d18eb))
+* updating deployment files ([754d193](https://github.com/VenusProtocol/venus-protocol/commit/754d193c66d2c5a82f6fd86580f656990dbf58d1))
+
+## [6.1.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.8...v6.1.0-dev.9) (2023-12-18)
+
+
+### Features
+
+* updating deployment files ([3659966](https://github.com/VenusProtocol/venus-protocol/commit/36599660e745767ef4fb6235832b5ff70d87929d))
+
+## [6.1.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.7...v6.1.0-dev.8) (2023-12-14)
+
+
+### Features
+
+* add MoveDebt delegate borrower contract ([8e2c70c](https://github.com/VenusProtocol/venus-protocol/commit/8e2c70c926a5df863d1a24068ec4959ac9d389a8))
+* make moveDebt permissionless ([0889b85](https://github.com/VenusProtocol/venus-protocol/commit/0889b85ca01f89b63678e01e773d95cf1becc054))
+
+## [6.1.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.6...v6.1.0-dev.7) (2023-12-12)
+
+
+### Features
+
+* updating deployment files ([f906fab](https://github.com/VenusProtocol/venus-protocol/commit/f906fab7a36535ef406b75588f6eac715875e721))
+
+
+### Bug Fixes
+
+* exclude external deployments when exporting ([6f01c43](https://github.com/VenusProtocol/venus-protocol/commit/6f01c4388f44094eaba865b52cbdc12c2e848493))
+
+## [6.1.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.5...v6.1.0-dev.6) (2023-12-07)
+
+
+### Features
+
+* add opbnbmainnet and verify config ([c3c983e](https://github.com/VenusProtocol/venus-protocol/commit/c3c983e52fb70cf2c5dd589d691a87ba92e18de4))
+* add vtreasury for opbnb testnet ([e919595](https://github.com/VenusProtocol/venus-protocol/commit/e9195959c32fc7bcb309992f9ccb6075d3f2a525))
+* export vtreasury deployments ([8477fef](https://github.com/VenusProtocol/venus-protocol/commit/8477feff6da7adcdb3419bb4c4d28eae0c8b6298))
+
 ## [6.1.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.4...v6.1.0-dev.5) (2023-12-01)
 
 

@@ -8,7 +8,8 @@ import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import fs from "fs";
 import "hardhat-deploy";
-import { HardhatUserConfig, task } from "hardhat/config";
+import { HardhatUserConfig, extendConfig, task } from "hardhat/config";
+import { HardhatConfig } from "hardhat/types";
 import "solidity-coverage";
 import "solidity-docgen";
 
@@ -16,6 +17,34 @@ require("hardhat-contract-sizer");
 require("dotenv").config();
 
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
+
+extendConfig((config: HardhatConfig) => {
+  if (process.env.EXPORT !== "true") {
+    config.external = {
+      ...config.external,
+      deployments: {
+        bsctestnet: [
+          "node_modules/@venusprotocol/governance-contracts/deployments/bsctestnet",
+          "node_modules/@venusprotocol/venus-protocol/deployments/bsctestnet",
+          "node_modules/@venusprotocol/oracle/deployments/bsctestnet",
+          "node_modules/@venusprotocol/token-bridge/deployments/bsctestnet",
+        ],
+        bscmainnet: [
+          "node_modules/@venusprotocol/governance-contracts/deployments/bscmainnet",
+          "node_modules/@venusprotocol/venus-protocol/deployments/bscmainnet",
+          "node_modules/@venusprotocol/oracle/deployments/bscmainnet",
+          "node_modules/@venusprotocol/token-bridge/deployments/bscmainnet",
+        ],
+        sepolia: [
+          "node_modules/@venusprotocol/governance-contracts/deployments/sepolia",
+          "node_modules/@venusprotocol/oracle/deployments/sepolia",
+          "node_modules/@venusprotocol/token-bridge/deployments/sepolia",
+        ],
+        ethereum: ["node_modules/@venusprotocol/token-bridge/deployments/ethereum"],
+      },
+    };
+  }
+});
 
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -132,6 +161,18 @@ const config: HardhatUserConfig = {
       live: true,
       timeout: 1200000, // 20 minutes
     },
+    opbnbtestnet: {
+      url: process.env.ARCHIVE_NODE_opbnbtestnet || "https://opbnb-testnet-rpc.bnbchain.org",
+      chainId: 5611,
+      live: true,
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+    },
+    opbnbmainnet: {
+      url: process.env.ARCHIVE_NODE_opbnbmainnet || "https://opbnb-mainnet-rpc.bnbchain.org",
+      chainId: 204,
+      live: true,
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+    },
   },
   etherscan: {
     apiKey: {
@@ -139,6 +180,8 @@ const config: HardhatUserConfig = {
       bsctestnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       sepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       ethereum: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      opbnbtestnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      opbnbmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     },
     customChains: [
       {
@@ -173,6 +216,22 @@ const config: HardhatUserConfig = {
           browserURL: "https://etherscan.io",
         },
       },
+      {
+        network: "opbnbtestnet",
+        chainId: 5611,
+        urls: {
+          apiURL: `https://open-platform.nodereal.io/${process.env.ETHERSCAN_API_KEY}/op-bnb-testnet/contract/`,
+          browserURL: "https://testnet.opbnbscan.com/",
+        },
+      },
+      {
+        network: "opbnbmainnet",
+        chainId: 204,
+        urls: {
+          apiURL: `https://open-platform.nodereal.io/${process.env.ETHERSCAN_API_KEY}/op-bnb-mainnet/contract/`,
+          browserURL: "https://opbnbscan.com/",
+        },
+      },
     ],
   },
   paths: {
@@ -200,26 +259,7 @@ const config: HardhatUserConfig = {
         artifacts: "node_modules/@venusprotocol/governance-contracts/artifacts",
       },
     ],
-    deployments: {
-      bsctestnet: [
-        "node_modules/@venusprotocol/governance-contracts/deployments/bsctestnet",
-        "node_modules/@venusprotocol/venus-protocol/deployments/bsctestnet",
-        "node_modules/@venusprotocol/oracle/deployments/bsctestnet",
-        "node_modules/@venusprotocol/token-bridge/deployments/bsctestnet",
-      ],
-      bscmainnet: [
-        "node_modules/@venusprotocol/governance-contracts/deployments/bscmainnet",
-        "node_modules/@venusprotocol/venus-protocol/deployments/bscmainnet",
-        "node_modules/@venusprotocol/oracle/deployments/bscmainnet",
-        "node_modules/@venusprotocol/token-bridge/deployments/bscmainnet",
-      ],
-      sepolia: [
-        "node_modules/@venusprotocol/governance-contracts/deployments/sepolia",
-        "node_modules/@venusprotocol/oracle/deployments/sepolia",
-        "node_modules/@venusprotocol/token-bridge/deployments/sepolia",
-      ],
-      ethereum: ["node_modules/@venusprotocol/token-bridge/deployments/ethereum"],
-    },
+    deployments: {},
   },
   docgen: {
     outputDir: "./docgen-docs",
