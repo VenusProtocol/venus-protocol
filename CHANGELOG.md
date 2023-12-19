@@ -1,3 +1,56 @@
+## [7.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.11...v7.0.0-dev.1) (2023-12-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* added missing await
+
+### Features
+
+* add more info to APR ([313b8c5](https://github.com/VenusProtocol/venus-protocol/commit/313b8c584378cf95792b6b7e3b1d5c05f2dea2a7))
+* added missing await ([eba1ad0](https://github.com/VenusProtocol/venus-protocol/commit/eba1ad015e9571604cb3486a1de1926702fa8738))
+
+
+### Bug Fixes
+
+* added last accrued block for background compatibility ([d4ebc6d](https://github.com/VenusProtocol/venus-protocol/commit/d4ebc6d17ff98f78b0723780a71d10360b0259b4))
+* added license to vai controller ([70b9156](https://github.com/VenusProtocol/venus-protocol/commit/70b9156c46885e69a31f4fb5635016cf0315990f))
+* additional test ([16786f7](https://github.com/VenusProtocol/venus-protocol/commit/16786f756cfd560383c37dd2174e8dcc5d02cdb4))
+* allow prime holders to only mint vai ([f103e2b](https://github.com/VenusProtocol/venus-protocol/commit/f103e2b66577a3005794661f458e0399f58a25be))
+* changed arguments order ([d9a8c70](https://github.com/VenusProtocol/venus-protocol/commit/d9a8c70dba99adda255797a3c8e675e9c22a91aa))
+* fix signature ([7c64cbb](https://github.com/VenusProtocol/venus-protocol/commit/7c64cbb37e9a23c03f2e02b0830776a9e0ce3305))
+* fix var ([c75e1b6](https://github.com/VenusProtocol/venus-protocol/commit/c75e1b684da02c98c9403a990efaac6876242f47))
+* fix var ([a59da8a](https://github.com/VenusProtocol/venus-protocol/commit/a59da8a2f403ef727fe1c5c2e0b8a75cbd1cba55))
+* fix var ([0711ee5](https://github.com/VenusProtocol/venus-protocol/commit/0711ee55aca26e979dffc901154373ff8baca76e))
+* fixed integration tests ([d4050bd](https://github.com/VenusProtocol/venus-protocol/commit/d4050bd51deec88209c8da2d2ab0f244c57591a7))
+* fixed lint ([6833dda](https://github.com/VenusProtocol/venus-protocol/commit/6833dda00dbf41ee13f30f6d0519deaab3c0a842))
+* fixed tests ([5e50f1b](https://github.com/VenusProtocol/venus-protocol/commit/5e50f1b16f4eca6e8f05583189934998fddf251b))
+* fixed tests ([eb86ae8](https://github.com/VenusProtocol/venus-protocol/commit/eb86ae85d8ba027350690afed3a6b928d624dd14))
+* fixed vai tests ([7666743](https://github.com/VenusProtocol/venus-protocol/commit/766674326a8bc7728485eee27e507e5fea874754))
+* integrated TimeManager into PLP ([3f90aad](https://github.com/VenusProtocol/venus-protocol/commit/3f90aadf596f25a0bc7ed4f1cdccfcab4eada5dd))
+* integration of time manager ([e8fdf72](https://github.com/VenusProtocol/venus-protocol/commit/e8fdf723c8ce280c36ff2f15a5705a5f9013dedc))
+* ipi-01 ([e583d9c](https://github.com/VenusProtocol/venus-protocol/commit/e583d9c179dc0b766cd64dd4f269cbfce1ca0899))
+* lint ([da9e3d7](https://github.com/VenusProtocol/venus-protocol/commit/da9e3d79a6924df7f9cd0b0c95e52d13522ee3f0))
+* ppt-01 ([d493a3d](https://github.com/VenusProtocol/venus-protocol/commit/d493a3dc11c8ba42c6c013b054fdbeb6b0bd6ea0))
+* remove comment ([0a51f84](https://github.com/VenusProtocol/venus-protocol/commit/0a51f8461c4546fb5cb90d9672cafec90cc59714))
+* remove duplicate contract ([d7265b9](https://github.com/VenusProtocol/venus-protocol/commit/d7265b93b762cebe93f9c3a7c48a0904027f3bd5))
+* removed additional check ([b858c7e](https://github.com/VenusProtocol/venus-protocol/commit/b858c7ebe089cc7911eeaf39adab3ccdf9c93686))
+* resolved conflict ([aafcce5](https://github.com/VenusProtocol/venus-protocol/commit/aafcce5a8932fe2c17d55f91cf7aeeedff360f84))
+* set vai address ([ef41f4e](https://github.com/VenusProtocol/venus-protocol/commit/ef41f4e34a752fb83ec3562a2059be0890ddb0a9))
+* simplified logic and resolved comments ([5604db8](https://github.com/VenusProtocol/venus-protocol/commit/5604db8e21e43747ae7225e4f77d4c3a7f861053))
+* uncomment setVAI function ([d270dcf](https://github.com/VenusProtocol/venus-protocol/commit/d270dcf84db7f90351df80e8c1ddcea0d5b24d94))
+* update toggle and prevent state update ([bfa811f](https://github.com/VenusProtocol/venus-protocol/commit/bfa811f4282425ca350c5f2dc2f084e554a6c25c))
+* vai-01 ([2cd49f1](https://github.com/VenusProtocol/venus-protocol/commit/2cd49f19a056fc8ffd67bd5830625d8fc9d5e683))
+* vat-01 ([f668c81](https://github.com/VenusProtocol/venus-protocol/commit/f668c8153144396dfaefc5330ff9d2cef3d779df))
+* vat-01 ([b143947](https://github.com/VenusProtocol/venus-protocol/commit/b143947d4a93edc71d4c85ad7404db8a339b9ac6))
+* vat-01 ([85d76b1](https://github.com/VenusProtocol/venus-protocol/commit/85d76b1b8ce8f840d04763fbe71e496321c2c0ba))
+* vph-01 ([2a8d054](https://github.com/VenusProtocol/venus-protocol/commit/2a8d05448b2c20f2b6d0d0f2c97b3749f1deacb5))
+* vph-01 ([7947142](https://github.com/VenusProtocol/venus-protocol/commit/79471425a98e90c048240121122c6b877fbb2fce))
+* vph-01 ([5eb9df4](https://github.com/VenusProtocol/venus-protocol/commit/5eb9df469b18b1626d8da89fa3420f4908b3ab1e))
+* vph-01 ([0701f27](https://github.com/VenusProtocol/venus-protocol/commit/0701f27ff4cbd35d4de5807f20f34418b9aeccd0))
+* vph-01 ([e47ef15](https://github.com/VenusProtocol/venus-protocol/commit/e47ef15d223d64a4b6d18092e501af0ee85d69d9))
+* vph-02 ([ba0ab11](https://github.com/VenusProtocol/venus-protocol/commit/ba0ab11b923d188f7e43405741bffbb903d828f4))
+
 ## [6.1.0-dev.11](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.10...v6.1.0-dev.11) (2023-12-18)
 
 ## [6.1.0-dev.10](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.9...v6.1.0-dev.10) (2023-12-18)
