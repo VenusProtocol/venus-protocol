@@ -5,7 +5,7 @@ pragma solidity 0.5.16;
 import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { ComptrollerTypes } from "../../ComptrollerStorage.sol";
-import { VAIControllerInterface } from "../../../Tokens/VAI/VAIController.sol";
+import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
 import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
 
