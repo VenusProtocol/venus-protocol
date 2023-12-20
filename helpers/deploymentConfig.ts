@@ -60,12 +60,12 @@ const preconfiguredAddresses = {
   bsctestnet: {
     VTreasury: venusProtocolBscTestnet.VTreasury,
     NormalTimelock: governanceBscTestnet.NormalTimelock.address,
-    VTokenImpl: "0x8d79c8f4400fe68fd17040539fe5e1706c1f2850"
+    VTokenImpl: "0x8d79c8f4400fe68fd17040539fe5e1706c1f2850",
   },
   bscmainnet: {
     VTreasury: venusProtocolBscMainnet.VTreasury,
     NormalTimelock: governanceBscMainnet.NormalTimelock.address,
-    VTokenImpl: "0xc3279442a5acacf0a2ecb015d1cddbb3e0f3f775"
+    VTokenImpl: "0xc3279442a5acacf0a2ecb015d1cddbb3e0f3f775",
   },
 };
 
@@ -102,9 +102,9 @@ export const globalConfig: NetworkConfig = {
         supplyCap: convertToUnit(5_500_000, 18),
         borrowCap: convertToUnit(4_400_000, 18),
         vTokenReceiver: venusProtocolBscTestnet.VTreasury,
-      }
+      },
     ],
-    preconfiguredAddresses: preconfiguredAddresses.bsctestnet
+    preconfiguredAddresses: preconfiguredAddresses.bsctestnet,
   },
   bscmainnet: {
     tokensConfig: [],

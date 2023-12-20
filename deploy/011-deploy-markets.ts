@@ -1,10 +1,10 @@
+import { BigNumber, BigNumberish } from "ethers";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { DeployFunction, DeployResult } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { InterestRateModels, getConfig, getTokenConfig } from "../helpers/deploymentConfig";
-import { parseUnits } from "ethers/lib/utils";
-import { BigNumber, BigNumberish } from "ethers";
 
 const mantissaToBps = (num: BigNumberish) => {
   return BigNumber.from(num).div(parseUnits("1", 14)).toString();
@@ -12,7 +12,6 @@ const mantissaToBps = (num: BigNumberish) => {
 
 const VTOKEN_DECIMALS = 8;
 const EMPTY_BYTES_ARRAY = "0x";
-
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -26,17 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`Got deployment of Unitroller with address: ${comptrollerDeployment.address}`);
 
   for (const market of marketsConfig) {
-    const {
-      name,
-      asset,
-      symbol,
-      rateModel,
-      baseRatePerYear,
-      multiplierPerYear,
-      jumpMultiplierPerYear,
-      kink_
-    } = market;
-
+    const { name, asset, symbol, rateModel, baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink_ } = market;
 
     const token = getTokenConfig(asset, tokensConfig);
     let tokenContract;
@@ -91,11 +80,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         VTOKEN_DECIMALS,
         preconfiguredAddresses.NormalTimelock,
         preconfiguredAddresses.VTokenImpl,
-        EMPTY_BYTES_ARRAY
+        EMPTY_BYTES_ARRAY,
       ],
       log: true,
     });
-    
   }
 };
 
