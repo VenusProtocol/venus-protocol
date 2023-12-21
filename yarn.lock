@@ -3099,10 +3099,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/solidity-utilities@npm:^1.1.1-dev.1":
-  version: 1.1.1-dev.1
-  resolution: "@venusprotocol/solidity-utilities@npm:1.1.1-dev.1"
-  checksum: faa5b4a2c1cb61e3d3e42ebafea716f25587167cdf422edaddf3835988a892c4a81f8ab02b6da48b1366a04affca8b8713acb67f640d6253cf914646a27dddbf
+"@venusprotocol/solidity-utilities@npm:^1.2.0-dev.1":
+  version: 1.2.0-dev.1
+  resolution: "@venusprotocol/solidity-utilities@npm:1.2.0-dev.1"
+  checksum: 0e7958c4dea51cc2d84cdc9039d21e00d265863573fb0d1eab575bd2f9d5b50c80dce60f96213a7d9764f9f7c8a03403e89c838cd3539c75632e66e1f59dcdec
   languageName: node
   linkType: hard
 
@@ -3151,7 +3151,7 @@ __metadata:
     "@venusprotocol/governance-contracts": ^1.4.0-dev.2
     "@venusprotocol/oracle": 1.8.0-dev.1
     "@venusprotocol/protocol-reserve": 1.2.0-dev.2
-    "@venusprotocol/solidity-utilities": ^1.1.1-dev.1
+    "@venusprotocol/solidity-utilities": ^1.2.0-dev.1
     bignumber.js: ^9.1.2
     chai: ^4.3.6
     dotenv: ^16.0.1
