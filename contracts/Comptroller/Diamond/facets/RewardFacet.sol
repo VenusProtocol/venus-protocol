@@ -18,6 +18,9 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address indexed recipient, uint256 amount);
 
+    /// @notice Emitted when XVS are seized for the holder
+    event VenusSeized(address indexed holder, uint256 amount);
+
     using SafeBEP20 for IBEP20;
 
     /**
@@ -148,15 +151,19 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         updateAndDistributeRewards(holders, allMarkets, true, true);
         for (uint256 j; j < holdersLength; ++j) {
             address holder = holders[j];
-            totalHoldings += venusAccrued[holder];
+            uint256 userHolding = venusAccrued[holder];
+
+            totalHoldings += userHolding;
             delete venusAccrued[holder];
+
+            emit VenusSeized(holder, userHolding);
         }
 
-        if (totalHoldings == 0 || totalHoldings > IBEP20(getXVSAddress()).balanceOf(address(this))) {
-            return totalHoldings;
+        if (totalHoldings != 0) {
+            IBEP20(getXVSAddress()).safeTransfer(recipient, totalHoldings);
+            emit VenusGranted(recipient, totalHoldings);
         }
 
-        IBEP20(getXVSAddress()).safeTransfer(recipient, totalHoldings);
         return totalHoldings;
     }
 
