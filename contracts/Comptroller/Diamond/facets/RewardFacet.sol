@@ -135,6 +135,32 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     }
 
     /**
+     * @notice Seize XVS rewards allocated to holders
+     * @param holders Addresses of the XVS holders
+     * @param recipient Address of the XVS token recipient
+     */
+    function seizeVenus(address[] calldata holders, address recipient) external returns (uint256) {
+        ensureAllowed("seizeVenus(address[],address)");
+
+        uint256 holdersLength = holders.length;
+        uint256 totalHoldings;
+
+        updateAndDistributeRewards(holders, allMarkets, true, true);
+        for (uint256 j; j < holdersLength; ++j) {
+            address holder = holders[j];
+            totalHoldings += venusAccrued[holder];
+            delete venusAccrued[holder];
+        }
+
+        if (totalHoldings == 0 || totalHoldings > IBEP20(getXVSAddress()).balanceOf(address(this))) {
+            return totalHoldings;
+        }
+
+        IBEP20(getXVSAddress()).safeTransfer(recipient, totalHoldings);
+        return totalHoldings;
+    }
+
+    /**
      * @notice Claim all xvs accrued by the holders
      * @param holders The addresses to claim XVS for
      * @param vTokens The list of markets to claim XVS in
@@ -151,7 +177,44 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     ) public {
         uint256 j;
         uint256 holdersLength = holders.length;
+
+        updateAndDistributeRewards(holders, vTokens, borrowers, suppliers);
+        for (j = 0; j < holdersLength; ++j) {
+            address holder = holders[j];
+
+            // If there is a positive shortfall, the XVS reward is accrued,
+            // but won't be granted to this holder
+            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
+
+            uint256 value = venusAccrued[holder];
+            delete venusAccrued[holder];
+
+            uint256 returnAmount = grantXVSInternal(holder, value, shortfall, collateral);
+
+            // returnAmount can only be positive if balance of xvsAddress is less than grant amount(venusAccrued[holder])
+            if (returnAmount != 0) {
+                venusAccrued[holder] = returnAmount;
+            }
+        }
+    }
+
+    /**
+     * @notice Update and distribute tokens
+     * @param holders The addresses to claim XVS for
+     * @param vTokens The list of markets to claim XVS in
+     * @param borrowers Whether or not to claim XVS earned by borrowing
+     * @param suppliers Whether or not to claim XVS earned by supplying
+     */
+    function updateAndDistributeRewards(
+        address[] memory holders,
+        VToken[] memory vTokens,
+        bool borrowers,
+        bool suppliers
+    ) internal {
+        uint256 j;
+        uint256 holdersLength = holders.length;
         uint256 vTokensLength = vTokens.length;
+
         for (uint256 i; i < vTokensLength; ++i) {
             VToken vToken = vTokens[i];
             ensureListed(markets[address(vToken)]);
@@ -162,28 +225,12 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
                     distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
                 }
             }
+
             if (suppliers) {
                 updateVenusSupplyIndex(address(vToken));
                 for (j = 0; j < holdersLength; ++j) {
                     distributeSupplierVenus(address(vToken), holders[j]);
                 }
-            }
-        }
-
-        for (j = 0; j < holdersLength; ++j) {
-            address holder = holders[j];
-            // If there is a positive shortfall, the XVS reward is accrued,
-            // but won't be granted to this holder
-            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
-
-            uint256 value = venusAccrued[holder];
-            venusAccrued[holder] = 0;
-
-            uint256 returnAmount = grantXVSInternal(holder, value, shortfall, collateral);
-
-            // returnAmount can only be positive if balance of xvsAddress is less than grant amount(venusAccrued[holder])
-            if (returnAmount != 0) {
-                venusAccrued[holder] = returnAmount;
             }
         }
     }
