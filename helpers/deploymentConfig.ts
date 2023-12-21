@@ -107,8 +107,34 @@ export const globalConfig: NetworkConfig = {
     preconfiguredAddresses: preconfiguredAddresses.bsctestnet,
   },
   bscmainnet: {
-    tokensConfig: [],
-    marketsConfig: [],
+    tokensConfig: [
+      {
+        isMock: false,
+        name: "First Digital USD",
+        symbol: "FDUSD",
+        decimals: 18,
+        tokenAddress: "0xc5f0f7b66764F6ec8C8Dff7BA683102295E16409",
+      },
+    ],
+    marketsConfig: [
+      {
+        name: "Venus FDUSD",
+        asset: "FDUSD",
+        symbol: "vFDUSD",
+        rateModel: InterestRateModels.JumpRate.toString(),
+        baseRatePerYear: "0",
+        multiplierPerYear: convertToUnit("0.06875", 18),
+        jumpMultiplierPerYear: convertToUnit("2.5", 18),
+        kink_: convertToUnit("0.8", 18),
+        collateralFactor: convertToUnit("0.75", 18),
+        liquidationThreshold: convertToUnit("0.8", 18),
+        reserveFactor: convertToUnit("0.1", 18),
+        initialSupply: convertToUnit(9000, 18),
+        supplyCap: convertToUnit(5_500_000, 18),
+        borrowCap: convertToUnit(4_400_000, 18),
+        vTokenReceiver: venusProtocolBscMainnet.VTreasury,
+      },
+    ],
     preconfiguredAddresses: preconfiguredAddresses.bscmainnet,
   },
 };
