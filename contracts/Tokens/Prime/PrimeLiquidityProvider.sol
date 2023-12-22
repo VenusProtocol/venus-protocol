@@ -6,7 +6,7 @@ import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contract
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
 import { MaxLoopsLimitHelper } from "@venusprotocol/solidity-utilities/contracts/MaxLoopsLimitHelper.sol";
-import { TimeManager } from "../../Utils/TimeManager.sol";
+import { TimeManagerV8 } from "@venusprotocol/solidity-utilities/contracts/TimeManagerV8.sol";
 
 /**
  * @title PrimeLiquidityProvider
@@ -18,7 +18,7 @@ contract PrimeLiquidityProvider is
     AccessControlledV8,
     PausableUpgradeable,
     MaxLoopsLimitHelper,
-    TimeManager
+    TimeManagerV8
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -103,7 +103,7 @@ contract PrimeLiquidityProvider is
      * @param _blocksPerYear total blocks per year
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(bool _timeBased, uint256 _blocksPerYear) TimeManager(_timeBased, _blocksPerYear) {
+    constructor(bool _timeBased, uint256 _blocksPerYear) TimeManagerV8(_timeBased, _blocksPerYear) {
         _disableInitializers();
     }
 
