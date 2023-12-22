@@ -1,8 +1,8 @@
 import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/dist/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import ADDRESSES from "../helpers/address";
 
+import ADDRESSES from "../helpers/address";
 
 const func: DeployFunction = async function ({ getNamedAccounts, deployments, network }: HardhatRuntimeEnvironment) {
   const { deploy, catchUnknownSigner } = deployments;
@@ -27,7 +27,7 @@ const func: DeployFunction = async function ({ getNamedAccounts, deployments, ne
         stakingPeriod,
         minimumXVS,
         maximumXVSCap,
-        isTimeBased
+        isTimeBased,
       ],
       proxy: {
         owner: ADDRESSES[networkName].normalVipTimelock,
