@@ -204,7 +204,9 @@ describe("XVSVault", async () => {
 
     it("reverts if the token is not configured in XVSStore", async () => {
       await xvsStore.setRewardToken(xvs.address, false);
-      await expect(xvsVault.setRewardAmountPerBlockOrSecond(xvs.address, 100)).to.be.revertedWith("Invalid reward token");
+      await expect(xvsVault.setRewardAmountPerBlockOrSecond(xvs.address, 100)).to.be.revertedWith(
+        "Invalid reward token",
+      );
     });
 
     it("emits RewardAmountPerBlockUpdated event", async () => {

@@ -97,10 +97,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
      * @param _timeBased A boolean indicating whether the contract is based on time or block.
      * @param _blocksPerYear total blocks per year
      */
-    constructor(
-        bool _timeBased,
-        uint256 _blocksPerYear
-    ) TimeManagerV5(_timeBased, _blocksPerYear) public {
+    constructor(bool _timeBased, uint256 _blocksPerYear) public TimeManagerV5(_timeBased, _blocksPerYear) {
         admin = msg.sender;
     }
 
@@ -211,7 +208,14 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
 
         XVSStore(xvsStore).setRewardToken(_rewardToken, true);
 
-        emit PoolAdded(_rewardToken, poolInfo.length - 1, address(_token), _allocPoint, _rewardPerBlockOrSecond, _lockPeriod);
+        emit PoolAdded(
+            _rewardToken,
+            poolInfo.length - 1,
+            address(_token),
+            _allocPoint,
+            _rewardPerBlockOrSecond,
+            _lockPeriod
+        );
     }
 
     /**
@@ -764,7 +768,10 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
     }
 
     function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint96 oldVotes, uint96 newVotes) internal {
-        uint32 blockNumberOrSecond = safe32(getBlockNumberOrTimestamp(), "XVSVault::_writeCheckpoint: block number or second exceeds 32 bits");
+        uint32 blockNumberOrSecond = safe32(
+            getBlockNumberOrTimestamp(),
+            "XVSVault::_writeCheckpoint: block number or second exceeds 32 bits"
+        );
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlockOrSecond == blockNumberOrSecond) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
