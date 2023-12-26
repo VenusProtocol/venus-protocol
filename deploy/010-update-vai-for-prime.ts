@@ -12,8 +12,29 @@ const func: DeployFunction = async function ({ getNamedAccounts, deployments, ne
   const stakingPeriod = networkName === "bscmainnet" ? 90 * 24 * 60 * 60 : 60 * 10;
   const maximumXVSCap = ethers.utils.parseEther("100000");
   const minimumXVS = ethers.utils.parseEther("1000");
-  const blocksPeryear = 10512000;
-  const isTimeBased = false;
+  const blocksPeryear = 10512000; // 3 secs per block
+  const isTimeBased = false; // for L2s revise this value
+
+  await catchUnknownSigner(
+    deploy("PrimeLiquidityProvider", {
+      from: deployer,
+      log: true,
+      deterministicDeployment: false,
+      args: [isTimeBased, blocksPeryear],
+      proxy: {
+        owner: ADDRESSES[networkName].normalVipTimelock,
+        proxyContract: "OpenZeppelinTransparentProxy",
+      },
+    }),
+  );
+
+  await deploy("VAIController_Implementation", {
+    contract: "VAIController",
+    from: deployer,
+    log: true,
+    deterministicDeployment: false,
+    args: [],
+  });
 
   await catchUnknownSigner(
     deploy("Prime", {
@@ -38,4 +59,4 @@ const func: DeployFunction = async function ({ getNamedAccounts, deployments, ne
 };
 
 export default func;
-func.tags = ["update-prime"];
+func.tags = ["PrimeVaiUpgrade"];
