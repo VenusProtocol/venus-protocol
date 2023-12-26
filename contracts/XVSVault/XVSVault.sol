@@ -154,6 +154,15 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
     }
 
     /**
+     * @notice Returns the number of reward tokens created per block or second
+     * @param _rewardToken Reward token address
+     * @return Number of reward tokens created per block or second
+     */
+    function rewardTokenAmountsPerBlock(address _rewardToken) external view returns (uint256) {
+        return rewardTokenAmountsPerBlockOrSecond[_rewardToken];
+    }
+
+    /**
      * @notice Add a new token pool
      * @dev This vault DOES NOT support deflationary tokens — it expects that
      *   the amount of transferred tokens would equal the actually deposited
