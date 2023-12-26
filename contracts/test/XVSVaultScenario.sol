@@ -6,6 +6,13 @@ import "../XVSVault/XVSVault.sol";
 contract XVSVaultScenario is XVSVault {
     using SafeMath for uint256;
 
+    constructor(
+        bool _timeBased,
+        uint256 _blocksPerYear
+    ) XVSVault(_timeBased, _blocksPerYear) public {
+        admin = msg.sender;
+    }
+
     function pushOldWithdrawalRequest(
         UserInfo storage _user,
         WithdrawalRequest[] storage _requests,
@@ -30,7 +37,7 @@ contract XVSVaultScenario is XVSVault {
 
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
-        uint lockedUntil = pool.lockPeriod.add(block.timestamp);
+        uint lockedUntil = pool.lockPeriod.add(getBlockNumberOrTimestamp());
 
         pushOldWithdrawalRequest(user, requests, _amount, lockedUntil);
 

@@ -40,7 +40,7 @@ describe("XVSVault", async () => {
     xvsStore = (await xvsStoreFactory.deploy()) as XVSStore;
 
     const xvsVaultFactory = await smock.mock<XVSVaultScenario__factory>("XVSVaultScenario");
-    xvsVault = await xvsVaultFactory.deploy();
+    xvsVault = await xvsVaultFactory.deploy(false, 10512000);
 
     const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
     accessControl.isAllowedToCall.returns(true);
@@ -195,26 +195,26 @@ describe("XVSVault", async () => {
     });
   });
 
-  describe("setRewardAmountPerBlock", async () => {
+  describe("setRewardAmountPerBlockOrSecond", async () => {
     it("reverts if ACM does not allow the call", async () => {
       accessControl.isAllowedToCall.returns(false);
-      await expect(xvsVault.setRewardAmountPerBlock(xvs.address, 100)).to.be.revertedWith("Unauthorized");
+      await expect(xvsVault.setRewardAmountPerBlockOrSecond(xvs.address, 100)).to.be.revertedWith("Unauthorized");
       accessControl.isAllowedToCall.returns(true);
     });
 
     it("reverts if the token is not configured in XVSStore", async () => {
       await xvsStore.setRewardToken(xvs.address, false);
-      await expect(xvsVault.setRewardAmountPerBlock(xvs.address, 100)).to.be.revertedWith("Invalid reward token");
+      await expect(xvsVault.setRewardAmountPerBlockOrSecond(xvs.address, 100)).to.be.revertedWith("Invalid reward token");
     });
 
     it("emits RewardAmountPerBlockUpdated event", async () => {
-      const tx = await xvsVault.setRewardAmountPerBlock(xvs.address, 111);
+      const tx = await xvsVault.setRewardAmountPerBlockOrSecond(xvs.address, 111);
       await expect(tx).to.emit(xvsVault, "RewardAmountUpdated").withArgs(xvs.address, rewardPerBlock, 111);
     });
 
     it("updates reward amount per block", async () => {
-      await xvsVault.setRewardAmountPerBlock(xvs.address, 111);
-      expect(await xvsVault.rewardTokenAmountsPerBlock(xvs.address)).to.equal(111);
+      await xvsVault.setRewardAmountPerBlockOrSecond(xvs.address, 111);
+      expect(await xvsVault.rewardTokenAmountsPerBlockOrSecond(xvs.address)).to.equal(111);
     });
   });
 
@@ -568,7 +568,7 @@ describe("XVSVault", async () => {
     });
 
     it("correctly accounts for updates in reward per block", async () => {
-      await xvsVault.setRewardAmountPerBlock(xvs.address, parseUnits("0.1", 18));
+      await xvsVault.setRewardAmountPerBlockOrSecond(xvs.address, parseUnits("0.1", 18));
       const rewardForPreviousBlocks = parseUnits("1001", 18); // 1001 blocks, 1 XVS/block
       await mine(1000);
       const rewardForNewBlocks = parseUnits("100.1", 18); // 1001 blocks, 0.1 XVS/block
@@ -778,7 +778,7 @@ describe("XVSVault", async () => {
         parseUnits("701", 18),
       );
 
-      await xvsVault.setRewardAmountPerBlock(xvs.address, 0);
+      await xvsVault.setRewardAmountPerBlockOrSecond(xvs.address, 0);
       await mine(200);
 
       await expect(xvsVault.claim(deployer.address, xvs.address, poolId)).to.changeTokenBalance(
