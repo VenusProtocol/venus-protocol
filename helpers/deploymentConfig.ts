@@ -71,9 +71,35 @@ const preconfiguredAddresses = {
 
 export const globalConfig: NetworkConfig = {
   hardhat: {
-    tokensConfig: [],
-    marketsConfig: [],
-    preconfiguredAddresses: preconfiguredAddresses.hardhat,
+    tokensConfig: [
+      {
+        isMock: true,
+        name: "First Digital USD",
+        symbol: "FDUSD",
+        decimals: 18,
+        tokenAddress: ethers.constants.AddressZero,
+      },
+    ],
+    marketsConfig: [
+      {
+        name: "Venus FDUSD",
+        asset: "FDUSD",
+        symbol: "vFDUSD",
+        rateModel: InterestRateModels.JumpRate.toString(),
+        baseRatePerYear: "0",
+        multiplierPerYear: convertToUnit("0.06875", 18),
+        jumpMultiplierPerYear: convertToUnit("2.5", 18),
+        kink_: convertToUnit("0.8", 18),
+        collateralFactor: convertToUnit("0.75", 18),
+        liquidationThreshold: convertToUnit("0.8", 18),
+        reserveFactor: convertToUnit("0.1", 18),
+        initialSupply: convertToUnit(9000, 18),
+        supplyCap: convertToUnit(5_500_000, 18),
+        borrowCap: convertToUnit(4_400_000, 18),
+        vTokenReceiver: venusProtocolBscTestnet.VTreasury,
+      },
+    ],
+    preconfiguredAddresses: preconfiguredAddresses.bsctestnet,
   },
   bsctestnet: {
     tokensConfig: [
