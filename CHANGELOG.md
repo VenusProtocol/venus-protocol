@@ -1,3 +1,12 @@
+## [7.0.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v7.0.0-dev.2...v7.0.0-dev.3) (2023-12-27)
+
+
+### Features
+
+* re-organize PLP storage layout to support TimeManagerV8 and deployment to mainnet ([0e584c3](https://github.com/VenusProtocol/venus-protocol/commit/0e584c38e93ad7f319af7a1efbb9121b52a2f001))
+* updating deployment files ([cdb739e](https://github.com/VenusProtocol/venus-protocol/commit/cdb739e5e256f7b69692ce49f2ce013da3db406d))
+* use main versions of venus dependencies ([cd1ae6d](https://github.com/VenusProtocol/venus-protocol/commit/cd1ae6d7bb16d9ad2e8ad346b5a7722b7dd68d6d))
+
 ## [7.0.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.0.0-dev.1...v7.0.0-dev.2) (2023-12-22)
 
 ## [7.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v6.1.0-dev.11...v7.0.0-dev.1) (2023-12-19)
