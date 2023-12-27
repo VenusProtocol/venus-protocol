@@ -43,7 +43,7 @@
     "PolicyFacet": "0xE80E00da355e2cb0807C5dcd3A87Ad18D25ca28b",
     "Prime": "0xBbCD063efE506c3D42a0Fa2dB5C08430288C71FC",
     "PrimeLiquidityProvider": "0x23c4F844ffDdC6161174eB32c770D4D8C07833F2",
-    "PrimeLiquidityProvider_Implementation": "0xf0361f9B3dcCa728603be2aBf15D1Ec106d43D51",
+    "PrimeLiquidityProvider_Implementation": "0x208068AE8A619FCc851659791659B1aA40d796dA",
     "PrimeLiquidityProvider_Proxy": "0x23c4F844ffDdC6161174eB32c770D4D8C07833F2",
     "Prime_Implementation": "0x371c0355CC22Ea13404F2fEAc989435DAD9b9d03",
     "Prime_Proxy": "0xBbCD063efE506c3D42a0Fa2dB5C08430288C71FC",
