@@ -34,7 +34,7 @@ contract XVSVaultScenario is XVSVault {
 
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         WithdrawalRequest[] storage requests = withdrawalRequests[_rewardToken][_pid][msg.sender];
-        uint lockedUntil = pool.lockPeriod.add(getBlockNumberOrTimestamp());
+        uint lockedUntil = pool.lockPeriod.add(block.timestamp);
 
         pushOldWithdrawalRequest(user, requests, _amount, lockedUntil);
 

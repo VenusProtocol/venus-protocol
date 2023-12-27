@@ -410,7 +410,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
      * @return True if the request is eligible for withdrawal, false otherwise
      */
     function isUnlocked(WithdrawalRequest storage _request) private view returns (bool) {
-        return _request.lockedUntil <= getBlockNumberOrTimestamp();
+        return _request.lockedUntil <= block.timestamp;
     }
 
     /**
@@ -499,7 +499,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         uint256 pending = _computeReward(user, pool);
         _transferReward(_rewardToken, msg.sender, pending);
 
-        uint lockedUntil = pool.lockPeriod.add(getBlockNumberOrTimestamp());
+        uint lockedUntil = pool.lockPeriod.add(block.timestamp);
 
         pushWithdrawalRequest(user, requests, _amount, lockedUntil);
         totalPendingWithdrawals[_rewardToken][_pid] = totalPendingWithdrawals[_rewardToken][_pid].add(_amount);
@@ -734,7 +734,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         address signatory = ECDSA.recover(digest, v, r, s);
         require(nonce == nonces[signatory]++, "XVSVault::delegateBySig: invalid nonce");
-        require(getBlockNumberOrTimestamp() <= expiry, "XVSVault::delegateBySig: signature expired");
+        require(block.timestamp <= expiry, "XVSVault::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
