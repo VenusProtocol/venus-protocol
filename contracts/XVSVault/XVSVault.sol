@@ -13,7 +13,7 @@ import "../Utils/SafeCast.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
 import { XVSStore } from "./XVSStore.sol";
 import { XVSVaultProxy } from "./XVSVaultProxy.sol";
-import { TimeManagerV5 } from "@venusprotocol/solidity-utilities/contracts/TimeManagerV5.sol";
+import { TimeManagerV5 } from "./TimeManagerV5.sol";
 
 /**
  * @title XVS Vault
@@ -94,10 +94,8 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
 
     /**
      * @notice XVSVault constructor
-     * @param _timeBased A boolean indicating whether the contract is based on time or block.
-     * @param _blocksPerYear total blocks per year
      */
-    constructor(bool _timeBased, uint256 _blocksPerYear) public TimeManagerV5(_timeBased, _blocksPerYear) {
+    constructor() public {
         admin = msg.sender;
     }
 
@@ -901,6 +899,16 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         primeToken = _primeToken;
         primeRewardToken = _primeRewardToken;
         primePoolId = _primePoolId;
+    }
+
+    /**
+     * @dev Initializes the contract to use either blocks or seconds
+     * @param timeBased_ A boolean indicating whether the contract is based on time or block
+     * If timeBased is true than blocksPerYear_ param is ignored as blocksOrSecondsPerYear is set to SECONDS_PER_YEAR
+     * @param blocksPerYear_ The number of blocks per year
+     */
+    function initializeTimeManager(bool timeBased_, uint256 blocksPerYear_) external onlyAdmin {
+        _initializeTimeManager(timeBased_, blocksPerYear_);
     }
 
     /**

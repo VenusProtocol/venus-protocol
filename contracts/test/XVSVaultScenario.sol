@@ -6,7 +6,7 @@ import "../XVSVault/XVSVault.sol";
 contract XVSVaultScenario is XVSVault {
     using SafeMath for uint256;
 
-    constructor(bool _timeBased, uint256 _blocksPerYear) public XVSVault(_timeBased, _blocksPerYear) {
+    constructor() public {
         admin = msg.sender;
     }
 

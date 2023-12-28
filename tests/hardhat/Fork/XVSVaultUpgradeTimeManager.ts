@@ -4,14 +4,12 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { ethers, network } from "hardhat";
 
-import { BEP20, Diamond, RewardFacet, SetterFacet, XVSVault, XVSVaultProxy } from "../../../typechain";
+import { XVSVault, XVSVaultProxy } from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
 
 const XVS_VAULT_PROXY = "0x9aB56bAD2D7631B2A857ccf36d998232A8b82280";
-const XVS_VAULT_NEW_IMPLEMENTATION = "0xBd75fcB67E19a2F9eC5d410409be0A8D7DCfaA52";
-const XVS_VAULT_OLD_IMPLEMENTATION = "0x0fDBe58BbF3190D21a0589D0A448682D68De66a2";
 const TIMELOCK = "0xce10739590001705F7FF231611ba4A48B2820327";
 
 export async function setForkBlock(blockNumber: number) {
@@ -40,7 +38,7 @@ const forking = (blockNumber: number, fn: () => void) => {
 forking(36322844, () => {
   let xvsVault: XVSVault;
   let xvsVaultAsProxy: XVSVault;
-  let xvsVaultProxy: XVSVaultProxy
+  let xvsVaultProxy: XVSVaultProxy;
   let owner: SignerWithAddress;
 
   if (process.env.FORK === "true" && process.env.FORKED_NETWORK === "bsctestnet") {
@@ -49,9 +47,8 @@ forking(36322844, () => {
       owner = await ethers.getSigner(TIMELOCK);
 
       const xvsVaultFactory = await ethers.getContractFactory("XVSVault");
-      xvsVault = await xvsVaultFactory.deploy(false, 10512000);
+      xvsVault = await xvsVaultFactory.deploy();
 
-      // xvsVault = await ethers.getContractAt("XVSVault", XVS_VAULT_NEW_IMPLEMENTATION);
       xvsVaultProxy = await ethers.getContractAt("XVSVaultProxy", XVS_VAULT_PROXY);
       xvsVaultAsProxy = await ethers.getContractAt("XVSVault", XVS_VAULT_PROXY);
     });
@@ -59,8 +56,9 @@ forking(36322844, () => {
     it("upgrade checks", async () => {
       await xvsVaultProxy.connect(owner)._setPendingImplementation(xvsVault.address);
       await xvsVault.connect(owner)._become(XVS_VAULT_PROXY);
+      await xvsVaultAsProxy.connect(owner).initializeTimeManager(false, 10512000);
 
-      console.log(await xvsVaultAsProxy.getBlockNumberOrTimestamp());
+      await expect(xvsVaultAsProxy.getBlockNumberOrTimestamp()).to.not.be.reverted;
     });
   }
 });

@@ -40,7 +40,8 @@ describe("XVSVault", async () => {
     xvsStore = (await xvsStoreFactory.deploy()) as XVSStore;
 
     const xvsVaultFactory = await smock.mock<XVSVaultScenario__factory>("XVSVaultScenario");
-    xvsVault = await xvsVaultFactory.deploy(false, 10512000);
+    xvsVault = await xvsVaultFactory.deploy();
+    await xvsVault.initializeTimeManager(false, 10512000);
 
     const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
     accessControl.isAllowedToCall.returns(true);
