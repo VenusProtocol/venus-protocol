@@ -44010,21 +44010,10 @@
       ]
     },
     "XVSVault": {
-      "address": "0xBd75fcB67E19a2F9eC5d410409be0A8D7DCfaA52",
+      "address": "0x9801565BE8fe2c9fD12C17992ecDeb510BaF677A",
       "abi": [
         {
-          "inputs": [
-            {
-              "internalType": "bool",
-              "name": "_timeBased",
-              "type": "bool"
-            },
-            {
-              "internalType": "uint256",
-              "name": "_blocksPerYear",
-              "type": "uint256"
-            }
-          ],
+          "inputs": [],
           "payable": false,
           "stateMutability": "nonpayable",
           "type": "constructor"
@@ -45041,6 +45030,26 @@
           ],
           "payable": false,
           "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "bool",
+              "name": "timeBased_",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blocksPerYear_",
+              "type": "uint256"
+            }
+          ],
+          "name": "initializeTimeManager",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
