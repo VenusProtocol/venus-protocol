@@ -1,3 +1,11 @@
+## [7.0.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v7.0.0-dev.3...v7.0.0-dev.4) (2023-12-28)
+
+
+### Features
+
+* redeployments of vaults ([e3e281a](https://github.com/VenusProtocol/venus-protocol/commit/e3e281ae1231c85d496a956bf06a03757b6efb36))
+* updating deployment files ([ec8991c](https://github.com/VenusProtocol/venus-protocol/commit/ec8991cd928ba4494e333b83efe1230af83aff4a))
+
 ## [7.0.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v7.0.0-dev.2...v7.0.0-dev.3) (2023-12-27)
 
 
