@@ -1,17 +1,13 @@
 import GovernanceBscMainnet from "@venusprotocol/governance-contracts/deployments/bscmainnet.json";
 import GovernanceBscTestnet from "@venusprotocol/governance-contracts/deployments/bsctestnet.json";
 import GovernanceSepolia from "@venusprotocol/governance-contracts/deployments/sepolia.json";
-
+import ILSepolia from "@venusprotocol/isolated-pools/deployments/sepolia.json";
 import OracleMainnet from "@venusprotocol/oracle/deployments/bscmainnet.json";
 import OracleTestnet from "@venusprotocol/oracle/deployments/bsctestnet.json";
 import OracleSepolia from "@venusprotocol/oracle/deployments/sepolia.json";
-
 import ProtocolShareReserveProxyMainnet from "@venusprotocol/protocol-reserve/deployments/bscmainnet/ProtocolShareReserve_Proxy.json";
 import ProtocolShareReserveProxyTestnet from "@venusprotocol/protocol-reserve/deployments/bsctestnet/ProtocolShareReserve_Proxy.json";
-
 import TokenBridgeSepolia from "@venusprotocol/token-bridge/deployments/sepolia.json";
-
-import ILSepolia from "@venusprotocol/isolated-pools/deployments/sepolia.json";
 
 //TESTNET DEPLOYED CONTRACTS
 import Mainnet from "../deployments/bscmainnet.json";
@@ -105,7 +101,7 @@ const ADDRESSES: Addresses = {
     normalVipTimelock: SEPOLIA_MULTISIG,
     acm: GovernanceSepolia.contracts.AccessControlManager.address,
     oracle: OracleSepolia.contracts.ResilientOracle_Proxy.address,
-    poolRegistry: ILSepolia.contracts.PoolRegistry.address
-  }
+    poolRegistry: ILSepolia.contracts.PoolRegistry.address,
+  },
 };
 export default ADDRESSES;
