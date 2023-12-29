@@ -40,7 +40,10 @@ extendConfig((config: HardhatConfig) => {
           "node_modules/@venusprotocol/oracle/deployments/sepolia",
           "node_modules/@venusprotocol/token-bridge/deployments/sepolia",
         ],
-        ethereum: ["node_modules/@venusprotocol/token-bridge/deployments/ethereum"],
+        ethereum: [
+          "node_modules/@venusprotocol/token-bridge/deployments/ethereum",
+          "node_modules/@venusprotocol/governance-contracts/deployments/ethereum",
+        ],
       },
     };
   }
