@@ -248,7 +248,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             borrowBalance = vaiController.getVAIRepayAmount(borrower);
         }
 
-        if (isForcedLiquidationEnabled[vTokenBorrowed]) {
+        if (isForcedLiquidationEnabled[vTokenBorrowed] || isForcedLiquidationEnabledForUser[borrower][vTokenBorrowed]) {
             if (repayAmount > borrowBalance) {
                 return uint(Error.TOO_MUCH_REPAY);
             }

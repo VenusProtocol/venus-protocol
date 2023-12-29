@@ -192,7 +192,10 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       [convertToUnit(1, 18), convertToUnit(1, 18), convertToUnit(1, 18)],
       10,
     ],
-    {},
+    {
+      unsafeAllow: "constructor",
+      constructorArgs: [false, 10512000],
+    },
   );
 
   const stakingPeriod = 90 * 24 * 60 * 60;
@@ -215,7 +218,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       10,
     ],
     {
-      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap],
+      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap, false],
       unsafeAllow: "constructor",
     },
   );
@@ -226,9 +229,9 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   await prime.setLimit(1000, 1000);
 
-  await prime.addMarket(vusdt.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
+  await prime.addMarket(comptroller.address, vusdt.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
-  await prime.addMarket(veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
+  await prime.addMarket(comptroller.address, veth.address, bigNumber18.mul("1"), bigNumber18.mul("1"));
 
   await comptroller._setPrimeToken(prime.address);
 

@@ -52,9 +52,11 @@ function configureOracle(oracle: FakeContract<PriceOracle>) {
   oracle.getUnderlyingPrice.returns(convertToUnit(1, 18));
 }
 
-async function configureVToken(vToken: FakeContract<VToken>, unitroller: MockContract<ComptrollerMock>) {
-  const result = await deployDiamond("");
-  unitroller = result.unitroller;
+async function configureVToken(vToken: FakeContract<VToken>, unitroller?: ComptrollerMock) {
+  if (unitroller === undefined) {
+    const result = await deployDiamond("");
+    unitroller = result.unitroller;
+  }
   vToken.comptroller.returns(unitroller.address);
   vToken.isVToken.returns(true);
   vToken.exchangeRateStored.returns(convertToUnit("2", 18));
@@ -411,9 +413,9 @@ describe("Comptroller", () => {
   });
 
   describe("_setForcedLiquidation", async () => {
-    let comptroller: MockContract<Comptroller>;
+    let comptroller: ComptrollerMock;
     let vToken: FakeContract<VToken>;
-    let accessControl: FakeContract<IAccessControlManager>;
+    let accessControl: FakeContract<IAccessControlManagerV5>;
 
     type Contracts = SimpleComptrollerFixture & { vToken: FakeContract<VToken> };
 
@@ -464,6 +466,71 @@ describe("Comptroller", () => {
 
       const tx2 = await comptroller._setForcedLiquidation(vToken.address, false);
       await expect(tx2).to.emit(comptroller, "IsForcedLiquidationEnabledUpdated").withArgs(vToken.address, false);
+    });
+  });
+
+  describe("_setForcedLiquidationForUser", async () => {
+    let comptroller: ComptrollerMock;
+    let vToken: FakeContract<VToken>;
+    let accessControl: FakeContract<IAccessControlManagerV5>;
+
+    type Contracts = SimpleComptrollerFixture & { vToken: FakeContract<VToken> };
+
+    async function deploy(): Promise<Contracts> {
+      const contracts = await deploySimpleComptroller();
+      const vToken = await smock.fake<VToken>("VToken");
+      await contracts.comptroller._supportMarket(vToken.address);
+      return { ...contracts, vToken };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller, vToken, accessControl } = await loadFixture(deploy));
+      configureVToken(vToken, comptroller);
+    });
+
+    it("fails if asset is not listed", async () => {
+      const someVToken = await smock.fake<VToken>("VToken");
+      await expect(comptroller._setForcedLiquidationForUser(root.address, someVToken.address, true)).to.be.revertedWith(
+        "market not listed",
+      );
+    });
+
+    it("fails if ACM does not allow the call", async () => {
+      accessControl.isAllowedToCall.returns(false);
+      await expect(comptroller._setForcedLiquidationForUser(root.address, vToken.address, true)).to.be.revertedWith(
+        "access denied",
+      );
+      accessControl.isAllowedToCall.returns(true);
+    });
+
+    it("sets forced liquidation for user", async () => {
+      await comptroller._setForcedLiquidationForUser(root.address, vToken.address, true);
+      expect(await comptroller.isForcedLiquidationEnabledForUser(root.address, vToken.address)).to.be.true;
+
+      await comptroller._setForcedLiquidationForUser(root.address, vToken.address, false);
+      expect(await comptroller.isForcedLiquidationEnabledForUser(root.address, vToken.address)).to.be.false;
+    });
+
+    it("sets forced liquidation for VAI, even though it is not a listed market", async () => {
+      const vaiController = await smock.fake<VAIController>("VAIController");
+      await comptroller._setVAIController(vaiController.address);
+      await comptroller._setForcedLiquidationForUser(root.address, vaiController.address, true);
+      expect(await comptroller.isForcedLiquidationEnabledForUser(root.address, vaiController.address)).to.be.true;
+
+      await comptroller._setForcedLiquidationForUser(root.address, vaiController.address, false);
+      expect(await comptroller.isForcedLiquidationEnabledForUser(root.address, vaiController.address)).to.be.false;
+    });
+
+    it("emits IsForcedLiquidationEnabledForUserUpdated event", async () => {
+      const tx1 = await comptroller._setForcedLiquidationForUser(root.address, vToken.address, true);
+      await expect(tx1)
+        .to.emit(comptroller, "IsForcedLiquidationEnabledForUserUpdated")
+        .withArgs(root.address, vToken.address, true);
+
+      const tx2 = await comptroller._setForcedLiquidationForUser(root.address, vToken.address, false);
+      await expect(tx2)
+        .to.emit(comptroller, "IsForcedLiquidationEnabledForUserUpdated")
+        .withArgs(root.address, vToken.address, false);
     });
   });
 
@@ -646,11 +713,7 @@ describe("Comptroller", () => {
         });
       };
 
-      describe("isForcedLiquidationEnabled == true", async () => {
-        beforeEach(async () => {
-          await comptroller._setForcedLiquidation(vToken.address, true);
-        });
-
+      const forcedLiquidationTests = () => {
         generalTests();
 
         it("allows liquidations without shortfall", async () => {
@@ -688,6 +751,39 @@ describe("Comptroller", () => {
           );
           expect(errCode).to.equal(17);
         });
+      };
+
+      describe("Forced liquidations enabled for user", async () => {
+        beforeEach(async () => {
+          await comptroller._setForcedLiquidationForUser(root.address, vToken.address, true);
+        });
+
+        it("enables forced liquidation for user", async () => {
+          expect(await comptroller.isForcedLiquidationEnabledForUser(root.address, vToken.address)).to.be.true;
+        });
+
+        forcedLiquidationTests();
+
+        it("checks the shortfall if isForcedLiquidationEnabledForUser is set back to false", async () => {
+          await comptroller._setForcedLiquidationForUser(root.address, vToken.address, false);
+          vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
+          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
+            vToken.address,
+            vToken.address,
+            accounts[0].address,
+            root.address,
+            convertToUnit("1", 18),
+          );
+          expect(errCode).to.equal(3);
+        });
+      });
+
+      describe("Forced liquidations enabled for entire market", async () => {
+        beforeEach(async () => {
+          await comptroller._setForcedLiquidation(vToken.address, true);
+        });
+
+        forcedLiquidationTests();
 
         it("checks the shortfall if isForcedLiquidationEnabled is set back to false", async () => {
           await comptroller._setForcedLiquidation(vToken.address, false);
@@ -703,7 +799,7 @@ describe("Comptroller", () => {
         });
       });
 
-      describe("isForcedLiquidationEnabled == false", async () => {
+      describe("Forced liquidations disabled", async () => {
         let comptrollerLens: FakeContract<ComptrollerLens>;
 
         beforeEach(async () => {

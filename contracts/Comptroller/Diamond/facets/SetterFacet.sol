@@ -81,8 +81,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when prime token contract address is changed
     event NewPrimeToken(IPrime oldPrimeToken, IPrime newPrimeToken);
 
-    /// @notice Emitted when force liquidation enabled for a market
+    /// @notice Emitted when forced liquidation is enabled or disabled for all users in a market
     event IsForcedLiquidationEnabledUpdated(address indexed vToken, bool enable);
+
+    /// @notice Emitted when forced liquidation is enabled or disabled for a user borrowing in a market
+    event IsForcedLiquidationEnabledForUserUpdated(address indexed borrower, address indexed vToken, bool enable);
 
     /**
      * @notice Compare two addresses to ensure they are different
@@ -546,7 +549,25 @@ contract SetterFacet is ISetterFacet, FacetBase {
         if (vTokenBorrowed != address(vaiController)) {
             ensureListed(markets[vTokenBorrowed]);
         }
-        isForcedLiquidationEnabled[address(vTokenBorrowed)] = enable;
+        isForcedLiquidationEnabled[vTokenBorrowed] = enable;
         emit IsForcedLiquidationEnabledUpdated(vTokenBorrowed, enable);
+    }
+
+    /**
+     * @notice Enables forced liquidations for user's borrows in a certain market. If forced
+     * liquidation is enabled, user's borrows in the market may be liquidated regardless of
+     * the account liquidity. Forced liquidation may be enabled for a user even if it is not
+     * enabled for the entire market.
+     * @param borrower The address of the borrower
+     * @param vTokenBorrowed Borrowed vToken
+     * @param enable Whether to enable forced liquidations
+     */
+    function _setForcedLiquidationForUser(address borrower, address vTokenBorrowed, bool enable) external {
+        ensureAllowed("_setForcedLiquidationForUser(address,address,bool)");
+        if (vTokenBorrowed != address(vaiController)) {
+            ensureListed(markets[vTokenBorrowed]);
+        }
+        isForcedLiquidationEnabledForUser[borrower][vTokenBorrowed] = enable;
+        emit IsForcedLiquidationEnabledForUserUpdated(borrower, vTokenBorrowed, enable);
     }
 }

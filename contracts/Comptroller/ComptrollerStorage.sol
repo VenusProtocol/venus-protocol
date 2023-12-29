@@ -8,6 +8,20 @@ import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol
 import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
 import { IPrime } from "../Tokens/Prime/IPrime.sol";
 
+interface ComptrollerTypes {
+    enum Action {
+        MINT,
+        REDEEM,
+        BORROW,
+        REPAY,
+        SEIZE,
+        LIQUIDATE,
+        TRANSFER,
+        ENTER_MARKET,
+        EXIT_MARKET
+    }
+}
+
 contract UnitrollerAdminStorage {
     /**
      * @notice Administrator for this contract
@@ -30,7 +44,7 @@ contract UnitrollerAdminStorage {
     address public pendingComptrollerImplementation;
 }
 
-contract ComptrollerV1Storage is UnitrollerAdminStorage {
+contract ComptrollerV1Storage is ComptrollerTypes, UnitrollerAdminStorage {
     /**
      * @notice Oracle which gives the price of any given asset
      */
@@ -208,18 +222,6 @@ contract ComptrollerV9Storage is ComptrollerV8Storage {
     /// @notice AccessControlManager address
     address internal accessControl;
 
-    enum Action {
-        MINT,
-        REDEEM,
-        BORROW,
-        REPAY,
-        SEIZE,
-        LIQUIDATE,
-        TRANSFER,
-        ENTER_MARKET,
-        EXIT_MARKET
-    }
-
     /// @notice True if a certain action is paused on a certain market
     mapping(address => mapping(uint256 => bool)) internal _actionPaused;
 }
@@ -239,6 +241,7 @@ contract ComptrollerV11Storage is ComptrollerV10Storage {
 }
 
 contract ComptrollerV12Storage is ComptrollerV11Storage {
+    /// @notice Whether forced liquidation is enabled for all users borrowing in a certain market
     mapping(address => bool) public isForcedLiquidationEnabled;
 }
 
@@ -263,4 +266,9 @@ contract ComptrollerV13Storage is ComptrollerV12Storage {
 contract ComptrollerV14Storage is ComptrollerV13Storage {
     /// @notice Prime token address
     IPrime public prime;
+}
+
+contract ComptrollerV15Storage is ComptrollerV14Storage {
+    /// @notice Whether forced liquidation is enabled for the borrows of a user in a market
+    mapping(address /* user */ => mapping(address /* market */ => bool)) public isForcedLiquidationEnabledForUser;
 }

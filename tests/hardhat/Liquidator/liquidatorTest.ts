@@ -129,7 +129,7 @@ describe("Liquidator", () => {
           repayAmount,
           vTokenCollateral.address,
         );
-        await expect(tx).to.be.revertedWithCustomError(liquidatorContract, "UnexpectedZeroAddress");
+        await expect(tx).to.be.revertedWithCustomError(liquidatorContract, "ZeroAddressNotAllowed");
       });
 
       it("fails if some BNB is sent along with the transaction", async () => {

@@ -8,6 +8,42 @@ import { PrimeStorageV1 } from "../PrimeStorage.sol";
  * @notice Interface for Prime Token
  */
 interface IPrime {
+    struct APRInfo {
+        // supply APR of the user in BPS
+        uint256 supplyAPR;
+        // borrow APR of the user in BPS
+        uint256 borrowAPR;
+        // total score of the market
+        uint256 totalScore;
+        // score of the user
+        uint256 userScore;
+        // capped XVS balance of the user
+        uint256 xvsBalanceForScore;
+        // capital of the user
+        uint256 capital;
+        // capped supply of the user
+        uint256 cappedSupply;
+        // capped borrow of the user
+        uint256 cappedBorrow;
+        // capped supply of user in USD
+        uint256 supplyCapUSD;
+        // capped borrow of user in USD
+        uint256 borrowCapUSD;
+    }
+
+    struct Capital {
+        // capital of the user
+        uint256 capital;
+        // capped supply of the user
+        uint256 cappedSupply;
+        // capped borrow of the user
+        uint256 cappedBorrow;
+        // capped supply of user in USD
+        uint256 supplyCapUSD;
+        // capped borrow of user in USD
+        uint256 borrowCapUSD;
+    }
+
     /**
      * @notice Returns boosted pending interest accrued for a user for all markets
      * @param user the account for which to get the accrued interests
@@ -38,11 +74,17 @@ interface IPrime {
 
     /**
      * @notice Add a market to prime program
+     * @param comptroller address of the comptroller
      * @param market address of the market vToken
      * @param supplyMultiplier the multiplier for supply cap. It should be converted to 1e18
      * @param borrowMultiplier the multiplier for borrow cap. It should be converted to 1e18
      */
-    function addMarket(address market, uint256 supplyMultiplier, uint256 borrowMultiplier) external;
+    function addMarket(
+        address comptroller,
+        address market,
+        uint256 supplyMultiplier,
+        uint256 borrowMultiplier
+    ) external;
 
     /**
      * @notice Set limits for total tokens that can be minted
@@ -133,10 +175,9 @@ interface IPrime {
      * @notice Returns supply and borrow APR for user for a given market
      * @param market the market for which to fetch the APR
      * @param user the account for which to get the APR
-     * @return supplyAPR supply APR of the user in BPS
-     * @return borrowAPR borrow APR of the user in BPS
+     * @return aprInfo APR information for the user for the given market
      */
-    function calculateAPR(address market, address user) external view returns (uint256 supplyAPR, uint256 borrowAPR);
+    function calculateAPR(address market, address user) external view returns (APRInfo memory aprInfo);
 
     /**
      * @notice Returns supply and borrow APR for estimated supply, borrow and XVS staked
@@ -145,8 +186,7 @@ interface IPrime {
      * @param borrow hypothetical borrow amount
      * @param supply hypothetical supply amount
      * @param xvsStaked hypothetical staked XVS amount
-     * @return supplyAPR supply APR of the user in BPS
-     * @return borrowAPR borrow APR of the user in BPS
+     * @return aprInfo APR information for the user for the given market
      */
     function estimateAPR(
         address market,
@@ -154,5 +194,31 @@ interface IPrime {
         uint256 borrow,
         uint256 supply,
         uint256 xvsStaked
-    ) external view returns (uint256 supplyAPR, uint256 borrowAPR);
+    ) external view returns (APRInfo memory aprInfo);
+
+    /**
+     * @notice the total income that's going to be distributed in a year to prime token holders
+     * @param vToken the market for which to fetch the total income that's going to distributed in a year
+     * @return amount the total income
+     */
+    function incomeDistributionYearly(address vToken) external view returns (uint256 amount);
+
+    /**
+     * @notice Returns if user is a prime holder
+     * @return isPrimeHolder true if user is a prime holder
+     */
+    function isUserPrimeHolder(address user) external view returns (bool);
+
+    /**
+     * @notice Set the limit for the loops can iterate to avoid the DOS
+     * @param loopsLimit Number of loops limit
+     */
+    function setMaxLoopsLimit(uint256 loopsLimit) external;
+
+    /**
+     * @notice Update staked at timestamp for multiple users
+     * @param users accounts for which we need to update staked at timestamp
+     * @param timestamps new staked at timestamp for the users
+     */
+    function setStakedAt(address[] calldata users, uint256[] calldata timestamps) external;
 }
