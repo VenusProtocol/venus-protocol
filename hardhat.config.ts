@@ -41,6 +41,10 @@ extendConfig((config: HardhatConfig) => {
           "node_modules/@venusprotocol/token-bridge/deployments/sepolia",
         ],
         ethereum: ["node_modules/@venusprotocol/token-bridge/deployments/ethereum"],
+        opbnbmainnet: [
+          "node_modules/@venusprotocol/governance-contracts/deployments/opbnbmainnet",
+          "node_modules/@venusprotocol/token-bridge/deployments/opbnbmainnet",
+        ],
       },
     };
   }
