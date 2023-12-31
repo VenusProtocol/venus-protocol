@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - feat/move-debt-any-market
 
 jobs:
   release:

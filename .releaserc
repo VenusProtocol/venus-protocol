@@ -83,6 +83,10 @@
     {
       "name": "develop",
       "prerelease": "dev"
+    },
+    {
+      "name": "feat/move-debt-any-market",
+      "prerelease": "move-debt"
     }
   ]
 }
