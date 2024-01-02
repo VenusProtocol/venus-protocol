@@ -9,6 +9,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
+  const signer = await ethers.getSigner(deployer);
+
   const TEN_MINUTES = 60 * 10;
   const NINETY_DAYS = 90 * 24 * 60 * 60;
   const ZERO_ADDRESS = ethers.constants.AddressZero;
