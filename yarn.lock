@@ -3110,9 +3110,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/isolated-pools@npm:2.3.0-dev.11":
-  version: 2.3.0-dev.11
-  resolution: "@venusprotocol/isolated-pools@npm:2.3.0-dev.11"
+"@venusprotocol/isolated-pools@npm:2.3.0":
+  version: 2.3.0
+  resolution: "@venusprotocol/isolated-pools@npm:2.3.0"
   dependencies:
     "@nomiclabs/hardhat-ethers": ^2.2.3
     "@openzeppelin/contracts": ^4.8.3
@@ -3122,13 +3122,13 @@ __metadata:
     ethers: ^5.7.0
     hardhat-deploy: ^0.11.14
     module-alias: ^2.2.2
-  checksum: 52cb04ed2efadbafe72e5a830859165c5b02c8cbaeeb9f86854801ec68d655c450379ec5f34b14b70872021fbfc27a30147099a2a2e593c310603ad2906f2d0c
+  checksum: e3ef4115048b41415e50ff8d7c4297a93e88f7914ce7eb061d1c976d686c8c5c0082d01612a615a61ef9d130ff2a72e7acba2a6612eda0fc44e12ccb9277c411
   languageName: node
   linkType: hard
 
-"@venusprotocol/oracle@npm:1.8.0-dev.13":
-  version: 1.8.0-dev.13
-  resolution: "@venusprotocol/oracle@npm:1.8.0-dev.13"
+"@venusprotocol/oracle@npm:1.8.0":
+  version: 1.8.0
+  resolution: "@venusprotocol/oracle@npm:1.8.0"
   dependencies:
     "@chainlink/contracts": ^0.5.1
     "@defi-wonderland/smock": ^2.3.4
@@ -3142,7 +3142,7 @@ __metadata:
     hardhat-deploy: ^0.11.14
     module-alias: ^2.2.2
     solidity-docgen: ^0.6.0-beta.29
-  checksum: 9bcc401a3da65f6a1bff4c88cac97fa1f20f0fabf3c0dffe93d589a4f4a5f40f6851c6a9ec5549c4c26b5dcd98d47d26c8948317da8ac04c72e078e3d2b7e6b9
+  checksum: 3ea02a9686e80ce0b378aa5197fd46b2c02b089bd5512afe673d6d45e3091e280dbf04788400ea47bee4151182b4b39c981207e1d42fbe2b970161b29abcfee1
   languageName: node
   linkType: hard
 
@@ -3238,8 +3238,8 @@ __metadata:
     "@typescript-eslint/eslint-plugin": ^5.40.0
     "@typescript-eslint/parser": ^5.40.0
     "@venusprotocol/governance-contracts": ^1.4.0
-    "@venusprotocol/isolated-pools": 2.3.0-dev.11
-    "@venusprotocol/oracle": 1.8.0-dev.13
+    "@venusprotocol/isolated-pools": 2.3.0
+    "@venusprotocol/oracle": 1.8.0
     "@venusprotocol/protocol-reserve": ^1.2.0
     "@venusprotocol/solidity-utilities": ^1.2.0
     "@venusprotocol/token-bridge": 1.0.0-dev.9
