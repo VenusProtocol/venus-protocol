@@ -27,9 +27,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bsctestnet: 1,
     sepolia: 0,
     bscmainnet: 0,
+    ethereum: 0,
   };
 
-  const blocksPeryear: Config = {
+  const blocksPerYear: Config = {
     bsctestnet: 10_512_000, // 3 sec per block
     sepolia: 2_628_000, // 12 sec per block
     bscmainnet: 10_512_000,
@@ -48,7 +49,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     log: true,
     deterministicDeployment: false,
-    args: [isTimeBased, blocksPeryear[networkName]],
+    args: [isTimeBased, blocksPerYear[networkName]],
     proxy: {
       owner: ADDRESSES[networkName].normalVipTimelock,
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -72,7 +73,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [
       wrappedNativeToken ? wrappedNativeToken : ZERO_ADDRESS,
       nativeMarket ? nativeMarket : ZERO_ADDRESS,
-      blocksPeryear[networkName],
+      blocksPerYear[networkName],
       stakingPeriod[networkName],
       minimumXVS,
       maximumXVSCap,
@@ -99,40 +100,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     },
   });
 
-  if (!corePoolAddress) {
-    console.log(`Reinitialising Prime with PoolRegsitry.`);
-    const prime = await ethers.getContract("Prime");
-    await prime.initializeV2(ADDRESSES[networkName].poolRegistry);
-  }
-
-  if (networkName === "bscmainnet" || networkName === "bsctestnet") {
-    await deploy("XVSVault", {
-      from: deployer,
-      log: true,
-      deterministicDeployment: false,
-      args: [],
-      proxy: false,
-    });
-
-    await deploy("PolicyFacet", {
-      from: deployer,
-      log: true,
-      deterministicDeployment: false,
-      args: [],
-      proxy: false,
-    });
-
-    await deploy("SetterFacet", {
-      from: deployer,
-      log: true,
-      deterministicDeployment: false,
-      args: [],
-      proxy: false,
-    });
-  }
+  const prime = await ethers.getContract("Prime");
+  await prime.initializeV2(ADDRESSES[networkName].poolRegistry);
 
   console.log("Transferring Prime ownership to Timelock");
-  const prime = await ethers.getContract("Prime");
   await prime.transferOwnership(ADDRESSES[networkName].normalVipTimelock);
 
   console.log("Transferring PLP ownership to Timelock");
