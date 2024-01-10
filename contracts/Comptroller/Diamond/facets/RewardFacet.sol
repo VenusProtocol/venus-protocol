@@ -138,9 +138,11 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     }
 
     /**
+     * @dev Seize XVS tokens from the specified holders and transfer to recipient
      * @notice Seize XVS rewards allocated to holders
      * @param holders Addresses of the XVS holders
      * @param recipient Address of the XVS token recipient
+     * @return The total amount of XVS tokens seized and transferred to recipient
      */
     function seizeVenus(address[] calldata holders, address recipient) external returns (uint256) {
         ensureAllowed("seizeVenus(address[],address)");
