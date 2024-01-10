@@ -150,7 +150,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         uint256 holdersLength = holders.length;
         uint256 totalHoldings;
 
-        updateAndDistributeRewards(holders, allMarkets, true, true);
+        updateAndDistributeRewardsInternal(holders, allMarkets, true, true);
         for (uint256 j; j < holdersLength; ++j) {
             address holder = holders[j];
             uint256 userHolding = venusAccrued[holder];
@@ -187,7 +187,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         uint256 j;
         uint256 holdersLength = holders.length;
 
-        updateAndDistributeRewards(holders, vTokens, borrowers, suppliers);
+        updateAndDistributeRewardsInternal(holders, vTokens, borrowers, suppliers);
         for (j = 0; j < holdersLength; ++j) {
             address holder = holders[j];
 
@@ -214,7 +214,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
      * @param borrowers Whether or not to claim XVS earned by borrowing
      * @param suppliers Whether or not to claim XVS earned by supplying
      */
-    function updateAndDistributeRewards(
+    function updateAndDistributeRewardsInternal(
         address[] memory holders,
         VToken[] memory vTokens,
         bool borrowers,
