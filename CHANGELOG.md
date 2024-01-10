@@ -1,3 +1,10 @@
+## [7.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.0.0...v7.1.0-dev.1) (2024-01-10)
+
+
+### Features
+
+* add a utility contract to redeem VBep20 tokens ([f345d39](https://github.com/VenusProtocol/venus-protocol/commit/f345d393145292af06a2f6a808916eab97d10638))
+
 ## [7.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0...v7.0.0) (2023-12-29)
 
 
