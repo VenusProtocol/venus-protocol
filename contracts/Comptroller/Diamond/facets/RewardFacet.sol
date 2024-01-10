@@ -84,14 +84,14 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
             "Blacklisted"
         );
 
-        IBEP20 xvs = IBEP20(xvs);
+        IBEP20 xvs_ = IBEP20(xvs);
 
-        if (amount == 0 || amount > xvs.balanceOf(address(this))) {
+        if (amount == 0 || amount > xvs_.balanceOf(address(this))) {
             return amount;
         }
 
         if (shortfall == 0) {
-            xvs.safeTransfer(user, amount);
+            xvs_.safeTransfer(user, amount);
             return 0;
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
@@ -101,11 +101,11 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt");
 
-        address _xvsVToken = xvsVToken;
+        address xvsVToken_ = xvsVToken;
 
-        xvs.safeApprove(_xvsVToken, 0);
-        xvs.safeApprove(_xvsVToken, amount);
-        require(VBep20Interface(_xvsVToken).mintBehalf(user, amount) == uint256(Error.NO_ERROR), "mint behalf error");
+        xvs_.safeApprove(xvsVToken_, 0);
+        xvs_.safeApprove(xvsVToken_, amount);
+        require(VBep20Interface(xvsVToken_).mintBehalf(user, amount) == uint256(Error.NO_ERROR), "mint behalf error");
 
         // set venusAccrued[user] to 0
         return 0;

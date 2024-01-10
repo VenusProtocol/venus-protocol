@@ -579,25 +579,25 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Set the address of the XVS token
-     * @param _xvs The address of the XVS token
+     * @param xvs_ The address of the XVS token
      */
-    function _setXVSToken(address _xvs) external {
+    function _setXVSToken(address xvs_) external {
         ensureAdmin();
-        ensureNonzeroAddress(_xvs);
+        ensureNonzeroAddress(xvs_);
 
-        emit NewXVSToken(xvs, _xvs);
-        xvs = _xvs;
+        emit NewXVSToken(xvs, xvs_);
+        xvs = xvs_;
     }
 
     /**
      * @notice Set the address of the XVS vToken
-     * @param _xvsVToken The address of the XVS vToken
+     * @param xvsVToken_ The address of the XVS vToken
      */
-    function _setXVSVToken(address _xvsVToken) external {
+    function _setXVSVToken(address xvsVToken_) external {
         ensureAdmin();
-        ensureNonzeroAddress(_xvsVToken);
+        ensureNonzeroAddress(xvsVToken_);
 
-        emit NewXVSVToken(xvsVToken, _xvsVToken);
-        xvsVToken = _xvsVToken;
+        emit NewXVSVToken(xvsVToken, xvsVToken_);
+        xvsVToken = xvsVToken_;
     }
 }

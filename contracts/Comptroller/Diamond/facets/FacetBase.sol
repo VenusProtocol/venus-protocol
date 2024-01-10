@@ -98,9 +98,9 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
             return;
         }
 
-        IBEP20 _xvs = IBEP20(xvs);
+        IBEP20 xvs_ = IBEP20(xvs);
 
-        uint256 xvsBalance = _xvs.balanceOf(address(this));
+        uint256 xvsBalance = xvs_.balanceOf(address(this));
         if (xvsBalance == 0) {
             return;
         }
@@ -108,10 +108,10 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
         uint256 actualAmount;
         uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
         // releaseAmount = venusVAIVaultRate * deltaBlocks
-        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
+        uint256 releaseAmount_ = mul_(venusVAIVaultRate, deltaBlocks);
 
-        if (xvsBalance >= _releaseAmount) {
-            actualAmount = _releaseAmount;
+        if (xvsBalance >= releaseAmount_) {
+            actualAmount = releaseAmount_;
         } else {
             actualAmount = xvsBalance;
         }
@@ -122,7 +122,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
 
         releaseStartBlock = getBlockNumber();
 
-        _xvs.safeTransfer(vaiVaultAddress, actualAmount);
+        xvs_.safeTransfer(vaiVaultAddress, actualAmount);
         emit DistributedVAIVaultVenus(actualAmount);
 
         IVAIVault(vaiVaultAddress).updatePendingRewards();
