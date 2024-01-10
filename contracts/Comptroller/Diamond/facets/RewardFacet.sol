@@ -190,7 +190,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         uint256 holdersLength = holders.length;
 
         updateAndDistributeRewardsInternal(holders, vTokens, borrowers, suppliers);
-        for (j = 0; j < holdersLength; ++j) {
+        for (j; j < holdersLength; ++j) {
             address holder = holders[j];
 
             // If there is a positive shortfall, the XVS reward is accrued,
