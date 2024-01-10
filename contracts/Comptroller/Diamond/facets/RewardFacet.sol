@@ -155,8 +155,10 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
             address holder = holders[j];
             uint256 userHolding = venusAccrued[holder];
 
-            totalHoldings += userHolding;
-            delete venusAccrued[holder];
+            if (userHolding != 0) {
+                totalHoldings += userHolding;
+                delete venusAccrued[holder];
+            }
 
             emit VenusSeized(holder, userHolding);
         }
