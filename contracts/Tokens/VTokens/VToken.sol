@@ -327,7 +327,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Governance function to set new threshold of block difference after which funds will be sent to the protocol share reserve
      * @param newReduceReservesBlockDelta_ block difference value
      */
-    function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external returns (uint) {
+    function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external {
         require(newReduceReservesBlockDelta_ > 0, "Invalid Input");
         ensureAllowed("setReduceReservesBlockDelta(uint256)");
         emit NewReduceReservesBlockDelta(reduceReservesBlockDelta, newReduceReservesBlockDelta_);
@@ -338,7 +338,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Sets protocol share reserve contract address
      * @param protcolShareReserve_ The address of protocol share reserve contract
      */
-    function setProtocolShareReserve(address payable protcolShareReserve_) external returns (uint) {
+    function setProtocolShareReserve(address payable protcolShareReserve_) external {
         // Check caller is admin
         ensureAdmin(msg.sender);
         ensureNonZeroAddress(protcolShareReserve_);
