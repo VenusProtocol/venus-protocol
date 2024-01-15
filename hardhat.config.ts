@@ -144,14 +144,6 @@ const config: HardhatUserConfig = {
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
-    opbnbtestnet: {
-      url: process.env.OPBNB_TESTNET_ARCHIVE_NODE_URL || "https://opbnb-testnet-rpc.bnbchain.org",
-      chainId: 5611,
-      live: true,
-      accounts: {
-        mnemonic: process.env.MNEMONIC || "",
-      },
-    },
   },
   etherscan: {
     apiKey: {
@@ -207,7 +199,7 @@ const config: HardhatUserConfig = {
         network: "opbnbmainnet",
         chainId: 204,
         urls: {
-          apiURL: `https://open-platform.nodereal.io/${process.env.ETHERSCAN_API_KEY}/op-bnb-testnet/contract/`,
+          apiURL: `https://open-platform.nodereal.io/${process.env.ETHERSCAN_API_KEY}/op-bnb-mainnet/contract/`,
           browserURL: "https://opbnbscan.com/",
         },
       },
