@@ -1,3 +1,12 @@
+## [7.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.1.0-dev.1...v7.1.0-dev.2) (2024-01-15)
+
+
+### Features
+
+* add MoveDebtDelegate deployment ([b29dd2c](https://github.com/VenusProtocol/venus-protocol/commit/b29dd2c69e7f4d0f25ef06b78c66eab694c0dd46))
+* allow repaying in non-deprecated market ([ec1af79](https://github.com/VenusProtocol/venus-protocol/commit/ec1af79fedf3bfc8b11c6b302aab628bfb6fc691))
+* updating deployment files ([822878a](https://github.com/VenusProtocol/venus-protocol/commit/822878af16b397c08e15bca88dfadc786e2fa6a0))
+
 ## [7.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.0.0...v7.1.0-dev.1) (2024-01-10)
 
 
