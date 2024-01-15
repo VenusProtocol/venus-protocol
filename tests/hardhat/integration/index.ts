@@ -192,7 +192,10 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       [convertToUnit(1, 18), convertToUnit(1, 18), convertToUnit(1, 18)],
       10,
     ],
-    {},
+    {
+      unsafeAllow: "constructor",
+      constructorArgs: [false, 10512000],
+    },
   );
 
   const stakingPeriod = 90 * 24 * 60 * 60;
@@ -202,9 +205,20 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const primeFactory = await ethers.getContractFactory("Prime");
   const prime: Prime = await upgrades.deployProxy(
     primeFactory,
-    [xvsVault.address, xvs.address, 0, 1, 2, accessControl.address, primeLiquidityProvider.address, oracle.address, 10],
+    [
+      xvsVault.address,
+      xvs.address,
+      0,
+      1,
+      2,
+      accessControl.address,
+      primeLiquidityProvider.address,
+      comptroller.address,
+      oracle.address,
+      10,
+    ],
     {
-      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap],
+      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap, false],
       unsafeAllow: "constructor",
     },
   );

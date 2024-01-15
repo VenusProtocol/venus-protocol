@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.5.16;
+pragma experimental ABIEncoderV2;
 
 /**
  * @title IPrime
@@ -25,4 +26,10 @@ interface IPrime {
      * @param vToken the market for which to distribute the income
      */
     function accrueInterest(address vToken) external;
+
+    /**
+     * @notice Returns if user is a prime holder
+     * @param isPrimeHolder returns if the user is a prime holder
+     */
+    function isUserPrimeHolder(address user) external view returns (bool isPrimeHolder);
 }

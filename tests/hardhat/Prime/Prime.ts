@@ -1,7 +1,7 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
-import { BigNumber, Signer } from "ethers";
+import { BigNumber, Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
@@ -187,7 +187,10 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       [convertToUnit(1, 18), convertToUnit(1, 18), convertToUnit(1, 18)],
       10,
     ],
-    {},
+    {
+      constructorArgs: [false, 10512000],
+      unsafeAllow: "constructor",
+    },
   );
 
   const primeLiquidityProvider = await smock.fake<PrimeLiquidityProvider>("PrimeLiquidityProvider");
@@ -199,12 +202,25 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const primeFactory = await ethers.getContractFactory("PrimeScenario");
   const prime: PrimeScenario = await upgrades.deployProxy(
     primeFactory,
-    [xvsVault.address, xvs.address, 0, 1, 2, accessControl.address, primeLiquidityProvider.address, oracle.address, 10],
+    [
+      xvsVault.address,
+      xvs.address,
+      0,
+      1,
+      2,
+      accessControl.address,
+      primeLiquidityProvider.address,
+      comptroller.address,
+      oracle.address,
+      10,
+    ],
     {
-      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap],
+      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap, false],
       unsafeAllow: "constructor",
     },
   );
+
+  await prime.initializeV2(constants.AddressZero);
 
   await xvsVault.setPrimeToken(prime.address, xvs.address, poolId);
 
@@ -274,7 +290,7 @@ describe("PrimeScenario Token", () => {
 
     it("maxLoopsLimit setter success", async () => {
       const tx = await prime.setMaxLoopsLimit(11);
-      tx.wait();
+      await tx.wait();
 
       await expect(tx).to.emit(prime, "MaxLoopsLimitUpdated").withArgs(10, 11);
       expect(await prime.maxLoopsLimit()).to.be.equal(11);
@@ -723,7 +739,7 @@ describe("PrimeScenario Token", () => {
         await comptroller._supportMarket(vbnb.address);
         await comptroller._setCollateralFactor(vbnb.address, half);
 
-        bnb.transfer(user3.getAddress(), bigNumber18.mul(100));
+        await bnb.transfer(user3.getAddress(), bigNumber18.mul(100));
 
         await comptroller._setMarketSupplyCaps([vbnb.address], [bigNumber18.mul(100)]);
         await comptroller._setMarketBorrowCaps([vbnb.address], [bigNumber18.mul(100)]);
