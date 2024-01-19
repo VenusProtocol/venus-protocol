@@ -123,6 +123,28 @@ describe("Comptroller: assetListTest", () => {
     return receipt;
   }
 
+  async function unlistAndCheckMarket(
+    unlistToken: FakeContract<VBep20Immutable>,
+    expectedTokens: FakeContract<VBep20Immutable>[],
+    expectedErrors: ComptrollerErrorReporter.Error[] | null = null,
+  ) {
+    const reply = await comptroller.connect(customer).callStatic.unlistMarket(unlistToken.address);
+    const receipt = await comptroller.connect(customer).unlistMarket(unlistToken.address);
+
+    const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
+
+    const expectedError_ = expectedErrors || expectedTokens.map(_ => Error.NO_ERROR);
+
+    expect(reply).to.equal(expectedError_);
+
+    expect(receipt).to.emit(unitroller, "MarketExited");
+    expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
+
+    await checkMarkets(expectedTokens);
+
+    return receipt;
+  }
+
   async function enterAndExpectRejection(enterTokens: FakeContract<VBep20Immutable>[], expectedReason: string = "") {
     await expect(comptroller.connect(customer).enterMarkets(enterTokens.map(t => t.address))).to.be.revertedWith(
       expectedReason,
@@ -270,6 +292,14 @@ describe("Comptroller: assetListTest", () => {
       await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, await customer.getAddress(), 1);
       const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
       expect(assetsIn).to.deep.equal([BAT.address]);
+    });
+  });
+
+  describe("unlistMarkets", () => {
+    it("properly emits events and unlists market", async () => {
+    });
+
+    it("user assets returns only listed", async () => {
     });
   });
 });
