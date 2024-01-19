@@ -132,6 +132,44 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
+     * @notice Unlist an market by setting isListed to false
+     * @dev Pauses all actions, sets borrow/supply caps to 0 and sets collateral factor to 0.
+     * @param market The address of the market (token) to unlist
+     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
+     */
+    function unlistMarket(address market) external returns (uint256) {
+        ensureAllowed("unlistMarket(address)");
+
+        Market storage _market = markets[market];
+
+        if (!_market.isListed) {
+            return fail(Error.MARKET_NOT_LISTED, FailureInfo.UNLIST_MARKET_NOT_LISTED);
+        }
+
+        setActionPausedInternal(market, Action.BORROW, true);
+        setActionPausedInternal(market, Action.MINT, true);
+        setActionPausedInternal(market, Action.REDEEM, true);
+        setActionPausedInternal(market, Action.REPAY, true);
+        setActionPausedInternal(market, Action.ENTER_MARKET, true);
+        setActionPausedInternal(market, Action.LIQUIDATE, true);
+
+        borrowCaps[market] = 0;
+        supplyCaps[market] = 0;
+
+        VToken vToken = VToken(market);
+
+        emit NewSupplyCap(vToken, 0);
+        emit NewBorrowCap(vToken, 0);
+
+        emit NewCollateralFactor(vToken, _market.collateralFactorMantissa, 0);
+        _market.collateralFactorMantissa = 0;
+
+        _market.isListed = false;
+
+        return uint256(Error.NO_ERROR);
+    }
+
+    /**
      * @notice Sets the closeFactor used when liquidating borrows
      * @dev Allows the contract admin to set the closeFactor used to liquidate borrows
      * @param newCloseFactorMantissa New close factor, scaled by 1e18
