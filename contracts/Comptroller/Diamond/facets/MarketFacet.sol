@@ -30,10 +30,15 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /**
      * @notice Returns the assets an account has entered
      * @param account The address of the account to pull assets for
-     * @return A dynamic list with the assets the account has entered
+     * @return assetsIn A dynamic list with the assets the account has entered
      */
-    function getAssetsIn(address account) external view returns (VToken[] memory) {
-        return accountAssets[account];
+    function getAssetsIn(address account) external view returns (VToken[] memory assetsIn) {
+        for (uint256 i = 0; i < accountAssets[account].length; i++) {
+            Market storage market = markets[address(accountAssets[account][i])];
+            if (market.isListed) {
+                assetsIn[assetsIn.length] = accountAssets[account][i];
+            }
+        }
     }
 
     /**
