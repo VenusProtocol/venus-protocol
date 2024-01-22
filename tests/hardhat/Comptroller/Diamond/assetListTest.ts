@@ -137,7 +137,7 @@ describe("Comptroller: assetListTest", () => {
 
     expect(reply).to.equal(expectedError_);
 
-    expect(receipt).to.emit(unitroller, "MarketExited");
+    expect(receipt).to.emit(unitroller, "MarketUnlisted");
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
 
     await checkMarkets(expectedTokens);
@@ -296,7 +296,9 @@ describe("Comptroller: assetListTest", () => {
   });
 
   describe("unlistMarkets", () => {
-    it("properly emits events and unlists market", async () => {
+    it("properly emits events and unlist market", async () => {
+      await enterAndCheckMarkets([OMG, BAT, ZRX], [OMG, BAT, ZRX]);
+      await unlistAndCheckMarket(OMG, [BAT, ZRX]);
     });
 
     it("user assets returns only listed", async () => {

@@ -87,6 +87,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when forced liquidation is enabled or disabled for a user borrowing in a market
     event IsForcedLiquidationEnabledForUserUpdated(address indexed borrower, address indexed vToken, bool enable);
 
+    /// @notice Emitted when an admin unlists a market
+    event MarketUnlisted(VToken indexed vToken);
+
     /**
      * @notice Compare two addresses to ensure they are different
      * @param oldAddress The original address to compare
@@ -165,6 +168,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
         _market.collateralFactorMantissa = 0;
 
         _market.isListed = false;
+
+        emit MarketUnlisted(vToken);
 
         return uint256(Error.NO_ERROR);
     }
