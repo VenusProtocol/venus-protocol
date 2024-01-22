@@ -65,6 +65,9 @@ contract MoveDebtDelegate is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable
     /// @notice Thrown if repaying the debts of the borrower to the corresponding vToken is not allowed
     error RepaymentNotAllowed(address vToken, address borrower);
 
+    /// @notice Thrown if amount actually repaid differs from the requested repayment (e.g. due to fee on transfer)
+    error UnexpectedRepaymentResult();
+
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
@@ -104,9 +107,13 @@ contract MoveDebtDelegate is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable
             revert RepaymentNotAllowed(address(vTokenToRepay), originalBorrower);
         }
 
-        uint256 actualRepaymentAmount = _repay(vTokenToRepay, originalBorrower, repayAmount);
-        uint256 amountToBorrow = _convert(vTokenToRepay, vTokenToBorrow, actualRepaymentAmount);
+        uint256 amountToBorrow = _convert(vTokenToRepay, vTokenToBorrow, repayAmount);
         _borrow(vTokenToBorrow, amountToBorrow);
+        uint256 actualRepaymentAmount = _repay(vTokenToRepay, originalBorrower, repayAmount);
+        if (repayAmount != actualRepaymentAmount) {
+            revert UnexpectedRepaymentResult();
+        }
+
         emit DebtMoved(
             originalBorrower,
             address(vTokenToRepay),

@@ -2,6 +2,7 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
+import { BigNumber } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
@@ -143,6 +144,12 @@ describe("MoveDebtDelegate", () => {
   });
 
   describe("moveDebt", () => {
+    const prepare = (initialBorrowBalance: BigNumber, repayAmount: BigNumber) => {
+      const borrowBalanceAfterRepayment = initialBorrowBalance.sub(repayAmount);
+      vTokenToRepay.borrowBalanceCurrent.returnsAtCall(0, initialBorrowBalance);
+      vTokenToRepay.borrowBalanceCurrent.returnsAtCall(1, borrowBalanceAfterRepayment);
+    };
+
     it("fails if called with a token that is not allowed to be borrowed", async () => {
       const wrongTokenToBorrow = vTokenToRepay.address;
       await expect(
@@ -180,10 +187,13 @@ describe("MoveDebtDelegate", () => {
       await moveDebtDelegate.setRepaymentAllowed(vTokenToRepay.address, oldBorrower.address, false);
       // Allow wildcard
       await moveDebtDelegate.setRepaymentAllowed(vTokenToRepay.address, ANY_USER, true);
+
+      const repayAmount = parseUnits("1", 18);
+      prepare(parseUnits("100", 18), repayAmount);
       const tx = await moveDebtDelegate.moveDebt(
         vTokenToRepay.address,
         oldBorrower.address,
-        parseUnits("1", 18),
+        repayAmount,
         vTokenToBorrow.address,
       );
       await expect(tx).to.emit(moveDebtDelegate, "DebtMoved");
@@ -227,17 +237,14 @@ describe("MoveDebtDelegate", () => {
 
     it("transfers repayAmount of vTokenToRepay.underlying() from the sender", async () => {
       const repayAmount = parseUnits("1", 18);
-      await moveDebtDelegate.moveDebt(
-        vTokenToRepay.address,
-        oldBorrower.address,
-        parseUnits("1", 18),
-        vTokenToBorrow.address,
-      );
+      prepare(parseUnits("100", 18), repayAmount);
+      await moveDebtDelegate.moveDebt(vTokenToRepay.address, oldBorrower.address, repayAmount, vTokenToBorrow.address);
       expect(foo.transferFrom).to.have.been.calledOnceWith(owner.address, moveDebtDelegate.address, repayAmount);
     });
 
     it("approves vToken to transfer money from the contract", async () => {
       const repayAmount = parseUnits("1", 18);
+      prepare(parseUnits("100", 18), repayAmount);
       foo.balanceOf.returnsAtCall(0, 0);
       foo.balanceOf.returnsAtCall(1, repayAmount);
       await moveDebtDelegate.moveDebt(vTokenToRepay.address, oldBorrower.address, repayAmount, vTokenToBorrow.address);
@@ -249,6 +256,7 @@ describe("MoveDebtDelegate", () => {
 
     it("calls repayBorrowBehalf after transferring the underlying to self", async () => {
       const repayAmount = parseUnits("1", 18);
+      prepare(parseUnits("100", 18), repayAmount);
       foo.balanceOf.returnsAtCall(0, 0);
       foo.balanceOf.returnsAtCall(1, repayAmount);
       await moveDebtDelegate.moveDebt(vTokenToRepay.address, oldBorrower.address, repayAmount, vTokenToBorrow.address);
@@ -257,39 +265,30 @@ describe("MoveDebtDelegate", () => {
     });
 
     it("converts the amounts using the oracle exchange rates", async () => {
-      const initialBorrowBalance = parseUnits("100", 18);
       const repayAmount = parseUnits("1", 18);
-      const borrowBalanceAfterRepayment = initialBorrowBalance.sub(repayAmount);
-      vTokenToRepay.borrowBalanceCurrent.returnsAtCall(0, initialBorrowBalance);
-      vTokenToRepay.borrowBalanceCurrent.returnsAtCall(1, borrowBalanceAfterRepayment);
+      prepare(parseUnits("100", 18), repayAmount);
 
       // fooPrice / barPrice = 5, so we should borrow 5 times more than we repaid
       const expectedBorrowAmount = parseUnits("5", 18);
 
       await moveDebtDelegate.moveDebt(vTokenToRepay.address, oldBorrower.address, repayAmount, vTokenToBorrow.address);
       expect(vTokenToBorrow.borrowBehalf).to.have.been.calledOnceWith(newBorrower.address, expectedBorrowAmount);
-      expect(vTokenToBorrow.borrowBehalf).to.have.been.calledAfter(vTokenToRepay.repayBorrowBehalf);
+      expect(vTokenToRepay.repayBorrowBehalf).to.have.been.calledAfter(vTokenToBorrow.borrowBehalf);
     });
 
-    it("uses the actually repaid amount rather than specified amount", async () => {
-      const initialBorrowBalance = parseUnits("100", 18);
+    it("fails if actually repaid amount differs from the specified amount", async () => {
+      const requestedRepayAmount = parseUnits("2", 18);
       const actualRepayAmount = parseUnits("1", 18);
-      const requestedRepayAmount = parseUnits("500", 18);
-      const borrowBalanceAfterRepayment = initialBorrowBalance.sub(actualRepayAmount);
-      vTokenToRepay.borrowBalanceCurrent.returnsAtCall(0, initialBorrowBalance);
-      vTokenToRepay.borrowBalanceCurrent.returnsAtCall(1, borrowBalanceAfterRepayment);
+      prepare(parseUnits("100", 18), actualRepayAmount);
 
-      // fooPrice / barPrice = 5, so we should borrow 5 times more than we repaid (and we repaid 1e18)
-      const expectedBorrowAmount = parseUnits("5", 18);
-
-      await moveDebtDelegate.moveDebt(
-        vTokenToRepay.address,
-        oldBorrower.address,
-        requestedRepayAmount,
-        vTokenToBorrow.address,
-      );
-      expect(vTokenToBorrow.borrowBehalf).to.have.been.calledOnceWith(newBorrower.address, expectedBorrowAmount);
-      expect(vTokenToBorrow.borrowBehalf).to.have.been.calledAfter(vTokenToRepay.repayBorrowBehalf);
+      await expect(
+        moveDebtDelegate.moveDebt(
+          vTokenToRepay.address,
+          oldBorrower.address,
+          requestedRepayAmount,
+          vTokenToBorrow.address,
+        ),
+      ).to.be.revertedWithCustomError(moveDebtDelegate, "UnexpectedRepaymentResult");
     });
 
     it("transfers the actually borrowed amount to the owner", async () => {

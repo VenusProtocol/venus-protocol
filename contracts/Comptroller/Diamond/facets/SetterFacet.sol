@@ -205,6 +205,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
         Market storage market = markets[address(vToken)];
         ensureListed(market);
 
+        /*
+        Temporarily disable collateral factor upper limit check for VIP-244
+
         Exp memory newCollateralFactorExp = Exp({ mantissa: newCollateralFactorMantissa });
 
         //-- Check collateral factor <= 0.9
@@ -212,6 +215,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         if (lessThanExp(highLimit, newCollateralFactorExp)) {
             return fail(Error.INVALID_COLLATERAL_FACTOR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION);
         }
+        */
 
         // If collateral factor != 0, fail if price == 0
         if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(vToken) == 0) {
