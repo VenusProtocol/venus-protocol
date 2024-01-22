@@ -137,6 +137,11 @@ describe("Comptroller: assetListTest", () => {
     expect(reply).to.equal(expectedError_);
 
     expect(receipt).to.emit(unitroller, "MarketUnlisted");
+    expect(receipt).to.emit(unitroller, "NewBorrowCap");
+    expect(receipt).to.emit(unitroller, "NewSupplyCap");
+    expect(receipt).to.emit(unitroller, "ActionPausedMarket");
+    expect(receipt).to.emit(unitroller, "NewCollateralFactor");
+
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
 
     await checkMarkets(membershipTokens);
@@ -298,6 +303,12 @@ describe("Comptroller: assetListTest", () => {
     it("properly emits events and unlist market", async () => {
       await enterAndCheckMarkets([OMG, BAT, ZRX], [OMG, BAT, ZRX]);
       await unlistAndCheckMarket(OMG, [BAT, ZRX], [OMG, BAT, ZRX]);
+    });
+
+    it("reverts when unlisting not a listed market", async () => {
+      const vToken = await smock.fake<VBep20Immutable>("contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable");
+      await enterAndCheckMarkets([BAT, ZRX], [BAT, ZRX]);
+      await unlistAndCheckMarket(vToken, [BAT, ZRX], [BAT, ZRX], Error.MARKET_NOT_LISTED);
     });
   });
 });
