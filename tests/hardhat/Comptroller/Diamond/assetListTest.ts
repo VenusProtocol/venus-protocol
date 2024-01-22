@@ -126,21 +126,20 @@ describe("Comptroller: assetListTest", () => {
   async function unlistAndCheckMarket(
     unlistToken: FakeContract<VBep20Immutable>,
     expectedTokens: FakeContract<VBep20Immutable>[],
-    expectedErrors: ComptrollerErrorReporter.Error[] | null = null,
+    membershipTokens: FakeContract<VBep20Immutable>[] = [],
+    expectedError: ComptrollerErrorReporter.Error | null = null,
   ) {
     const reply = await comptroller.connect(customer).callStatic.unlistMarket(unlistToken.address);
     const receipt = await comptroller.connect(customer).unlistMarket(unlistToken.address);
-
     const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
 
-    const expectedError_ = expectedErrors || expectedTokens.map(_ => Error.NO_ERROR);
-
+    const expectedError_ = expectedError || Error.NO_ERROR;
     expect(reply).to.equal(expectedError_);
 
     expect(receipt).to.emit(unitroller, "MarketUnlisted");
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
 
-    await checkMarkets(expectedTokens);
+    await checkMarkets(membershipTokens);
 
     return receipt;
   }
@@ -298,10 +297,7 @@ describe("Comptroller: assetListTest", () => {
   describe("unlistMarkets", () => {
     it("properly emits events and unlist market", async () => {
       await enterAndCheckMarkets([OMG, BAT, ZRX], [OMG, BAT, ZRX]);
-      await unlistAndCheckMarket(OMG, [BAT, ZRX]);
-    });
-
-    it("user assets returns only listed", async () => {
+      await unlistAndCheckMarket(OMG, [BAT, ZRX], [OMG, BAT, ZRX]);
     });
   });
 });
