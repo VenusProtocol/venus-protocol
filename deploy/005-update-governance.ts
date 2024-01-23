@@ -55,12 +55,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
   const { deploy } = deployments;
   const addresses = ADDRESSES[networkName];
-  const governorProxy = await ethers.getContractAt("GovernorBravoDelegator", addresses.governorProxy);
+
+  if (!addresses.governorProxy || !addresses.xvsVault || !addresses.normalVipTimelock) {
+    throw new Error(`GovernorProxy, XVSVault and NormalTimelock addresses must be defined in ${networkName}`);
+  }
+
+  const governorProxyAddress = addresses.governorProxy.toString();
+  const xvsVaultAddress = addresses.xvsVault.toString();
+  const normalVipTimelockAddress = addresses.normalVipTimelock.toString();
+
+  const governorProxy = await ethers.getContractAt("GovernorBravoDelegator", governorProxyAddress);
 
   const timeLockFastTrack = await deploy("Timelock_FastTrack", {
     contract: "Timelock",
     from: deployer,
-    args: [addresses.governorProxy, timelockDelays[networkName].FAST_TRACK],
+    args: [governorProxyAddress, timelockDelays[networkName].FAST_TRACK],
     log: true,
     autoMine: true,
   });
@@ -68,7 +77,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const timeLockCritical = await deploy("Timelock_Critical", {
     contract: "Timelock",
     from: deployer,
-    args: [addresses.governorProxy, timelockDelays[networkName].CRITICAL],
+    args: [governorProxyAddress, timelockDelays[networkName].CRITICAL],
     log: true,
     autoMine: true,
   });
@@ -89,12 +98,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
     const governorProxy_Impl = (await ethers.getContractAt(
       "GovernorBravoDelegate",
-      addresses.governorProxy,
+      governorProxyAddress,
     )) as GovernorBravoDelegate;
     tx = await governorProxy_Impl.initialize(
-      addresses.xvsVault,
+      xvsVaultAddress,
       PROPOSAL_CONFIGS,
-      [addresses.normalVipTimelock, timeLockFastTrack.address, timeLockCritical.address],
+      [normalVipTimelockAddress, timeLockFastTrack.address, timeLockCritical.address],
       deployer,
     );
     await tx.wait();
