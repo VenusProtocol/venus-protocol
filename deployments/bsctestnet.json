@@ -15960,7 +15960,7 @@
       ]
     },
     "SetterFacet": {
-      "address": "0x3e7F29179A1b6fB43d9fecc1e23e675B1F740634",
+      "address": "0x486D0578Bd2ffc1Ff5CcB8E1211099A5e725C525",
       "abi": [
         {
           "anonymous": false,
@@ -15973,7 +15973,7 @@
             },
             {
               "indexed": true,
-              "internalType": "enum ComptrollerV9Storage.Action",
+              "internalType": "enum ComptrollerTypes.Action",
               "name": "action",
               "type": "uint8"
             },
@@ -16044,6 +16044,31 @@
             {
               "indexed": true,
               "internalType": "address",
+              "name": "borrower",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "enable",
+              "type": "bool"
+            }
+          ],
+          "name": "IsForcedLiquidationEnabledForUserUpdated",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
               "name": "vToken",
               "type": "address"
             },
@@ -16074,6 +16099,19 @@
             }
           ],
           "name": "MarketEntered",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "contract VToken",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketUnlisted",
           "type": "event"
         },
         {
@@ -16460,7 +16498,7 @@
               "type": "address[]"
             },
             {
-              "internalType": "enum ComptrollerV9Storage.Action[]",
+              "internalType": "enum ComptrollerTypes.Action[]",
               "name": "actions_",
               "type": "uint8[]"
             },
@@ -16559,6 +16597,31 @@
             }
           ],
           "name": "_setForcedLiquidation",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "borrower",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "vTokenBorrowed",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "enable",
+              "type": "bool"
+            }
+          ],
+          "name": "_setForcedLiquidationForUser",
           "outputs": [],
           "payable": false,
           "stateMutability": "nonpayable",
@@ -16872,7 +16935,7 @@
               "type": "address"
             },
             {
-              "internalType": "enum ComptrollerV9Storage.Action",
+              "internalType": "enum ComptrollerTypes.Action",
               "name": "action",
               "type": "uint8"
             }
@@ -17057,6 +17120,32 @@
             }
           ],
           "name": "isForcedLiquidationEnabled",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "isForcedLiquidationEnabledForUser",
           "outputs": [
             {
               "internalType": "bool",
@@ -17405,6 +17494,27 @@
           ],
           "payable": false,
           "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "market",
+              "type": "address"
+            }
+          ],
+          "name": "unlistMarket",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
