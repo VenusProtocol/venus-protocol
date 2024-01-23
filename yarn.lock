@@ -3177,9 +3177,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/token-bridge@npm:1.0.0-dev.9":
-  version: 1.0.0-dev.9
-  resolution: "@venusprotocol/token-bridge@npm:1.0.0-dev.9"
+"@venusprotocol/token-bridge@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@venusprotocol/token-bridge@npm:1.0.0"
   dependencies:
     "@layerzerolabs/solidity-examples": ^1.0.0
     "@openzeppelin/contracts": ^4.8.3
@@ -3188,7 +3188,7 @@ __metadata:
     "@solidity-parser/parser": ^0.13.2
     ethers: ^5.7.0
     module-alias: ^2.2.2
-  checksum: b8059269e4367ccb230c735dc27133cd1f1ebb51617f14f8ec5b9f9b08850c006d5aa45311fa36563be8414a53dbbbe6adb8313c7a24435633bf63c91e925137
+  checksum: fa494157cc2493bcb4b2824fd545f2093b459404a449da6710c3c62ebd2638abc42cd15a06f60a7d537eb30e7e2efeab90961e34a60ecfef5d9c33c8e26b9405
   languageName: node
   linkType: hard
 
@@ -3242,7 +3242,7 @@ __metadata:
     "@venusprotocol/oracle": 1.8.0
     "@venusprotocol/protocol-reserve": ^1.2.0
     "@venusprotocol/solidity-utilities": ^1.2.0
-    "@venusprotocol/token-bridge": 1.0.0-dev.9
+    "@venusprotocol/token-bridge": 1.0.0
     bignumber.js: ^9.1.2
     chai: ^4.3.6
     dotenv: ^16.0.1
