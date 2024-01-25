@@ -20,21 +20,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when close factor is changed by admin
     event NewCloseFactor(uint256 oldCloseFactorMantissa, uint256 newCloseFactorMantissa);
 
-    /// @notice Emitted when a collateral factor is changed by admin
-    event NewCollateralFactor(
-        VToken indexed vToken,
-        uint256 oldCollateralFactorMantissa,
-        uint256 newCollateralFactorMantissa
-    );
-
     /// @notice Emitted when liquidation incentive is changed by admin
     event NewLiquidationIncentive(uint256 oldLiquidationIncentiveMantissa, uint256 newLiquidationIncentiveMantissa);
 
     /// @notice Emitted when price oracle is changed
     event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
-
-    /// @notice Emitted when borrow cap for a vToken is changed
-    event NewBorrowCap(VToken indexed vToken, uint256 newBorrowCap);
 
     /// @notice Emitted when VAIController is changed
     event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
@@ -60,17 +50,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when ComptrollerLens address is changed
     event NewComptrollerLens(address oldComptrollerLens, address newComptrollerLens);
 
-    /// @notice Emitted when supply cap for a vToken is changed
-    event NewSupplyCap(VToken indexed vToken, uint256 newSupplyCap);
-
     /// @notice Emitted when access control address is changed by admin
     event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
 
     /// @notice Emitted when pause guardian is changed
     event NewPauseGuardian(address oldPauseGuardian, address newPauseGuardian);
-
-    /// @notice Emitted when an action is paused on a market
-    event ActionPausedMarket(VToken indexed vToken, Action indexed action, bool pauseState);
 
     /// @notice Emitted when VAI Vault info is changed
     event NewVAIVaultInfo(address indexed vault_, uint256 releaseStartBlock_, uint256 releaseInterval_);
@@ -86,9 +70,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /// @notice Emitted when forced liquidation is enabled or disabled for a user borrowing in a market
     event IsForcedLiquidationEnabledForUserUpdated(address indexed borrower, address indexed vToken, bool enable);
-
-    /// @notice Emitted when an admin unlists a market
-    event MarketUnlisted(VToken indexed vToken);
 
     /**
      * @notice Compare two addresses to ensure they are different
@@ -130,46 +111,6 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         // Emit NewPriceOracle(oldOracle, newOracle)
         emit NewPriceOracle(oldOracle, newOracle);
-
-        return uint256(Error.NO_ERROR);
-    }
-
-    /**
-     * @notice Unlist an market by setting isListed to false
-     * @dev Pauses all actions, sets borrow/supply caps to 0 and sets collateral factor to 0.
-     * @param market The address of the market (token) to unlist
-     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
-     */
-    function unlistMarket(address market) external returns (uint256) {
-        ensureAllowed("unlistMarket(address)");
-
-        Market storage _market = markets[market];
-
-        if (!_market.isListed) {
-            return fail(Error.MARKET_NOT_LISTED, FailureInfo.UNLIST_MARKET_NOT_LISTED);
-        }
-
-        setActionPausedInternal(market, Action.BORROW, true);
-        setActionPausedInternal(market, Action.MINT, true);
-        setActionPausedInternal(market, Action.REDEEM, true);
-        setActionPausedInternal(market, Action.REPAY, true);
-        setActionPausedInternal(market, Action.ENTER_MARKET, true);
-        setActionPausedInternal(market, Action.LIQUIDATE, true);
-
-        borrowCaps[market] = 0;
-        supplyCaps[market] = 0;
-
-        VToken vToken = VToken(market);
-
-        emit NewSupplyCap(vToken, 0);
-        emit NewBorrowCap(vToken, 0);
-
-        emit NewCollateralFactor(vToken, _market.collateralFactorMantissa, 0);
-        _market.collateralFactorMantissa = 0;
-
-        _market.isListed = false;
-
-        emit MarketUnlisted(vToken);
 
         return uint256(Error.NO_ERROR);
     }

@@ -32,6 +32,25 @@ contract FacetBase is ComptrollerV15Storage, ExponentialNoError, ComptrollerErro
     /// @notice Emitted when XVS is distributed to VAI Vault
     event DistributedVAIVaultVenus(uint256 amount);
 
+    /// @notice Emitted when an admin unlists a market
+    event MarketUnlisted(VToken indexed vToken);
+
+    /// @notice Emitted when a collateral factor is changed by admin
+    event NewCollateralFactor(
+        VToken indexed vToken,
+        uint256 oldCollateralFactorMantissa,
+        uint256 newCollateralFactorMantissa
+    );
+
+    /// @notice Emitted when an action is paused on a market
+    event ActionPausedMarket(VToken indexed vToken, Action indexed action, bool pauseState);
+
+    /// @notice Emitted when borrow cap for a vToken is changed
+    event NewBorrowCap(VToken indexed vToken, uint256 newBorrowCap);
+
+    /// @notice Emitted when supply cap for a vToken is changed
+    event NewSupplyCap(VToken indexed vToken, uint256 newSupplyCap);
+
     /// @notice Reverts if the protocol is paused
     function checkProtocolPauseState() internal view {
         require(!protocolPaused, "protocol is paused");

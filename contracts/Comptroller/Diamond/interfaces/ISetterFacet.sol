@@ -59,6 +59,4 @@ interface ISetterFacet {
     function _setPrimeToken(IPrime _prime) external returns (uint);
 
     function _setForcedLiquidationForUser(address borrower, address vTokenBorrowed, bool enable) external;
-
-    function unlistMarket(address market) external returns (uint256);
 }
