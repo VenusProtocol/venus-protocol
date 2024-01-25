@@ -1,3 +1,10 @@
+## [7.2.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.1.0...v7.2.0-dev.1) (2024-01-25)
+
+
+### Features
+
+* use the version of PSR with Token converters ([f028cd5](https://github.com/VenusProtocol/venus-protocol/commit/f028cd5486c00287acc40a7625f368657cf070cc))
+
 ## [7.1.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.0.0...v7.1.0) (2024-01-23)
 
 
