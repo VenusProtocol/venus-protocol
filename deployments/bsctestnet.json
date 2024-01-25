@@ -5114,7 +5114,7 @@
       ]
     },
     "MarketFacet": {
-      "address": "0x478481727f802ea500B929124d7944D9F4e21d8b",
+      "address": "0x0E042799646c5Bc86Dd52Eb8E91B673F769F514d",
       "abi": [
         {
           "anonymous": false,
@@ -17240,7 +17240,7 @@
       ]
     },
     "SetterFacet": {
-      "address": "0x486D0578Bd2ffc1Ff5CcB8E1211099A5e725C525",
+      "address": "0x2aDde5d5a354452Ac9CD7C72DB6eF786e13cBf2D",
       "abi": [
         {
           "anonymous": false,
@@ -18774,27 +18774,6 @@
           ],
           "payable": false,
           "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "constant": false,
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "market",
-              "type": "address"
-            }
-          ],
-          "name": "unlistMarket",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
