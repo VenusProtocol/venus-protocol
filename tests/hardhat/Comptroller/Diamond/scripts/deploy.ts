@@ -32,6 +32,10 @@ export async function deployFacets() {
       action: FacetCutAction.Add,
       functionSelectors: getSelectors(FacetInterface),
     });
+
+    if (FacetName === "MarketFacet") {
+      console.log(getSelectors(FacetInterface));
+    }
   }
 
   return {
