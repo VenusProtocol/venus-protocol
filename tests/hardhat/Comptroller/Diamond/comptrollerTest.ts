@@ -838,7 +838,7 @@ describe("Comptroller", () => {
       });
     });
 
-    describe.only("borrow", () => {
+    describe("borrow", () => {
       let comptrollerLens: FakeContract<ComptrollerLens>;
 
       beforeEach(async () => {
