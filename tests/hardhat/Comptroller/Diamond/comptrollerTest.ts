@@ -837,5 +837,65 @@ describe("Comptroller", () => {
         });
       });
     });
+
+    describe.only("borrow", () => {
+      let comptrollerLens: FakeContract<ComptrollerLens>;
+
+      beforeEach(async () => {
+        const contracts = await loadFixture(deploy);
+        comptrollerLens = contracts.comptrollerLens;
+        // ({ comptroller, oracle, vToken } = await loadFixture(deploy));
+        configureVToken(contracts.vToken, contracts.unitroller);
+        configureOracle(contracts.oracle);
+      });
+
+      it("allows borrowing if cap is not reached", async () => {
+        const cap = convertToUnit("1001", 18);
+        const currentVTokenBorrows = convertToUnit("500", 18);
+
+        vToken.totalBorrows.returns(currentVTokenBorrows);
+        vToken.borrowIndex.returns(1);
+        comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 0]);
+        await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
+
+        expect(
+          await comptroller
+            .connect(vToken.wallet)
+            .callStatic.borrowAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
+        ).to.equal(0); // 0 means "no error"
+      });
+
+      it("reverts borrowing if borrow cap is reached", async () => {
+        const cap = convertToUnit("100", 18);
+        const currentVTokenBorrows = convertToUnit("500", 18);
+
+        vToken.totalBorrows.returns(currentVTokenBorrows);
+        vToken.borrowIndex.returns(1);
+        comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 0]);
+        await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
+
+        await expect(
+          comptroller
+            .connect(vToken.wallet)
+            .callStatic.borrowAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
+        ).to.be.revertedWith("market borrow cap reached");
+      });
+
+      it("reverts borrowing if borrow cap is 0", async () => {
+        const cap = convertToUnit("0", 18);
+        const currentVTokenBorrows = convertToUnit("500", 18);
+
+        vToken.totalBorrows.returns(currentVTokenBorrows);
+        vToken.borrowIndex.returns(1);
+        comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 0]);
+        await comptroller._setMarketBorrowCaps([vToken.address], [cap]);
+
+        await expect(
+          comptroller
+            .connect(vToken.wallet)
+            .callStatic.borrowAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
+        ).to.be.revertedWith("market borrow cap is 0");
+      });
+    });
   });
 });

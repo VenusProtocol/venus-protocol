@@ -75,6 +75,7 @@ describe("Comptroller: assetListTest", () => {
   }
 
   function configure({ oracle, allTokens, names }: AssetListFixture) {
+    console.log("Oracle Configured");
     oracle.getUnderlyingPrice.returns(convertToUnit("0.5", 18));
     allTokens.map((vToken, i) => {
       vToken.isVToken.returns(true);
