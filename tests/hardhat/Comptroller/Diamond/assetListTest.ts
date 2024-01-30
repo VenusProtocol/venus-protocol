@@ -236,6 +236,7 @@ describe("Comptroller: assetListTest", () => {
   describe("entering from borrowAllowed", () => {
     beforeEach(async () => {
       await BAT.borrowIndex.returns(convertToUnit(1, 18));
+      await comptroller._setMarketBorrowCaps([BAT.address], [convertToUnit(100, 18)]);
     });
 
     it("enters when called by a vtoken", async () => {
