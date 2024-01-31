@@ -30,6 +30,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@layerzerolabs/solidity-examples": "^1.0.0",
     "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
     "@venusprotocol/governance-contracts": "^1.4.0",
