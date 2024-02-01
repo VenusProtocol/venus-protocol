@@ -27,6 +27,10 @@ export async function deployFacets() {
 
     const FacetInterface = await ethers.getContractAt(`I${FacetName}`, facet.address);
 
+    if (FacetName === "PolicyFacet") {
+      console.log(getSelectors(FacetInterface));
+    }
+
     cut.push({
       facetAddress: facet.address,
       action: FacetCutAction.Add,

@@ -1,13 +1,17 @@
 import GovernanceBscMainnet from "@venusprotocol/governance-contracts/deployments/bscmainnet.json";
 import GovernanceBscTestnet from "@venusprotocol/governance-contracts/deployments/bsctestnet.json";
 import GovernanceSepolia from "@venusprotocol/governance-contracts/deployments/sepolia.json";
+import GovernanceEthereum from "@venusprotocol/governance-contracts/deployments/ethereum.json";
 import ILSepolia from "@venusprotocol/isolated-pools/deployments/sepolia.json";
+import ILEthereum from "@venusprotocol/isolated-pools/deployments/ethereum.json";
 import OracleMainnet from "@venusprotocol/oracle/deployments/bscmainnet.json";
 import OracleTestnet from "@venusprotocol/oracle/deployments/bsctestnet.json";
 import OracleSepolia from "@venusprotocol/oracle/deployments/sepolia.json";
+import OracleEthereum from "@venusprotocol/oracle/deployments/ethereum.json";
 import ProtocolShareReserveProxyMainnet from "@venusprotocol/protocol-reserve/deployments/bscmainnet/ProtocolShareReserve_Proxy.json";
 import ProtocolShareReserveProxyTestnet from "@venusprotocol/protocol-reserve/deployments/bsctestnet/ProtocolShareReserve_Proxy.json";
 import TokenBridgeSepolia from "@venusprotocol/token-bridge/deployments/sepolia.json";
+import TokenBridgeEthereum from "@venusprotocol/token-bridge/deployments/ethereum.json";
 
 //TESTNET DEPLOYED CONTRACTS
 import Mainnet from "../deployments/bscmainnet.json";
@@ -15,6 +19,8 @@ import Mainnet from "../deployments/bscmainnet.json";
 import Testnet from "../deployments/bsctestnet.json";
 //SEPOLIA DEPLOYED CONTRACTS
 import Sepolia from "../deployments/sepolia.json";
+//ETHEREUM DEPLOYED CONTRACTS
+import Ethereum from "../deployments/ethereum.json";
 
 // Define the structure for each network's addresses
 interface NetworkAddresses {
@@ -47,6 +53,7 @@ interface Addresses {
 }
 
 const SEPOLIA_MULTISIG = "0x94fa6078b6b8a26f0b6edffbe6501b22a10470fb";
+const ETHEREUM_MULTISIG = "0x285960C5B22fD66A736C7136967A3eB15e93CC67";
 
 const ADDRESSES: Addresses = {
   bsctestnet: {
@@ -103,5 +110,13 @@ const ADDRESSES: Addresses = {
     oracle: OracleSepolia.contracts.ResilientOracle_Proxy.address,
     poolRegistry: ILSepolia.contracts.PoolRegistry.address,
   },
+  ethereum: {
+    normalVipTimelock: ETHEREUM_MULTISIG,
+    xvsVault: Ethereum.contracts.XVSVaultProxy.address,
+    xvs: TokenBridgeEthereum.contracts.XVS.address,
+    acm: GovernanceEthereum.contracts.AccessControlManager.address,
+    oracle: OracleEthereum.contracts.ResilientOracle_Proxy.address,
+    poolRegistry: ILEthereum.contracts.PoolRegistry.address,
+  }
 };
 export default ADDRESSES;

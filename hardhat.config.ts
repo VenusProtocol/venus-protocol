@@ -166,6 +166,9 @@ const config: HardhatUserConfig = {
       chainId: 1,
       live: true,
       timeout: 1200000, // 20 minutes
+      accounts: {
+        mnemonic: process.env.MNEMONIC || "",
+      },
     },
     opbnbtestnet: {
       url: process.env.ARCHIVE_NODE_opbnbtestnet || "https://opbnb-testnet-rpc.bnbchain.org",
