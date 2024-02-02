@@ -1,26 +1,26 @@
 import GovernanceBscMainnet from "@venusprotocol/governance-contracts/deployments/bscmainnet.json";
 import GovernanceBscTestnet from "@venusprotocol/governance-contracts/deployments/bsctestnet.json";
-import GovernanceSepolia from "@venusprotocol/governance-contracts/deployments/sepolia.json";
 import GovernanceEthereum from "@venusprotocol/governance-contracts/deployments/ethereum.json";
-import ILSepolia from "@venusprotocol/isolated-pools/deployments/sepolia.json";
+import GovernanceSepolia from "@venusprotocol/governance-contracts/deployments/sepolia.json";
 import ILEthereum from "@venusprotocol/isolated-pools/deployments/ethereum.json";
+import ILSepolia from "@venusprotocol/isolated-pools/deployments/sepolia.json";
 import OracleMainnet from "@venusprotocol/oracle/deployments/bscmainnet.json";
 import OracleTestnet from "@venusprotocol/oracle/deployments/bsctestnet.json";
-import OracleSepolia from "@venusprotocol/oracle/deployments/sepolia.json";
 import OracleEthereum from "@venusprotocol/oracle/deployments/ethereum.json";
+import OracleSepolia from "@venusprotocol/oracle/deployments/sepolia.json";
 import ProtocolShareReserveProxyMainnet from "@venusprotocol/protocol-reserve/deployments/bscmainnet/ProtocolShareReserve_Proxy.json";
 import ProtocolShareReserveProxyTestnet from "@venusprotocol/protocol-reserve/deployments/bsctestnet/ProtocolShareReserve_Proxy.json";
-import TokenBridgeSepolia from "@venusprotocol/token-bridge/deployments/sepolia.json";
 import TokenBridgeEthereum from "@venusprotocol/token-bridge/deployments/ethereum.json";
+import TokenBridgeSepolia from "@venusprotocol/token-bridge/deployments/sepolia.json";
 
 //TESTNET DEPLOYED CONTRACTS
 import Mainnet from "../deployments/bscmainnet.json";
 //MAINNET DEPLOYED CONTRACTS
 import Testnet from "../deployments/bsctestnet.json";
-//SEPOLIA DEPLOYED CONTRACTS
-import Sepolia from "../deployments/sepolia.json";
 //ETHEREUM DEPLOYED CONTRACTS
 import Ethereum from "../deployments/ethereum.json";
+//SEPOLIA DEPLOYED CONTRACTS
+import Sepolia from "../deployments/sepolia.json";
 
 // Define the structure for each network's addresses
 interface NetworkAddresses {
@@ -117,6 +117,6 @@ const ADDRESSES: Addresses = {
     acm: GovernanceEthereum.contracts.AccessControlManager.address,
     oracle: OracleEthereum.contracts.ResilientOracle_Proxy.address,
     poolRegistry: ILEthereum.contracts.PoolRegistry.address,
-  }
+  },
 };
 export default ADDRESSES;
