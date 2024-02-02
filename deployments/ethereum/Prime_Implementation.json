@@ -1803,9 +1803,7 @@
         "blockNumber": 19139725,
         "transactionHash": "0xdca2dd0af3420ec55bbe0ea24c31cae92a3e2bac4cfa85223ff28d3ead36c5f1",
         "address": "0xf039d6cF87E5D0315f3Eb286Bbeb39A7B3fe30df",
-        "topics": [
-          "0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498"
-        ],
+        "topics": ["0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498"],
         "data": "0x00000000000000000000000000000000000000000000000000000000000000ff",
         "logIndex": 84,
         "blockHash": "0x20849a81c04f009b6ad426a4d5b530a21ea24dbab0010763fc07d22a8aeca7d1"
