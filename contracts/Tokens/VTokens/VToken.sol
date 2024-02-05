@@ -844,45 +844,63 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     /**
      * @notice Sender redeems vTokens in exchange for the underlying asset
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemer The address of the account which is redeeming the tokens
+     * @param receiver The receiver of the tokens, if called by a delegate
      * @param redeemTokens The number of vTokens to redeem into underlying
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function redeemInternal(uint redeemTokens) internal nonReentrant returns (uint) {
+    function redeemInternal(
+        address redeemer,
+        address payable receiver,
+        uint redeemTokens
+    ) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted redeem failed
             return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
         }
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
-        return redeemFresh(msg.sender, redeemTokens, 0);
+        return redeemFresh(redeemer, receiver, redeemTokens, 0);
     }
 
     /**
      * @notice Sender redeems vTokens in exchange for a specified amount of underlying asset
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemer The address of the account which is redeeming the tokens
+     * @param receiver The receiver of the tokens, if called by a delegate
      * @param redeemAmount The amount of underlying to receive from redeeming vTokens
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function redeemUnderlyingInternal(uint redeemAmount) internal nonReentrant returns (uint) {
+    function redeemUnderlyingInternal(
+        address redeemer,
+        address payable receiver,
+        uint redeemAmount
+    ) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted redeem failed
             return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
         }
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
-        return redeemFresh(msg.sender, 0, redeemAmount);
+        return redeemFresh(redeemer, receiver, 0, redeemAmount);
     }
 
     /**
      * @notice User redeems vTokens in exchange for the underlying asset
      * @dev Assumes interest has already been accrued up to the current block
      * @param redeemer The address of the account which is redeeming the tokens
+     * @param receiver The receiver of the tokens, if called by a delegate
      * @param redeemTokensIn The number of vTokens to redeem into underlying (only one of redeemTokensIn or redeemAmountIn may be non-zero)
      * @param redeemAmountIn The number of underlying tokens to receive from redeeming vTokens (only one of redeemTokensIn or redeemAmountIn may be non-zero)
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // solhint-disable-next-line code-complexity
-    function redeemFresh(address payable redeemer, uint redeemTokensIn, uint redeemAmountIn) internal returns (uint) {
+    function redeemFresh(
+        address redeemer,
+        address payable receiver,
+        uint redeemTokensIn,
+        uint redeemAmountIn
+    ) internal returns (uint) {
         require(redeemTokensIn == 0 || redeemAmountIn == 0, "one of redeemTokensIn or redeemAmountIn must be zero");
 
         RedeemLocalVars memory vars;
@@ -985,7 +1003,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             remainedAmount = vars.redeemAmount;
         }
 
-        doTransferOut(redeemer, remainedAmount);
+        doTransferOut(receiver, remainedAmount);
 
         /* We emit a Transfer event, and a Redeem event */
         emit Transfer(redeemer, address(this), vars.redeemTokens);
