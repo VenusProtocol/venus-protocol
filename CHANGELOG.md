@@ -1,3 +1,15 @@
+## [7.3.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.2.0...v7.3.0-dev.1) (2024-02-06)
+
+
+### Features
+
+* updating deployment files ([2a2fe93](https://github.com/VenusProtocol/venus-protocol/commit/2a2fe9337e3c4a45e83313e8d2bc37a3085042bb))
+
+
+### Bug Fixes
+
+* comptroller lens address on bsctestnet ([589cfb4](https://github.com/VenusProtocol/venus-protocol/commit/589cfb42d3bb4a37a5de576c89cdf8063a7c8a47))
+
 ## [7.2.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.1.0...v7.2.0) (2024-01-25)
 
 
