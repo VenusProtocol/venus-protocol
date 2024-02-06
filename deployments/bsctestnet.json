@@ -3564,7 +3564,7 @@
       ]
     },
     "ComptrollerLens": {
-      "address": "0xc698edFbac7F4A3A2A06757860938e73260ed7a4",
+      "address": "0x350d56985A269C148648207E4Cea9f87656E762a",
       "abi": [
         {
           "anonymous": false,
