@@ -1,3 +1,82 @@
+## [7.3.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.2.0...v7.3.0-dev.1) (2024-02-06)
+
+
+### Features
+
+* updating deployment files ([2a2fe93](https://github.com/VenusProtocol/venus-protocol/commit/2a2fe9337e3c4a45e83313e8d2bc37a3085042bb))
+
+
+### Bug Fixes
+
+* comptroller lens address on bsctestnet ([589cfb4](https://github.com/VenusProtocol/venus-protocol/commit/589cfb42d3bb4a37a5de576c89cdf8063a7c8a47))
+
+## [7.2.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.1.0...v7.2.0) (2024-01-25)
+
+
+### Features
+
+* use the version of PSR with Token converters ([f028cd5](https://github.com/VenusProtocol/venus-protocol/commit/f028cd5486c00287acc40a7625f368657cf070cc))
+
+## [7.1.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.0.0...v7.1.0) (2024-01-23)
+
+
+### Features
+
+* add a utility contract to redeem VBep20 tokens ([f345d39](https://github.com/VenusProtocol/venus-protocol/commit/f345d393145292af06a2f6a808916eab97d10638))
+* add MoveDebtDelegate deployment ([b29dd2c](https://github.com/VenusProtocol/venus-protocol/commit/b29dd2c69e7f4d0f25ef06b78c66eab694c0dd46))
+* add opbnbmainnet and verify config ([67bce33](https://github.com/VenusProtocol/venus-protocol/commit/67bce33f1a0e37a84b888b161bafb71eb999aa02))
+* add xvs-vault deployments of opBNB Testnet ([6924d3e](https://github.com/VenusProtocol/venus-protocol/commit/6924d3e84925ac9f31ca35e36ccb660ddc3a3e11))
+* add xvs-vault deployments of opBNB Testnet ([5d13784](https://github.com/VenusProtocol/venus-protocol/commit/5d13784e9db57dffd7c8cbfd81fd3799463f56d6))
+* allow repaying in non-deprecated market ([ec1af79](https://github.com/VenusProtocol/venus-protocol/commit/ec1af79fedf3bfc8b11c6b302aab628bfb6fc691))
+* bump version to the stable ones ([0b281cf](https://github.com/VenusProtocol/venus-protocol/commit/0b281cfb6f5fbf276aa9cf2abdca54e64190207c))
+* deployments of XVSVault on ethereum ([41e8c5d](https://github.com/VenusProtocol/venus-protocol/commit/41e8c5d8ecb9b57618e9dde828aa6fab67102daf))
+* updating deployment files ([3ed0079](https://github.com/VenusProtocol/venus-protocol/commit/3ed0079652becd7632b242cf611c85057ce35f08))
+* updating deployment files ([822878a](https://github.com/VenusProtocol/venus-protocol/commit/822878af16b397c08e15bca88dfadc786e2fa6a0))
+* updating deployment files ([dae0b3a](https://github.com/VenusProtocol/venus-protocol/commit/dae0b3af89a902c64264bfcb90066f3085c8bb1e))
+* updating deployment files ([aad081c](https://github.com/VenusProtocol/venus-protocol/commit/aad081c40e8992cf7a17185257feeaef5e62d9fc))
+* updating deployment files ([e274ea9](https://github.com/VenusProtocol/venus-protocol/commit/e274ea90a8d89f6a8f66ad930a0e741f6eef6d88))
+
+
+### Bug Fixes
+
+* redeployed prime ([244a085](https://github.com/VenusProtocol/venus-protocol/commit/244a0854b7e84f03ca7dfd5a0bf4cb03f6ae300b))
+
+## [7.1.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v7.1.0-dev.2...v7.1.0-dev.3) (2024-01-23)
+
+
+### Features
+
+* add opbnbmainnet and verify config ([67bce33](https://github.com/VenusProtocol/venus-protocol/commit/67bce33f1a0e37a84b888b161bafb71eb999aa02))
+* add xvs-vault deployments of opBNB Testnet ([6924d3e](https://github.com/VenusProtocol/venus-protocol/commit/6924d3e84925ac9f31ca35e36ccb660ddc3a3e11))
+* add xvs-vault deployments of opBNB Testnet ([5d13784](https://github.com/VenusProtocol/venus-protocol/commit/5d13784e9db57dffd7c8cbfd81fd3799463f56d6))
+* bump version to the stable ones ([0b281cf](https://github.com/VenusProtocol/venus-protocol/commit/0b281cfb6f5fbf276aa9cf2abdca54e64190207c))
+* deployments of XVSVault on ethereum ([41e8c5d](https://github.com/VenusProtocol/venus-protocol/commit/41e8c5d8ecb9b57618e9dde828aa6fab67102daf))
+* updating deployment files ([3ed0079](https://github.com/VenusProtocol/venus-protocol/commit/3ed0079652becd7632b242cf611c85057ce35f08))
+* updating deployment files ([dae0b3a](https://github.com/VenusProtocol/venus-protocol/commit/dae0b3af89a902c64264bfcb90066f3085c8bb1e))
+* updating deployment files ([aad081c](https://github.com/VenusProtocol/venus-protocol/commit/aad081c40e8992cf7a17185257feeaef5e62d9fc))
+* updating deployment files ([e274ea9](https://github.com/VenusProtocol/venus-protocol/commit/e274ea90a8d89f6a8f66ad930a0e741f6eef6d88))
+
+
+### Bug Fixes
+
+* redeployed prime ([244a085](https://github.com/VenusProtocol/venus-protocol/commit/244a0854b7e84f03ca7dfd5a0bf4cb03f6ae300b))
+
+## [7.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.1.0-dev.1...v7.1.0-dev.2) (2024-01-15)
+
+
+### Features
+
+* add MoveDebtDelegate deployment ([b29dd2c](https://github.com/VenusProtocol/venus-protocol/commit/b29dd2c69e7f4d0f25ef06b78c66eab694c0dd46))
+* allow repaying in non-deprecated market ([ec1af79](https://github.com/VenusProtocol/venus-protocol/commit/ec1af79fedf3bfc8b11c6b302aab628bfb6fc691))
+* updating deployment files ([822878a](https://github.com/VenusProtocol/venus-protocol/commit/822878af16b397c08e15bca88dfadc786e2fa6a0))
+
+## [7.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.0.0...v7.1.0-dev.1) (2024-01-10)
+
+
+### Features
+
+* add a utility contract to redeem VBep20 tokens ([f345d39](https://github.com/VenusProtocol/venus-protocol/commit/f345d393145292af06a2f6a808916eab97d10638))
+
 ## [7.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v6.0.0...v7.0.0) (2023-12-29)
 
 

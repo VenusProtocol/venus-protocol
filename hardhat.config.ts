@@ -40,7 +40,10 @@ extendConfig((config: HardhatConfig) => {
           "node_modules/@venusprotocol/oracle/deployments/sepolia",
           "node_modules/@venusprotocol/token-bridge/deployments/sepolia",
         ],
-        ethereum: ["node_modules/@venusprotocol/token-bridge/deployments/ethereum"],
+        ethereum: [
+          "node_modules/@venusprotocol/token-bridge/deployments/ethereum",
+          "node_modules/@venusprotocol/governance-contracts/deployments/ethereum",
+        ],
         opbnbmainnet: [
           "node_modules/@venusprotocol/governance-contracts/deployments/opbnbmainnet",
           "node_modules/@venusprotocol/token-bridge/deployments/opbnbmainnet",
@@ -158,7 +161,9 @@ const config: HardhatUserConfig = {
       chainId: 11155111,
       live: true,
       gasPrice: 20000000000, // 20 gwei
-      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+      accounts: {
+        mnemonic: process.env.MNEMONIC || "",
+      },
     },
     ethereum: {
       url: process.env.ARCHIVE_NODE_ethereum || "https://ethereum.blockpi.network/v1/rpc/public",
@@ -276,24 +281,24 @@ const config: HardhatUserConfig = {
 function isFork() {
   return process.env.FORK === "true"
     ? {
-        allowUnlimitedContractSize: false,
-        loggingEnabled: false,
-        forking: {
-          url:
-            process.env[`ARCHIVE_NODE_${process.env.FORKED_NETWORK}`] ||
-            "https://data-seed-prebsc-1-s1.binance.org:8545",
-          blockNumber: 21068448,
-        },
-        accounts: {
-          accountsBalance: "1000000000000000000",
-        },
-        live: false,
-      }
+      allowUnlimitedContractSize: false,
+      loggingEnabled: false,
+      forking: {
+        url:
+          process.env[`ARCHIVE_NODE_${process.env.FORKED_NETWORK}`] ||
+          "https://data-seed-prebsc-1-s1.binance.org:8545",
+        blockNumber: 21068448,
+      },
+      accounts: {
+        accountsBalance: "1000000000000000000",
+      },
+      live: false,
+    }
     : {
-        allowUnlimitedContractSize: true,
-        loggingEnabled: false,
-        live: false,
-      };
+      allowUnlimitedContractSize: true,
+      loggingEnabled: false,
+      live: false,
+    };
 }
 
 export default config;

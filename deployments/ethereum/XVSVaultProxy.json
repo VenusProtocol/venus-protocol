@@ -1,0 +1,352 @@
+{
+  "address": "0xA0882C2D5DF29233A092d2887A258C2b90e9b994",
+  "abi": [
+    {
+      "inputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "error",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "info",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "detail",
+          "type": "uint256"
+        }
+      ],
+      "name": "Failure",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oldAdmin",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAdmin",
+          "type": "address"
+        }
+      ],
+      "name": "NewAdmin",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oldImplementation",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newImplementation",
+          "type": "address"
+        }
+      ],
+      "name": "NewImplementation",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oldPendingAdmin",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newPendingAdmin",
+          "type": "address"
+        }
+      ],
+      "name": "NewPendingAdmin",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oldPendingImplementation",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newPendingImplementation",
+          "type": "address"
+        }
+      ],
+      "name": "NewPendingImplementation",
+      "type": "event"
+    },
+    {
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "fallback"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "_acceptAdmin",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "_acceptImplementation",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newPendingAdmin",
+          "type": "address"
+        }
+      ],
+      "name": "_setPendingAdmin",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newPendingImplementation",
+          "type": "address"
+        }
+      ],
+      "name": "_setPendingImplementation",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "admin",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "implementation",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "pendingAdmin",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "pendingXVSVaultImplementation",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xe021123ad7027cabd30881b66e205ab8f87c8f955cbe4056f848a1e4d953cbfb",
+  "receipt": {
+    "to": null,
+    "from": "0x12Bdf8Ae9fE2047809080412d7341044b910ef10",
+    "contractAddress": "0xA0882C2D5DF29233A092d2887A258C2b90e9b994",
+    "transactionIndex": 101,
+    "gasUsed": "394440",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x4f692d40c5ba3acc5a6bd79f970ed86c840aa69945de0358ba092f418a56c296",
+    "transactionHash": "0xe021123ad7027cabd30881b66e205ab8f87c8f955cbe4056f848a1e4d953cbfb",
+    "logs": [],
+    "blockNumber": 18890218,
+    "cumulativeGasUsed": "7246082",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [],
+  "numDeployments": 1,
+  "solcInputHash": "7830d2b3dd486e9651687b362529ec15",
+  "metadata": "{\"compiler\":{\"version\":\"0.5.16+commit.9c3226ce\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"error\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"info\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"detail\",\"type\":\"uint256\"}],\"name\":\"Failure\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oldAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"NewAdmin\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oldImplementation\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"NewImplementation\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oldPendingAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newPendingAdmin\",\"type\":\"address\"}],\"name\":\"NewPendingAdmin\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oldPendingImplementation\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newPendingImplementation\",\"type\":\"address\"}],\"name\":\"NewPendingImplementation\",\"type\":\"event\"},{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"constant\":false,\"inputs\":[],\"name\":\"_acceptAdmin\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[],\"name\":\"_acceptImplementation\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"newPendingAdmin\",\"type\":\"address\"}],\"name\":\"_setPendingAdmin\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"address\",\"name\":\"newPendingImplementation\",\"type\":\"address\"}],\"name\":\"_setPendingImplementation\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"admin\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"pendingAdmin\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"pendingXVSVaultImplementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"author\":\"Venus\",\"methods\":{\"_acceptAdmin()\":{\"details\":\"Admin function for pending admin to accept role and update admin\",\"return\":\"uint 0=success, otherwise a failure (see ErrorReporter.sol for details)\"},\"_acceptImplementation()\":{\"details\":\"Admin function for new implementation to accept it's role as implementation\",\"return\":\"uint 0=success, otherwise a failure (see ErrorReporter.sol for details)\"},\"_setPendingAdmin(address)\":{\"details\":\"Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.\",\"params\":{\"newPendingAdmin\":\"New pending admin.\"},\"return\":\"uint 0=success, otherwise a failure (see ErrorReporter.sol for details)\"}},\"title\":\"XVS Vault Proxy\"},\"userdoc\":{\"methods\":{\"_acceptAdmin()\":{\"notice\":\"Accepts transfer of admin rights. msg.sender must be pendingAdmin\"},\"_acceptImplementation()\":{\"notice\":\"Accepts new implementation of XVS Vault. msg.sender must be pendingImplementation\"},\"_setPendingAdmin(address)\":{\"notice\":\"Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.\"},\"_setPendingImplementation(address)\":{\"notice\":\"* Admin Functions **\"}},\"notice\":\"XVS Vault Proxy contract\"}},\"settings\":{\"compilationTarget\":{\"contracts/XVSVault/XVSVaultProxy.sol\":\"XVSVaultProxy\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/Tokens/Prime/IPrime.sol\":{\"content\":\"// SPDX-License-Identifier: BSD-3-Clause\\npragma solidity ^0.5.16;\\npragma experimental ABIEncoderV2;\\n\\n/**\\n * @title IPrime\\n * @author Venus\\n * @notice Interface for Prime Token\\n */\\ninterface IPrime {\\n    /**\\n     * @notice Executed by XVSVault whenever user's XVSVault balance changes\\n     * @param user the account address whose balance was updated\\n     */\\n    function xvsUpdated(address user) external;\\n\\n    /**\\n     * @notice accrues interest and updates score for an user for a specific market\\n     * @param user the account address for which to accrue interest and update score\\n     * @param market the market for which to accrue interest and update score\\n     */\\n    function accrueInterestAndUpdateScore(address user, address market) external;\\n\\n    /**\\n     * @notice Distributes income from market since last distribution\\n     * @param vToken the market for which to distribute the income\\n     */\\n    function accrueInterest(address vToken) external;\\n\\n    /**\\n     * @notice Returns if user is a prime holder\\n     * @param isPrimeHolder returns if the user is a prime holder\\n     */\\n    function isUserPrimeHolder(address user) external view returns (bool isPrimeHolder);\\n}\\n\",\"keccak256\":\"0x58861c0c05b8757f1a5d50b107eff479c8680878e6aa51bc93af420caf73f500\"},\"contracts/Utils/IBEP20.sol\":{\"content\":\"pragma solidity ^0.5.0;\\n\\n/**\\n * @dev Interface of the BEP20 standard as defined in the EIP. Does not include\\n * the optional functions; to access them see {BEP20Detailed}.\\n */\\ninterface IBEP20 {\\n    /**\\n     * @dev Returns the amount of tokens in existence.\\n     */\\n    function totalSupply() external view returns (uint256);\\n\\n    /**\\n     * @dev Returns the amount of tokens owned by `account`.\\n     */\\n    function balanceOf(address account) external view returns (uint256);\\n\\n    /**\\n     * @dev Moves `amount` tokens from the caller's account to `recipient`.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transfer(address recipient, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Returns the remaining number of tokens that `spender` will be\\n     * allowed to spend on behalf of `owner` through {transferFrom}. This is\\n     * zero by default.\\n     *\\n     * This value changes when {approve} or {transferFrom} are called.\\n     */\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /**\\n     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * IMPORTANT: Beware that changing an allowance with this method brings the risk\\n     * that someone may use both the old and the new allowance by unfortunate\\n     * transaction ordering. One possible solution to mitigate this race\\n     * condition is to first reduce the spender's allowance to 0 and set the\\n     * desired value afterwards:\\n     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\\n     *\\n     * Emits an {Approval} event.\\n     */\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Moves `amount` tokens from `sender` to `recipient` using the\\n     * allowance mechanism. `amount` is then deducted from the caller's\\n     * allowance.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Emitted when `value` tokens are moved from one account (`from`) to\\n     * another (`to`).\\n     *\\n     * Note that `value` may be zero.\\n     */\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n\\n    /**\\n     * @dev Emitted when the allowance of a `spender` for an `owner` is set by\\n     * a call to {approve}. `value` is the new allowance.\\n     */\\n    event Approval(address indexed owner, address indexed spender, uint256 value);\\n}\\n\",\"keccak256\":\"0x839b08895eb1ad83502d3631e8e9e3a856d2a8c63c46f070d604af7b26c62c07\"},\"contracts/Utils/SafeMath.sol\":{\"content\":\"pragma solidity ^0.5.16;\\n\\n/**\\n * @dev Wrappers over Solidity's arithmetic operations with added overflow\\n * checks.\\n *\\n * Arithmetic operations in Solidity wrap on overflow. This can easily result\\n * in bugs, because programmers usually assume that an overflow raises an\\n * error, which is the standard behavior in high level programming languages.\\n * `SafeMath` restores this intuition by reverting the transaction when an\\n * operation overflows.\\n *\\n * Using this library instead of the unchecked operations eliminates an entire\\n * class of bugs, so it's recommended to use it always.\\n */\\nlibrary SafeMath {\\n    /**\\n     * @dev Returns the addition of two unsigned integers, reverting on\\n     * overflow.\\n     *\\n     * Counterpart to Solidity's `+` operator.\\n     *\\n     * Requirements:\\n     * - Addition cannot overflow.\\n     */\\n    function add(uint256 a, uint256 b) internal pure returns (uint256) {\\n        return add(a, b, \\\"SafeMath: addition overflow\\\");\\n    }\\n\\n    /**\\n     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on\\n     * overflow (when the result is negative).\\n     *\\n     * Counterpart to Solidity's `-` operator.\\n     *\\n     * Requirements:\\n     * - Subtraction cannot overflow.\\n     */\\n    function add(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {\\n        uint256 c = a + b;\\n        require(c >= a, errorMessage);\\n\\n        return c;\\n    }\\n\\n    /**\\n     * @dev Returns the subtraction of two unsigned integers, reverting on\\n     * overflow (when the result is negative).\\n     *\\n     * Counterpart to Solidity's `-` operator.\\n     *\\n     * Requirements:\\n     * - Subtraction cannot overflow.\\n     */\\n    function sub(uint256 a, uint256 b) internal pure returns (uint256) {\\n        return sub(a, b, \\\"SafeMath: subtraction overflow\\\");\\n    }\\n\\n    /**\\n     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on\\n     * overflow (when the result is negative).\\n     *\\n     * Counterpart to Solidity's `-` operator.\\n     *\\n     * Requirements:\\n     * - Subtraction cannot overflow.\\n     */\\n    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {\\n        require(b <= a, errorMessage);\\n        uint256 c = a - b;\\n\\n        return c;\\n    }\\n\\n    /**\\n     * @dev Returns the multiplication of two unsigned integers, reverting on\\n     * overflow.\\n     *\\n     * Counterpart to Solidity's `*` operator.\\n     *\\n     * Requirements:\\n     * - Multiplication cannot overflow.\\n     */\\n    function mul(uint256 a, uint256 b) internal pure returns (uint256) {\\n        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the\\n        // benefit is lost if 'b' is also tested.\\n        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522\\n        if (a == 0) {\\n            return 0;\\n        }\\n\\n        uint256 c = a * b;\\n        require(c / a == b, \\\"SafeMath: multiplication overflow\\\");\\n\\n        return c;\\n    }\\n\\n    /**\\n     * @dev Returns the integer division of two unsigned integers. Reverts on\\n     * division by zero. The result is rounded towards zero.\\n     *\\n     * Counterpart to Solidity's `/` operator. Note: this function uses a\\n     * `revert` opcode (which leaves remaining gas untouched) while Solidity\\n     * uses an invalid opcode to revert (consuming all remaining gas).\\n     *\\n     * Requirements:\\n     * - The divisor cannot be zero.\\n     */\\n    function div(uint256 a, uint256 b) internal pure returns (uint256) {\\n        return div(a, b, \\\"SafeMath: division by zero\\\");\\n    }\\n\\n    /**\\n     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on\\n     * division by zero. The result is rounded towards zero.\\n     *\\n     * Counterpart to Solidity's `/` operator. Note: this function uses a\\n     * `revert` opcode (which leaves remaining gas untouched) while Solidity\\n     * uses an invalid opcode to revert (consuming all remaining gas).\\n     *\\n     * Requirements:\\n     * - The divisor cannot be zero.\\n     */\\n    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {\\n        // Solidity only automatically asserts when dividing by 0\\n        require(b > 0, errorMessage);\\n        uint256 c = a / b;\\n        // assert(a == b * c + a % b); // There is no case in which this doesn't hold\\n\\n        return c;\\n    }\\n\\n    /**\\n     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),\\n     * Reverts when dividing by zero.\\n     *\\n     * Counterpart to Solidity's `%` operator. This function uses a `revert`\\n     * opcode (which leaves remaining gas untouched) while Solidity uses an\\n     * invalid opcode to revert (consuming all remaining gas).\\n     *\\n     * Requirements:\\n     * - The divisor cannot be zero.\\n     */\\n    function mod(uint256 a, uint256 b) internal pure returns (uint256) {\\n        return mod(a, b, \\\"SafeMath: modulo by zero\\\");\\n    }\\n\\n    /**\\n     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),\\n     * Reverts with custom message when dividing by zero.\\n     *\\n     * Counterpart to Solidity's `%` operator. This function uses a `revert`\\n     * opcode (which leaves remaining gas untouched) while Solidity uses an\\n     * invalid opcode to revert (consuming all remaining gas).\\n     *\\n     * Requirements:\\n     * - The divisor cannot be zero.\\n     */\\n    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {\\n        require(b != 0, errorMessage);\\n        return a % b;\\n    }\\n}\\n\",\"keccak256\":\"0x9431fd772ed4abc038cdfe9ce6c0066897bd1685ad45848748d1952935d5b8ef\"},\"contracts/XVSVault/XVSVaultErrorReporter.sol\":{\"content\":\"pragma solidity ^0.5.16;\\n\\ncontract XVSVaultErrorReporter {\\n    enum Error {\\n        NO_ERROR,\\n        UNAUTHORIZED\\n    }\\n\\n    enum FailureInfo {\\n        ACCEPT_ADMIN_PENDING_ADMIN_CHECK,\\n        ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK,\\n        SET_PENDING_ADMIN_OWNER_CHECK,\\n        SET_PENDING_IMPLEMENTATION_OWNER_CHECK\\n    }\\n\\n    /**\\n     * @dev `error` corresponds to enum Error; `info` corresponds to enum FailureInfo, and `detail` is an arbitrary\\n     * contract-specific code that enables us to report opaque error codes from upgradeable contracts.\\n     **/\\n    event Failure(uint error, uint info, uint detail);\\n\\n    /**\\n     * @dev use this when reporting a known error from the money market or a non-upgradeable collaborator\\n     */\\n    function fail(Error err, FailureInfo info) internal returns (uint) {\\n        emit Failure(uint(err), uint(info), 0);\\n\\n        return uint(err);\\n    }\\n\\n    /**\\n     * @dev use this when reporting an opaque error from an upgradeable collaborator contract\\n     */\\n    function failOpaque(Error err, FailureInfo info, uint opaqueError) internal returns (uint) {\\n        emit Failure(uint(err), uint(info), opaqueError);\\n\\n        return uint(err);\\n    }\\n}\\n\",\"keccak256\":\"0xa79877a281d024f0d03dbf1842a36a972ee6c1aa36ba93e3d646726d40684a26\"},\"contracts/XVSVault/XVSVaultProxy.sol\":{\"content\":\"pragma solidity ^0.5.16;\\n\\nimport \\\"./XVSVaultStorage.sol\\\";\\nimport \\\"./XVSVaultErrorReporter.sol\\\";\\n\\n/**\\n * @title XVS Vault Proxy\\n * @author Venus\\n * @notice XVS Vault Proxy contract\\n */\\ncontract XVSVaultProxy is XVSVaultAdminStorage, XVSVaultErrorReporter {\\n    /**\\n     * @notice Emitted when pendingXVSVaultImplementation is changed\\n     */\\n    event NewPendingImplementation(address oldPendingImplementation, address newPendingImplementation);\\n\\n    /**\\n     * @notice Emitted when pendingXVSVaultImplementation is accepted, which means XVS Vault implementation is updated\\n     */\\n    event NewImplementation(address oldImplementation, address newImplementation);\\n\\n    /**\\n     * @notice Emitted when pendingAdmin is changed\\n     */\\n    event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);\\n\\n    /**\\n     * @notice Emitted when pendingAdmin is accepted, which means admin is updated\\n     */\\n    event NewAdmin(address oldAdmin, address newAdmin);\\n\\n    constructor() public {\\n        // Set admin to caller\\n        admin = msg.sender;\\n    }\\n\\n    /*** Admin Functions ***/\\n    function _setPendingImplementation(address newPendingImplementation) public returns (uint) {\\n        if (msg.sender != admin) {\\n            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PENDING_IMPLEMENTATION_OWNER_CHECK);\\n        }\\n\\n        address oldPendingImplementation = pendingXVSVaultImplementation;\\n\\n        pendingXVSVaultImplementation = newPendingImplementation;\\n\\n        emit NewPendingImplementation(oldPendingImplementation, pendingXVSVaultImplementation);\\n\\n        return uint(Error.NO_ERROR);\\n    }\\n\\n    /**\\n     * @notice Accepts new implementation of XVS Vault. msg.sender must be pendingImplementation\\n     * @dev Admin function for new implementation to accept it's role as implementation\\n     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)\\n     */\\n    function _acceptImplementation() public returns (uint) {\\n        // Check caller is pendingImplementation\\n        if (msg.sender != pendingXVSVaultImplementation) {\\n            return fail(Error.UNAUTHORIZED, FailureInfo.ACCEPT_PENDING_IMPLEMENTATION_ADDRESS_CHECK);\\n        }\\n\\n        // Save current values for inclusion in log\\n        address oldImplementation = implementation;\\n        address oldPendingImplementation = pendingXVSVaultImplementation;\\n\\n        implementation = pendingXVSVaultImplementation;\\n\\n        pendingXVSVaultImplementation = address(0);\\n\\n        emit NewImplementation(oldImplementation, implementation);\\n        emit NewPendingImplementation(oldPendingImplementation, pendingXVSVaultImplementation);\\n\\n        return uint(Error.NO_ERROR);\\n    }\\n\\n    /**\\n     * @notice Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.\\n     * @dev Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.\\n     * @param newPendingAdmin New pending admin.\\n     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)\\n     */\\n    function _setPendingAdmin(address newPendingAdmin) public returns (uint) {\\n        // Check caller = admin\\n        if (msg.sender != admin) {\\n            return fail(Error.UNAUTHORIZED, FailureInfo.SET_PENDING_ADMIN_OWNER_CHECK);\\n        }\\n\\n        // Save current value, if any, for inclusion in log\\n        address oldPendingAdmin = pendingAdmin;\\n\\n        // Store pendingAdmin with value newPendingAdmin\\n        pendingAdmin = newPendingAdmin;\\n\\n        // Emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin)\\n        emit NewPendingAdmin(oldPendingAdmin, newPendingAdmin);\\n\\n        return uint(Error.NO_ERROR);\\n    }\\n\\n    /**\\n     * @notice Accepts transfer of admin rights. msg.sender must be pendingAdmin\\n     * @dev Admin function for pending admin to accept role and update admin\\n     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)\\n     */\\n    function _acceptAdmin() public returns (uint) {\\n        // Check caller is pendingAdmin\\n        if (msg.sender != pendingAdmin) {\\n            return fail(Error.UNAUTHORIZED, FailureInfo.ACCEPT_ADMIN_PENDING_ADMIN_CHECK);\\n        }\\n\\n        // Save current values for inclusion in log\\n        address oldAdmin = admin;\\n        address oldPendingAdmin = pendingAdmin;\\n\\n        // Store admin with value pendingAdmin\\n        admin = pendingAdmin;\\n\\n        // Clear the pending value\\n        pendingAdmin = address(0);\\n\\n        emit NewAdmin(oldAdmin, admin);\\n        emit NewPendingAdmin(oldPendingAdmin, pendingAdmin);\\n\\n        return uint(Error.NO_ERROR);\\n    }\\n\\n    /**\\n     * @dev Delegates execution to an implementation contract.\\n     * It returns to the external caller whatever the implementation returns\\n     * or forwards reverts.\\n     */\\n    function() external payable {\\n        // delegate all other functions to current implementation\\n        (bool success, ) = implementation.delegatecall(msg.data);\\n\\n        assembly {\\n            let free_mem_ptr := mload(0x40)\\n            returndatacopy(free_mem_ptr, 0, returndatasize)\\n\\n            switch success\\n            case 0 {\\n                revert(free_mem_ptr, returndatasize)\\n            }\\n            default {\\n                return(free_mem_ptr, returndatasize)\\n            }\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0xb39af917833659fe38f2f76924deda420babed8259b27741dc6cb402ade4d124\"},\"contracts/XVSVault/XVSVaultStorage.sol\":{\"content\":\"pragma solidity ^0.5.16;\\n\\nimport \\\"../Utils/SafeMath.sol\\\";\\nimport \\\"../Utils/IBEP20.sol\\\";\\nimport \\\"../Tokens/Prime/IPrime.sol\\\";\\n\\ncontract XVSVaultAdminStorage {\\n    /**\\n     * @notice Administrator for this contract\\n     */\\n    address public admin;\\n\\n    /**\\n     * @notice Pending administrator for this contract\\n     */\\n    address public pendingAdmin;\\n\\n    /**\\n     * @notice Active brains of XVS Vault\\n     */\\n    address public implementation;\\n\\n    /**\\n     * @notice Pending brains of XVS Vault\\n     */\\n    address public pendingXVSVaultImplementation;\\n}\\n\\ncontract XVSVaultStorageV1 is XVSVaultAdminStorage {\\n    /// @notice Guard variable for re-entrancy checks\\n    bool internal _notEntered;\\n\\n    /// @notice The reward token store\\n    address public xvsStore;\\n\\n    /// @notice The xvs token address\\n    address public xvsAddress;\\n\\n    // Reward tokens created per block indentified by reward token address.\\n    mapping(address => uint256) public rewardTokenAmountsPerBlock;\\n\\n    /// @notice Info of each user.\\n    struct UserInfo {\\n        uint256 amount;\\n        uint256 rewardDebt;\\n        uint256 pendingWithdrawals;\\n    }\\n\\n    // Info of each pool.\\n    struct PoolInfo {\\n        IBEP20 token; // Address of token contract to stake.\\n        uint256 allocPoint; // How many allocation points assigned to this pool.\\n        uint256 lastRewardBlock; // Last block number that reward tokens distribution occurs.\\n        uint256 accRewardPerShare; // Accumulated per share, times 1e12. See below.\\n        uint256 lockPeriod; // Min time between withdrawal request and its execution.\\n    }\\n\\n    // Infomation about a withdrawal request\\n    struct WithdrawalRequest {\\n        uint256 amount;\\n        uint128 lockedUntil;\\n        uint128 afterUpgrade;\\n    }\\n\\n    // Info of each user that stakes tokens.\\n    mapping(address => mapping(uint256 => mapping(address => UserInfo))) internal userInfos;\\n\\n    // Info of each pool.\\n    mapping(address => PoolInfo[]) public poolInfos;\\n\\n    // Total allocation points. Must be the sum of all allocation points in all pools.\\n    mapping(address => uint256) public totalAllocPoints;\\n\\n    // Info of requested but not yet executed withdrawals\\n    mapping(address => mapping(uint256 => mapping(address => WithdrawalRequest[]))) internal withdrawalRequests;\\n\\n    /// @notice DEPRECATED A record of each accounts delegate (before the voting power fix)\\n    mapping(address => address) private __oldDelegatesSlot;\\n\\n    /// @notice A checkpoint for marking number of votes from a given block\\n    struct Checkpoint {\\n        uint32 fromBlock;\\n        uint96 votes;\\n    }\\n\\n    /// @notice DEPRECATED A record of votes checkpoints for each account, by index (before the voting power fix)\\n    mapping(address => mapping(uint32 => Checkpoint)) private __oldCheckpointsSlot;\\n\\n    /// @notice DEPRECATED The number of checkpoints for each account (before the voting power fix)\\n    mapping(address => uint32) private __oldNumCheckpointsSlot;\\n\\n    /// @notice A record of states for signing / validating signatures\\n    mapping(address => uint) public nonces;\\n\\n    /// @notice The EIP-712 typehash for the contract's domain\\n    bytes32 public constant DOMAIN_TYPEHASH =\\n        keccak256(\\\"EIP712Domain(string name,uint256 chainId,address verifyingContract)\\\");\\n\\n    /// @notice The EIP-712 typehash for the delegation struct used by the contract\\n    bytes32 public constant DELEGATION_TYPEHASH =\\n        keccak256(\\\"Delegation(address delegatee,uint256 nonce,uint256 expiry)\\\");\\n}\\n\\ncontract XVSVaultStorage is XVSVaultStorageV1 {\\n    /// @notice A record of each accounts delegate\\n    mapping(address => address) public delegates;\\n\\n    /// @notice A record of votes checkpoints for each account, by index\\n    mapping(address => mapping(uint32 => Checkpoint)) public checkpoints;\\n\\n    /// @notice The number of checkpoints for each account\\n    mapping(address => uint32) public numCheckpoints;\\n\\n    /// @notice Tracks pending withdrawals for all users for a particular reward token and pool id\\n    mapping(address => mapping(uint256 => uint256)) internal totalPendingWithdrawals;\\n\\n    /// @notice pause indicator for Vault\\n    bool public vaultPaused;\\n\\n    /// @notice if the token is added to any of the pools\\n    mapping(address => bool) public isStakedToken;\\n\\n    /// @notice Amount we owe to users because of failed transfer attempts\\n    mapping(address => mapping(address => uint256)) public pendingRewardTransfers;\\n\\n    /// @notice Prime token contract address\\n    IPrime public primeToken;\\n\\n    /// @notice Reward token for which prime token is issued for staking\\n    address public primeRewardToken;\\n\\n    /// @notice Pool ID for which prime token is issued for staking\\n    uint256 public primePoolId;\\n\\n    /**\\n     * @dev This empty reserved space is put in place to allow future versions to add new\\n     * variables without shifting down storage in the inheritance chain.\\n     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps\\n     */\\n    uint256[46] private __gap;\\n}\\n\",\"keccak256\":\"0x6389c160d86eab54ce1a8a5138c39f38d858381b7d8881d146cd937feab3dac9\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b50600080546001600160a01b031916331790556105c3806100326000396000f3fe60806040526004361061007b5760003560e01c8063de0368b21161004e578063de0368b21461019e578063e992a041146101b3578063e9c714f2146101e6578063f851a440146101fb5761007b565b806326782247146100fe5780635c60da1b1461012f578063b71d1a0c14610144578063c1e8033414610189575b6002546040516000916001600160a01b031690829036908083838082843760405192019450600093509091505080830381855af49150503d80600081146100de576040519150601f19603f3d011682016040523d82523d6000602084013e6100e3565b606091505b505090506040513d6000823e8180156100fa573d82f35b3d82fd5b34801561010a57600080fd5b50610113610210565b604080516001600160a01b039092168252519081900360200190f35b34801561013b57600080fd5b5061011361021f565b34801561015057600080fd5b506101776004803603602081101561016757600080fd5b50356001600160a01b031661022e565b60408051918252519081900360200190f35b34801561019557600080fd5b506101776102bf565b3480156101aa57600080fd5b506101136103a4565b3480156101bf57600080fd5b50610177600480360360208110156101d657600080fd5b50356001600160a01b03166103b3565b3480156101f257600080fd5b50610177610437565b34801561020757600080fd5b50610113610512565b6001546001600160a01b031681565b6002546001600160a01b031681565b600080546001600160a01b031633146102545761024d60016002610521565b90506102ba565b600180546001600160a01b038481166001600160a01b0319831681179093556040805191909216808252602082019390935281517fca4f2f25d0898edd99413412fb94012f9e54ec8142f9b093e7720646a95b16a9929181900390910190a160005b9150505b919050565b6003546000906001600160a01b031633146102e6576102df600180610521565b90506103a1565b60028054600380546001600160a01b038082166001600160a01b031980861682179687905590921690925560408051938316808552949092166020840152815190927fd604de94d45953f9138079ec1b82d533cb2160c906d1076d1f7ed54befbca97a92908290030190a1600354604080516001600160a01b038085168252909216602083015280517fe945ccee5d701fc83f9b8aa8ca94ea4219ec1fcbd4f4cab4f0ea57c5c3e1d8159281900390910190a160005b925050505b90565b6003546001600160a01b031681565b600080546001600160a01b031633146103d25761024d60016003610521565b600380546001600160a01b038481166001600160a01b0319831617928390556040805192821680845293909116602083015280517fe945ccee5d701fc83f9b8aa8ca94ea4219ec1fcbd4f4cab4f0ea57c5c3e1d8159281900390910190a160006102b6565b6001546000906001600160a01b03163314610458576102df60016000610521565b60008054600180546001600160a01b038082166001600160a01b031980861682179687905590921690925560408051938316808552949092166020840152815190927ff9ffabca9c8276e99321725bcb43fb076a6c66a54b7f21c4e8146d8519b417dc92908290030190a1600154604080516001600160a01b038085168252909216602083015280517fca4f2f25d0898edd99413412fb94012f9e54ec8142f9b093e7720646a95b16a99281900390910190a1600061039c565b6000546001600160a01b031681565b60007f45b96fe442630264581b197e84bbada861235052c5a1aadfff9ea4e40a969aa083600181111561055057fe5b83600381111561055c57fe5b604080519283526020830191909152600082820152519081900360600190a182600181111561058757fe5b939250505056fea265627a7a72315820b624cbf23324e9ace81c832c4ca747dad23bb3d19397c621f67a7f6979a52b2a64736f6c63430005100032",
+  "deployedBytecode": "0x60806040526004361061007b5760003560e01c8063de0368b21161004e578063de0368b21461019e578063e992a041146101b3578063e9c714f2146101e6578063f851a440146101fb5761007b565b806326782247146100fe5780635c60da1b1461012f578063b71d1a0c14610144578063c1e8033414610189575b6002546040516000916001600160a01b031690829036908083838082843760405192019450600093509091505080830381855af49150503d80600081146100de576040519150601f19603f3d011682016040523d82523d6000602084013e6100e3565b606091505b505090506040513d6000823e8180156100fa573d82f35b3d82fd5b34801561010a57600080fd5b50610113610210565b604080516001600160a01b039092168252519081900360200190f35b34801561013b57600080fd5b5061011361021f565b34801561015057600080fd5b506101776004803603602081101561016757600080fd5b50356001600160a01b031661022e565b60408051918252519081900360200190f35b34801561019557600080fd5b506101776102bf565b3480156101aa57600080fd5b506101136103a4565b3480156101bf57600080fd5b50610177600480360360208110156101d657600080fd5b50356001600160a01b03166103b3565b3480156101f257600080fd5b50610177610437565b34801561020757600080fd5b50610113610512565b6001546001600160a01b031681565b6002546001600160a01b031681565b600080546001600160a01b031633146102545761024d60016002610521565b90506102ba565b600180546001600160a01b038481166001600160a01b0319831681179093556040805191909216808252602082019390935281517fca4f2f25d0898edd99413412fb94012f9e54ec8142f9b093e7720646a95b16a9929181900390910190a160005b9150505b919050565b6003546000906001600160a01b031633146102e6576102df600180610521565b90506103a1565b60028054600380546001600160a01b038082166001600160a01b031980861682179687905590921690925560408051938316808552949092166020840152815190927fd604de94d45953f9138079ec1b82d533cb2160c906d1076d1f7ed54befbca97a92908290030190a1600354604080516001600160a01b038085168252909216602083015280517fe945ccee5d701fc83f9b8aa8ca94ea4219ec1fcbd4f4cab4f0ea57c5c3e1d8159281900390910190a160005b925050505b90565b6003546001600160a01b031681565b600080546001600160a01b031633146103d25761024d60016003610521565b600380546001600160a01b038481166001600160a01b0319831617928390556040805192821680845293909116602083015280517fe945ccee5d701fc83f9b8aa8ca94ea4219ec1fcbd4f4cab4f0ea57c5c3e1d8159281900390910190a160006102b6565b6001546000906001600160a01b03163314610458576102df60016000610521565b60008054600180546001600160a01b038082166001600160a01b031980861682179687905590921690925560408051938316808552949092166020840152815190927ff9ffabca9c8276e99321725bcb43fb076a6c66a54b7f21c4e8146d8519b417dc92908290030190a1600154604080516001600160a01b038085168252909216602083015280517fca4f2f25d0898edd99413412fb94012f9e54ec8142f9b093e7720646a95b16a99281900390910190a1600061039c565b6000546001600160a01b031681565b60007f45b96fe442630264581b197e84bbada861235052c5a1aadfff9ea4e40a969aa083600181111561055057fe5b83600381111561055c57fe5b604080519283526020830191909152600082820152519081900360600190a182600181111561058757fe5b939250505056fea265627a7a72315820b624cbf23324e9ace81c832c4ca747dad23bb3d19397c621f67a7f6979a52b2a64736f6c63430005100032",
+  "devdoc": {
+    "author": "Venus",
+    "methods": {
+      "_acceptAdmin()": {
+        "details": "Admin function for pending admin to accept role and update admin",
+        "return": "uint 0=success, otherwise a failure (see ErrorReporter.sol for details)"
+      },
+      "_acceptImplementation()": {
+        "details": "Admin function for new implementation to accept it's role as implementation",
+        "return": "uint 0=success, otherwise a failure (see ErrorReporter.sol for details)"
+      },
+      "_setPendingAdmin(address)": {
+        "details": "Admin function to begin change of admin. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer.",
+        "params": {
+          "newPendingAdmin": "New pending admin."
+        },
+        "return": "uint 0=success, otherwise a failure (see ErrorReporter.sol for details)"
+      }
+    },
+    "title": "XVS Vault Proxy"
+  },
+  "userdoc": {
+    "methods": {
+      "_acceptAdmin()": {
+        "notice": "Accepts transfer of admin rights. msg.sender must be pendingAdmin"
+      },
+      "_acceptImplementation()": {
+        "notice": "Accepts new implementation of XVS Vault. msg.sender must be pendingImplementation"
+      },
+      "_setPendingAdmin(address)": {
+        "notice": "Begins transfer of admin rights. The newPendingAdmin must call `_acceptAdmin` to finalize the transfer."
+      },
+      "_setPendingImplementation(address)": {
+        "notice": "* Admin Functions **"
+      }
+    },
+    "notice": "XVS Vault Proxy contract"
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 33890,
+        "contract": "contracts/XVSVault/XVSVaultProxy.sol:XVSVaultProxy",
+        "label": "admin",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 33892,
+        "contract": "contracts/XVSVault/XVSVaultProxy.sol:XVSVaultProxy",
+        "label": "pendingAdmin",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 33894,
+        "contract": "contracts/XVSVault/XVSVaultProxy.sol:XVSVaultProxy",
+        "label": "implementation",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_address"
+      },
+      {
+        "astId": 33896,
+        "contract": "contracts/XVSVault/XVSVaultProxy.sol:XVSVaultProxy",
+        "label": "pendingXVSVaultImplementation",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_address"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    }
+  }
+}
