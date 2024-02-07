@@ -281,24 +281,24 @@ const config: HardhatUserConfig = {
 function isFork() {
   return process.env.FORK === "true"
     ? {
-      allowUnlimitedContractSize: false,
-      loggingEnabled: false,
-      forking: {
-        url:
-          process.env[`ARCHIVE_NODE_${process.env.FORKED_NETWORK}`] ||
-          "https://data-seed-prebsc-1-s1.binance.org:8545",
-        blockNumber: 21068448,
-      },
-      accounts: {
-        accountsBalance: "1000000000000000000",
-      },
-      live: false,
-    }
+        allowUnlimitedContractSize: false,
+        loggingEnabled: false,
+        forking: {
+          url:
+            process.env[`ARCHIVE_NODE_${process.env.FORKED_NETWORK}`] ||
+            "https://data-seed-prebsc-1-s1.binance.org:8545",
+          blockNumber: 21068448,
+        },
+        accounts: {
+          accountsBalance: "1000000000000000000",
+        },
+        live: false,
+      }
     : {
-      allowUnlimitedContractSize: true,
-      loggingEnabled: false,
-      live: false,
-    };
+        allowUnlimitedContractSize: true,
+        loggingEnabled: false,
+        live: false,
+      };
 }
 
 export default config;
