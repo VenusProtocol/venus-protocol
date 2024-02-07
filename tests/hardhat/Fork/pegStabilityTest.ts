@@ -4,8 +4,8 @@ import { BigNumber } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
+import Mainnet from "../../../deployments/bscmainnet.json";
 import { convertToUnit } from "../../../helpers/utils";
-import { Contracts } from "../../../networks/mainnet.json";
 import {
   FaucetToken,
   FaucetToken__factory,
@@ -39,12 +39,12 @@ const MANTISSA_ONE = parseUnits("1", 18);
 const psmConfigs = [
   {
     stableTokenName: "USDT",
-    stableTokenAddress: Contracts.USDT,
+    stableTokenAddress: Mainnet.contracts.USDT.address,
     tokenHolder: USDT_HOLDER,
   },
   {
     stableTokenName: "USDC",
-    stableTokenAddress: Contracts.USDC,
+    stableTokenAddress: Mainnet.contracts.USDC,
     tokenHolder: USDC_HOLDER,
   },
 ];
@@ -65,7 +65,7 @@ async function deployPegStability(stableToken: string): Promise<PegStability> {
     psmFactory,
     [acmAddress, venusTreasury, resilientOracle, feeIn, feeOut, vaiMintCap],
     {
-      constructorArgs: [stableToken, Contracts.VAI],
+      constructorArgs: [stableToken, Mainnet.contracts.VAI],
     },
   );
   await psm.deployed();
@@ -76,7 +76,7 @@ async function deployPegStability(stableToken: string): Promise<PegStability> {
 // * Flow Validation Functions *
 // *****************************
 async function validateInitialization(psm: PegStability, stableToken: string) {
-  expect(await psm.VAI()).to.equal(Contracts.VAI);
+  expect(await psm.VAI()).to.equal(Mainnet.contracts.VAI);
   expect((await psm.STABLE_TOKEN_ADDRESS()).toLocaleLowerCase()).to.equal(stableToken.toLocaleLowerCase());
   expect((await psm.venusTreasury()).toLocaleLowerCase()).to.equal(venusTreasury);
   expect(await psm.oracle()).to.equal(resilientOracle);
@@ -129,7 +129,7 @@ async function swapVAIForStableAndValidate(
 
 async function validateReInitialization(psm: PegStability) {
   await expect(
-    psm.initialize(acmAddress, venusTreasury, Contracts.Unitroller, feeIn, feeOut, vaiMintCap),
+    psm.initialize(acmAddress, venusTreasury, Mainnet.contracts.Unitroller, feeIn, feeOut, vaiMintCap),
   ).to.be.rejectedWith("Initializable: contract is already initialized");
 }
 
@@ -157,8 +157,8 @@ if (FORK_MAINNET) {
           tokenSigner = await initMainnetUser(tokenHolder, ethers.utils.parseEther("2"));
           vaiSigner = await initMainnetUser(VAI_HOLDER, ethers.utils.parseEther("2"));
           stableToken = FaucetToken__factory.connect(stableTokenAddress, tokenSigner);
-          vaiAdmin = await initMainnetUser(Contracts.Timelock, ethers.utils.parseEther("2"));
-          VAI = VAI__factory.connect(Contracts.VAI, vaiAdmin);
+          vaiAdmin = await initMainnetUser(Mainnet.contracts.Timelock, ethers.utils.parseEther("2"));
+          VAI = VAI__factory.connect(Mainnet.contracts.VAI, vaiAdmin);
           oracle = ResilientOracleInterface__factory.connect(resilientOracle, defaultSigner);
           stableTokenPrice = await oracle.getPrice(stableTokenAddress);
           console.log(`Stable Token Price`);

@@ -7,7 +7,7 @@ import { ethers, upgrades } from "hardhat";
 
 import { convertToBigInt, convertToUnit } from "../../../helpers/utils";
 import {
-  Comptroller,
+  ComptrollerMock,
   FaucetToken,
   FaucetToken__factory,
   IAccessControlManager,
@@ -33,7 +33,7 @@ const treasuryShare = 181n; // seizeTokens * treasuryPercent / announcedIncentiv
 const liquidatorShare = seizeTokens - treasuryShare;
 
 type LiquidatorFixture = {
-  comptroller: FakeContract<Comptroller>;
+  comptroller: FakeContract<ComptrollerMock>;
   borrowedUnderlying: MockContract<FaucetToken>;
   vai: MockContract<FaucetToken>;
   vaiController: FakeContract<VAIController>;
@@ -46,7 +46,7 @@ type LiquidatorFixture = {
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
-  const comptroller = await smock.fake<Comptroller>("Comptroller");
+  const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
   const borrowedUnderlying = await FaucetToken.deploy(convertToBigInt("100", 18), "USD", 18, "USD");
@@ -167,7 +167,7 @@ describe("Liquidator", () => {
           repayAmount,
           vTokenCollateral.address,
         );
-        await expect(tx).to.be.revertedWithCustomError(liquidatorContract, "UnexpectedZeroAddress");
+        await expect(tx).to.be.revertedWithCustomError(liquidatorContract, "ZeroAddressNotAllowed");
       });
 
       it("fails if some BNB is sent along with the transaction", async () => {

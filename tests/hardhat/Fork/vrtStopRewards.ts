@@ -8,7 +8,7 @@ import { convertToUnit } from "../../../helpers/utils";
 import { VRT, VRTVault, VRTVaultProxy, VRTVault__factory } from "../../../typechain";
 import { forking } from "./utils";
 
-const FORK_MAINNET = process.env.FORK_MAINNET === "true";
+const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
 
 const TWO_ETHER = ethers.utils.parseEther("2");
 // Address of the vault proxy

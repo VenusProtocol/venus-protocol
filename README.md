@@ -1,14 +1,16 @@
-[![GitHub Actions](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml/badge.svg)](https://github.com/VenusProtocol/venus-protocol/actions/workflows/venus-protocol.yml)
+[![GitHub Actions](https://github.com/VenusProtocol/venus-protocol/actions/workflows/cd.yml/badge.svg)](https://github.com/VenusProtocol/venus-protocol/actions/workflows/cd.yml) [![GitHub Actions](https://github.com/VenusProtocol/venus-protocol/actions/workflows/ci.yml/badge.svg)](https://github.com/VenusProtocol/venus-protocol/actions/workflows/ci.yml)
 
 # Venus Protocol
 
-The Venus Protocol is an Binance Smart Chain smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain _supply_ capital (BNB or BEP-20 tokens) to receive vTokens or _borrow_ assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers.
+The Venus Protocol is a BNB Chain collection of smart contract for supplying or borrowing assets. Through the vToken contracts, accounts on the blockchain _supply_ capital (BNB or BEP-20 tokens) to receive vTokens or _borrow_ assets from the protocol (holding other assets as collateral). The protocol will also enable the minting of VAI, which is the first synthetic stablecoin on Venus that aims to be pegged to 1 USD. VAI is minted by the same collateral that is supplied to the protocol. The Venus vToken contracts track these balances and algorithmically set interest rates for borrowers and suppliers.
 
 Before getting started with this repo, please read:
 
-- [Venus Whitepaper](https://github.com/VenusProtocol/venus-protocol/tree/master/docs/VenusWhitepaper.pdf)
+- [Venus Whitepaper](https://github.com/VenusProtocol/venus-protocol/tree/main/docs/VenusWhitepaper.pdf)
 
 Interested in contributing? Please checkout our [contributing guidelines](./docs/CONTRIBUTING.md)
+
+[Isolated pool](https://github.com/VenusProtocol/isolated-pools) is the updated version of the Venus protocol. The Venus "Core Pool" uses the codebase in this repository. On the other hand, Isolated pools use the codebase in the [isolated-pools](https://github.com/VenusProtocol/isolated-pools) repository.
 
 # Contracts
 
@@ -16,12 +18,12 @@ We detail a few of the core contracts in the Venus protocol.
 
 <dl>
   <dt>VToken, VBep20 and VBNB</dt>
-  <dd>The Venus vTokens, which are self-contained borrowing and lending contracts. VToken contains the core logic and VBep20, VBUSD, VSXP and VBNB add public interfaces for Bep20 tokens and bnb, respectively. Each VToken is assigned an interest rate and risk model (see InterestRateModel and Comptroller sections), and allows accounts to *mint* (supply capital), *redeem* (withdraw capital), *borrow* and *repay a borrow*. Each VToken is an BEP-20 compliant token where balances represent ownership of the market.</dd>
+  <dd>The Venus vTokens, which are self-contained borrowing and lending contracts. VToken contains the core logic and VBep20, VBUSD, and VBNB add public interfaces for BEP-20 tokens and bnb, respectively. Each VToken is assigned an interest rate and risk model (see InterestRateModel and Comptroller sections), and allows accounts to *mint* (supply capital), *redeem* (withdraw capital), *borrow* and *repay a borrow*. Each VToken is an BEP-20 compliant token where balances represent ownership of the market.</dd>
 </dl>
 
 <dl>
-  <dt>Comptroller</dt>
-  <dd>The risk model contract, which validates permissible user actions and disallows actions if they do not fit certain risk parameters. For instance, the Comptroller enforces that each borrowing user must maintain a sufficient collateral balance across all vTokens.</dd>
+  <dt>Diamond Comptroller</dt>
+  <dd>The risk model contract, which validates permissible user actions and disallows actions if they do not fit certain risk parameters. For instance, the Comptroller enforces that each borrowing user must maintain a sufficient collateral balance across all vTokens. The Comptroller is implemented as a Diamond proxy with several facets (MarketFacet, PolicyFacet, RewardFacet, SetterFacet) corresponding to the particular parts of the Comptroller functionality.</dd>
 </dl>
 
 <dl>
@@ -30,17 +32,12 @@ We detail a few of the core contracts in the Venus protocol.
 </dl>
 
 <dl>
-  <dt>SXP</dt>
-  <dd>The Venus Governance Token (SXP). Holders of this token have the ability to govern the protocol via the governor contract.</dd>
+  <dt>Governor Bravo</dt>
+  <dd>The administrator of the Venus Timelock contracts. Holders of XVS token who have locked their tokens in XVSVault may create and vote on proposals which will be queued into the Venus Timelock and then have effects on other Venus contracts.</dd>
 </dl>
 
 <dl>
-  <dt>Governor Alpha</dt>
-  <dd>The administrator of the Venus timelock contract. Holders of XVS(SXP) token may create and vote on proposals which will be queued into the Venus timelock and then have effects on Venus vToken and Comptroller contracts. This contract may be replaced in the future with a beta version.</dd>
-</dl>
-
-<dl>
-  <dt>InterestRateModel</dt>
+  <dt>InterestRateModel, JumpRateModel, WhitepaperInterestRateModel</dt>
   <dd>Contracts which define interest rate models. These models algorithmically determine interest rates based on the current utilization of a given market (that is, how much of the supplied assets are liquid versus borrowed).</dd>
 </dl>
 
@@ -59,20 +56,11 @@ We detail a few of the core contracts in the Venus protocol.
   <dd>Library for handling fixed-point decimal numbers.</dd>
 </dl>
 
-<dl>
-  <dt>SafeToken</dt>
-  <dd>Library for safely handling Bep20 interaction.</dd>
-</dl>
-
-<dl>
-  <dt>WhitePaperInterestRateModel</dt>
-  <dd>Initial interest rate model, as defined in the Whitepaper. This contract accepts a base rate and slope parameter in its constructor.</dd>
-</dl>
-
 ### Documentation
 
-Documentation is autogenerated using [solidity-docgen](https://github.com/OpenZeppelin/solidity-docgen).
-They can be generated by running `yarn docgen`
+- Public documentation site: https://docs.venus.io, including autogernated documentation, guides, addresses of the deployment contracts and more content.
+- Documentation autogenerated using [solidity-docgen](https://github.com/OpenZeppelin/solidity-docgen).
+- To generate the documentation from the natspec comments embedded in the contracts, use `yarn docgen`
 
 ## Installation
 
@@ -82,76 +70,27 @@ To run venus, pull the repository from GitHub and install its dependencies. You 
     cd venus-protocol
     yarn install --lock-file # or `npm install`
 
-## Solidity Compiler Installation on MacOS
-
-- Solidity smart contracts in venus-protocol use `solc` version 0.5.16
-
-- To install solidity compiler `solc`, follow the instructions listed here:
-
-  1. clone `homebrew-ethereum` project that provides homebrew formulae for `solc`:
-
-  ```sh
-  git clone git@github.com:ethereum/homebrew-ethereum.git
-  ```
-
-  2. change to project directory
-
-  ```sh
-    cd homebrew-ethereum
-  ```
-
-  3. checkout the commit hash for version 0.5.16
-
-  ```sh
-    git checkout 5df4d76a780813a0ad625619572afb358d46c1d4
-  ```
-
-  4. Install compiler version 0.5.16 by executing command
-
-  ```sh
-    brew install solidity@5
-  ```
-
-  5. Verify the installed solidity version
-
-  ```sh
-    solc --version
-  ```
-
-  - the command should print the console log:
-
-  ```
-  solc, the solidity compiler commandline interface
-  Version: 0.5.16+commit.9c3226ce.Darwin.appleclang
-  ```
-
 ## Testing
 
-Jest contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
+Contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/main/tests). To run the tests run:
+
+```
 
     yarn test
 
-## Integration Specs
+```
 
-There are additional tests under the [spec/scenario](https://github.com/VenusProtocol/venus-protocol/tree/master/spec/scenario) folder. These are high-level integration tests based on the scenario runner depicted above. The aim of these tests is to be highly literate and have high coverage in the interaction of contracts.
-
-## Formal Verification Specs
-
-The Venus Protocol has a number of formal verification specifications, powered by [Certik](https://certik.foundation/projects/swipe). The Certik Verification evaluates smart contracts for vulnerabilities and certifies their behavior with respect to a custom function specification.
-
-## Testing
-
-Contract tests are defined under the [tests directory](https://github.com/VenusProtocol/venus-protocol/tree/master/tests). To run the tests run:
-
-    yarn test
-
-- To run fork tests add `FORK_MAINNET=true` and `BSC_ARCHIVE_NODE_URL `in the `.env` file.
+- To run fork tests add `FORK=true`, `FORKED_NETWORK` and one `ARCHIVE_NODE` var in the `.env` file.
 
 ## Code Coverage
 
 To run code coverage, run:
 
-    npx hardhat coverage
+```
+
+npx hardhat coverage
+
+```
 
 ## Deployment
 
@@ -168,6 +107,16 @@ npx hardhat deploy
   - In the deployment scripts you have added `tags` for example: - `func.tags = ["MockTokens"];`
   - Once this is done, adding `--tags "<tag_name>,<tag_name>..."` to the deployment command will execute only the scripts containing the tags.
 
+### Deployed Contracts
+
+Contract addresses deployed before `hardhat-deploy` was adopted are available in the `networking` directory in JSON files by network name.
+
+Contract addresses and abis deployed with hardhat deploy are exported in the `deployments` directory. To create a summary export of all contracts deployed to a network run.
+
+```
+$ yarn hardhat --network <network-name> --export ./deployments/<network-name>.json
+```
+
 ### Source Code Verification
 
 In order to verify the source code of already deployed contracts, run:
@@ -179,10 +128,19 @@ Make sure you have added `ETHERSCAN_API_KEY` in `.env` file.
 
 To lint the code, run:
 
-    yarn lint
+```
+
+yarn lint
+
+```
 
 To format the code, run:
+
+```
+
 yarn prettier
+
+```
 
 ## Hardhat Commands
 
@@ -206,21 +164,20 @@ npx hardhat coverage
 
 TS_NODE_FILES=true npx ts-node scripts/deploy.ts
 
-npx eslint '**/*.{js,ts}'
+npx eslint '\*_/_.{js,ts}'
 
-npx eslint '**/*.{js,ts}' --fix
+npx eslint '\*_/_.{js,ts}' --fix
 
-npx prettier '**/*.{json,sol,md}' --check
+npx prettier '\*_/_.{json,sol,md}' --check
 
-npx prettier '**/*.{json,sol,md}' --write
+npx prettier '\*_/_.{json,sol,md}' --write
 
-npx solhint 'contracts/**/*.sol'
+npx solhint 'contracts/\*_/_.sol'
 
-npx solhint 'contracts/**/*.sol' --fix
-
-
+npx solhint 'contracts/\*_/_.sol' --fix
 
 MNEMONIC="<>" BSC_API_KEY="<>" npx hardhat run ./script/hardhat/deploy.ts --network testnet
+
 ```
 
 ## Discussion
@@ -229,4 +186,4 @@ For any concerns with the protocol, open an issue or visit us on [Telegram](http
 
 For security concerns, please contact the administrators of our telegram chat.
 
-© Copyright 2021, Venus Protocol
+© Copyright 2023, Venus Protocol

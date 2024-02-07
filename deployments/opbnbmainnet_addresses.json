@@ -1,0 +1,7 @@
+{
+  "name": "opbnbmainnet",
+  "chainId": "204",
+  "addresses": {
+    "VTreasuryV8": "0xDDc9017F3073aa53a4A8535163b0bf7311F72C52"
+  }
+}

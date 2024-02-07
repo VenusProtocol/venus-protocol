@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import { Comptroller } from "../../Comptroller/Comptroller.sol";
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 
 contract VAIUnitrollerAdminStorage {
     /**
@@ -25,7 +25,7 @@ contract VAIUnitrollerAdminStorage {
 }
 
 contract VAIControllerStorageG1 is VAIUnitrollerAdminStorage {
-    Comptroller public comptroller;
+    ComptrollerInterface public comptroller;
 
     struct VenusVAIState {
         /// @notice The last updated venusVAIMintIndex
@@ -83,4 +83,17 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
 
     /// @notice Access control manager address
     address public accessControl;
+}
+
+contract VAIControllerStorageG3 is VAIControllerStorageG2 {
+    /// @notice The address of the prime contract. It can be a ZERO address
+    address public prime;
+
+    /// @notice Tracks if minting is enabled only for prime token holders. Only used if prime is set
+    bool public mintEnabledOnlyForPrimeHolder;
+}
+
+contract VAIControllerStorageG4 is VAIControllerStorageG3 {
+    /// @notice The address of the VAI token
+    address internal vai;
 }

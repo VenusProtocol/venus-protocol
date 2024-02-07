@@ -1,19 +1,7 @@
-import { Address, DeployFunction } from "hardhat-deploy/types";
+import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { Contracts as Mainnet } from "../networks/mainnet.json";
-import { Contracts as Testnet } from "../networks/testnet.json";
-
-interface AddressConfig {
-  [key: string]: {
-    [key: string]: Address;
-  };
-}
-
-const ADDRESSES: AddressConfig = {
-  bsctestnet: Testnet,
-  bscmainnet: Mainnet,
-};
+import ADDRESSES from "../helpers/address";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
@@ -22,18 +10,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
 
-  const USDTAddress = ADDRESSES[networkName].USDT;
-  const VAIAddress = ADDRESSES[networkName].VAI;
+  const { usdt: usdtAddress, vai: vaiAddress, normalVipTimelock: timelockAddress } = ADDRESSES[networkName];
 
   await catchUnknownSigner(
     deploy("PegStability_USDT", {
       contract: "PegStability",
       from: deployer,
-      args: [USDTAddress, VAIAddress],
+      args: [usdtAddress, vaiAddress],
       log: true,
       autoMine: true,
       proxy: {
-        owner: ADDRESSES[networkName].Timelock,
+        owner: timelockAddress,
         proxyContract: "OpenZeppelinTransparentProxy",
       },
     }),

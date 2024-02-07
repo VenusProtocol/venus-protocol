@@ -1,9 +1,10 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../Tokens/VTokens/VToken.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import "../Utils/SafeMath.sol";
-import "../Comptroller/Comptroller.sol";
+import "../Comptroller/ComptrollerInterface.sol";
 import "../Tokens/EIP20Interface.sol";
 import "../Tokens/VTokens/VBep20.sol";
 
@@ -55,7 +56,7 @@ contract SnapshotLens is ExponentialNoError {
         address comptrollerAddress
     ) public returns (AccountSnapshot[] memory) {
         // For each asset the account is in
-        VToken[] memory assets = Comptroller(comptrollerAddress).getAllMarkets();
+        VToken[] memory assets = ComptrollerInterface(comptrollerAddress).getAllMarkets();
         AccountSnapshot[] memory accountSnapshots = new AccountSnapshot[](assets.length);
         for (uint256 i = 0; i < assets.length; ++i) {
             accountSnapshots[i] = getAccountSnapshot(account, comptrollerAddress, assets[i]);
@@ -64,7 +65,7 @@ contract SnapshotLens is ExponentialNoError {
     }
 
     function isACollateral(address account, address asset, address comptrollerAddress) public view returns (bool) {
-        VToken[] memory assetsAsCollateral = Comptroller(comptrollerAddress).getAssetsIn(account);
+        VToken[] memory assetsAsCollateral = ComptrollerInterface(comptrollerAddress).getAssetsIn(account);
         for (uint256 j = 0; j < assetsAsCollateral.length; ++j) {
             if (address(assetsAsCollateral[j]) == asset) {
                 return true;
@@ -87,13 +88,11 @@ contract SnapshotLens is ExponentialNoError {
         require(oErr == 0, "Snapshot Error");
         vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
-        Comptroller comptrollerInstance = Comptroller(comptrollerAddress);
-
-        (, uint collateralFactorMantissa, ) = comptrollerInstance.markets(address(vToken));
+        (, uint collateralFactorMantissa) = ComptrollerInterface(comptrollerAddress).markets(address(vToken));
         vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
 
         // Get the normalized price of the asset
-        vars.oraclePriceMantissa = comptrollerInstance.oracle().getUnderlyingPrice(vToken);
+        vars.oraclePriceMantissa = ComptrollerInterface(comptrollerAddress).oracle().getUnderlyingPrice(vToken);
         vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
 
         // Pre-compute a conversion factor from tokens -> bnb (normalized price value)

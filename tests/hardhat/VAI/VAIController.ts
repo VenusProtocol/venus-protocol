@@ -1,14 +1,16 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Wallet, constants } from "ethers";
 import { ethers } from "hardhat";
 
 import {
-  Comptroller,
   ComptrollerLens__factory,
-  Comptroller__factory,
-  IAccessControlManager,
+  ComptrollerMock,
+  ComptrollerMock__factory,
+  IAccessControlManagerV5,
+  IProtocolShareReserve,
+  PrimeScenario__factory,
   VAIControllerHarness__factory,
 } from "../../../typechain";
 import { SimplePriceOracle } from "../../../typechain";
@@ -30,8 +32,8 @@ const BLOCKS_PER_YEAR = 1000;
 
 interface ComptrollerFixture {
   usdt: BEP20Harness;
-  accessControl: FakeContract<IAccessControlManager>;
-  comptroller: MockContract<Comptroller>;
+  accessControl: FakeContract<IAccessControlManagerV5>;
+  comptroller: MockContract<ComptrollerMock>;
   priceOracle: SimplePriceOracle;
   vai: VAIScenario;
   vaiController: MockContract<VAIControllerHarness>;
@@ -44,13 +46,14 @@ describe("VAIController", async () => {
   let wallet: Wallet;
   let treasuryGuardian: Wallet;
   let treasuryAddress: Wallet;
-  let accessControl: FakeContract<IAccessControlManager>;
-  let comptroller: MockContract<Comptroller>;
+  let accessControl: FakeContract<IAccessControlManagerV5>;
+  let comptroller: MockContract<ComptrollerMock>;
   let priceOracle: SimplePriceOracle;
   let vai: VAIScenario;
   let vaiController: MockContract<VAIControllerHarness>;
   let usdt: BEP20Harness;
   let vusdt: VBep20Harness;
+  let protocolShareReserve: FakeContract<IProtocolShareReserve>;
 
   before("get signers", async () => {
     [wallet, user1, user2, treasuryGuardian, treasuryAddress] = await (ethers as any).getSigners();
@@ -65,10 +68,15 @@ describe("VAIController", async () => {
       "BEP20 usdt",
     )) as BEP20Harness;
 
-    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+    const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
     accessControl.isAllowedToCall.returns(true);
 
-    const ComptrollerFactory = await smock.mock<Comptroller__factory>("Comptroller");
+    protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserveV5",
+    );
+    protocolShareReserve.updateAssetsState.returns(true);
+
+    const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
     const comptroller = await ComptrollerFactory.deploy();
 
     const priceOracleFactory = await ethers.getContractFactory("SimplePriceOracle");
@@ -88,7 +96,6 @@ describe("VAIController", async () => {
 
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setVAIController(vaiController.address);
@@ -126,11 +133,12 @@ describe("VAIController", async () => {
       BigNumber.from(18),
       wallet.address,
     )) as VBep20Harness;
+
     await priceOracle.setUnderlyingPrice(vusdt.address, bigNumber18);
     await priceOracle.setDirectPrice(vai.address, bigNumber18);
     await comptroller._supportMarket(vusdt.address);
     await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(5));
-
+    await vusdt.setProtocolShareReserve(protocolShareReserve.address);
     return { usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt };
   }
 
@@ -140,6 +148,8 @@ describe("VAIController", async () => {
     ));
     accessControl.isAllowedToCall.reset();
     accessControl.isAllowedToCall.returns(true);
+    await vusdt.setAccessControlManager(accessControl.address);
+    await vusdt.setReduceReservesBlockDelta(10000000000);
     await vusdt.harnessSetBalance(user1.address, bigNumber18.mul(200));
     await comptroller.connect(user1).enterMarkets([vusdt.address]);
   });
@@ -277,8 +287,9 @@ describe("VAIController", async () => {
 
     it("success for zero rate 0.2 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
-      await vaiController.harnessSetBlockNumber(BigNumber.from(100000));
+      await vaiController.harnessSetBlockNumber(BigNumber.from(100000000));
       await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
+      await mineUpTo(99999999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
       expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
@@ -287,14 +298,14 @@ describe("VAIController", async () => {
     it("success for 1.2 rate 0.3 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
 
-      const TEMP_BLOCKS_PER_YEAR = 100000;
+      const TEMP_BLOCKS_PER_YEAR = 100000000;
       await vaiController.setBlocksPerYear(TEMP_BLOCKS_PER_YEAR);
 
       await vaiController.setBaseRate(bigNumber17.mul(2));
       await vaiController.harnessSetBlockNumber(BigNumber.from(TEMP_BLOCKS_PER_YEAR));
 
       await comptroller._setCollateralFactor(vusdt.address, bigNumber17.mul(3));
-
+      await mineUpTo(99999999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
       expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(50));
@@ -536,9 +547,7 @@ describe("VAIController", async () => {
     });
 
     it("emits NewAccessControl event", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>(
-        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-      );
+      const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
       const tx = await vaiController.setAccessControl(newAccessControl.address);
       await expect(tx)
         .to.emit(vaiController, "NewAccessControl")
@@ -546,11 +555,43 @@ describe("VAIController", async () => {
     });
 
     it("sets ACM address in storage", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManager>(
-        "contracts/Governance/IAccessControlManager.sol:IAccessControlManager",
-      );
+      const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
       await vaiController.setAccessControl(newAccessControl.address);
       expect(await vaiController.getVariable("accessControl")).to.equal(newAccessControl.address);
+    });
+  });
+
+  describe("#prime", async () => {
+    it("prime integration", async () => {
+      const PrimeScenarioFactory = await smock.mock<PrimeScenario__factory>("PrimeScenario");
+      const primeScenario = await PrimeScenarioFactory.deploy(
+        wallet.address,
+        wallet.address,
+        100,
+        100,
+        100,
+        100,
+        false,
+      );
+
+      expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("100000000000000000000");
+      await primeScenario.mintForUser(user1.address);
+
+      expect(await vaiController.mintEnabledOnlyForPrimeHolder()).to.be.equal(false);
+      expect(await vaiController.prime()).to.be.equal(constants.AddressZero);
+      expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("100000000000000000000");
+
+      expect(await primeScenario.isUserPrimeHolder(user1.address)).to.be.equal(true);
+      await vaiController.setPrimeToken(primeScenario.address);
+      expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("100000000000000000000");
+
+      expect(await vaiController.mintEnabledOnlyForPrimeHolder()).to.be.equal(false);
+      await vaiController.toggleOnlyPrimeHolderMint();
+      expect(await vaiController.mintEnabledOnlyForPrimeHolder()).to.be.equal(true);
+      expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("100000000000000000000");
+
+      await primeScenario.burnForUser(user1.address);
+      expect((await vaiController.getMintableVAI(user1.address))[1]).to.be.equal("0");
     });
   });
 });

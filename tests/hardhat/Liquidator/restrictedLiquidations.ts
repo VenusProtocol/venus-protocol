@@ -6,7 +6,7 @@ import { ethers, upgrades } from "hardhat";
 
 import { convertToBigInt } from "../../../helpers/utils";
 import {
-  Comptroller,
+  ComptrollerMock,
   IAccessControlManager,
   IProtocolShareReserve,
   Liquidator,
@@ -22,7 +22,7 @@ chai.use(smock.matchers);
 type LiquidatorFixture = {
   vBep20: FakeContract<VBep20Immutable>;
   vBnb: FakeContract<MockVBNB>;
-  comptroller: FakeContract<Comptroller>;
+  comptroller: FakeContract<ComptrollerMock>;
   liquidator: MockContract<Liquidator>;
   accessControlManager: FakeContract<IAccessControlManager>;
 };
@@ -30,7 +30,7 @@ type LiquidatorFixture = {
 async function deployLiquidator(): Promise<LiquidatorFixture> {
   const treasuryPercentMantissa = convertToBigInt("0.05", 18);
 
-  const comptroller = await smock.fake<Comptroller>("Comptroller");
+  const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
   comptroller.liquidationIncentiveMantissa.returns(convertToBigInt("1.1", 18));
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");

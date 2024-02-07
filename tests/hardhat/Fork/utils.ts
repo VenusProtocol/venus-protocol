@@ -1,5 +1,6 @@
 import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { NumberLike } from "@nomicfoundation/hardhat-network-helpers/dist/src/types";
+import { BigNumber, BigNumberish } from "ethers";
 import { ethers } from "hardhat";
 import { network } from "hardhat";
 
@@ -9,7 +10,7 @@ export const setForkBlock = async (blockNumber: number) => {
     params: [
       {
         forking: {
-          jsonRpcUrl: process.env.BSC_ARCHIVE_NODE_URL,
+          jsonRpcUrl: process.env[`ARCHIVE_NODE_${process.env.FORKED_NETWORK}`],
           blockNumber,
         },
       },
@@ -26,10 +27,19 @@ export const forking = (blockNumber: number, fn: () => void) => {
   });
 };
 
-export const initMainnetUser = async (user: string, balance: NumberLike) => {
+export const initMainnetUser = async (user: string, balance?: NumberLike) => {
   await impersonateAccount(user);
-  await setBalance(user, balance);
+  if (balance !== undefined) {
+    await setBalance(user, balance);
+  }
   return ethers.getSigner(user);
 };
 
-export const FORK_MAINNET = process.env.FORK_MAINNET === "true";
+export const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+
+export const around = (expected: BigNumberish, tolerance: BigNumberish) => {
+  return (actual: BigNumberish) => {
+    const diff = BigNumber.from(expected).sub(actual).abs();
+    return diff.lte(tolerance);
+  };
+};

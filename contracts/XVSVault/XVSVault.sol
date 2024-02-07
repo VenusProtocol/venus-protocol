@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity 0.5.16;
 pragma experimental ABIEncoderV2;
 
@@ -6,23 +8,17 @@ import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
 import "./XVSVaultStorage.sol";
 import "./XVSVaultErrorReporter.sol";
+import "../Tokens/Prime/IPrime.sol";
 import "../Utils/SafeCast.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
+import { XVSStore } from "./XVSStore.sol";
+import { XVSVaultProxy } from "./XVSVaultProxy.sol";
 
-interface IXVSStore {
-    function safeRewardTransfer(address _token, address _to, uint256 _amount) external;
-
-    function setRewardToken(address _tokenAddress, bool status) external;
-
-    function rewardTokens(address _tokenAddress) external view returns (bool);
-}
-
-interface IXVSVaultProxy {
-    function _acceptImplementation() external returns (uint);
-
-    function admin() external returns (address);
-}
-
+/**
+ * @title XVS Vault
+ * @author Venus
+ * @notice The XVS Vault allows XVS holders to lock their XVS to recieve voting rights in Venus governance and are rewarded with XVS.
+ */
 contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     using SafeMath for uint256;
     using SafeCast for uint256;
@@ -83,6 +79,16 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         address indexed userAddress,
         uint256 oldOwedAmount,
         uint256 newOwedAmount
+    );
+
+    /// @notice Emitted when prime token contract address is changed
+    event NewPrimeToken(
+        IPrime indexed oldPrimeToken,
+        IPrime indexed newPrimeToken,
+        address oldPrimeRewardToken,
+        address newPrimeRewardToken,
+        uint256 oldPrimePoolId,
+        uint256 newPrimePoolId
     );
 
     constructor() public {
@@ -194,7 +200,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         );
         isStakedToken[address(_token)] = true;
 
-        IXVSStore(xvsStore).setRewardToken(_rewardToken, true);
+        XVSStore(xvsStore).setRewardToken(_rewardToken, true);
 
         emit PoolAdded(_rewardToken, poolInfo.length - 1, address(_token), _allocPoint, _rewardPerBlock, _lockPeriod);
     }
@@ -229,7 +235,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      */
     function setRewardAmountPerBlock(address _rewardToken, uint256 _rewardAmount) external {
         _checkAccessAllowed("setRewardAmountPerBlock(address,uint256)");
-        require(IXVSStore(xvsStore).rewardTokens(_rewardToken), "Invalid reward token");
+        require(XVSStore(xvsStore).rewardTokens(_rewardToken), "Invalid reward token");
         massUpdatePools(_rewardToken);
         uint256 oldReward = rewardTokenAmountsPerBlock[_rewardToken];
         rewardTokenAmountsPerBlock[_rewardToken] = _rewardAmount;
@@ -281,6 +287,10 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         // Update Delegate Amount
         if (address(pool.token) == xvsAddress) {
             _moveDelegates(address(0), delegates[msg.sender], safe96(_amount, "XVSVault::deposit: votes overflow"));
+        }
+
+        if (primeRewardToken == _rewardToken && _pid == primePoolId) {
+            primeToken.xvsUpdated(msg.sender);
         }
 
         emit Deposit(msg.sender, _rewardToken, _pid, _amount);
@@ -404,7 +414,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         if (beforeUpgradeWithdrawalAmount > 0) {
             _updatePool(_rewardToken, _pid);
             uint256 pending = user.amount.mul(pool.accRewardPerShare).div(1e12).sub(user.rewardDebt);
-            IXVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
+            XVSStore(xvsStore).safeRewardTransfer(_rewardToken, msg.sender, pending);
             user.amount = user.amount.sub(beforeUpgradeWithdrawalAmount);
             user.rewardDebt = user.amount.mul(pool.accRewardPerShare).div(1e12);
             pool.token.safeTransfer(address(msg.sender), beforeUpgradeWithdrawalAmount);
@@ -480,6 +490,10 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
                 address(0),
                 safe96(_amount, "XVSVault::requestWithdrawal: votes overflow")
             );
+        }
+
+        if (primeRewardToken == _rewardToken && _pid == primePoolId) {
+            primeToken.xvsUpdated(msg.sender);
         }
 
         emit Claim(msg.sender, _rewardToken, _pid, pending);
@@ -824,7 +838,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
     /*** Admin Functions ***/
 
-    function _become(IXVSVaultProxy xvsVaultProxy) external {
+    function _become(XVSVaultProxy xvsVaultProxy) external {
         require(msg.sender == xvsVaultProxy.admin(), "only proxy admin can change brains");
         require(xvsVaultProxy._acceptImplementation() == 0, "change not authorized");
     }
@@ -843,6 +857,25 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         _notEntered = true;
 
         emit StoreUpdated(oldXvsContract, oldStore, _xvs, _xvsStore);
+    }
+
+    /**
+     * @notice Sets the address of the prime token contract
+     * @param _primeToken address of the prime token contract
+     * @param _primeRewardToken address of reward token
+     * @param _primePoolId pool id for reward
+     */
+    function setPrimeToken(IPrime _primeToken, address _primeRewardToken, uint256 _primePoolId) external onlyAdmin {
+        require(address(_primeToken) != address(0), "prime token cannot be zero address");
+        require(_primeRewardToken != address(0), "reward cannot be zero address");
+
+        _ensureValidPool(_primeRewardToken, _primePoolId);
+
+        emit NewPrimeToken(primeToken, _primeToken, primeRewardToken, _primeRewardToken, primePoolId, _primePoolId);
+
+        primeToken = _primeToken;
+        primeRewardToken = _primeRewardToken;
+        primePoolId = _primePoolId;
     }
 
     /**
@@ -881,14 +914,14 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
                 pendingRewardTransfers[rewardToken][userAddress] = 0;
                 emit VaultDebtUpdated(rewardToken, userAddress, debtDueToFailedTransfers, 0);
             }
-            IXVSStore(xvsStore_).safeRewardTransfer(rewardToken, userAddress, fullAmount);
+            XVSStore(xvsStore_).safeRewardTransfer(rewardToken, userAddress, fullAmount);
             return;
         }
         // Overflow isn't possible due to the check above
         uint256 newOwedAmount = fullAmount - storeBalance;
         pendingRewardTransfers[rewardToken][userAddress] = newOwedAmount;
         emit VaultDebtUpdated(rewardToken, userAddress, debtDueToFailedTransfers, newOwedAmount);
-        IXVSStore(xvsStore_).safeRewardTransfer(rewardToken, userAddress, storeBalance);
+        XVSStore(xvsStore_).safeRewardTransfer(rewardToken, userAddress, storeBalance);
     }
 
     /**

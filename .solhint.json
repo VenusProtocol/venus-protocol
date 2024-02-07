@@ -1,7 +1,7 @@
 {
   "extends": "solhint:recommended",
   "rules": {
-    "code-complexity": ["error", 9],
+    "code-complexity": ["error", 14],
     "compiler-version": ["error", ">=0.5.0"],
     "const-name-snakecase": "off",
     "constructor-syntax": "error",
@@ -11,6 +11,7 @@
     "reason-string": ["warn", { "maxLength": 64 }],
     "no-unused-vars": "error",
     "state-visibility": "error",
-    "ordering": "warn"
+    "ordering": "warn",
+    "max-states-count": ["warn", 26]
   }
 }
