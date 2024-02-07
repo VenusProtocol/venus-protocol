@@ -8,7 +8,7 @@ import { convertToBigInt, convertToUnit } from "../../../helpers/utils";
 import {
   ComptrollerMock,
   FaucetToken,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   IProtocolShareReserve,
   LiquidatorHarness,
   LiquidatorHarness__factory,
@@ -34,7 +34,7 @@ type LiquidatorFixture = {
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
-  const accessControlManager = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControlManager.isAllowedToCall.returns(true);
   const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
@@ -45,7 +45,9 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   underlying.transfer.returns(true);
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
   vTokenCollateral.underlying.returns(underlying.address);
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+    "contracts/InterfacesV8.sol:IProtocolShareReserve",
+  );
 
   const Liquidator = await smock.mock<LiquidatorHarness__factory>("LiquidatorHarness");
   const liquidator = await upgrades.deployProxy(

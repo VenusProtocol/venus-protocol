@@ -7,7 +7,7 @@ import { ethers, upgrades } from "hardhat";
 import { convertToBigInt } from "../../../helpers/utils";
 import {
   ComptrollerMock,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   IProtocolShareReserve,
   Liquidator,
   Liquidator__factory,
@@ -24,7 +24,7 @@ type LiquidatorFixture = {
   vBnb: FakeContract<MockVBNB>;
   comptroller: FakeContract<ComptrollerMock>;
   liquidator: MockContract<Liquidator>;
-  accessControlManager: FakeContract<IAccessControlManager>;
+  accessControlManager: FakeContract<IAccessControlManagerV5>;
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
@@ -35,9 +35,11 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+    "contracts/InterfacesV8.sol:IProtocolShareReserve",
+  );
   const wBnb = await smock.fake<WBNB>("WBNB");
-  const accessControlManager = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControlManager.isAllowedToCall.returns(true);
 
   const Liquidator = await smock.mock<Liquidator__factory>("Liquidator");

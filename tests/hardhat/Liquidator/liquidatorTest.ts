@@ -10,7 +10,7 @@ import {
   ComptrollerMock,
   FaucetToken,
   FaucetToken__factory,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   IProtocolShareReserve,
   Liquidator,
   Liquidator__factory,
@@ -41,7 +41,7 @@ type LiquidatorFixture = {
   vTokenCollateral: FakeContract<VBep20Immutable>;
   liquidator: MockContract<Liquidator>;
   vBnb: FakeContract<MockVBNB>;
-  accessControlManager: FakeContract<IAccessControlManager>;
+  accessControlManager: FakeContract<IAccessControlManagerV5>;
   collateralUnderlying: FakeContract<FaucetToken>;
 };
 
@@ -54,7 +54,9 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const vaiController = await smock.fake<VAIController>("VAIController");
   const vTokenBorrowed = await smock.fake<VBep20Immutable>("VBep20Immutable");
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+    "contracts/InterfacesV8.sol:IProtocolShareReserve",
+  );
   const wBnb = await smock.fake<WBNB>("WBNB");
   const collateralUnderlying = await smock.fake<FaucetToken>("FaucetToken");
   collateralUnderlying.balanceOf.returns(convertToUnit(1, 10));
@@ -70,7 +72,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   });
   vaiController.getVAIAddress.returns(vai.address);
 
-  const accessControlManager = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControlManager.isAllowedToCall.returns(true);
 
   const Liquidator = await smock.mock<Liquidator__factory>("Liquidator");
@@ -127,9 +129,9 @@ describe("Liquidator", () => {
   let vTokenCollateral: FakeContract<VBep20Immutable>;
   let vBnb: FakeContract<MockVBNB>;
   let liquidatorContract: MockContract<Liquidator>;
-  let accessControlManager: FakeContract<IAccessControlManager>;
+  let accessControlManager: FakeContract<IAccessControlManagerV5>;
   let collateralUnderlying: FakeContract<FaucetToken>;
-  let comptroller: FakeContract<Comptroller>;
+  let comptroller: FakeContract<ComptrollerMock>;
 
   beforeEach(async () => {
     [liquidator, borrower] = await ethers.getSigners();
