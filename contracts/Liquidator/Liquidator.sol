@@ -8,9 +8,9 @@ import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import "./LiquidatorStorage.sol";
-import { ILiquidator, IComptroller, IVToken, IVBep20, IVBNB, IVAIController, IProtocolShareReserve, IWBNB } from "../InterfacesV8.sol";
+import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController, IProtocolShareReserve, IWBNB } from "../InterfacesV8.sol";
 
-contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
+contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
     /// @notice Address of vBNB contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IVBNB public immutable vBnb;
