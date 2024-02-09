@@ -1,3 +1,11 @@
+## [7.3.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0-dev.1...v7.3.0-dev.2) (2024-02-09)
+
+
+### Features
+
+* deployments of XVSVault on opbnbmainnet ([17bae92](https://github.com/VenusProtocol/venus-protocol/commit/17bae92107b61a6638ff60ed4df177c965f6da93))
+* updating deployment files ([2f6106f](https://github.com/VenusProtocol/venus-protocol/commit/2f6106f8c8f429ebaa5c44a2eb74522deb58ea1b))
+
 ## [7.3.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.2.0...v7.3.0-dev.1) (2024-02-06)
 
 
