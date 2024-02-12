@@ -2,13 +2,25 @@
 
 pragma solidity 0.8.13;
 
+/**
+ * @title IMultichainVoteRegistry
+ * @author Venus
+ * @notice Interface implemented by `MultichainVoteRegistry`
+ */
 interface IMultichainVoteRegistry {
     /**
-     * @notice Update votes of user
-     * @param chainId  Chain id on which votes are staked
-     * @param delegatee  The address to delegate votes to
-     * @param checkpoints Checkpoints of user
-     * @param votes Number of votes
+     * @notice Synchronizes remote chain votes for a specific delegatee
+     * @param chainId The Id of the remote chain where votes are being synchronized
+     * @param delegatee The address of the delegatee whose votes are being synchronized
+     * @param checkpoint The checkpoint for the delegatee's votes
+     * @param votes The total number of votes to be synchronized
+     * @param nCheckpoint The number of checkpoints for each account
      */
-    function updateVotes(uint16 chainId, address delegatee, uint32 checkpoints, uint96 votes) external;
+    function syncDestVotes(
+        uint16 chainId,
+        address delegatee,
+        uint32 checkpoint,
+        uint96 votes,
+        uint32 nCheckpoint
+    ) external;
 }

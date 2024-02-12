@@ -12,12 +12,11 @@ import "../Utils/SafeCast.sol";
 import { AccessControlledV5 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
 import { XVSStore } from "./XVSStore.sol";
 import { XVSVaultProxy } from "./XVSVaultProxy.sol";
-import { IVotesSyncSender } from "./IVotesSyncSender.sol";
 
 /**
- * @title XVS Vault
+ * @title XVSVaultDest
  * @author Venus
- * @notice The XVS Vault allows XVS holders to lock their XVS to recieve voting rights in Venus governance and are rewarded with XVS.
+ * @notice The XVS Vault Dest allows XVS holders to lock their XVS to recieve voting rights in Venus governance and are rewarded with XVS, and sync their votes on Binance chain.
  */
 contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
     using SafeMath for uint256;
@@ -26,12 +25,6 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
     /// @notice The upper bound for the lock period in a pool, 10 years
     uint256 public constant MAX_LOCK_PERIOD = 60 * 60 * 24 * 365 * 10;
-
-    /// @notice votesSyncSender address to sync votes on bnb chain
-    IVotesSyncSender public votesSyncSender;
-
-    /// @notice Amount of gas required for destination chain
-    bytes public adapterParams;
 
     /// @notice Event emitted when deposit
     event Deposit(address indexed user, address indexed rewardToken, uint256 indexed pid, uint256 amount);
@@ -47,9 +40,6 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
     /// @notice An event thats emitted when a delegate account's vote balance changes
     event DelegateVotesChangedV2(address indexed delegate, uint previousBalance, uint newBalance);
-
-    ///@notice An event emitted when adapter params updated
-    event SetAdapterParams(bytes indexed oldAdapterParams, bytes indexed newAdapterParams);
 
     /// @notice An event emitted when the reward store address is updated
     event StoreUpdated(address oldXvs, address oldStore, address newXvs, address newStore);
@@ -169,28 +159,19 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
         votesSyncSender = votesSyncSenderBridge;
     }
 
-    function setAdapterParams(uint256 gas) external {
-        _checkAccessAllowed("setAdapterParam(uint256)");
-        require(gas > 100000, "Invalid gas"); // 100000 is minimum required gas for destination
-        bytes memory adapterParamsOld = adapterParams;
-        adapterParams = abi.encodePacked(uint16(1), gas);
-        emit SetAdapterParams(adapterParamsOld, adapterParams);
-    }
-
     /**
      * @notice Estimates LayerZero fees for cross-chain message delivery to the remote chain
      * @dev The estimated fees are the minimum required; it's recommended to increase the fees amount when sending a message. The unused amount will be refunded
-     * @param payload The payload to be sent to the remote chain. It's computed as follows: payload = abi.encode()................................................
-     * @param adapterParam The params used to specify the custom amount of gas required for the execution on the destination
+     * @param payload The payload to be sent to the remote chain. It's computed as follows: payload = abi.encode(delegatee, ncheckpoints, blockNumber, votes, numCheckpoints[delegatee])
+     * @param adapterParams The params used to specify the custom amount of gas required for the execution on the BSC chain
      * @return nativeFee The amount of fee in the native gas token (e.g. ETH)
      * @return zroFee The amount of fee in ZRO token
      */
     function estimateFee(
-        bool useZro,
         bytes calldata payload,
-        bytes calldata adapterParam
+        bytes calldata adapterParams
     ) external view returns (uint256, uint256) {
-        return votesSyncSender.estimateFee(useZro, payload, adapterParam);
+        return votesSyncSender.estimateFee(payload, adapterParams);
     }
 
     /**
@@ -217,7 +198,6 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
         _ensureNonzeroAddress(address(_token));
         require(address(xvsStore) != address(0), "Store contract address is empty");
         require(_allocPoint > 0, "Alloc points must not be zero");
-
         massUpdatePools(_rewardToken);
 
         PoolInfo[] storage poolInfo = poolInfos[_rewardToken];
@@ -311,8 +291,14 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _amount The amount to deposit to vault
+     * @param _adapterParams The amount of gas required for BSC chain
      */
-    function deposit(address _rewardToken, uint256 _pid, uint256 _amount) external payable nonReentrant isActive {
+    function deposit(
+        address _rewardToken,
+        uint256 _pid,
+        uint256 _amount,
+        bytes calldata _adapterParams
+    ) external payable nonReentrant isActive {
         _ensureValidPool(_rewardToken, _pid);
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
         UserInfo storage user = userInfos[_rewardToken][_pid][msg.sender];
@@ -336,6 +322,7 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
                 address(0),
                 delegates[msg.sender],
                 safe96(_amount, "XVSVault::deposit: votes overflow"),
+                _adapterParams,
                 msg.value
             );
         }
@@ -509,11 +496,13 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _amount The amount to withdraw from the vault
+     * @param _adapterParams The amount of gas required for BSC chain
      */
     function requestWithdrawal(
         address _rewardToken,
         uint256 _pid,
-        uint256 _amount
+        uint256 _amount,
+        bytes calldata _adapterParams
     ) external payable nonReentrant isActive {
         _ensureValidPool(_rewardToken, _pid);
         require(_amount > 0, "requested amount cannot be zero");
@@ -544,6 +533,7 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
                 delegates[msg.sender],
                 address(0),
                 safe96(_amount, "XVSVault::requestWithdrawal: votes overflow"),
+                _adapterParams,
                 msg.value
             );
         }
@@ -739,9 +729,10 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
     /**
      * @notice Delegate votes from `msg.sender` to `delegatee`
      * @param delegatee The address to delegate votes to
+     * @param adapterParams The amount of gas required for BSC chain
      */
-    function delegate(address delegatee) external payable isActive {
-        return _delegate(msg.sender, delegatee, msg.value);
+    function delegate(address delegatee, bytes calldata adapterParams) external payable isActive {
+        return _delegate(msg.sender, delegatee, adapterParams, msg.value);
     }
 
     /**
@@ -752,6 +743,8 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @param v The recovery byte of the signature
      * @param r Half of the ECDSA signature pair
      * @param s Half of the ECDSA signature pair
+     * @param adapterParams The amount of gas required for BSC chain
+
      */
     function delegateBySig(
         address delegatee,
@@ -759,7 +752,8 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
         uint expiry,
         uint8 v,
         bytes32 r,
-        bytes32 s
+        bytes32 s,
+        bytes calldata adapterParams
     ) external payable isActive {
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("XVSVault")), getChainId(), address(this))
@@ -769,7 +763,7 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
         address signatory = ECDSA.recover(digest, v, r, s);
         require(nonce == nonces[signatory]++, "XVSVault::delegateBySig: invalid nonce");
         require(block.timestamp <= expiry, "XVSVault::delegateBySig: signature expired");
-        return _delegate(signatory, delegatee, msg.value);
+        return _delegate(signatory, delegatee, adapterParams, msg.value);
     }
 
     /**
@@ -782,30 +776,36 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    function _delegate(address delegator, address delegatee, uint256 value) internal {
+    function _delegate(address delegator, address delegatee, bytes memory adapterParams, uint256 value) internal {
         address currentDelegate = delegates[delegator];
         uint96 delegatorBalance = getStakeAmount(delegator);
         delegates[delegator] = delegatee;
 
         emit DelegateChangedV2(delegator, currentDelegate, delegatee);
 
-        _moveDelegates(currentDelegate, delegatee, delegatorBalance, value);
+        _moveDelegates(currentDelegate, delegatee, delegatorBalance, adapterParams, value);
     }
 
-    function _moveDelegates(address srcRep, address dstRep, uint96 amount, uint256 value) internal {
+    function _moveDelegates(
+        address srcRep,
+        address dstRep,
+        uint96 amount,
+        bytes memory adapterParams,
+        uint256 value
+    ) internal {
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
                 uint96 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
                 uint96 srcRepNew = sub96(srcRepOld, amount, "XVSVault::_moveVotes: vote amount underflows");
-                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew, value);
+                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew, adapterParams, value);
             }
 
             if (dstRep != address(0)) {
                 uint32 dstRepNum = numCheckpoints[dstRep];
                 uint96 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
                 uint96 dstRepNew = add96(dstRepOld, amount, "XVSVault::_moveVotes: vote amount overflows");
-                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew, value);
+                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew, adapterParams, value);
             }
         }
     }
@@ -815,6 +815,7 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
         uint32 nCheckpoints,
         uint96 oldVotes,
         uint96 newVotes,
+        bytes memory adapterParams,
         uint256 value
     ) internal {
         uint32 blockNumber = safe32(block.number, "XVSVault::_writeCheckpoint: block number exceeds 32 bits");
