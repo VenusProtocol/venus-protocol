@@ -28,6 +28,7 @@ interface IVBep20 is IVToken {
 
 interface IVBNB is IVToken {
     function liquidateBorrow(address borrower, IVToken vTokenCollateral) external payable;
+    function redeem(uint256 redeemTokens) external returns (uint256);
 }
 
 interface IVAIController {
