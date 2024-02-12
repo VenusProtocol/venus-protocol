@@ -16,7 +16,7 @@ import { XVSVaultProxy } from "./XVSVaultProxy.sol";
 /**
  * @title XVSVaultDest
  * @author Venus
- * @notice The XVS Vault Dest allows XVS holders to lock their XVS to recieve voting rights in Venus governance and are rewarded with XVS, and sync their votes on Binance chain.
+ * @notice The XVS Vault Dest allows XVS holders to lock their XVS to recieve voting rights in Venus governance and are rewarded with XVS, and sync their votes on BSC chain.
  */
 contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
     using SafeMath for uint256;
@@ -162,7 +162,8 @@ contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
     /**
      * @notice Estimates LayerZero fees for cross-chain message delivery to the remote chain
      * @dev The estimated fees are the minimum required; it's recommended to increase the fees amount when sending a message. The unused amount will be refunded
-     * @param payload The payload to be sent to the remote chain. It's computed as follows: payload = abi.encode(delegatee, ncheckpoints, blockNumber, votes, numCheckpoints[delegatee])
+     * @param payload The payload to be sent to the remote chain. It's computed as follows:
+     * payload = abi.encode(delegatee, ncheckpoints, blockNumber, votes, numCheckpoints[delegatee])
      * @param adapterParams The params used to specify the custom amount of gas required for the execution on the BSC chain
      * @return nativeFee The amount of fee in the native gas token (e.g. ETH)
      * @return zroFee The amount of fee in ZRO token

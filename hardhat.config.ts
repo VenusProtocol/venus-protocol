@@ -275,7 +275,7 @@ const config: HardhatUserConfig = {
 };
 
 function isFork() {
-  return process.env.FORK === "true"
+  return process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet"
     ? {
         allowUnlimitedContractSize: false,
         loggingEnabled: false,

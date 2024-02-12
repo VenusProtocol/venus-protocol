@@ -103,7 +103,7 @@ contract MultichainVoteRegistry is AccessControlledV8 {
      */
     function getPriorVotes(address account, uint256 blockNumber) external view returns (uint96) {
         require(blockNumber < block.number, "MultichainVoteRegistry::getPriorVotes: not yet determined");
-      
+
         // Fetch votes of user stored in XVSVault on BSC chain
         uint96 votesOnBnb = XVSVault.getPriorVotes(account, blockNumber);
 

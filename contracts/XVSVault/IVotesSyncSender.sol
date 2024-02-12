@@ -24,8 +24,5 @@ interface IVotesSyncSender {
      * @return nativeFee The amount of fee in the native gas token (e.g. ETH)
      * @return zroFee The amount of fee in ZRO token
      */
-    function estimateFee(
-        bytes calldata payload,
-        bytes calldata adapterParams
-    ) external view returns (uint256, uint256);
+    function estimateFee(bytes calldata payload, bytes calldata adapterParams) external view returns (uint256, uint256);
 }

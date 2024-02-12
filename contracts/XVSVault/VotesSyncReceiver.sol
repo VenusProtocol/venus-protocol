@@ -11,8 +11,9 @@ import { IMultichainVoteRegistry } from "./IMultichainVoteRegistry.sol";
 /**
  * @title VotesSyncReceiver
  * @author Venus
- * @notice The VotesSyncReceiver is builds upon the functionality of its parent contract, NonblockingLzApp which is part of layer zero bridge. It receives voting information in the form of payload from remote(non-BSC) chains and send that information to MultichainVoteRegistry.
- */ 
+ * @notice The VotesSyncReceiver is builds upon the functionality of its parent contract, NonblockingLzApp which is part of layer zero bridge.
+ * It receives voting information in the form of payload from remote(non-BSC) chains and send that information to MultichainVoteRegistry.
+ */
 contract VotesSyncReceiver is Pausable, NonblockingLzApp {
     using ExcessivelySafeCall for address;
 
@@ -34,7 +35,7 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
     /**
      * @notice Event emitted when votes synced
      */
-    event VotesSynced(address indexed delegatee, uint32 checkpoints, uint96  indexed votes, uint32 nCheckpoint);
+    event VotesSynced(address indexed delegatee, uint32 checkpoints, uint96 indexed votes, uint32 nCheckpoint);
 
     constructor(address endpoint_, IMultichainVoteRegistry multichainVoteRegistry_) NonblockingLzApp(endpoint_) {
         ensureNonzeroAddress(address(multichainVoteRegistry_));
@@ -93,11 +94,8 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
         uint64,
         bytes memory payload
     ) internal virtual override {
-        (address delegatee, uint32 checkpoints, uint96 votes) = abi.decode(
-            payload,
-            (address, uint32, uint96)
-        );
+        (address delegatee, uint32 checkpoints, uint96 votes) = abi.decode(payload, (address, uint32, uint96));
         multichainVoteRegistry.syncDestVotes(remoteChainId, delegatee, checkpoints, votes, checkpoints + 1);
-        emit VotesSynced(delegatee, checkpoints,votes, checkpoints + 1);
+        emit VotesSynced(delegatee, checkpoints, votes, checkpoints + 1);
     }
 }
