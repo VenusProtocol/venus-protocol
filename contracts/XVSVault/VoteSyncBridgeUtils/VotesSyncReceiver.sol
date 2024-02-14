@@ -98,4 +98,21 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
         multichainVoteRegistry.syncDestVotes(remoteChainId, delegatee, checkpoints, votes, checkpoints + 1);
         emit VotesSynced(delegatee, checkpoints, votes, checkpoints + 1);
     }
+
+    function retryMessage(
+        uint16 srcChainId,
+        bytes calldata srcAddress,
+        uint64 nonce,
+        bytes calldata payload
+    ) public payable override {
+        bytes memory trustedRemote = trustedRemoteLookup[srcChainId];
+        // it will still block the message pathway from (srcChainId, srcAddress). should not receive message from untrusted remote.
+        require(
+            srcAddress.length == trustedRemote.length &&
+                trustedRemote.length > 0 &&
+                keccak256(srcAddress) == keccak256(trustedRemote),
+            "LzApp: invalid source sending contract"
+        );
+        super.retryMessage(srcChainId, srcAddress, nonce, payload);
+    }
 }
