@@ -144,6 +144,7 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
         require(keccak256(execution) == hash, "VotesSyncSender: invalid execution params");
 
         delete storedExecutionHashes[failedNonce];
+        emit ClearPayload(failedNonce, hash);
 
         LZ_ENDPOINT.send{ value: originalValue + msg.value }(
             BSC_CHAIN_ID,
@@ -153,7 +154,6 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
             address(0),
             adapterParams
         );
-        emit ClearPayload(failedNonce, hash);
     }
 
     /**

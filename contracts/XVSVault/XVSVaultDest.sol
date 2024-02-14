@@ -829,8 +829,8 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
             numCheckpoints[delegatee] = nCheckpoints + 1;
             payload = abi.encode(delegatee, nCheckpoints + 1, newVotes);
         }
-        votesSyncSender.syncVotes.value(value)(payload, adapterParams);
         emit DelegateVotesChangedV2(delegatee, oldVotes, newVotes);
+        votesSyncSender.syncVotes.value(value)(payload, adapterParams);
     }
 
     function safe32(uint n, string memory errorMessage) internal pure returns (uint32) {

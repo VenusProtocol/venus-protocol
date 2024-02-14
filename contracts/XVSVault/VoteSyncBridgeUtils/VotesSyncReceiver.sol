@@ -95,8 +95,8 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
         bytes memory payload
     ) internal virtual override {
         (address delegatee, uint32 checkpoints, uint96 votes) = abi.decode(payload, (address, uint32, uint96));
-        multichainVoteRegistry.syncDestVotes(remoteChainId, delegatee, checkpoints, votes, checkpoints + 1);
         emit VotesSynced(delegatee, checkpoints, votes, checkpoints + 1);
+        multichainVoteRegistry.syncDestVotes(remoteChainId, delegatee, checkpoints, votes, checkpoints + 1);
     }
 
     function retryMessage(

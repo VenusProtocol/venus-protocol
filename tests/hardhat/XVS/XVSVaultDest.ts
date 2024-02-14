@@ -275,9 +275,10 @@ describe("XVSVaultDest", async () => {
       expect(checkpoints[1]).to.equal(0);
 
       const nonce = await sender.nonce();
-      await expect(
-        sender.connect(user).retrySyncVotes(nonce, payload, adapterParams, 0, { value: nativeFee }),
-      ).to.emit(sender, "ClearPayload");
+      await expect(sender.connect(user).retrySyncVotes(nonce, payload, adapterParams, 0, { value: nativeFee })).to.emit(
+        sender,
+        "ClearPayload",
+      );
       const latestBlock = (await ethers.provider.getBlock("latest")).number;
       await mine();
       expect(await multichainVoteRegistry.getPriorVotes(deployer.address, latestBlock)).to.equals(depositAmount);
