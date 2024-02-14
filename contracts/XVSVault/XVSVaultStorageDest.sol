@@ -3,6 +3,7 @@ pragma solidity ^0.5.16;
 import "../Utils/SafeMath.sol";
 import "../Utils/IBEP20.sol";
 import "../Tokens/Prime/IPrime.sol";
+import { IVotesSyncSender } from "./IVotesSyncSender.sol";
 
 contract XVSVaultAdminStorage {
     /**
@@ -101,7 +102,7 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
         keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 }
 
-contract XVSVaultStorage is XVSVaultStorageV1 {
+contract XVSVaultStorageDest is XVSVaultStorageV1 {
     /// @notice A record of each accounts delegate
     mapping(address => address) public delegates;
 
@@ -132,10 +133,13 @@ contract XVSVaultStorage is XVSVaultStorageV1 {
     /// @notice Pool ID for which prime token is issued for staking
     uint256 public primePoolId;
 
+    /// @notice votesSyncSender address to sync votes on BNB chain
+    IVotesSyncSender public votesSyncSender;
+
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[46] private __gap;
+    uint256[45] private __gap;
 }

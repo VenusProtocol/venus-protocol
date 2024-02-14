@@ -6,7 +6,7 @@ pragma experimental ABIEncoderV2;
 import "../Utils/ECDSA.sol";
 import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
-import "./XVSVaultStorage.sol";
+import "./XVSVaultStorageDest.sol";
 import "../Tokens/Prime/IPrime.sol";
 import "../Utils/SafeCast.sol";
 import { AccessControlledV5 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
@@ -18,7 +18,7 @@ import { XVSVaultProxy } from "./XVSVaultProxy.sol";
  * @author Venus
  * @notice The XVS Vault Dest allows XVS holders to lock their XVS to recieve voting rights in Venus governance and are rewarded with XVS, and sync their votes on BSC chain.
  */
-contract XVSVaultDest is XVSVaultStorage, ECDSA, AccessControlledV5 {
+contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
     using SafeMath for uint256;
     using SafeCast for uint256;
     using SafeBEP20 for IBEP20;
