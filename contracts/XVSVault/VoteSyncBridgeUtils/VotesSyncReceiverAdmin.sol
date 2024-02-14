@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
 
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
-import { IVoteSyncReceiver } from "./IVotesSyncReceiver.sol";
+import { IVoteSyncReceiver } from "./interfaces/IVotesSyncReceiver.sol";
 
 /**
  * @title VotesSyncReceiverAdmin

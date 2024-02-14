@@ -6,7 +6,7 @@ import { NonblockingLzApp } from "@layerzerolabs/solidity-examples/contracts/lzA
 import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 import { ExcessivelySafeCall } from "@layerzerolabs/solidity-examples/contracts/libraries/ExcessivelySafeCall.sol";
-import { IMultichainVoteRegistry } from "./IMultichainVoteRegistry.sol";
+import { IMultichainVoteRegistry } from "./interfaces/IMultichainVoteRegistry.sol";
 
 /**
  * @title VotesSyncReceiver

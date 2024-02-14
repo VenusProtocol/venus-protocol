@@ -3,7 +3,7 @@ pragma solidity ^0.5.16;
 import "../Utils/SafeMath.sol";
 import "../Utils/IBEP20.sol";
 import "../Tokens/Prime/IPrime.sol";
-import { IVotesSyncSender } from "./IVotesSyncSender.sol";
+import { IVotesSyncSender } from "./VoteSyncBridgeUtils/interfaces/IVotesSyncSender.sol";
 
 contract XVSVaultAdminStorage {
     /**

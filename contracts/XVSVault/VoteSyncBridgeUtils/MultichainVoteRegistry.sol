@@ -3,7 +3,7 @@
 pragma solidity 0.8.13;
 
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
-import { IXVSVault } from "./IXVSVault.sol";
+import { IXVSVault } from "./interfaces/IXVSVault.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 
 /**
