@@ -274,9 +274,9 @@ describe("XVSVaultDest", async () => {
       expect(checkpoints[0]).to.equal(0);
       expect(checkpoints[1]).to.equal(0);
 
-      const votesSync = await sender.votesSync();
+      const nonce = await sender.nonce();
       await expect(
-        sender.connect(user).retrySyncVotes(votesSync, payload, adapterParams, 0, { value: nativeFee }),
+        sender.connect(user).retrySyncVotes(nonce, payload, adapterParams, 0, { value: nativeFee }),
       ).to.emit(sender, "ClearPayload");
       const latestBlock = (await ethers.provider.getBlock("latest")).number;
       await mine();

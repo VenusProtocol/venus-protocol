@@ -22,9 +22,9 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
     uint16 public immutable BSC_CHAIN_ID;
 
     /**
-     * @notice Number of times votes synced
+     * @notice Number of times votes synced with BSC chain
      */
-    uint256 public votesSync;
+    uint256 public nonce;
     /**
      * @notice LayerZero endpoint for sending messages to remote chains
      */
@@ -55,14 +55,14 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
     event TrustedRemoteRemoved(uint16 indexed chainId);
 
     /**
-     * @notice Emitted when votes synced on BSC chain successfully
+     * @notice Emitted when votes synced with BSC chain successfully
      */
-    event ExecuteSyncVotes(uint16 remoteChainId, bytes payload, bytes adapterParams);
+    event ExecuteSyncVotes(uint16 indexed remoteChainId, bytes payload, bytes adapterParams);
 
     /**
      * @notice Emitted when votes synced on retry
      */
-    event ClearPayload(uint256, bytes32);
+    event ClearPayload(uint256 failedNonce, bytes32 hash);
 
     /**
      * @notice Emitted when an execution hash of a failed message is saved
@@ -121,7 +121,7 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
     /**
      * @notice Resends a previously failed message
      * @dev Allows providing more fees if needed. The extra fees will be refunded to the caller
-     * @param votesSynced Number of votes synced to identify a failed message
+     * @param failedNonce Nonce of the failed message; to identify a failed message
      * @param payload The payload to be sent to the remote chain. It's computed as follows: payload = abi.encode(delegatee, checkpoint, votes)
      * @param adapterParams The params used to specify the custom amount of gas required for the execution on the Binance chain
      * @param originalValue The msg.value passed when syncVotes function was called
@@ -129,21 +129,21 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
      * @custom:access Controlled by Access Control Manager
      */
     function retrySyncVotes(
-        uint256 votesSynced,
+        uint256 failedNonce,
         bytes calldata payload,
         bytes calldata adapterParams,
         uint256 originalValue
     ) external payable nonReentrant whenNotPaused {
         _ensureAllowed("retrySyncVotes(uint256,bytes,bytes,uint256)");
-        bytes32 hash = storedExecutionHashes[votesSynced];
+        bytes32 hash = storedExecutionHashes[failedNonce];
         require(hash != bytes32(0), "VotesSyncSender: no stored payload");
         require(payload.length != 0, "VotesSyncSender: empty payload");
         bytes memory trustedRemote = trustedRemoteLookup[BSC_CHAIN_ID];
         require(trustedRemote.length != 0, "VotesSyncSender: destination chain is not a trusted source");
-        bytes memory execution = abi.encode(votesSynced, payload, adapterParams, originalValue);
+        bytes memory execution = abi.encode(failedNonce, payload, adapterParams, originalValue);
         require(keccak256(execution) == hash, "VotesSyncSender: invalid execution params");
 
-        delete storedExecutionHashes[votesSynced];
+        delete storedExecutionHashes[failedNonce];
 
         LZ_ENDPOINT.send{ value: originalValue + msg.value }(
             BSC_CHAIN_ID,
@@ -153,7 +153,7 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
             address(0),
             adapterParams
         );
-        emit ClearPayload(votesSynced, hash);
+        emit ClearPayload(failedNonce, hash);
     }
 
     /**
@@ -168,7 +168,7 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
         require(payload.length != 0, "VotesSyncSender: Empty payload");
         bytes memory trustedRemote = trustedRemoteLookup[BSC_CHAIN_ID];
         require(trustedRemote.length != 0, "VotesSyncSender: destination chain is not a trusted source");
-        votesSync++; // Number of times syncVotes is called
+        nonce++; // Number of times syncVotes is called
 
         try
             LZ_ENDPOINT.send{ value: msg.value }(
@@ -182,8 +182,8 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
         {
             emit ExecuteSyncVotes(BSC_CHAIN_ID, payload, adapterParams);
         } catch (bytes memory reason) {
-            storedExecutionHashes[votesSync] = keccak256(abi.encode(votesSync, payload, adapterParams, msg.value));
-            emit StorePayload(votesSync, BSC_CHAIN_ID, payload, adapterParams, msg.value, reason);
+            storedExecutionHashes[nonce] = keccak256(abi.encode(nonce, payload, adapterParams, msg.value));
+            emit StorePayload(nonce, BSC_CHAIN_ID, payload, adapterParams, msg.value, reason);
         }
     }
 

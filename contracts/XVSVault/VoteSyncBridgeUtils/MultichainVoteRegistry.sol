@@ -46,7 +46,7 @@ contract MultichainVoteRegistry is AccessControlledV8 {
      */
     event DestVotesUpdated(
         uint16 indexed chainId,
-        address delegatee,
+        address indexed delegatee,
         uint32 checkpoints,
         uint32 blockNumber,
         uint96 votes,
