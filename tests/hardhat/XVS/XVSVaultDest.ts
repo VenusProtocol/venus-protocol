@@ -162,7 +162,7 @@ describe("XVSVaultDest", async () => {
     const depositAmount = parseUnits("100", 18);
     it("votes updated in MultichainVoteRegistry on deposit", async () => {
       const nativeFee = await getFee();
-      let checkpoints = await multichainVoteRegistry.checkpoints(user.address, 1);
+      let checkpoints = await multichainVoteRegistry.checkpoints(user.address, 0);
       expect(checkpoints[0]).to.equal(0);
       expect(checkpoints[1]).to.equal(0);
 
@@ -174,12 +174,12 @@ describe("XVSVaultDest", async () => {
       await xvsVaultDest.connect(user).delegate(deployer.address, adapterParams, { value: nativeFee });
       const latestBlock = (await ethers.provider.getBlock("latest")).number;
       await mine();
-      checkpoints = await multichainVoteRegistry.checkpoints(deployer.address, 1);
+      checkpoints = await multichainVoteRegistry.checkpoints(deployer.address, 0);
 
       const checkpointsWithChainId = await multichainVoteRegistry.checkpointsWithChainId(
         remoteChainId,
         deployer.address,
-        1,
+        0,
       );
       expect(await multichainVoteRegistry.getPriorVotes(deployer.address, latestBlock)).to.equals(depositAmount);
       expect(checkpoints[0]).to.equal(latestBlock);
@@ -231,11 +231,11 @@ describe("XVSVaultDest", async () => {
       await xvsVaultDest.connect(user).delegate(deployer.address, adapterParams, { value: nativeFee });
 
       const latestBlock = (await ethers.provider.getBlock("latest")).number;
-      let checkpoints = await multichainVoteRegistry.checkpoints(deployer.address, 1);
+      let checkpoints = await multichainVoteRegistry.checkpoints(deployer.address, 0);
       let checkpointsWithChainId = await multichainVoteRegistry.checkpointsWithChainId(
         remoteChainId,
         deployer.address,
-        1,
+        0,
       );
       await mine();
       expect(await multichainVoteRegistry.getPriorVotes(deployer.address, latestBlock)).to.equals(depositAmount);
@@ -251,7 +251,7 @@ describe("XVSVaultDest", async () => {
           .requestWithdrawal(xvs.address, poolId, depositAmount, adapterParams, { value: "2000000000000000000" }),
       ).to.emit(xvsVaultDest, "RequestedWithdrawal");
       checkpoints = await multichainVoteRegistry.checkpoints(user.address, 1);
-      checkpointsWithChainId = await multichainVoteRegistry.checkpointsWithChainId(remoteChainId, user.address, 1);
+      checkpointsWithChainId = await multichainVoteRegistry.checkpointsWithChainId(remoteChainId, user.address, 0);
 
       expect(checkpoints[0]).to.equal(0);
       expect(checkpoints[1]).to.equal(0);
@@ -266,11 +266,11 @@ describe("XVSVaultDest", async () => {
         xvsVaultDest.connect(user).deposit(xvs.address, poolId, depositAmount, adapterParams, { value: nativeFee }),
       ).to.emit(xvsVaultDest, "Deposit");
       const payload = ethers.utils.defaultAbiCoder.encode(
-        ["address", "uint32", "uint96"],
-        [deployer.address, 1, parseUnits("100", 18)],
+        ["address", "uint32", "uint32", "uint96"],
+        [deployer.address, 0, 1, parseUnits("100", 18)],
       );
       await xvsVaultDest.connect(user).delegate(deployer.address, adapterParams);
-      let checkpoints = await multichainVoteRegistry.checkpoints(deployer.address, 1);
+      let checkpoints = await multichainVoteRegistry.checkpoints(deployer.address, 0);
       expect(checkpoints[0]).to.equal(0);
       expect(checkpoints[1]).to.equal(0);
 
@@ -282,7 +282,7 @@ describe("XVSVaultDest", async () => {
       const latestBlock = (await ethers.provider.getBlock("latest")).number;
       await mine();
       expect(await multichainVoteRegistry.getPriorVotes(deployer.address, latestBlock)).to.equals(depositAmount);
-      checkpoints = await multichainVoteRegistry.checkpoints(deployer.address, 1);
+      checkpoints = await multichainVoteRegistry.checkpoints(deployer.address, 0);
 
       expect(checkpoints[0]).to.equal(latestBlock);
       expect(checkpoints[1]).to.equal(depositAmount);

@@ -72,27 +72,21 @@ contract MultichainVoteRegistry is AccessControlledV8 {
      * @notice Synchronizes remote chain votes(amount of XVS stake) for a specific delegatee
      * @param chainId The Id of the remote chain where votes are being synchronized
      * @param delegatee The address of the delegatee whose votes are being synchronized
-     * @param checkpoint The number of checkpoints for the delegatee's votes
+     * @param index Index for which votes to update
      * @param votes The total number of votes to be synchronized
      * @param nCheckpoint The number of checkpoints for each account
      * @custom:access Controlled by Access Control Manager
      * @custom:event Emit DestVotesUpdated
      */
 
-    function syncDestVotes(
-        uint16 chainId,
-        address delegatee,
-        uint32 checkpoint,
-        uint96 votes,
-        uint32 nCheckpoint
-    ) external {
+    function syncDestVotes(uint16 chainId, address delegatee, uint32 index, uint96 votes, uint32 nCheckpoint) external {
         _checkAccessAllowed("syncDestVotes(uint16,address,uint32,uint96,uint32)");
         uint32 blockNumber = uint32(block.number);
         Checkpoint memory newCheckpoint = Checkpoint(blockNumber, votes);
-        checkpoints[delegatee][checkpoint] = newCheckpoint;
-        checkpointsWithChainId[chainId][delegatee][checkpoint] = newCheckpoint;
+        checkpoints[delegatee][index] = newCheckpoint;
+        checkpointsWithChainId[chainId][delegatee][index] = newCheckpoint;
         numCheckpoints[delegatee] = nCheckpoint;
-        emit DestVotesUpdated(chainId, delegatee, checkpoint, blockNumber, votes, nCheckpoint);
+        emit DestVotesUpdated(chainId, delegatee, index, blockNumber, votes, nCheckpoint);
     }
 
     /**

@@ -823,11 +823,11 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         bytes memory payload;
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
-            payload = abi.encode(delegatee, nCheckpoints - 1, newVotes);
+            payload = abi.encode(delegatee, nCheckpoints - 1, numCheckpoints[delegatee], newVotes);
         } else {
             checkpoints[delegatee][nCheckpoints] = Checkpoint(blockNumber, newVotes);
             numCheckpoints[delegatee] = nCheckpoints + 1;
-            payload = abi.encode(delegatee, nCheckpoints + 1, newVotes);
+            payload = abi.encode(delegatee, nCheckpoints, nCheckpoints + 1, newVotes);
         }
         emit DelegateVotesChangedV2(delegatee, oldVotes, newVotes);
         votesSyncSender.syncVotes.value(value)(payload, adapterParams);
