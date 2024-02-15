@@ -842,7 +842,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Sender redeems vTokens in exchange for the underlying asset
+     * @notice Sender redeems vToken on behalf of some other address. This function is only available
+     *   for senders, explicitly marked as delegates of the supplier using `comptroller.updateDelegate`
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
      * @param redeemer The address of the account which is redeeming the tokens
      * @param receiver The receiver of the tokens, if called by a delegate
@@ -864,7 +865,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Sender redeems vTokens in exchange for a specified amount of underlying asset
+     * @notice Sender redeems underlying assets on behalf of some other address. This function is only available
+     *   for senders, explicitly marked as delegates of the supplier using `comptroller.updateDelegate`
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
      * @param redeemer The address of the account which is redeeming the tokens
      * @param receiver The receiver of the tokens, if called by a delegate

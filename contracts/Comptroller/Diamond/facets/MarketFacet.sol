@@ -203,6 +203,8 @@ contract MarketFacet is IMarketFacet, FacetBase {
      *  If allowed, the delegate will be able to borrow funds on behalf of the sender
      *  Upon a delegated borrow, the delegate will receive the funds, and the borrower
      *  will see the debt on their account
+     *  Upon a delegated redeem, the delegate will redeem the vTokens or the underlying,
+     *  will receive the redeemed amount on behalf of the approver(redeemer)
      * @param delegate The address to update the rights for
      * @param allowBorrows Whether to grant (true) or revoke (false) the rights
      */
