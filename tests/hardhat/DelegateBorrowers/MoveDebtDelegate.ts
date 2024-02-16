@@ -17,6 +17,8 @@ import {
 const { expect } = chai;
 chai.use(smock.matchers);
 
+const ANY_USER = "0x0000000000000000000000000000000000000001";
+
 describe("MoveDebtDelegate", () => {
   const fooPrice = parseUnits("10", 18);
   const barPrice = parseUnits("2", 18);
@@ -29,6 +31,7 @@ describe("MoveDebtDelegate", () => {
   let bar: FakeContract<IERC20Upgradeable>;
   let vTokenToRepay: FakeContract<VBep20>;
   let vTokenToBorrow: FakeContract<VBep20>;
+  let someVToken: FakeContract<VBep20>;
   let moveDebtDelegate: MockContract<MoveDebtDelegate>;
 
   type MoveDebtFixture = {
@@ -38,14 +41,15 @@ describe("MoveDebtDelegate", () => {
   };
 
   async function moveDebtFixture(): Promise<MoveDebtFixture> {
-    const [, , newBorrower] = await ethers.getSigners();
+    const [, oldBorrower, newBorrower] = await ethers.getSigners();
     const vTokenToRepay = await smock.fake<VBep20>("VBep20");
     const vTokenToBorrow = await smock.fake<VBep20>("VBep20");
     const MoveDebtDelegate = await smock.mock<MoveDebtDelegate__factory>("MoveDebtDelegate");
     const moveDebtDelegate = await upgrades.deployProxy(MoveDebtDelegate, [], {
-      constructorArgs: [vTokenToRepay.address, newBorrower.address],
+      constructorArgs: [newBorrower.address],
     });
     await moveDebtDelegate.setBorrowAllowed(vTokenToBorrow.address, true);
+    await moveDebtDelegate.setRepaymentAllowed(vTokenToRepay.address, oldBorrower.address, true);
     return { moveDebtDelegate, vTokenToRepay, vTokenToBorrow };
   }
 
@@ -58,6 +62,7 @@ describe("MoveDebtDelegate", () => {
     comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
     foo = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
     bar = await smock.fake<IERC20Upgradeable>("IERC20Upgradeable");
+    someVToken = await smock.fake<VBep20>("VBep20");
 
     vTokenToRepay.repayBorrowBehalf.reset();
     vTokenToRepay.borrowBalanceCurrent.reset();
@@ -78,54 +83,156 @@ describe("MoveDebtDelegate", () => {
 
   describe("setBorrowAllowed", () => {
     it("fails if called by a non-owner", async () => {
-      await expect(
-        moveDebtDelegate.connect(oldBorrower).setBorrowAllowed(vTokenToRepay.address, true),
-      ).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(moveDebtDelegate.connect(oldBorrower).setBorrowAllowed(someVToken.address, true)).to.be.revertedWith(
+        "Ownable: caller is not the owner",
+      );
+    });
+
+    it("fails if called with zero address for vTokenToBorrow", async () => {
+      await expect(moveDebtDelegate.setBorrowAllowed(ethers.constants.AddressZero, true)).to.be.revertedWithCustomError(
+        moveDebtDelegate,
+        "ZeroAddressNotAllowed",
+      );
     });
 
     it("sets borrowAllowed to the specified value", async () => {
-      await moveDebtDelegate.setBorrowAllowed(vTokenToRepay.address, true);
-      expect(await moveDebtDelegate.borrowAllowed(vTokenToRepay.address)).to.be.true;
+      await moveDebtDelegate.setBorrowAllowed(someVToken.address, true);
+      expect(await moveDebtDelegate.borrowAllowed(someVToken.address)).to.be.true;
     });
 
     it("emits an event", async () => {
-      await expect(moveDebtDelegate.setBorrowAllowed(vTokenToRepay.address, true))
-        .to.emit(moveDebtDelegate, "BorrowAllowedSet")
-        .withArgs(vTokenToRepay.address, true);
+      const tx = await moveDebtDelegate.setBorrowAllowed(someVToken.address, true);
+      await expect(tx).to.emit(moveDebtDelegate, "BorrowAllowedSet").withArgs(someVToken.address, true);
+    });
+
+    it("does not emit an event if no-op", async () => {
+      await moveDebtDelegate.setBorrowAllowed(someVToken.address, true);
+      const tx = await moveDebtDelegate.setBorrowAllowed(someVToken.address, true);
+      await expect(tx).to.not.emit(moveDebtDelegate, "BorrowAllowedSet");
+    });
+  });
+
+  describe("setRepaymentAllowed", () => {
+    it("fails if called by a non-owner", async () => {
+      await expect(
+        moveDebtDelegate.connect(oldBorrower).setRepaymentAllowed(someVToken.address, ANY_USER, true),
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("fails if called with zero address for vTokenToRepay", async () => {
+      await expect(
+        moveDebtDelegate.setRepaymentAllowed(ethers.constants.AddressZero, ANY_USER, true),
+      ).to.be.revertedWithCustomError(moveDebtDelegate, "ZeroAddressNotAllowed");
+    });
+
+    it("sets borrowAllowed to the specified value", async () => {
+      await moveDebtDelegate.setRepaymentAllowed(someVToken.address, ANY_USER, true);
+      expect(await moveDebtDelegate.repaymentAllowed(someVToken.address, ANY_USER)).to.be.true;
+    });
+
+    it("emits an event", async () => {
+      const tx = await moveDebtDelegate.setRepaymentAllowed(someVToken.address, ANY_USER, true);
+      await expect(tx).to.emit(moveDebtDelegate, "RepaymentAllowedSet").withArgs(someVToken.address, ANY_USER, true);
+    });
+
+    it("does not emit an event if no-op", async () => {
+      await moveDebtDelegate.setRepaymentAllowed(someVToken.address, ANY_USER, true);
+      const tx = await moveDebtDelegate.setRepaymentAllowed(someVToken.address, ANY_USER, true);
+      await expect(tx).to.not.emit(moveDebtDelegate, "RepaymentAllowedSet");
     });
   });
 
   describe("moveDebt", () => {
     it("fails if called with a token that is not allowed to be borrowed", async () => {
-      await expect(moveDebtDelegate.moveDebt(oldBorrower.address, parseUnits("1", 18), vTokenToRepay.address))
+      const wrongTokenToBorrow = vTokenToRepay.address;
+      await expect(
+        moveDebtDelegate.moveDebt(vTokenToRepay.address, oldBorrower.address, parseUnits("1", 18), wrongTokenToBorrow),
+      )
         .to.be.revertedWithCustomError(moveDebtDelegate, "BorrowNotAllowed")
-        .withArgs(vTokenToRepay.address);
+        .withArgs(wrongTokenToBorrow);
+    });
+
+    it("fails if called with a token that is not allowed to be repaid", async () => {
+      const wrongTokenToRepay = vTokenToBorrow.address;
+      await expect(
+        moveDebtDelegate.moveDebt(wrongTokenToRepay, oldBorrower.address, parseUnits("1", 18), vTokenToBorrow.address),
+      )
+        .to.be.revertedWithCustomError(moveDebtDelegate, "RepaymentNotAllowed")
+        .withArgs(wrongTokenToRepay, oldBorrower.address);
+    });
+
+    it("fails if called with a borrower who is not in the repayment allowlist", async () => {
+      const wrongCurrentBorrower = newBorrower.address;
+      await expect(
+        moveDebtDelegate.moveDebt(
+          vTokenToRepay.address,
+          wrongCurrentBorrower,
+          parseUnits("1", 18),
+          vTokenToBorrow.address,
+        ),
+      )
+        .to.be.revertedWithCustomError(moveDebtDelegate, "RepaymentNotAllowed")
+        .withArgs(vTokenToRepay.address, wrongCurrentBorrower);
+    });
+
+    it("succeeds if repayments are allowed for ANY_USER", async () => {
+      // Disallow old borrower
+      await moveDebtDelegate.setRepaymentAllowed(vTokenToRepay.address, oldBorrower.address, false);
+      // Allow wildcard
+      await moveDebtDelegate.setRepaymentAllowed(vTokenToRepay.address, ANY_USER, true);
+      const tx = await moveDebtDelegate.moveDebt(
+        vTokenToRepay.address,
+        oldBorrower.address,
+        parseUnits("1", 18),
+        vTokenToBorrow.address,
+      );
+      await expect(tx).to.emit(moveDebtDelegate, "DebtMoved");
     });
 
     it("fails if comptrollers don't match", async () => {
       vTokenToRepay.comptroller.returns(owner.address);
       await expect(
-        moveDebtDelegate.moveDebt(oldBorrower.address, parseUnits("1", 18), vTokenToBorrow.address),
+        moveDebtDelegate.moveDebt(
+          vTokenToRepay.address,
+          oldBorrower.address,
+          parseUnits("1", 18),
+          vTokenToBorrow.address,
+        ),
       ).to.be.revertedWithCustomError(moveDebtDelegate, "ComptrollerMismatch");
     });
 
     it("fails if repayBorrowBehalf returns a non-zero error code", async () => {
       vTokenToRepay.repayBorrowBehalf.returns(42);
       await expect(
-        moveDebtDelegate.moveDebt(oldBorrower.address, parseUnits("1", 18), vTokenToBorrow.address),
+        moveDebtDelegate.moveDebt(
+          vTokenToRepay.address,
+          oldBorrower.address,
+          parseUnits("1", 18),
+          vTokenToBorrow.address,
+        ),
       ).to.be.revertedWithCustomError(moveDebtDelegate, "RepaymentFailed");
     });
 
     it("fails if borrowBehalf returns a non-zero error code", async () => {
       vTokenToBorrow.borrowBehalf.returns(42);
       await expect(
-        moveDebtDelegate.moveDebt(oldBorrower.address, parseUnits("1", 18), vTokenToBorrow.address),
+        moveDebtDelegate.moveDebt(
+          vTokenToRepay.address,
+          oldBorrower.address,
+          parseUnits("1", 18),
+          vTokenToBorrow.address,
+        ),
       ).to.be.revertedWithCustomError(moveDebtDelegate, "BorrowFailed");
     });
 
     it("transfers repayAmount of vTokenToRepay.underlying() from the sender", async () => {
       const repayAmount = parseUnits("1", 18);
-      await moveDebtDelegate.moveDebt(oldBorrower.address, parseUnits("1", 18), vTokenToBorrow.address);
+      await moveDebtDelegate.moveDebt(
+        vTokenToRepay.address,
+        oldBorrower.address,
+        parseUnits("1", 18),
+        vTokenToBorrow.address,
+      );
       expect(foo.transferFrom).to.have.been.calledOnceWith(owner.address, moveDebtDelegate.address, repayAmount);
     });
 
@@ -133,7 +240,7 @@ describe("MoveDebtDelegate", () => {
       const repayAmount = parseUnits("1", 18);
       foo.balanceOf.returnsAtCall(0, 0);
       foo.balanceOf.returnsAtCall(1, repayAmount);
-      await moveDebtDelegate.moveDebt(oldBorrower.address, repayAmount, vTokenToBorrow.address);
+      await moveDebtDelegate.moveDebt(vTokenToRepay.address, oldBorrower.address, repayAmount, vTokenToBorrow.address);
       expect(foo.approve).to.have.been.calledTwice;
       expect(foo.approve.atCall(0)).to.have.been.calledWith(vTokenToRepay.address, repayAmount);
       expect(foo.approve.atCall(1)).to.have.been.calledWith(vTokenToRepay.address, 0);
@@ -144,7 +251,7 @@ describe("MoveDebtDelegate", () => {
       const repayAmount = parseUnits("1", 18);
       foo.balanceOf.returnsAtCall(0, 0);
       foo.balanceOf.returnsAtCall(1, repayAmount);
-      await moveDebtDelegate.moveDebt(oldBorrower.address, repayAmount, vTokenToBorrow.address);
+      await moveDebtDelegate.moveDebt(vTokenToRepay.address, oldBorrower.address, repayAmount, vTokenToBorrow.address);
       expect(vTokenToRepay.repayBorrowBehalf).to.have.been.calledOnceWith(oldBorrower.address, repayAmount);
       expect(vTokenToRepay.repayBorrowBehalf).to.have.been.calledAfter(foo.approve);
     });
@@ -159,7 +266,7 @@ describe("MoveDebtDelegate", () => {
       // fooPrice / barPrice = 5, so we should borrow 5 times more than we repaid
       const expectedBorrowAmount = parseUnits("5", 18);
 
-      await moveDebtDelegate.moveDebt(oldBorrower.address, repayAmount, vTokenToBorrow.address);
+      await moveDebtDelegate.moveDebt(vTokenToRepay.address, oldBorrower.address, repayAmount, vTokenToBorrow.address);
       expect(vTokenToBorrow.borrowBehalf).to.have.been.calledOnceWith(newBorrower.address, expectedBorrowAmount);
       expect(vTokenToBorrow.borrowBehalf).to.have.been.calledAfter(vTokenToRepay.repayBorrowBehalf);
     });
@@ -175,7 +282,12 @@ describe("MoveDebtDelegate", () => {
       // fooPrice / barPrice = 5, so we should borrow 5 times more than we repaid (and we repaid 1e18)
       const expectedBorrowAmount = parseUnits("5", 18);
 
-      await moveDebtDelegate.moveDebt(oldBorrower.address, requestedRepayAmount, vTokenToBorrow.address);
+      await moveDebtDelegate.moveDebt(
+        vTokenToRepay.address,
+        oldBorrower.address,
+        requestedRepayAmount,
+        vTokenToBorrow.address,
+      );
       expect(vTokenToBorrow.borrowBehalf).to.have.been.calledOnceWith(newBorrower.address, expectedBorrowAmount);
       expect(vTokenToBorrow.borrowBehalf).to.have.been.calledAfter(vTokenToRepay.repayBorrowBehalf);
     });
@@ -193,7 +305,7 @@ describe("MoveDebtDelegate", () => {
       bar.balanceOf.returnsAtCall(0, initialBarBalance);
       bar.balanceOf.returnsAtCall(1, barBalanceAfterBorrow);
 
-      await moveDebtDelegate.moveDebt(oldBorrower.address, repayAmount, vTokenToBorrow.address);
+      await moveDebtDelegate.moveDebt(vTokenToRepay.address, oldBorrower.address, repayAmount, vTokenToBorrow.address);
       expect(bar.transfer).to.have.been.calledOnceWith(owner.address, actualBorrowAmount);
       expect(bar.transfer).to.have.been.calledAfter(vTokenToBorrow.borrowBehalf);
     });

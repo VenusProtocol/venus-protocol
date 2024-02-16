@@ -1,5 +1,6 @@
 import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { NumberLike } from "@nomicfoundation/hardhat-network-helpers/dist/src/types";
+import { BigNumber, BigNumberish } from "ethers";
 import { ethers } from "hardhat";
 import { network } from "hardhat";
 
@@ -35,3 +36,10 @@ export const initMainnetUser = async (user: string, balance?: NumberLike) => {
 };
 
 export const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+
+export const around = (expected: BigNumberish, tolerance: BigNumberish) => {
+  return (actual: BigNumberish) => {
+    const diff = BigNumber.from(expected).sub(actual).abs();
+    return diff.lte(tolerance);
+  };
+};
