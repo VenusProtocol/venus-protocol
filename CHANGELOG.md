@@ -1,3 +1,18 @@
+## [7.3.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0-dev.3...v7.3.0-dev.4) (2024-02-16)
+
+
+### Features
+
+* updating deployment files ([1b77d8d](https://github.com/VenusProtocol/venus-protocol/commit/1b77d8d52359191b81efe86b52527b55d017ded0))
+* updating deployment files ([20325a8](https://github.com/VenusProtocol/venus-protocol/commit/20325a8e2b9aa8b6578d12740a03bd66be753454))
+* updating deployment files ([1de1c22](https://github.com/VenusProtocol/venus-protocol/commit/1de1c22e8b3d05b96c339362074494bbb907c2c5))
+
+
+### Bug Fixes
+
+* lint ([4345032](https://github.com/VenusProtocol/venus-protocol/commit/434503240172da535ab2245c51cd3d7fccfbe330))
+* remove outdated Comptroller deployment, fix deployment script and redeploy vFDUSD ([c4c6b3a](https://github.com/VenusProtocol/venus-protocol/commit/c4c6b3ad3f153700b9c95c547024b547dbc6f179))
+
 ## [7.3.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0-dev.2...v7.3.0-dev.3) (2024-02-16)
 
 
