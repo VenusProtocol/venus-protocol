@@ -65,9 +65,8 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeemBehalf(address redeemer, uint redeemTokens) external returns (uint) {
         require(comptroller.approvedDelegates(redeemer, msg.sender), "not an approved delegate");
-        address payable receiver = msg.sender;
 
-        return redeemInternal(redeemer, receiver, redeemTokens);
+        return redeemInternal(redeemer, msg.sender, redeemTokens);
     }
 
     /**
@@ -96,9 +95,8 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeemUnderlyingBehalf(address redeemer, uint redeemAmount) external returns (uint) {
         require(comptroller.approvedDelegates(redeemer, msg.sender), "not an approved delegate");
-        address payable receiver = msg.sender;
 
-        return redeemUnderlyingInternal(redeemer, receiver, redeemAmount);
+        return redeemUnderlyingInternal(redeemer, msg.sender, redeemAmount);
     }
 
     /**
@@ -108,9 +106,7 @@ contract VBep20 is VToken, VBep20Interface {
      */
     // @custom:event Emits Borrow event on success
     function borrow(uint borrowAmount) external returns (uint) {
-        address borrower = msg.sender;
-        address payable receiver = msg.sender;
-        return borrowInternal(borrower, receiver, borrowAmount);
+        return borrowInternal(msg.sender, msg.sender, borrowAmount);
     }
 
     /**
@@ -123,8 +119,7 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits Borrow event on success
     function borrowBehalf(address borrower, uint borrowAmount) external returns (uint) {
         require(comptroller.approvedDelegates(borrower, msg.sender), "not an approved delegate");
-        address payable receiver = msg.sender;
-        return borrowInternal(borrower, receiver, borrowAmount);
+        return borrowInternal(borrower, msg.sender, borrowAmount);
     }
 
     /**
