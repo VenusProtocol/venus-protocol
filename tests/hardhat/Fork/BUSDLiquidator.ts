@@ -2,7 +2,7 @@ import { smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { BigNumberish } from "ethers";
+import { BigNumberish, Contract } from "ethers";
 import { parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
@@ -65,6 +65,7 @@ interface BUSDLiquidatorFixture {
   vBUSD: VBep20;
   busd: FaucetToken;
   treasuryAddress: string;
+  collateral: Contract;
 }
 
 const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
@@ -118,7 +119,7 @@ const setupLocal = async (): Promise<BUSDLiquidatorFixture> => {
   await busd.connect(someone).approve(busdLiquidator.address, parseUnits("10000", 18));
 
   await comptroller._setForcedLiquidation(vBUSD.address, true);
-  return { comptroller, busdLiquidator, vCollateral, vBUSD, busd, treasuryAddress: treasury.address };
+  return { comptroller, busdLiquidator, vCollateral, vBUSD, busd, treasuryAddress: treasury.address, collateral };
 };
 
 const setupFork = async (): Promise<BUSDLiquidatorFixture> => {
@@ -190,9 +191,12 @@ const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {
     let borrower: SignerWithAddress;
     let someone: SignerWithAddress;
     let treasuryAddress: string;
+    let collateral: Contract;
 
     beforeEach(async () => {
-      ({ comptroller, busdLiquidator, vCollateral, vBUSD, busd, treasuryAddress } = await loadFixture(setup));
+      ({ comptroller, busdLiquidator, vCollateral, vBUSD, busd, treasuryAddress, collateral } = await loadFixture(
+        setup,
+      ));
       [, , borrower, someone] = await ethers.getSigners();
     });
 
@@ -252,18 +256,27 @@ const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {
         const repayAmount = parseUnits("1000", 18);
         const treasuryBalanceBefore = await vCollateral.callStatic.balanceOf(treasuryAddress);
         const liquidatorBalanceBefore = await vCollateral.callStatic.balanceOf(someone.address);
+        console.log("Bal Prev", await collateral.balanceOf(treasuryAddress));
+
         const tx = await busdLiquidator.connect(someone).liquidateEntireBorrow(borrower.address, vCollateral.address);
+        console.log("Bal After", await collateral.balanceOf(treasuryAddress));
+
         const treasuryBalanceAfter = await vCollateral.callStatic.balanceOf(treasuryAddress);
         const liquidatorBalanceAfter = await vCollateral.callStatic.balanceOf(someone.address);
 
-        const [, seizedCollateral] = await comptroller.callStatic.liquidateCalculateSeizeTokens(
+        const [, totalSeizedCollateral] = await comptroller.callStatic.liquidateCalculateSeizeTokens(
           vBUSD.address,
           vCollateral.address,
           repayAmount,
         ); // 110%
-        const liquidatorShare = seizedCollateral.mul(101).div(110); // 101%
-        const treasuryShare = seizedCollateral.sub(liquidatorShare); // 110% - 101% = 9%
-        await expect(tx).to.changeTokenBalance(vCollateral, borrower, seizedCollateral.mul(-1));
+        const seizedCollateralByLiquidator = totalSeizedCollateral.sub(
+          totalSeizedCollateral.mul(TREASURY_PERCENT).div(TOTAL_LIQUIDATION_INCENTIVE),
+        );
+        const liquidatorShare = seizedCollateralByLiquidator
+          .div(TOTAL_LIQUIDATION_INCENTIVE.sub(TREASURY_PERCENT))
+          .mul(LIQUIDATOR_PERCENT);
+        const treasuryShare = seizedCollateralByLiquidator.sub(liquidatorShare);
+        await expect(tx).to.changeTokenBalance(vCollateral, borrower, totalSeizedCollateral.mul(-1));
         expect(treasuryBalanceAfter.sub(treasuryBalanceBefore)).to.be.closeTo(treasuryShare, 1);
         expect(liquidatorBalanceAfter.sub(liquidatorBalanceBefore)).to.be.closeTo(liquidatorShare, 1);
       });
@@ -284,17 +297,22 @@ const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {
         const tx = await busdLiquidator
           .connect(someone)
           .liquidateBorrow(borrower.address, repayAmount, vCollateral.address);
-        const [, seizedCollateral] = await comptroller.callStatic.liquidateCalculateSeizeTokens(
+        const [, totalSeizedCollateral] = await comptroller.callStatic.liquidateCalculateSeizeTokens(
           vBUSD.address,
           vCollateral.address,
           repayAmount,
         ); // 110%
-        const liquidatorShare = seizedCollateral.mul(101).div(110); // 101%
-        const treasuryShare = seizedCollateral.sub(liquidatorShare); // 110% - 101% = 9%
+        const seizedCollateralByLiquidator = totalSeizedCollateral.sub(
+          totalSeizedCollateral.mul(TREASURY_PERCENT).div(TOTAL_LIQUIDATION_INCENTIVE),
+        );
+        const liquidatorShare = seizedCollateralByLiquidator
+          .div(TOTAL_LIQUIDATION_INCENTIVE.sub(TREASURY_PERCENT))
+          .mul(LIQUIDATOR_PERCENT);
+        const treasuryShare = seizedCollateralByLiquidator.sub(liquidatorShare);
         await expect(tx).to.changeTokenBalances(
           vCollateral,
           [borrower, someone, treasuryAddress],
-          [seizedCollateral.mul(-1), liquidatorShare, treasuryShare],
+          [totalSeizedCollateral.mul(-1), liquidatorShare, treasuryShare],
         );
       });
     });

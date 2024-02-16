@@ -5,6 +5,8 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 interface IVToken is IERC20Upgradeable {
+    function redeem(uint256 redeemTokens) external returns (uint256);
+
     function borrowBalanceCurrent(address borrower) external returns (uint256);
 
     function comptroller() external view returns (IComptroller);
@@ -36,6 +38,8 @@ interface IVAIController {
     ) external returns (uint256, uint256);
 
     function getVAIAddress() external view returns (address);
+
+    function getVAIRepayAmount(address borrower) external view returns (uint256);
 }
 
 interface IComptroller {
@@ -60,6 +64,12 @@ interface IComptroller {
     function liquidatorContract() external view returns (address);
 
     function oracle() external view returns (ResilientOracleInterface);
+
+    function actionPaused(address market, Action action) external view returns (bool);
+
+    function markets(address) external view returns (bool, uint256, bool);
+
+    function isForcedLiquidationEnabled(address) external view returns (bool);
 }
 
 interface ILiquidator {
@@ -81,4 +91,17 @@ interface ILiquidator {
     function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external;
 
     function treasuryPercentMantissa() external view returns (uint256);
+}
+
+interface IProtocolShareReserve {
+    enum IncomeType {
+        SPREAD,
+        LIQUIDATION
+    }
+
+    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
+}
+
+interface IWBNB is IERC20Upgradeable {
+    function deposit() external payable;
 }

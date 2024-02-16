@@ -19,6 +19,7 @@ import {
   VBep20,
   VBep20Harness,
 } from "../../../typechain";
+import { IProtocolShareReserve } from "../../../typechain/contracts/InterfacesV8.sol";
 import { PriceOracle } from "../../../typechain/contracts/Oracle/PriceOracle";
 
 type MaybeFake<T extends BaseContract> = T | FakeContract<T>;
@@ -77,10 +78,16 @@ export const deployLiquidatorContract = async ({
   treasuryAddress: string;
   treasuryPercentMantissa: BigNumberish;
 }): Promise<Liquidator> => {
+  const accessControlManager = await deployFakeAccessControlManager();
+  const protocolShareReserve = await deployFakeProtocolShareReserve();
   const liquidatorFactory = await ethers.getContractFactory("Liquidator");
-  const liquidator = (await upgrades.deployProxy(liquidatorFactory, [treasuryPercentMantissa], {
-    constructorArgs: [comptroller.address, vBNB.address, treasuryAddress],
-  })) as Liquidator;
+  const liquidator = (await upgrades.deployProxy(
+    liquidatorFactory,
+    [treasuryPercentMantissa, accessControlManager.address, protocolShareReserve.address],
+    {
+      constructorArgs: [comptroller.address, vBNB.address, treasuryAddress],
+    },
+  )) as Liquidator;
   await liquidator.setTreasuryPercent(treasuryPercentMantissa);
   await liquidator.deployed();
   await comptroller._setLiquidatorContract(liquidator.address);
@@ -91,6 +98,11 @@ export const deployFakeAccessControlManager = async (): Promise<FakeContract<IAc
   const acm = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   acm.isAllowedToCall.returns(true);
   return acm;
+};
+
+export const deployFakeProtocolShareReserve = async (): Promise<FakeContract<IProtocolShareReserve>> => {
+  const psr = await smock.fake<IProtocolShareReserve>("contracts/InterfacesV8.sol:IProtocolShareReserve");
+  return psr;
 };
 
 export const deployFakeOracle = async (): Promise<FakeContract<PriceOracle>> => {

@@ -6,6 +6,8 @@ import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contract
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { MaxLoopsLimitHelper } from "@venusprotocol/solidity-utilities/contracts/MaxLoopsLimitHelper.sol";
+import { TimeManagerV8 } from "@venusprotocol/solidity-utilities/contracts/TimeManagerV8.sol";
+
 import { IERC20MetadataUpgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 
 import { PrimeStorageV1 } from "./PrimeStorage.sol";
@@ -16,7 +18,6 @@ import { IPrime } from "./Interfaces/IPrime.sol";
 import { IXVSVault } from "./Interfaces/IXVSVault.sol";
 import { IVToken } from "./Interfaces/IVToken.sol";
 import { InterfaceComptroller } from "./Interfaces/InterfaceComptroller.sol";
-import { TimeManager } from "../../Utils/TimeManager.sol";
 import { PoolRegistryInterface } from "./Interfaces/IPoolRegistry.sol";
 
 /**
@@ -25,7 +26,7 @@ import { PoolRegistryInterface } from "./Interfaces/IPoolRegistry.sol";
  * @notice Prime Token is used to provide extra rewards to the users who have staked a minimum of `MINIMUM_STAKED_XVS` XVS in the XVSVault for `STAKING_PERIOD` days
  * @custom:security-contact https://github.com/VenusProtocol/venus-protocol
  */
-contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1, TimeManager {
+contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimitHelper, PrimeStorageV1, TimeManagerV8 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice address of wrapped native token contract
@@ -160,7 +161,7 @@ contract Prime is IPrime, AccessControlledV8, PausableUpgradeable, MaxLoopsLimit
         uint256 _minimumStakedXVS,
         uint256 _maximumXVSCap,
         bool _timeBased
-    ) TimeManager(_timeBased, _blocksPerYear) {
+    ) TimeManagerV8(_timeBased, _blocksPerYear) {
         WRAPPED_NATIVE_TOKEN = _wrappedNativeToken;
         NATIVE_MARKET = _nativeMarket;
         STAKING_PERIOD = _stakingPeriod;

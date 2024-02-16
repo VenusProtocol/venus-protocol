@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.13;
 
+import { PrimeLiquidityProviderStorageV1 } from "./PrimeLiquidityProviderStorage.sol";
 import { SafeERC20Upgradeable, IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { IPrimeLiquidityProvider } from "./Interfaces/IPrimeLiquidityProvider.sol";
 import { MaxLoopsLimitHelper } from "@venusprotocol/solidity-utilities/contracts/MaxLoopsLimitHelper.sol";
-import { TimeManager } from "../../Utils/TimeManager.sol";
+import { TimeManagerV8 } from "@venusprotocol/solidity-utilities/contracts/TimeManagerV8.sol";
 
 /**
  * @title PrimeLiquidityProvider
@@ -18,27 +19,13 @@ contract PrimeLiquidityProvider is
     AccessControlledV8,
     PausableUpgradeable,
     MaxLoopsLimitHelper,
-    TimeManager
+    PrimeLiquidityProviderStorageV1,
+    TimeManagerV8
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice The default max token distribution speed
     uint256 public constant DEFAULT_MAX_DISTRIBUTION_SPEED = 1e18;
-
-    /// @notice Address of the Prime contract
-    address public prime;
-
-    /// @notice The rate at which token is distributed (per block or second)
-    mapping(address => uint256) public tokenDistributionSpeeds;
-
-    /// @notice The max token distribution speed for token
-    mapping(address => uint256) public maxTokenDistributionSpeeds;
-
-    /// @notice The block or second till which rewards are distributed for an asset
-    mapping(address => uint256) public lastAccruedBlockOrSecond;
-
-    /// @notice The token accrued but not yet transferred to prime contract
-    mapping(address => uint256) public tokenAmountAccrued;
 
     /// @notice Emitted when a token distribution is initialized
     event TokenDistributionInitialized(address indexed token);
@@ -103,7 +90,7 @@ contract PrimeLiquidityProvider is
      * @param _blocksPerYear total blocks per year
      */
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(bool _timeBased, uint256 _blocksPerYear) TimeManager(_timeBased, _blocksPerYear) {
+    constructor(bool _timeBased, uint256 _blocksPerYear) TimeManagerV8(_timeBased, _blocksPerYear) {
         _disableInitializers();
     }
 
@@ -277,8 +264,8 @@ contract PrimeLiquidityProvider is
         }
 
         accrueTokens(token_);
-        uint256 accruedAmount = tokenAmountAccrued[token_];
-        delete tokenAmountAccrued[token_];
+        uint256 accruedAmount = _tokenAmountAccrued[token_];
+        delete _tokenAmountAccrued[token_];
 
         emit TokenTransferredToPrime(token_, accruedAmount);
 
@@ -313,7 +300,7 @@ contract PrimeLiquidityProvider is
     function getEffectiveDistributionSpeed(address token_) external view returns (uint256) {
         uint256 distributionSpeed = tokenDistributionSpeeds[token_];
         uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
-        uint256 accrued = tokenAmountAccrued[token_];
+        uint256 accrued = _tokenAmountAccrued[token_];
 
         if (balance > accrued) {
             return distributionSpeed;
@@ -342,12 +329,12 @@ contract PrimeLiquidityProvider is
             uint256 distributionSpeed = tokenDistributionSpeeds[token_];
             uint256 balance = IERC20Upgradeable(token_).balanceOf(address(this));
 
-            uint256 balanceDiff = balance - tokenAmountAccrued[token_];
+            uint256 balanceDiff = balance - _tokenAmountAccrued[token_];
             if (distributionSpeed != 0 && balanceDiff != 0) {
                 uint256 accruedSinceUpdate = deltaBlocksOrSeconds * distributionSpeed;
                 uint256 tokenAccrued = (balanceDiff <= accruedSinceUpdate ? balanceDiff : accruedSinceUpdate);
 
-                tokenAmountAccrued[token_] += tokenAccrued;
+                _tokenAmountAccrued[token_] += tokenAccrued;
                 emit TokensAccrued(token_, tokenAccrued);
             }
 
@@ -362,6 +349,15 @@ contract PrimeLiquidityProvider is
      */
     function lastAccruedBlock(address token_) external view returns (uint256) {
         return lastAccruedBlockOrSecond[token_];
+    }
+
+    /**
+     * @notice Get the tokens accrued
+     * @param token_ Address of the token
+     * @return returns the amount of accrued tokens for the token provided
+     */
+    function tokenAmountAccrued(address token_) external view returns (uint256) {
+        return _tokenAmountAccrued[token_];
     }
 
     /**
