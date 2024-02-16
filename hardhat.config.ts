@@ -144,9 +144,7 @@ const config: HardhatUserConfig = {
     bsctestnet: {
       url: process.env.ARCHIVE_NODE_bsctestnet || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
-      accounts: {
-        mnemonic: process.env.MNEMONIC || "",
-      },
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
       gasPrice: 10000000000, // 10 gwei
       gasMultiplier: 10,
       timeout: 12000000,
