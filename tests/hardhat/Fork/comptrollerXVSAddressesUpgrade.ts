@@ -123,7 +123,6 @@ forking(34340887, () => {
 
       const userAccount = "0xd8F32fe3eeA457bBa2e5e2E1533Ad5f34f591458";
       const previouseXVSBalance = await XVS.balanceOf(userAccount);
-      console.log();
 
       await rewardFacet["claimVenus(address)"](userAccount);
       const newXVSBalance = await XVS.balanceOf(userAccount);
