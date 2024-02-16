@@ -142,7 +142,7 @@ forking(34662249, () => {
         await expect(txn).to.emit(comptroller, "VenusGranted").withArgs(recipient, 75109993761328);
       });
 
-      it("Fails when the XVS doesn't have enough funds", async () => {
+      it("Fails when the user doesn't have enough XVS funds allocated", async () => {
         user = await initMainnetUser("0x4C45758bF15AF0714E4CC44C4EFd177e209C2890");
         const recipient = await deployer.getAddress();
         await expect(comptroller.connect(user).seizeVenus([user.address], recipient)).to.be.reverted;
