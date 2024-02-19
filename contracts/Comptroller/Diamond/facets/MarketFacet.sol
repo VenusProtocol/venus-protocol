@@ -33,22 +33,22 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return A dynamic list with the assets the account has entered
      */
     function getAssetsIn(address account) external view returns (VToken[] memory) {
-        uint256 len = 0;
-        for (uint256 i = 0; i < accountAssets[account].length; i++) {
-            Market storage market = markets[address(accountAssets[account][i])];
+        uint256 len;
+        VToken[] storage _accountAssets = accountAssets[account];
+        uint256 _accountAssetsLength = _accountAssets.length;
+
+        VToken[] memory assetsIn = new VToken[](_accountAssetsLength);
+
+        for (uint256 i; i < _accountAssetsLength; ++i) {
+            Market storage market = markets[address(_accountAssets[i])];
             if (market.isListed) {
-                len++;
+                assetsIn[len] = _accountAssets[i];
+                ++len;
             }
         }
 
-        VToken[] memory assetsIn = new VToken[](len);
-        uint256 index = 0;
-        for (uint256 i = 0; i < accountAssets[account].length; i++) {
-            Market storage market = markets[address(accountAssets[account][i])];
-            if (market.isListed) {
-                assetsIn[index] = accountAssets[account][i];
-                index++;
-            }
+        assembly {
+            mstore(assetsIn, len)
         }
 
         return assetsIn;
