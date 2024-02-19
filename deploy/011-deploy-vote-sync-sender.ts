@@ -2,7 +2,8 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import ADDRESSES from "../helpers/address";
-import { LZ_ENDPOINTS, SOURCE_CHAIN_ID, SUPPORTED_NETWORKS } from "../helpers/constants";
+import { LZ_ENDPOINTS, SUPPORTED_NETWORKS } from "../helpers/constants";
+import { getSourceChainId } from "../helpers/utils";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
@@ -11,11 +12,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const networkName = network.name;
 
   const { acm } = ADDRESSES[networkName];
-  const sourceNetwork = "bsctestnet"; // or bscmainnet
 
   await deploy("VotesSyncSender", {
     from: deployer,
-    args: [LZ_ENDPOINTS[networkName as SUPPORTED_NETWORKS], acm, SOURCE_CHAIN_ID[sourceNetwork]],
+    args: [
+      LZ_ENDPOINTS[networkName as SUPPORTED_NETWORKS],
+      acm,
+      await getSourceChainId(networkName as SUPPORTED_NETWORKS),
+    ],
     log: true,
     autoMine: true,
   });

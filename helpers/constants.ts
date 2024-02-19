@@ -17,8 +17,3 @@ export const LZ_ENDPOINTS: Record<SUPPORTED_NETWORKS, string> = {
   opbnbtestnet: "0x83c73Da98cf733B03315aFa8758834b36a195b87",
   hardhat: "0x6Fcb97553D41516Cb228ac03FdC8B9a0a9df04A1",
 };
-
-export const SOURCE_CHAIN_ID: { [key: string]: number } = {
-  bsctestnet: 10102,
-  bscmainnet: 102,
-};

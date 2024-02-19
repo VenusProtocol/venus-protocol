@@ -1,5 +1,6 @@
 import GovernanceBscMainnet from "@venusprotocol/governance-contracts/deployments/bscmainnet.json";
 import GovernanceBscTestnet from "@venusprotocol/governance-contracts/deployments/bsctestnet.json";
+import GovernanceOpbnbtestnet from "@venusprotocol/governance-contracts/deployments/opbnbtestnet.json";
 import GovernanceSepolia from "@venusprotocol/governance-contracts/deployments/sepolia.json";
 import ILSepolia from "@venusprotocol/isolated-pools/deployments/sepolia.json";
 import OracleMainnet from "@venusprotocol/oracle/deployments/bscmainnet.json";
@@ -102,6 +103,9 @@ const ADDRESSES: Addresses = {
     acm: GovernanceSepolia.contracts.AccessControlManager.address,
     oracle: OracleSepolia.contracts.ResilientOracle_Proxy.address,
     poolRegistry: ILSepolia.contracts.PoolRegistry.address,
+  },
+  opbnbtestnet: {
+    acm: GovernanceOpbnbtestnet.contracts.AccessControlManager.address,
   },
 };
 export default ADDRESSES;
