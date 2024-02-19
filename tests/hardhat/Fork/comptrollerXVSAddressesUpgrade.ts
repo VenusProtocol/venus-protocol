@@ -2,9 +2,10 @@ import { smock } from "@defi-wonderland/smock";
 import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { ethers, network } from "hardhat";
+import { ethers } from "hardhat";
 
 import { BEP20, Diamond, RewardFacet, SetterFacet } from "../../../typechain";
+import { forking } from "./utils";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -14,29 +15,6 @@ const OLD_SETTER_FACET = "0xF2b7D75557B75a878E997934014E95Dd089B5f24";
 const OLD_REWARD_FACET = "0x71e7AAcb01C5764A56DB92aa31aA473e839d964F";
 const UNITROLLER = "0xfD36E2c2a6789Db23113685031d7F16329158384";
 const zeroAddr = "0x0000000000000000000000000000000000000000";
-
-export async function setForkBlock(blockNumber: number) {
-  await network.provider.request({
-    method: "hardhat_reset",
-    params: [
-      {
-        forking: {
-          jsonRpcUrl: process.env[`ARCHIVE_NODE_${process.env.FORKED_NETWORK}`],
-          blockNumber: blockNumber,
-        },
-      },
-    ],
-  });
-}
-
-const forking = (blockNumber: number, fn: () => void) => {
-  describe(`Reward and Setter facet upgrade check At block #${blockNumber}`, () => {
-    before(async () => {
-      await setForkBlock(blockNumber);
-    });
-    fn();
-  });
-};
 
 forking(34340887, () => {
   let diamond: Diamond;

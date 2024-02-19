@@ -88,10 +88,10 @@ contract SetterFacet is ISetterFacet, FacetBase {
     event IsForcedLiquidationEnabledForUserUpdated(address indexed borrower, address indexed vToken, bool enable);
 
     /// @notice Emitted when XVS token address is changed
-    event NewXVSToken(address oldXVS, address newXVS);
+    event NewXVSToken(address indexed oldXVS, address indexed newXVS);
 
     /// @notice Emitted when XVS vToken address is changed
-    event NewXVSVToken(address oldXVSVToken, address newXVSVToken);
+    event NewXVSVToken(address indexed oldXVSVToken, address indexed newXVSVToken);
 
     /**
      * @notice Compare two addresses to ensure they are different
