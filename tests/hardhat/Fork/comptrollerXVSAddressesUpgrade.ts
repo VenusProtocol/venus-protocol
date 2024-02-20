@@ -10,7 +10,7 @@ import { FacetCutAction, forking } from "./utils";
 const { expect } = chai;
 chai.use(smock.matchers);
 
-const Owner = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
+const OWNER = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
 const OLD_SETTER_FACET = "0xF2b7D75557B75a878E997934014E95Dd089B5f24";
 const OLD_REWARD_FACET = "0x71e7AAcb01C5764A56DB92aa31aA473e839d964F";
 const UNITROLLER = "0xfD36E2c2a6789Db23113685031d7F16329158384";
@@ -38,7 +38,7 @@ forking(34340887, () => {
     it("upgrade checks", async () => {
       const oldSetterFacet = await ethers.getContractAt("SetterFacet", diamond.address);
       await expect(
-        oldSetterFacet.connect(owner)._setXVSToken("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D"),
+        oldSetterFacet.connect(owner)._setXVSToken("0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63"),
       ).to.be.revertedWith("Diamond: Function does not exist");
       await expect(
         oldSetterFacet.connect(owner)._setXVSVToken("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D"),
