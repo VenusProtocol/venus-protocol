@@ -3,7 +3,6 @@ pragma solidity ^0.5.16;
 import "../Tokens/VAI/VAIController.sol";
 
 contract VAIControllerHarness is VAIController {
-    address internal vaiAddress;
     uint public blockNumber;
     uint public blocksPerYear;
 
@@ -17,11 +16,11 @@ contract VAIControllerHarness is VAIController {
     }
 
     function setVAIAddress(address vaiAddress_) public {
-        vaiAddress = vaiAddress_;
+        vai = vaiAddress_;
     }
 
     function getVAIAddress() public view returns (address) {
-        return vaiAddress;
+        return vai;
     }
 
     function harnessRepayVAIFresh(address payer, address account, uint repayAmount) public returns (uint) {

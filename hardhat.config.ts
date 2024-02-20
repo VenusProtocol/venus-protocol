@@ -40,7 +40,14 @@ extendConfig((config: HardhatConfig) => {
           "node_modules/@venusprotocol/oracle/deployments/sepolia",
           "node_modules/@venusprotocol/token-bridge/deployments/sepolia",
         ],
-        ethereum: ["node_modules/@venusprotocol/token-bridge/deployments/ethereum"],
+        ethereum: [
+          "node_modules/@venusprotocol/token-bridge/deployments/ethereum",
+          "node_modules/@venusprotocol/governance-contracts/deployments/ethereum",
+        ],
+        opbnbmainnet: [
+          "node_modules/@venusprotocol/governance-contracts/deployments/opbnbmainnet",
+          "node_modules/@venusprotocol/token-bridge/deployments/opbnbmainnet",
+        ],
       },
     };
   }
@@ -137,15 +144,14 @@ const config: HardhatUserConfig = {
     bsctestnet: {
       url: process.env.ARCHIVE_NODE_bsctestnet || "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
-      accounts: {
-        mnemonic: process.env.MNEMONIC || "",
-      },
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
       gasPrice: 10000000000, // 10 gwei
       gasMultiplier: 10,
       timeout: 12000000,
     },
     bscmainnet: {
       url: process.env.ARCHIVE_NODE_bscmainnet || "https://bsc-dataseed.binance.org/",
+      chainId: 56,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
     sepolia: {
@@ -153,7 +159,9 @@ const config: HardhatUserConfig = {
       chainId: 11155111,
       live: true,
       gasPrice: 20000000000, // 20 gwei
-      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+      accounts: {
+        mnemonic: process.env.MNEMONIC || "",
+      },
     },
     ethereum: {
       url: process.env.ARCHIVE_NODE_ethereum || "https://ethereum.blockpi.network/v1/rpc/public",
@@ -228,7 +236,7 @@ const config: HardhatUserConfig = {
         network: "opbnbmainnet",
         chainId: 204,
         urls: {
-          apiURL: `https://open-platform.nodereal.io/${process.env.ETHERSCAN_API_KEY}/op-bnb-testnet/contract/`,
+          apiURL: `https://open-platform.nodereal.io/${process.env.ETHERSCAN_API_KEY}/op-bnb-mainnet/contract/`,
           browserURL: "https://opbnbscan.com/",
         },
       },
