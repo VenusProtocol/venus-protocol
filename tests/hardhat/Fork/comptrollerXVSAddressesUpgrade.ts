@@ -22,8 +22,8 @@ forking(34340887, () => {
 
   if (process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet") {
     before(async () => {
-      await impersonateAccount(Owner);
-      owner = await ethers.getSigner(Owner);
+      await impersonateAccount(OWNER);
+      owner = await ethers.getSigner(OWNER);
 
       diamond = await ethers.getContractAt("Diamond", UNITROLLER);
     });
