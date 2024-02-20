@@ -38,7 +38,7 @@ forking(34340887, () => {
     it("upgrade checks", async () => {
       const oldSetterFacet = await ethers.getContractAt("SetterFacet", diamond.address);
       await expect(
-        oldSetterFacet.connect(owner)._setXVSToken("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D"),
+        oldSetterFacet.connect(owner)._setXVSToken("0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63"),
       ).to.be.revertedWith("Diamond: Function does not exist");
       await expect(
         oldSetterFacet.connect(owner)._setXVSVToken("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D"),
