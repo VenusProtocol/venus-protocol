@@ -5,7 +5,7 @@ import chai from "chai";
 import { ethers } from "hardhat";
 
 import { BEP20, Diamond, RewardFacet, SetterFacet } from "../../../typechain";
-import { forking } from "./utils";
+import { FacetCutAction, forking } from "./utils";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -65,17 +65,17 @@ forking(34340887, () => {
       const cut = [
         {
           facetAddress: newSetterFacet.address,
-          action: 0,
+          action: FacetCutAction.Add,
           functionSelectors: [addXVSAddressFunctionSignature, addXVSVTokenAddressFunctionSignature],
         },
         {
           facetAddress: newSetterFacet.address,
-          action: 1,
+          action: FacetCutAction.Replace,
           functionSelectors: existingSetterFacetFunctions,
         },
         {
           facetAddress: newRewardFacet.address,
-          action: 1,
+          action: FacetCutAction.Replace,
           functionSelectors: existingRewardFacetFunctions,
         },
       ];
