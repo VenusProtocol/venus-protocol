@@ -19,6 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const stakingPeriod: Config = {
     bsctestnet: TEN_MINUTES,
     sepolia: TEN_MINUTES,
+    opbnbtestnet: TEN_MINUTES,
     bscmainnet: NINETY_DAYS,
     ethereum: NINETY_DAYS,
   };
@@ -28,6 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: 0,
     bscmainnet: 0,
     ethereum: 0,
+    opbnbtestnet: 0,
   };
 
   const blocksPerYear: Config = {
@@ -35,7 +37,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: 2_628_000, // 12 sec per block
     bscmainnet: 10_512_000,
     ethereum: 2_628_000,
+    opbnbtestnet: 0,
   };
+
+  const L2s = ["opbnbtestnet"];
 
   const networkName: string = network.name;
   const maximumXVSCap = ethers.utils.parseEther("100000");
@@ -43,7 +48,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const xvsVaultAlphaNumerator = 1;
   const xvsVaultAlphaDenominator = 2;
   const loopsLimit = 20;
-  const isTimeBased = false; // revise this value when deploying on L2s
+  const isTimeBased = L2s.includes(networkName) ? true : false;
 
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
