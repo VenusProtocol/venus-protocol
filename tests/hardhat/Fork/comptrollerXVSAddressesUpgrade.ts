@@ -10,7 +10,7 @@ import { forking } from "./utils";
 const { expect } = chai;
 chai.use(smock.matchers);
 
-const Owner = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
+const OWNER = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
 const OLD_SETTER_FACET = "0xF2b7D75557B75a878E997934014E95Dd089B5f24";
 const OLD_REWARD_FACET = "0x71e7AAcb01C5764A56DB92aa31aA473e839d964F";
 const UNITROLLER = "0xfD36E2c2a6789Db23113685031d7F16329158384";
