@@ -1,6 +1,7 @@
 import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { VotesSyncReceiver, VotesSyncReceiverAdmin } from "typechain";
 
 import ADDRESSES from "../helpers/address";
 import { LZ_ENDPOINTS, SUPPORTED_NETWORKS } from "../helpers/constants";
@@ -39,7 +40,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  await deploy("VotesSyncReceiverAdmin", {
+  const votesSyncReceiverAdmin = await deploy("VotesSyncReceiverAdmin", {
     from: deployer,
     args: [votesSyncReceiver.address],
     contract: "VotesSyncReceiverAdmin",
@@ -55,6 +56,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
   });
+  const receiver = (await ethers.getContract("VotesSyncReceiver")) as VotesSyncReceiver;
+  if ((await receiver.owner()) === deployer) {
+    const tx = await receiver.transferOwnership(votesSyncReceiverAdmin.address);
+    await tx.wait();
+    console.log(
+      `Ownership of VotesSyncReceiver ${receiver.address} is transferred to VotesSyncReceiverAdmin${votesSyncReceiverAdmin.address}`,
+    );
+  }
+  const receiverAdmin = (await ethers.getContract("VotesSyncReceiverAdmin")) as VotesSyncReceiverAdmin;
+
+  if ((await receiverAdmin.owner()) === deployer) {
+    const tx = await receiverAdmin.transferOwnership(normalVipTimelock as string);
+    await tx.wait();
+    console.log(
+      `Ownership of VotesSyncReceiver ${receiverAdmin.address} is transferred to Normal Timelock ${normalVipTimelock}`,
+    );
+  }
 };
 func.tags = ["Receiver"];
 func.skip = async (hre: HardhatRuntimeEnvironment) =>
