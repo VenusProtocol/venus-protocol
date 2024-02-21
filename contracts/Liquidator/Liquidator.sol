@@ -525,5 +525,13 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         emit ForceVAILiquidationResumed(msg.sender);
     }
 
+    /**
+     * @notice Resume Force Liquidation of VAI
+     */
+    function transferOwnershipToTimelock(address newOwner_) external onlyOwner {
+        ensureNonzeroAddress(newOwner_);
+        transferOwnership(newOwner_);
+    }
+
     function renounceOwnership() public override {}
 }
