@@ -19,8 +19,8 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /// @notice Emitted when an account exits a market
     event MarketExited(VToken indexed vToken, address indexed account);
 
-    /// @notice Emitted when the borrowing delegate rights are updated for an account
-    event DelegateUpdated(address indexed borrower, address indexed delegate, bool allowDelegatedBorrows);
+    /// @notice Emitted when the borrowing or redeeming delegate rights are updated for an account
+    event DelegateUpdated(address indexed approver, address indexed delegate, bool approved);
 
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     function isComptroller() public pure returns (bool) {
@@ -199,22 +199,22 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
-     * @notice Grants or revokes the borrowing delegate rights to / from an account
+     * @notice Grants or revokes the borrowing or redeeming delegate rights to / from an account
      *  If allowed, the delegate will be able to borrow funds on behalf of the sender
      *  Upon a delegated borrow, the delegate will receive the funds, and the borrower
      *  will see the debt on their account
      *  Upon a delegated redeem, the delegate will redeem the vTokens or the underlying,
      *  will receive the redeemed amount on behalf of the approver(redeemer)
      * @param delegate The address to update the rights for
-     * @param allowBorrows Whether to grant (true) or revoke (false) the rights
+     * @param approved Whether to grant (true) or revoke (false) the rights
      */
-    function updateDelegate(address delegate, bool allowBorrows) external {
-        _updateDelegate(msg.sender, delegate, allowBorrows);
+    function updateDelegate(address delegate, bool approved) external {
+        _updateDelegate(msg.sender, delegate, approved);
     }
 
-    function _updateDelegate(address borrower, address delegate, bool allowBorrows) internal {
-        approvedDelegates[borrower][delegate] = allowBorrows;
-        emit DelegateUpdated(borrower, delegate, allowBorrows);
+    function _updateDelegate(address approver, address delegate, bool approved) internal {
+        approvedDelegates[approver][delegate] = approved;
+        emit DelegateUpdated(approver, delegate, approved);
     }
 
     function _addMarketInternal(VToken vToken) internal {
