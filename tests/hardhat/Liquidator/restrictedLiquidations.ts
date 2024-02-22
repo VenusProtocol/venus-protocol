@@ -5,7 +5,16 @@ import chai from "chai";
 import { ethers, upgrades } from "hardhat";
 
 import { convertToBigInt } from "../../../helpers/utils";
-import { ComptrollerMock, Liquidator, Liquidator__factory, MockVBNB, VBep20Immutable } from "../../../typechain";
+import {
+  ComptrollerMock,
+  IAccessControlManagerV5,
+  IProtocolShareReserve,
+  Liquidator,
+  Liquidator__factory,
+  MockVBNB,
+  VBep20Immutable,
+  WBNB,
+} from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -15,10 +24,10 @@ type LiquidatorFixture = {
   vBnb: FakeContract<MockVBNB>;
   comptroller: FakeContract<ComptrollerMock>;
   liquidator: MockContract<Liquidator>;
+  accessControlManager: FakeContract<IAccessControlManagerV5>;
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
-  const [, treasury] = await ethers.getSigners();
   const treasuryPercentMantissa = convertToBigInt("0.05", 18);
 
   const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
@@ -26,12 +35,23 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const vBep20 = await smock.fake<VBep20Immutable>("VBep20Immutable");
 
-  const Liquidator = await smock.mock<Liquidator__factory>("Liquidator");
-  const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercentMantissa], {
-    constructorArgs: [comptroller.address, vBnb.address, treasury.address],
-  });
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+    "contracts/InterfacesV8.sol:IProtocolShareReserve",
+  );
+  const wBnb = await smock.fake<WBNB>("WBNB");
+  const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
+  accessControlManager.isAllowedToCall.returns(true);
 
-  return { comptroller, vBnb, vBep20, liquidator };
+  const Liquidator = await smock.mock<Liquidator__factory>("Liquidator");
+  const liquidator = await upgrades.deployProxy(
+    Liquidator,
+    [treasuryPercentMantissa, accessControlManager.address, protocolShareReserve.address],
+    {
+      constructorArgs: [comptroller.address, vBnb.address, wBnb.address],
+    },
+  );
+
+  return { comptroller, vBnb, vBep20, liquidator, accessControlManager };
 }
 
 function configure(fixture: LiquidatorFixture) {
@@ -45,20 +65,23 @@ describe("Liquidator", () => {
 
   let vBep20: FakeContract<VBep20Immutable>;
   let liquidator: MockContract<Liquidator>;
+  let accessControlManager: FakeContract<IAccessControlManager>;
 
   beforeEach(async () => {
     [, , borrower, guy] = await ethers.getSigners();
     const contracts = await loadFixture(deployLiquidator);
     configure(contracts);
-    ({ vBep20, liquidator } = contracts);
+    ({ vBep20, liquidator, accessControlManager } = contracts);
   });
 
   describe("Restricted liquidations", () => {
     describe("addToAllowlist", async () => {
-      it("fails if called by a non-admin", async () => {
-        await expect(liquidator.connect(guy).addToAllowlist(borrower.address, guy.address)).to.be.revertedWith(
-          "Ownable: caller is not the owner",
-        );
+      it("fails if not allowed to call", async () => {
+        accessControlManager.isAllowedToCall.returns(false);
+        await expect(
+          liquidator.connect(guy).addToAllowlist(borrower.address, guy.address),
+        ).to.be.revertedWithCustomError(liquidator, "Unauthorized");
+        accessControlManager.isAllowedToCall.returns(true);
       });
 
       it("adds address to allowlist", async () => {
@@ -81,10 +104,12 @@ describe("Liquidator", () => {
     });
 
     describe("removeFromAllowlist", async () => {
-      it("fails if called by a non-admin", async () => {
-        await expect(liquidator.connect(guy).removeFromAllowlist(borrower.address, guy.address)).to.be.revertedWith(
-          "Ownable: caller is not the owner",
-        );
+      it("fails if not allowed to call", async () => {
+        accessControlManager.isAllowedToCall.returns(false);
+        await expect(
+          liquidator.connect(guy).removeFromAllowlist(borrower.address, guy.address),
+        ).to.be.revertedWithCustomError(liquidator, "Unauthorized");
+        accessControlManager.isAllowedToCall.returns(true);
       });
 
       it("fails if not in the allowlist", async () => {
@@ -109,10 +134,13 @@ describe("Liquidator", () => {
     });
 
     describe("restrictLiquidation", async () => {
-      it("fails if called by a non-admin", async () => {
-        await expect(liquidator.connect(guy).restrictLiquidation(borrower.address)).to.be.revertedWith(
-          "Ownable: caller is not the owner",
+      it("fails if not allowed to call", async () => {
+        accessControlManager.isAllowedToCall.returns(false);
+        await expect(liquidator.connect(guy).restrictLiquidation(borrower.address)).to.be.revertedWithCustomError(
+          liquidator,
+          "Unauthorized",
         );
+        accessControlManager.isAllowedToCall.returns(true);
       });
 
       it("restricts liquidations for the borrower", async () => {
@@ -136,10 +164,13 @@ describe("Liquidator", () => {
     });
 
     describe("unrestrictLiquidation", async () => {
-      it("fails if called by a non-admin", async () => {
-        await expect(liquidator.connect(guy).unrestrictLiquidation(borrower.address)).to.be.revertedWith(
-          "Ownable: caller is not the owner",
+      it("fails if not allowed to call", async () => {
+        accessControlManager.isAllowedToCall.returns(false);
+        await expect(liquidator.connect(guy).unrestrictLiquidation(borrower.address)).to.be.revertedWithCustomError(
+          liquidator,
+          "Unauthorized",
         );
+        accessControlManager.isAllowedToCall.returns(true);
       });
 
       it("removes the restrictions for the borrower", async () => {
