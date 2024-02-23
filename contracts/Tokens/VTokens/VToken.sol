@@ -977,7 +977,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         accountTokens[redeemer] = vars.accountTokensNew;
 
         /*
-         * We invoke doTransferOut for the redeemer and the redeemAmount.
+         * We invoke doTransferOut for the receiver and the redeemAmount.
          *  Note: The vToken must handle variations between BEP-20 and BNB underlying.
          *  On success, the vToken has redeemAmount less of cash.
          *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
@@ -1089,7 +1089,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalBorrows = vars.totalBorrowsNew;
 
         /*
-         * We invoke doTransferOut for the borrower and the borrowAmount.
+         * We invoke doTransferOut for the receiver and the borrowAmount.
          *  Note: The vToken must handle variations between BEP-20 and BNB underlying.
          *  On success, the vToken borrowAmount less of cash.
          *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
