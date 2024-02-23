@@ -842,11 +842,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Sender redeems vToken on behalf of some other address. This function is only available
-     *   for senders, explicitly marked as delegates of the supplier using `comptroller.updateDelegate`
+     * @notice Redeemer redeems vTokens in exchange for the underlying assets, transferred to the receiver. Redeemer and receiver can be the same
+     *   address, or different addresses if the receiver was previously approved by the redeemer as a valid delegate (see MarketFacet.updateDelegate)
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
      * @param redeemer The address of the account which is redeeming the tokens
-     * @param receiver The receiver of the tokens, if called by a delegate
+     * @param receiver The receiver of the tokens
      * @param redeemTokens The number of vTokens to redeem into underlying
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
@@ -888,10 +888,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice User redeems vTokens in exchange for the underlying asset
+     * @notice Redeemer redeems vTokens in exchange for the underlying assets, transferred to the receiver. Redeemer and receiver can be the same
+     *   address, or different addresses if the receiver was previously approved by the redeemer as a valid delegate (see MarketFacet.updateDelegate)
      * @dev Assumes interest has already been accrued up to the current block
      * @param redeemer The address of the account which is redeeming the tokens
-     * @param receiver The receiver of the tokens, if called by a delegate
+     * @param receiver The receiver of the tokens
      * @param redeemTokensIn The number of vTokens to redeem into underlying (only one of redeemTokensIn or redeemAmountIn may be non-zero)
      * @param redeemAmountIn The number of underlying tokens to receive from redeeming vTokens (only one of redeemTokensIn or redeemAmountIn may be non-zero)
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
