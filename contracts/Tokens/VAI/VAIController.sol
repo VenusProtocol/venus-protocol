@@ -456,6 +456,12 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
         Exp tokensToDenom;
     }
 
+    /**
+     * @notice Function that returns the amount of VAI a user can mint based on their account liquidy and the VAI mint rate
+     * If mintEnabledOnlyForPrimeHolder is true, only Prime holders are able to mint VAI
+     * @param minter The account to check mintable VAI
+     @return (uint, uint) Tuple of error code and mintable VAI. Error 0 means no error. Mintable amount has 18 decimals
+     */
     // solhint-disable-next-line code-complexity
     function getMintableVAI(address minter) public view returns (uint, uint) {
         if (mintEnabledOnlyForPrimeHolder && !IPrime(prime).isUserPrimeHolder(minter)) {
@@ -554,6 +560,12 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
         return (uint(Error.NO_ERROR), accountMintableVAI);
     }
 
+    /**
+     * @notice Update treasury data
+     * @param newTreasuryGuardian New Treasury Guardian address
+     * @param newTreasuryAddress New Treasury Address
+     * @param newTreasuryPercent New fee percentage for minting VAI that is sent to the treasury
+     */
     function _setTreasuryData(
         address newTreasuryGuardian,
         address newTreasuryAddress,
@@ -581,6 +593,10 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
         return uint(Error.NO_ERROR);
     }
 
+    /**
+     * @notice Gets yearly VAI interest rate based on the VAI price
+     * @return uint Yearly VAI interest rate
+     */
     function getVAIRepayRate() public view returns (uint) {
         PriceOracle oracle = comptroller.oracle();
         MathError mErr;
@@ -616,6 +632,10 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
         }
     }
 
+    /**
+     * @notice Get interest rate per block
+     * @return uint Interest rate per bock
+     */
     function getVAIRepayRatePerBlock() public view returns (uint) {
         uint yearlyRate = getVAIRepayRate();
 
@@ -628,6 +648,11 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
         return rate;
     }
 
+    /**
+     * @notice Get the last updated interest index for a VAI Minter
+     * @param minter Address of VAI minter
+     * @return uint Returns the interest rate index for a minter
+     */
     function getVAIMinterInterestIndex(address minter) public view returns (uint) {
         uint storedIndex = vaiMinterInterestIndex[minter];
         // If the user minted VAI before the stability fee was introduced, accrue
@@ -729,6 +754,9 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
         return (burn, partOfCurrentInterest, partOfPastInterest);
     }
 
+    /**
+     * @notice Accrue interest on outstanding minted VAI
+     */
     function accrueVAIInterest() public {
         MathError mErr;
         uint delta;
