@@ -93,6 +93,9 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
     ///@notice Emitted when bridge is set
     event SetVotesSyncBridge(IVotesSyncSender oldBridge, IVotesSyncSender newBridge);
 
+    ///@notice Emitted when votes synced successfully
+    event ForceSync(address indexed delegatee, uint32 indexed ncheckpoint);
+
     constructor() public {
         admin = msg.sender;
     }
@@ -743,7 +746,6 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @param r Half of the ECDSA signature pair
      * @param s Half of the ECDSA signature pair
      * @param adapterParams The amount of gas required for BNB chain
-
      */
     function delegateBySig(
         address delegatee,
@@ -763,6 +765,24 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         require(nonce == nonces[signatory]++, "XVSVault::delegateBySig: invalid nonce");
         require(block.timestamp <= expiry, "XVSVault::delegateBySig: signature expired");
         return _delegate(signatory, delegatee, adapterParams);
+    }
+
+    /**
+     * @notice Sync votes externally on BNB chain
+     * @param adapterParams The params used to specify the custom amount of gas required for the execution on the BNB chain
+     */
+    function forceSync(bytes calldata adapterParams) external payable {
+        address delegatee = delegates[msg.sender];
+        _ensureNonzeroAddress(delegatee);
+        uint32 ncheckpoints = numCheckpoints[delegatee];
+        bytes memory payload = abi.encode(
+            delegatee,
+            ncheckpoints - 1,
+            ncheckpoints,
+            checkpoints[delegatee][ncheckpoints - 1].votes
+        );
+        votesSyncSender.syncVotes.value(msg.value)(payload, adapterParams);
+        emit ForceSync(delegatee, ncheckpoints);
     }
 
     /**
