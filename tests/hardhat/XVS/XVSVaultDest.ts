@@ -34,7 +34,7 @@ interface XVSVaultFixture {
   xvsStoreDest: XVSStore;
 }
 
-describe.only("XVSVaultDest", async () => {
+describe("XVSVaultDest", async () => {
   let deployer: Wallet;
   let user: Wallet;
   let xvsVaultDest: MockContract<XVSVaultDestScenario>;
@@ -209,18 +209,13 @@ describe.only("XVSVaultDest", async () => {
       await mine();
       expect(await multichainVoteRegistry.getPriorVotes(deployer.address, latestBlock)).to.be.equal(0);
     });
-    it("Reverts if value mistmatch in remove chain id", async () => {
-      await expect(multichainVoteRegistry.removeChainId(0, localChainId)).to.be.revertedWith(
-        "MultichainVoteRegistry::removeChainId: chain id mismatch",
-      );
-    });
-    it("Reverts if index is out of bound", async () => {
-      await expect(multichainVoteRegistry.removeChainId(1, remoteChainId)).to.be.revertedWith(
-        "MultichainVoteRegistry::removeChainId: index out-of-bound",
+    it("Reverts if chain id not found", async () => {
+      await expect(multichainVoteRegistry.removeChainId(localChainId)).to.be.revertedWith(
+        "MultichainVoteRegistry::removeChainId: chain id not found",
       );
     });
     it("Does not count votes of removed chain Id", async () => {
-      await expect(multichainVoteRegistry.removeChainId(0, remoteChainId))
+      await expect(multichainVoteRegistry.removeChainId(remoteChainId))
         .to.emit(multichainVoteRegistry, "RemoveChainId")
         .withArgs(remoteChainId);
       const halfDepositAmount = depositAmount.div(2);

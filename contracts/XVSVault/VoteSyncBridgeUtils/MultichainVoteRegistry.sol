@@ -11,7 +11,7 @@ import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contract
  * @author Venus
  * @notice The MultichainVoteRegistry contract is access controlled which keeps the count of the votes on the basis of chainId.
  * This contract is responsible for providing the final accumulated voting power (on all supported chains) to the governanceDelegate contract when voting on a proposal.
- * It is invoked by layerZero bridge receiver contract to update the vote state/checkpoint for accounts that have staked on chains apart from BSC.
+ * It is invoked by layerZero bridge receiver contract to update the vote state/checkpoint for accounts that have staked on chains apart from BNB.
  */
 contract MultichainVoteRegistry is AccessControlledV8 {
     /**
@@ -27,7 +27,7 @@ contract MultichainVoteRegistry is AccessControlledV8 {
     uint16[] public lzChainIds;
 
     /**
-     * @notice Address of XVSVault deployed on BSC chain
+     * @notice Address of XVSVault deployed on BNB chain
      */
     IXVSVault public immutable XVSVault;
     /**
@@ -78,6 +78,8 @@ contract MultichainVoteRegistry is AccessControlledV8 {
     /**
      * @notice Add chainId to supported layer zero chain ids
      * @param chainId_ Chain Id i.e. to be added
+     * @custom:access Controlled by Access Control Manager
+     * @custom:event Emit AddChainID with chain Id
      */
     function addChainId(uint16 chainId_) external {
         _checkAccessAllowed("addChainId(uint16)");
@@ -88,14 +90,32 @@ contract MultichainVoteRegistry is AccessControlledV8 {
 
     /**
      *@notice  Remove chain Id from supported layer zero chain ids
-     * @param index_ Index of chain Id i.e. to be remove
      * @param chainId_ Chain Id i.e. to be removed
+     * @custom:access Controlled by Access Control Manager
+     * @custom:event Emit RemoveChainId with chain Id
      */
-    function removeChainId(uint256 index_, uint16 chainId_) external {
+    function removeChainId(uint16 chainId_) external {
         _checkAccessAllowed("removeChainId(uint16)");
-        require(index_ < lzChainIds.length, "MultichainVoteRegistry::removeChainId: index out-of-bound");
-        require(lzChainIds[index_] == chainId_, "MultichainVoteRegistry::removeChainId: chain id mismatch");
-        delete lzChainIds[index_];
+        uint256 length = lzChainIds.length;
+        uint256 index = length;
+        for (uint256 i; i < length; ) {
+            if (lzChainIds[i] == chainId_) {
+                index = i;
+            }
+            unchecked {
+                i++;
+            }
+        }
+        require(index != length, "MultichainVoteRegistry::removeChainId: chain id not found");
+
+        for (uint256 i = index; i < length - 1; ) {
+            lzChainIds[i] = lzChainIds[i + 1];
+            unchecked {
+                i++;
+            }
+        }
+        lzChainIds.pop();
+
         emit RemoveChainId(chainId_);
     }
 
@@ -134,7 +154,7 @@ contract MultichainVoteRegistry is AccessControlledV8 {
      */
     function getPriorVotes(address account_, uint256 blockNumber_) external view returns (uint96) {
         require(blockNumber_ < block.number, "MultichainVoteRegistry::getPriorVotes: not yet determined");
-        // Fetch votes of user stored in XVSVault on BSC chain
+        // Fetch votes of user stored in XVSVault on BNB chain
         uint96 votesOnBnb = XVSVault.getPriorVotes(account_, blockNumber_);
 
         uint96 totalVotes = votesOnBnb;
@@ -149,7 +169,6 @@ contract MultichainVoteRegistry is AccessControlledV8 {
             }
             if (checkpointsWithChainId[lzChainIds[i]][account_][nCheckpoints - 1].fromBlock <= blockNumber_) {
                 totalVotes += checkpointsWithChainId[lzChainIds[i]][account_][nCheckpoints - 1].votes;
-
                 continue;
             }
             // Next check implicit zero balance

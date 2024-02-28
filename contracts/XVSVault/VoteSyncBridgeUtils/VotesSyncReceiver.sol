@@ -12,7 +12,7 @@ import { IMultichainVoteRegistry } from "./interfaces/IMultichainVoteRegistry.so
  * @title VotesSyncReceiver
  * @author Venus
  * @notice The VotesSyncReceiver is builds upon the functionality of its parent contract, NonblockingLzApp which is part of layer zero bridge.
- * It receives voting information in the form of payload from remote(non-BSC) chains and send that information to MultichainVoteRegistry.
+ * It receives voting information in the form of payload from remote(non-BNB) chains and send that information to MultichainVoteRegistry.
  */
 contract VotesSyncReceiver is Pausable, NonblockingLzApp {
     using ExcessivelySafeCall for address;

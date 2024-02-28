@@ -16,7 +16,7 @@ import { XVSVaultProxy } from "./XVSVaultProxy.sol";
 /**
  * @title XVSVaultDest
  * @author Venus
- * @notice The XVS Vault Dest allows XVS holders to lock their XVS to recieve voting rights in Venus governance and are rewarded with XVS, and sync their votes on BSC chain.
+ * @notice The XVS Vault Dest allows XVS holders to lock their XVS to recieve voting rights in Venus governance and are rewarded with XVS, and sync their votes on BNB chain.
  */
 contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
     using SafeMath for uint256;
@@ -164,7 +164,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @dev The estimated fees are the minimum required; it's recommended to increase the fees amount when sending a message. The unused amount will be refunded
      * @param payload The payload to be sent to the remote chain. It's computed as follows:
      * payload = abi.encode(delegatee, ncheckpoints, blockNumber, votes, numCheckpoints[delegatee])
-     * @param adapterParams The params used to specify the custom amount of gas required for the execution on the BSC chain
+     * @param adapterParams The params used to specify the custom amount of gas required for the execution on the BNB chain
      * @return nativeFee The amount of fee in the native gas token (e.g. ETH)
      * @return zroFee The amount of fee in ZRO token
      */
@@ -292,7 +292,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _amount The amount to deposit to vault
-     * @param _adapterParams The amount of gas required for BSC chain
+     * @param _adapterParams The amount of gas required for BNB chain
      */
     function deposit(
         address _rewardToken,
@@ -496,7 +496,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _amount The amount to withdraw from the vault
-     * @param _adapterParams The amount of gas required for BSC chain
+     * @param _adapterParams The amount of gas required for BNB chain
      */
     function requestWithdrawal(
         address _rewardToken,
@@ -728,7 +728,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
     /**
      * @notice Delegate votes from `msg.sender` to `delegatee`
      * @param delegatee The address to delegate votes to
-     * @param adapterParams The amount of gas required for BSC chain
+     * @param adapterParams The amount of gas required for BNB chain
      */
     function delegate(address delegatee, bytes calldata adapterParams) external payable isActive {
         return _delegate(msg.sender, delegatee, adapterParams);
@@ -742,7 +742,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @param v The recovery byte of the signature
      * @param r Half of the ECDSA signature pair
      * @param s Half of the ECDSA signature pair
-     * @param adapterParams The amount of gas required for BSC chain
+     * @param adapterParams The amount of gas required for BNB chain
 
      */
     function delegateBySig(

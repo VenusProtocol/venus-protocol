@@ -12,17 +12,17 @@ import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/con
 /**
  * @title VotesSyncSender
  * @author Venus
- * @notice The VotesSyncSender send voting information of user from remote chains(non-BSC chains) to Binance chain with the help of layer zero bridge.
+ * @notice The VotesSyncSender send voting information of user from remote chains(non-BNB chains) to Binance chain with the help of layer zero bridge.
  * It sends voting information of user from XVSVaultDest to receiver contract on Binance chain in the form of encoded data known as payload.
  */
 contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
     /**
      * @notice Remote chain id of binance
      */
-    uint16 public immutable BSC_CHAIN_ID;
+    uint16 public immutable BNB_CHAIN_ID;
 
     /**
-     * @notice Number of times votes synced with BSC chain
+     * @notice Number of times votes synced with BNB chain
      */
     uint256 public nonce;
     /**
@@ -55,7 +55,7 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
     event TrustedRemoteRemoved(uint16 indexed chainId);
 
     /**
-     * @notice Emitted when votes synced with BSC chain successfully
+     * @notice Emitted when votes synced with BNB chain successfully
      */
     event ExecuteSyncVotes(uint16 indexed remoteChainId, bytes payload, bytes adapterParams);
 
@@ -81,7 +81,7 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
         ensureNonzeroAddress(address(accessControlManager_));
         accessControlManager = accessControlManager_;
         LZ_ENDPOINT = lzEndpoint_;
-        BSC_CHAIN_ID = dstChainId_;
+        BNB_CHAIN_ID = dstChainId_;
     }
 
     /**
@@ -93,8 +93,8 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
     function setTrustedRemoteAddress(bytes calldata remoteAddress) external {
         _ensureAllowed("setTrustedRemoteAddress(bytes)");
         ensureNonzeroAddress(address(uint160(bytes20(remoteAddress))));
-        trustedRemoteLookup[BSC_CHAIN_ID] = abi.encodePacked(remoteAddress, address(this));
-        emit SetTrustedRemoteAddress(BSC_CHAIN_ID, remoteAddress);
+        trustedRemoteLookup[BNB_CHAIN_ID] = abi.encodePacked(remoteAddress, address(this));
+        emit SetTrustedRemoteAddress(BNB_CHAIN_ID, remoteAddress);
     }
 
     /**
@@ -103,8 +103,8 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
      * @custom:event Emit TrustedRemoteRemoved with remote chain Id.
      */
     function removeTrustedRemote() external onlyOwner {
-        delete trustedRemoteLookup[BSC_CHAIN_ID];
-        emit TrustedRemoteRemoved(BSC_CHAIN_ID);
+        delete trustedRemoteLookup[BNB_CHAIN_ID];
+        emit TrustedRemoteRemoved(BNB_CHAIN_ID);
     }
 
     /**
@@ -127,7 +127,7 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
         bytes32 hash = storedExecutionHashes[failedNonce];
         require(hash != bytes32(0), "VotesSyncSender: no stored payload");
         require(payload.length != 0, "VotesSyncSender: empty payload");
-        bytes memory trustedRemote = trustedRemoteLookup[BSC_CHAIN_ID];
+        bytes memory trustedRemote = trustedRemoteLookup[BNB_CHAIN_ID];
         require(trustedRemote.length != 0, "VotesSyncSender: destination chain is not a trusted source");
         bytes memory execution = abi.encode(failedNonce, payload, adapterParams, originalValue);
         require(keccak256(execution) == hash, "VotesSyncSender: invalid execution params");
@@ -136,8 +136,8 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
         emit ClearPayload(failedNonce, hash);
 
         LZ_ENDPOINT.send{ value: originalValue + msg.value }(
-            BSC_CHAIN_ID,
-            trustedRemoteLookup[BSC_CHAIN_ID],
+            BNB_CHAIN_ID,
+            trustedRemoteLookup[BNB_CHAIN_ID],
             payload,
             payable(msg.sender),
             address(0),
@@ -155,13 +155,13 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
     function syncVotes(bytes memory payload, bytes memory adapterParams) external payable whenNotPaused {
         _ensureAllowed("syncVotes(bytes,bytes)");
         require(payload.length != 0, "VotesSyncSender: Empty payload");
-        bytes memory trustedRemote = trustedRemoteLookup[BSC_CHAIN_ID];
+        bytes memory trustedRemote = trustedRemoteLookup[BNB_CHAIN_ID];
         require(trustedRemote.length != 0, "VotesSyncSender: destination chain is not a trusted source");
         nonce++; // Number of times syncVotes is called
 
         try
             LZ_ENDPOINT.send{ value: msg.value }(
-                BSC_CHAIN_ID,
+                BNB_CHAIN_ID,
                 trustedRemote,
                 payload,
                 payable(tx.origin),
@@ -169,10 +169,10 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
                 adapterParams
             )
         {
-            emit ExecuteSyncVotes(BSC_CHAIN_ID, payload, adapterParams);
+            emit ExecuteSyncVotes(BNB_CHAIN_ID, payload, adapterParams);
         } catch (bytes memory reason) {
             storedExecutionHashes[nonce] = keccak256(abi.encode(nonce, payload, adapterParams, msg.value));
-            emit StorePayload(nonce, BSC_CHAIN_ID, payload, adapterParams, msg.value, reason);
+            emit StorePayload(nonce, BNB_CHAIN_ID, payload, adapterParams, msg.value, reason);
         }
     }
 
@@ -185,7 +185,7 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
      * @return zroFee The amount of fee in ZRO token
      */
     function estimateFee(bytes calldata payload, bytes calldata adapterParams) public view returns (uint256, uint256) {
-        return LZ_ENDPOINT.estimateFees(BSC_CHAIN_ID, address(this), payload, false, adapterParams);
+        return LZ_ENDPOINT.estimateFees(BNB_CHAIN_ID, address(this), payload, false, adapterParams);
     }
 
     /**
