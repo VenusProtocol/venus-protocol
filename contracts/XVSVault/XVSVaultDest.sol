@@ -91,7 +91,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
     );
 
     ///@notice Emitted when bridge is set
-    event SetBridge(IVotesSyncSender oldBridge, IVotesSyncSender newBridge);
+    event SetVotesSyncBridge(IVotesSyncSender oldBridge, IVotesSyncSender newBridge);
 
     constructor() public {
         admin = msg.sender;
@@ -153,9 +153,9 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @notice Update bridge address
      * @param votesSyncSenderBridge Address of bridge
      */
-    function setBridge(IVotesSyncSender votesSyncSenderBridge) external onlyAdmin {
+    function setVotesSyncBridge(IVotesSyncSender votesSyncSenderBridge) external onlyAdmin {
         _ensureNonzeroAddress(address(votesSyncSenderBridge));
-        emit SetBridge(votesSyncSender, votesSyncSenderBridge);
+        emit SetVotesSyncBridge(votesSyncSender, votesSyncSenderBridge);
         votesSyncSender = votesSyncSenderBridge;
     }
 
@@ -323,8 +323,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
                 address(0),
                 delegates[msg.sender],
                 safe96(_amount, "XVSVault::deposit: votes overflow"),
-                _adapterParams,
-                msg.value
+                _adapterParams
             );
         }
 
@@ -534,8 +533,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
                 delegates[msg.sender],
                 address(0),
                 safe96(_amount, "XVSVault::requestWithdrawal: votes overflow"),
-                _adapterParams,
-                msg.value
+                _adapterParams
             );
         }
 
@@ -733,7 +731,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @param adapterParams The amount of gas required for BSC chain
      */
     function delegate(address delegatee, bytes calldata adapterParams) external payable isActive {
-        return _delegate(msg.sender, delegatee, adapterParams, msg.value);
+        return _delegate(msg.sender, delegatee, adapterParams);
     }
 
     /**
@@ -764,7 +762,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         address signatory = ECDSA.recover(digest, v, r, s);
         require(nonce == nonces[signatory]++, "XVSVault::delegateBySig: invalid nonce");
         require(block.timestamp <= expiry, "XVSVault::delegateBySig: signature expired");
-        return _delegate(signatory, delegatee, adapterParams, msg.value);
+        return _delegate(signatory, delegatee, adapterParams);
     }
 
     /**
@@ -777,36 +775,30 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    function _delegate(address delegator, address delegatee, bytes memory adapterParams, uint256 value) internal {
+    function _delegate(address delegator, address delegatee, bytes memory adapterParams) internal {
         address currentDelegate = delegates[delegator];
         uint96 delegatorBalance = getStakeAmount(delegator);
         delegates[delegator] = delegatee;
 
         emit DelegateChangedV2(delegator, currentDelegate, delegatee);
 
-        _moveDelegates(currentDelegate, delegatee, delegatorBalance, adapterParams, value);
+        _moveDelegates(currentDelegate, delegatee, delegatorBalance, adapterParams);
     }
 
-    function _moveDelegates(
-        address srcRep,
-        address dstRep,
-        uint96 amount,
-        bytes memory adapterParams,
-        uint256 value
-    ) internal {
+    function _moveDelegates(address srcRep, address dstRep, uint96 amount, bytes memory adapterParams) internal {
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
                 uint96 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
                 uint96 srcRepNew = sub96(srcRepOld, amount, "XVSVault::_moveVotes: vote amount underflows");
-                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew, adapterParams, value);
+                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew, adapterParams);
             }
 
             if (dstRep != address(0)) {
                 uint32 dstRepNum = numCheckpoints[dstRep];
                 uint96 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
                 uint96 dstRepNew = add96(dstRepOld, amount, "XVSVault::_moveVotes: vote amount overflows");
-                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew, adapterParams, value);
+                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew, adapterParams);
             }
         }
     }
@@ -816,8 +808,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         uint32 nCheckpoints,
         uint96 oldVotes,
         uint96 newVotes,
-        bytes memory adapterParams,
-        uint256 value
+        bytes memory adapterParams
     ) internal {
         uint32 blockNumber = safe32(block.number, "XVSVault::_writeCheckpoint: block number exceeds 32 bits");
         bytes memory payload;
@@ -830,7 +821,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
             payload = abi.encode(delegatee, nCheckpoints, nCheckpoints + 1, newVotes);
         }
         emit DelegateVotesChangedV2(delegatee, oldVotes, newVotes);
-        votesSyncSender.syncVotes.value(value)(payload, adapterParams);
+        votesSyncSender.syncVotes.value(msg.value)(payload, adapterParams);
     }
 
     function safe32(uint n, string memory errorMessage) internal pure returns (uint32) {

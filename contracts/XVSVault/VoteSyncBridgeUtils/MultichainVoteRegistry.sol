@@ -21,20 +21,19 @@ contract MultichainVoteRegistry is AccessControlledV8 {
         uint32 fromBlock;
         uint96 votes;
     }
+    /**
+     * @notice LZ chain Id for all supported networks
+     */
+    uint16[] public lzChainIds;
 
     /**
      * @notice Address of XVSVault deployed on BSC chain
      */
     IXVSVault public immutable XVSVault;
     /**
-     * @notice The number of checkpoints for each account
+     * @notice The number of checkpoints for each account for each chain id
      */
-    mapping(address => uint32) public numCheckpoints;
-
-    /**
-     * @notice Total number of votes irrespect of chain id
-     */
-    mapping(address => mapping(uint32 => Checkpoint)) public checkpoints;
+    mapping(uint16 => mapping(address => uint32)) public numCheckpointsWithChainId;
 
     /**
      * @notice A record of votes checkpoints for each account, by chain id and index
@@ -52,6 +51,14 @@ contract MultichainVoteRegistry is AccessControlledV8 {
         uint96 votes,
         uint32 nCheckpoint
     );
+    /**
+     * @notice Emitted when new chain Id is added to supported chain id list
+     */
+    event AddChainID(uint16 indexed chainId);
+    /**
+     * @notice Emitted when chain Id is removed from supported chain is list
+     */
+    event RemoveChainId(uint16 indexed chainId);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(IXVSVault XVSVault_) {
@@ -69,67 +76,102 @@ contract MultichainVoteRegistry is AccessControlledV8 {
     }
 
     /**
+     * @notice Add chainId to supported layer zero chain ids
+     * @param chainId_ Chain Id i.e. to be added
+     */
+    function addChainId(uint16 chainId_) external {
+        _checkAccessAllowed("addChainId(uint16)");
+        require(chainId_ != 0, "MultichainVoteRegistry::addChainId: invalid chain Id");
+        lzChainIds.push(chainId_);
+        emit AddChainID(chainId_);
+    }
+
+    /**
+     *@notice  Remove chain Id from supported layer zero chain ids
+     * @param index_ Index of chain Id i.e. to be remove
+     * @param chainId_ Chain Id i.e. to be removed
+     */
+    function removeChainId(uint256 index_, uint16 chainId_) external {
+        _checkAccessAllowed("removeChainId(uint16)");
+        require(index_ < lzChainIds.length, "MultichainVoteRegistry::removeChainId: index out-of-bound");
+        require(lzChainIds[index_] == chainId_, "MultichainVoteRegistry::removeChainId: chain id mismatch");
+        delete lzChainIds[index_];
+        emit RemoveChainId(chainId_);
+    }
+
+    /**
      * @notice Synchronizes remote chain votes(amount of XVS stake) for a specific delegatee
-     * @param chainId The Id of the remote chain where votes are being synchronized
-     * @param delegatee The address of the delegatee whose votes are being synchronized
-     * @param index Index for which votes to update
-     * @param votes The total number of votes to be synchronized
-     * @param nCheckpoint The number of checkpoints for each account
+     * @param chainId_ The Id of the remote chain where votes are being synchronized
+     * @param delegatee_ The address of the delegatee whose votes are being synchronized
+     * @param index_ Index for which votes to update
+     * @param votes_ The total number of votes to be synchronized
+     * @param nCheckpoint_ The number of checkpoints for each account
      * @custom:access Controlled by Access Control Manager
      * @custom:event Emit DestVotesUpdated
      */
 
-    function syncDestVotes(uint16 chainId, address delegatee, uint32 index, uint96 votes, uint32 nCheckpoint) external {
+    function syncDestVotes(
+        uint16 chainId_,
+        address delegatee_,
+        uint32 index_,
+        uint96 votes_,
+        uint32 nCheckpoint_
+    ) external {
         _checkAccessAllowed("syncDestVotes(uint16,address,uint32,uint96,uint32)");
         uint32 blockNumber = uint32(block.number);
-        Checkpoint memory newCheckpoint = Checkpoint(blockNumber, votes);
-        checkpoints[delegatee][index] = newCheckpoint;
-        checkpointsWithChainId[chainId][delegatee][index] = newCheckpoint;
-        numCheckpoints[delegatee] = nCheckpoint;
-        emit DestVotesUpdated(chainId, delegatee, index, blockNumber, votes, nCheckpoint);
+        Checkpoint memory newCheckpoint = Checkpoint(blockNumber, votes_);
+        checkpointsWithChainId[chainId_][delegatee_][index_] = newCheckpoint;
+        numCheckpointsWithChainId[chainId_][delegatee_] = nCheckpoint_;
+
+        emit DestVotesUpdated(chainId_, delegatee_, index_, blockNumber, votes_, nCheckpoint_);
     }
 
     /**
      * @notice Determine the xvs stake balance for an account
-     * @param account The address of the account to check
-     * @param blockNumber The block number to get the vote balance at
+     * @param account_ The address of the account to check
+     * @param blockNumber_ The block number to get the vote balance at
      * @return The balance that user staked
      */
-    function getPriorVotes(address account, uint256 blockNumber) external view returns (uint96) {
-        require(blockNumber < block.number, "MultichainVoteRegistry::getPriorVotes: not yet determined");
-
+    function getPriorVotes(address account_, uint256 blockNumber_) external view returns (uint96) {
+        require(blockNumber_ < block.number, "MultichainVoteRegistry::getPriorVotes: not yet determined");
         // Fetch votes of user stored in XVSVault on BSC chain
-        uint96 votesOnBnb = XVSVault.getPriorVotes(account, blockNumber);
+        uint96 votesOnBnb = XVSVault.getPriorVotes(account_, blockNumber_);
 
-        uint32 nCheckpoints = numCheckpoints[account];
-        if (nCheckpoints == 0) {
-            return 0 + votesOnBnb;
-        }
+        uint96 totalVotes = votesOnBnb;
+
+        uint256 length = lzChainIds.length;
 
         // First check most recent balance
-        if (checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
-            return checkpoints[account][nCheckpoints - 1].votes + votesOnBnb;
-        }
+        for (uint256 i; i < length; i++) {
+            uint32 nCheckpoints = numCheckpointsWithChainId[lzChainIds[i]][account_];
+            if (nCheckpoints == 0) {
+                continue;
+            }
+            if (checkpointsWithChainId[lzChainIds[i]][account_][nCheckpoints - 1].fromBlock <= blockNumber_) {
+                totalVotes += checkpointsWithChainId[lzChainIds[i]][account_][nCheckpoints - 1].votes;
 
-        // Next check implicit zero balance
-        if (checkpoints[account][0].fromBlock > blockNumber) {
-            return 0;
-        }
-
-        uint32 lower = 0;
-        uint32 upper = nCheckpoints - 1;
-        while (upper > lower) {
-            uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-            Checkpoint memory cp = checkpoints[account][center];
-            if (cp.fromBlock == blockNumber) {
-                return cp.votes;
-            } else if (cp.fromBlock < blockNumber) {
-                lower = center;
-            } else {
-                upper = center - 1;
+                continue;
+            }
+            // Next check implicit zero balance
+            if (checkpointsWithChainId[lzChainIds[i]][account_][0].fromBlock > blockNumber_) {
+                continue;
+            }
+            uint32 lower = 0;
+            uint32 upper = nCheckpoints - 1;
+            while (upper > lower) {
+                uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+                Checkpoint memory cp = checkpointsWithChainId[lzChainIds[i]][account_][center];
+                if (cp.fromBlock == blockNumber_) {
+                    totalVotes += cp.votes;
+                    break;
+                } else if (cp.fromBlock < blockNumber_) {
+                    lower = center;
+                } else {
+                    upper = center - 1;
+                }
             }
         }
         //return accumulated votes
-        return checkpoints[account][lower].votes + votesOnBnb;
+        return totalVotes;
     }
 }

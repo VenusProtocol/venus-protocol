@@ -41,7 +41,7 @@ contract XVSVaultDestScenario is XVSVaultDest {
 
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {
-            _moveDelegates(delegates[msg.sender], address(0), uint96(_amount), _adapterParams, msg.value);
+            _moveDelegates(delegates[msg.sender], address(0), uint96(_amount), _adapterParams);
         }
 
         emit RequestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);
