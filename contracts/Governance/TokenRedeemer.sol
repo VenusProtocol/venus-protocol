@@ -13,6 +13,7 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
     using SafeERC20 for IERC20;
 
     error RedeemFailed(uint256 errCode);
+    error RepaymentFailed(uint256 errCode);
 
     constructor(address owner_) {
         ensureNonzeroAddress(owner_);
@@ -26,6 +27,30 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
             revert RedeemFailed(err);
         }
         _transferAll(underlying, destination);
+    }
+
+    function redeemUnderlyingAndRepayBorrowBehalf(
+        IVBep20 vToken,
+        address borrower,
+        uint256 repayAmount,
+        address receiver
+    ) external nonReentrant onlyOwner {
+        IERC20 underlying = IERC20(vToken.underlying());
+
+        uint256 err = vToken.redeem(vToken.balanceOf(address(this)));
+        if (err != 0) {
+            revert RedeemFailed(err);
+        }
+
+        SafeERC20.forceApprove(underlying, address(vToken), repayAmount);
+
+        err = vToken.repayBorrowBehalf(borrower, repayAmount);
+        if (err != 0) {
+            revert RepaymentFailed(err);
+        }
+
+        _transferAll(underlying, receiver);
+        _transferAll(IERC20(address(vToken)), receiver);
     }
 
     function sweepTokens(IERC20 token, address destination) external onlyOwner {
