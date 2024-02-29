@@ -14,13 +14,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  await deploy("InterestRateModelLens", {
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
-
   await deploy("SnapshotLens", {
     from: deployer,
     args: [],
