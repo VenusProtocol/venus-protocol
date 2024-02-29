@@ -91,14 +91,17 @@ contract LiquidityMover {
 
     IV2Router public immutable V2_ROUTER;
     INonfungiblePositionManager public immutable V3_POSITION_MANAGER;
+    address public immutable SWEEP_TOKEN_RECEIVER;
 
     error TickOutOfRange(int24 currentTick, int24 minTick, int24 maxTick);
 
-    constructor(IV2Router v2Router, INonfungiblePositionManager v3PositionManager) {
+    constructor(IV2Router v2Router, INonfungiblePositionManager v3PositionManager, address sweepTokenReceiver) {
         ensureNonzeroAddress(address(v2Router));
         ensureNonzeroAddress(address(v3PositionManager));
+        ensureNonzeroAddress(sweepTokenReceiver);
         V2_ROUTER = v2Router;
         V3_POSITION_MANAGER = v3PositionManager;
+        SWEEP_TOKEN_RECEIVER = sweepTokenReceiver;
     }
 
     function moveLiquidity(MoveLiquidityParams calldata params) external {
@@ -142,6 +145,10 @@ contract LiquidityMover {
 
         _transferAll(token0, params.refundRecipient);
         _transferAll(token1, params.refundRecipient);
+    }
+
+    function sweepToken(IERC20Upgradeable token) external {
+        _transferAll(token, SWEEP_TOKEN_RECEIVER);
     }
 
     function _transferAll(IERC20Upgradeable token, address to) internal {
