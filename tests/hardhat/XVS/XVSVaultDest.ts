@@ -62,7 +62,7 @@ describe("XVSVaultDest", async () => {
       ["address", "uint32", "uint32", "uint96", "uint32"],
       [deployer.address, 1, latestBlock, parseUnits("100", 18), 1],
     );
-    const nativeFee = (await xvsVaultDest.estimateFee(payload, adapterParams))[0];
+    const nativeFee = (await xvsVaultDest.estimateFee(payload, adapterParams, false))[0];
     return nativeFee;
   }
 
@@ -183,7 +183,7 @@ describe("XVSVaultDest", async () => {
       expect(checkpointsWithChainId[0]).to.equal(latestBlock);
       expect(checkpointsWithChainId[1]).to.equal(depositAmount);
     });
-    it("Return votes of user on both chains BSC and non-BSC", async () => {
+    it("return votes of user on both chains BNB and non-BNB", async () => {
       const halfDepositAmount = depositAmount.div(2);
       await xvs.connect(user).approve(xvsVault.address, halfDepositAmount);
       await xvs.connect(user).approve(xvsVaultDest.address, halfDepositAmount);
@@ -204,17 +204,17 @@ describe("XVSVaultDest", async () => {
       await mine();
       expect(await multichainVoteRegistry.getPriorVotes(deployer.address, latestBlock)).to.equals(depositAmount);
     });
-    it("Return zero when no XVS are staked", async () => {
+    it("return zero when no XVS are staked", async () => {
       const latestBlock = (await ethers.provider.getBlock("latest")).number;
       await mine();
       expect(await multichainVoteRegistry.getPriorVotes(deployer.address, latestBlock)).to.be.equal(0);
     });
-    it("Reverts if chain id not found", async () => {
+    it("reverts if chain id not found", async () => {
       await expect(multichainVoteRegistry.removeChainId(localChainId)).to.be.revertedWith(
         "MultichainVoteRegistry::removeChainId: chain id not found",
       );
     });
-    it("Does not count votes of removed chain Id", async () => {
+    it("does not count votes of removed chain Id", async () => {
       await expect(multichainVoteRegistry.removeChainId(remoteChainId))
         .to.emit(multichainVoteRegistry, "RemoveChainId")
         .withArgs(remoteChainId);
@@ -222,11 +222,11 @@ describe("XVSVaultDest", async () => {
       await xvs.connect(user).approve(xvsVault.address, halfDepositAmount);
       await xvs.connect(user).approve(xvsVaultDest.address, halfDepositAmount);
 
-      // Stake XVS on BSC
+      // Stake XVS on BNB
       await xvsVault.connect(user).deposit(xvs.address, poolId, halfDepositAmount);
       await xvsVault.connect(user).delegate(deployer.address);
 
-      // Stake XVS on non-BSC
+      // Stake XVS on non-BNB
       const nativeFee = await getFee();
       await xvsVaultDest
         .connect(user)

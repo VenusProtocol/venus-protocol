@@ -173,9 +173,10 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      */
     function estimateFee(
         bytes calldata payload,
-        bytes calldata adapterParams
+        bytes calldata adapterParams,
+        bool useZro
     ) external view returns (uint256, uint256) {
-        return votesSyncSender.estimateFee(payload, adapterParams);
+        return votesSyncSender.estimateFee(payload, adapterParams, useZro);
     }
 
     /**
