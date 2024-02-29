@@ -24,6 +24,8 @@ interface IVBep20 is IVToken {
     ) external returns (uint256);
 
     function underlying() external view returns (address);
+
+    function redeemUnderlying(uint256 repayAmount) external returns (uint256);
 }
 
 interface IVBNB is IVToken {
