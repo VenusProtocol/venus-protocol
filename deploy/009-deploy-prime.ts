@@ -2,8 +2,6 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import ADDRESSES from "../helpers/address";
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
   const { deploy } = deployments;
@@ -17,6 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     [key: string]: number;
   }
   const stakingPeriod: Config = {
+    hardhat: TEN_MINUTES,
     bsctestnet: TEN_MINUTES,
     sepolia: TEN_MINUTES,
     bscmainnet: NINETY_DAYS,
@@ -28,6 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: 0,
     bscmainnet: 0,
     ethereum: 0,
+    hardhat: 0,
   };
 
   const blocksPerYear: Config = {
@@ -35,6 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: 2_628_000, // 12 sec per block
     bscmainnet: 10_512_000,
     ethereum: 2_628_000,
+    hardhat: 100,
   };
 
   const networkName: string = network.name;
@@ -45,26 +46,31 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const loopsLimit = 20;
   const isTimeBased = false; // revise this value when deploying on L2s
 
+  const corePoolAddress = (await deployments.get('Comptroller')).address
+  const wrappedNativeToken = (await deployments.get('WBNB')).address
+  const nativeMarket = (await deployments.get('vBNB')).address
+  const acmAddress = (await deployments.get('AccessControlManager')).address
+  const xvsVaultAddress = (await deployments.get('XVSVault')).address
+  const xvsAddress = (await deployments.get('XVS')).address
+  const resilientOracleAddress = (await deployments.get('ResilientOracle')).address
+  const normalVipTimelockAddress = (await deployments.get('Timelock_Normal')).address
+
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
     log: true,
     deterministicDeployment: false,
     args: [isTimeBased, blocksPerYear[networkName]],
     proxy: {
-      owner: ADDRESSES[networkName].normalVipTimelock,
+      owner: network.name === 'hardhat' ? deployer : normalVipTimelockAddress,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [ADDRESSES[networkName].acm, [], [], [], loopsLimit],
+        args: [acmAddress, [], [], [], loopsLimit],
       },
     },
   });
 
   const plp = await ethers.getContract("PrimeLiquidityProvider");
-
-  const corePoolAddress = ADDRESSES[networkName].unitroller;
-  const wrappedNativeToken = ADDRESSES[networkName].wbnb;
-  const nativeMarket = ADDRESSES[networkName].vbnb;
 
   await deploy("Prime", {
     from: deployer,
@@ -80,20 +86,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       isTimeBased,
     ],
     proxy: {
-      owner: ADDRESSES[networkName].normalVipTimelock,
+      owner: network.name === 'hardhat' ? deployer : normalVipTimelockAddress,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
         args: [
-          ADDRESSES[networkName].xvsVault,
-          ADDRESSES[networkName].xvs,
+          xvsVaultAddress,
+          xvsAddress,
           xVSVaultPoolId[networkName],
           xvsVaultAlphaNumerator,
           xvsVaultAlphaDenominator,
-          ADDRESSES[networkName].acm,
+          normalVipTimelockAddress,
           plp.address,
           corePoolAddress ? corePoolAddress : ZERO_ADDRESS,
-          ADDRESSES[networkName].oracle,
+          resilientOracleAddress,
           loopsLimit,
         ],
       },
@@ -101,13 +107,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   const prime = await ethers.getContract("Prime");
-  await prime.initializeV2(ADDRESSES[networkName].poolRegistry);
+  // @todo move to IL repo
+  // await prime.initializeV2(ADDRESSES[networkName].poolRegistry);
 
   console.log("Transferring Prime ownership to Timelock");
-  await prime.transferOwnership(ADDRESSES[networkName].normalVipTimelock);
+  await prime.transferOwnership(normalVipTimelockAddress);
 
   console.log("Transferring PLP ownership to Timelock");
-  await plp.transferOwnership(ADDRESSES[networkName].normalVipTimelock);
+  await plp.transferOwnership(normalVipTimelockAddress);
 };
 
 func.tags = ["Prime"];

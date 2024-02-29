@@ -1,3 +1,4 @@
+import { parseUnits } from "ethers/lib/utils";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -17,5 +18,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["VBep20"];
+// func.skip = async (hre) => !hre.network.live
 
 export default func;

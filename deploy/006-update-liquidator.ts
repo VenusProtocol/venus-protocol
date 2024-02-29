@@ -2,23 +2,18 @@ import { parseUnits } from "ethers/lib/utils";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import ADDRESSES from "../helpers/address";
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
   const { deploy, catchUnknownSigner } = deployments;
   const { deployer } = await getNamedAccounts();
+  const comptrollerAddress = (await deployments.get('Comptroller')).address
+  const accessControlManagerAddress = (await deployments.get('AccessControlManager')).address
+  const treasuryAddress = (await deployments.get('VTreasuryV8')).address
+  const timelockAddress = (await deployments.get('Timelock_Normal')).address
 
-  const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
+  const vbnbAddress = (await deployments.get('vBNB')).address
+  const wbnbAddress = (await deployments.get('WBNB')).address
 
-  const {
-    unitroller: comptrollerAddress,
-    vbnb: vbnbAddress,
-    wbnb: wbnbAddress,
-    normalVipTimelock: timelockAddress,
-    acm: accessControlManagerAddress,
-    treasury: treasuryAddress,
-  } = ADDRESSES[networkName];
   const TREASURY_PERCENT = parseUnits("0.05", 18);
 
   await catchUnknownSigner(
@@ -29,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       log: true,
       autoMine: true,
       proxy: {
-        owner: timelockAddress,
+        owner: network.name === 'hardhat' ? deployer : timelockAddress,
         proxyContract: "OpenZeppelinTransparentProxy",
         execute: {
           methodName: "initialize",

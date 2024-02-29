@@ -15,6 +15,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
+  await deploy("USDT", {
+    contract: "MockToken",
+    from: deployer,
+    args: ["Tether", "USDT", 18],
+    log: true,
+    autoMine: true,
+  });
+
+  const wbnbDeployment = await deploy("WBNB", {
+    contract: "MockToken",
+    from: deployer,
+    args: ["Wrapped BNB", "WBNB", 18],
+    log: true,
+    autoMine: true,
+  });
+
   const ethDeployment = await deploy("ETH", {
     contract: "MockToken",
     from: deployer,
@@ -53,6 +69,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       "1500000000000000000",
       "Venus Ethereum",
       "vETH",
+      18,
+      deployer,
+    ],
+    log: true,
+    autoMine: true,
+  });
+
+  await deploy("vBNB", {
+    contract: "VBep20Immutable",
+    from: deployer,
+    args: [
+      wbnbDeployment.address,
+      comptrollerDeployment.address,
+      interestRateModelVUSDCDeployment.address,
+      "1500000000000000000",
+      "Venus BNB",
+      "vBNB",
       18,
       deployer,
     ],

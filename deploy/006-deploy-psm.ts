@@ -1,17 +1,40 @@
+import deployOracle from '@venusprotocol/oracle/dist/deploy/1-deploy-oracles';
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import ADDRESSES from "../helpers/address";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, network, getNamedAccounts } = hre;
+  const { deployments, network, getNamedAccounts, getChainId } = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
-  const addresses = ADDRESSES[networkName];
+  // Ensure oracles are deployed
+  await deployOracle(hre);
+
+  const usdtAddress = (await deployments.get('USDT')).address
+  const acmAddress = (await deployments.get('AccessControlManager')).address
+  const treasuryAddress = (await deployments.get('VTreasuryV8')).address
+  const oracleAddress = (await deployments.get('ResilientOracle')).address
+  
+
+  const normalVipTimelockAddress = (await deploy("Timelock_Normal", {
+    contract: "TestTimelockV8",
+    from: deployer,
+    args: [deployer, 600],
+    log: true,
+    autoMine: true,
+  })).address;
+  
+  const vaiAddress = (await deploy("VAI", {
+    from: deployer,
+    args: [await getChainId()],
+    log: true,
+    autoMine: true,
+  })).address;
+
+
   const FEE_IN = 0;
   const FEE_OUT = 0;
   const VAI_MINT_CAP = parseUnits("5000000", 18); // 5M
@@ -19,15 +42,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   await deploy("PegStability_USDT", {
     contract: "PegStability",
     from: deployer,
-    args: [addresses.usdt, addresses.vai],
+    args: [usdtAddress, vaiAddress],
     log: true,
     autoMine: true,
     proxy: {
-      owner: addresses.normalVipTimelock,
+      owner: network.name === 'hardhat' ? deployer : normalVipTimelockAddress,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [addresses.acm, addresses.treasury, addresses.oracle, FEE_IN, FEE_OUT, VAI_MINT_CAP],
+        args: [acmAddress, treasuryAddress, oracleAddress, FEE_IN, FEE_OUT, VAI_MINT_CAP],
       },
     },
   });
@@ -35,11 +58,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const psm = await ethers.getContract("PegStability_USDT");
 
   if (network.name !== "hardhat") {
-    const timelockAddress = addresses.normalVipTimelock;
+    const timelockAddress = normalVipTimelockAddress;
     await psm.transferOwnership(timelockAddress);
     console.log(`PSM Contract (${psm.address}) owner changed from ${deployer} to ${timelockAddress}`);
   }
-  return hre.network.live; // when live network, record the script as executed to prevent rexecution
+  return hre.network.live; // when live network, record the script as executed to prevent re-execution
 };
 
 func.id = "psm_initial_deploy"; // id required to prevent re-execution

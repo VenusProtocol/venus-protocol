@@ -1,16 +1,14 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import ADDRESSES from "../helpers/address";
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
   const { deploy, catchUnknownSigner } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const networkName = network.name === "bscmainnet" ? "bscmainnet" : "bsctestnet";
-
-  const { usdt: usdtAddress, vai: vaiAddress, normalVipTimelock: timelockAddress } = ADDRESSES[networkName];
+  const usdtAddress = (await deployments.get('USDT')).address
+  const vaiAddress = (await deployments.get('VAI')).address
+  const normalVipTimelockAddress = (await deployments.get('Timelock_Normal')).address
 
   await catchUnknownSigner(
     deploy("PegStability_USDT", {
@@ -20,7 +18,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       log: true,
       autoMine: true,
       proxy: {
-        owner: timelockAddress,
+        owner: network.name === 'hardhat' ? deployer : normalVipTimelockAddress,
         proxyContract: "OpenZeppelinTransparentProxy",
       },
     }),

@@ -267,6 +267,9 @@ const config: HardhatUserConfig = {
         artifacts: "node_modules/@venusprotocol/governance-contracts/artifacts",
       },
       {
+        artifacts: "node_modules/@venusprotocol/oracle/artifacts",
+      },
+      {
         artifacts: "node_modules/@venusprotocol/protocol-reserve/artifacts",
       },
     ],
