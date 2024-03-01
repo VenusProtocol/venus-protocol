@@ -156,7 +156,8 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @notice Update bridge address
      * @param votesSyncSenderBridge Address of bridge
      */
-    function setVotesSyncBridge(IVotesSyncSender votesSyncSenderBridge) external onlyAdmin {
+    function setVotesSyncBridge(IVotesSyncSender votesSyncSenderBridge) external {
+        _checkAccessAllowed("setVotesSyncBridge(address)");
         _ensureNonzeroAddress(address(votesSyncSenderBridge));
         emit SetVotesSyncBridge(votesSyncSender, votesSyncSenderBridge);
         votesSyncSender = votesSyncSenderBridge;
