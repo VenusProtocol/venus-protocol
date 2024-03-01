@@ -163,44 +163,58 @@ contract MultichainVoteRegistry is AccessControlledV8 {
      * @return The balance that user staked
      */
     function getPriorVotes(address account_, uint256 blockNumber_) external view returns (uint96) {
-        require(blockNumber_ < block.number, "MultichainVoteRegistry::getPriorVotes: not yet determined");
         // Fetch votes of user stored in XVSVault on BNB chain
         uint96 votesOnBnb = XVSVault.getPriorVotes(account_, blockNumber_);
-
         uint96 totalVotes = votesOnBnb;
-
         uint256 length = lzChainIds.length;
 
-        // First check most recent balance
         for (uint256 i; i < length; i++) {
-            uint32 nCheckpoints = numCheckpointsWithChainId[lzChainIds[i]][account_];
-            if (nCheckpoints == 0) {
-                continue;
-            }
-            if (checkpointsWithChainId[lzChainIds[i]][account_][nCheckpoints - 1].fromBlock <= blockNumber_) {
-                totalVotes += checkpointsWithChainId[lzChainIds[i]][account_][nCheckpoints - 1].votes;
-                continue;
-            }
-            // Next check implicit zero balance
-            if (checkpointsWithChainId[lzChainIds[i]][account_][0].fromBlock > blockNumber_) {
-                continue;
-            }
-            uint32 lower = 0;
-            uint32 upper = nCheckpoints - 1;
-            while (upper > lower) {
-                uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-                Checkpoint memory cp = checkpointsWithChainId[lzChainIds[i]][account_][center];
-                if (cp.fromBlock == blockNumber_) {
-                    totalVotes += cp.votes;
-                    break;
-                } else if (cp.fromBlock < blockNumber_) {
-                    lower = center;
-                } else {
-                    upper = center - 1;
-                }
-            }
+            totalVotes += getPriorVotesInternal(account_, blockNumber_, lzChainIds[i]);
         }
         //return accumulated votes
         return totalVotes;
+    }
+
+    /**
+     * @dev Internal function to determine the xvs stake balance for an account
+     * @param account_ The address of the account to check
+     * @param blockNumber_ The block number to get the vote balance at
+     * @param chainId_ Layer zero chain id on which account balance will be checked
+     * @return The balance that user staked on particular chain id
+     */
+    function getPriorVotesInternal(
+        address account_,
+        uint256 blockNumber_,
+        uint16 chainId_
+    ) internal view returns (uint96) {
+        uint32 nCheckpoints = numCheckpointsWithChainId[chainId_][account_];
+        if (nCheckpoints == 0) {
+            return 0;
+        }
+
+        // First check most recent balance
+        if (checkpointsWithChainId[chainId_][account_][nCheckpoints - 1].fromBlock <= blockNumber_) {
+            return checkpointsWithChainId[chainId_][account_][nCheckpoints - 1].votes;
+        }
+
+        // Next check implicit zero balance
+        if (checkpointsWithChainId[chainId_][account_][0].fromBlock > blockNumber_) {
+            return 0;
+        }
+
+        uint32 lower = 0;
+        uint32 upper = nCheckpoints - 1;
+        while (upper > lower) {
+            uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+            Checkpoint memory cp = checkpointsWithChainId[chainId_][account_][center];
+            if (cp.fromBlock == blockNumber_) {
+                return cp.votes;
+            } else if (cp.fromBlock < blockNumber_) {
+                lower = center;
+            } else {
+                upper = center - 1;
+            }
+        }
+        return checkpointsWithChainId[chainId_][account_][lower].votes;
     }
 }
