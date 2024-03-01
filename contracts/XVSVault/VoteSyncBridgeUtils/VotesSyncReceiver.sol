@@ -99,7 +99,7 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
             (address, uint32, uint32, uint96)
         );
         emit VotesSynced(delegatee, index, votes, numCheckpoints);
-        multichainVoteRegistry.syncDestVotes(remoteChainId, delegatee, index, votes, numCheckpoints);
+        multichainVoteRegistry.syncDestVotes(remoteChainId, delegatee, index, numCheckpoints, votes);
     }
 
     function retryMessage(

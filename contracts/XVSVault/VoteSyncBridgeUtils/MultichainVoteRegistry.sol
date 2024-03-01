@@ -134,11 +134,21 @@ contract MultichainVoteRegistry is AccessControlledV8 {
         uint16 chainId_,
         address delegatee_,
         uint32 index_,
-        uint96 votes_,
-        uint32 nCheckpoint_
+        uint32 nCheckpoint_,
+        uint96 votes_
     ) external {
         _checkAccessAllowed("syncDestVotes(uint16,address,uint32,uint96,uint32)");
         uint32 blockNumber = uint32(block.number);
+        require(
+            numCheckpointsWithChainId[chainId_][delegatee_] <= nCheckpoint_,
+            "MultichainVoteRegistry::syncDestVotes: invalid checkpoint"
+        );
+        if (numCheckpointsWithChainId[chainId_][delegatee_] == nCheckpoint_) {
+            require(
+                checkpointsWithChainId[chainId_][delegatee_][index_].votes != votes_,
+                "MultichainVoteRegistry::syncDestVotes: votes already updated"
+            );
+        }
         Checkpoint memory newCheckpoint = Checkpoint(blockNumber, votes_);
         checkpointsWithChainId[chainId_][delegatee_][index_] = newCheckpoint;
         numCheckpointsWithChainId[chainId_][delegatee_] = nCheckpoint_;
