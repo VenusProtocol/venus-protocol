@@ -39,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  const comptrollerDeployment = await deployments.get("Comptroller");
+  const comptrollerDeployment = await deployments.get("Unitroller");
 
   const interestRateModelVUSDCDeployment = await deployments.get("InterestRateModelVUSDC");
   await deploy("vUSDC", {
@@ -95,5 +95,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["VBep20"];
+// The deployed contracts are mocks so we only run this locally
+func.skip = async hre => hre.network.name !== "hardhat";
 
 export default func;

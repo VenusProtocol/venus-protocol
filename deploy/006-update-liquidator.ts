@@ -6,13 +6,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
   const { deploy, catchUnknownSigner } = deployments;
   const { deployer } = await getNamedAccounts();
-  const comptrollerAddress = (await deployments.get('Comptroller')).address
-  const accessControlManagerAddress = (await deployments.get('AccessControlManager')).address
-  const treasuryAddress = (await deployments.get('VTreasuryV8')).address
-  const timelockAddress = (await deployments.get('Timelock_Normal')).address
+  const comptrollerAddress = (await deployments.get("Unitroller")).address;
+  const accessControlManagerAddress = (await deployments.get("AccessControlManager")).address;
+  const treasuryAddress = (await deployments.get("VTreasuryV8")).address;
+  const timelockAddress = (await deployments.get("NormalTimelock")).address;
 
-  const vbnbAddress = (await deployments.get('vBNB')).address
-  const wbnbAddress = (await deployments.get('WBNB')).address
+  const vbnbAddress = (await deployments.get("vBNB")).address;
+  const wbnbAddress = (await deployments.get("WBNB")).address;
 
   const TREASURY_PERCENT = parseUnits("0.05", 18);
 
@@ -24,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       log: true,
       autoMine: true,
       proxy: {
-        owner: network.name === 'hardhat' ? deployer : timelockAddress,
+        owner: network.name === "hardhat" ? deployer : timelockAddress,
         proxyContract: "OpenZeppelinTransparentProxy",
         execute: {
           methodName: "initialize",

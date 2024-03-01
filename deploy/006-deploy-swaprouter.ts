@@ -7,7 +7,7 @@ import Mainnet from "../deployments/bscmainnet.json";
 import Testnet from "../deployments/bsctestnet.json";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, network, getNamedAccounts } = hre;
+  const { deployments, getNamedAccounts } = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
@@ -30,5 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["SwapRouter"];
+// Pancake Factory is not deployed on the local network
+func.skip = async hre => hre.network.name === "hardhat";
 
 export default func;

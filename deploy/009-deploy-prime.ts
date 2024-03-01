@@ -46,14 +46,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const loopsLimit = 20;
   const isTimeBased = false; // revise this value when deploying on L2s
 
-  const corePoolAddress = (await deployments.get('Comptroller')).address
-  const wrappedNativeToken = (await deployments.get('WBNB')).address
-  const nativeMarket = (await deployments.get('vBNB')).address
-  const acmAddress = (await deployments.get('AccessControlManager')).address
-  const xvsVaultAddress = (await deployments.get('XVSVault')).address
-  const xvsAddress = (await deployments.get('XVS')).address
-  const resilientOracleAddress = (await deployments.get('ResilientOracle')).address
-  const normalVipTimelockAddress = (await deployments.get('Timelock_Normal')).address
+  const corePoolAddress = (await deployments.get("Comptroller")).address;
+  const wrappedNativeToken = (await deployments.get("WBNB")).address;
+  const nativeMarket = (await deployments.get("vBNB")).address;
+  const acmAddress = (await deployments.get("AccessControlManager")).address;
+  const xvsVaultAddress = (await deployments.get("XVSVault")).address;
+  const xvsAddress = (await deployments.get("XVS")).address;
+  const resilientOracleAddress = (await deployments.get("ResilientOracle")).address;
+  const normalVipTimelockAddress = (await deployments.get("NormalTimelock")).address;
 
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
@@ -61,7 +61,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deterministicDeployment: false,
     args: [isTimeBased, blocksPerYear[networkName]],
     proxy: {
-      owner: network.name === 'hardhat' ? deployer : normalVipTimelockAddress,
+      owner: network.name === "hardhat" ? deployer : normalVipTimelockAddress,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
@@ -86,7 +86,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       isTimeBased,
     ],
     proxy: {
-      owner: network.name === 'hardhat' ? deployer : normalVipTimelockAddress,
+      owner: network.name === "hardhat" ? deployer : normalVipTimelockAddress,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",

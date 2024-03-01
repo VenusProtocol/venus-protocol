@@ -20,7 +20,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
   const { tokensConfig, marketsConfig, preconfiguredAddresses } = await getConfig(hre.network.name);
 
-  const comptrollerDeployment = await deployments.get("Comptroller");
+  const comptrollerDeployment = await deployments.get("Unitroller");
 
   console.log(`Got deployment of Unitroller with address: ${comptrollerDeployment.address}`);
 

@@ -1,6 +1,6 @@
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { network } from "hardhat";
-import { parseUnits } from "ethers/lib/utils";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -25,20 +25,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       autoMine: true,
       args: [],
     });
-    const accessControlManager = await ethers.getContractAt("AccessControlManager", accessControlManagerDeployment.address);
+    const accessControlManager = await ethers.getContractAt(
+      "AccessControlManager",
+      accessControlManagerDeployment.address,
+    );
     const comptroller = await ethers.getContractAt("ComptrollerMock", comptrollerDeployment.address);
-
 
     let tx = await accessControlManager.giveCallPermission(
       ethers.constants.AddressZero,
-      '_supportMarket(address)',
+      "_supportMarket(address)",
       deployer,
     );
     await tx.wait();
 
     tx = await accessControlManager.giveCallPermission(
       ethers.constants.AddressZero,
-      '_setLiquidationIncentive(uint256)',
+      "_setLiquidationIncentive(uint256)",
       deployer,
     );
 

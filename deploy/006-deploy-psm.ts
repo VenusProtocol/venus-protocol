@@ -1,9 +1,8 @@
-import deployOracle from '@venusprotocol/oracle/dist/deploy/1-deploy-oracles';
+import deployOracle from "@venusprotocol/oracle/dist/deploy/1-deploy-oracles";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts, getChainId } = hre;
@@ -13,27 +12,35 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Ensure oracles are deployed
   await deployOracle(hre);
 
-  const usdtAddress = (await deployments.get('USDT')).address
-  const acmAddress = (await deployments.get('AccessControlManager')).address
-  const treasuryAddress = (await deployments.get('VTreasuryV8')).address
-  const oracleAddress = (await deployments.get('ResilientOracle')).address
-  
+  const usdtAddress = (await deployments.get("USDT")).address;
+  const acmAddress = (await deployments.get("AccessControlManager")).address;
+  const treasuryAddress = (await deployments.get("VTreasuryV8")).address;
+  const oracleAddress = (await deployments.get("ResilientOracle")).address;
 
-  const normalVipTimelockAddress = (await deploy("Timelock_Normal", {
-    contract: "TestTimelockV8",
-    from: deployer,
-    args: [deployer, 600],
-    log: true,
-    autoMine: true,
-  })).address;
-  
-  const vaiAddress = (await deploy("VAI", {
-    from: deployer,
-    args: [await getChainId()],
-    log: true,
-    autoMine: true,
-  })).address;
+  let normalVipTimelockAddress;
+  if (hre.network.name === "hardhat") {
+    normalVipTimelockAddress = (
+      await deploy("NormalTimelock", {
+        contract: "TestTimelockV8",
+        from: deployer,
+        args: [deployer, 600],
+        log: true,
+        autoMine: true,
+      })
+    ).address;
+  } else {
+    // We should be able to fetch the deployed contract from the governance network on live networks
+    normalVipTimelockAddress = (await deployments.get("NormalTimelock")).address;
+  }
 
+  const vaiAddress = (
+    await deploy("VAI", {
+      from: deployer,
+      args: [await getChainId()],
+      log: true,
+      autoMine: true,
+    })
+  ).address;
 
   const FEE_IN = 0;
   const FEE_OUT = 0;
@@ -46,7 +53,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
     proxy: {
-      owner: network.name === 'hardhat' ? deployer : normalVipTimelockAddress,
+      owner: network.name === "hardhat" ? deployer : normalVipTimelockAddress,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",

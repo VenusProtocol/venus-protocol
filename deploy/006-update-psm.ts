@@ -6,9 +6,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy, catchUnknownSigner } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const usdtAddress = (await deployments.get('USDT')).address
-  const vaiAddress = (await deployments.get('VAI')).address
-  const normalVipTimelockAddress = (await deployments.get('Timelock_Normal')).address
+  const usdtAddress = (await deployments.get("USDT")).address;
+  const vaiAddress = (await deployments.get("VAI")).address;
+  const normalVipTimelockAddress = (await deployments.get("NormalTimelock")).address;
 
   await catchUnknownSigner(
     deploy("PegStability_USDT", {
@@ -18,7 +18,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       log: true,
       autoMine: true,
       proxy: {
-        owner: network.name === 'hardhat' ? deployer : normalVipTimelockAddress,
+        owner: network.name === "hardhat" ? deployer : normalVipTimelockAddress,
         proxyContract: "OpenZeppelinTransparentProxy",
       },
     }),
