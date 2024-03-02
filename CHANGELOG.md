@@ -1,3 +1,10 @@
+## [7.4.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.1...v7.4.0-dev.2) (2024-03-02)
+
+
+### Features
+
+* updating deployment files ([980c304](https://github.com/VenusProtocol/venus-protocol/commit/980c3040594dd6daee075c89f4941a19042655c1))
+
 ## [7.4.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0...v7.4.0-dev.1) (2024-02-23)
 
 
