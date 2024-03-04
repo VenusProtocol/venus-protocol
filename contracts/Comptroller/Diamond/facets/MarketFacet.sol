@@ -22,6 +22,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /// @notice Emitted when the borrowing delegate rights are updated for an account
     event DelegateUpdated(address indexed borrower, address indexed delegate, bool allowDelegatedBorrows);
 
+    /// @notice Emitted when an admin unlists a market
+    event MarketUnlisted(address indexed vToken);
+
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     function isComptroller() public pure returns (bool) {
         return true;
@@ -132,7 +135,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
     /**
      * @notice Unlist an market by setting isListed to false
-     * @dev Pauses all actions, sets borrow/supply caps to 0 and sets collateral factor to 0.
+     * @dev Checks if market actions are paused and borrowCap/supplyCap/CF are set to 0
      * @param market The address of the market (token) to unlist
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
@@ -145,34 +148,20 @@ contract MarketFacet is IMarketFacet, FacetBase {
             return fail(Error.MARKET_NOT_LISTED, FailureInfo.UNLIST_MARKET_NOT_LISTED);
         }
 
-        _actionPaused[market][uint256(Action.BORROW)] = true;
-        _actionPaused[market][uint256(Action.MINT)] = true;
-        _actionPaused[market][uint256(Action.REDEEM)] = true;
-        _actionPaused[market][uint256(Action.REPAY)] = true;
-        _actionPaused[market][uint256(Action.ENTER_MARKET)] = true;
-        _actionPaused[market][uint256(Action.LIQUIDATE)] = true;
+        require(actionPaused(market, Action.BORROW), "borrow action is not paused");
+        require(actionPaused(market, Action.MINT), "mint action is not paused");
+        require(actionPaused(market, Action.REDEEM), "redeem action is not paused");
+        require(actionPaused(market, Action.REPAY), "repay action is not paused");
+        require(actionPaused(market, Action.ENTER_MARKET), "enter market action is not paused");
+        require(actionPaused(market, Action.LIQUIDATE), "liquidate action is not paused");
 
-        borrowCaps[market] = 0;
-        supplyCaps[market] = 0;
+        require(borrowCaps[market] == 0, "borrow cap is not 0");
+        require(supplyCaps[market] == 0, "supply cap is not 0");
 
-        VToken vToken = VToken(market);
-
-        emit NewSupplyCap(vToken, 0);
-        emit NewBorrowCap(vToken, 0);
-
-        emit ActionPausedMarket(vToken, Action.BORROW, true);
-        emit ActionPausedMarket(vToken, Action.MINT, true);
-        emit ActionPausedMarket(vToken, Action.REDEEM, true);
-        emit ActionPausedMarket(vToken, Action.REPAY, true);
-        emit ActionPausedMarket(vToken, Action.ENTER_MARKET, true);
-        emit ActionPausedMarket(vToken, Action.LIQUIDATE, true);
-
-        emit NewCollateralFactor(vToken, _market.collateralFactorMantissa, 0);
-        _market.collateralFactorMantissa = 0;
+        require(_market.collateralFactorMantissa == 0, "collateral factor is not 0");
 
         _market.isListed = false;
-
-        emit MarketUnlisted(vToken);
+        emit MarketUnlisted(market);
 
         return uint256(Error.NO_ERROR);
     }
