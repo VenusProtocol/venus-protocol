@@ -22,6 +22,18 @@ chai.use(smock.matchers);
 
 const { Error } = ComptrollerErrorReporter;
 
+const actions = {
+  MINT: 0,
+  REDEEM: 1,
+  BORROW: 2,
+  REPAY: 3,
+  SEIZE: 4,
+  LIQUIDATE: 5,
+  TRANSFER: 6,
+  ENTER_MARKET: 7,
+  EXIT_MARKET: 8
+};
+
 describe("Comptroller: assetListTest", () => {
   let root: Signer; // eslint-disable-line @typescript-eslint/no-unused-vars
   let customer: Signer;
@@ -130,25 +142,12 @@ describe("Comptroller: assetListTest", () => {
     expectedError: ComptrollerErrorReporter.Error | null = null,
   ) {
     const reply = await comptroller.connect(customer).callStatic.unlistMarket(unlistToken.address);
+
+    const receipt = await comptroller.connect(customer).unlistMarket(unlistToken.address);
+    expect(receipt).to.emit(unitroller, "MarketUnlisted");
+
     const expectedError_ = expectedError || Error.NO_ERROR;
     expect(reply).to.equal(expectedError_);
-
-    let receipt = await comptroller.connect(customer)._setMarketBorrowCaps([unlistToken.address], [0]);
-    expect(receipt).to.emit(unitroller, "NewBorrowCap");
-
-    receipt = await comptroller.connect(customer)._setMarketSupplyCaps([unlistToken.address], [0]);
-    expect(receipt).to.emit(unitroller, "NewSupplyCap");
-
-    receipt = await comptroller.connect(customer)._setCollateralFactor(unlistToken.address, 0);
-    expect(receipt).to.emit(unitroller, "NewCollateralFactor");
-
-    receipt = await comptroller.connect(customer)._setActionsPaused([unlistToken.address], [
-      0, 1, 2, 3, 5, 7
-    ], true);
-    expect(receipt).to.emit(unitroller, "ActionPausedMarket");
-
-    receipt = await comptroller.connect(customer).unlistMarket(unlistToken.address);
-    expect(receipt).to.emit(unitroller, "MarketUnlisted");
 
     const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
@@ -311,12 +310,19 @@ describe("Comptroller: assetListTest", () => {
   describe("unlistMarkets", () => {
     it("properly emits events and unlist market", async () => {
       await enterAndCheckMarkets([OMG, BAT, ZRX], [OMG, BAT, ZRX]);
+
+
+      await comptroller.connect(customer)._setActionsPaused([OMG.address], [
+        actions.MINT, actions.REDEEM, actions.BORROW, actions.REPAY, actions.SEIZE, actions.ENTER_MARKET, actions.LIQUIDATE
+      ], true);
+
       await unlistAndCheckMarket(OMG, [BAT, ZRX], [OMG, BAT, ZRX]);
     });
 
     it("reverts when unlisting not a listed market", async () => {
       const vToken = await smock.fake<VBep20Immutable>("contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable");
       await enterAndCheckMarkets([BAT, ZRX], [BAT, ZRX]);
+
       await unlistAndCheckMarket(vToken, [BAT, ZRX], [BAT, ZRX], Error.MARKET_NOT_LISTED);
     });
   });
