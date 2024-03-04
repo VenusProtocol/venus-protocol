@@ -593,6 +593,42 @@ describe("Comptroller", () => {
     });
   });
 
+  describe("updateDelegate", async () => {
+    let comptroller: ComptrollerMock;
+
+    type Contracts = SimpleComptrollerFixture & { vToken: FakeContract<VToken> };
+
+    async function deploy(): Promise<Contracts> {
+      const contracts = await deploySimpleComptroller();
+      const vToken = await smock.fake<VToken>("VToken");
+      await contracts.comptroller._supportMarket(vToken.address);
+      return { ...contracts, vToken };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller } = await loadFixture(deploy));
+    });
+
+    it("should revert when zero address is passed", async () => {
+      await expect(comptroller.updateDelegate(ethers.constants.AddressZero, true)).to.be.revertedWith(
+        "can't be zero address",
+      );
+    });
+
+    it("should revert when approval status is already set to the requested value", async () => {
+      await comptroller.updateDelegate(accounts[1].address, true);
+      await expect(comptroller.updateDelegate(accounts[1].address, true)).to.be.revertedWith(
+        "Delegation status unchanged",
+      );
+    });
+
+    it("should emit event on success", async () => {
+      await expect(await comptroller.updateDelegate(accounts[1].address, true))
+        .to.emit(comptroller, "DelegateUpdated")
+        .withArgs(root.address, accounts[1].address, true);
+    });
+  });
+
   describe("Hooks", () => {
     let unitroller: Unitroller;
     let comptroller: ComptrollerMock;

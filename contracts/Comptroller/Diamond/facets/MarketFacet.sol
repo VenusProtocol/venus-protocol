@@ -209,6 +209,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param approved Whether to grant (true) or revoke (false) the borrowing or redeeming rights
      */
     function updateDelegate(address delegate, bool approved) external {
+        ensureNonzeroAddress(delegate);
+        require(approvedDelegates[msg.sender][delegate] != approved, "Delegation status unchanged");
+
         _updateDelegate(msg.sender, delegate, approved);
     }
 
