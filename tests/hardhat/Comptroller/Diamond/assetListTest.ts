@@ -130,18 +130,27 @@ describe("Comptroller: assetListTest", () => {
     expectedError: ComptrollerErrorReporter.Error | null = null,
   ) {
     const reply = await comptroller.connect(customer).callStatic.unlistMarket(unlistToken.address);
-    const receipt = await comptroller.connect(customer).unlistMarket(unlistToken.address);
-    const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
-
     const expectedError_ = expectedError || Error.NO_ERROR;
     expect(reply).to.equal(expectedError_);
 
-    expect(receipt).to.emit(unitroller, "MarketUnlisted");
+    let receipt = await comptroller.connect(customer)._setMarketBorrowCaps([unlistToken.address], [0]);
     expect(receipt).to.emit(unitroller, "NewBorrowCap");
+
+    receipt = await comptroller.connect(customer)._setMarketSupplyCaps([unlistToken.address], [0]);
     expect(receipt).to.emit(unitroller, "NewSupplyCap");
-    expect(receipt).to.emit(unitroller, "ActionPausedMarket");
+
+    receipt = await comptroller.connect(customer)._setCollateralFactor(unlistToken.address, 0);
     expect(receipt).to.emit(unitroller, "NewCollateralFactor");
 
+    receipt = await comptroller.connect(customer)._setActionsPaused([unlistToken.address], [
+      0, 1, 2, 3, 5, 7
+    ], true);
+    expect(receipt).to.emit(unitroller, "ActionPausedMarket");
+
+    receipt = await comptroller.connect(customer).unlistMarket(unlistToken.address);
+    expect(receipt).to.emit(unitroller, "MarketUnlisted");
+
+    const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
 
     await checkMarkets(membershipTokens);
