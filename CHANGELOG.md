@@ -1,3 +1,228 @@
+## [7.4.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.1...v7.4.0-dev.2) (2024-03-02)
+
+
+### Features
+
+* updating deployment files ([980c304](https://github.com/VenusProtocol/venus-protocol/commit/980c3040594dd6daee075c89f4941a19042655c1))
+
+## [7.4.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0...v7.4.0-dev.1) (2024-02-23)
+
+
+### Features
+
+* add mising nat spec for public and external functions ([9630cf6](https://github.com/VenusProtocol/venus-protocol/commit/9630cf64b35441adb5a05cba7ce4fe7cb8c4a61d))
+
+## [7.3.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.2.0...v7.3.0) (2024-02-16)
+
+
+### Features
+
+* add ACM v8 to liquidator ([09a83b4](https://github.com/VenusProtocol/venus-protocol/commit/09a83b4a15273f6ff127c765b683d14f6b835322))
+* add ACM v8 to liquidator ([8dbd1fa](https://github.com/VenusProtocol/venus-protocol/commit/8dbd1fa934f1aac36b2fea9cf6dae3d2764ee5df))
+* add deployment script and upgrade bscmainnet liquidator implementation ([6cfb1ee](https://github.com/VenusProtocol/venus-protocol/commit/6cfb1ee3623ddf4188b389852ec361ea5fddce34))
+* add deployments of liquidator ([da76f4a](https://github.com/VenusProtocol/venus-protocol/commit/da76f4a13a6901378d31ebd00bf0e1868980e924))
+* add VAI liquidaton check ([a0c45c7](https://github.com/VenusProtocol/venus-protocol/commit/a0c45c73c83ea8bfd2faa41ddab36354ed63a92d))
+* check force liquidation enabled ([40433a0](https://github.com/VenusProtocol/venus-protocol/commit/40433a0d8d922c363ec022be217bcc78782f090b))
+* consider BNB collateral to reduce reserves ([b8dfe6a](https://github.com/VenusProtocol/venus-protocol/commit/b8dfe6a23bbe6c694b0b8306f9459249390c3b4a))
+* deployments of XVSVault on opbnbmainnet ([17bae92](https://github.com/VenusProtocol/venus-protocol/commit/17bae92107b61a6638ff60ed4df177c965f6da93))
+* updating deployment files ([1b77d8d](https://github.com/VenusProtocol/venus-protocol/commit/1b77d8d52359191b81efe86b52527b55d017ded0))
+* updating deployment files ([c1fad3e](https://github.com/VenusProtocol/venus-protocol/commit/c1fad3e72a5e3f84834789a1b420af7a6504c314))
+* updating deployment files ([1c9060b](https://github.com/VenusProtocol/venus-protocol/commit/1c9060b3b49357778bdeec676a52d18dad4666f5))
+* updating deployment files ([2a2fe93](https://github.com/VenusProtocol/venus-protocol/commit/2a2fe9337e3c4a45e83313e8d2bc37a3085042bb))
+* updating deployment files ([2f6106f](https://github.com/VenusProtocol/venus-protocol/commit/2f6106f8c8f429ebaa5c44a2eb74522deb58ea1b))
+* updating deployment files ([20325a8](https://github.com/VenusProtocol/venus-protocol/commit/20325a8e2b9aa8b6578d12740a03bd66be753454))
+* updating deployment files ([1de1c22](https://github.com/VenusProtocol/venus-protocol/commit/1de1c22e8b3d05b96c339362074494bbb907c2c5))
+* VEN-1148 liquidation redeem and reduce reserves ([b2267aa](https://github.com/VenusProtocol/venus-protocol/commit/b2267aacdd60e9b5e6f8823baaed64c7029e9846))
+* VEN-1308 add force VAI liquidation ([1101406](https://github.com/VenusProtocol/venus-protocol/commit/1101406763b89aa071a197beb2de09524024109c))
+* VEN-1308 add force VAI liquidation ([491df3f](https://github.com/VenusProtocol/venus-protocol/commit/491df3ffd91fc44580f5c3d970228bf2d6b1a675))
+
+
+### Bug Fixes
+
+* add length checks and remove treasury contract address ([6000ae3](https://github.com/VenusProtocol/venus-protocol/commit/6000ae3cac9ac5353d5ba918caa7919f5225d42b))
+* check redeem action ([3c9a57e](https://github.com/VenusProtocol/venus-protocol/commit/3c9a57edb607c178bc047d9538768208452ac2a8))
+* checks and add netspac ([e95cf6c](https://github.com/VenusProtocol/venus-protocol/commit/e95cf6cef6631c2600ad98324c53b37f4ae37987))
+* compile issue ([d26c448](https://github.com/VenusProtocol/venus-protocol/commit/d26c448ec9567ddacc608d2af422ba0838d4e962))
+* comptroller lens address on bsctestnet ([589cfb4](https://github.com/VenusProtocol/venus-protocol/commit/589cfb42d3bb4a37a5de576c89cdf8063a7c8a47))
+* fix test for liquidator ([da5b6eb](https://github.com/VenusProtocol/venus-protocol/commit/da5b6eb986fda1631a13b5df092a746598edeca0))
+* fix test for liquidator ([598dd45](https://github.com/VenusProtocol/venus-protocol/commit/598dd45396f4bf14ae13ad86a037cc4648859944))
+* lint ([4345032](https://github.com/VenusProtocol/venus-protocol/commit/434503240172da535ab2245c51cd3d7fccfbe330))
+* liquidator tests ([8016d5f](https://github.com/VenusProtocol/venus-protocol/commit/8016d5fe5604f62ab67c6f87234e2f92279785d3))
+* LLV-01 ([6d33c87](https://github.com/VenusProtocol/venus-protocol/commit/6d33c87e5cdd4ee2b97b2fd4f913af731650cf63))
+* LLV-02 ([ead5354](https://github.com/VenusProtocol/venus-protocol/commit/ead535434acc71f932158bce3c4408f89539389f))
+* LLV-03 ([c831054](https://github.com/VenusProtocol/venus-protocol/commit/c831054531b10ca1c7cd54f2f4549e9d4c84264f))
+* LLV-06 ([925c44d](https://github.com/VenusProtocol/venus-protocol/commit/925c44d6840d68e2388483e1e3b3eeb57baf37bd))
+* LLV-07 ([9555b7e](https://github.com/VenusProtocol/venus-protocol/commit/9555b7ef5937432c7893e93753ee70d693bf1d75))
+* LLV-08 ([49f76b2](https://github.com/VenusProtocol/venus-protocol/commit/49f76b28f618f3d110708981b63595843171c87d))
+* LLV-09 ([90bcafe](https://github.com/VenusProtocol/venus-protocol/commit/90bcafe9ce81135b62ae08d984ea4e00b22cc464))
+* LLV-10 ([f79a308](https://github.com/VenusProtocol/venus-protocol/commit/f79a308b2c9ba7d0b684bbf8f90748e665b6f4f0))
+* merge conflicts ([b09b2e2](https://github.com/VenusProtocol/venus-protocol/commit/b09b2e2e827ebc1aa9b7691f82829eb62a4a130f))
+* minor ([ac1f746](https://github.com/VenusProtocol/venus-protocol/commit/ac1f7468788da6309b73c5a8a54f9137360b5317))
+* minor fix ([8766208](https://github.com/VenusProtocol/venus-protocol/commit/87662084a19809ffd709427c47c9a8089e3ba5aa))
+* minor fix ([d53178c](https://github.com/VenusProtocol/venus-protocol/commit/d53178c384f403b1a0b7f1b2a4c911a25bed0b14))
+* N-01 Incorrect Docstring ([e4832bd](https://github.com/VenusProtocol/venus-protocol/commit/e4832bde9c8bf1fb701980ec929fef4175d52a4b))
+* N-02 Improper Use of Named Return Variable ([a1ebea6](https://github.com/VenusProtocol/venus-protocol/commit/a1ebea63e65375137c4e829d9ec5960361d43dbc))
+* N-03 Using int/uint Instead of int256/uint256 ([460db5a](https://github.com/VenusProtocol/venus-protocol/commit/460db5a97b575b4635b32b4317c358b5d9a29bf4))
+* PVE-003 ([92ff328](https://github.com/VenusProtocol/venus-protocol/commit/92ff32882d42f8b6de01abdcd36de81286cd1443))
+* remove outdated Comptroller deployment, fix deployment script and redeploy vFDUSD ([c4c6b3a](https://github.com/VenusProtocol/venus-protocol/commit/c4c6b3ad3f153700b9c95c547024b547dbc6f179))
+* resolve comments ([1d02ee1](https://github.com/VenusProtocol/venus-protocol/commit/1d02ee194c8c2c551ad65cd37d1db3fb1fc71197))
+* resolve comments ([597a2ec](https://github.com/VenusProtocol/venus-protocol/commit/597a2ec13591bbbb92f06343fee721180e90db2c))
+* resolve comments ([e33e0da](https://github.com/VenusProtocol/venus-protocol/commit/e33e0daff22decc9610e68ba30b12c970034ddf8))
+* resolve comments ([a2e0d7e](https://github.com/VenusProtocol/venus-protocol/commit/a2e0d7ef35b53f73b869864ec37016e9955adc0e))
+* tests ([8b00dff](https://github.com/VenusProtocol/venus-protocol/commit/8b00dff0af58611672fa63807b23d2fad1931fdd))
+* tests ([2aead88](https://github.com/VenusProtocol/venus-protocol/commit/2aead88ced6d332c77a9744d79e7716b521fee85))
+* typo ([61e8671](https://github.com/VenusProtocol/venus-protocol/commit/61e867134778c4fc34838e470075b557f36f23ce))
+* ven-1658 ([6651191](https://github.com/VenusProtocol/venus-protocol/commit/665119148c76291f8a72d778b2e4140c7c80456c))
+* VEN-3 ([5f39ba0](https://github.com/VenusProtocol/venus-protocol/commit/5f39ba0ee58a3c430075044c0f1ca919bb5759d5))
+* VEN-8 ([f991967](https://github.com/VenusProtocol/venus-protocol/commit/f99196754ceea6e28ac69be3ad55cdce8d261339))
+* VENUS-LIQUIDATOR-003 ([c42f1e2](https://github.com/VenusProtocol/venus-protocol/commit/c42f1e2b9ee92aaff708ebdb2f8a51a8a51b7127))
+* VENUS-LIQUIDATOR-005 ([f64c645](https://github.com/VenusProtocol/venus-protocol/commit/f64c6459422a0f8e0ceb3afbdb3f4c63f793b354))
+* VPB-01 ([aee7e2b](https://github.com/VenusProtocol/venus-protocol/commit/aee7e2b2a7f6f676086663a0e603e68b35abea1a))
+
+## [7.3.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0-dev.3...v7.3.0-dev.4) (2024-02-16)
+
+
+### Features
+
+* updating deployment files ([1b77d8d](https://github.com/VenusProtocol/venus-protocol/commit/1b77d8d52359191b81efe86b52527b55d017ded0))
+* updating deployment files ([20325a8](https://github.com/VenusProtocol/venus-protocol/commit/20325a8e2b9aa8b6578d12740a03bd66be753454))
+* updating deployment files ([1de1c22](https://github.com/VenusProtocol/venus-protocol/commit/1de1c22e8b3d05b96c339362074494bbb907c2c5))
+
+
+### Bug Fixes
+
+* lint ([4345032](https://github.com/VenusProtocol/venus-protocol/commit/434503240172da535ab2245c51cd3d7fccfbe330))
+* remove outdated Comptroller deployment, fix deployment script and redeploy vFDUSD ([c4c6b3a](https://github.com/VenusProtocol/venus-protocol/commit/c4c6b3ad3f153700b9c95c547024b547dbc6f179))
+
+## [7.3.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0-dev.2...v7.3.0-dev.3) (2024-02-16)
+
+
+### Features
+
+* add ACM v8 to liquidator ([09a83b4](https://github.com/VenusProtocol/venus-protocol/commit/09a83b4a15273f6ff127c765b683d14f6b835322))
+* add ACM v8 to liquidator ([8dbd1fa](https://github.com/VenusProtocol/venus-protocol/commit/8dbd1fa934f1aac36b2fea9cf6dae3d2764ee5df))
+* add deployment script and upgrade bscmainnet liquidator implementation ([6cfb1ee](https://github.com/VenusProtocol/venus-protocol/commit/6cfb1ee3623ddf4188b389852ec361ea5fddce34))
+* add deployments of liquidator ([da76f4a](https://github.com/VenusProtocol/venus-protocol/commit/da76f4a13a6901378d31ebd00bf0e1868980e924))
+* add VAI liquidaton check ([a0c45c7](https://github.com/VenusProtocol/venus-protocol/commit/a0c45c73c83ea8bfd2faa41ddab36354ed63a92d))
+* check force liquidation enabled ([40433a0](https://github.com/VenusProtocol/venus-protocol/commit/40433a0d8d922c363ec022be217bcc78782f090b))
+* consider BNB collateral to reduce reserves ([b8dfe6a](https://github.com/VenusProtocol/venus-protocol/commit/b8dfe6a23bbe6c694b0b8306f9459249390c3b4a))
+* updating deployment files ([c1fad3e](https://github.com/VenusProtocol/venus-protocol/commit/c1fad3e72a5e3f84834789a1b420af7a6504c314))
+* updating deployment files ([1c9060b](https://github.com/VenusProtocol/venus-protocol/commit/1c9060b3b49357778bdeec676a52d18dad4666f5))
+* VEN-1148 liquidation redeem and reduce reserves ([b2267aa](https://github.com/VenusProtocol/venus-protocol/commit/b2267aacdd60e9b5e6f8823baaed64c7029e9846))
+* VEN-1308 add force VAI liquidation ([1101406](https://github.com/VenusProtocol/venus-protocol/commit/1101406763b89aa071a197beb2de09524024109c))
+* VEN-1308 add force VAI liquidation ([491df3f](https://github.com/VenusProtocol/venus-protocol/commit/491df3ffd91fc44580f5c3d970228bf2d6b1a675))
+
+
+### Bug Fixes
+
+* add length checks and remove treasury contract address ([6000ae3](https://github.com/VenusProtocol/venus-protocol/commit/6000ae3cac9ac5353d5ba918caa7919f5225d42b))
+* check redeem action ([3c9a57e](https://github.com/VenusProtocol/venus-protocol/commit/3c9a57edb607c178bc047d9538768208452ac2a8))
+* checks and add netspac ([e95cf6c](https://github.com/VenusProtocol/venus-protocol/commit/e95cf6cef6631c2600ad98324c53b37f4ae37987))
+* compile issue ([d26c448](https://github.com/VenusProtocol/venus-protocol/commit/d26c448ec9567ddacc608d2af422ba0838d4e962))
+* fix test for liquidator ([da5b6eb](https://github.com/VenusProtocol/venus-protocol/commit/da5b6eb986fda1631a13b5df092a746598edeca0))
+* fix test for liquidator ([598dd45](https://github.com/VenusProtocol/venus-protocol/commit/598dd45396f4bf14ae13ad86a037cc4648859944))
+* liquidator tests ([8016d5f](https://github.com/VenusProtocol/venus-protocol/commit/8016d5fe5604f62ab67c6f87234e2f92279785d3))
+* LLV-01 ([6d33c87](https://github.com/VenusProtocol/venus-protocol/commit/6d33c87e5cdd4ee2b97b2fd4f913af731650cf63))
+* LLV-02 ([ead5354](https://github.com/VenusProtocol/venus-protocol/commit/ead535434acc71f932158bce3c4408f89539389f))
+* LLV-03 ([c831054](https://github.com/VenusProtocol/venus-protocol/commit/c831054531b10ca1c7cd54f2f4549e9d4c84264f))
+* LLV-06 ([925c44d](https://github.com/VenusProtocol/venus-protocol/commit/925c44d6840d68e2388483e1e3b3eeb57baf37bd))
+* LLV-07 ([9555b7e](https://github.com/VenusProtocol/venus-protocol/commit/9555b7ef5937432c7893e93753ee70d693bf1d75))
+* LLV-08 ([49f76b2](https://github.com/VenusProtocol/venus-protocol/commit/49f76b28f618f3d110708981b63595843171c87d))
+* LLV-09 ([90bcafe](https://github.com/VenusProtocol/venus-protocol/commit/90bcafe9ce81135b62ae08d984ea4e00b22cc464))
+* LLV-10 ([f79a308](https://github.com/VenusProtocol/venus-protocol/commit/f79a308b2c9ba7d0b684bbf8f90748e665b6f4f0))
+* merge conflicts ([b09b2e2](https://github.com/VenusProtocol/venus-protocol/commit/b09b2e2e827ebc1aa9b7691f82829eb62a4a130f))
+* minor ([ac1f746](https://github.com/VenusProtocol/venus-protocol/commit/ac1f7468788da6309b73c5a8a54f9137360b5317))
+* minor fix ([8766208](https://github.com/VenusProtocol/venus-protocol/commit/87662084a19809ffd709427c47c9a8089e3ba5aa))
+* minor fix ([d53178c](https://github.com/VenusProtocol/venus-protocol/commit/d53178c384f403b1a0b7f1b2a4c911a25bed0b14))
+* N-01 Incorrect Docstring ([e4832bd](https://github.com/VenusProtocol/venus-protocol/commit/e4832bde9c8bf1fb701980ec929fef4175d52a4b))
+* N-02 Improper Use of Named Return Variable ([a1ebea6](https://github.com/VenusProtocol/venus-protocol/commit/a1ebea63e65375137c4e829d9ec5960361d43dbc))
+* N-03 Using int/uint Instead of int256/uint256 ([460db5a](https://github.com/VenusProtocol/venus-protocol/commit/460db5a97b575b4635b32b4317c358b5d9a29bf4))
+* PVE-003 ([92ff328](https://github.com/VenusProtocol/venus-protocol/commit/92ff32882d42f8b6de01abdcd36de81286cd1443))
+* resolve comments ([1d02ee1](https://github.com/VenusProtocol/venus-protocol/commit/1d02ee194c8c2c551ad65cd37d1db3fb1fc71197))
+* resolve comments ([597a2ec](https://github.com/VenusProtocol/venus-protocol/commit/597a2ec13591bbbb92f06343fee721180e90db2c))
+* resolve comments ([e33e0da](https://github.com/VenusProtocol/venus-protocol/commit/e33e0daff22decc9610e68ba30b12c970034ddf8))
+* resolve comments ([a2e0d7e](https://github.com/VenusProtocol/venus-protocol/commit/a2e0d7ef35b53f73b869864ec37016e9955adc0e))
+* tests ([8b00dff](https://github.com/VenusProtocol/venus-protocol/commit/8b00dff0af58611672fa63807b23d2fad1931fdd))
+* tests ([2aead88](https://github.com/VenusProtocol/venus-protocol/commit/2aead88ced6d332c77a9744d79e7716b521fee85))
+* typo ([61e8671](https://github.com/VenusProtocol/venus-protocol/commit/61e867134778c4fc34838e470075b557f36f23ce))
+* ven-1658 ([6651191](https://github.com/VenusProtocol/venus-protocol/commit/665119148c76291f8a72d778b2e4140c7c80456c))
+* VEN-3 ([5f39ba0](https://github.com/VenusProtocol/venus-protocol/commit/5f39ba0ee58a3c430075044c0f1ca919bb5759d5))
+* VEN-8 ([f991967](https://github.com/VenusProtocol/venus-protocol/commit/f99196754ceea6e28ac69be3ad55cdce8d261339))
+* VENUS-LIQUIDATOR-003 ([c42f1e2](https://github.com/VenusProtocol/venus-protocol/commit/c42f1e2b9ee92aaff708ebdb2f8a51a8a51b7127))
+* VENUS-LIQUIDATOR-005 ([f64c645](https://github.com/VenusProtocol/venus-protocol/commit/f64c6459422a0f8e0ceb3afbdb3f4c63f793b354))
+* VPB-01 ([aee7e2b](https://github.com/VenusProtocol/venus-protocol/commit/aee7e2b2a7f6f676086663a0e603e68b35abea1a))
+
+## [7.3.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0-dev.1...v7.3.0-dev.2) (2024-02-09)
+
+
+### Features
+
+* deployments of XVSVault on opbnbmainnet ([17bae92](https://github.com/VenusProtocol/venus-protocol/commit/17bae92107b61a6638ff60ed4df177c965f6da93))
+* updating deployment files ([2f6106f](https://github.com/VenusProtocol/venus-protocol/commit/2f6106f8c8f429ebaa5c44a2eb74522deb58ea1b))
+
+## [7.3.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.2.0...v7.3.0-dev.1) (2024-02-06)
+
+
+### Features
+
+* updating deployment files ([2a2fe93](https://github.com/VenusProtocol/venus-protocol/commit/2a2fe9337e3c4a45e83313e8d2bc37a3085042bb))
+
+
+### Bug Fixes
+
+* comptroller lens address on bsctestnet ([589cfb4](https://github.com/VenusProtocol/venus-protocol/commit/589cfb42d3bb4a37a5de576c89cdf8063a7c8a47))
+
+## [7.2.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.1.0...v7.2.0) (2024-01-25)
+
+
+### Features
+
+* use the version of PSR with Token converters ([f028cd5](https://github.com/VenusProtocol/venus-protocol/commit/f028cd5486c00287acc40a7625f368657cf070cc))
+
+## [7.1.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.0.0...v7.1.0) (2024-01-23)
+
+
+### Features
+
+* add a utility contract to redeem VBep20 tokens ([f345d39](https://github.com/VenusProtocol/venus-protocol/commit/f345d393145292af06a2f6a808916eab97d10638))
+* add MoveDebtDelegate deployment ([b29dd2c](https://github.com/VenusProtocol/venus-protocol/commit/b29dd2c69e7f4d0f25ef06b78c66eab694c0dd46))
+* add opbnbmainnet and verify config ([67bce33](https://github.com/VenusProtocol/venus-protocol/commit/67bce33f1a0e37a84b888b161bafb71eb999aa02))
+* add xvs-vault deployments of opBNB Testnet ([6924d3e](https://github.com/VenusProtocol/venus-protocol/commit/6924d3e84925ac9f31ca35e36ccb660ddc3a3e11))
+* add xvs-vault deployments of opBNB Testnet ([5d13784](https://github.com/VenusProtocol/venus-protocol/commit/5d13784e9db57dffd7c8cbfd81fd3799463f56d6))
+* allow repaying in non-deprecated market ([ec1af79](https://github.com/VenusProtocol/venus-protocol/commit/ec1af79fedf3bfc8b11c6b302aab628bfb6fc691))
+* bump version to the stable ones ([0b281cf](https://github.com/VenusProtocol/venus-protocol/commit/0b281cfb6f5fbf276aa9cf2abdca54e64190207c))
+* deployments of XVSVault on ethereum ([41e8c5d](https://github.com/VenusProtocol/venus-protocol/commit/41e8c5d8ecb9b57618e9dde828aa6fab67102daf))
+* updating deployment files ([3ed0079](https://github.com/VenusProtocol/venus-protocol/commit/3ed0079652becd7632b242cf611c85057ce35f08))
+* updating deployment files ([822878a](https://github.com/VenusProtocol/venus-protocol/commit/822878af16b397c08e15bca88dfadc786e2fa6a0))
+* updating deployment files ([dae0b3a](https://github.com/VenusProtocol/venus-protocol/commit/dae0b3af89a902c64264bfcb90066f3085c8bb1e))
+* updating deployment files ([aad081c](https://github.com/VenusProtocol/venus-protocol/commit/aad081c40e8992cf7a17185257feeaef5e62d9fc))
+* updating deployment files ([e274ea9](https://github.com/VenusProtocol/venus-protocol/commit/e274ea90a8d89f6a8f66ad930a0e741f6eef6d88))
+
+
+### Bug Fixes
+
+* redeployed prime ([244a085](https://github.com/VenusProtocol/venus-protocol/commit/244a0854b7e84f03ca7dfd5a0bf4cb03f6ae300b))
+
+## [7.1.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v7.1.0-dev.2...v7.1.0-dev.3) (2024-01-23)
+
+
+### Features
+
+* add opbnbmainnet and verify config ([67bce33](https://github.com/VenusProtocol/venus-protocol/commit/67bce33f1a0e37a84b888b161bafb71eb999aa02))
+* add xvs-vault deployments of opBNB Testnet ([6924d3e](https://github.com/VenusProtocol/venus-protocol/commit/6924d3e84925ac9f31ca35e36ccb660ddc3a3e11))
+* add xvs-vault deployments of opBNB Testnet ([5d13784](https://github.com/VenusProtocol/venus-protocol/commit/5d13784e9db57dffd7c8cbfd81fd3799463f56d6))
+* bump version to the stable ones ([0b281cf](https://github.com/VenusProtocol/venus-protocol/commit/0b281cfb6f5fbf276aa9cf2abdca54e64190207c))
+* deployments of XVSVault on ethereum ([41e8c5d](https://github.com/VenusProtocol/venus-protocol/commit/41e8c5d8ecb9b57618e9dde828aa6fab67102daf))
+* updating deployment files ([3ed0079](https://github.com/VenusProtocol/venus-protocol/commit/3ed0079652becd7632b242cf611c85057ce35f08))
+* updating deployment files ([dae0b3a](https://github.com/VenusProtocol/venus-protocol/commit/dae0b3af89a902c64264bfcb90066f3085c8bb1e))
+* updating deployment files ([aad081c](https://github.com/VenusProtocol/venus-protocol/commit/aad081c40e8992cf7a17185257feeaef5e62d9fc))
+* updating deployment files ([e274ea9](https://github.com/VenusProtocol/venus-protocol/commit/e274ea90a8d89f6a8f66ad930a0e741f6eef6d88))
+
+
+### Bug Fixes
+
+* redeployed prime ([244a085](https://github.com/VenusProtocol/venus-protocol/commit/244a0854b7e84f03ca7dfd5a0bf4cb03f6ae300b))
+
 ## [7.1.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.1.0-dev.1...v7.1.0-dev.2) (2024-01-15)
 
 

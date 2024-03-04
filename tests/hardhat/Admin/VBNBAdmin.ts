@@ -50,7 +50,9 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
     admin.address,
   );
 
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+    "contracts/InterfacesV8.sol:IProtocolShareReserve",
+  );
 
   const WBNBFactory = await smock.mock<WBNB__factory>("WBNB");
   const WBNB = await WBNBFactory.deploy();

@@ -5,16 +5,19 @@ import chai from "chai";
 import { constants } from "ethers";
 import { ethers, upgrades } from "hardhat";
 
-import { convertToBigInt } from "../../../helpers/utils";
+import { convertToBigInt, convertToUnit } from "../../../helpers/utils";
 import {
   ComptrollerMock,
   FaucetToken,
   FaucetToken__factory,
+  IAccessControlManagerV5,
+  IProtocolShareReserve,
   Liquidator,
   Liquidator__factory,
   MockVBNB,
   VAIController,
   VBep20Immutable,
+  WBNB,
 } from "../../../typechain";
 
 const { expect } = chai;
@@ -22,6 +25,7 @@ chai.use(smock.matchers);
 
 const repayAmount = 1000n;
 const seizeTokens = 1000n * 4n;
+const minLiquidatableVAI = convertToBigInt("500", 0);
 const announcedIncentive = convertToBigInt("1.1", 18);
 const treasuryPercent = convertToBigInt("0.05", 18);
 
@@ -37,11 +41,11 @@ type LiquidatorFixture = {
   vTokenCollateral: FakeContract<VBep20Immutable>;
   liquidator: MockContract<Liquidator>;
   vBnb: FakeContract<MockVBNB>;
+  accessControlManager: FakeContract<IAccessControlManagerV5>;
+  collateralUnderlying: FakeContract<FaucetToken>;
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
-  const [, treasury] = await ethers.getSigners();
-
   const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
@@ -50,19 +54,50 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const vaiController = await smock.fake<VAIController>("VAIController");
   const vTokenBorrowed = await smock.fake<VBep20Immutable>("VBep20Immutable");
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
-
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+    "contracts/InterfacesV8.sol:IProtocolShareReserve",
+  );
+  const wBnb = await smock.fake<WBNB>("WBNB");
+  const collateralUnderlying = await smock.fake<FaucetToken>("FaucetToken");
+  collateralUnderlying.balanceOf.returns(convertToUnit(1, 10));
+  collateralUnderlying.transfer.returns(true);
+  vTokenCollateral.underlying.returns(collateralUnderlying.address);
   comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
   comptroller.vaiController.returns(vaiController.address);
+  comptroller.markets.returns({
+    isListed: true,
+    collateralFactorMantissa: convertToUnit(5, 17),
+    accountMembership: true,
+    isVenus: true,
+  });
   vaiController.getVAIAddress.returns(vai.address);
 
+  const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
+  accessControlManager.isAllowedToCall.returns(true);
+
   const Liquidator = await smock.mock<Liquidator__factory>("Liquidator");
-  const liquidator = await upgrades.deployProxy(Liquidator, [treasuryPercent], {
-    constructorArgs: [comptroller.address, vBnb.address, treasury.address],
-  });
+  const liquidator = await upgrades.deployProxy(
+    Liquidator,
+    [treasuryPercent, accessControlManager.address, protocolShareReserve.address],
+    {
+      constructorArgs: [comptroller.address, vBnb.address, wBnb.address],
+    },
+  );
   await borrowedUnderlying.approve(liquidator.address, repayAmount);
   await vai.approve(liquidator.address, repayAmount);
 
-  return { comptroller, vBnb, borrowedUnderlying, vai, vaiController, vTokenBorrowed, vTokenCollateral, liquidator };
+  return {
+    comptroller,
+    vBnb,
+    borrowedUnderlying,
+    vai,
+    vaiController,
+    vTokenBorrowed,
+    vTokenCollateral,
+    liquidator,
+    accessControlManager,
+    collateralUnderlying,
+  };
 }
 
 function configure(fixture: LiquidatorFixture) {
@@ -86,7 +121,6 @@ function configure(fixture: LiquidatorFixture) {
 
 describe("Liquidator", () => {
   let liquidator: SignerWithAddress;
-  let treasury: SignerWithAddress;
   let borrower: SignerWithAddress;
   let borrowedUnderlying: MockContract<FaucetToken>;
   let vai: MockContract<FaucetToken>;
@@ -95,12 +129,16 @@ describe("Liquidator", () => {
   let vTokenCollateral: FakeContract<VBep20Immutable>;
   let vBnb: FakeContract<MockVBNB>;
   let liquidatorContract: MockContract<Liquidator>;
+  let accessControlManager: FakeContract<IAccessControlManagerV5>;
+  let collateralUnderlying: FakeContract<FaucetToken>;
+  let comptroller: FakeContract<ComptrollerMock>;
 
   beforeEach(async () => {
-    [liquidator, treasury, borrower] = await ethers.getSigners();
+    [liquidator, borrower] = await ethers.getSigners();
     const contracts = await loadFixture(deployLiquidator);
     configure(contracts);
     ({
+      comptroller,
       vTokenBorrowed,
       borrowedUnderlying,
       vai,
@@ -108,6 +146,8 @@ describe("Liquidator", () => {
       vTokenCollateral,
       vBnb,
       liquidator: liquidatorContract,
+      accessControlManager,
+      collateralUnderlying,
     } = contracts);
   });
 
@@ -143,6 +183,13 @@ describe("Liquidator", () => {
         await expect(tx).to.be.revertedWithCustomError(liquidatorContract, "WrongTransactionAmount").withArgs(0n, 1n);
       });
 
+      it("transfers the seized collateral to liquidator and protocolShareReserve", async () => {
+        await liquidate();
+        expect(vTokenCollateral.transfer).to.have.been.calledOnce;
+        expect(collateralUnderlying.transfer).to.have.been.calledOnce;
+        expect(vTokenCollateral.transfer).to.have.been.calledWith(liquidator.address, liquidatorShare);
+      });
+
       it("transfers tokens from the liquidator", async () => {
         const tx = await liquidate();
         await expect(tx).to.changeTokenBalance(borrowedUnderlying, liquidator.address, -repayAmount);
@@ -163,13 +210,6 @@ describe("Liquidator", () => {
           repayAmount,
           vTokenCollateral.address,
         );
-      });
-
-      it("transfers the seized collateral to liquidator and treasury", async () => {
-        await liquidate();
-        expect(vTokenCollateral.transfer).to.have.been.calledTwice;
-        expect(vTokenCollateral.transfer).to.have.been.calledWith(liquidator.address, liquidatorShare);
-        expect(vTokenCollateral.transfer).to.have.been.calledWith(treasury.address, treasuryShare);
       });
 
       it("emits LiquidateBorrowedTokens event", async () => {
@@ -281,10 +321,14 @@ describe("Liquidator", () => {
       expect(newPercent).to.equal(convertToBigInt("0.08", 18));
     });
 
-    it("fails when called from non-admin", async () => {
+    it("fails when permission is not granted", async () => {
+      // toggle permissions
+      accessControlManager.isAllowedToCall.returns(false);
       await expect(
         liquidatorContract.connect(borrower).setTreasuryPercent(convertToBigInt("0.08", 18)),
-      ).to.be.revertedWith("Ownable: caller is not the owner");
+      ).to.be.revertedWithCustomError(liquidatorContract, "Unauthorized");
+      // revert back
+      accessControlManager.isAllowedToCall.returns(true);
     });
 
     it("fails when the percentage is too high", async () => {
@@ -319,6 +363,64 @@ describe("Liquidator", () => {
           treasuryDelta,
           liquidatorDelta,
         );
+    });
+  });
+
+  describe("Force VAI Liquidation", () => {
+    beforeEach(async () => {
+      await liquidatorContract.setMinLiquidatableVAI(minLiquidatableVAI);
+      await liquidatorContract.resumeForceVAILiquidate();
+    });
+    async function liquidate() {
+      return liquidatorContract.liquidateBorrow(vBnb.address, borrower.address, repayAmount, vTokenCollateral.address, {
+        value: repayAmount,
+      });
+    }
+    it("Should able to liquidate any token when VAI debt is lower than minLiquidatableVAI", async () => {
+      await expect(liquidate()).to.be.emit(liquidatorContract, "LiquidateBorrowedTokens");
+    });
+
+    it("Should not able to liquidate any token when VAI debt is greater than minLiquidatableVAI", async () => {
+      vaiController.getVAIRepayAmount.returns(2000);
+      await expect(liquidate()).to.be.revertedWithCustomError(liquidatorContract, "VAIDebtTooHigh");
+    });
+
+    it("Should able to liquidate any token when VAI debt is greater than minLiquidatableVAI but forced liquidation is enabled", async () => {
+      vaiController.getVAIRepayAmount.returns(2000);
+      comptroller.isForcedLiquidationEnabled.returns(true);
+      expect(
+        liquidatorContract.liquidateBorrow(
+          vaiController.address,
+          borrower.address,
+          repayAmount,
+          vTokenCollateral.address,
+        ),
+      ).to.be.emit(liquidatorContract, "LiquidateBorrowedTokens");
+    });
+
+    it("Should able to liquidate VAI token when VAI debt is greater than minLiquidatableVAI", async () => {
+      vaiController.getVAIRepayAmount.returns(2000);
+      await expect(
+        liquidatorContract.liquidateBorrow(
+          vaiController.address,
+          borrower.address,
+          repayAmount,
+          vTokenCollateral.address,
+        ),
+      ).to.be.emit(liquidatorContract, "LiquidateBorrowedTokens");
+    });
+
+    it("Should able to liquidate any token and VAI token when force Liquidation is off", async () => {
+      vaiController.getVAIRepayAmount.returns(2000);
+      await liquidatorContract.pauseForceVAILiquidate();
+      await expect(
+        liquidatorContract.liquidateBorrow(
+          vTokenBorrowed.address,
+          borrower.address,
+          repayAmount,
+          vTokenCollateral.address,
+        ),
+      ).to.be.emit(liquidatorContract, "LiquidateBorrowedTokens");
     });
   });
 });

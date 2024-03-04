@@ -3110,9 +3110,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/isolated-pools@npm:2.3.0":
-  version: 2.3.0
-  resolution: "@venusprotocol/isolated-pools@npm:2.3.0"
+"@venusprotocol/isolated-pools@npm:^2.3.0":
+  version: 2.4.0
+  resolution: "@venusprotocol/isolated-pools@npm:2.4.0"
   dependencies:
     "@nomiclabs/hardhat-ethers": ^2.2.3
     "@openzeppelin/contracts": ^4.8.3
@@ -3122,7 +3122,23 @@ __metadata:
     ethers: ^5.7.0
     hardhat-deploy: ^0.11.14
     module-alias: ^2.2.2
-  checksum: e3ef4115048b41415e50ff8d7c4297a93e88f7914ce7eb061d1c976d686c8c5c0082d01612a615a61ef9d130ff2a72e7acba2a6612eda0fc44e12ccb9277c411
+  checksum: c67b2d1eaf2ae7cae1e7b73799ec1dd0ffd3bc996bea09fc6e6c909f416f65fa168bd0690034ce8882da0d0b9a8825032dde3dd15bad392a5a5cad32bf697a73
+  languageName: node
+  linkType: hard
+
+"@venusprotocol/isolated-pools@npm:^2.5.0":
+  version: 2.5.0
+  resolution: "@venusprotocol/isolated-pools@npm:2.5.0"
+  dependencies:
+    "@nomiclabs/hardhat-ethers": ^2.2.3
+    "@openzeppelin/contracts": ^4.8.3
+    "@openzeppelin/contracts-upgradeable": ^4.8.3
+    "@openzeppelin/hardhat-upgrades": ^1.21.0
+    "@solidity-parser/parser": ^0.13.2
+    ethers: ^5.7.0
+    hardhat-deploy: ^0.11.14
+    module-alias: ^2.2.2
+  checksum: 21d849893ec115165352df9e937178321a2f5daea11e11221787e67f80476905a5b4c3564382a58b89b5308e00cb88d57a677ac46cc9df5782c884cdce8c4c42
   languageName: node
   linkType: hard
 
@@ -3146,7 +3162,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/protocol-reserve@npm:^1.1.0, @venusprotocol/protocol-reserve@npm:^1.2.0":
+"@venusprotocol/protocol-reserve@npm:^1.1.0":
   version: 1.2.0
   resolution: "@venusprotocol/protocol-reserve@npm:1.2.0"
   dependencies:
@@ -3160,6 +3176,24 @@ __metadata:
     hardhat-deploy: ^0.11.14
     module-alias: ^2.2.2
   checksum: 9225fba3254a9a4f2ce6e004a43844db15771d1047e871e8ab306440df8bde6dcdab1e45a4ce1172e1119b04ed5f53242ef561cb26f9a411fa2178c246899fa9
+  languageName: node
+  linkType: hard
+
+"@venusprotocol/protocol-reserve@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "@venusprotocol/protocol-reserve@npm:1.4.0"
+  dependencies:
+    "@nomiclabs/hardhat-ethers": ^2.2.3
+    "@openzeppelin/contracts": ^4.8.3
+    "@openzeppelin/contracts-upgradeable": ^4.8.3
+    "@openzeppelin/hardhat-upgrades": ^1.21.0
+    "@solidity-parser/parser": ^0.13.2
+    "@venusprotocol/isolated-pools": ^2.3.0
+    "@venusprotocol/solidity-utilities": ^1.3.0
+    ethers: ^5.7.0
+    hardhat-deploy: ^0.11.14
+    module-alias: ^2.2.2
+  checksum: 6b9bc35ac7cdb2d828312c9ebcba1c55e3b63d6d8d237affa7b5baf94b5c2a86e296552c153a5c077f9b6178cc73c7fd20804126509a8a8670c5b50eeae41d2d
   languageName: node
   linkType: hard
 
@@ -3177,9 +3211,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/token-bridge@npm:1.0.0-dev.9":
-  version: 1.0.0-dev.9
-  resolution: "@venusprotocol/token-bridge@npm:1.0.0-dev.9"
+"@venusprotocol/solidity-utilities@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "@venusprotocol/solidity-utilities@npm:1.3.0"
+  checksum: d1109365a5e01959c47b25fb129373db93792e60bf1bc0ed324b63c2a64f6e4a7878ebf016cfade94bc41a2c1245d3e861fdc6b8c5844ac210ed1d73e7307e72
+  languageName: node
+  linkType: hard
+
+"@venusprotocol/token-bridge@npm:1.0.0":
+  version: 1.0.0
+  resolution: "@venusprotocol/token-bridge@npm:1.0.0"
   dependencies:
     "@layerzerolabs/solidity-examples": ^1.0.0
     "@openzeppelin/contracts": ^4.8.3
@@ -3188,7 +3229,7 @@ __metadata:
     "@solidity-parser/parser": ^0.13.2
     ethers: ^5.7.0
     module-alias: ^2.2.2
-  checksum: b8059269e4367ccb230c735dc27133cd1f1ebb51617f14f8ec5b9f9b08850c006d5aa45311fa36563be8414a53dbbbe6adb8313c7a24435633bf63c91e925137
+  checksum: fa494157cc2493bcb4b2824fd545f2093b459404a449da6710c3c62ebd2638abc42cd15a06f60a7d537eb30e7e2efeab90961e34a60ecfef5d9c33c8e26b9405
   languageName: node
   linkType: hard
 
@@ -3238,11 +3279,11 @@ __metadata:
     "@typescript-eslint/eslint-plugin": ^5.40.0
     "@typescript-eslint/parser": ^5.40.0
     "@venusprotocol/governance-contracts": ^1.4.0
-    "@venusprotocol/isolated-pools": 2.3.0
+    "@venusprotocol/isolated-pools": ^2.5.0
     "@venusprotocol/oracle": 1.8.0
-    "@venusprotocol/protocol-reserve": ^1.2.0
+    "@venusprotocol/protocol-reserve": ^1.4.0
     "@venusprotocol/solidity-utilities": ^1.2.0
-    "@venusprotocol/token-bridge": 1.0.0-dev.9
+    "@venusprotocol/token-bridge": 1.0.0
     bignumber.js: ^9.1.2
     chai: ^4.3.6
     dotenv: ^16.0.1
