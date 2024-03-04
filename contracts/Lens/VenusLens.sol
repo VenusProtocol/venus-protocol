@@ -8,6 +8,7 @@ import "../Tokens/EIP20Interface.sol";
 import "../Tokens/XVS/XVS.sol";
 import "../Comptroller/ComptrollerInterface.sol";
 import "../Utils/SafeMath.sol";
+import { ComptrollerTypes } from "../Comptroller/ComptrollerStorage.sol";
 
 contract VenusLens is ExponentialNoError {
     using SafeMath for uint;
@@ -39,6 +40,7 @@ contract VenusLens is ExponentialNoError {
         uint venusBorrowSpeed;
         uint dailySupplyXvs;
         uint dailyBorrowXvs;
+        uint pausedActions;
     }
 
     struct VTokenBalances {
@@ -130,6 +132,13 @@ contract VenusLens is ExponentialNoError {
         uint venusSupplySpeedPerBlock = comptroller.venusSupplySpeeds(address(vToken));
         uint venusBorrowSpeedPerBlock = comptroller.venusBorrowSpeeds(address(vToken));
 
+        uint256 pausedActions;
+        // We use a hardcoded value of 8 actions here since solc v0.5 doesn't support type(enum).max
+        for (uint8 i = 0; i <= 8; ++i) {
+            uint256 paused = comptroller.actionPaused(address(vToken), ComptrollerTypes.Action(i)) ? 1 : 0;
+            pausedActions |= paused << i;
+        }
+
         return
             VTokenMetadata({
                 vToken: address(vToken),
@@ -149,7 +158,8 @@ contract VenusLens is ExponentialNoError {
                 venusSupplySpeed: venusSupplySpeedPerBlock,
                 venusBorrowSpeed: venusBorrowSpeedPerBlock,
                 dailySupplyXvs: venusSupplySpeedPerBlock.mul(BLOCKS_PER_DAY),
-                dailyBorrowXvs: venusBorrowSpeedPerBlock.mul(BLOCKS_PER_DAY)
+                dailyBorrowXvs: venusBorrowSpeedPerBlock.mul(BLOCKS_PER_DAY),
+                pausedActions: pausedActions
             });
     }
 
