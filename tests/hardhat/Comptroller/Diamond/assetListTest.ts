@@ -31,7 +31,7 @@ const actions = {
   LIQUIDATE: 5,
   TRANSFER: 6,
   ENTER_MARKET: 7,
-  EXIT_MARKET: 8
+  EXIT_MARKET: 8,
 };
 
 describe("Comptroller: assetListTest", () => {
@@ -311,10 +311,21 @@ describe("Comptroller: assetListTest", () => {
     it("properly emits events and unlist market", async () => {
       await enterAndCheckMarkets([OMG, BAT, ZRX], [OMG, BAT, ZRX]);
 
-
-      await comptroller.connect(customer)._setActionsPaused([OMG.address], [
-        actions.MINT, actions.REDEEM, actions.BORROW, actions.REPAY, actions.SEIZE, actions.ENTER_MARKET, actions.LIQUIDATE
-      ], true);
+      await comptroller
+        .connect(customer)
+        ._setActionsPaused(
+          [OMG.address],
+          [
+            actions.MINT,
+            actions.REDEEM,
+            actions.BORROW,
+            actions.REPAY,
+            actions.SEIZE,
+            actions.ENTER_MARKET,
+            actions.LIQUIDATE,
+          ],
+          true,
+        );
 
       await unlistAndCheckMarket(OMG, [BAT, ZRX], [OMG, BAT, ZRX]);
     });
