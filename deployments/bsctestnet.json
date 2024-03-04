@@ -40840,7 +40840,7 @@
       ]
     },
     "VenusLens": {
-      "address": "0x11c8dC3DcA87E8205ec01e6d79Be9442d31701d3",
+      "address": "0xA78B5575F0ad134302cF8f37a9c3cE4428c05233",
       "abi": [
         {
           "constant": true,
@@ -40924,152 +40924,6 @@
           ],
           "payable": false,
           "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "constant": true,
-          "inputs": [
-            {
-              "internalType": "contract GovernorAlpha",
-              "name": "governor",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256[]",
-              "name": "proposalIds",
-              "type": "uint256[]"
-            }
-          ],
-          "name": "getGovProposals",
-          "outputs": [
-            {
-              "components": [
-                {
-                  "internalType": "uint256",
-                  "name": "proposalId",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "address",
-                  "name": "proposer",
-                  "type": "address"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "eta",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "address[]",
-                  "name": "targets",
-                  "type": "address[]"
-                },
-                {
-                  "internalType": "uint256[]",
-                  "name": "values",
-                  "type": "uint256[]"
-                },
-                {
-                  "internalType": "string[]",
-                  "name": "signatures",
-                  "type": "string[]"
-                },
-                {
-                  "internalType": "bytes[]",
-                  "name": "calldatas",
-                  "type": "bytes[]"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "startBlock",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "endBlock",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "forVotes",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "againstVotes",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "canceled",
-                  "type": "bool"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "executed",
-                  "type": "bool"
-                }
-              ],
-              "internalType": "struct VenusLens.GovProposal[]",
-              "name": "",
-              "type": "tuple[]"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "constant": true,
-          "inputs": [
-            {
-              "internalType": "contract GovernorAlpha",
-              "name": "governor",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "voter",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256[]",
-              "name": "proposalIds",
-              "type": "uint256[]"
-            }
-          ],
-          "name": "getGovReceipts",
-          "outputs": [
-            {
-              "components": [
-                {
-                  "internalType": "uint256",
-                  "name": "proposalId",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "hasVoted",
-                  "type": "bool"
-                },
-                {
-                  "internalType": "bool",
-                  "name": "support",
-                  "type": "bool"
-                },
-                {
-                  "internalType": "uint96",
-                  "name": "votes",
-                  "type": "uint96"
-                }
-              ],
-              "internalType": "struct VenusLens.GovReceipt[]",
-              "name": "",
-              "type": "tuple[]"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "view",
           "type": "function"
         },
         {
@@ -41489,6 +41343,11 @@
                   "internalType": "uint256",
                   "name": "dailyBorrowXvs",
                   "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "pausedActions",
+                  "type": "uint256"
                 }
               ],
               "internalType": "struct VenusLens.VTokenMetadata",
@@ -41601,6 +41460,11 @@
                 {
                   "internalType": "uint256",
                   "name": "dailyBorrowXvs",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "pausedActions",
                   "type": "uint256"
                 }
               ],
