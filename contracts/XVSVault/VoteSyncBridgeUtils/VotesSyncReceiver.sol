@@ -55,6 +55,20 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
     }
 
     /**
+     * @notice Pauses the bridge
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Unpauses the bridge
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /**
      * @notice Process non blocking LayerZero receive request
      * @param remoteChainId Remote chain id
      * @param payload Encoded payload containing votes information of previous and current delegatee

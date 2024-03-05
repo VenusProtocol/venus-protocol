@@ -60,6 +60,20 @@ contract VotesSyncSender is LzApp, Pausable, ReentrancyGuard {
     }
 
     /**
+     * @notice Pauses the bridge
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Unpauses the bridge
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /**
      * @notice Sync votes of user on Binance chain
      * @param payload  The payload to be sent to the remote chain. It's computed as follows: payload = abi.encode(delegatee, checkpoint, votes)
      * @param adapterParams The params used to specify the custom amount of gas required for the execution on the destination
@@ -72,6 +86,7 @@ contract VotesSyncSender is LzApp, Pausable, ReentrancyGuard {
         bytes memory adapterParams
     ) external payable whenNotPaused {
         _ensureAllowed("syncVotes(bytes,bytes)");
+        _checkGasLimit(BNB_CHAIN_ID, 0, adapterParams, 0);
         require(payload.length != 0, "VotesSyncSender: Empty payload");
         _lzSend(BNB_CHAIN_ID, payload, payable(tx.origin), zroPaymentAddress, adapterParams, msg.value);
         emit ExecuteSyncVotes(BNB_CHAIN_ID, payload, adapterParams);
