@@ -863,6 +863,8 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
                 dstRepNew
             );
             votesSyncSender.syncVotes.value(msg.value)(payload, zroPaymentAddress, adapterParams);
+        } else if (msg.value > 0) {
+            msg.sender.transfer(msg.value);
         }
     }
 
