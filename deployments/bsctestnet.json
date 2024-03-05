@@ -4520,7 +4520,7 @@
       ]
     },
     "MarketFacet": {
-      "address": "0xeaa588cEB8CDb29AfDae90Ba78B595b725E1f6D7",
+      "address": "0xbcA3d5E7a66D97E0415662c2394Ed2605944b614",
       "abi": [
         {
           "anonymous": false,
@@ -35316,7 +35316,7 @@
       ]
     },
     "VBep20Delegate": {
-      "address": "0x0B2d4f9505b901459638584EBA75C65f7810aD83",
+      "address": "0xdB1869CA9E008E102350f2e0c356500503A4d043",
       "abi": [
         {
           "inputs": [],
