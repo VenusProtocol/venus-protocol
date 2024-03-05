@@ -834,19 +834,35 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         bytes memory adapterParams
     ) internal {
         if (srcRep != dstRep && amount > 0) {
+            uint32 srcIndex;
+            uint32 destIndex;
+            uint32 srcNumCheckpoints;
+            uint32 destNumCheckpoints;
+            uint96 srcRepNew;
+            uint96 dstRepNew;
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
                 uint96 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
-                uint96 srcRepNew = sub96(srcRepOld, amount, "XVSVault::_moveVotes: vote amount underflows");
-                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew, zroPaymentAddress, adapterParams);
+                srcRepNew = sub96(srcRepOld, amount, "XVSVault::_moveVotes: vote amount underflows");
+                (srcIndex, srcNumCheckpoints) = _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
-
             if (dstRep != address(0)) {
                 uint32 dstRepNum = numCheckpoints[dstRep];
                 uint96 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
-                uint96 dstRepNew = add96(dstRepOld, amount, "XVSVault::_moveVotes: vote amount overflows");
-                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew, zroPaymentAddress, adapterParams);
+                dstRepNew = add96(dstRepOld, amount, "XVSVault::_moveVotes: vote amount overflows");
+                (destIndex, destNumCheckpoints) = _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
+            bytes memory payload = abi.encode(
+                srcRep,
+                srcIndex,
+                srcNumCheckpoints,
+                srcRepNew,
+                dstRep,
+                destIndex,
+                destNumCheckpoints,
+                dstRepNew
+            );
+            votesSyncSender.syncVotes.value(msg.value)(payload, zroPaymentAddress, adapterParams);
         }
     }
 
@@ -854,22 +870,19 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         address delegatee,
         uint32 nCheckpoints,
         uint96 oldVotes,
-        uint96 newVotes,
-        address zroPaymentAddress,
-        bytes memory adapterParams
-    ) internal {
+        uint96 newVotes
+    ) internal returns (uint32, uint32) {
         uint32 blockNumber = safe32(block.number, "XVSVault::_writeCheckpoint: block number exceeds 32 bits");
-        bytes memory payload;
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
-            payload = abi.encode(delegatee, nCheckpoints - 1, numCheckpoints[delegatee], newVotes);
+            emit DelegateVotesChangedV2(delegatee, oldVotes, newVotes);
+            return (nCheckpoints - 1, numCheckpoints[delegatee]);
         } else {
             checkpoints[delegatee][nCheckpoints] = Checkpoint(blockNumber, newVotes);
             numCheckpoints[delegatee] = nCheckpoints + 1;
-            payload = abi.encode(delegatee, nCheckpoints, nCheckpoints + 1, newVotes);
+            emit DelegateVotesChangedV2(delegatee, oldVotes, newVotes);
+            return (nCheckpoints, nCheckpoints + 1);
         }
-        emit DelegateVotesChangedV2(delegatee, oldVotes, newVotes);
-        votesSyncSender.syncVotes.value(msg.value)(payload, zroPaymentAddress, adapterParams);
     }
 
     function safe32(uint n, string memory errorMessage) internal pure returns (uint32) {

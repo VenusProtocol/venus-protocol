@@ -35,7 +35,7 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
     /**
      * @notice Event emitted when votes synced
      */
-    event VotesSynced(address indexed delegatee, uint32 checkpoints, uint96 indexed votes, uint32 nCheckpoint);
+    event VotesSynced(address indexed delegatee, uint32 checkpoints, uint32 nCheckpoint, uint96 indexed votes);
 
     constructor(address endpoint_, IMultichainVoteRegistry multichainVoteRegistry_) NonblockingLzApp(endpoint_) {
         ensureNonzeroAddress(address(multichainVoteRegistry_));
@@ -57,7 +57,7 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
     /**
      * @notice Process non blocking LayerZero receive request
      * @param remoteChainId Remote chain id
-     * @param payload Encoded payload containing votes information: abi.encode(delegatee, ncheckpoints, votes)
+     * @param payload Encoded payload containing votes information of previous and current delegatee
      */
     function _nonblockingLzReceive(
         uint16 remoteChainId,
@@ -65,12 +65,36 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
         uint64,
         bytes memory payload
     ) internal virtual override whenNotPaused {
-        (address delegatee, uint32 index, uint32 numCheckpoints, uint96 votes) = abi.decode(
-            payload,
-            (address, uint32, uint32, uint96)
-        );
-        emit VotesSynced(delegatee, index, votes, numCheckpoints);
-        multichainVoteRegistry.syncDestVotes(remoteChainId, delegatee, index, numCheckpoints, votes);
+        (
+            address prevDelegatee,
+            uint32 prevIndex,
+            uint32 prevNumCheckpoints,
+            uint96 prevVotes,
+            address currDelegatee,
+            uint32 currIndex,
+            uint32 currNumCheckpoints,
+            uint96 currVotes
+        ) = abi.decode(payload, (address, uint32, uint32, uint96, address, uint32, uint32, uint96));
+        if (prevDelegatee != address(0)) {
+            emit VotesSynced(prevDelegatee, prevIndex, prevNumCheckpoints, prevVotes);
+            multichainVoteRegistry.syncDestVotes(
+                remoteChainId,
+                prevDelegatee,
+                prevIndex,
+                prevNumCheckpoints,
+                prevVotes
+            );
+        }
+        if (currDelegatee != address(0)) {
+            emit VotesSynced(currDelegatee, currIndex, currNumCheckpoints, currVotes);
+            multichainVoteRegistry.syncDestVotes(
+                remoteChainId,
+                currDelegatee,
+                currIndex,
+                currNumCheckpoints,
+                currVotes
+            );
+        }
     }
 
     function retryMessage(

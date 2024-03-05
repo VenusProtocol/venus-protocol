@@ -80,7 +80,7 @@ contract VotesSyncSender is LzApp, Pausable, ReentrancyGuard {
     /**
      * @notice Estimates LayerZero fees for cross-chain message delivery to the remote chain
      * @dev The estimated fees are the minimum required; it's recommended to increase the fees amount when sending a message. The unused amount will be refunded
-     * @param payload The payload to be sent to the remote chain. It's computed as follows: payload = abi.encode(delegatee, checkpoint, votes)
+     * @param payload The payload to be sent to the remote chain. Containing information of previous and current delegatee
      * @param adapterParams The params used to specify the custom amount of gas required for the execution on the destination
      * @param useZro Indicates to use zro to pay layer zero fees
      * @return nativeFee The amount of fee in the native gas token (e.g. ETH)
