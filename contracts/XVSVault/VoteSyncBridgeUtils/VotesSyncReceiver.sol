@@ -55,35 +55,6 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
     }
 
     /**
-     * @notice Process blocking LayerZero receive request
-     * @param remoteChainId Remote chain Id
-     * @param remoteAddress Remote address from which payload is received
-     * @param nonce Nonce associated with the payload to prevent replay attacks
-     * @param payload Encoded payload containing votes information
-     * @custom:event Emit ReceivePayloadFailed if call fails
-     */
-    function _blockingLzReceive(
-        uint16 remoteChainId,
-        bytes memory remoteAddress,
-        uint64 nonce,
-        bytes memory payload
-    ) internal virtual override whenNotPaused {
-        uint256 gasToStoreAndEmit = 30000; // enough gas to ensure we can store the payload and emit the event
-
-        (bool success, bytes memory reason) = address(this).excessivelySafeCall(
-            gasleft() - gasToStoreAndEmit,
-            150,
-            abi.encodeCall(this.nonblockingLzReceive, (remoteChainId, remoteAddress, nonce, payload))
-        );
-        // try-catch all errors/exceptions
-        if (!success) {
-            bytes32 hashedPayload = keccak256(payload);
-            failedMessages[remoteChainId][remoteAddress][nonce] = hashedPayload;
-            emit ReceivePayloadFailed(remoteChainId, remoteAddress, nonce, reason); // Retrieve payload from the src side tx if needed to clear
-        }
-    }
-
-    /**
      * @notice Process non blocking LayerZero receive request
      * @param remoteChainId Remote chain id
      * @param payload Encoded payload containing votes information: abi.encode(delegatee, ncheckpoints, votes)
@@ -93,7 +64,7 @@ contract VotesSyncReceiver is Pausable, NonblockingLzApp {
         bytes memory,
         uint64,
         bytes memory payload
-    ) internal virtual override {
+    ) internal virtual override whenNotPaused {
         (address delegatee, uint32 index, uint32 numCheckpoints, uint96 votes) = abi.decode(
             payload,
             (address, uint32, uint32, uint96)

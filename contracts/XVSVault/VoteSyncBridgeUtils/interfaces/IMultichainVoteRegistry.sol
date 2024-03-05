@@ -20,7 +20,7 @@ interface IMultichainVoteRegistry {
         uint16 chainId,
         address delegatee,
         uint32 checkpoint,
-        uint96 votes,
-        uint32 nCheckpoint
+        uint32 nCheckpoint,
+        uint96 votes
     ) external;
 }
