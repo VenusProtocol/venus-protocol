@@ -14,7 +14,11 @@ interface IVotesSyncSender {
      * @param adapterParams The params used to specify the custom amount of gas required for the execution on the BNB chain
      */
 
-    function syncVotes(bytes calldata payload, bytes calldata adapterParams) external payable;
+    function syncVotes(
+        bytes calldata payload,
+        address zroPaymentAddress,
+        bytes calldata adapterParams
+    ) external payable;
 
     /**
      * @notice Estimates LayerZero fees for cross-chain message delivery to the BNB chain

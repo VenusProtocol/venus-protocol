@@ -26,6 +26,7 @@ contract XVSVaultDestScenario is XVSVaultDest {
         address _rewardToken,
         uint256 _pid,
         uint256 _amount,
+        address zroPaymentAddress,
         bytes calldata _adapterParams
     ) external payable nonReentrant {
         _ensureValidPool(_rewardToken, _pid);
@@ -41,7 +42,7 @@ contract XVSVaultDestScenario is XVSVaultDest {
 
         // Update Delegate Amount
         if (_rewardToken == address(xvsAddress)) {
-            _moveDelegates(delegates[msg.sender], address(0), uint96(_amount), _adapterParams);
+            _moveDelegates(delegates[msg.sender], address(0), uint96(_amount), zroPaymentAddress, _adapterParams);
         }
 
         emit RequestedWithdrawal(msg.sender, _rewardToken, _pid, _amount);

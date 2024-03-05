@@ -297,12 +297,14 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _amount The amount to deposit to vault
+     * @param zroPaymentAddress Address of Layer Zero token address for fees
      * @param _adapterParams The amount of gas required for BNB chain
      */
     function deposit(
         address _rewardToken,
         uint256 _pid,
         uint256 _amount,
+        address zroPaymentAddress,
         bytes calldata _adapterParams
     ) external payable nonReentrant isActive {
         _ensureValidPool(_rewardToken, _pid);
@@ -328,6 +330,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
                 address(0),
                 delegates[msg.sender],
                 safe96(_amount, "XVSVault::deposit: votes overflow"),
+                zroPaymentAddress,
                 _adapterParams
             );
         }
@@ -501,12 +504,14 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @param _rewardToken The Reward Token Address
      * @param _pid The Pool Index
      * @param _amount The amount to withdraw from the vault
+     * @param zroPaymentAddress Address of Layer Zero token address for fees
      * @param _adapterParams The amount of gas required for BNB chain
      */
     function requestWithdrawal(
         address _rewardToken,
         uint256 _pid,
         uint256 _amount,
+        address zroPaymentAddress,
         bytes calldata _adapterParams
     ) external payable nonReentrant isActive {
         _ensureValidPool(_rewardToken, _pid);
@@ -538,6 +543,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
                 delegates[msg.sender],
                 address(0),
                 safe96(_amount, "XVSVault::requestWithdrawal: votes overflow"),
+                zroPaymentAddress,
                 _adapterParams
             );
         }
@@ -733,10 +739,15 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
     /**
      * @notice Delegate votes from `msg.sender` to `delegatee`
      * @param delegatee The address to delegate votes to
+     * @param zroPaymentAddress Address of Layer Zero token address for fees
      * @param adapterParams The amount of gas required for BNB chain
      */
-    function delegate(address delegatee, bytes calldata adapterParams) external payable isActive {
-        return _delegate(msg.sender, delegatee, adapterParams);
+    function delegate(
+        address delegatee,
+        address zroPaymentAddress,
+        bytes calldata adapterParams
+    ) external payable isActive {
+        return _delegate(msg.sender, delegatee, zroPaymentAddress, adapterParams);
     }
 
     /**
@@ -747,6 +758,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
      * @param v The recovery byte of the signature
      * @param r Half of the ECDSA signature pair
      * @param s Half of the ECDSA signature pair
+     * @param zroPaymentAddress Address of Layer Zero token address for fees
      * @param adapterParams The amount of gas required for BNB chain
      */
     function delegateBySig(
@@ -756,6 +768,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         uint8 v,
         bytes32 r,
         bytes32 s,
+        address zroPaymentAddress,
         bytes calldata adapterParams
     ) external payable isActive {
         bytes32 domainSeparator = keccak256(
@@ -766,14 +779,15 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         address signatory = ECDSA.recover(digest, v, r, s);
         require(nonce == nonces[signatory]++, "XVSVault::delegateBySig: invalid nonce");
         require(block.timestamp <= expiry, "XVSVault::delegateBySig: signature expired");
-        return _delegate(signatory, delegatee, adapterParams);
+        return _delegate(signatory, delegatee, zroPaymentAddress, adapterParams);
     }
 
     /**
      * @notice Sync votes externally on BNB chain
+     * @param zroPaymentAddress Address of Layer Zero token address for fees
      * @param adapterParams The params used to specify the custom amount of gas required for the execution on the BNB chain
      */
-    function forceSync(bytes calldata adapterParams) external payable {
+    function forceSync(address zroPaymentAddress, bytes calldata adapterParams) external payable {
         address delegatee = delegates[msg.sender];
         _ensureNonzeroAddress(delegatee);
         uint32 ncheckpoints = numCheckpoints[delegatee];
@@ -783,7 +797,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
             ncheckpoints,
             checkpoints[delegatee][ncheckpoints - 1].votes
         );
-        votesSyncSender.syncVotes.value(msg.value)(payload, adapterParams);
+        votesSyncSender.syncVotes.value(msg.value)(payload, zroPaymentAddress, adapterParams);
         emit ForceSync(delegatee, ncheckpoints);
     }
 
@@ -797,30 +811,41 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    function _delegate(address delegator, address delegatee, bytes memory adapterParams) internal {
+    function _delegate(
+        address delegator,
+        address delegatee,
+        address zroPaymentAddress,
+        bytes memory adapterParams
+    ) internal {
         address currentDelegate = delegates[delegator];
         uint96 delegatorBalance = getStakeAmount(delegator);
         delegates[delegator] = delegatee;
 
         emit DelegateChangedV2(delegator, currentDelegate, delegatee);
 
-        _moveDelegates(currentDelegate, delegatee, delegatorBalance, adapterParams);
+        _moveDelegates(currentDelegate, delegatee, delegatorBalance, zroPaymentAddress, adapterParams);
     }
 
-    function _moveDelegates(address srcRep, address dstRep, uint96 amount, bytes memory adapterParams) internal {
+    function _moveDelegates(
+        address srcRep,
+        address dstRep,
+        uint96 amount,
+        address zroPaymentAddress,
+        bytes memory adapterParams
+    ) internal {
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
                 uint96 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
                 uint96 srcRepNew = sub96(srcRepOld, amount, "XVSVault::_moveVotes: vote amount underflows");
-                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew, adapterParams);
+                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew, zroPaymentAddress, adapterParams);
             }
 
             if (dstRep != address(0)) {
                 uint32 dstRepNum = numCheckpoints[dstRep];
                 uint96 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
                 uint96 dstRepNew = add96(dstRepOld, amount, "XVSVault::_moveVotes: vote amount overflows");
-                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew, adapterParams);
+                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew, zroPaymentAddress, adapterParams);
             }
         }
     }
@@ -830,6 +855,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
         uint32 nCheckpoints,
         uint96 oldVotes,
         uint96 newVotes,
+        address zroPaymentAddress,
         bytes memory adapterParams
     ) internal {
         uint32 blockNumber = safe32(block.number, "XVSVault::_writeCheckpoint: block number exceeds 32 bits");
@@ -843,7 +869,7 @@ contract XVSVaultDest is XVSVaultStorageDest, ECDSA, AccessControlledV5 {
             payload = abi.encode(delegatee, nCheckpoints, nCheckpoints + 1, newVotes);
         }
         emit DelegateVotesChangedV2(delegatee, oldVotes, newVotes);
-        votesSyncSender.syncVotes.value(msg.value)(payload, adapterParams);
+        votesSyncSender.syncVotes.value(msg.value)(payload, zroPaymentAddress, adapterParams);
     }
 
     function safe32(uint n, string memory errorMessage) internal pure returns (uint32) {

@@ -8,6 +8,7 @@ import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ILayerZeroEndpoint } from "@layerzerolabs/solidity-examples/contracts/lzApp/interfaces/ILayerZeroEndpoint.sol";
 import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
+import { LzApp } from "@layerzerolabs/solidity-examples/contracts/lzApp/LzApp.sol";
 
 /**
  * @title VotesSyncSender
@@ -15,39 +16,16 @@ import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/con
  * @notice The VotesSyncSender send voting information of user from remote chains(non-BNB chains) to Binance chain with the help of layer zero bridge.
  * It sends voting information of user from XVSVaultDest to receiver contract on Binance chain in the form of encoded data known as payload.
  */
-contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
+contract VotesSyncSender is LzApp, Pausable, ReentrancyGuard {
     /**
      * @notice Remote chain id of binance
      */
     uint16 public immutable BNB_CHAIN_ID;
 
     /**
-     * @notice Number of times votes synced with BNB chain
-     */
-    uint256 public nonce;
-    /**
-     * @notice LayerZero endpoint for sending messages to remote chains
-     */
-    ILayerZeroEndpoint public LZ_ENDPOINT;
-
-    /**
      * @notice Acess Control Manager
      */
     IAccessControlManagerV8 public accessControlManager;
-    /**
-     * @notice Execution hashes of failed messages
-     * @dev [proposalId] -> [executionHash]
-     */
-    mapping(uint256 => bytes32) public storedExecutionHashes;
-    /**
-     * @notice Specifies the allowed path for sending messages (remote chainId => remote app address + local app address)
-     */
-    mapping(uint16 => bytes) public trustedRemoteLookup;
-
-    /**
-     * @notice Emitted when a remote message receiver is set for the remote chain
-     */
-    event SetTrustedRemoteAddress(uint16 indexed remoteChainId, bytes remoteAddress);
 
     /**
      * @notice Emitted when trusted remote sets to empty.
@@ -59,121 +37,44 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
      */
     event ExecuteSyncVotes(uint16 indexed remoteChainId, bytes payload, bytes adapterParams);
 
-    /**
-     * @notice Emitted when votes synced on retry
-     */
-    event ClearPayload(uint256 failedNonce, bytes32 hash);
-
-    /**
-     * @notice Emitted when an execution hash of a failed message is saved
-     */
-    event StorePayload(
-        uint256 votesSync,
-        uint16 remoteChainId,
-        bytes payload,
-        bytes adapterParams,
-        uint256 value,
-        bytes reason
-    );
-
-    constructor(ILayerZeroEndpoint lzEndpoint_, IAccessControlManagerV8 accessControlManager_, uint16 dstChainId_) {
+    constructor(
+        address lzEndpoint_,
+        IAccessControlManagerV8 accessControlManager_,
+        uint16 dstChainId_
+    ) LzApp(lzEndpoint_) {
         ensureNonzeroAddress(address(lzEndpoint_));
         ensureNonzeroAddress(address(accessControlManager_));
         accessControlManager = accessControlManager_;
-        LZ_ENDPOINT = lzEndpoint_;
         BNB_CHAIN_ID = dstChainId_;
     }
 
     /**
-     * @notice Sets the remote message receiver address
-     * @param remoteAddress The address of the contract on the remote chain to receive messages sent by this contract
-     * @custom:access Controlled by AccessControlManager.
-     * @custom:event Emits SetTrustedRemoteAddress with remote chain Id and remote address
-     */
-    function setTrustedRemoteAddress(bytes calldata remoteAddress) external {
-        _ensureAllowed("setTrustedRemoteAddress(bytes)");
-        ensureNonzeroAddress(address(uint160(bytes20(remoteAddress))));
-        trustedRemoteLookup[BNB_CHAIN_ID] = abi.encodePacked(remoteAddress, address(this));
-        emit SetTrustedRemoteAddress(BNB_CHAIN_ID, remoteAddress);
-    }
-
-    /**
      * @notice Remove trusted remote from storage.
+     * @param remoteChainId_ The chain's id corresponds to setting the trusted remote to empty.
      * @custom:access Only owner.
-     * @custom:event Emit TrustedRemoteRemoved with remote chain Id.
+     * @custom:event Emits TrustedRemoteRemoved once chain id is removed from trusted remote.
      */
-    function removeTrustedRemote() external onlyOwner {
-        delete trustedRemoteLookup[BNB_CHAIN_ID];
-        emit TrustedRemoteRemoved(BNB_CHAIN_ID);
-    }
-
-    /**
-     * @notice Resends a previously failed message
-     * @dev Allows providing more fees if needed. The extra fees will be refunded to the caller
-     * @param failedNonce Nonce of the failed message; to identify a failed message
-     * @param payload The payload to be sent to the remote chain. It's computed as follows: payload = abi.encode(delegatee, checkpoint, votes)
-     * @param adapterParams The params used to specify the custom amount of gas required for the execution on the Binance chain
-     * @param originalValue The msg.value passed when syncVotes function was called
-     * @custom:event Emits ClearPayload with votesSynced and hash
-     * @custom:access Controlled by Access Control Manager
-     */
-    function retrySyncVotes(
-        uint256 failedNonce,
-        bytes calldata payload,
-        bytes calldata adapterParams,
-        uint256 originalValue
-    ) external payable nonReentrant whenNotPaused {
-        _ensureAllowed("retrySyncVotes(uint256,bytes,bytes,uint256)");
-        bytes32 hash = storedExecutionHashes[failedNonce];
-        require(hash != bytes32(0), "VotesSyncSender: no stored payload");
-        require(payload.length != 0, "VotesSyncSender: empty payload");
-        bytes memory trustedRemote = trustedRemoteLookup[BNB_CHAIN_ID];
-        require(trustedRemote.length != 0, "VotesSyncSender: destination chain is not a trusted source");
-        bytes memory execution = abi.encode(failedNonce, payload, adapterParams, originalValue);
-        require(keccak256(execution) == hash, "VotesSyncSender: invalid execution params");
-
-        delete storedExecutionHashes[failedNonce];
-        emit ClearPayload(failedNonce, hash);
-
-        LZ_ENDPOINT.send{ value: originalValue + msg.value }(
-            BNB_CHAIN_ID,
-            trustedRemoteLookup[BNB_CHAIN_ID],
-            payload,
-            payable(msg.sender),
-            address(0),
-            adapterParams
-        );
+    function removeTrustedRemote(uint16 remoteChainId_) external onlyOwner {
+        delete trustedRemoteLookup[remoteChainId_];
+        emit TrustedRemoteRemoved(remoteChainId_);
     }
 
     /**
      * @notice Sync votes of user on Binance chain
      * @param payload  The payload to be sent to the remote chain. It's computed as follows: payload = abi.encode(delegatee, checkpoint, votes)
      * @param adapterParams The params used to specify the custom amount of gas required for the execution on the destination
-     * @custom:event Emit ExecuteSyncVotes on success and StorePayload on failure
+     * @param zroPaymentAddress Address of Layer Zero token address for fees
      * @custom:access Controlled by Access Control Manager
      */
-    function syncVotes(bytes memory payload, bytes memory adapterParams) external payable whenNotPaused {
+    function syncVotes(
+        bytes memory payload,
+        address zroPaymentAddress,
+        bytes memory adapterParams
+    ) external payable whenNotPaused {
         _ensureAllowed("syncVotes(bytes,bytes)");
         require(payload.length != 0, "VotesSyncSender: Empty payload");
-        bytes memory trustedRemote = trustedRemoteLookup[BNB_CHAIN_ID];
-        require(trustedRemote.length != 0, "VotesSyncSender: destination chain is not a trusted source");
-        nonce++; // Number of times syncVotes is called
-
-        try
-            LZ_ENDPOINT.send{ value: msg.value }(
-                BNB_CHAIN_ID,
-                trustedRemote,
-                payload,
-                payable(tx.origin),
-                address(0),
-                adapterParams
-            )
-        {
-            emit ExecuteSyncVotes(BNB_CHAIN_ID, payload, adapterParams);
-        } catch (bytes memory reason) {
-            storedExecutionHashes[nonce] = keccak256(abi.encode(nonce, payload, adapterParams, msg.value));
-            emit StorePayload(nonce, BNB_CHAIN_ID, payload, adapterParams, msg.value, reason);
-        }
+        _lzSend(BNB_CHAIN_ID, payload, payable(tx.origin), zroPaymentAddress, adapterParams, msg.value);
+        emit ExecuteSyncVotes(BNB_CHAIN_ID, payload, adapterParams);
     }
 
     /**
@@ -190,7 +91,7 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
         bytes calldata adapterParams,
         bool useZro
     ) public view returns (uint256, uint256) {
-        return LZ_ENDPOINT.estimateFees(BNB_CHAIN_ID, address(this), payload, useZro, adapterParams);
+        return lzEndpoint.estimateFees(BNB_CHAIN_ID, address(this), payload, useZro, adapterParams);
     }
 
     /**
@@ -203,4 +104,14 @@ contract VotesSyncSender is Ownable, Pausable, ReentrancyGuard {
             "access denied"
         );
     }
+
+    /**
+     * @dev Empty implementation, not in use this contract is designed to serve only send the messages cross chain and does not receive.
+     */
+    function _blockingLzReceive(
+        uint16 _srcChainId,
+        bytes memory _srcAddress,
+        uint64 _nonce,
+        bytes memory _payload
+    ) internal virtual override {}
 }
