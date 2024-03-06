@@ -1,3 +1,15 @@
+## [7.4.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.4...v7.4.0-dev.5) (2024-03-06)
+
+
+### Features
+
+* ven-2250 reduce reserves with available cash ([53e37eb](https://github.com/VenusProtocol/venus-protocol/commit/53e37eb614ad9e23a74f1d159f28c5e311175561))
+
+
+### Bug Fixes
+
+* VTT-01 missing return statement setReduceReservesBlockDelta() and setProtocolShareReserve() ([9cfeba7](https://github.com/VenusProtocol/venus-protocol/commit/9cfeba718e68aa7294c9895c51037f9e9b81e450))
+
 ## [7.4.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.3...v7.4.0-dev.4) (2024-03-06)
 
 
