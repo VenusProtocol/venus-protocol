@@ -54,7 +54,7 @@ contract MultichainVoteRegistry is AccessControlledV8 {
     /**
      * @notice Emitted when new chain Id is added to supported chain id list
      */
-    event AddChainID(uint16 indexed chainId);
+    event AddChainId(uint16 indexed chainId);
     /**
      * @notice Emitted when chain Id is removed from supported chain is list
      */
@@ -79,13 +79,13 @@ contract MultichainVoteRegistry is AccessControlledV8 {
      * @notice Add chainId to supported layer zero chain ids
      * @param chainId_ Chain Id i.e. to be added
      * @custom:access Controlled by Access Control Manager
-     * @custom:event Emit AddChainID with chain Id
+     * @custom:event Emit AddChainId with chain Id
      */
     function addChainId(uint16 chainId_) external {
         _checkAccessAllowed("addChainId(uint16)");
         require(chainId_ != 0, "MultichainVoteRegistry::addChainId: invalid chain Id");
         lzChainIds.push(chainId_);
-        emit AddChainID(chainId_);
+        emit AddChainId(chainId_);
     }
 
     /**

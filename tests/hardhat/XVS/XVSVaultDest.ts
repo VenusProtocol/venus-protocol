@@ -1,12 +1,16 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { BigNumberish, Contract, Wallet } from "ethers";
+import { BigNumberish, Wallet } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
 import {
   IERC20Upgradeable,
+  MultichainVoteRegistry,
+  VotesSyncBridgeAdmin,
+  VotesSyncReceiver,
+  VotesSyncSender,
   XVS,
   XVSStore,
   XVSVaultDestScenario,
@@ -24,11 +28,11 @@ const poolId = 0;
 interface XVSVaultFixture {
   xvsVaultDest: MockContract<XVSVaultDestScenario>;
   xvsVault: MockContract<XVSVaultScenario>;
-  sender: Contract;
-  receiver: Contract;
-  receiverAdmin: Contract;
+  sender: VotesSyncSender;
+  receiver: VotesSyncReceiver;
+  receiverAdmin: VotesSyncBridgeAdmin;
   xvs: XVS;
-  multichainVoteRegistry: Contract;
+  multichainVoteRegistry: MultichainVoteRegistry;
   accessControl: FakeContract<IAccessControlManagerV8>;
   xvsStore: XVSStore;
   xvsStoreDest: XVSStore;
@@ -45,28 +49,29 @@ describe("XVSVaultDest", async () => {
   let xvsStoreDest: XVSStore;
   const localChainId = 10102;
   const remoteChainId = 10161;
-  let sender: Contract;
-  let receiver: Contract;
-  let receiverAdmin: Contract;
-  let multichainVoteRegistry: Contract;
+  let sender: VotesSyncSender;
+  let receiver: VotesSyncReceiver;
+  let receiverAdmin: VotesSyncBridgeAdmin;
+  let senderAdmin: VotesSyncBridgeAdmin;
+  let multichainVoteRegistry: MultichainVoteRegistry;
   let adapterParams: string;
+  let nativeFee: any;
 
   before("get signers", async () => {
     [deployer, user] = await (ethers as any).getSigners();
-    adapterParams = ethers.utils.solidityPack(["uint16", "uint256"], [1, 200000]);
+    adapterParams = ethers.utils.solidityPack(["uint16", "uint256"], [1, 500000]);
   });
 
   async function getFee() {
-    const latestBlock = (await ethers.provider.getBlock("latest")).number;
     const payload = ethers.utils.defaultAbiCoder.encode(
-      ["address", "uint32", "uint32", "uint96", "uint32"],
-      [deployer.address, 1, latestBlock, parseUnits("100", 18), 1],
+      ["address", "uint32", "uint32", "uint96", "address", "uint32", "uint32", "uint96"],
+      [ethers.constants.AddressZero, 0, 0, 0, deployer.address, 0, 1, parseUnits("100", 18)],
     );
     const nativeFee = (await xvsVaultDest.estimateFee(payload, adapterParams, false))[0];
     return nativeFee;
   }
 
-  async function deployXVSVaultFixture(): Promise<XVSVaultFixture> {
+  async function deployXVSVaultAndBridgeFixture(): Promise<XVSVaultFixture> {
     const xvsFactory = await ethers.getContractFactory("XVS");
     xvs = (await xvsFactory.deploy(deployer.address)) as XVS;
     const accessControl = await smock.fake<IAccessControlManagerV8>("AccessControlManager");
@@ -84,7 +89,6 @@ describe("XVSVaultDest", async () => {
 
     const senderFactory = await ethers.getContractFactory("VotesSyncSender");
     sender = await senderFactory.deploy(remoteEndpoint.address, accessControl.address, localChainId);
-
     const multichainVoteRegistryFactory = await ethers.getContractFactory("MultichainVoteRegistry");
     multichainVoteRegistry = await upgrades.deployProxy(multichainVoteRegistryFactory, [accessControl.address], {
       constructorArgs: [xvsVault.address],
@@ -99,15 +103,48 @@ describe("XVSVaultDest", async () => {
     xvsStore = (await xvsStoreFactory.deploy()) as XVSStore;
     xvsStoreDest = (await xvsStoreFactory.deploy()) as XVSStore;
 
-    const receiverAdminFactory = await ethers.getContractFactory("VotesSyncReceiverAdmin");
+    const receiverAdminFactory = await ethers.getContractFactory("VotesSyncBridgeAdmin");
     receiverAdmin = await upgrades.deployProxy(receiverAdminFactory, [accessControl.address], {
       constructorArgs: [receiver.address],
+      initializer: "initialize",
+      unsafeAllow: ["state-variable-immutable"],
+    });
+    senderAdmin = await upgrades.deployProxy(receiverAdminFactory, [accessControl.address], {
+      constructorArgs: [sender.address],
       initializer: "initialize",
       unsafeAllow: ["state-variable-immutable"],
     });
 
     await localEndpoint.setDestLzEndpoint(sender.address, remoteEndpoint.address);
     await remoteEndpoint.setDestLzEndpoint(receiver.address, localEndpoint.address);
+
+    const functionregistry = [
+      "setOracle(address)",
+      "setMaxSingleTransactionLimit(uint16,uint256)",
+      "setMaxDailyLimit(uint16,uint256)",
+      "setMaxSingleReceiveTransactionLimit(uint16,uint256)",
+      "setMaxDailyReceiveLimit(uint16,uint256)",
+      "pause()",
+      "unpause()",
+      "setWhitelist(address,bool)",
+      "setConfig(uint16,uint16,uint256,bytes)",
+      "setSendVersion(uint16)",
+      "setReceiveVersion(uint16)",
+      "forceResumeReceive(uint16,bytes)",
+      "setTrustedRemoteAddress(uint16,bytes)",
+      "setPrecrime(address)",
+      "setMinDstGas(uint16,uint16,uint256)",
+      "setPayloadSizeLimit(uint16,uint256)",
+      "removeTrustedRemote(uint16)",
+      "updateSendAndCallEnabled(bool)",
+      "sweepToken(address,address,uint256)",
+      "forceMint(uint16,address,uint256)",
+      "dropFailedMessage(uint16,bytes,uint64)",
+      "removeTrustedRemote(uint16)",
+    ];
+    const activeArray = new Array(functionregistry.length).fill(true);
+    await senderAdmin.upsertSignature(functionregistry, activeArray);
+    await receiverAdmin.upsertSignature(functionregistry, activeArray);
 
     return {
       xvsVaultDest,
@@ -135,13 +172,17 @@ describe("XVSVaultDest", async () => {
       receiver,
       receiverAdmin,
       multichainVoteRegistry,
-    } = await loadFixture(deployXVSVaultFixture));
+    } = await loadFixture(deployXVSVaultAndBridgeFixture));
 
-    await sender.setTrustedRemoteAddress(receiver.address);
+    await sender.setTrustedRemoteAddress(localChainId, receiver.address);
+    await sender.setMinDstGas(localChainId, 0, 200000);
+    await sender.transferOwnership(senderAdmin.address);
+
     await receiver.setTrustedRemoteAddress(remoteChainId, sender.address);
+    await receiver.transferOwnership(receiverAdmin.address);
+
     await xvsVaultDest.connect(deployer).setAccessControl(accessControl.address);
     await xvsVault.connect(deployer).setAccessControl(accessControl.address);
-    await receiver.transferOwnership(receiverAdmin.address);
 
     await xvsStoreDest.setNewOwner(xvsVaultDest.address);
     await xvsStore.setNewOwner(xvsVault.address);
@@ -149,6 +190,7 @@ describe("XVSVaultDest", async () => {
     await xvsVault.setXvsStore(xvs.address, xvsStore.address);
 
     await xvs.connect(deployer).transfer(user.address, parseUnits("1000", 18));
+    await xvs.connect(user).approve(xvsVaultDest.address, parseUnits("1000", 18));
 
     await xvsStoreDest.setRewardToken(xvs.address, true);
     await xvsStore.setRewardToken(xvs.address, true);
@@ -157,20 +199,26 @@ describe("XVSVaultDest", async () => {
     await xvsVault.add(xvs.address, allocPoint, xvs.address, rewardPerBlock, lockPeriod);
     await xvsVaultDest.setVotesSyncBridge(sender.address);
 
-    await expect(multichainVoteRegistry.addChainId(remoteChainId)).to.emit(multichainVoteRegistry, "AddChainID");
+    await expect(multichainVoteRegistry.addChainId(remoteChainId)).to.emit(multichainVoteRegistry, "AddChainId");
   });
 
   describe("Bridge votes", async () => {
+    beforeEach(async () => {
+      nativeFee = await getFee();
+      await xvsVaultDest
+        .connect(user)
+        .delegate(deployer.address, ethers.constants.AddressZero, adapterParams, { value: nativeFee });
+    });
     const depositAmount = parseUnits("100", 18);
     it("votes updated in MultichainVoteRegistry on deposit", async () => {
-      const nativeFee = await getFee();
-
-      await xvs.connect(user).approve(xvsVaultDest.address, depositAmount);
       await expect(
-        xvsVaultDest.connect(user).deposit(xvs.address, poolId, depositAmount, adapterParams, { value: nativeFee }),
+        xvsVaultDest
+          .connect(user)
+          .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams, {
+            value: nativeFee,
+          }),
       ).to.emit(xvsVaultDest, "Deposit");
 
-      await xvsVaultDest.connect(user).delegate(deployer.address, adapterParams, { value: nativeFee });
       const latestBlock = (await ethers.provider.getBlock("latest")).number;
       await mine();
 
@@ -186,18 +234,17 @@ describe("XVSVaultDest", async () => {
     it("return votes of user on both chains BNB and non-BNB", async () => {
       const halfDepositAmount = depositAmount.div(2);
       await xvs.connect(user).approve(xvsVault.address, halfDepositAmount);
-      await xvs.connect(user).approve(xvsVaultDest.address, halfDepositAmount);
 
       // Stake XVS on BSC
       await xvsVault.connect(user).deposit(xvs.address, poolId, halfDepositAmount);
       await xvsVault.connect(user).delegate(deployer.address);
 
       // Stake XVS on non-BSC
-      const nativeFee = await getFee();
       await xvsVaultDest
         .connect(user)
-        .deposit(xvs.address, poolId, halfDepositAmount, adapterParams, { value: nativeFee });
-      await xvsVaultDest.connect(user).delegate(deployer.address, adapterParams, { value: nativeFee });
+        .deposit(xvs.address, poolId, halfDepositAmount, ethers.constants.AddressZero, adapterParams, {
+          value: nativeFee,
+        });
 
       // Get accumulated votes
       const latestBlock = (await ethers.provider.getBlock("latest")).number;
@@ -220,18 +267,17 @@ describe("XVSVaultDest", async () => {
         .withArgs(remoteChainId);
       const halfDepositAmount = depositAmount.div(2);
       await xvs.connect(user).approve(xvsVault.address, halfDepositAmount);
-      await xvs.connect(user).approve(xvsVaultDest.address, halfDepositAmount);
 
       // Stake XVS on BNB
       await xvsVault.connect(user).deposit(xvs.address, poolId, halfDepositAmount);
       await xvsVault.connect(user).delegate(deployer.address);
 
       // Stake XVS on non-BNB
-      const nativeFee = await getFee();
       await xvsVaultDest
         .connect(user)
-        .deposit(xvs.address, poolId, halfDepositAmount, adapterParams, { value: nativeFee });
-      await xvsVaultDest.connect(user).delegate(deployer.address, adapterParams, { value: nativeFee });
+        .deposit(xvs.address, poolId, halfDepositAmount, ethers.constants.AddressZero, adapterParams, {
+          value: nativeFee,
+        });
 
       // Get accumulated votes
       const latestBlock = (await ethers.provider.getBlock("latest")).number;
@@ -239,26 +285,29 @@ describe("XVSVaultDest", async () => {
       expect(await multichainVoteRegistry.getPriorVotes(deployer.address, latestBlock)).to.equals(halfDepositAmount);
     });
     it("fails if trusted remote is removed", async () => {
-      await sender.removeTrustedRemote();
-      const nativeFee = await getFee();
+      const data = sender.interface.encodeFunctionData("removeTrustedRemote", [localChainId]);
+      await deployer.sendTransaction({
+        to: senderAdmin.address,
+        data: data,
+      });
 
-      await xvs.connect(user).approve(xvsVaultDest.address, depositAmount);
       await expect(
-        xvsVaultDest.connect(user).deposit(xvs.address, poolId, depositAmount, adapterParams, { value: nativeFee }),
-      ).to.emit(xvsVaultDest, "Deposit");
-      await expect(
-        xvsVaultDest.connect(user).delegate(deployer.address, adapterParams, { value: nativeFee }),
-      ).to.be.revertedWith("VotesSyncSender: destination chain is not a trusted source");
+        xvsVaultDest
+          .connect(user)
+          .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams, {
+            value: nativeFee,
+          }),
+      ).to.be.revertedWith("LzApp: destination chain is not a trusted source");
     });
 
     it("votes updated in MultichainVoteRegistry on withdrawl", async () => {
-      const nativeFee = await getFee();
-
-      await xvs.connect(user).approve(xvsVaultDest.address, depositAmount);
       await expect(
-        xvsVaultDest.connect(user).deposit(xvs.address, poolId, depositAmount, adapterParams, { value: nativeFee }),
+        xvsVaultDest
+          .connect(user)
+          .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams, {
+            value: nativeFee,
+          }),
       ).to.emit(xvsVaultDest, "Deposit");
-      await xvsVaultDest.connect(user).delegate(deployer.address, adapterParams, { value: nativeFee });
 
       const latestBlock = (await ethers.provider.getBlock("latest")).number;
       let checkpointsWithChainId = await multichainVoteRegistry.checkpointsWithChainId(
@@ -275,66 +324,101 @@ describe("XVSVaultDest", async () => {
       await expect(
         xvsVaultDest
           .connect(user)
-          .requestWithdrawal(xvs.address, poolId, depositAmount, adapterParams, { value: "2000000000000000000" }),
+          .requestWithdrawal(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams, {
+            value: nativeFee,
+          }),
       ).to.emit(xvsVaultDest, "RequestedWithdrawal");
       checkpointsWithChainId = await multichainVoteRegistry.checkpointsWithChainId(remoteChainId, user.address, 0);
 
       expect(checkpointsWithChainId[0]).to.equal(0);
       expect(checkpointsWithChainId[1]).to.equal(0);
     });
+    it("reverts on low destination gas", async () => {
+      const adapterParams = ethers.utils.solidityPack(["uint16", "uint256"], [1, 100000]);
 
-    it("fails due to low fee but success on retry", async () => {
-      const nativeFee = await getFee();
-      await xvs.connect(user).approve(xvsVaultDest.address, depositAmount);
       await expect(
-        xvsVaultDest.connect(user).deposit(xvs.address, poolId, depositAmount, adapterParams, { value: nativeFee }),
-      ).to.emit(xvsVaultDest, "Deposit");
+        xvsVaultDest
+          .connect(user)
+          .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams, {
+            value: nativeFee,
+          }),
+      ).to.be.revertedWith("LzApp: gas limit is too low");
+    });
+    it("reverts when sender bridge is paused", async () => {
+      const data = sender.interface.encodeFunctionData("pause");
+      await deployer.sendTransaction({
+        to: senderAdmin.address,
+        data: data,
+      });
+      await expect(
+        xvsVaultDest
+          .connect(user)
+          .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams, {
+            value: nativeFee,
+          }),
+      ).to.be.revertedWith("Pausable: paused");
+    });
+    it("message failed on receiver when receiver is paused and can be retry", async () => {
       const payload = ethers.utils.defaultAbiCoder.encode(
-        ["address", "uint32", "uint32", "uint96"],
-        [deployer.address, 0, 1, parseUnits("100", 18)],
+        ["address", "uint32", "uint32", "uint96", "address", "uint32", "uint32", "uint96"],
+        [ethers.constants.AddressZero, 0, 0, 0, deployer.address, 0, 1, parseUnits("100", 18)],
       );
-      await xvsVaultDest.connect(user).delegate(deployer.address, adapterParams);
-      let checkpoints = await multichainVoteRegistry.checkpointsWithChainId(remoteChainId, deployer.address, 0);
-      expect(checkpoints[0]).to.equal(0);
-      expect(checkpoints[1]).to.equal(0);
+      const remotePath = ethers.utils.solidityPack(["address", "address"], [sender.address, receiver.address]);
+      let data = receiver.interface.encodeFunctionData("pause");
 
-      const nonce = await sender.nonce();
-      await expect(sender.connect(user).retrySyncVotes(nonce, payload, adapterParams, 0, { value: nativeFee })).to.emit(
-        sender,
-        "ClearPayload",
+      await deployer.sendTransaction({
+        to: receiverAdmin.address,
+        data: data,
+      });
+      expect(
+        await xvsVaultDest
+          .connect(user)
+          .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams, {
+            value: nativeFee,
+          }),
       );
-      const latestBlock = (await ethers.provider.getBlock("latest")).number;
+      data = receiver.interface.encodeFunctionData("unpause");
+      await deployer.sendTransaction({
+        to: receiverAdmin.address,
+        data: data,
+      });
+      let latestBlock = (await ethers.provider.getBlock("latest")).number;
+      await mine();
+
+      expect(await multichainVoteRegistry.getPriorVotes(deployer.address, latestBlock)).not.to.equals(depositAmount);
+      expect(await receiver.failedMessages(remoteChainId, remotePath, 1)).not.equals(ethers.constants.HashZero);
+      expect(await receiver.retryMessage(remoteChainId, remotePath, 1, payload)).to.emit(
+        receiver,
+        "RetryMessageSuccess",
+      );
+
+      latestBlock = (await ethers.provider.getBlock("latest")).number;
       await mine();
       expect(await multichainVoteRegistry.getPriorVotes(deployer.address, latestBlock)).to.equals(depositAmount);
-      checkpoints = await multichainVoteRegistry.checkpointsWithChainId(remoteChainId, deployer.address, 0);
-
-      expect(checkpoints[0]).to.equal(latestBlock);
-      expect(checkpoints[1]).to.equal(depositAmount);
     });
     it("fails if permission not granted to contract", async () => {
       accessControl.isAllowedToCall.returns(false);
-      const nativeFee = await getFee();
 
-      await xvs.connect(user).approve(xvsVaultDest.address, depositAmount);
       await expect(
-        xvsVaultDest.connect(user).deposit(xvs.address, poolId, depositAmount, adapterParams, { value: nativeFee }),
-      ).to.emit(xvsVaultDest, "Deposit");
-      await expect(
-        xvsVaultDest.connect(user).delegate(deployer.address, adapterParams, { value: nativeFee }),
+        xvsVaultDest
+          .connect(user)
+          .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams, {
+            value: nativeFee,
+          }),
       ).to.be.revertedWith("access denied");
       accessControl.isAllowedToCall.returns(true);
     });
   });
   describe("setXvsStore", async () => {
     it("fails if XVS is a zero address", async () => {
-      ({ xvsVaultDest, xvsStoreDest } = await loadFixture(deployXVSVaultFixture));
+      ({ xvsVaultDest, xvsStoreDest } = await loadFixture(deployXVSVaultAndBridgeFixture));
       await expect(xvsVaultDest.setXvsStore(ethers.constants.AddressZero, xvsStoreDest.address)).to.be.revertedWith(
         "zero address not allowed",
       );
     });
 
     it("fails if XVSStore is a zero address", async () => {
-      ({ xvsVaultDest, xvs } = await loadFixture(deployXVSVaultFixture));
+      ({ xvsVaultDest, xvs } = await loadFixture(deployXVSVaultAndBridgeFixture));
       await expect(xvsVaultDest.setXvsStore(xvs.address, ethers.constants.AddressZero)).to.be.revertedWith(
         "zero address not allowed",
       );
@@ -541,12 +625,18 @@ describe("XVSVaultDest", async () => {
       await xvs.connect(otherGuy).approve(xvsVaultDest.address, depositAmount);
 
       await ethers.provider.send("evm_setAutomine", [false]);
-      await xvsVaultDest.connect(user).deposit(xvs.address, poolId, depositAmount, adapterParams);
-      await xvsVaultDest.connect(otherGuy).deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest
+        .connect(user)
+        .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
+      await xvsVaultDest
+        .connect(otherGuy)
+        .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
 
       await mine();
 
-      await xvsVaultDest.connect(user).requestOldWithdrawal(xvs.address, poolId, requestedAmount, adapterParams);
+      await xvsVaultDest
+        .connect(user)
+        .requestOldWithdrawal(xvs.address, poolId, requestedAmount, ethers.constants.AddressZero, adapterParams);
 
       await mine(100);
 
@@ -564,12 +654,18 @@ describe("XVSVaultDest", async () => {
       await xvs.connect(otherGuy).approve(xvsVaultDest.address, depositAmount);
 
       await ethers.provider.send("evm_setAutomine", [false]);
-      await xvsVaultDest.connect(user).deposit(xvs.address, poolId, depositAmount, adapterParams);
-      await xvsVaultDest.connect(otherGuy).deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest
+        .connect(user)
+        .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
+      await xvsVaultDest
+        .connect(otherGuy)
+        .deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
 
       await mine();
 
-      await xvsVaultDest.connect(user).requestWithdrawal(xvs.address, poolId, requestedAmount, adapterParams);
+      await xvsVaultDest
+        .connect(user)
+        .requestWithdrawal(xvs.address, poolId, requestedAmount, ethers.constants.AddressZero, adapterParams);
 
       await mine(100);
 
@@ -584,26 +680,26 @@ describe("XVSVaultDest", async () => {
 
     it("reverts if the vault is paused", async () => {
       await xvsVaultDest.pause();
-      await expect(xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams)).to.be.revertedWith(
-        "Vault is paused",
-      );
+      await expect(
+        xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams),
+      ).to.be.revertedWith("Vault is paused");
     });
 
     it("reverts if pool does not exist", async () => {
-      await expect(xvsVaultDest.deposit(xvs.address, 1, depositAmount, adapterParams)).to.be.revertedWith(
-        "vault: pool exists?",
-      );
+      await expect(
+        xvsVaultDest.deposit(xvs.address, 1, depositAmount, ethers.constants.AddressZero, adapterParams),
+      ).to.be.revertedWith("vault: pool exists?");
     });
 
     it("transfers pool token to the vault", async () => {
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
       expect(await xvs.balanceOf(xvsVaultDest.address)).to.eq(depositAmount);
     });
 
     it("updates user's balance", async () => {
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
 
       const userInfo = await xvsVaultDest.getUserInfo(xvs.address, poolId, deployer.address);
 
@@ -613,18 +709,30 @@ describe("XVSVaultDest", async () => {
 
     it("fails if there's a pre-upgrade withdrawal request", async () => {
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
-      await xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, parseUnits("50", 18), adapterParams);
-
-      await expect(xvsVaultDest.deposit(xvs.address, poolId, parseUnits("50", 18), adapterParams)).to.be.revertedWith(
-        "execute pending withdrawal",
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
+      await xvsVaultDest.requestOldWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("50", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
       );
+
+      await expect(
+        xvsVaultDest.deposit(xvs.address, poolId, parseUnits("50", 18), ethers.constants.AddressZero, adapterParams),
+      ).to.be.revertedWith("execute pending withdrawal");
     });
 
     it("succeeds if the pre-upgrade withdrawal request has been executed", async () => {
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
-      await xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, parseUnits("50", 18), adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
+      await xvsVaultDest.requestOldWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("50", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
 
       await mine(500);
       await xvsVaultDest.executeWithdrawal(xvs.address, poolId);
@@ -632,11 +740,9 @@ describe("XVSVaultDest", async () => {
       const previousUserInfo = await xvsVaultDest.getUserInfo(xvs.address, poolId, deployer.address);
 
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await expect(xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams)).to.changeTokenBalance(
-        xvs,
-        xvsVaultDest.address,
-        depositAmount,
-      );
+      await expect(
+        xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams),
+      ).to.changeTokenBalance(xvs, xvsVaultDest.address, depositAmount);
 
       const currentUserInfo = await xvsVaultDest.getUserInfo(xvs.address, poolId, deployer.address);
 
@@ -647,13 +753,13 @@ describe("XVSVaultDest", async () => {
       const initialStoreBalance = parseUnits("500", 18);
       await xvs.connect(deployer).transfer(xvsStoreDest.address, initialStoreBalance);
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
 
       await mine(1000);
 
       const expectedReward = parseUnits("1001", 18);
       const expectedDebt = expectedReward.sub(parseUnits("500", 18)); // 501 XVS
-      const tx = await xvsVaultDest.deposit(xvs.address, poolId, 0, adapterParams);
+      const tx = await xvsVaultDest.deposit(xvs.address, poolId, 0, ethers.constants.AddressZero, adapterParams);
       await expect(tx).to.changeTokenBalance(xvs, deployer.address, initialStoreBalance);
       await expect(tx)
         .to.emit(xvsVaultDest, "VaultDebtUpdated")
@@ -675,10 +781,12 @@ describe("XVSVaultDest", async () => {
 
     it("only transfers the requested amount for post-upgrade requests", async () => {
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
       await mine(1000);
 
-      await xvsVaultDest.connect(deployer).requestWithdrawal(xvs.address, poolId, parseUnits("10", 18), adapterParams);
+      await xvsVaultDest
+        .connect(deployer)
+        .requestWithdrawal(xvs.address, poolId, parseUnits("10", 18), ethers.constants.AddressZero, adapterParams);
 
       await mine(500);
 
@@ -691,11 +799,17 @@ describe("XVSVaultDest", async () => {
 
     it("handles pre-upgrade withdrawal requests", async () => {
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
       await mine(1000);
 
       await expect(
-        xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, depositAmount, adapterParams),
+        xvsVaultDest.requestOldWithdrawal(
+          xvs.address,
+          poolId,
+          depositAmount,
+          ethers.constants.AddressZero,
+          adapterParams,
+        ),
       ).to.changeTokenBalance(xvs, deployer.address, 0);
 
       await mine(500);
@@ -711,10 +825,16 @@ describe("XVSVaultDest", async () => {
 
     it("handles pre-upgrade and post-upgrade withdrawal requests", async () => {
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
       await mine(1000);
 
-      await xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, parseUnits("50", 18), adapterParams);
+      await xvsVaultDest.requestOldWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("50", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
       await mine(500);
 
       // Old-style withdrawals claim rewards when executed
@@ -727,7 +847,13 @@ describe("XVSVaultDest", async () => {
       );
 
       await mine(500);
-      await xvsVaultDest.requestWithdrawal(xvs.address, poolId, parseUnits("50", 18), adapterParams);
+      await xvsVaultDest.requestWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("50", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
       await mine(500);
 
       // New-style withdrawals do not claim rewards when executed
@@ -745,7 +871,13 @@ describe("XVSVaultDest", async () => {
     it("fails if the vault is paused", async () => {
       await xvsVaultDest.pause();
       await expect(
-        xvsVaultDest.requestWithdrawal(xvs.address, poolId, parseUnits("10", 18), adapterParams),
+        xvsVaultDest.requestWithdrawal(
+          xvs.address,
+          poolId,
+          parseUnits("10", 18),
+          ethers.constants.AddressZero,
+          adapterParams,
+        ),
       ).to.be.revertedWith("Vault is paused");
     });
 
@@ -753,10 +885,10 @@ describe("XVSVaultDest", async () => {
       await xvs.connect(deployer).transfer(xvsStoreDest.address, parseUnits("10000", 18));
 
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
 
       await expect(
-        xvsVaultDest.requestWithdrawal(xvs.address, poolId, depositAmount, adapterParams),
+        xvsVaultDest.requestWithdrawal(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams),
       ).to.changeTokenBalance(xvs, deployer.address, parseUnits("1", 18));
     });
 
@@ -764,13 +896,19 @@ describe("XVSVaultDest", async () => {
       const initialStoreBalance = parseUnits("500", 18);
       await xvs.connect(deployer).transfer(xvsStoreDest.address, initialStoreBalance);
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
 
       await mine(1000);
 
       const expectedReward = parseUnits("1001", 18);
       const expectedDebt = expectedReward.sub(parseUnits("500", 18)); // 501 XVS
-      const tx = await xvsVaultDest.requestWithdrawal(xvs.address, poolId, depositAmount, adapterParams);
+      const tx = await xvsVaultDest.requestWithdrawal(
+        xvs.address,
+        poolId,
+        depositAmount,
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
       await expect(tx).to.changeTokenBalance(xvs, deployer.address, initialStoreBalance);
       await expect(tx)
         .to.emit(xvsVaultDest, "VaultDebtUpdated")
@@ -779,11 +917,23 @@ describe("XVSVaultDest", async () => {
 
     it("fails if there's a pre-upgrade withdrawal request", async () => {
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
-      await xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, parseUnits("10", 18), adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
+      await xvsVaultDest.requestOldWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("10", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
 
       await expect(
-        xvsVaultDest.requestWithdrawal(xvs.address, poolId, parseUnits("10", 18), adapterParams),
+        xvsVaultDest.requestWithdrawal(
+          xvs.address,
+          poolId,
+          parseUnits("10", 18),
+          ethers.constants.AddressZero,
+          adapterParams,
+        ),
       ).to.be.revertedWith("execute pending withdrawal");
     });
   });
@@ -795,12 +945,18 @@ describe("XVSVaultDest", async () => {
     beforeEach(async () => {
       await xvs.connect(deployer).transfer(xvsStoreDest.address, initialStoreBalance);
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
       await mine(1000);
     });
 
     it("fails if there's a pre-upgrade withdrawal request", async () => {
-      await xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, parseUnits("50", 18), adapterParams);
+      await xvsVaultDest.requestOldWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("50", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
 
       await expect(xvsVaultDest.claim(deployer.address, xvs.address, poolId)).to.be.revertedWith(
         "execute pending withdrawal",
@@ -808,7 +964,13 @@ describe("XVSVaultDest", async () => {
     });
 
     it("succeeds if the pre-upgrade withdrawal request has been executed", async () => {
-      await xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, parseUnits("50", 18), adapterParams);
+      await xvsVaultDest.requestOldWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("50", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
       await mine(500);
       await xvsVaultDest.executeWithdrawal(xvs.address, poolId); // new reward starts accumulating
       await mine(43);
@@ -831,7 +993,9 @@ describe("XVSVaultDest", async () => {
       await mine(1000);
 
       // this should claim the pending rewards, so the next claim should be 0 XVS
-      await xvsVaultDest.connect(deployer).requestWithdrawal(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest
+        .connect(deployer)
+        .requestWithdrawal(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
       await mine(500);
 
       await expect(xvsVaultDest.claim(deployer.address, xvs.address, poolId)).to.changeTokenBalance(
@@ -873,7 +1037,13 @@ describe("XVSVaultDest", async () => {
     beforeEach(async () => {
       await xvs.connect(deployer).transfer(xvsStoreDest.address, initialStoreBalance);
       await xvs.approve(xvsVaultDest.address, initialDepositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, initialDepositAmount, adapterParams);
+      await xvsVaultDest.deposit(
+        xvs.address,
+        poolId,
+        initialDepositAmount,
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
     });
 
     it("sends the available funds to the user", async () => {
@@ -974,7 +1144,7 @@ describe("XVSVaultDest", async () => {
       const depositAmount = parseUnits("100", 18);
       await xvs.connect(deployer).transfer(xvsStoreDest.address, parseUnits("10000", 18));
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
       await mine(1000);
     });
 
@@ -984,29 +1154,59 @@ describe("XVSVaultDest", async () => {
     });
 
     it("returns zero if there is only a new-style pending withdrawal", async () => {
-      await xvsVaultDest.requestWithdrawal(xvs.address, poolId, parseUnits("50", 18), adapterParams);
+      await xvsVaultDest.requestWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("50", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
 
       const pendingAmount = await xvsVaultDest.pendingWithdrawalsBeforeUpgrade(xvs.address, poolId, deployer.address);
       expect(pendingAmount).to.equal(0);
     });
 
     it("returns the requested amount if there is an old-style pending withdrawal", async () => {
-      await xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, parseUnits("50", 18), adapterParams);
+      await xvsVaultDest.requestOldWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("50", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
 
       const pendingAmount = await xvsVaultDest.pendingWithdrawalsBeforeUpgrade(xvs.address, poolId, deployer.address);
       expect(pendingAmount).to.equal(parseUnits("50", 18));
     });
 
     it("returns the total requested amount if there are multiple old-style pending withdrawals", async () => {
-      await xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, parseUnits("50", 18), adapterParams);
-      await xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, parseUnits("49", 18), adapterParams);
+      await xvsVaultDest.requestOldWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("50", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
+      await xvsVaultDest.requestOldWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("49", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
 
       const pendingAmount = await xvsVaultDest.pendingWithdrawalsBeforeUpgrade(xvs.address, poolId, deployer.address);
       expect(pendingAmount).to.equal(parseUnits("99", 18));
     });
 
     it("returns zero if the pending withdrawal was executed", async () => {
-      await xvsVaultDest.requestOldWithdrawal(xvs.address, poolId, parseUnits("50", 18), adapterParams);
+      await xvsVaultDest.requestOldWithdrawal(
+        xvs.address,
+        poolId,
+        parseUnits("50", 18),
+        ethers.constants.AddressZero,
+        adapterParams,
+      );
       await mine(500);
       await xvsVaultDest.executeWithdrawal(xvs.address, poolId);
 
@@ -1021,7 +1221,7 @@ describe("XVSVaultDest", async () => {
     it("works correctly with multiple claim, deposit, and withdrawal requests", async () => {
       await xvs.connect(deployer).transfer(xvsStoreDest.address, parseUnits("10000", 18));
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
       await mine(1000);
 
       await expect(xvsVaultDest.claim(deployer.address, xvs.address, poolId)).to.changeTokenBalance(
@@ -1041,7 +1241,9 @@ describe("XVSVaultDest", async () => {
       await mine(400);
 
       await expect(
-        xvsVaultDest.connect(deployer).requestWithdrawal(xvs.address, poolId, depositAmount, adapterParams),
+        xvsVaultDest
+          .connect(deployer)
+          .requestWithdrawal(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams),
       ).to.changeTokenBalance(xvs, deployer.address, parseUnits("401", 18));
 
       await mine(500);
@@ -1053,7 +1255,7 @@ describe("XVSVaultDest", async () => {
       );
 
       await xvs.approve(xvsVaultDest.address, depositAmount);
-      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, adapterParams);
+      await xvsVaultDest.deposit(xvs.address, poolId, depositAmount, ethers.constants.AddressZero, adapterParams);
       await mine(700);
 
       await expect(xvsVaultDest.claim(deployer.address, xvs.address, poolId)).to.changeTokenBalance(

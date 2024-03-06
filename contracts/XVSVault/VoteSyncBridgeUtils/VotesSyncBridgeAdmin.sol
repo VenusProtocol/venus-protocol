@@ -4,17 +4,17 @@ pragma solidity 0.8.13;
 
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
-import { IVoteSyncReceiver } from "./interfaces/IVotesSyncReceiver.sol";
+import { IVoteSyncBridge } from "./interfaces/IVotesSyncBridge.sol";
 
 /**
  * @title VotesSyncReceiverAdmin
  * @author Venus
- * @notice The VotesSyncReceiverAdmin contract extends a parent contract AccessControlledV8 for access control, and it manages contract called voteSyncReceiver.
+ * @notice The VotesSyncReceiverAdmin contract extends a parent contract AccessControlledV8 for access control, and it manages contract called voteSyncBridge.
  * It maintains a registry of function signatures and names, allowing for dynamic function handling i.e checking of access control of interaction with only owner functions.
  */
-contract VotesSyncReceiverAdmin is AccessControlledV8 {
+contract VotesSyncBridgeAdmin is AccessControlledV8 {
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    IVoteSyncReceiver public immutable voteSyncReceiver;
+    IVoteSyncBridge public immutable voteSyncBridge;
     /**
      * @notice A mapping keeps track of function signature associated with function name string.
      */
@@ -26,9 +26,9 @@ contract VotesSyncReceiverAdmin is AccessControlledV8 {
     event FunctionRegistryChanged(string signature, bool active);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address voteSyncReceiver_) {
-        ensureNonzeroAddress(voteSyncReceiver_);
-        voteSyncReceiver = IVoteSyncReceiver(voteSyncReceiver_);
+    constructor(address voteSyncBridge_) {
+        ensureNonzeroAddress(voteSyncBridge_);
+        voteSyncBridge = IVoteSyncBridge(voteSyncBridge_);
         _disableInitializers();
     }
 
@@ -52,7 +52,7 @@ contract VotesSyncReceiverAdmin is AccessControlledV8 {
         _checkAccessAllowed("setTrustedRemoteAddress(uint16,bytes)");
         require(remoteChainId != 0, "ChainId must not be zero");
         ensureNonzeroAddress(bytesToAddress(remoteAddress));
-        voteSyncReceiver.setTrustedRemoteAddress(remoteChainId, remoteAddress);
+        voteSyncBridge.setTrustedRemoteAddress(remoteChainId, remoteAddress);
     }
 
     /**
@@ -64,7 +64,7 @@ contract VotesSyncReceiverAdmin is AccessControlledV8 {
     function isTrustedRemote(uint16 remoteChainId, bytes calldata remoteAddress) external returns (bool) {
         require(remoteChainId != 0, "ChainId must not be zero");
         ensureNonzeroAddress(bytesToAddress(remoteAddress));
-        return voteSyncReceiver.isTrustedRemote(remoteChainId, remoteAddress);
+        return voteSyncBridge.isTrustedRemote(remoteChainId, remoteAddress);
     }
 
     /**
@@ -77,7 +77,7 @@ contract VotesSyncReceiverAdmin is AccessControlledV8 {
         string memory fun = _getFunctionName(msg.sig);
         require(bytes(fun).length != 0, "Function not found");
         _checkAccessAllowed(fun);
-        (bool ok, bytes memory res) = address(voteSyncReceiver).call(data);
+        (bool ok, bytes memory res) = address(voteSyncBridge).call(data);
         require(ok, "call failed");
         return res;
     }
@@ -113,7 +113,7 @@ contract VotesSyncReceiverAdmin is AccessControlledV8 {
     function transferBridgeOwnership(address newOwner) external {
         _checkAccessAllowed("transferBridgeOwnership(address)");
         ensureNonzeroAddress(newOwner);
-        voteSyncReceiver.transferOwnership(newOwner);
+        voteSyncBridge.transferOwnership(newOwner);
     }
 
     /**

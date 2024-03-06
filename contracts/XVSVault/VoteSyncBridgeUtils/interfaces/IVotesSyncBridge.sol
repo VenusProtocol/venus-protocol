@@ -3,11 +3,11 @@
 pragma solidity 0.8.13;
 
 /**
- * @title IVoteSyncReceiver
+ * @title IVoteSyncBridge
  * @author Venus
- * @notice Interface implemented by `VotesSyncReceiver`
+ * @notice Interface implemented by `VotesSyncSender` and `VoteSyncReceiver`
  */
-interface IVoteSyncReceiver {
+interface IVoteSyncBridge {
     /**
      * @notice Transfers ownership of the contract to the specified address
      * @param addr The address to which ownership of the contract will be transferred
