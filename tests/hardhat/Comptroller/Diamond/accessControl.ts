@@ -39,8 +39,8 @@ describe("Comptroller", () => {
     });
 
     it("Sets ACM address in storage", async () => {
-      expect(await comptroller._setAccessControl(accessControl.address))
-        .to.emit(unitroller, "NewAccessControl")
+      await expect(comptroller._setAccessControl(accessControl.address))
+        .to.emit(comptroller, "NewAccessControl")
         .withArgs(constants.AddressZero, accessControl.address);
     });
 
