@@ -29,4 +29,5 @@ interface IRewardFacet {
         bool suppliers,
         bool collateral
     ) external;
+    function seizeVenus(address[] calldata holders, address recipient) external returns (uint256);
 }
