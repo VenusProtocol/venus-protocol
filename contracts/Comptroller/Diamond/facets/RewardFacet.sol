@@ -87,12 +87,14 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
             "Blacklisted"
         );
 
-        if (amount == 0 || amount > IBEP20(getXVSAddress()).balanceOf(address(this))) {
+        IBEP20 xvs_ = IBEP20(xvs);
+
+        if (amount == 0 || amount > xvs_.balanceOf(address(this))) {
             return amount;
         }
 
         if (shortfall == 0) {
-            IBEP20(getXVSAddress()).safeTransfer(user, amount);
+            xvs_.safeTransfer(user, amount);
             return 0;
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
@@ -102,12 +104,11 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt");
 
-        IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), 0);
-        IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), amount);
-        require(
-            VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint256(Error.NO_ERROR),
-            "mint behalf error"
-        );
+        address xvsVToken_ = xvsVToken;
+
+        xvs_.safeApprove(xvsVToken_, 0);
+        xvs_.safeApprove(xvsVToken_, amount);
+        require(VBep20Interface(xvsVToken_).mintBehalf(user, amount) == uint256(Error.NO_ERROR), "mint behalf error");
 
         // set venusAccrued[user] to 0
         return 0;
@@ -127,14 +128,6 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         uint256 amountLeft = grantXVSInternal(recipient, amount, 0, false);
         require(amountLeft == 0, "no xvs");
         emit VenusGranted(recipient, amount);
-    }
-
-    /**
-     * @notice Return the address of the XVS vToken
-     * @return The address of XVS vToken
-     */
-    function getXVSVTokenAddress() public pure returns (address) {
-        return 0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D;
     }
 
     /**
@@ -164,7 +157,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         }
 
         if (totalHoldings != 0) {
-            IBEP20(getXVSAddress()).safeTransfer(recipient, totalHoldings);
+            IBEP20(xvs).safeTransfer(recipient, totalHoldings);
             emit VenusGranted(recipient, totalHoldings);
         }
 
@@ -243,5 +236,13 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
                 }
             }
         }
+    }
+
+    /**
+     * @notice Returns the XVS vToken address
+     * @return The address of XVS vToken
+     */
+    function getXVSVTokenAddress() external view returns (address) {
+        return xvsVToken;
     }
 }
