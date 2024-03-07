@@ -42762,7 +42762,7 @@
       ]
     },
     "VotesSyncReceiver": {
-      "address": "0xAD2f2cC940C965f22148348188D117E295Ad89E2",
+      "address": "0xe54Cbf7D9647c9BAa907bA101b49262E6dcD9acF",
       "abi": [
         {
           "inputs": [
@@ -43374,22 +43374,22 @@
           "inputs": [
             {
               "internalType": "uint16",
-              "name": "_srcChainId",
+              "name": "srcChainId",
               "type": "uint16"
             },
             {
               "internalType": "bytes",
-              "name": "_srcAddress",
+              "name": "srcAddress",
               "type": "bytes"
             },
             {
               "internalType": "uint64",
-              "name": "_nonce",
+              "name": "nonce",
               "type": "uint64"
             },
             {
               "internalType": "bytes",
-              "name": "_payload",
+              "name": "payload",
               "type": "bytes"
             }
           ],
@@ -43577,7 +43577,7 @@
       ]
     },
     "VotesSyncReceiverAdmin": {
-      "address": "0x52228da6b90Ae6dB6ae6A3FEc484C1Ad4d0c78bd",
+      "address": "0xFA959a9aEFb1d840C084870dF8947DDa9DBB64fa",
       "abi": [
         {
           "anonymous": false,
@@ -44038,7 +44038,7 @@
       ]
     },
     "VotesSyncReceiverAdmin_Implementation": {
-      "address": "0xE1483eAaB1E8cf1dC3eA3f52F6241Ba6a88B801c",
+      "address": "0x7FbA7219048F7da7d06cfb1e098066b9b6D30AC5",
       "abi": [
         {
           "inputs": [
@@ -44370,7 +44370,7 @@
       ]
     },
     "VotesSyncReceiverAdmin_Proxy": {
-      "address": "0x52228da6b90Ae6dB6ae6A3FEc484C1Ad4d0c78bd",
+      "address": "0xFA959a9aEFb1d840C084870dF8947DDa9DBB64fa",
       "abi": [
         {
           "inputs": [
