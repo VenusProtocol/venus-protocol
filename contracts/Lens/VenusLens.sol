@@ -16,6 +16,9 @@ contract VenusLens is ExponentialNoError {
     /// @notice Blocks Per Day
     uint public constant BLOCKS_PER_DAY = 28800;
 
+    /// @notice Total actions available on VToken
+    uint public constant VTOKEN_ACTIONS = 8;
+
     struct VenusMarketState {
         uint224 index;
         uint32 block;
@@ -133,8 +136,8 @@ contract VenusLens is ExponentialNoError {
         uint venusBorrowSpeedPerBlock = comptroller.venusBorrowSpeeds(address(vToken));
 
         uint256 pausedActions;
-        // We use a hardcoded value of 8 actions here since solc v0.5 doesn't support type(enum).max
-        for (uint8 i = 0; i <= 8; ++i) {
+
+        for (uint8 i; i <= VTOKEN_ACTIONS; ++i) {
             uint256 paused = comptroller.actionPaused(address(vToken), ComptrollerTypes.Action(i)) ? 1 : 0;
             pausedActions |= paused << i;
         }
