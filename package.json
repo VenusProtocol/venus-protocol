@@ -30,6 +30,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@layerzerolabs/solidity-examples": "^1.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",

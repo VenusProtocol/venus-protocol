@@ -1,5 +1,7 @@
 import BigNumber from "bignumber.js";
 
+import { SUPPORTED_NETWORKS } from "./constants";
+
 BigNumber.config({
   FORMAT: {
     decimalSeparator: ".",
@@ -19,4 +21,12 @@ export const convertToUnit = (amount: string | number, decimals: number) => {
 
 export const convertToBigInt = (amount: string | number, decimals: number) => {
   return BigInt(convertToUnit(amount, decimals));
+};
+export const getSourceChainId = async (network: SUPPORTED_NETWORKS) => {
+  if (network === "sepolia" || network === "opbnbtestnet") {
+    return 10102;
+  } else if (network === "ethereum" || network === "opbnbmainnet") {
+    return 102;
+  }
+  return 1;
 };

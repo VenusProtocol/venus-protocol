@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.13;
+import { LZEndpointMock } from "@layerzerolabs/solidity-examples/contracts/lzApp/mocks/LZEndpointMock.sol";
 
 contract AccessControlManagerMock {
     address public owner;
