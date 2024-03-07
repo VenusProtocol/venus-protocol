@@ -4,7 +4,7 @@ pragma solidity 0.5.16;
 
 import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
 import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV15Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { ComptrollerV16Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
@@ -14,7 +14,7 @@ import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
  * @author Venus
  * @notice This facet contract contains functions related to access and checks
  */
-contract FacetBase is ComptrollerV15Storage, ExponentialNoError, ComptrollerErrorReporter {
+contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErrorReporter {
     using SafeBEP20 for IBEP20;
 
     /// @notice The initial Venus index for a market
@@ -98,7 +98,9 @@ contract FacetBase is ComptrollerV15Storage, ExponentialNoError, ComptrollerErro
             return;
         }
 
-        uint256 xvsBalance = IBEP20(getXVSAddress()).balanceOf(address(this));
+        IBEP20 xvs_ = IBEP20(xvs);
+
+        uint256 xvsBalance = xvs_.balanceOf(address(this));
         if (xvsBalance == 0) {
             return;
         }
@@ -106,10 +108,10 @@ contract FacetBase is ComptrollerV15Storage, ExponentialNoError, ComptrollerErro
         uint256 actualAmount;
         uint256 deltaBlocks = sub_(getBlockNumber(), releaseStartBlock);
         // releaseAmount = venusVAIVaultRate * deltaBlocks
-        uint256 _releaseAmount = mul_(venusVAIVaultRate, deltaBlocks);
+        uint256 releaseAmount_ = mul_(venusVAIVaultRate, deltaBlocks);
 
-        if (xvsBalance >= _releaseAmount) {
-            actualAmount = _releaseAmount;
+        if (xvsBalance >= releaseAmount_) {
+            actualAmount = releaseAmount_;
         } else {
             actualAmount = xvsBalance;
         }
@@ -120,18 +122,10 @@ contract FacetBase is ComptrollerV15Storage, ExponentialNoError, ComptrollerErro
 
         releaseStartBlock = getBlockNumber();
 
-        IBEP20(getXVSAddress()).safeTransfer(vaiVaultAddress, actualAmount);
+        xvs_.safeTransfer(vaiVaultAddress, actualAmount);
         emit DistributedVAIVaultVenus(actualAmount);
 
         IVAIVault(vaiVaultAddress).updatePendingRewards();
-    }
-
-    /**
-     * @notice Return the address of the XVS token
-     * @return The address of XVS
-     */
-    function getXVSAddress() public pure returns (address) {
-        return 0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63;
     }
 
     /**
@@ -220,5 +214,13 @@ contract FacetBase is ComptrollerV15Storage, ExponentialNoError, ComptrollerErro
             return uint256(Error.INSUFFICIENT_LIQUIDITY);
         }
         return uint256(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Returns the XVS address
+     * @return The address of XVS token
+     */
+    function getXVSAddress() external view returns (address) {
+        return xvs;
     }
 }
