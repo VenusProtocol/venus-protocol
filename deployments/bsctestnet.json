@@ -40840,12 +40840,27 @@
       ]
     },
     "VenusLens": {
-      "address": "0xA78B5575F0ad134302cF8f37a9c3cE4428c05233",
+      "address": "0x068b437aCD9F4668f77Aa24e2B715a41D4a9a599",
       "abi": [
         {
           "constant": true,
           "inputs": [],
           "name": "BLOCKS_PER_DAY",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "VTOKEN_ACTIONS",
           "outputs": [
             {
               "internalType": "uint256",
