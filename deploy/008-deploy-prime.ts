@@ -109,13 +109,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   const prime = await ethers.getContract("Prime");
-  await prime.initializeV2(ADDRESSES[networkName].poolRegistry);
+  // await prime.initializeV2(ADDRESSES[networkName].poolRegistry);
 
   console.log("Transferring Prime ownership to Timelock");
-  await prime.transferOwnership(ADDRESSES[networkName].normalVipTimelock);
+  await prime.transferOwnership(normalVipTimelockAddress);
 
   console.log("Transferring PLP ownership to Timelock");
-  await plp.transferOwnership(ADDRESSES[networkName].normalVipTimelock);
+  await plp.transferOwnership(normalVipTimelockAddress);
 };
 
 func.tags = ["Prime"];
