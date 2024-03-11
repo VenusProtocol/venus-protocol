@@ -16,9 +16,9 @@ interface IRewardFacet {
 
     function _grantXVS(address recipient, uint256 amount) external;
 
-    function getXVSAddress() external pure returns (address);
+    function getXVSAddress() external view returns (address);
 
-    function getXVSVTokenAddress() external pure returns (address);
+    function getXVSVTokenAddress() external view returns (address);
 
     function actionPaused(address market, ComptrollerTypes.Action action) external view returns (bool);
 
@@ -29,4 +29,5 @@ interface IRewardFacet {
         bool suppliers,
         bool collateral
     ) external;
+    function seizeVenus(address[] calldata holders, address recipient) external returns (uint256);
 }

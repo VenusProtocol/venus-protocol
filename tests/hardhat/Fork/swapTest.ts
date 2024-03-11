@@ -332,8 +332,8 @@ if (FORK_MAINNET) {
           const deadline = await getValidDeadline();
           await swapRouter
             .connect(busdUser)
-            .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline),
-            await expect(vUSDT.connect(busdUser).borrow(BORROW_AMOUNT)).to.emit(vUSDT, "Borrow");
+            .swapAndSupply(vBUSD.address, SWAP_AMOUNT, MIN_AMOUNT_OUT, [USDT.address, BUSD.address], deadline);
+          await expect(vUSDT.connect(busdUser).borrow(BORROW_AMOUNT)).to.emit(vUSDT, "Borrow");
           let borrowBalance;
           [, , borrowBalance] = await vUSDT.getAccountSnapshot(busdUser.address);
           expect(borrowBalance).equal(BORROW_AMOUNT);

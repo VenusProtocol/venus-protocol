@@ -1,3 +1,76 @@
+## [7.4.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.5...v7.4.0-dev.6) (2024-03-07)
+
+
+### Features
+
+* add functionality of redeem and borrow behalf in tokenRedeemer ([7fbded6](https://github.com/VenusProtocol/venus-protocol/commit/7fbded6e8a6ffadae116cb5e5366727132f1e21f))
+* deployments and script for tokenRedeemer ([b1b21e2](https://github.com/VenusProtocol/venus-protocol/commit/b1b21e290c2dd4d4fd5e4b06595a1d70a99e8798))
+* updating deployment files ([a76b85f](https://github.com/VenusProtocol/venus-protocol/commit/a76b85fbdc3cd00aa6c515fcf351040197010233))
+
+## [7.4.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.4...v7.4.0-dev.5) (2024-03-06)
+
+
+### Features
+
+* ven-2250 reduce reserves with available cash ([53e37eb](https://github.com/VenusProtocol/venus-protocol/commit/53e37eb614ad9e23a74f1d159f28c5e311175561))
+
+
+### Bug Fixes
+
+* VTT-01 missing return statement setReduceReservesBlockDelta() and setProtocolShareReserve() ([9cfeba7](https://github.com/VenusProtocol/venus-protocol/commit/9cfeba718e68aa7294c9895c51037f9e9b81e450))
+
+## [7.4.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.3...v7.4.0-dev.4) (2024-03-06)
+
+
+### Features
+
+* updating deployment files ([b344f3d](https://github.com/VenusProtocol/venus-protocol/commit/b344f3db895302c499cabba33dcd9541548d06b5))
+
+
+### Bug Fixes
+
+* added fork tests ([32d6dcc](https://github.com/VenusProtocol/venus-protocol/commit/32d6dcceeb33be1e1e8becb865e33e9178ad0d85))
+* added index to events ([155cb07](https://github.com/VenusProtocol/venus-protocol/commit/155cb078f8152c1149be2ec7e81f643ba2a4b493))
+* create enum for diamond actions ([150579c](https://github.com/VenusProtocol/venus-protocol/commit/150579cc17ccedfa95ea5d8071b0a34012fdc1dc))
+* fixed case ([0690273](https://github.com/VenusProtocol/venus-protocol/commit/0690273f77c2793051b281f3ad590e232fcdb870))
+* fixed test ([96574ea](https://github.com/VenusProtocol/venus-protocol/commit/96574ea27041ce9b3935ec03f7b8fce540475ec4))
+* fixed XVS address ([48ea441](https://github.com/VenusProtocol/venus-protocol/commit/48ea44104a87cf7473aa067d32e91d1bcc475454))
+* interface functions for backward compatibility ([8c3378a](https://github.com/VenusProtocol/venus-protocol/commit/8c3378a4011298226b3a9c36e2679df2b7fb61fc))
+* rebased ([ccddfde](https://github.com/VenusProtocol/venus-protocol/commit/ccddfde3d08c9690c2c96ddba9d35ee97200c1d0))
+* resolved conflict ([6977ee3](https://github.com/VenusProtocol/venus-protocol/commit/6977ee3a3b459674bf53383e2d4bc303b3c9407d))
+* set xvs and xvsVToken address ([ebee280](https://github.com/VenusProtocol/venus-protocol/commit/ebee28072f88ffe77c52dc53dcc83cb97790ed61))
+* VPH-01 typos and inconsistencies ([78db5f8](https://github.com/VenusProtocol/venus-protocol/commit/78db5f88ba0e9a4c09286bbdea8687ac958e9813))
+
+## [7.4.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.2...v7.4.0-dev.3) (2024-03-06)
+
+
+### Features
+
+* add functionality for seizing of xvs tokens ([f0e09b0](https://github.com/VenusProtocol/venus-protocol/commit/f0e09b0382ad06de49e27cd93377b5885862e76d))
+
+
+### Bug Fixes
+
+* revert condition for transferring of XVS in seizeVenus and add events ([a63c9c9](https://github.com/VenusProtocol/venus-protocol/commit/a63c9c9a72474a5f8aa1f4f79b1bc13514e830cf))
+* RFD-01 logic can be skipped if holder has zero venus accrued ([f0996f1](https://github.com/VenusProtocol/venus-protocol/commit/f0996f1e1f2c016e587ba14eb425f563543ebf00))
+* RFD-02 unnecessary variable update ([0c7e1f8](https://github.com/VenusProtocol/venus-protocol/commit/0c7e1f8ea0e3453c530dbcafa5be5849d62748ba))
+* RFD-04 missing or incomplete natspec ([7d2d183](https://github.com/VenusProtocol/venus-protocol/commit/7d2d183ab08543f4f06c33cb068232a58db35f02))
+* VPH-01 typos and inconsistencies ([5032671](https://github.com/VenusProtocol/venus-protocol/commit/5032671039ea5ec95fc6dd63dbcec4d50b4212d3))
+
+## [7.4.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.1...v7.4.0-dev.2) (2024-03-02)
+
+
+### Features
+
+* updating deployment files ([980c304](https://github.com/VenusProtocol/venus-protocol/commit/980c3040594dd6daee075c89f4941a19042655c1))
+
+## [7.4.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0...v7.4.0-dev.1) (2024-02-23)
+
+
+### Features
+
+* add mising nat spec for public and external functions ([9630cf6](https://github.com/VenusProtocol/venus-protocol/commit/9630cf64b35441adb5a05cba7ce4fe7cb8c4a61d))
+
 ## [7.3.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.2.0...v7.3.0) (2024-02-16)
 
 
