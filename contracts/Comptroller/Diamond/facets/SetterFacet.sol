@@ -597,6 +597,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
         ensureAdmin();
         ensureNonzeroAddress(xvsVToken_);
 
+        address underlying = VToken(xvsVToken_).underlying();
+        require(underlying == xvs, "invalid xvs vtoken address");
+
         emit NewXVSVToken(xvsVToken, xvsVToken_);
         xvsVToken = xvsVToken_;
     }
