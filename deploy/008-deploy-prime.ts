@@ -37,10 +37,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: 2_628_000, // 12 sec per block
     bscmainnet: 10_512_000,
     ethereum: 2_628_000,
-    opbnbtestnet: 0,
+    opbnbtestnet: 31_536_000, // 1 second per block
   };
 
-  const L2s = ["opbnbtestnet"];
+  const L2s:string[] = [];
 
   const networkName: string = network.name;
   const maximumXVSCap = ethers.utils.parseEther("100000");

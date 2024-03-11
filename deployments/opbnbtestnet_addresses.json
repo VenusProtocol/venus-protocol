@@ -2,13 +2,6 @@
   "name": "opbnbtestnet",
   "chainId": "5611",
   "addresses": {
-    "DefaultProxyAdmin": "0x6022165344bBD1DDF1E1F10F4736FD9fb58D5B71",
-    "Prime": "0x7831156A181288ce76B5952624Df6C842F4Cc0c1",
-    "PrimeLiquidityProvider": "0xF68E8925d45fb6679aE8caF7f859C76BdD964325",
-    "PrimeLiquidityProvider_Implementation": "0x4fCbfE445396f31005b3Fd2F6DE2A986d6E2dCB5",
-    "PrimeLiquidityProvider_Proxy": "0xF68E8925d45fb6679aE8caF7f859C76BdD964325",
-    "Prime_Implementation": "0x27A8ca2aFa10B9Bc1E57FC4Ca610d9020Aab3739",
-    "Prime_Proxy": "0x7831156A181288ce76B5952624Df6C842F4Cc0c1",
     "VTreasuryV8": "0x3370915301E8a6A6baAe6f461af703e2498409F3",
     "XVSStore": "0x06473fB3f7bF11e2E8EfEcC95aC55ABEFCb2e0A0",
     "XVSVault": "0x9cB50e0F2709A829e4B6DA7C0A317a48a029E827",
