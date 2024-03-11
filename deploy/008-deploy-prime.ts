@@ -2,8 +2,6 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import ADDRESSES from "../helpers/address";
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
   const { deploy } = deployments;
@@ -50,26 +48,31 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const loopsLimit = 20;
   const isTimeBased = L2s.includes(networkName) ? true : false;
 
+  const corePoolAddress = (await deployments.get("Comptroller")).address;
+  const wrappedNativeToken = (await deployments.get("WBNB")).address;
+  const nativeMarket = (await deployments.get("vBNB")).address;
+  const acmAddress = (await deployments.get("AccessControlManager")).address;
+  const xvsVaultAddress = (await deployments.get("XVSVault")).address;
+  const xvsAddress = (await deployments.get("XVS")).address;
+  const resilientOracleAddress = (await deployments.get("ResilientOracle")).address;
+  const normalVipTimelockAddress = (await deployments.get("NormalTimelock")).address;
+
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
     log: true,
     deterministicDeployment: false,
     args: [isTimeBased, blocksPerYear[networkName]],
     proxy: {
-      owner: ADDRESSES[networkName].normalVipTimelock,
+      owner: normalVipTimelockAddress,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [ADDRESSES[networkName].acm, [], [], [], loopsLimit],
+        args: [acmAddress, [], [], [], loopsLimit],
       },
     },
   });
 
   const plp = await ethers.getContract("PrimeLiquidityProvider");
-
-  const corePoolAddress = ADDRESSES[networkName].unitroller;
-  const wrappedNativeToken = ADDRESSES[networkName].wbnb;
-  const nativeMarket = ADDRESSES[networkName].vbnb;
 
   await deploy("Prime", {
     from: deployer,
@@ -85,20 +88,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       isTimeBased,
     ],
     proxy: {
-      owner: ADDRESSES[networkName].normalVipTimelock,
+      owner: normalVipTimelockAddress,
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
         args: [
-          ADDRESSES[networkName].xvsVault,
-          ADDRESSES[networkName].xvs,
+          xvsVaultAddress,
+          xvsAddress,
           xVSVaultPoolId[networkName],
           xvsVaultAlphaNumerator,
           xvsVaultAlphaDenominator,
-          ADDRESSES[networkName].acm,
+          acmAddress,
           plp.address,
           corePoolAddress ? corePoolAddress : ZERO_ADDRESS,
-          ADDRESSES[networkName].oracle,
+          resilientOracleAddress,
           loopsLimit,
         ],
       },
