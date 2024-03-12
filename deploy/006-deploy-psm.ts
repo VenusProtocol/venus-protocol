@@ -12,7 +12,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Ensure oracles are deployed
   await deployOracle(hre);
 
-  const usdtAddress = (await deployments.get("USDT")).address;
+  const usdtAddress = (
+    await deploy("USDT", {
+      contract: "MockToken",
+      from: deployer,
+      args: ["Tether", "USDT", 18],
+      log: true,
+      autoMine: true,
+    })
+  ).address;
   const acmAddress = (await deployments.get("AccessControlManager")).address;
   const treasuryAddress = (await deployments.get("VTreasuryV8")).address;
   const oracleAddress = (await deployments.get("ResilientOracle")).address;

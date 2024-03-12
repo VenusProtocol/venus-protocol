@@ -13,6 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const unitrollerAddresses = (await deployments.get("Unitroller")).address;
   const wBNBAddress = (await deployments.get("WBNB")).address;
+
   const vbnbAddress = (await deployments.get("vBNB")).address;
   // Pancake Factory doesn't exist on hardhat so we are using the testnet address
   const pancakeFactoryAddress =

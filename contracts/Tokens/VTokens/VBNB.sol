@@ -92,7 +92,7 @@ contract VBNB is VToken {
     function borrow(uint borrowAmount) external returns (uint) {
         return borrowInternal(msg.sender, msg.sender, borrowAmount);
     }
- 
+
     /**
      * @notice Sender repays their own borrow
      * @dev Reverts upon any failure

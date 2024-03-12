@@ -46,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const loopsLimit = 20;
   const isTimeBased = false; // revise this value when deploying on L2s
 
-  const corePoolAddress = (await deployments.get("Comptroller")).address;
+  const corePoolAddress = (await deployments.get("Unitroller")).address;
   const wrappedNativeToken = (await deployments.get("WBNB")).address;
   const nativeMarket = (await deployments.get("vBNB")).address;
   const acmAddress = (await deployments.get("AccessControlManager")).address;
@@ -107,8 +107,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   const prime = await ethers.getContract("Prime");
-  // @todo move to IL repo
-  // await prime.initializeV2(ADDRESSES[networkName].poolRegistry);
 
   console.log("Transferring Prime ownership to Timelock");
   await prime.transferOwnership(normalVipTimelockAddress);
