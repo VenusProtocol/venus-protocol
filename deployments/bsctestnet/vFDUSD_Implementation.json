@@ -1,59 +1,8 @@
 {
-  "address": "0xC4eF4229FEc74Ccfe17B2bdeF7715fAC740BA0ba",
+  "address": "0xdb1869ca9e008e102350f2e0c356500503a4d043",
   "abi": [
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "underlying_",
-          "type": "address"
-        },
-        {
-          "internalType": "contract ComptrollerInterface",
-          "name": "comptroller_",
-          "type": "address"
-        },
-        {
-          "internalType": "contract InterestRateModel",
-          "name": "interestRateModel_",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "initialExchangeRateMantissa_",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string",
-          "name": "name_",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "symbol_",
-          "type": "string"
-        },
-        {
-          "internalType": "uint8",
-          "name": "decimals_",
-          "type": "uint8"
-        },
-        {
-          "internalType": "address payable",
-          "name": "admin_",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "implementation_",
-          "type": "address"
-        },
-        {
-          "internalType": "bytes",
-          "name": "becomeImplementationData",
-          "type": "bytes"
-        }
-      ],
+      "inputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
       "type": "constructor"
@@ -337,25 +286,6 @@
       "inputs": [
         {
           "indexed": false,
-          "internalType": "address",
-          "name": "oldImplementation",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "newImplementation",
-          "type": "address"
-        }
-      ],
-      "name": "NewImplementation",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
           "internalType": "contract InterestRateModel",
           "name": "oldInterestRateModel",
           "type": "address"
@@ -615,11 +545,6 @@
       "type": "event"
     },
     {
-      "payable": true,
-      "stateMutability": "payable",
-      "type": "fallback"
-    },
-    {
       "constant": false,
       "inputs": [],
       "name": "_acceptAdmin",
@@ -659,8 +584,23 @@
       "constant": false,
       "inputs": [
         {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "_becomeImplementation",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
           "internalType": "uint256",
-          "name": "reduceAmount",
+          "name": "reduceAmount_",
           "type": "uint256"
         }
       ],
@@ -672,6 +612,15 @@
           "type": "uint256"
         }
       ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "_resignImplementation",
+      "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
       "type": "function"
@@ -701,33 +650,8 @@
       "constant": false,
       "inputs": [
         {
-          "internalType": "address",
-          "name": "implementation_",
-          "type": "address"
-        },
-        {
-          "internalType": "bool",
-          "name": "allowResign",
-          "type": "bool"
-        },
-        {
-          "internalType": "bytes",
-          "name": "becomeImplementationData",
-          "type": "bytes"
-        }
-      ],
-      "name": "_setImplementation",
-      "outputs": [],
-      "payable": false,
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "constant": false,
-      "inputs": [
-        {
           "internalType": "contract InterestRateModel",
-          "name": "newInterestRateModel",
+          "name": "newInterestRateModel_",
           "type": "address"
         }
       ],
@@ -769,7 +693,7 @@
       "inputs": [
         {
           "internalType": "uint256",
-          "name": "newReserveFactorMantissa",
+          "name": "newReserveFactorMantissa_",
           "type": "uint256"
         }
       ],
@@ -1003,6 +927,32 @@
       "type": "function"
     },
     {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "borrower",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "borrowAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "borrowBehalf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "constant": true,
       "inputs": [],
       "name": "borrowIndex",
@@ -1056,48 +1006,6 @@
           "internalType": "uint8",
           "name": "",
           "type": "uint8"
-        }
-      ],
-      "payable": false,
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "constant": false,
-      "inputs": [
-        {
-          "internalType": "bytes",
-          "name": "data",
-          "type": "bytes"
-        }
-      ],
-      "name": "delegateToImplementation",
-      "outputs": [
-        {
-          "internalType": "bytes",
-          "name": "",
-          "type": "bytes"
-        }
-      ],
-      "payable": false,
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "constant": true,
-      "inputs": [
-        {
-          "internalType": "bytes",
-          "name": "data",
-          "type": "bytes"
-        }
-      ],
-      "name": "delegateToViewImplementation",
-      "outputs": [
-        {
-          "internalType": "bytes",
-          "name": "",
-          "type": "bytes"
         }
       ],
       "payable": false,
@@ -1198,6 +1106,91 @@
       ],
       "payable": false,
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "underlying_",
+          "type": "address"
+        },
+        {
+          "internalType": "contract ComptrollerInterface",
+          "name": "comptroller_",
+          "type": "address"
+        },
+        {
+          "internalType": "contract InterestRateModel",
+          "name": "interestRateModel_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "initialExchangeRateMantissa_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "name_",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "symbol_",
+          "type": "string"
+        },
+        {
+          "internalType": "uint8",
+          "name": "decimals_",
+          "type": "uint8"
+        }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "contract ComptrollerInterface",
+          "name": "comptroller_",
+          "type": "address"
+        },
+        {
+          "internalType": "contract InterestRateModel",
+          "name": "interestRateModel_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "initialExchangeRateMantissa_",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "name_",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "symbol_",
+          "type": "string"
+        },
+        {
+          "internalType": "uint8",
+          "name": "decimals_",
+          "type": "uint8"
+        }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -1378,12 +1371,64 @@
       "constant": false,
       "inputs": [
         {
+          "internalType": "address",
+          "name": "redeemer",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "redeemTokens",
+          "type": "uint256"
+        }
+      ],
+      "name": "redeemBehalf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
           "internalType": "uint256",
           "name": "redeemAmount",
           "type": "uint256"
         }
       ],
       "name": "redeemUnderlying",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "redeemer",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "redeemAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "redeemUnderlyingBehalf",
       "outputs": [
         {
           "internalType": "uint256",
@@ -1507,6 +1552,69 @@
         }
       ],
       "name": "seize",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newAccessControlManagerAddress",
+          "type": "address"
+        }
+      ],
+      "name": "setAccessControlManager",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address payable",
+          "name": "protcolShareReserve_",
+          "type": "address"
+        }
+      ],
+      "name": "setProtocolShareReserve",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newReduceReservesBlockDelta_",
+          "type": "uint256"
+        }
+      ],
+      "name": "setReduceReservesBlockDelta",
       "outputs": [
         {
           "internalType": "uint256",
