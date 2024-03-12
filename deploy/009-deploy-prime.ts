@@ -50,7 +50,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const wrappedNativeToken = (await deployments.get("WBNB")).address;
   const nativeMarket = (await deployments.get("vBNB")).address;
   const acmAddress = (await deployments.get("AccessControlManager")).address;
-  const xvsVaultAddress = (await deployments.get("XVSVault")).address;
+  const xvsVaultAddress = (await deployments.get("XVSVaultProxy")).address;
   const xvsAddress = (await deployments.get("XVS")).address;
   const resilientOracleAddress = (await deployments.get("ResilientOracle")).address;
   const normalVipTimelockAddress = (await deployments.get("NormalTimelock")).address;
@@ -105,14 +105,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       },
     },
   });
-
-  const prime = await ethers.getContract("Prime");
-
-  console.log("Transferring Prime ownership to Timelock");
-  await prime.transferOwnership(normalVipTimelockAddress);
-
-  console.log("Transferring PLP ownership to Timelock");
-  await plp.transferOwnership(normalVipTimelockAddress);
 };
 
 func.tags = ["Prime"];

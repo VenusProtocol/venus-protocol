@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ? Mainnet.contracts.pancakeFactory.address
       : Testnet.contracts.pancakeFactory.address;
 
-  await deploy("SwapRouter", {
+  await deploy("SwapRouterCorePool", {
     contract: "SwapRouter",
     from: deployer,
     args: [wBNBAddress, pancakeFactoryAddress, unitrollerAddresses, vbnbAddress],

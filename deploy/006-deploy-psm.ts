@@ -22,7 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     })
   ).address;
   const acmAddress = (await deployments.get("AccessControlManager")).address;
-  const treasuryAddress = (await deployments.get("VTreasuryV8")).address;
+  const treasuryAddress = (await deployments.get("VTreasury")).address;
   const oracleAddress = (await deployments.get("ResilientOracle")).address;
 
   let normalVipTimelockAddress;

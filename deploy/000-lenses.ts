@@ -28,12 +28,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  await deploy("XVSStakingLens", {
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
+  // await deploy("XVSStakingLens", {
+  //   from: deployer,
+  //   args: [],
+  //   log: true,
+  //   autoMine: true,
+  // });
 };
 
 func.tags = ["Lens"];
