@@ -187,6 +187,12 @@ const config: HardhatUserConfig = {
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
+    kavamainnet: {
+      url: process.env.ARCHIVE_NODE_kavamainnet || "https://evm.data.kava.io",
+      chainId: 2222,
+      live: true,
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+    },
   },
   etherscan: {
     apiKey: {
@@ -197,6 +203,7 @@ const config: HardhatUserConfig = {
       opbnbtestnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       opbnbmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       kavatestnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      kavamainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     },
     customChains: [
       {
@@ -253,6 +260,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://testnet.kavascan.com/api",
           browserURL: "https://testnet.kavascan.com",
+        },
+      },
+      {
+        network: "kavamainnet",
+        chainId: 2222,
+        urls: {
+          apiURL: "https://kavascan.com/api",
+          browserURL: "https://kavascan.com",
         },
       },
     ],
