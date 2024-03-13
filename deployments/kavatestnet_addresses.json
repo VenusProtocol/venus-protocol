@@ -1,0 +1,7 @@
+{
+  "name": "kavatestnet",
+  "chainId": "2221",
+  "addresses": {
+    "VTreasuryV8": "0x87123996F4287A10a8627C86E5786E4Cf1962849"
+  }
+}
