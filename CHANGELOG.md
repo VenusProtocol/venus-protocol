@@ -1,3 +1,15 @@
+## [7.4.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.6...v7.4.0-dev.7) (2024-03-13)
+
+
+### Features
+
+* add actions paused bitmask to VenusLens ([d0f8edf](https://github.com/VenusProtocol/venus-protocol/commit/d0f8edfa182043c8851e21805fa03ad7edf44c2b))
+* updating deployment files ([ccdcbc1](https://github.com/VenusProtocol/venus-protocol/commit/ccdcbc1dfefd745f67d35b4dd651a655277ccf05))
+* updating deployment files ([17076eb](https://github.com/VenusProtocol/venus-protocol/commit/17076eb32fc94b251dcf5c330c9bafe6f6b5bc6c))
+* updating deployment files ([636d9f2](https://github.com/VenusProtocol/venus-protocol/commit/636d9f239b69812ecfa92806f92019baff987f99))
+* venuslens redeployment to bscmainnet ([e9a4f80](https://github.com/VenusProtocol/venus-protocol/commit/e9a4f80e5a56f6d724edc81109bd24a1a32f6f50))
+* venuslens redployment to bsctestnet ([4918ee1](https://github.com/VenusProtocol/venus-protocol/commit/4918ee1239b8930e3b3bc0ad21a3a8e14a0336a6))
+
 ## [7.4.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.5...v7.4.0-dev.6) (2024-03-07)
 
 
