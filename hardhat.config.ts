@@ -48,6 +48,7 @@ extendConfig((config: HardhatConfig) => {
           "node_modules/@venusprotocol/governance-contracts/deployments/opbnbmainnet",
           "node_modules/@venusprotocol/token-bridge/deployments/opbnbmainnet",
         ],
+        opbnbtestnet: ["node_modules/@venusprotocol/oracle/deployments/opbnbtestnet"],
       },
     };
   }
@@ -271,7 +272,7 @@ const config: HardhatUserConfig = {
       },
       {
         artifacts: "node_modules/@venusprotocol/protocol-reserve/artifacts",
-      }
+      },
     ],
     deployments: {},
   },
