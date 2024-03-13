@@ -6,22 +6,21 @@ interface AdminAccounts {
   [key: string]: string;
 }
 
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const getTimelock = async() => {
+  const getTimelock = async () => {
     switch (hre.network.name) {
-      case ('bsctestnet'):
-      case ('bscmainnet'): {
-        const timelock = await deployments.get('NormalTimelock')
-        return timelock.address
+      case "bsctestnet":
+      case "bscmainnet": {
+        const timelock = await deployments.get("NormalTimelock");
+        return timelock.address;
       }
     }
-    return '';
-  }
+    return "";
+  };
 
   const acmAdminAccount: AdminAccounts = {
     sepolia: "0x94fa6078b6b8a26f0b6edffbe6501b22a10470fb", // SEPOLIA MULTISIG
@@ -46,7 +45,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const VTreasuryV8 = await ethers.getContractAt("VTreasury", treasuryInstance.address);
 
-  if ((await VTreasuryV8.owner()) != adminAccount) {
+  if ((await VTreasuryV8.owner()).toLowerCase() != adminAccount.toLowerCase()) {
     console.log("Transferring owner to venus admin account");
     const tx = await VTreasuryV8.connect(deployerSigner).transferOwnership(adminAccount);
     tx.wait();

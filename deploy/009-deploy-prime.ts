@@ -2,6 +2,8 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
   const { deploy } = deployments;
@@ -46,7 +48,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const loopsLimit = 20;
   const isTimeBased = false; // revise this value when deploying on L2s
 
-  const corePoolAddress = (await deployments.get("Unitroller")).address;
+  const corePoolAddress = await getContractAddressOrNullAddress(deployments, "Unitroller");
   const wrappedNativeToken = (await deployments.get("WBNB")).address;
   const nativeMarket = (await deployments.get("vBNB")).address;
   const acmAddress = (await deployments.get("AccessControlManager")).address;
@@ -98,7 +100,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           xvsVaultAlphaDenominator,
           normalVipTimelockAddress,
           plp.address,
-          corePoolAddress ? corePoolAddress : ZERO_ADDRESS,
+          corePoolAddress,
           resilientOracleAddress,
           loopsLimit,
         ],
@@ -108,5 +110,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["Prime"];
+func.skip = async hre => hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet";
 
 export default func;

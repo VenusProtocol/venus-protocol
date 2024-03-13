@@ -46,5 +46,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = "vbnbadmin_deploy"; // id required to prevent re-execution
 func.tags = ["VBNBAdmin"];
+func.skip = async hre => hre.network.name === "sepolia";
 
 export default func;

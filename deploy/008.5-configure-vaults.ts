@@ -6,8 +6,6 @@ const func: DeployFunction = async function () {
   const xvsStore = await ethers.getContract("XVSStore");
   const xvsVaultProxy = await ethers.getContract("XVSVaultProxy");
 
-
-
   // Become Implementation of XVSVaultProxy
   await xvsVaultProxy._setPendingImplementation(xvsVault.address);
   await xvsVault._become(xvsVaultProxy.address);

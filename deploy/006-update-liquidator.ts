@@ -36,4 +36,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["liquidator-upgrade"];
+func.skip = async hre => hre.network.name === "sepolia";
+
 export default func;

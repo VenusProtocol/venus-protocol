@@ -5825,7 +5825,7 @@
         }
       ]
     },
-    "VTreasuryV8": {
+    "VTreasury": {
       "address": "0x4116CA92960dF77756aAAc3aFd91361dB657fbF8",
       "abi": [
         {
@@ -6257,7 +6257,7 @@
         }
       ]
     },
-    "XVSVault": {
+    "XVSVaultProxy_Implementation": {
       "address": "0x4129dF6BB93E9ABb9CC40816E63Be77c3042Ef27",
       "abi": [
         {
