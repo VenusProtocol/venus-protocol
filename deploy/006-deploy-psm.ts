@@ -82,6 +82,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = "psm_initial_deploy"; // id required to prevent re-execution
 func.tags = ["PSM"];
-func.skip = async hre => hre.network.name === "sepolia";
+func.skip = async hre => hre.network.name === "sepolia" || hre.network.name === "opbnbtestnet";
 
 export default func;
