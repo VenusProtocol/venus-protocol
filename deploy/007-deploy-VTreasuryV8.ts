@@ -10,6 +10,7 @@ const acmAdminAccount: AdminAccounts = {
   ethereum: "0x285960C5B22fD66A736C7136967A3eB15e93CC67", // ETHEREUM MULTISIG
   opbnbtestnet: "0xb15f6EfEbC276A3b9805df81b5FB3D50C2A62BDf", // OPBNBTESTNET MULTISIG
   opbnbmainnet: "0xC46796a21a3A9FAB6546aF3434F2eBfFd0604207", // OPBNBMAINNET MULTISIG
+  kavatestnet: "0x803cEfC7Aae31eF1de021bEAA1Cd94CCcaAaBA21", // KAVATESTNET MULTISIG
 };
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {

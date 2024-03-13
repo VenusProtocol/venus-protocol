@@ -181,6 +181,12 @@ const config: HardhatUserConfig = {
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
+    kavatestnet: {
+      url: process.env.ARCHIVE_NODE_kavatestnet || "https://evm.data-testnet.kava.io",
+      chainId: 2221,
+      live: true,
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+    },
   },
   etherscan: {
     apiKey: {
@@ -190,6 +196,7 @@ const config: HardhatUserConfig = {
       ethereum: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       opbnbtestnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       opbnbmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      kavatestnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     },
     customChains: [
       {
@@ -238,6 +245,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: `https://open-platform.nodereal.io/${process.env.ETHERSCAN_API_KEY}/op-bnb-mainnet/contract/`,
           browserURL: "https://opbnbscan.com/",
+        },
+      },
+      {
+        network: "kavatestnet",
+        chainId: 2221,
+        urls: {
+          apiURL: "https://testnet.kavascan.com/api",
+          browserURL: "https://testnet.kavascan.com",
         },
       },
     ],
