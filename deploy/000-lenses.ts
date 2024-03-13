@@ -37,6 +37,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["Lens"];
-func.skip = async hre => hre.network.name === "sepolia" || hre.network.name === "opbnbtestnet" || hre.network.name === "opbnbmainnet";
+func.skip = async hre =>
+  hre.network.name === "sepolia" ||
+  hre.network.name === "opbnbtestnet" ||
+  hre.network.name === "opbnbmainnet" ||
+  hre.network.name === "ethereum";
 
 export default func;

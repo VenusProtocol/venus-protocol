@@ -2,7 +2,7 @@
   "name": "ethereum",
   "chainId": "1",
   "contracts": {
-    "VTreasuryV8": {
+    "VTreasury": {
       "address": "0xFD9B071168bC27DBE16406eC3Aba050Ce8Eb22FA",
       "abi": [
         {
@@ -434,7 +434,7 @@
         }
       ]
     },
-    "XVSVault": {
+    "XVSVaultProxy_Implementation": {
       "address": "0xc3279442a5aCaCF0A2EcB015d1cDDBb3E0f3F775",
       "abi": [
         {

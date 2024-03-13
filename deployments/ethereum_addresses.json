@@ -2,9 +2,9 @@
   "name": "ethereum",
   "chainId": "1",
   "addresses": {
-    "VTreasuryV8": "0xFD9B071168bC27DBE16406eC3Aba050Ce8Eb22FA",
+    "VTreasury": "0xFD9B071168bC27DBE16406eC3Aba050Ce8Eb22FA",
     "XVSStore": "0x1Db646E1Ab05571AF99e47e8F909801e5C99d37B",
-    "XVSVault": "0xc3279442a5aCaCF0A2EcB015d1cDDBb3E0f3F775",
+    "XVSVaultProxy_Implementation": "0xc3279442a5aCaCF0A2EcB015d1cDDBb3E0f3F775",
     "XVSVaultProxy": "0xA0882C2D5DF29233A092d2887A258C2b90e9b994"
   }
 }
