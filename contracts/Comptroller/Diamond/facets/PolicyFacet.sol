@@ -132,7 +132,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // Borrow cap of 0 corresponds to unlimited borrowing
         if (borrowCap != 0) {
             uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
-            require(nextTotalBorrows < borrowCap, "market borrow cap reached");
+            require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
         }
 
         (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
