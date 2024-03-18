@@ -323,6 +323,9 @@ describe("Comptroller: assetListTest", () => {
             actions.SEIZE,
             actions.ENTER_MARKET,
             actions.LIQUIDATE,
+            actions.TRANSFER,
+            actions.SEIZE,
+            actions.EXIT_MARKET,
           ],
           true,
         );

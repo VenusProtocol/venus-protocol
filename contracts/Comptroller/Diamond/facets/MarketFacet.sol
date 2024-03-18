@@ -154,6 +154,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
         require(actionPaused(market, Action.REPAY), "repay action is not paused");
         require(actionPaused(market, Action.ENTER_MARKET), "enter market action is not paused");
         require(actionPaused(market, Action.LIQUIDATE), "liquidate action is not paused");
+        require(actionPaused(market, Action.SEIZE), "seize action is not paused");
+        require(actionPaused(market, Action.TRANSFER), "transfer action is not paused");
+        require(actionPaused(market, Action.EXIT_MARKET), "exit market action is not paused");
 
         require(borrowCaps[market] == 0, "borrow cap is not 0");
         require(supplyCaps[market] == 0, "supply cap is not 0");
