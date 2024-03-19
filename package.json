@@ -36,7 +36,7 @@
     "@venusprotocol/isolated-pools": "^2.5.0",
     "@venusprotocol/protocol-reserve": "^1.4.0",
     "@venusprotocol/solidity-utilities": "^1.2.0",
-    "@venusprotocol/token-bridge": "1.0.1-dev.1",
+    "@venusprotocol/token-bridge": "^1.1.0",
     "bignumber.js": "^9.1.2",
     "dotenv": "^16.0.1",
     "module-alias": "^2.2.2"
