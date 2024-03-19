@@ -102,7 +102,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function redeem(uint redeemTokens) external returns (uint) {
-        return redeemInternal(redeemTokens);
+        return redeemInternal(msg.sender, msg.sender, redeemTokens);
     }
 
     /**
@@ -112,7 +112,7 @@ contract VBep20MockDelegate is VToken, VBep20Interface {
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function redeemUnderlying(uint redeemAmount) external returns (uint) {
-        return redeemUnderlyingInternal(redeemAmount);
+        return redeemUnderlyingInternal(msg.sender, msg.sender, redeemAmount);
     }
 
     /**

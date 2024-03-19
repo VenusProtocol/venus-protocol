@@ -109,8 +109,8 @@ describe("Comptroller", () => {
       expect(await comptroller.callStatic._setLiquidationIncentive(validIncentive)).to.equal(
         ComptrollerErrorReporter.Error.NO_ERROR,
       );
-      expect(await comptroller._setLiquidationIncentive(validIncentive))
-        .to.emit(unitroller, "NewLiquidationIncentive")
+      await expect(comptroller._setLiquidationIncentive(validIncentive))
+        .to.emit(comptroller, "NewLiquidationIncentive")
         .withArgs(initialIncentive, validIncentive);
       expect(await comptroller.liquidationIncentiveMantissa()).to.equal(validIncentive);
     });
@@ -242,7 +242,6 @@ describe("Comptroller", () => {
   });
 
   describe("_setPriceOracle", () => {
-    let unitroller: Unitroller;
     let comptroller: ComptrollerMock;
     let oracle: FakeContract<PriceOracle>;
     let newOracle: FakeContract<PriceOracle>;
@@ -270,8 +269,8 @@ describe("Comptroller", () => {
     });
 
     it("accepts a valid price oracle and emits a NewPriceOracle event", async () => {
-      expect(await comptroller._setPriceOracle(newOracle.address))
-        .to.emit(unitroller, "NewPriceOracle")
+      await expect(comptroller._setPriceOracle(newOracle.address))
+        .to.emit(comptroller, "NewPriceOracle")
         .withArgs(oracle.address, newOracle.address);
       expect(await comptroller.oracle()).to.equal(newOracle.address);
     });
@@ -318,8 +317,8 @@ describe("Comptroller", () => {
     it("should fire an event", async () => {
       const { comptroller, comptrollerLens } = await loadFixture(deploy);
       const oldComptrollerLensAddress = await comptroller.comptrollerLens();
-      expect(await comptroller._setComptrollerLens(comptrollerLens.address))
-        .to.emit(unitroller, "NewComptrollerLens")
+      await expect(comptroller._setComptrollerLens(comptrollerLens.address))
+        .to.emit(comptroller, "NewComptrollerLens")
         .withArgs(oldComptrollerLensAddress, comptrollerLens.address);
     });
 
@@ -335,7 +334,6 @@ describe("Comptroller", () => {
 
   describe("_setCloseFactor", () => {
     let comptroller: ComptrollerMock;
-    let unitroller: Unitroller;
 
     beforeEach(async () => {
       ({ comptroller } = await loadFixture(deploySimpleComptroller));
@@ -350,18 +348,18 @@ describe("Comptroller", () => {
     });
 
     it("fails if factor is set out of range", async () => {
-      expect(await comptroller._setCloseFactor(convertToUnit(1, 18)))
-        .to.emit(unitroller, "Failure")
+      await expect(comptroller._setCloseFactor(convertToUnit(1, 18)))
+        .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.INVALID_CLOSE_FACTOR,
           ComptrollerErrorReporter.FailureInfo.SET_CLOSE_FACTOR_VALIDATION,
+          0,
         );
     });
   });
 
   describe("_setCollateralFactor", () => {
     const half = convertToUnit("0.5", 18);
-    let unitroller: Unitroller;
     let comptroller: ComptrollerMock;
     let vToken: FakeContract<VToken>;
     let oracle: FakeContract<PriceOracle>;
@@ -388,18 +386,19 @@ describe("Comptroller", () => {
     it("fails if factor is set without an underlying price", async () => {
       await comptroller._supportMarket(vToken.address);
       oracle.getUnderlyingPrice.returns(0);
-      expect(await comptroller._setCollateralFactor(vToken.address, half))
-        .to.emit(unitroller, "Failure")
+      await expect(comptroller._setCollateralFactor(vToken.address, half))
+        .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.PRICE_ERROR,
           ComptrollerErrorReporter.FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE,
+          0,
         );
     });
 
     it("succeeds and sets market", async () => {
       await comptroller._supportMarket(vToken.address);
-      expect(await comptroller._setCollateralFactor(vToken.address, half))
-        .to.emit(unitroller, "NewCollateralFactor")
+      await expect(comptroller._setCollateralFactor(vToken.address, half))
+        .emit(comptroller, "NewCollateralFactor")
         .withArgs(vToken.address, "0", half);
     });
 
@@ -568,28 +567,65 @@ describe("Comptroller", () => {
     });
 
     it("succeeds and sets market", async () => {
-      expect(await comptroller._supportMarket(vToken1.address))
-        .to.emit(unitroller, "MarketListed")
+      await expect(comptroller._supportMarket(vToken1.address))
+        .to.emit(comptroller, "MarketListed")
         .withArgs(vToken1.address);
     });
 
     it("cannot list a market a second time", async () => {
       const tx1 = await comptroller._supportMarket(vToken1.address);
       const tx2 = await comptroller._supportMarket(vToken1.address);
-      expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
-      expect(tx2)
-        .to.emit(unitroller, "Failure")
+      await expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
+      await expect(tx2)
+        .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.MARKET_ALREADY_LISTED,
           ComptrollerErrorReporter.FailureInfo.SUPPORT_MARKET_EXISTS,
+          0,
         );
     });
 
     it("can list two different markets", async () => {
       const tx1 = await comptroller._supportMarket(vToken1.address);
       const tx2 = await comptroller._supportMarket(vToken2.address);
-      expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
-      expect(tx2).to.emit(unitroller, "MarketListed").withArgs(vToken2.address);
+      await expect(tx1).to.emit(comptroller, "MarketListed").withArgs(vToken1.address);
+      await expect(tx2).to.emit(comptroller, "MarketListed").withArgs(vToken2.address);
+    });
+  });
+
+  describe("updateDelegate", async () => {
+    let comptroller: ComptrollerMock;
+
+    type Contracts = SimpleComptrollerFixture & { vToken: FakeContract<VToken> };
+
+    async function deploy(): Promise<Contracts> {
+      const contracts = await deploySimpleComptroller();
+      const vToken = await smock.fake<VToken>("VToken");
+      await contracts.comptroller._supportMarket(vToken.address);
+      return { ...contracts, vToken };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller } = await loadFixture(deploy));
+    });
+
+    it("should revert when zero address is passed", async () => {
+      await expect(comptroller.updateDelegate(ethers.constants.AddressZero, true)).to.be.revertedWith(
+        "can't be zero address",
+      );
+    });
+
+    it("should revert when approval status is already set to the requested value", async () => {
+      await comptroller.updateDelegate(accounts[1].address, true);
+      await expect(comptroller.updateDelegate(accounts[1].address, true)).to.be.revertedWith(
+        "Delegation status unchanged",
+      );
+    });
+
+    it("should emit event on success", async () => {
+      await expect(await comptroller.updateDelegate(accounts[1].address, true))
+        .to.emit(comptroller, "DelegateUpdated")
+        .withArgs(root.address, accounts[1].address, true);
     });
   });
 

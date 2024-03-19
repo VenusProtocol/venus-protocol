@@ -3,6 +3,7 @@ pragma solidity ^0.5.16;
 import "../Tokens/VTokens/VToken.sol";
 import "../Oracle/PriceOracle.sol";
 import "../Tokens/VAI/VAIControllerInterface.sol";
+import { ComptrollerTypes } from "./ComptrollerStorage.sol";
 
 contract ComptrollerInterface {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
@@ -132,6 +133,8 @@ contract ComptrollerInterface {
     function liquidationIncentiveMantissa() external view returns (uint);
 
     function protocolPaused() external view returns (bool);
+
+    function actionPaused(address market, ComptrollerTypes.Action action) public view returns (bool);
 
     function mintedVAIs(address user) external view returns (uint);
 
