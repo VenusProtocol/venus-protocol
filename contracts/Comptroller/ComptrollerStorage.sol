@@ -235,8 +235,8 @@ contract ComptrollerV10Storage is ComptrollerV9Storage {
 }
 
 contract ComptrollerV11Storage is ComptrollerV10Storage {
-    /// @notice Whether the delegate is allowed to borrow on behalf of the borrower
-    //mapping(address borrower => mapping (address delegate => bool approved)) public approvedDelegates;
+    /// @notice Whether the delegate is allowed to borrow or redeem on behalf of the user
+    //mapping(address user => mapping (address delegate => bool approved)) public approvedDelegates;
     mapping(address => mapping(address => bool)) public approvedDelegates;
 }
 

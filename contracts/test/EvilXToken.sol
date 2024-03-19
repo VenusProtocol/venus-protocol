@@ -153,7 +153,7 @@ contract EvilXToken is VBep20Delegate {
         uint vTokenAmount,
         uint underlyingAmount
     ) public returns (uint) {
-        return super.redeemFresh(account, vTokenAmount, underlyingAmount);
+        return super.redeemFresh(account, account, vTokenAmount, underlyingAmount);
     }
 
     function harnessAccountBorrows(address account) public view returns (uint principal, uint interestIndex) {

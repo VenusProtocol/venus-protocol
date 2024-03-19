@@ -89,6 +89,12 @@ forking(34340887, () => {
       expect(await rewardFacet.getXVSAddress()).to.be.equal(zeroAddr);
 
       await setterFacet.connect(owner)._setXVSToken("0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63");
+
+      // Revert when setting address of another vtoken(for e.g. vAAVE) instead of XVSVToken
+      await expect(
+        setterFacet.connect(owner)._setXVSVToken("0x26DA28954763B92139ED49283625ceCAf52C6f94"),
+      ).to.be.revertedWith("invalid xvs vtoken address");
+
       await setterFacet.connect(owner)._setXVSVToken("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D");
 
       expect(await rewardFacet.getXVSVTokenAddress()).to.be.equal("0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D");
