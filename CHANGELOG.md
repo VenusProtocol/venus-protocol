@@ -1,3 +1,32 @@
+## [7.4.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.7...v7.4.0-dev.8) (2024-03-19)
+
+
+### Features
+
+* add deployment files for bscmainnet ([ea6e6de](https://github.com/VenusProtocol/venus-protocol/commit/ea6e6deac8a6b1b3e8dac063da49672238e3a7ed))
+* add deployment files for comptroller market facet and VBep20Delegate for bsctestnet ([368ccbd](https://github.com/VenusProtocol/venus-protocol/commit/368ccbdfba6618384845b5036493a40f890c36c1))
+* add redeemBehalf and redeemUnderlyingBehalf functionality ([e44d832](https://github.com/VenusProtocol/venus-protocol/commit/e44d832deb2e6aea87e977d761ef0a648fe7aebb))
+* update deployment file for market facet for bsctestnet ([209d539](https://github.com/VenusProtocol/venus-protocol/commit/209d539569e61be34852162cf37f41a10b24980b))
+* update deployment files for bscmainnet ([71b6a79](https://github.com/VenusProtocol/venus-protocol/commit/71b6a7997d513f489b525ae7b19a4d66f3ce6991))
+* update deployment files for bsctestnet ([54a1ea9](https://github.com/VenusProtocol/venus-protocol/commit/54a1ea99dd95cd2fb4c03e8ed69d079e4822bd4a))
+* update deployments for bsctestnet ([e7218e4](https://github.com/VenusProtocol/venus-protocol/commit/e7218e45403d32faf8cb7cc457c2858231803f1b))
+* updating deployment files ([d313970](https://github.com/VenusProtocol/venus-protocol/commit/d31397027faa99e4e7eab2f36a14b5beedb40c57))
+* updating deployment files ([74f54eb](https://github.com/VenusProtocol/venus-protocol/commit/74f54ebb09db262fb33f8bc01a4b0342f804efb9))
+* updating deployment files ([09fbbb4](https://github.com/VenusProtocol/venus-protocol/commit/09fbbb44b9d216b586e6fc2ed02c8650bab247e2))
+* updating deployment files ([d68da7d](https://github.com/VenusProtocol/venus-protocol/commit/d68da7d98b7cfa832012dd215027c5ff3b182e38))
+* updating deployment files ([b31e774](https://github.com/VenusProtocol/venus-protocol/commit/b31e774919eeb861ae5e473c55f614a32cbbf0e4))
+* updating deployment files ([8361fcd](https://github.com/VenusProtocol/venus-protocol/commit/8361fcd41330d1386a09d2ad45b3ce5e143f62ed))
+* updating deployment files ([7e5b264](https://github.com/VenusProtocol/venus-protocol/commit/7e5b264606a69db776390fa9f04bc274390367c4))
+
+
+### Bug Fixes
+
+* L01 ([156fe5e](https://github.com/VenusProtocol/venus-protocol/commit/156fe5e0a38eed1678d491348b511406436cf698))
+* VEN-GATE-5 ([0d48640](https://github.com/VenusProtocol/venus-protocol/commit/0d4864063f2cf629220d58739e8b81a53a733731))
+* VPB-01 ([e81ab4f](https://github.com/VenusProtocol/venus-protocol/commit/e81ab4feaa5a2e62c27a5532251931b3ce749741))
+* VPB-01 ([9bad33f](https://github.com/VenusProtocol/venus-protocol/commit/9bad33fbda0631a7b85e14d1eae0aae8e545842d))
+* VTIME-3 ([6ff148d](https://github.com/VenusProtocol/venus-protocol/commit/6ff148d8aa3a2d7adcce7ced0967bac8b5f1f9f8))
+
 ## [7.4.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0-dev.6...v7.4.0-dev.7) (2024-03-13)
 
 
