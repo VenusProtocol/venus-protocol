@@ -111,6 +111,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.tags = ["Prime"];
 // Script is written specifically for bnb chain
-func.skip = async hre => hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet";
+func.skip = async hre =>
+  hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet" && hre.network.name !== "hardhat";
 
 export default func;
