@@ -8,7 +8,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
   const comptrollerAddress = (await deployments.get("Unitroller")).address;
   const accessControlManagerAddress = (await deployments.get("AccessControlManager")).address;
-  const treasuryAddress = (await deployments.get("VTreasury")).address;
+  const treasuryAddress = (await deployments.get(hre.network.name.includes("bsc") ? "VTreasury" : "VTreasuryV8"))
+    .address;
   const timelockAddress = (await deployments.get("NormalTimelock")).address;
 
   const vbnbAddress = (await deployments.get("vBNB")).address;

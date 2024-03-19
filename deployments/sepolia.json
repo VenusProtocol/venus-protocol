@@ -5825,7 +5825,7 @@
         }
       ]
     },
-    "VTreasury": {
+    "VTreasuryV8": {
       "address": "0x4116CA92960dF77756aAAc3aFd91361dB657fbF8",
       "abi": [
         {

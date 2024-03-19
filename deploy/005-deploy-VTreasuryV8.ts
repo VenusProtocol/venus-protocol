@@ -33,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   };
 
   const deployerSigner = await hre.ethers.getSigner(deployer);
-  const treasuryInstance = await deploy("VTreasury", {
+  const treasuryInstance = await deploy("VTreasuryV8", {
     contract: "VTreasuryV8",
     from: deployer,
     args: [],
@@ -43,7 +43,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const adminAccount: string = acmAdminAccount[hre.network.name];
 
-  const VTreasuryV8 = await ethers.getContractAt("VTreasury", treasuryInstance.address);
+  const VTreasuryV8 = await ethers.getContractAt("VTreasuryV8", treasuryInstance.address);
 
   if ((await VTreasuryV8.owner()).toLowerCase() != adminAccount.toLowerCase()) {
     console.log("Transferring owner to venus admin account");
@@ -54,5 +54,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["VTreasuryV8"];
+func.skip = async hre => hre.network.name === "bsctestnet" || hre.network.name === "bscmainnet";
 
 export default func;

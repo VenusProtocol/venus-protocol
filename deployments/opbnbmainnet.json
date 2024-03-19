@@ -2,7 +2,7 @@
   "name": "opbnbmainnet",
   "chainId": "204",
   "contracts": {
-    "VTreasury": {
+    "VTreasuryV8": {
       "address": "0xDDc9017F3073aa53a4A8535163b0bf7311F72C52",
       "abi": [
         {

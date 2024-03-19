@@ -2,7 +2,7 @@
   "name": "ethereum",
   "chainId": "1",
   "contracts": {
-    "VTreasury": {
+    "VTreasuryV8": {
       "address": "0xFD9B071168bC27DBE16406eC3Aba050Ce8Eb22FA",
       "abi": [
         {
