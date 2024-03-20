@@ -181,6 +181,18 @@ const config: HardhatUserConfig = {
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
+    arbitrumSepolia: {
+      url: process.env.ARCHIVE_NODE_arbitrumSepolia || "https://sepolia-rollup.arbitrumOne.io/rpc",
+      chainId: 421614,
+      live: true,
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+    },
+    arbitrumOne: {
+      url: process.env.ARCHIVE_NODE_arbitrumOne || "https://arb1.arbitrumOne.io/rpc",
+      chainId: 42161,
+      live: true,
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+    },
   },
   etherscan: {
     apiKey: {
@@ -190,6 +202,8 @@ const config: HardhatUserConfig = {
       ethereum: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       opbnbtestnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       opbnbmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      arbitrumSepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      arbitrumOne: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     },
     customChains: [
       {
@@ -238,6 +252,22 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: `https://open-platform.nodereal.io/${process.env.ETHERSCAN_API_KEY}/op-bnb-mainnet/contract/`,
           browserURL: "https://opbnbscan.com/",
+        },
+      },
+      {
+        network: "arbitrumSepolia",
+        chainId: 421614,
+        urls: {
+          apiURL: `https://api-sepolia.arbiscan.io/api`,
+          browserURL: "https://sepolia.arbiscan.io/",
+        },
+      },
+      {
+        network: "arbitrumOne",
+        chainId: 42161,
+        urls: {
+          apiURL: `https://api.arbiscan.io/api/`,
+          browserURL: "https://arbiscan.io/",
         },
       },
     ],

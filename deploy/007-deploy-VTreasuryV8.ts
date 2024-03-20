@@ -10,6 +10,7 @@ const acmAdminAccount: AdminAccounts = {
   ethereum: "0x285960C5B22fD66A736C7136967A3eB15e93CC67", // ETHEREUM MULTISIG
   opbnbtestnet: "0xb15f6EfEbC276A3b9805df81b5FB3D50C2A62BDf", // OPBNBTESTNET MULTISIG
   opbnbmainnet: "0xC46796a21a3A9FAB6546aF3434F2eBfFd0604207", // OPBNBMAINNET MULTISIG
+  arbitrumSepolia: "0x049f77F7046266d27C3bC96376f53C17Ef09c986", // ARBITRUM_SEPOLIA MULTISIG
 };
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -29,7 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const VTreasuryV8 = await ethers.getContractAt("VTreasuryV8", treasuryInstance.address);
   const tx = await VTreasuryV8.connect(deployerSigner).transferOwnership(adminAccount);
   tx.wait();
-  console.log("Ownership Transffered to: ", await VTreasuryV8.owner());
+  console.log("Ownership Transferred to: ", await VTreasuryV8.pendingOwner());
 };
 
 func.tags = ["VTreasuryV8"];
