@@ -1,18 +1,24 @@
 import GovernanceBscMainnet from "@venusprotocol/governance-contracts/deployments/bscmainnet.json";
 import GovernanceBscTestnet from "@venusprotocol/governance-contracts/deployments/bsctestnet.json";
+import GovernanceOpbnbtestnet from "@venusprotocol/governance-contracts/deployments/opbnbtestnet.json";
 import GovernanceSepolia from "@venusprotocol/governance-contracts/deployments/sepolia.json";
+import ILOpbnbtestnet from "@venusprotocol/isolated-pools/deployments/opbnbtestnet.json";
 import ILSepolia from "@venusprotocol/isolated-pools/deployments/sepolia.json";
 import OracleMainnet from "@venusprotocol/oracle/deployments/bscmainnet.json";
 import OracleTestnet from "@venusprotocol/oracle/deployments/bsctestnet.json";
+import OracleOpbnbtestnet from "@venusprotocol/oracle/deployments/opbnbtestnet.json";
 import OracleSepolia from "@venusprotocol/oracle/deployments/sepolia.json";
 import ProtocolShareReserveProxyMainnet from "@venusprotocol/protocol-reserve/deployments/bscmainnet/ProtocolShareReserve_Proxy.json";
 import ProtocolShareReserveProxyTestnet from "@venusprotocol/protocol-reserve/deployments/bsctestnet/ProtocolShareReserve_Proxy.json";
+import TokenBridgeOpbnbtestnet from "@venusprotocol/token-bridge/deployments/opbnbtestnet.json";
 import TokenBridgeSepolia from "@venusprotocol/token-bridge/deployments/sepolia.json";
 
 //TESTNET DEPLOYED CONTRACTS
 import Mainnet from "../deployments/bscmainnet.json";
 //MAINNET DEPLOYED CONTRACTS
 import Testnet from "../deployments/bsctestnet.json";
+//OPBNBTESTNET DEPLOYED CONTRACTS
+import Opbnbtestnet from "../deployments/opbnbtestnet.json";
 //SEPOLIA DEPLOYED CONTRACTS
 import Sepolia from "../deployments/sepolia.json";
 
@@ -47,6 +53,7 @@ interface Addresses {
 }
 
 const SEPOLIA_MULTISIG = "0x94fa6078b6b8a26f0b6edffbe6501b22a10470fb";
+const OPBNBTESTNET_MULTISIG = "0xb15f6EfEbC276A3b9805df81b5FB3D50C2A62BDf";
 
 const ADDRESSES: Addresses = {
   bsctestnet: {
@@ -102,6 +109,14 @@ const ADDRESSES: Addresses = {
     acm: GovernanceSepolia.contracts.AccessControlManager.address,
     oracle: OracleSepolia.contracts.ResilientOracle_Proxy.address,
     poolRegistry: ILSepolia.contracts.PoolRegistry.address,
+  },
+  opbnbtestnet: {
+    normalVipTimelock: OPBNBTESTNET_MULTISIG,
+    acm: GovernanceOpbnbtestnet.contracts.AccessControlManager.address,
+    xvsVault: Opbnbtestnet.contracts.XVSVaultProxy.address,
+    xvs: TokenBridgeOpbnbtestnet.contracts.XVS.address,
+    oracle: OracleOpbnbtestnet.contracts.ResilientOracle_Proxy.address,
+    poolRegistry: ILOpbnbtestnet.contracts.PoolRegistry.address,
   },
 };
 export default ADDRESSES;

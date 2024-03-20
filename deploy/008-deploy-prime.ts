@@ -21,6 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: TEN_MINUTES,
     bscmainnet: NINETY_DAYS,
     ethereum: NINETY_DAYS,
+    opbnbtestnet: TEN_MINUTES,
   };
 
   const xVSVaultPoolId: Config = {
@@ -28,6 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: 0,
     bscmainnet: 0,
     ethereum: 0,
+    opbnbtestnet: 0,
   };
 
   const blocksPerYear: Config = {
@@ -35,6 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: 2_628_000, // 12 sec per block
     bscmainnet: 10_512_000,
     ethereum: 2_628_000,
+    opbnbtestnet: 31_536_000, // 1 second per block
   };
 
   const networkName: string = network.name;
