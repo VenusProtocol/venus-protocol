@@ -1,0 +1,7 @@
+{
+  "name": "arbitrumSepolia",
+  "chainId": "421614",
+  "addresses": {
+    "VTreasuryV8": "0x098E8d36065961F5d8B4F8de042Ed74E75a81B22"
+  }
+}
