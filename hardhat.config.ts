@@ -188,7 +188,7 @@ const config: HardhatUserConfig = {
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
     arbitrumOne: {
-      url: process.env.ARCHIVE_NODE_arbitrumOne || "https://arb1.arbitrumOne.io/rpc",
+      url: process.env.ARCHIVE_NODE_arbitrumOne || "https://arb1.arbitrum.io/rpc",
       chainId: 42161,
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
