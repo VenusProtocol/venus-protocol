@@ -182,7 +182,7 @@ const config: HardhatUserConfig = {
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
     arbitrumSepolia: {
-      url: process.env.ARCHIVE_NODE_arbitrumSepolia || "https://sepolia-rollup.arbitrumOne.io/rpc",
+      url: process.env.ARCHIVE_NODE_arbitrumSepolia || "https://sepolia-rollup.arbitrum.io/rpc",
       chainId: 421614,
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
