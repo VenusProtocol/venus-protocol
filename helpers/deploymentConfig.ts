@@ -198,3 +198,12 @@ export async function getTokenAddress(tokenConfig: TokenConfig, deployments: Dep
     return tokenConfig.tokenAddress;
   }
 }
+
+export const getContractAddressOrNullAddress = async (deployments: DeploymentsExtension, name: string) => {
+  try {
+    return (await deployments.get(name)).address;
+  } catch (e) {
+    console.error(`${name} not found returning null address`);
+    return "0x0000000000000000000000000000000000000000";
+  }
+};

@@ -153,6 +153,8 @@
     "vETH": "0xf508fCD89b8bd15579dc79A6827cB4686A3592c8",
     "vETH_Implementation": "0xc3279442a5acacf0a2ecb015d1cddbb3e0f3f775",
     "vETH_Proxy": "0xf508fCD89b8bd15579dc79A6827cB4686A3592c8",
+    "vFDUSD": "0xC4eF4229FEc74Ccfe17B2bdeF7715fAC740BA0ba",
+    "vFDUSD_Implementation": "0xc3279442a5acacf0a2ecb015d1cddbb3e0f3f775",
     "vFDUSD_Proxy": "0xC4eF4229FEc74Ccfe17B2bdeF7715fAC740BA0ba",
     "vFIL": "0xf91d58b5aE142DAcC749f58A49FCBac340Cb0343",
     "vFIL_Implementation": "0xc3279442a5acacf0a2ecb015d1cddbb3e0f3f775",
