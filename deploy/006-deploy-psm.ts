@@ -22,7 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     })
   ).address;
   const acmAddress = (await deployments.get("AccessControlManager")).address;
-  const treasuryAddress = (await deployments.get("VTreasuryV8")).address;
+  const treasuryAddress = (await deployments.get("VTreasury")).address;
   const oracleAddress = (await deployments.get("ResilientOracle")).address;
 
   let normalVipTimelockAddress;
@@ -83,9 +83,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 func.id = "psm_initial_deploy"; // id required to prevent re-execution
 func.tags = ["PSM"];
 func.skip = async hre =>
-  hre.network.name === "sepolia" ||
-  hre.network.name === "opbnbtestnet" ||
-  hre.network.name === "opbnbmainnet" ||
-  hre.network.name === "ethereum";
+  hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet" && hre.network.name !== "hardhat";
 
 export default func;
