@@ -43,6 +43,7 @@ extendConfig((config: HardhatConfig) => {
         ethereum: [
           "node_modules/@venusprotocol/token-bridge/deployments/ethereum",
           "node_modules/@venusprotocol/governance-contracts/deployments/ethereum",
+          "node_modules/@venusprotocol/oracle/deployments/ethereum",
         ],
         opbnbmainnet: [
           "node_modules/@venusprotocol/governance-contracts/deployments/opbnbmainnet",
