@@ -14,7 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const usdtAddress = (await deployments.get("USDT")).address;
   const acmAddress = (await deployments.get("AccessControlManager")).address;
-  const treasuryAddress = (await deployments.get("VTreasury")).address;
+  const treasuryAddress = (await deployments.get(hre.network.name == "hardhat" ? "VTreasuryV8" : "VTreasury")).address;
   const oracleAddress = (await deployments.get("ResilientOracle")).address;
 
   let normalVipTimelockAddress;
