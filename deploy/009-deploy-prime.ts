@@ -54,7 +54,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const corePoolAddress = await getContractAddressOrNullAddress(deployments, "Unitroller");
   const wrappedNativeToken = await getContractAddressOrNullAddress(deployments, "WBNB");
-  const nativeMarket =  await getContractAddressOrNullAddress(deployments, "vBNB");
+  const nativeMarket = await getContractAddressOrNullAddress(deployments, "vBNB");
   const acmAddress = (await deployments.get("AccessControlManager")).address;
   const xvsVaultAddress = (await deployments.get("XVSVaultProxy")).address;
   const xvsAddress = (await deployments.get("XVS")).address;
