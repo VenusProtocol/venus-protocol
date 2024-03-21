@@ -1,3 +1,20 @@
+## [7.5.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.1-dev.1...v7.5.0-dev.1) (2024-03-21)
+
+
+### Features
+
+* updating deployment files ([803ebcc](https://github.com/VenusProtocol/venus-protocol/commit/803ebccef68735f3d963c857f7c09fc473e6f216))
+
+
+### Bug Fixes
+
+* add back vBNB contract ([cedddc9](https://github.com/VenusProtocol/venus-protocol/commit/cedddc98c5ddc9d09aef8032c12a39c19aa47e27))
+* deploy vTreasuryV8 on hardaht ([be43f46](https://github.com/VenusProtocol/venus-protocol/commit/be43f464a844967e6255fc7138ace538c5db43c8))
+* fetch normaltimelock from deployments ([5d2a91c](https://github.com/VenusProtocol/venus-protocol/commit/5d2a91c7d8ec1e00de78882502d4f9ca11292ca7))
+* fix running deployment scripts on hardhat ([4661a2a](https://github.com/VenusProtocol/venus-protocol/commit/4661a2afa1b8125d0ff0ef9c45487ca76af5b09c))
+* importm issing FDUSD implementation ([9b14ec4](https://github.com/VenusProtocol/venus-protocol/commit/9b14ec42b6efbc1336738f85a94b335ad330c4f4))
+* only run psm on bnb chain ([2a1cac5](https://github.com/VenusProtocol/venus-protocol/commit/2a1cac552ffd62a92438fdf48ea340b08c7a1ee3))
+
 ## [7.4.1-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0...v7.4.1-dev.1) (2024-03-20)
 
 
