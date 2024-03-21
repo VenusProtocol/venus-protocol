@@ -27,6 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ethereum: "0x285960C5B22fD66A736C7136967A3eB15e93CC67", // ETHEREUM MULTISIG
     opbnbtestnet: "0xb15f6EfEbC276A3b9805df81b5FB3D50C2A62BDf", // OPBNBTESTNET MULTISIG
     opbnbmainnet: "0xC46796a21a3A9FAB6546aF3434F2eBfFd0604207", // OPBNBMAINNET MULTISIG
+    arbitrumSepolia: "0x1426A5Ae009c4443188DA8793751024E358A61C2", // ARBITRUM_SEPOLIA MULTISIG
     bscmainnet: await getTimelock(),
     bsctestnet: await getTimelock(),
     hardhat: deployer,
@@ -49,7 +50,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log("Transferring owner to venus admin account");
     const tx = await VTreasuryV8.connect(deployerSigner).transferOwnership(adminAccount);
     tx.wait();
-    console.log("Ownership Transffered to: ", await VTreasuryV8.owner());
+    console.log("Ownership Transferred to: ", await VTreasuryV8.pendingOwner());
   }
 };
 
