@@ -168,6 +168,7 @@ const config: HardhatUserConfig = {
       chainId: 1,
       live: true,
       timeout: 1200000, // 20 minutes
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
     opbnbtestnet: {
       url: process.env.ARCHIVE_NODE_opbnbtestnet || "https://opbnb-testnet-rpc.bnbchain.org",
@@ -295,6 +296,9 @@ const config: HardhatUserConfig = {
     contracts: [
       {
         artifacts: "node_modules/@venusprotocol/governance-contracts/artifacts",
+      },
+      {
+        artifacts: "node_modules/@venusprotocol/oracle/artifacts",
       },
       {
         artifacts: "node_modules/@venusprotocol/protocol-reserve/artifacts",

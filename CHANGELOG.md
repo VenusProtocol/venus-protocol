@@ -1,3 +1,10 @@
+## [7.4.1-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0...v7.4.1-dev.1) (2024-03-20)
+
+
+### Bug Fixes
+
+* remove unused isolated pools dep ([dde0504](https://github.com/VenusProtocol/venus-protocol/commit/dde05042fb140cc1ab0deb7c8e392f60e2d47d8c))
+
 ## [7.4.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0...v7.4.0) (2024-03-19)
 
 
