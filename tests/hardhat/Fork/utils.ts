@@ -43,3 +43,9 @@ export const around = (expected: BigNumberish, tolerance: BigNumberish) => {
     return diff.lte(tolerance);
   };
 };
+
+export enum FacetCutAction {
+  Add,
+  Replace,
+  Remove,
+}

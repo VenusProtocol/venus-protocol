@@ -49,7 +49,24 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits Transfer event on success
     // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeem(uint redeemTokens) external returns (uint) {
-        return redeemInternal(redeemTokens);
+        return redeemInternal(msg.sender, msg.sender, redeemTokens);
+    }
+
+    /**
+     * @notice Sender redeems assets on behalf of some other address. This function is only available
+     *   for senders, explicitly marked as delegates of the supplier using `comptroller.updateDelegate`
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemer The user on behalf of whom to redeem
+     * @param redeemTokens The number of vTokens to redeem into underlying
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     */
+    // @custom:event Emits Redeem event on success
+    // @custom:event Emits Transfer event on success
+    // @custom:event Emits RedeemFee when fee is charged by the treasury
+    function redeemBehalf(address redeemer, uint redeemTokens) external returns (uint) {
+        require(comptroller.approvedDelegates(redeemer, msg.sender), "not an approved delegate");
+
+        return redeemInternal(redeemer, msg.sender, redeemTokens);
     }
 
     /**
@@ -62,7 +79,24 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits Transfer event on success
     // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeemUnderlying(uint redeemAmount) external returns (uint) {
-        return redeemUnderlyingInternal(redeemAmount);
+        return redeemUnderlyingInternal(msg.sender, msg.sender, redeemAmount);
+    }
+
+    /**
+     * @notice Sender redeems underlying assets on behalf of some other address. This function is only available
+     *   for senders, explicitly marked as delegates of the supplier using `comptroller.updateDelegate`
+     * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemer, on behalf of whom to redeem
+     * @param redeemAmount The amount of underlying to receive from redeeming vTokens
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
+     */
+    // @custom:event Emits Redeem event on success
+    // @custom:event Emits Transfer event on success
+    // @custom:event Emits RedeemFee when fee is charged by the treasury
+    function redeemUnderlyingBehalf(address redeemer, uint redeemAmount) external returns (uint) {
+        require(comptroller.approvedDelegates(redeemer, msg.sender), "not an approved delegate");
+
+        return redeemUnderlyingInternal(redeemer, msg.sender, redeemAmount);
     }
 
     /**
@@ -72,9 +106,7 @@ contract VBep20 is VToken, VBep20Interface {
      */
     // @custom:event Emits Borrow event on success
     function borrow(uint borrowAmount) external returns (uint) {
-        address borrower = msg.sender;
-        address payable receiver = msg.sender;
-        return borrowInternal(borrower, receiver, borrowAmount);
+        return borrowInternal(msg.sender, msg.sender, borrowAmount);
     }
 
     /**
@@ -87,8 +119,7 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits Borrow event on success
     function borrowBehalf(address borrower, uint borrowAmount) external returns (uint) {
         require(comptroller.approvedDelegates(borrower, msg.sender), "not an approved delegate");
-        address payable receiver = msg.sender;
-        return borrowInternal(borrower, receiver, borrowAmount);
+        return borrowInternal(borrower, msg.sender, borrowAmount);
     }
 
     /**

@@ -67,7 +67,7 @@ contract MockVBNB is VToken {
     // @custom:event Emits Transfer event on success
     // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeem(uint redeemTokens) external returns (uint) {
-        return redeemInternal(redeemTokens);
+        return redeemInternal(msg.sender, msg.sender, redeemTokens);
     }
 
     /**
@@ -80,7 +80,7 @@ contract MockVBNB is VToken {
     // @custom:event Emits Transfer event on success
     // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeemUnderlying(uint redeemAmount) external returns (uint) {
-        return redeemUnderlyingInternal(redeemAmount);
+        return redeemUnderlyingInternal(msg.sender, msg.sender, redeemAmount);
     }
 
     /**
