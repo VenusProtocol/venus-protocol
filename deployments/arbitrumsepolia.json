@@ -1,5 +1,5 @@
 {
-  "name": "arbitrumSepolia",
+  "name": "arbitrumsepolia",
   "chainId": "421614",
   "contracts": {
     "VTreasuryV8": {
