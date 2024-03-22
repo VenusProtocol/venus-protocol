@@ -1,3 +1,27 @@
+## [7.5.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.5.0-dev.1...v7.5.0-dev.2) (2024-03-22)
+
+
+### Features
+
+* updating deployment files ([c0452be](https://github.com/VenusProtocol/venus-protocol/commit/c0452be7d8741cfd7dc72aa231e8038f8436a321))
+* updating deployment files ([9b5f32b](https://github.com/VenusProtocol/venus-protocol/commit/9b5f32bf206888dfc882b906eb41ffa4f8d9b0cf))
+* updating deployment files ([6ac9c36](https://github.com/VenusProtocol/venus-protocol/commit/6ac9c36d0a836a202776224f24974052fc8b6542))
+* updating deployment files ([0b17722](https://github.com/VenusProtocol/venus-protocol/commit/0b177221c89ce351c154ef4f2577d03453458682))
+
+
+### Bug Fixes
+
+* deployed prime ([5143c48](https://github.com/VenusProtocol/venus-protocol/commit/5143c488d99de7d72e8b27ea1bc723f1004c8df6))
+* deployed prime on sepolia ([c482e5d](https://github.com/VenusProtocol/venus-protocol/commit/c482e5db121eb47a3a75386a7b2e333ca117972d))
+* fixed lint ([66e2091](https://github.com/VenusProtocol/venus-protocol/commit/66e2091f20318206d5917c1d407d237346dfbb69))
+* fixed prime deploy script for ethereum ([706a40c](https://github.com/VenusProtocol/venus-protocol/commit/706a40cc3c41652d6bcca047b6c38306bbe0f8e3))
+* lint fix ([8e35574](https://github.com/VenusProtocol/venus-protocol/commit/8e35574c50dcc0b5b5bdc38039e191130c2ec630))
+* plp deployed on ethereum ([e234f65](https://github.com/VenusProtocol/venus-protocol/commit/e234f65c3903bfaf07d6efd645a980c11a31d567))
+* redeployed prime on sepolia ([4877f7f](https://github.com/VenusProtocol/venus-protocol/commit/4877f7f1b5c6789bfdfdacfd4fb39b8e39110780))
+* removed log ([eabcb43](https://github.com/VenusProtocol/venus-protocol/commit/eabcb43f10b53d1509ca38db493dd98ad2dec522))
+* resolved conflict ([4b284f2](https://github.com/VenusProtocol/venus-protocol/commit/4b284f2142f6e0751796731ba2ee3409ba2b4541))
+* updated token-bridge package version ([4936821](https://github.com/VenusProtocol/venus-protocol/commit/49368219a6ec6a5632e2cef7b8f1620e88890fb9))
+
 ## [7.5.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.1-dev.1...v7.5.0-dev.1) (2024-03-21)
 
 
