@@ -43,6 +43,8 @@ extendConfig((config: HardhatConfig) => {
         ethereum: [
           "node_modules/@venusprotocol/token-bridge/deployments/ethereum",
           "node_modules/@venusprotocol/governance-contracts/deployments/ethereum",
+          "node_modules/@venusprotocol/oracle/deployments/ethereum",
+          "node_modules/@venusprotocol/venus-protocol/deployments/ethereum",
         ],
         opbnbmainnet: [
           "node_modules/@venusprotocol/governance-contracts/deployments/opbnbmainnet",
@@ -158,16 +160,14 @@ const config: HardhatUserConfig = {
       url: process.env.ARCHIVE_NODE_sepolia || "https://ethereum-sepolia.blockpi.network/v1/rpc/public",
       chainId: 11155111,
       live: true,
-      gasPrice: 20000000000, // 20 gwei
-      accounts: {
-        mnemonic: process.env.MNEMONIC || "",
-      },
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
     ethereum: {
       url: process.env.ARCHIVE_NODE_ethereum || "https://ethereum.blockpi.network/v1/rpc/public",
       chainId: 1,
       live: true,
       timeout: 1200000, // 20 minutes
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
     opbnbtestnet: {
       url: process.env.ARCHIVE_NODE_opbnbtestnet || "https://opbnb-testnet-rpc.bnbchain.org",
@@ -265,6 +265,9 @@ const config: HardhatUserConfig = {
     contracts: [
       {
         artifacts: "node_modules/@venusprotocol/governance-contracts/artifacts",
+      },
+      {
+        artifacts: "node_modules/@venusprotocol/oracle/artifacts",
       },
       {
         artifacts: "node_modules/@venusprotocol/protocol-reserve/artifacts",

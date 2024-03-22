@@ -14,13 +14,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  await deploy("InterestRateModelLens", {
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
-
   await deploy("SnapshotLens", {
     from: deployer,
     args: [],
@@ -34,15 +27,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
   });
-
-  await deploy("XVSStakingLens", {
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
 };
 
 func.tags = ["Lens"];
+func.skip = async hre =>
+  hre.network.name === "sepolia" ||
+  hre.network.name === "opbnbtestnet" ||
+  hre.network.name === "opbnbmainnet" ||
+  hre.network.name === "ethereum";
 
 export default func;

@@ -1,4 +1,7 @@
 {
   "psm_initial_deploy": 1690981284,
-  "vbnbadmin_deploy": 1697477430
+  "vbnbadmin_deploy": 1697477430,
+  "xvs_vault_configuration": 1697032901,
+  "configure_prime": 1697032901,
+  "configure_xvs_vaults": 1697032901
 }

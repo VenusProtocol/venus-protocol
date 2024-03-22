@@ -67,7 +67,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     console.log(`Deploying VBep20 Proxy for ${symbol} with Implementation ${preconfiguredAddresses.VTokenImpl}`);
 
-    await deploy(`${symbol}_Proxy`, {
+    await deploy(`${symbol}`, {
       contract: "VBep20Delegator",
       from: deployer,
       args: [
@@ -88,5 +88,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["Markets"];
+func.skip = async hre =>
+  hre.network.name === "sepolia" ||
+  hre.network.name === "opbnbtestnet" ||
+  hre.network.name === "opbnbmainnet" ||
+  hre.network.name === "ethereum";
 
 export default func;

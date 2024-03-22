@@ -1,3 +1,51 @@
+## [7.5.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.5.0-dev.1...v7.5.0-dev.2) (2024-03-22)
+
+
+### Features
+
+* updating deployment files ([c0452be](https://github.com/VenusProtocol/venus-protocol/commit/c0452be7d8741cfd7dc72aa231e8038f8436a321))
+* updating deployment files ([9b5f32b](https://github.com/VenusProtocol/venus-protocol/commit/9b5f32bf206888dfc882b906eb41ffa4f8d9b0cf))
+* updating deployment files ([6ac9c36](https://github.com/VenusProtocol/venus-protocol/commit/6ac9c36d0a836a202776224f24974052fc8b6542))
+* updating deployment files ([0b17722](https://github.com/VenusProtocol/venus-protocol/commit/0b177221c89ce351c154ef4f2577d03453458682))
+
+
+### Bug Fixes
+
+* deployed prime ([5143c48](https://github.com/VenusProtocol/venus-protocol/commit/5143c488d99de7d72e8b27ea1bc723f1004c8df6))
+* deployed prime on sepolia ([c482e5d](https://github.com/VenusProtocol/venus-protocol/commit/c482e5db121eb47a3a75386a7b2e333ca117972d))
+* fixed lint ([66e2091](https://github.com/VenusProtocol/venus-protocol/commit/66e2091f20318206d5917c1d407d237346dfbb69))
+* fixed prime deploy script for ethereum ([706a40c](https://github.com/VenusProtocol/venus-protocol/commit/706a40cc3c41652d6bcca047b6c38306bbe0f8e3))
+* lint fix ([8e35574](https://github.com/VenusProtocol/venus-protocol/commit/8e35574c50dcc0b5b5bdc38039e191130c2ec630))
+* plp deployed on ethereum ([e234f65](https://github.com/VenusProtocol/venus-protocol/commit/e234f65c3903bfaf07d6efd645a980c11a31d567))
+* redeployed prime on sepolia ([4877f7f](https://github.com/VenusProtocol/venus-protocol/commit/4877f7f1b5c6789bfdfdacfd4fb39b8e39110780))
+* removed log ([eabcb43](https://github.com/VenusProtocol/venus-protocol/commit/eabcb43f10b53d1509ca38db493dd98ad2dec522))
+* resolved conflict ([4b284f2](https://github.com/VenusProtocol/venus-protocol/commit/4b284f2142f6e0751796731ba2ee3409ba2b4541))
+* updated token-bridge package version ([4936821](https://github.com/VenusProtocol/venus-protocol/commit/49368219a6ec6a5632e2cef7b8f1620e88890fb9))
+
+## [7.5.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.1-dev.1...v7.5.0-dev.1) (2024-03-21)
+
+
+### Features
+
+* updating deployment files ([803ebcc](https://github.com/VenusProtocol/venus-protocol/commit/803ebccef68735f3d963c857f7c09fc473e6f216))
+
+
+### Bug Fixes
+
+* add back vBNB contract ([cedddc9](https://github.com/VenusProtocol/venus-protocol/commit/cedddc98c5ddc9d09aef8032c12a39c19aa47e27))
+* deploy vTreasuryV8 on hardaht ([be43f46](https://github.com/VenusProtocol/venus-protocol/commit/be43f464a844967e6255fc7138ace538c5db43c8))
+* fetch normaltimelock from deployments ([5d2a91c](https://github.com/VenusProtocol/venus-protocol/commit/5d2a91c7d8ec1e00de78882502d4f9ca11292ca7))
+* fix running deployment scripts on hardhat ([4661a2a](https://github.com/VenusProtocol/venus-protocol/commit/4661a2afa1b8125d0ff0ef9c45487ca76af5b09c))
+* importm issing FDUSD implementation ([9b14ec4](https://github.com/VenusProtocol/venus-protocol/commit/9b14ec42b6efbc1336738f85a94b335ad330c4f4))
+* only run psm on bnb chain ([2a1cac5](https://github.com/VenusProtocol/venus-protocol/commit/2a1cac552ffd62a92438fdf48ea340b08c7a1ee3))
+
+## [7.4.1-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0...v7.4.1-dev.1) (2024-03-20)
+
+
+### Bug Fixes
+
+* remove unused isolated pools dep ([dde0504](https://github.com/VenusProtocol/venus-protocol/commit/dde05042fb140cc1ab0deb7c8e392f60e2d47d8c))
+
 ## [7.4.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.3.0...v7.4.0) (2024-03-19)
 
 
