@@ -2,9 +2,12 @@
   "name": "sepolia",
   "chainId": "11155111",
   "addresses": {
+    "Prime": "0x2Ec432F123FEbb114e6fbf9f4F14baF0B1F14AbC",
     "PrimeLiquidityProvider": "0x15242a55Ad1842A1aEa09c59cf8366bD2f3CE9B4",
     "PrimeLiquidityProvider_Implementation": "0xe36F76dc26885CcEce97B96f80f4FA58c89772Fc",
     "PrimeLiquidityProvider_Proxy": "0x15242a55Ad1842A1aEa09c59cf8366bD2f3CE9B4",
+    "Prime_Implementation": "0x3A0e6f7a1927491ff8DAC67958D006a02896E9d4",
+    "Prime_Proxy": "0x2Ec432F123FEbb114e6fbf9f4F14baF0B1F14AbC",
     "VTreasuryV8": "0x4116CA92960dF77756aAAc3aFd91361dB657fbF8",
     "XVSStore": "0x03B868C7858F50900fecE4eBc851199e957b5d3D",
     "XVSVaultProxy": "0x1129f882eAa912aE6D4f6D445b2E2b1eCbA99fd5",
