@@ -235,8 +235,8 @@ contract ComptrollerV10Storage is ComptrollerV9Storage {
 }
 
 contract ComptrollerV11Storage is ComptrollerV10Storage {
-    /// @notice Whether the delegate is allowed to borrow on behalf of the borrower
-    //mapping(address borrower => mapping (address delegate => bool approved)) public approvedDelegates;
+    /// @notice Whether the delegate is allowed to borrow or redeem on behalf of the user
+    //mapping(address user => mapping (address delegate => bool approved)) public approvedDelegates;
     mapping(address => mapping(address => bool)) public approvedDelegates;
 }
 
@@ -271,4 +271,12 @@ contract ComptrollerV14Storage is ComptrollerV13Storage {
 contract ComptrollerV15Storage is ComptrollerV14Storage {
     /// @notice Whether forced liquidation is enabled for the borrows of a user in a market
     mapping(address /* user */ => mapping(address /* market */ => bool)) public isForcedLiquidationEnabledForUser;
+}
+
+contract ComptrollerV16Storage is ComptrollerV15Storage {
+    /// @notice The XVS token contract address
+    address internal xvs;
+
+    /// @notice The XVS vToken contract address
+    address internal xvsVToken;
 }
