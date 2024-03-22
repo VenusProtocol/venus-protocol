@@ -112,7 +112,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           xVSVaultPoolId[networkName],
           xvsVaultAlphaNumerator,
           xvsVaultAlphaDenominator,
-          network.name === "hardhat" ? deployer : adminAccount[networkName],
+          acmAddress,
           plp.address,
           corePoolAddress,
           resilientOracleAddress,

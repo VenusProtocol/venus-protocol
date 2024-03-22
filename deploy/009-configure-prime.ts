@@ -31,6 +31,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["Prime"];
-// func.id = "configure_prime"; // id required to prevent re-execution
+func.id = "configure_prime"; // id required to prevent re-execution
 
 export default func;
