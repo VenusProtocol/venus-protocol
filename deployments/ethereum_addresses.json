@@ -2,6 +2,12 @@
   "name": "ethereum",
   "chainId": "1",
   "addresses": {
+    "Prime": "0x14C4525f47A7f7C984474979c57a2Dccb8EACB39",
+    "PrimeLiquidityProvider": "0x8ba6aFfd0e7Bcd0028D1639225C84DdCf53D8872",
+    "PrimeLiquidityProvider_Implementation": "0xB41ff563c043f9e7825B6ED6D9233995aD65F3FD",
+    "PrimeLiquidityProvider_Proxy": "0x8ba6aFfd0e7Bcd0028D1639225C84DdCf53D8872",
+    "Prime_Implementation": "0xf039d6cF87E5D0315f3Eb286Bbeb39A7B3fe30df",
+    "Prime_Proxy": "0x14C4525f47A7f7C984474979c57a2Dccb8EACB39",
     "VTreasuryV8": "0xFD9B071168bC27DBE16406eC3Aba050Ce8Eb22FA",
     "XVSStore": "0x1Db646E1Ab05571AF99e47e8F909801e5C99d37B",
     "XVSVaultProxy": "0xA0882C2D5DF29233A092d2887A258C2b90e9b994",

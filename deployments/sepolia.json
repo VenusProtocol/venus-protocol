@@ -3,7 +3,7 @@
   "chainId": "11155111",
   "contracts": {
     "Prime": {
-      "address": "0x27A8ca2aFa10B9Bc1E57FC4Ca610d9020Aab3739",
+      "address": "0x2Ec432F123FEbb114e6fbf9f4F14baF0B1F14AbC",
       "abi": [
         {
           "anonymous": false,
@@ -1896,7 +1896,7 @@
       ]
     },
     "PrimeLiquidityProvider": {
-      "address": "0x4fCbfE445396f31005b3Fd2F6DE2A986d6E2dCB5",
+      "address": "0x15242a55Ad1842A1aEa09c59cf8366bD2f3CE9B4",
       "abi": [
         {
           "anonymous": false,
@@ -2881,7 +2881,7 @@
       ]
     },
     "PrimeLiquidityProvider_Implementation": {
-      "address": "0x6022165344bBD1DDF1E1F10F4736FD9fb58D5B71",
+      "address": "0xe36F76dc26885CcEce97B96f80f4FA58c89772Fc",
       "abi": [
         {
           "inputs": [
@@ -3738,7 +3738,7 @@
       ]
     },
     "PrimeLiquidityProvider_Proxy": {
-      "address": "0x4fCbfE445396f31005b3Fd2F6DE2A986d6E2dCB5",
+      "address": "0x15242a55Ad1842A1aEa09c59cf8366bD2f3CE9B4",
       "abi": [
         {
           "inputs": [
@@ -3887,7 +3887,7 @@
       ]
     },
     "Prime_Implementation": {
-      "address": "0xF68E8925d45fb6679aE8caF7f859C76BdD964325",
+      "address": "0x3A0e6f7a1927491ff8DAC67958D006a02896E9d4",
       "abi": [
         {
           "inputs": [
@@ -5677,7 +5677,7 @@
       ]
     },
     "Prime_Proxy": {
-      "address": "0x27A8ca2aFa10B9Bc1E57FC4Ca610d9020Aab3739",
+      "address": "0x2Ec432F123FEbb114e6fbf9f4F14baF0B1F14AbC",
       "abi": [
         {
           "inputs": [

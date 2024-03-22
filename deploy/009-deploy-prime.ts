@@ -4,10 +4,16 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
 
+interface AdminAccounts {
+  [key: string]: string;
+}
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
+
+  console.log(deployer);
 
   const TEN_MINUTES = 60 * 10;
   const NINETY_DAYS = 90 * 24 * 60 * 60;
@@ -49,13 +55,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const isTimeBased = false; // revise this value when deploying on L2s
 
   const corePoolAddress = await getContractAddressOrNullAddress(deployments, "Unitroller");
-  const wrappedNativeToken = (await deployments.get("WBNB")).address;
-  const nativeMarket = (await deployments.get("vBNB")).address;
+  const wrappedNativeToken = await getContractAddressOrNullAddress(deployments, "WBNB");
+  const nativeMarket = await getContractAddressOrNullAddress(deployments, "vBNB");
   const acmAddress = (await deployments.get("AccessControlManager")).address;
   const xvsVaultAddress = (await deployments.get("XVSVaultProxy")).address;
   const xvsAddress = (await deployments.get("XVS")).address;
   const resilientOracleAddress = (await deployments.get("ResilientOracle")).address;
-  const normalVipTimelockAddress = (await deployments.get("NormalTimelock")).address;
+
+  const adminAccount: AdminAccounts = {
+    sepolia: "0x94fa6078b6b8a26f0b6edffbe6501b22a10470fb", // SEPOLIA MULTISIG
+    ethereum: "0x285960C5B22fD66A736C7136967A3eB15e93CC67", // ETHEREUM MULTISIG
+    opbnbtestnet: "0xb15f6EfEbC276A3b9805df81b5FB3D50C2A62BDf", // OPBNBTESTNET MULTISIG
+    opbnbmainnet: "0xC46796a21a3A9FAB6546aF3434F2eBfFd0604207", // OPBNBMAINNET MULTISIG
+    bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
+    bsctestnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
+  };
 
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
@@ -63,7 +77,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deterministicDeployment: false,
     args: [isTimeBased, blocksPerYear[networkName]],
     proxy: {
-      owner: network.name === "hardhat" ? deployer : normalVipTimelockAddress,
+      owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
@@ -88,7 +102,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       isTimeBased,
     ],
     proxy: {
-      owner: network.name === "hardhat" ? deployer : normalVipTimelockAddress,
+      owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
@@ -98,7 +112,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           xVSVaultPoolId[networkName],
           xvsVaultAlphaNumerator,
           xvsVaultAlphaDenominator,
-          normalVipTimelockAddress,
+          acmAddress,
           plp.address,
           corePoolAddress,
           resilientOracleAddress,
@@ -110,8 +124,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["Prime"];
-// Script is written specifically for bnb chain
-func.skip = async hre =>
-  hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet" && hre.network.name !== "hardhat";
 
 export default func;
