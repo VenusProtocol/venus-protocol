@@ -2,6 +2,9 @@
   "name": "arbitrumsepolia",
   "chainId": "421614",
   "addresses": {
-    "VTreasuryV8": "0x4e7ab1fD841E1387Df4c91813Ae03819C33D5bdB"
+    "VTreasuryV8": "0x4e7ab1fD841E1387Df4c91813Ae03819C33D5bdB",
+    "XVSStore": "0x3c49eB8FaDD3FdB0a4Bbb40F8A7e3ce821298607",
+    "XVSVaultProxy": "0xC431A15F5359CdF230c9Bd6b11B538bC2aE2C52B",
+    "XVSVaultProxy_Implementation": "0xde9b9f7F141AEec2640E4eB34761eB50D2aa1BFD"
   }
 }
