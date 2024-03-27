@@ -1,3 +1,29 @@
+## [7.6.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.1...v7.6.0-dev.2) (2024-03-27)
+
+
+### Features
+
+* updating deployment files ([e6fcaae](https://github.com/VenusProtocol/venus-protocol/commit/e6fcaaef0b3928f801c4372d2ef229ef8ac8c550))
+* updating deployment files ([5a6c3dd](https://github.com/VenusProtocol/venus-protocol/commit/5a6c3ddc30dea5f7bddfbeedc5a70403ad11f454))
+* updating deployment files ([c7eed76](https://github.com/VenusProtocol/venus-protocol/commit/c7eed76887b01622bc26c7504f06436489e2c28a))
+
+
+### Bug Fixes
+
+* added deployments ([913eb66](https://github.com/VenusProtocol/venus-protocol/commit/913eb66d113e86b9c5abe594dc1d0ecd71878eff))
+* backward compatibility ([859458c](https://github.com/VenusProtocol/venus-protocol/commit/859458cb96234727f6211fd1cd454345f672de67))
+* deployed xvs vault ([f06d9bc](https://github.com/VenusProtocol/venus-protocol/commit/f06d9bcf4ffddfa30d21a795381aee864b48ba74))
+* fixed integration tests ([3521609](https://github.com/VenusProtocol/venus-protocol/commit/3521609b019cc9d8b11b8435e1d445a57b992f90))
+* fixed lock period ([ef0ebf1](https://github.com/VenusProtocol/venus-protocol/commit/ef0ebf1adc3bf484f482cdd04ea2b2b4185e5aad))
+* fixed prime test ([2051fbc](https://github.com/VenusProtocol/venus-protocol/commit/2051fbc53eb45926141964adcace4c630a8c9fb6))
+* fixed TimeManagerV5 ([c5aea51](https://github.com/VenusProtocol/venus-protocol/commit/c5aea5157214d3ed5bae2597e77c3bf5ca78f8eb))
+* fork test for testing invalid opcode ([2a8ac14](https://github.com/VenusProtocol/venus-protocol/commit/2a8ac141598873fc521b250e779862d0ee55d4e3))
+* integrated time manager in xvs vault ([acb5538](https://github.com/VenusProtocol/venus-protocol/commit/acb5538d859af9c4a2165bf450e83def2c5b49a6))
+* optimised storage slot ([4d7debd](https://github.com/VenusProtocol/venus-protocol/commit/4d7debdc67141b754217e5286476404eefc5549a))
+* redeployed ([d06b583](https://github.com/VenusProtocol/venus-protocol/commit/d06b5839186fcfedf29199becfbda06cb583b625))
+* resolved conflict ([46d2838](https://github.com/VenusProtocol/venus-protocol/commit/46d2838ad07d994d2b5a499373bb5a55689c3e8b))
+* use funcs from utils ([a2a22b2](https://github.com/VenusProtocol/venus-protocol/commit/a2a22b2993c1ac5deb9d8bade5e3ab2c2744cfed))
+
 ## [7.6.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.5.0...v7.6.0-dev.1) (2024-03-27)
 
 
