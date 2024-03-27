@@ -6,22 +6,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  await deploy("XVSVaultProxy_Implementation", {
-    contract: "XVSVault",
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
+  await deployments.delete("XVSVault");
 
-  await deploy("XVSVaultProxy", {
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
-
-  await deploy("XVSStore", {
+  await deploy("XVSVault", {
     from: deployer,
     args: [],
     log: true,

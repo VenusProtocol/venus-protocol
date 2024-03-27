@@ -13,13 +13,14 @@ import "../Utils/SafeCast.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
 import { XVSStore } from "./XVSStore.sol";
 import { XVSVaultProxy } from "./XVSVaultProxy.sol";
+import { TimeManagerV5 } from "./TimeManagerV5.sol";
 
 /**
  * @title XVS Vault
  * @author Venus
  * @notice The XVS Vault allows XVS holders to lock their XVS to recieve voting rights in Venus governance and are rewarded with XVS.
  */
-contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
+contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
     using SafeMath for uint256;
     using SafeCast for uint256;
     using SafeBEP20 for IBEP20;
@@ -48,7 +49,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     /// @notice An event emitted when the withdrawal locking period is updated for a pool
     event WithdrawalLockingPeriodUpdated(address indexed rewardToken, uint indexed pid, uint oldPeriod, uint newPeriod);
 
-    /// @notice An event emitted when the reward amount per block is modified for a pool
+    /// @notice An event emitted when the reward amount per block or second is modified for a pool
     event RewardAmountUpdated(address indexed rewardToken, uint oldReward, uint newReward);
 
     /// @notice An event emitted when a new pool is added
@@ -57,7 +58,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         uint indexed pid,
         address indexed token,
         uint allocPoints,
-        uint rewardPerBlock,
+        uint rewardPerBlockOrSecond,
         uint lockPeriod
     );
 
@@ -91,6 +92,9 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         uint256 newPrimePoolId
     );
 
+    /**
+     * @notice XVSVault constructor
+     */
     constructor() public {
         admin = msg.sender;
     }
@@ -148,6 +152,15 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     }
 
     /**
+     * @notice Returns the number of reward tokens created per block or second
+     * @param _rewardToken Reward token address
+     * @return Number of reward tokens created per block or second
+     */
+    function rewardTokenAmountsPerBlock(address _rewardToken) external view returns (uint256) {
+        return rewardTokenAmountsPerBlockOrSecond[_rewardToken];
+    }
+
+    /**
      * @notice Add a new token pool
      * @dev This vault DOES NOT support deflationary tokens — it expects that
      *   the amount of transferred tokens would equal the actually deposited
@@ -156,14 +169,14 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
      * @param _rewardToken Reward token address
      * @param _allocPoint Number of allocation points assigned to this pool
      * @param _token Staked token
-     * @param _rewardPerBlock Initial reward per block, in terms of _rewardToken
+     * @param _rewardPerBlockOrSecond Initial reward per block or second, in terms of _rewardToken
      * @param _lockPeriod A period between withdrawal request and a moment when it's executable
      */
     function add(
         address _rewardToken,
         uint256 _allocPoint,
         IBEP20 _token,
-        uint256 _rewardPerBlock,
+        uint256 _rewardPerBlockOrSecond,
         uint256 _lockPeriod
     ) external {
         _checkAccessAllowed("add(address,uint256,address,uint256,uint256)");
@@ -187,13 +200,13 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
         totalAllocPoints[_rewardToken] = totalAllocPoints[_rewardToken].add(_allocPoint);
 
-        rewardTokenAmountsPerBlock[_rewardToken] = _rewardPerBlock;
+        rewardTokenAmountsPerBlockOrSecond[_rewardToken] = _rewardPerBlockOrSecond;
 
         poolInfo.push(
             PoolInfo({
                 token: _token,
                 allocPoint: _allocPoint,
-                lastRewardBlock: block.number,
+                lastRewardBlockOrSecond: getBlockNumberOrTimestamp(),
                 accRewardPerShare: 0,
                 lockPeriod: _lockPeriod
             })
@@ -202,7 +215,14 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
 
         XVSStore(xvsStore).setRewardToken(_rewardToken, true);
 
-        emit PoolAdded(_rewardToken, poolInfo.length - 1, address(_token), _allocPoint, _rewardPerBlock, _lockPeriod);
+        emit PoolAdded(
+            _rewardToken,
+            poolInfo.length - 1,
+            address(_token),
+            _allocPoint,
+            _rewardPerBlockOrSecond,
+            _lockPeriod
+        );
     }
 
     /**
@@ -229,16 +249,16 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     }
 
     /**
-     * @notice Update the given reward token's amount per block
+     * @notice Update the given reward token's amount per block or second
      * @param _rewardToken Reward token address
      * @param _rewardAmount Number of allocation points assigned to this pool
      */
-    function setRewardAmountPerBlock(address _rewardToken, uint256 _rewardAmount) external {
-        _checkAccessAllowed("setRewardAmountPerBlock(address,uint256)");
+    function setRewardAmountPerBlockOrSecond(address _rewardToken, uint256 _rewardAmount) external {
+        _checkAccessAllowed("setRewardAmountPerBlockOrSecond(address,uint256)");
         require(XVSStore(xvsStore).rewardTokens(_rewardToken), "Invalid reward token");
         massUpdatePools(_rewardToken);
-        uint256 oldReward = rewardTokenAmountsPerBlock[_rewardToken];
-        rewardTokenAmountsPerBlock[_rewardToken] = _rewardAmount;
+        uint256 oldReward = rewardTokenAmountsPerBlockOrSecond[_rewardToken];
+        rewardTokenAmountsPerBlockOrSecond[_rewardToken] = _rewardAmount;
 
         emit RewardAmountUpdated(_rewardToken, oldReward, _rewardAmount);
     }
@@ -565,11 +585,11 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         UserInfo storage user = userInfos[_rewardToken][_pid][_user];
         uint256 accRewardPerShare = pool.accRewardPerShare;
         uint256 supply = pool.token.balanceOf(address(this)).sub(totalPendingWithdrawals[_rewardToken][_pid]);
-        uint256 curBlockNumber = block.number;
-        uint256 rewardTokenPerBlock = rewardTokenAmountsPerBlock[_rewardToken];
-        if (curBlockNumber > pool.lastRewardBlock && supply != 0) {
-            uint256 multiplier = curBlockNumber.sub(pool.lastRewardBlock);
-            uint256 reward = multiplier.mul(rewardTokenPerBlock).mul(pool.allocPoint).div(
+        uint256 curBlockNumberOrSecond = getBlockNumberOrTimestamp();
+        uint256 rewardTokenPerBlockOrSecond = rewardTokenAmountsPerBlockOrSecond[_rewardToken];
+        if (curBlockNumberOrSecond > pool.lastRewardBlockOrSecond && supply != 0) {
+            uint256 multiplier = curBlockNumberOrSecond.sub(pool.lastRewardBlockOrSecond);
+            uint256 reward = multiplier.mul(rewardTokenPerBlockOrSecond).mul(pool.allocPoint).div(
                 totalAllocPoints[_rewardToken]
             );
             accRewardPerShare = accRewardPerShare.add(reward.mul(1e12).div(supply));
@@ -600,22 +620,22 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     // Update reward variables of the given pool to be up-to-date.
     function _updatePool(address _rewardToken, uint256 _pid) internal {
         PoolInfo storage pool = poolInfos[_rewardToken][_pid];
-        if (block.number <= pool.lastRewardBlock) {
+        if (getBlockNumberOrTimestamp() <= pool.lastRewardBlockOrSecond) {
             return;
         }
         uint256 supply = pool.token.balanceOf(address(this));
         supply = supply.sub(totalPendingWithdrawals[_rewardToken][_pid]);
         if (supply == 0) {
-            pool.lastRewardBlock = block.number;
+            pool.lastRewardBlockOrSecond = getBlockNumberOrTimestamp();
             return;
         }
-        uint256 curBlockNumber = block.number;
-        uint256 multiplier = curBlockNumber.sub(pool.lastRewardBlock);
-        uint256 reward = multiplier.mul(rewardTokenAmountsPerBlock[_rewardToken]).mul(pool.allocPoint).div(
+        uint256 curBlockNumberOrSecond = getBlockNumberOrTimestamp();
+        uint256 multiplier = curBlockNumberOrSecond.sub(pool.lastRewardBlockOrSecond);
+        uint256 reward = multiplier.mul(rewardTokenAmountsPerBlockOrSecond[_rewardToken]).mul(pool.allocPoint).div(
             totalAllocPoints[_rewardToken]
         );
         pool.accRewardPerShare = pool.accRewardPerShare.add(reward.mul(1e12).div(supply));
-        pool.lastRewardBlock = block.number;
+        pool.lastRewardBlockOrSecond = getBlockNumberOrTimestamp();
     }
 
     function _ensureValidPool(address rewardToken, uint256 pid) internal view {
@@ -755,12 +775,15 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     }
 
     function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint96 oldVotes, uint96 newVotes) internal {
-        uint32 blockNumber = safe32(block.number, "XVSVault::_writeCheckpoint: block number exceeds 32 bits");
+        uint32 blockNumberOrSecond = safe32(
+            getBlockNumberOrTimestamp(),
+            "XVSVault::_writeCheckpoint: block number or second exceeds 32 bits"
+        );
 
-        if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
+        if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlockOrSecond == blockNumberOrSecond) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
         } else {
-            checkpoints[delegatee][nCheckpoints] = Checkpoint(blockNumber, newVotes);
+            checkpoints[delegatee][nCheckpoints] = Checkpoint(blockNumberOrSecond, newVotes);
             numCheckpoints[delegatee] = nCheckpoints + 1;
         }
 
@@ -799,11 +822,11 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
     /**
      * @notice Determine the xvs stake balance for an account
      * @param account The address of the account to check
-     * @param blockNumber The block number to get the vote balance at
+     * @param blockNumberOrSecond The block number or second to get the vote balance at
      * @return The balance that user staked
      */
-    function getPriorVotes(address account, uint256 blockNumber) external view returns (uint96) {
-        require(blockNumber < block.number, "XVSVault::getPriorVotes: not yet determined");
+    function getPriorVotes(address account, uint256 blockNumberOrSecond) external view returns (uint96) {
+        require(blockNumberOrSecond < getBlockNumberOrTimestamp(), "XVSVault::getPriorVotes: not yet determined");
 
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) {
@@ -811,12 +834,12 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         }
 
         // First check most recent balance
-        if (checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
+        if (checkpoints[account][nCheckpoints - 1].fromBlockOrSecond <= blockNumberOrSecond) {
             return checkpoints[account][nCheckpoints - 1].votes;
         }
 
         // Next check implicit zero balance
-        if (checkpoints[account][0].fromBlock > blockNumber) {
+        if (checkpoints[account][0].fromBlockOrSecond > blockNumberOrSecond) {
             return 0;
         }
 
@@ -825,9 +848,9 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         while (upper > lower) {
             uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
             Checkpoint memory cp = checkpoints[account][center];
-            if (cp.fromBlock == blockNumber) {
+            if (cp.fromBlockOrSecond == blockNumberOrSecond) {
                 return cp.votes;
-            } else if (cp.fromBlock < blockNumber) {
+            } else if (cp.fromBlockOrSecond < blockNumberOrSecond) {
                 lower = center;
             } else {
                 upper = center - 1;
@@ -876,6 +899,16 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5 {
         primeToken = _primeToken;
         primeRewardToken = _primeRewardToken;
         primePoolId = _primePoolId;
+    }
+
+    /**
+     * @dev Initializes the contract to use either blocks or seconds
+     * @param timeBased_ A boolean indicating whether the contract is based on time or block
+     * If timeBased is true than blocksPerYear_ param is ignored as blocksOrSecondsPerYear is set to SECONDS_PER_YEAR
+     * @param blocksPerYear_ The number of blocks per year
+     */
+    function initializeTimeManager(bool timeBased_, uint256 blocksPerYear_) external onlyAdmin {
+        _initializeTimeManager(timeBased_, blocksPerYear_);
     }
 
     /**

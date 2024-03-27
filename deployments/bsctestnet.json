@@ -48072,7 +48072,7 @@
       ]
     },
     "XVSVault": {
-      "address": "0x30EE880177eCE5Bc2f8865fAefa072e7386D4264",
+      "address": "0x9801565BE8fe2c9fD12C17992ecDeb510BaF677A",
       "abi": [
         {
           "inputs": [],
@@ -48247,6 +48247,49 @@
           "inputs": [
             {
               "indexed": true,
+              "internalType": "contract IPrime",
+              "name": "oldPrimeToken",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "contract IPrime",
+              "name": "newPrimeToken",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "oldPrimeRewardToken",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "newPrimeRewardToken",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "oldPrimePoolId",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "newPrimePoolId",
+              "type": "uint256"
+            }
+          ],
+          "name": "NewPrimeToken",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
               "internalType": "address",
               "name": "rewardToken",
               "type": "address"
@@ -48272,7 +48315,7 @@
             {
               "indexed": false,
               "internalType": "uint256",
-              "name": "rewardPerBlock",
+              "name": "rewardPerBlockOrSecond",
               "type": "uint256"
             },
             {
@@ -48537,10 +48580,25 @@
           "type": "function"
         },
         {
+          "constant": true,
+          "inputs": [],
+          "name": "SECONDS_PER_YEAR",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "constant": false,
           "inputs": [
             {
-              "internalType": "contract IXVSVaultProxy",
+              "internalType": "contract XVSVaultProxy",
               "name": "xvsVaultProxy",
               "type": "address"
             }
@@ -48586,7 +48644,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "_rewardPerBlock",
+              "name": "_rewardPerBlockOrSecond",
               "type": "uint256"
             },
             {
@@ -48618,6 +48676,21 @@
         },
         {
           "constant": true,
+          "inputs": [],
+          "name": "blocksOrSecondsPerYear",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48634,7 +48707,7 @@
           "outputs": [
             {
               "internalType": "uint32",
-              "name": "fromBlock",
+              "name": "fromBlockOrSecond",
               "type": "uint32"
             },
             {
@@ -48795,6 +48868,21 @@
         },
         {
           "constant": true,
+          "inputs": [],
+          "name": "getBlockNumberOrTimestamp",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -48855,7 +48943,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "blockNumber",
+              "name": "blockNumberOrSecond",
               "type": "uint256"
             }
           ],
@@ -49007,6 +49095,26 @@
           "type": "function"
         },
         {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "bool",
+              "name": "timeBased_",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blocksPerYear_",
+              "type": "uint256"
+            }
+          ],
+          "name": "initializeTimeManager",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "constant": true,
           "inputs": [
             {
@@ -49016,6 +49124,21 @@
             }
           ],
           "name": "isStakedToken",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "isTimeBased",
           "outputs": [
             {
               "internalType": "bool",
@@ -49224,7 +49347,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "lastRewardBlock",
+              "name": "lastRewardBlockOrSecond",
               "type": "uint256"
             },
             {
@@ -49257,6 +49380,51 @@
               "internalType": "uint256",
               "name": "",
               "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "primePoolId",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "primeRewardToken",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "primeToken",
+          "outputs": [
+            {
+              "internalType": "contract IPrime",
+              "name": "",
+              "type": "address"
             }
           ],
           "payable": false,
@@ -49302,11 +49470,32 @@
           "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "_rewardToken",
               "type": "address"
             }
           ],
           "name": "rewardTokenAmountsPerBlock",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "rewardTokenAmountsPerBlockOrSecond",
           "outputs": [
             {
               "internalType": "uint256",
@@ -49362,6 +49551,31 @@
           "constant": false,
           "inputs": [
             {
+              "internalType": "contract IPrime",
+              "name": "_primeToken",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_primeRewardToken",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "_primePoolId",
+              "type": "uint256"
+            }
+          ],
+          "name": "setPrimeToken",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
               "internalType": "address",
               "name": "_rewardToken",
               "type": "address"
@@ -49372,7 +49586,7 @@
               "type": "uint256"
             }
           ],
-          "name": "setRewardAmountPerBlock",
+          "name": "setRewardAmountPerBlockOrSecond",
           "outputs": [],
           "payable": false,
           "stateMutability": "nonpayable",
