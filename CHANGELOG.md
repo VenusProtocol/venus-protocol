@@ -1,3 +1,18 @@
+## [7.6.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.5.0...v7.6.0-dev.1) (2024-03-27)
+
+
+### Features
+
+* add VTreasuryV8 deployment on arbitrum sepolia ([850d5b9](https://github.com/VenusProtocol/venus-protocol/commit/850d5b96a7159361e5ecf55ec64c0eb34623c3a0))
+* updating deployment files ([ec48969](https://github.com/VenusProtocol/venus-protocol/commit/ec48969a6c117e2ea2e2b90b02a96470816659ee))
+* updating deployment files ([b65fb19](https://github.com/VenusProtocol/venus-protocol/commit/b65fb196f1e4c8f723c28485265082f201dc5c8f))
+
+
+### Bug Fixes
+
+* rpc for arbitrumOne ([8340342](https://github.com/VenusProtocol/venus-protocol/commit/8340342008c1a88e9049acd532c2a434d9ea9736))
+* rpc for arbitrumSepolia ([a0453d4](https://github.com/VenusProtocol/venus-protocol/commit/a0453d4cfd5c5ad494656e180be5cb5ea932dba4))
+
 ## [7.5.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.4.0...v7.5.0) (2024-03-22)
 
 
