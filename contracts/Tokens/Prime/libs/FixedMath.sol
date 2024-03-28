@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // solhint-disable var-name-mixedcase
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.20;
 
 import { SafeCastUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import { FixedMath0x } from "./FixedMath0x.sol";
