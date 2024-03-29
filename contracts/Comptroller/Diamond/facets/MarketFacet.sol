@@ -136,7 +136,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /**
      * @notice Unlist a market by setting isListed to false
      * @dev Checks if market actions are paused and borrowCap/supplyCap/CF are set to 0
-     * @param market The address of the market (token) to unlist
+     * @param market The address of the market (vToken) to unlist
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
     function unlistMarket(address market) external returns (uint256) {
