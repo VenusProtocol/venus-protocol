@@ -7826,7 +7826,7 @@
       ]
     },
     "PolicyFacet": {
-      "address": "0x635EA61187A42790b25B2BC1D85dabe8c7f60E1a",
+      "address": "0x7b17b28687B817158c20e3d1bf100106fBE794cf",
       "abi": [
         {
           "anonymous": false,
@@ -18178,7 +18178,7 @@
       ]
     },
     "SetterFacet": {
-      "address": "0xa7b32220bbBA952f9418a6F56aAd325dd671Be01",
+      "address": "0xaBdE9599a4aEcE4fEC59fBF2b8445149bc8B2c70",
       "abi": [
         {
           "anonymous": false,
