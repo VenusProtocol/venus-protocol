@@ -39,8 +39,8 @@ describe("Comptroller", () => {
     });
 
     it("Sets ACM address in storage", async () => {
-      expect(await comptroller._setAccessControl(accessControl.address))
-        .to.emit(unitroller, "NewAccessControl")
+      await expect(comptroller._setAccessControl(accessControl.address))
+        .to.emit(comptroller, "NewAccessControl")
         .withArgs(constants.AddressZero, accessControl.address);
     });
 
@@ -122,6 +122,14 @@ describe("Comptroller", () => {
           "access denied",
         );
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_supportMarket(address)");
+      });
+    });
+    describe("seizeVenus", () => {
+      it("Should have AccessControl", async () => {
+        await expect(
+          comptroller.connect(user).seizeVenus([ethers.constants.AddressZero], ethers.constants.AddressZero),
+        ).to.be.revertedWith("access denied");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "seizeVenus(address[],address)");
       });
     });
   });

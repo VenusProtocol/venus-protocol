@@ -59,4 +59,8 @@ interface ISetterFacet {
     function _setPrimeToken(IPrime _prime) external returns (uint);
 
     function _setForcedLiquidationForUser(address borrower, address vTokenBorrowed, bool enable) external;
+
+    function _setXVSToken(address xvs_) external;
+
+    function _setXVSVToken(address xvsVToken_) external;
 }

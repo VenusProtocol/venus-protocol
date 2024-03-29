@@ -36,8 +36,8 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
     /// @notice The xvs token address
     address public xvsAddress;
 
-    // Reward tokens created per block indentified by reward token address.
-    mapping(address => uint256) public rewardTokenAmountsPerBlock;
+    // Reward tokens created per block or second indentified by reward token address.
+    mapping(address => uint256) public rewardTokenAmountsPerBlockOrSecond;
 
     /// @notice Info of each user.
     struct UserInfo {
@@ -50,7 +50,7 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
     struct PoolInfo {
         IBEP20 token; // Address of token contract to stake.
         uint256 allocPoint; // How many allocation points assigned to this pool.
-        uint256 lastRewardBlock; // Last block number that reward tokens distribution occurs.
+        uint256 lastRewardBlockOrSecond; // Last block number or second that reward tokens distribution occurs.
         uint256 accRewardPerShare; // Accumulated per share, times 1e12. See below.
         uint256 lockPeriod; // Min time between withdrawal request and its execution.
     }
@@ -77,9 +77,9 @@ contract XVSVaultStorageV1 is XVSVaultAdminStorage {
     /// @notice DEPRECATED A record of each accounts delegate (before the voting power fix)
     mapping(address => address) private __oldDelegatesSlot;
 
-    /// @notice A checkpoint for marking number of votes from a given block
+    /// @notice A checkpoint for marking number of votes from a given block or second
     struct Checkpoint {
-        uint32 fromBlock;
+        uint32 fromBlockOrSecond;
         uint96 votes;
     }
 

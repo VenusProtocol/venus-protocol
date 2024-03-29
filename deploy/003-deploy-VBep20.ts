@@ -7,10 +7,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await getNamedAccounts();
 
+  await deploy("USDT", {
+    contract: "MockToken",
+    from: deployer,
+    args: ["Tether", "USDT", 18],
+    log: true,
+    autoMine: true,
+  });
+
   const usdcDeployment = await deploy("USDC", {
     contract: "MockToken",
     from: deployer,
     args: ["US Dollar coin", "USDC", 18],
+    log: true,
+    autoMine: true,
+  });
+
+  await deploy("WBNB", {
+    contract: "MockToken",
+    from: deployer,
+    args: ["Wrapped BNB", "WBNB", 18],
     log: true,
     autoMine: true,
   });
@@ -23,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  const comptrollerDeployment = await deployments.get("Comptroller");
+  const comptrollerDeployment = await deployments.get("Unitroller");
 
   const interestRateModelVUSDCDeployment = await deployments.get("InterestRateModelVUSDC");
   await deploy("vUSDC", {
@@ -59,8 +75,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
   });
+
+  await deploy("vBNB", {
+    contract: "VBNB",
+    from: deployer,
+    args: [
+      comptrollerDeployment.address,
+      interestRateModelVUSDCDeployment.address,
+      "1500000000000000000",
+      "Venus BNB",
+      "vBNB",
+      18,
+      deployer,
+    ],
+    log: true,
+    autoMine: true,
+  });
 };
 
 func.tags = ["VBep20"];
+// The deployed contracts are mocks so we only run this locally
+func.skip = async hre => hre.network.name !== "hardhat";
 
 export default func;

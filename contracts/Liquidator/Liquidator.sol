@@ -6,15 +6,11 @@ import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/acc
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
+import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import "./LiquidatorStorage.sol";
+import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController, IProtocolShareReserve, IWBNB } from "../InterfacesV8.sol";
 
-import { ILiquidator, IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "../InterfacesV8.sol";
-
-/**
- * @title Liquidator
- * @author Venus
- * @notice The Liquidator contract is responsible for liquidating underwater accounts.
- */
-contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgradeable {
+contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
     /// @notice Address of vBNB contract.
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IVBNB public immutable vBnb;
@@ -27,20 +23,12 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IVAIController public immutable vaiController;
 
-    /// @notice Address of Venus Treasury.
+    /// @notice Address of wBNB contract
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address public immutable treasury;
+    address public immutable wBNB;
 
-    /* State */
-
-    /// @notice Percent of seized amount that goes to treasury.
-    uint256 public treasuryPercentMantissa;
-
-    /// @notice Mapping of addresses allowed to liquidate an account if liquidationRestricted[borrower] == true
-    mapping(address => mapping(address => bool)) public allowedLiquidatorsByAccount;
-
-    /// @notice Whether the liquidations are restricted to enabled allowedLiquidatorsByAccount addresses only
-    mapping(address => bool) public liquidationRestricted;
+    /// @dev A unit (literal one) in EXP_SCALE, usually used in additions/subtractions
+    uint256 internal constant MANTISSA_ONE = 1e18;
 
     /* Events */
 
@@ -69,6 +57,24 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
 
     /// @notice Emitted when a liquidator is removed from the allowedLiquidatorsByAccount mapping
     event AllowlistEntryRemoved(address indexed borrower, address indexed liquidator);
+
+    /// @notice Emitted when the amount of minLiquidatableVAI is updated
+    event NewMinLiquidatableVAI(uint256 oldMinLiquidatableVAI, uint256 newMinLiquidatableVAI);
+
+    /// @notice Emitted when the length of chunk gets updated
+    event NewPendingRedeemChunkLength(uint256 oldPendingRedeemChunkLength, uint256 newPendingRedeemChunkLength);
+
+    /// @notice Emitted when force liquidation is paused
+    event ForceVAILiquidationPaused(address indexed sender);
+
+    /// @notice Emitted when force liquidation is resumed
+    event ForceVAILiquidationResumed(address indexed sender);
+
+    /// @notice Emitted when new address of protocol share reserve is set
+    event NewProtocolShareReserve(address indexed oldProtocolShareReserve, address indexed newProtocolShareReserves);
+
+    /// @notice Emitted when reserves are reduced from liquidator contract to protocol share reserves
+    event ProtocolLiquidationIncentiveTransferred(address indexed sender, address indexed token, uint256 reducedAmount);
 
     /* Errors */
 
@@ -100,49 +106,76 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
     /// @notice Thrown if trying to set treasury percent larger than the liquidation profit
     error TreasuryPercentTooHigh(uint256 maxTreasuryPercentMantissa, uint256 treasuryPercentMantissa_);
 
+    /// @notice Thrown if trying to liquidate any token when VAI debt is too high
+    error VAIDebtTooHigh(uint256 vaiDebt, uint256 minLiquidatableVAI);
+
+    /// @notice Thrown when vToken is not listed
+    error MarketNotListed(address vToken);
+
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     /// @notice Constructor for the implementation contract. Sets immutable variables.
     /// @param comptroller_ The address of the Comptroller contract
     /// @param vBnb_ The address of the VBNB
-    /// @param treasury_ The address of Venus treasury
+    /// @param wBNB_ The address of wBNB
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address comptroller_, address payable vBnb_, address treasury_) {
+    constructor(address comptroller_, address payable vBnb_, address wBNB_) {
         ensureNonzeroAddress(vBnb_);
         ensureNonzeroAddress(comptroller_);
-        ensureNonzeroAddress(treasury_);
+        ensureNonzeroAddress(wBNB_);
         vBnb = IVBNB(vBnb_);
+        wBNB = wBNB_;
         comptroller = IComptroller(comptroller_);
         vaiController = IVAIController(IComptroller(comptroller_).vaiController());
-        treasury = treasury_;
         _disableInitializers();
     }
 
+    receive() external payable {}
+
     /// @notice Initializer for the implementation contract.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
-    function initialize(uint256 treasuryPercentMantissa_) external virtual initializer {
-        __Liquidator_init(treasuryPercentMantissa_);
+    /// @param accessControlManager_ address of access control manager
+    /// @param protocolShareReserve_ The address of the protocol share reserve contract
+    function initialize(
+        uint256 treasuryPercentMantissa_,
+        address accessControlManager_,
+        address protocolShareReserve_
+    ) external virtual reinitializer(2) {
+        __Liquidator_init(treasuryPercentMantissa_, accessControlManager_, protocolShareReserve_);
     }
 
     /// @dev Liquidator initializer for derived contracts.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
-    function __Liquidator_init(uint256 treasuryPercentMantissa_) internal onlyInitializing {
+    /// @param accessControlManager_ address of access control manager
+    /// @param protocolShareReserve_ The address of the protocol share reserve contract
+    function __Liquidator_init(
+        uint256 treasuryPercentMantissa_,
+        address accessControlManager_,
+        address protocolShareReserve_
+    ) internal onlyInitializing {
         __Ownable2Step_init();
         __ReentrancyGuard_init();
-        __Liquidator_init_unchained(treasuryPercentMantissa_);
+        __Liquidator_init_unchained(treasuryPercentMantissa_, protocolShareReserve_);
+        __AccessControlled_init_unchained(accessControlManager_);
     }
 
     /// @dev Liquidator initializer for derived contracts that doesn't call parent initializers.
     /// @param treasuryPercentMantissa_ Treasury share, scaled by 1e18 (e.g. 0.2 * 1e18 for 20%)
-    function __Liquidator_init_unchained(uint256 treasuryPercentMantissa_) internal onlyInitializing {
+    /// @param protocolShareReserve_ The address of the protocol share reserve contract
+    function __Liquidator_init_unchained(
+        uint256 treasuryPercentMantissa_,
+        address protocolShareReserve_
+    ) internal onlyInitializing {
         validateTreasuryPercentMantissa(treasuryPercentMantissa_);
         treasuryPercentMantissa = treasuryPercentMantissa_;
+        _setProtocolShareReserve(protocolShareReserve_);
     }
 
     /// @notice An admin function to restrict liquidations to allowed addresses only.
     /// @dev Use {addTo,removeFrom}AllowList to configure the allowed addresses.
     /// @param borrower The address of the borrower
-    function restrictLiquidation(address borrower) external onlyOwner {
+    function restrictLiquidation(address borrower) external {
+        _checkAccessAllowed("restrictLiquidation(address)");
         if (liquidationRestricted[borrower]) {
             revert AlreadyRestricted(borrower);
         }
@@ -153,7 +186,8 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
     /// @notice An admin function to remove restrictions for liquidations.
     /// @dev Does not impact the allowedLiquidatorsByAccount mapping for the borrower, just turns off the check.
     /// @param borrower The address of the borrower
-    function unrestrictLiquidation(address borrower) external onlyOwner {
+    function unrestrictLiquidation(address borrower) external {
+        _checkAccessAllowed("unrestrictLiquidation(address)");
         if (!liquidationRestricted[borrower]) {
             revert NoRestrictionsExist(borrower);
         }
@@ -166,7 +200,8 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
     ///         allowedLiquidatorsByAccount mapping can participate in liquidating the positions of this borrower.
     /// @param borrower The address of the borrower
     /// @param borrower The address of the liquidator
-    function addToAllowlist(address borrower, address liquidator) external onlyOwner {
+    function addToAllowlist(address borrower, address liquidator) external {
+        _checkAccessAllowed("addToAllowlist(address,address)");
         if (allowedLiquidatorsByAccount[borrower][liquidator]) {
             revert AlreadyAllowed(borrower, liquidator);
         }
@@ -179,7 +214,8 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
     ///         able to liquidate the positions of this borrower.
     /// @param borrower The address of the borrower
     /// @param borrower The address of the liquidator
-    function removeFromAllowlist(address borrower, address liquidator) external onlyOwner {
+    function removeFromAllowlist(address borrower, address liquidator) external {
+        _checkAccessAllowed("removeFromAllowlist(address,address)");
         if (!allowedLiquidatorsByAccount[borrower][liquidator]) {
             revert AllowlistEntryNotFound(borrower, liquidator);
         }
@@ -187,9 +223,10 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
         emit AllowlistEntryRemoved(borrower, liquidator);
     }
 
-    /// @notice Liquidates a borrow and splits the seized amount between treasury and
+    /// @notice Liquidates a borrow and splits the seized amount between protocol share reserve and
     ///         liquidator. The liquidators should use this interface instead of calling
     ///         vToken.liquidateBorrow(...) directly.
+    /// @notice Checks force VAI liquidation first; vToken should be address of vaiController if vaiDebt is greater than threshold
     /// @notice For BNB borrows msg.value should be equal to repayAmount; otherwise msg.value
     ///      should be zero.
     /// @param vToken Borrowed vToken
@@ -204,6 +241,12 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
     ) external payable nonReentrant {
         ensureNonzeroAddress(borrower);
         checkRestrictions(borrower, msg.sender);
+        (bool isListed, , ) = IComptroller(comptroller).markets(address(vTokenCollateral));
+        if (!isListed) {
+            revert MarketNotListed(address(vTokenCollateral));
+        }
+
+        _checkForceVAILiquidate(vToken, borrower);
         uint256 ourBalanceBefore = vTokenCollateral.balanceOf(address(this));
         if (vToken == address(vBnb)) {
             if (repayAmount != msg.value) {
@@ -223,6 +266,7 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
         uint256 seizedAmount = ourBalanceAfter - ourBalanceBefore;
         (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(vTokenCollateral, seizedAmount);
+        _reduceReservesInternal();
         emit LiquidateBorrowedTokens(
             msg.sender,
             borrower,
@@ -237,14 +281,58 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
     /// @notice Sets the new percent of the seized amount that goes to treasury. Should
     ///         be less than or equal to comptroller.liquidationIncentiveMantissa().sub(1e18).
     /// @param newTreasuryPercentMantissa New treasury percent (scaled by 10^18).
-    function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external onlyOwner {
+    function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external {
+        _checkAccessAllowed("setTreasuryPercent(uint256)");
         validateTreasuryPercentMantissa(newTreasuryPercentMantissa);
         emit NewLiquidationTreasuryPercent(treasuryPercentMantissa, newTreasuryPercentMantissa);
         treasuryPercentMantissa = newTreasuryPercentMantissa;
     }
 
+    /**
+     * @notice Sets protocol share reserve contract address
+     * @param protocolShareReserve_ The address of the protocol share reserve contract
+     */
+    function setProtocolShareReserve(address payable protocolShareReserve_) external onlyOwner {
+        _setProtocolShareReserve(protocolShareReserve_);
+    }
+
+    /**
+     * @notice Reduce the reserves of the pending accumulated reserves
+     */
+    function reduceReserves() external nonReentrant {
+        _reduceReservesInternal();
+    }
+
+    function _reduceReservesInternal() internal {
+        uint256 _pendingRedeemLength = pendingRedeem.length;
+        uint256 range = _pendingRedeemLength >= pendingRedeemChunkLength
+            ? pendingRedeemChunkLength
+            : _pendingRedeemLength;
+        for (uint256 index = range; index > 0; ) {
+            address vToken = pendingRedeem[index - 1];
+            uint256 vTokenBalance_ = IVToken(vToken).balanceOf(address(this));
+            if (_redeemUnderlying(vToken, vTokenBalance_)) {
+                if (vToken == address(vBnb)) {
+                    _reduceBnbReserves();
+                } else {
+                    _reduceVTokenReserves(vToken);
+                }
+                pendingRedeem[index - 1] = pendingRedeem[pendingRedeem.length - 1];
+                pendingRedeem.pop();
+            }
+            unchecked {
+                index--;
+            }
+        }
+    }
+
     /// @dev Transfers BEP20 tokens to self, then approves vToken to take these tokens.
     function _liquidateBep20(IVBep20 vToken, address borrower, uint256 repayAmount, IVToken vTokenCollateral) internal {
+        (bool isListed, , ) = IComptroller(comptroller).markets(address(vToken));
+        if (!isListed) {
+            revert MarketNotListed(address(vToken));
+        }
+
         IERC20Upgradeable borrowedToken = IERC20Upgradeable(vToken.underlying());
         uint256 actualRepayAmount = _transferBep20(borrowedToken, msg.sender, address(this), repayAmount);
         borrowedToken.safeApprove(address(vToken), 0);
@@ -259,23 +347,80 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
         vai.safeApprove(address(vaiController), 0);
         vai.safeApprove(address(vaiController), repayAmount);
 
-        (uint err, ) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
+        (uint256 err, ) = vaiController.liquidateVAI(borrower, repayAmount, vTokenCollateral);
         requireNoError(err);
     }
 
-    /// @dev Splits the received vTokens between the liquidator and treasury.
+    /// @dev Distribute seized collateral between liquidator and protocol share reserve
     function _distributeLiquidationIncentive(
         IVToken vTokenCollateral,
-        uint256 siezedAmount
+        uint256 seizedAmount
     ) internal returns (uint256 ours, uint256 theirs) {
-        (ours, theirs) = _splitLiquidationIncentive(siezedAmount);
+        (ours, theirs) = _splitLiquidationIncentive(seizedAmount);
         if (!vTokenCollateral.transfer(msg.sender, theirs)) {
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }
-        if (!vTokenCollateral.transfer(treasury, ours)) {
-            revert VTokenTransferFailed(address(this), treasury, ours);
+
+        if (ours > 0 && !_redeemUnderlying(address(vTokenCollateral), ours)) {
+            // Check if asset is already present in pendingRedeem array
+            uint256 index;
+            for (index; index < pendingRedeem.length; ) {
+                if (pendingRedeem[index] == address(vTokenCollateral)) {
+                    break;
+                }
+                unchecked {
+                    index++;
+                }
+            }
+            if (index == pendingRedeem.length) {
+                pendingRedeem.push(address(vTokenCollateral));
+            }
+        } else {
+            if (address(vTokenCollateral) == address(vBnb)) {
+                _reduceBnbReserves();
+            } else {
+                _reduceVTokenReserves(address(vTokenCollateral));
+            }
         }
-        return (ours, theirs);
+    }
+
+    /// @dev Wraps BNB to wBNB and sends to protocol share reserve
+    function _reduceBnbReserves() private {
+        uint256 bnbBalance = address(this).balance;
+        IWBNB(wBNB).deposit{ value: bnbBalance }();
+        IERC20Upgradeable(wBNB).safeTransfer(protocolShareReserve, bnbBalance);
+        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
+            address(comptroller),
+            wBNB,
+            IProtocolShareReserve.IncomeType.LIQUIDATION
+        );
+        emit ProtocolLiquidationIncentiveTransferred(msg.sender, wBNB, bnbBalance);
+    }
+
+    /// @dev Redeem seized collateral to underlying assets
+    function _redeemUnderlying(address vToken, uint256 amount) private returns (bool) {
+        try IVToken(address(vToken)).redeem(amount) returns (uint256 response) {
+            if (response == 0) {
+                return true;
+            } else {
+                return false;
+            }
+        } catch {
+            return false;
+        }
+    }
+
+    /// @dev Transfers seized collateral other than BNB to protocol share reserve
+    function _reduceVTokenReserves(address vToken) private {
+        address underlying = IVBep20(vToken).underlying();
+        uint256 underlyingBalance = IERC20Upgradeable(underlying).balanceOf(address(this));
+        IERC20Upgradeable(underlying).safeTransfer(protocolShareReserve, underlyingBalance);
+        IProtocolShareReserve(protocolShareReserve).updateAssetsState(
+            address(comptroller),
+            underlying,
+            IProtocolShareReserve.IncomeType.LIQUIDATION
+        );
+        emit ProtocolLiquidationIncentiveTransferred(msg.sender, underlying, underlyingBalance);
     }
 
     /// @dev Transfers tokens and returns the actual transfer amount
@@ -284,7 +429,7 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
         address from,
         address to,
         uint256 amount
-    ) internal returns (uint256 actualAmount) {
+    ) internal returns (uint256) {
         uint256 prevBalance = token.balanceOf(to);
         token.safeTransferFrom(from, to, amount);
         return token.balanceOf(to) - prevBalance;
@@ -295,11 +440,10 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
         uint256 totalIncentive = comptroller.liquidationIncentiveMantissa();
         ours = (seizedAmount * treasuryPercentMantissa) / totalIncentive;
         theirs = seizedAmount - ours;
-        return (ours, theirs);
     }
 
-    function requireNoError(uint errCode) internal pure {
-        if (errCode == uint(0)) {
+    function requireNoError(uint256 errCode) internal pure {
+        if (errCode == uint256(0)) {
             return;
         }
 
@@ -313,9 +457,73 @@ contract Liquidator is ILiquidator, Ownable2StepUpgradeable, ReentrancyGuardUpgr
     }
 
     function validateTreasuryPercentMantissa(uint256 treasuryPercentMantissa_) internal view {
-        uint256 maxTreasuryPercentMantissa = comptroller.liquidationIncentiveMantissa() - 1e18;
+        uint256 maxTreasuryPercentMantissa = comptroller.liquidationIncentiveMantissa() - MANTISSA_ONE;
         if (treasuryPercentMantissa_ > maxTreasuryPercentMantissa) {
             revert TreasuryPercentTooHigh(maxTreasuryPercentMantissa, treasuryPercentMantissa_);
         }
     }
+
+    /// @dev Checks liquidation action in comptroller and vaiDebt with minLiquidatableVAI threshold
+    function _checkForceVAILiquidate(address vToken_, address borrower_) private view {
+        uint256 _vaiDebt = vaiController.getVAIRepayAmount(borrower_);
+        bool _isVAILiquidationPaused = comptroller.actionPaused(address(vaiController), IComptroller.Action.LIQUIDATE);
+        bool _isForcedLiquidationEnabled = comptroller.isForcedLiquidationEnabled(vToken_);
+        if (
+            _isForcedLiquidationEnabled ||
+            _isVAILiquidationPaused ||
+            !forceVAILiquidate ||
+            _vaiDebt < minLiquidatableVAI ||
+            vToken_ == address(vaiController)
+        ) return;
+        revert VAIDebtTooHigh(_vaiDebt, minLiquidatableVAI);
+    }
+
+    function _setProtocolShareReserve(address protocolShareReserve_) internal {
+        ensureNonzeroAddress(protocolShareReserve_);
+        emit NewProtocolShareReserve(protocolShareReserve, protocolShareReserve_);
+        protocolShareReserve = protocolShareReserve_;
+    }
+
+    /**
+     * @notice Sets the threshold for minimum amount of vaiLiquidate
+     * @param minLiquidatableVAI_ New address for the access control
+     */
+    function setMinLiquidatableVAI(uint256 minLiquidatableVAI_) external {
+        _checkAccessAllowed("setMinLiquidatableVAI(uint256)");
+        emit NewMinLiquidatableVAI(minLiquidatableVAI, minLiquidatableVAI_);
+        minLiquidatableVAI = minLiquidatableVAI_;
+    }
+
+    /**
+     * @notice Length of the pendingRedeem array to be consider while redeeming in Liquidation transaction
+     * @param newLength_ Length of the chunk
+     */
+    function setPendingRedeemChunkLength(uint256 newLength_) external {
+        _checkAccessAllowed("setPendingRedeemChunkLength(uint256)");
+        require(newLength_ > 0, "Invalid chunk size");
+        emit NewPendingRedeemChunkLength(pendingRedeemChunkLength, newLength_);
+        pendingRedeemChunkLength = newLength_;
+    }
+
+    /**
+     * @notice Pause Force Liquidation of VAI
+     */
+    function pauseForceVAILiquidate() external {
+        _checkAccessAllowed("pauseForceVAILiquidate()");
+        require(forceVAILiquidate, "Force Liquidation of VAI is already Paused");
+        forceVAILiquidate = false;
+        emit ForceVAILiquidationPaused(msg.sender);
+    }
+
+    /**
+     * @notice Resume Force Liquidation of VAI
+     */
+    function resumeForceVAILiquidate() external {
+        _checkAccessAllowed("resumeForceVAILiquidate()");
+        require(!forceVAILiquidate, "Force Liquidation of VAI is already resumed");
+        forceVAILiquidate = true;
+        emit ForceVAILiquidationResumed(msg.sender);
+    }
+
+    function renounceOwnership() public override {}
 }

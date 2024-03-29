@@ -25,5 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["InterestRateModel"];
+// These contracts are not deployed on a live network so we only want to try and deploy them locally
+func.skip = async hre => hre.network.name !== "hardhat";
 
 export default func;

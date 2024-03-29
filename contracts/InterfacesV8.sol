@@ -24,6 +24,8 @@ interface IVBep20 is IVToken {
     ) external returns (uint256);
 
     function underlying() external view returns (address);
+
+    function redeemUnderlying(uint256 repayAmount) external returns (uint256);
 }
 
 interface IVBNB is IVToken {
@@ -38,6 +40,8 @@ interface IVAIController {
     ) external returns (uint256, uint256);
 
     function getVAIAddress() external view returns (address);
+
+    function getVAIRepayAmount(address borrower) external view returns (uint256);
 }
 
 interface IComptroller {
@@ -62,6 +66,12 @@ interface IComptroller {
     function liquidatorContract() external view returns (address);
 
     function oracle() external view returns (ResilientOracleInterface);
+
+    function actionPaused(address market, Action action) external view returns (bool);
+
+    function markets(address) external view returns (bool, uint256, bool);
+
+    function isForcedLiquidationEnabled(address) external view returns (bool);
 }
 
 interface ILiquidator {
@@ -83,4 +93,17 @@ interface ILiquidator {
     function setTreasuryPercent(uint256 newTreasuryPercentMantissa) external;
 
     function treasuryPercentMantissa() external view returns (uint256);
+}
+
+interface IProtocolShareReserve {
+    enum IncomeType {
+        SPREAD,
+        LIQUIDATION
+    }
+
+    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
+}
+
+interface IWBNB is IERC20Upgradeable {
+    function deposit() external payable;
 }

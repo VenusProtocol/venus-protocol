@@ -1,27 +1,6 @@
 {
-  "address": "0x0870793286aaDA55D39CE7f82fb2766e8004cF43",
+  "address": "0x0870793286aada55d39ce7f82fb2766e8004cf43",
   "abi": [
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_logic",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "admin_",
-          "type": "address"
-        },
-        {
-          "internalType": "bytes",
-          "name": "_data",
-          "type": "bytes"
-        }
-      ],
-      "stateMutability": "payable",
-      "type": "constructor"
-    },
     {
       "anonymous": false,
       "inputs": [
@@ -149,27 +128,6 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "comptroller_",
-          "type": "address"
-        },
-        {
-          "internalType": "address payable",
-          "name": "vBnb_",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "treasury_",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
           "name": "borrower",
           "type": "address"
         },
@@ -240,6 +198,17 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "vToken",
+          "type": "address"
+        }
+      ],
+      "name": "MarketNotListed",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "borrower",
           "type": "address"
         }
@@ -264,8 +233,40 @@
       "type": "error"
     },
     {
-      "inputs": [],
-      "name": "UnexpectedZeroAddress",
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "calledContract",
+          "type": "address"
+        },
+        {
+          "internalType": "string",
+          "name": "methodSignature",
+          "type": "string"
+        }
+      ],
+      "name": "Unauthorized",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "vaiDebt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minLiquidatableVAI",
+          "type": "uint256"
+        }
+      ],
+      "name": "VAIDebtTooHigh",
       "type": "error"
     },
     {
@@ -306,6 +307,11 @@
       "type": "error"
     },
     {
+      "inputs": [],
+      "name": "ZeroAddressNotAllowed",
+      "type": "error"
+    },
+    {
       "anonymous": false,
       "inputs": [
         {
@@ -341,6 +347,32 @@
         }
       ],
       "name": "AllowlistEntryRemoved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "ForceVAILiquidationPaused",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "ForceVAILiquidationResumed",
       "type": "event"
     },
     {
@@ -436,6 +468,25 @@
       "inputs": [
         {
           "indexed": false,
+          "internalType": "address",
+          "name": "oldAccessControlManager",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAccessControlManager",
+          "type": "address"
+        }
+      ],
+      "name": "NewAccessControlManager",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
           "internalType": "uint256",
           "name": "oldPercent",
           "type": "uint256"
@@ -448,6 +499,63 @@
         }
       ],
       "name": "NewLiquidationTreasuryPercent",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldMinLiquidatableVAI",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newMinLiquidatableVAI",
+          "type": "uint256"
+        }
+      ],
+      "name": "NewMinLiquidatableVAI",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "oldPendingRedeemChunkLength",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newPendingRedeemChunkLength",
+          "type": "uint256"
+        }
+      ],
+      "name": "NewPendingRedeemChunkLength",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "oldProtocolShareReserve",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newProtocolShareReserves",
+          "type": "address"
+        }
+      ],
+      "name": "NewProtocolShareReserve",
       "type": "event"
     },
     {
@@ -489,10 +597,48 @@
       "type": "event"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "reducedAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "ProtocolLiquidationIncentiveTransferred",
+      "type": "event"
+    },
+    {
       "inputs": [],
       "name": "acceptOwnership",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "accessControlManager",
+      "outputs": [
+        {
+          "internalType": "contract IAccessControlManagerV8",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -551,11 +697,34 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "forceVAILiquidate",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "uint256",
           "name": "treasuryPercentMantissa_",
           "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "accessControlManager_",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "protocolShareReserve_",
+          "type": "address"
         }
       ],
       "name": "initialize",
@@ -612,6 +781,19 @@
     },
     {
       "inputs": [],
+      "name": "minLiquidatableVAI",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "owner",
       "outputs": [
         {
@@ -625,6 +807,13 @@
     },
     {
       "inputs": [],
+      "name": "pauseForceVAILiquidate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "pendingOwner",
       "outputs": [
         {
@@ -634,6 +823,45 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "pendingRedeem",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "protocolShareReserve",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "reduceReserves",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -675,6 +903,65 @@
       "type": "function"
     },
     {
+      "inputs": [],
+      "name": "resumeForceVAILiquidate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "accessControlManager_",
+          "type": "address"
+        }
+      ],
+      "name": "setAccessControlManager",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "minLiquidatableVAI_",
+          "type": "uint256"
+        }
+      ],
+      "name": "setMinLiquidatableVAI",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newLength_",
+          "type": "uint256"
+        }
+      ],
+      "name": "setPendingRedeemChunkLength",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address payable",
+          "name": "protocolShareReserve_",
+          "type": "address"
+        }
+      ],
+      "name": "setProtocolShareReserve",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
           "internalType": "uint256",
@@ -698,19 +985,6 @@
       "name": "transferOwnership",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "treasury",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -764,8 +1038,53 @@
       ],
       "stateMutability": "view",
       "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "wBNB",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_logic",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "admin_",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_data",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "constructor"
     }
   ],
-  "numDeployments": 1,
-  "implementation": "0x0be68b10dfb2e303d3d0a51cd8368fb439e46409"
+  "numDeployments": 2,
+  "execute": {
+    "methodName": "initialize",
+    "args": [
+      {
+        "type": "BigNumber",
+        "hex": "0xb1a2bc2ec50000"
+      },
+      "0x4788629abc6cfca10f9f969efdeaa1cf70c23555",
+      "0xF322942f644A996A617BD29c16bd7d231d9F35E9"
+    ]
+  },
+  "implementation": "0xE26cE9b5FDd602225cCcC4cef7FAE596Dcf2A965"
 }

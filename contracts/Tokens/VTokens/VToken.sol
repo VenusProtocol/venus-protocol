@@ -327,7 +327,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Governance function to set new threshold of block difference after which funds will be sent to the protocol share reserve
      * @param newReduceReservesBlockDelta_ block difference value
      */
-    function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external returns (uint) {
+    function setReduceReservesBlockDelta(uint256 newReduceReservesBlockDelta_) external {
         require(newReduceReservesBlockDelta_ > 0, "Invalid Input");
         ensureAllowed("setReduceReservesBlockDelta(uint256)");
         emit NewReduceReservesBlockDelta(reduceReservesBlockDelta, newReduceReservesBlockDelta_);
@@ -338,7 +338,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Sets protocol share reserve contract address
      * @param protcolShareReserve_ The address of protocol share reserve contract
      */
-    function setProtocolShareReserve(address payable protcolShareReserve_) external returns (uint) {
+    function setProtocolShareReserve(address payable protcolShareReserve_) external {
         // Check caller is admin
         ensureAdmin(msg.sender);
         ensureNonZeroAddress(protcolShareReserve_);
@@ -514,7 +514,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         ensureNoMathError(mathErr);
         if (blockDelta >= reduceReservesBlockDelta) {
             reduceReservesBlockNumber = currentBlockNumber;
-            _reduceReservesFresh(totalReservesNew);
+            if (cashPrior < totalReservesNew) {
+                _reduceReservesFresh(cashPrior);
+            } else {
+                _reduceReservesFresh(totalReservesNew);
+            }
         }
 
         /* We emit an AccrueInterest event */
@@ -842,47 +846,68 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Sender redeems vTokens in exchange for the underlying asset
+     * @notice Redeemer redeems vTokens in exchange for the underlying assets, transferred to the receiver. Redeemer and receiver can be the same
+     *   address, or different addresses if the receiver was previously approved by the redeemer as a valid delegate (see MarketFacet.updateDelegate)
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemer The address of the account which is redeeming the tokens
+     * @param receiver The receiver of the tokens
      * @param redeemTokens The number of vTokens to redeem into underlying
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function redeemInternal(uint redeemTokens) internal nonReentrant returns (uint) {
+    function redeemInternal(
+        address redeemer,
+        address payable receiver,
+        uint redeemTokens
+    ) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted redeem failed
             return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
         }
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
-        return redeemFresh(msg.sender, redeemTokens, 0);
+        return redeemFresh(redeemer, receiver, redeemTokens, 0);
     }
 
     /**
-     * @notice Sender redeems vTokens in exchange for a specified amount of underlying asset
+     * @notice Sender redeems underlying assets on behalf of some other address. This function is only available
+     *   for senders, explicitly marked as delegates of the supplier using `comptroller.updateDelegate`
      * @dev Accrues interest whether or not the operation succeeds, unless reverted
+     * @param redeemer The address of the account which is redeeming the tokens
+     * @param receiver The receiver of the tokens, if called by a delegate
      * @param redeemAmount The amount of underlying to receive from redeeming vTokens
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
-    function redeemUnderlyingInternal(uint redeemAmount) internal nonReentrant returns (uint) {
+    function redeemUnderlyingInternal(
+        address redeemer,
+        address payable receiver,
+        uint redeemAmount
+    ) internal nonReentrant returns (uint) {
         uint error = accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted redeem failed
             return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
         }
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
-        return redeemFresh(msg.sender, 0, redeemAmount);
+        return redeemFresh(redeemer, receiver, 0, redeemAmount);
     }
 
     /**
-     * @notice User redeems vTokens in exchange for the underlying asset
+     * @notice Redeemer redeems vTokens in exchange for the underlying assets, transferred to the receiver. Redeemer and receiver can be the same
+     *   address, or different addresses if the receiver was previously approved by the redeemer as a valid delegate (see MarketFacet.updateDelegate)
      * @dev Assumes interest has already been accrued up to the current block
      * @param redeemer The address of the account which is redeeming the tokens
+     * @param receiver The receiver of the tokens
      * @param redeemTokensIn The number of vTokens to redeem into underlying (only one of redeemTokensIn or redeemAmountIn may be non-zero)
      * @param redeemAmountIn The number of underlying tokens to receive from redeeming vTokens (only one of redeemTokensIn or redeemAmountIn may be non-zero)
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     // solhint-disable-next-line code-complexity
-    function redeemFresh(address payable redeemer, uint redeemTokensIn, uint redeemAmountIn) internal returns (uint) {
+    function redeemFresh(
+        address redeemer,
+        address payable receiver,
+        uint redeemTokensIn,
+        uint redeemAmountIn
+    ) internal returns (uint) {
         require(redeemTokensIn == 0 || redeemAmountIn == 0, "one of redeemTokensIn or redeemAmountIn must be zero");
 
         RedeemLocalVars memory vars;
@@ -957,7 +982,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         accountTokens[redeemer] = vars.accountTokensNew;
 
         /*
-         * We invoke doTransferOut for the redeemer and the redeemAmount.
+         * We invoke doTransferOut for the receiver and the redeemAmount.
          *  Note: The vToken must handle variations between BEP-20 and BNB underlying.
          *  On success, the vToken has redeemAmount less of cash.
          *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
@@ -985,7 +1010,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             remainedAmount = vars.redeemAmount;
         }
 
-        doTransferOut(redeemer, remainedAmount);
+        doTransferOut(receiver, remainedAmount);
 
         /* We emit a Transfer event, and a Redeem event */
         emit Transfer(redeemer, address(this), vars.redeemTokens);
@@ -1069,7 +1094,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         totalBorrows = vars.totalBorrowsNew;
 
         /*
-         * We invoke doTransferOut for the borrower and the borrowAmount.
+         * We invoke doTransferOut for the receiver and the borrowAmount.
          *  Note: The vToken must handle variations between BEP-20 and BNB underlying.
          *  On success, the vToken borrowAmount less of cash.
          *  doTransferOut reverts if anything goes wrong, since we can't be sure if side effects occurred.
