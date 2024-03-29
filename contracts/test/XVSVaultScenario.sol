@@ -6,6 +6,10 @@ import "../XVSVault/XVSVault.sol";
 contract XVSVaultScenario is XVSVault {
     using SafeMath for uint256;
 
+    constructor() public {
+        admin = msg.sender;
+    }
+
     function pushOldWithdrawalRequest(
         UserInfo storage _user,
         WithdrawalRequest[] storage _requests,

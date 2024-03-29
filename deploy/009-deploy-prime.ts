@@ -2,7 +2,11 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import ADDRESSES from "../helpers/address";
+import { getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
+
+interface AdminAccounts {
+  [key: string]: string;
+}
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
@@ -17,6 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     [key: string]: number;
   }
   const stakingPeriod: Config = {
+    hardhat: TEN_MINUTES,
     bsctestnet: TEN_MINUTES,
     sepolia: TEN_MINUTES,
     bscmainnet: NINETY_DAYS,
@@ -28,6 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: 0,
     bscmainnet: 0,
     ethereum: 0,
+    hardhat: 0,
   };
 
   const blocksPerYear: Config = {
@@ -35,6 +41,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: 2_628_000, // 12 sec per block
     bscmainnet: 10_512_000,
     ethereum: 2_628_000,
+    hardhat: 100,
   };
 
   const networkName: string = network.name;
@@ -45,26 +52,39 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const loopsLimit = 20;
   const isTimeBased = false; // revise this value when deploying on L2s
 
+  const corePoolAddress = await getContractAddressOrNullAddress(deployments, "Unitroller");
+  const wrappedNativeToken = await getContractAddressOrNullAddress(deployments, "WBNB");
+  const nativeMarket = await getContractAddressOrNullAddress(deployments, "vBNB");
+  const acmAddress = (await deployments.get("AccessControlManager")).address;
+  const xvsVaultAddress = (await deployments.get("XVSVaultProxy")).address;
+  const xvsAddress = (await deployments.get("XVS")).address;
+  const resilientOracleAddress = (await deployments.get("ResilientOracle")).address;
+
+  const adminAccount: AdminAccounts = {
+    sepolia: "0x94fa6078b6b8a26f0b6edffbe6501b22a10470fb", // SEPOLIA MULTISIG
+    ethereum: "0x285960C5B22fD66A736C7136967A3eB15e93CC67", // ETHEREUM MULTISIG
+    opbnbtestnet: "0xb15f6EfEbC276A3b9805df81b5FB3D50C2A62BDf", // OPBNBTESTNET MULTISIG
+    opbnbmainnet: "0xC46796a21a3A9FAB6546aF3434F2eBfFd0604207", // OPBNBMAINNET MULTISIG
+    bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
+    bsctestnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
+  };
+
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
     log: true,
     deterministicDeployment: false,
     args: [isTimeBased, blocksPerYear[networkName]],
     proxy: {
-      owner: ADDRESSES[networkName].normalVipTimelock,
+      owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
-        args: [ADDRESSES[networkName].acm, [], [], [], loopsLimit],
+        args: [acmAddress, [], [], [], loopsLimit],
       },
     },
   });
 
   const plp = await ethers.getContract("PrimeLiquidityProvider");
-
-  const corePoolAddress = ADDRESSES[networkName].unitroller;
-  const wrappedNativeToken = ADDRESSES[networkName].wbnb;
-  const nativeMarket = ADDRESSES[networkName].vbnb;
 
   await deploy("Prime", {
     from: deployer,
@@ -80,34 +100,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       isTimeBased,
     ],
     proxy: {
-      owner: ADDRESSES[networkName].normalVipTimelock,
+      owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
       proxyContract: "OpenZeppelinTransparentProxy",
       execute: {
         methodName: "initialize",
         args: [
-          ADDRESSES[networkName].xvsVault,
-          ADDRESSES[networkName].xvs,
+          xvsVaultAddress,
+          xvsAddress,
           xVSVaultPoolId[networkName],
           xvsVaultAlphaNumerator,
           xvsVaultAlphaDenominator,
-          ADDRESSES[networkName].acm,
+          acmAddress,
           plp.address,
-          corePoolAddress ? corePoolAddress : ZERO_ADDRESS,
-          ADDRESSES[networkName].oracle,
+          corePoolAddress,
+          resilientOracleAddress,
           loopsLimit,
         ],
       },
     },
   });
-
-  const prime = await ethers.getContract("Prime");
-  await prime.initializeV2(ADDRESSES[networkName].poolRegistry);
-
-  console.log("Transferring Prime ownership to Timelock");
-  await prime.transferOwnership(ADDRESSES[networkName].normalVipTimelock);
-
-  console.log("Transferring PLP ownership to Timelock");
-  await plp.transferOwnership(ADDRESSES[networkName].normalVipTimelock);
 };
 
 func.tags = ["Prime"];

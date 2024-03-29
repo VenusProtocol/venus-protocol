@@ -159,6 +159,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const xvsVaultFactory = await ethers.getContractFactory("XVSVaultScenario");
   const xvsVault: XVSVaultScenario = (await xvsVaultFactory.deploy()) as XVSVaultScenario;
+  await xvsVault.initializeTimeManager(false, 10512000);
 
   await xvsStore.setNewOwner(xvsVault.address);
   await xvsVault.setXvsStore(xvs.address, xvsStore.address);

@@ -18,6 +18,9 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     /// @notice Emitted when Venus is granted by admin
     event VenusGranted(address indexed recipient, uint256 amount);
 
+    /// @notice Emitted when XVS are seized for the holder
+    event VenusSeized(address indexed holder, uint256 amount);
+
     using SafeBEP20 for IBEP20;
 
     /**
@@ -84,12 +87,14 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
             "Blacklisted"
         );
 
-        if (amount == 0 || amount > IBEP20(getXVSAddress()).balanceOf(address(this))) {
+        IBEP20 xvs_ = IBEP20(xvs);
+
+        if (amount == 0 || amount > xvs_.balanceOf(address(this))) {
             return amount;
         }
 
         if (shortfall == 0) {
-            IBEP20(getXVSAddress()).safeTransfer(user, amount);
+            xvs_.safeTransfer(user, amount);
             return 0;
         }
         // If user's bankrupt and doesn't use pending xvs as collateral, don't grant
@@ -99,12 +104,11 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         // If mintBehalf failed, don't grant any xvs
         require(collateral, "bankrupt");
 
-        IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), 0);
-        IBEP20(getXVSAddress()).safeApprove(getXVSVTokenAddress(), amount);
-        require(
-            VBep20Interface(getXVSVTokenAddress()).mintBehalf(user, amount) == uint256(Error.NO_ERROR),
-            "mint behalf error"
-        );
+        address xvsVToken_ = xvsVToken;
+
+        xvs_.safeApprove(xvsVToken_, 0);
+        xvs_.safeApprove(xvsVToken_, amount);
+        require(VBep20Interface(xvsVToken_).mintBehalf(user, amount) == uint256(Error.NO_ERROR), "mint behalf error");
 
         // set venusAccrued[user] to 0
         return 0;
@@ -127,11 +131,37 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Return the address of the XVS vToken
-     * @return The address of XVS vToken
+     * @dev Seize XVS tokens from the specified holders and transfer to recipient
+     * @notice Seize XVS rewards allocated to holders
+     * @param holders Addresses of the XVS holders
+     * @param recipient Address of the XVS token recipient
+     * @return The total amount of XVS tokens seized and transferred to recipient
      */
-    function getXVSVTokenAddress() public pure returns (address) {
-        return 0x151B1e2635A717bcDc836ECd6FbB62B674FE3E1D;
+    function seizeVenus(address[] calldata holders, address recipient) external returns (uint256) {
+        ensureAllowed("seizeVenus(address[],address)");
+
+        uint256 holdersLength = holders.length;
+        uint256 totalHoldings;
+
+        updateAndDistributeRewardsInternal(holders, allMarkets, true, true);
+        for (uint256 j; j < holdersLength; ++j) {
+            address holder = holders[j];
+            uint256 userHolding = venusAccrued[holder];
+
+            if (userHolding != 0) {
+                totalHoldings += userHolding;
+                delete venusAccrued[holder];
+            }
+
+            emit VenusSeized(holder, userHolding);
+        }
+
+        if (totalHoldings != 0) {
+            IBEP20(xvs).safeTransfer(recipient, totalHoldings);
+            emit VenusGranted(recipient, totalHoldings);
+        }
+
+        return totalHoldings;
     }
 
     /**
@@ -149,9 +179,45 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         bool suppliers,
         bool collateral
     ) public {
+        uint256 holdersLength = holders.length;
+
+        updateAndDistributeRewardsInternal(holders, vTokens, borrowers, suppliers);
+        for (uint256 j; j < holdersLength; ++j) {
+            address holder = holders[j];
+
+            // If there is a positive shortfall, the XVS reward is accrued,
+            // but won't be granted to this holder
+            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
+
+            uint256 value = venusAccrued[holder];
+            delete venusAccrued[holder];
+
+            uint256 returnAmount = grantXVSInternal(holder, value, shortfall, collateral);
+
+            // returnAmount can only be positive if balance of xvsAddress is less than grant amount(venusAccrued[holder])
+            if (returnAmount != 0) {
+                venusAccrued[holder] = returnAmount;
+            }
+        }
+    }
+
+    /**
+     * @notice Update and distribute tokens
+     * @param holders The addresses to claim XVS for
+     * @param vTokens The list of markets to claim XVS in
+     * @param borrowers Whether or not to claim XVS earned by borrowing
+     * @param suppliers Whether or not to claim XVS earned by supplying
+     */
+    function updateAndDistributeRewardsInternal(
+        address[] memory holders,
+        VToken[] memory vTokens,
+        bool borrowers,
+        bool suppliers
+    ) internal {
         uint256 j;
         uint256 holdersLength = holders.length;
         uint256 vTokensLength = vTokens.length;
+
         for (uint256 i; i < vTokensLength; ++i) {
             VToken vToken = vTokens[i];
             ensureListed(markets[address(vToken)]);
@@ -162,6 +228,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
                     distributeBorrowerVenus(address(vToken), holders[j], borrowIndex);
                 }
             }
+
             if (suppliers) {
                 updateVenusSupplyIndex(address(vToken));
                 for (j = 0; j < holdersLength; ++j) {
@@ -169,22 +236,13 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
                 }
             }
         }
+    }
 
-        for (j = 0; j < holdersLength; ++j) {
-            address holder = holders[j];
-            // If there is a positive shortfall, the XVS reward is accrued,
-            // but won't be granted to this holder
-            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
-
-            uint256 value = venusAccrued[holder];
-            venusAccrued[holder] = 0;
-
-            uint256 returnAmount = grantXVSInternal(holder, value, shortfall, collateral);
-
-            // returnAmount can only be positive if balance of xvsAddress is less than grant amount(venusAccrued[holder])
-            if (returnAmount != 0) {
-                venusAccrued[holder] = returnAmount;
-            }
-        }
+    /**
+     * @notice Returns the XVS vToken address
+     * @return The address of XVS vToken
+     */
+    function getXVSVTokenAddress() external view returns (address) {
+        return xvsVToken;
     }
 }

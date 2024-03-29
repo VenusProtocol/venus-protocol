@@ -127,7 +127,7 @@ describe("Comptroller: assetListTest", () => {
       expect(tokenReply).to.equal(expectedErrors_[i]);
     });
 
-    expect(receipt).to.emit(unitroller, "MarketEntered");
+    await expect(receipt).to.emit(comptroller, "MarketEntered");
     expect(assetsIn).to.deep.equal(expectedTokens.map(t => t.address));
 
     await checkMarkets(expectedTokens);
@@ -181,22 +181,18 @@ describe("Comptroller: assetListTest", () => {
 
   describe("enterMarkets", () => {
     it("properly emits events", async () => {
-      const tx1 = await enterAndCheckMarkets([OMG], [OMG]);
-      const tx2 = await enterAndCheckMarkets([OMG], [OMG]);
-      expect(tx1).to.emit(unitroller, "MarketEntered").withArgs(OMG.address, customer);
-      const tx2Value = await tx2.wait();
-      expect(tx2Value.events?.length).to.be.equals(0);
+      const tx = await enterAndCheckMarkets([OMG], [OMG]);
+      const txValue = await tx.wait();
+      expect(txValue.events?.length).to.be.equals(1);
     });
 
     it("adds to the asset list only once", async () => {
       await enterAndCheckMarkets([OMG], [OMG]);
-      await enterAndCheckMarkets([OMG], [OMG]);
-      await enterAndCheckMarkets([ZRX, BAT, OMG], [OMG, ZRX, BAT]);
-      await enterAndCheckMarkets([ZRX, OMG], [OMG, ZRX, BAT]);
-      await enterAndCheckMarkets([ZRX], [OMG, ZRX, BAT]);
-      await enterAndCheckMarkets([OMG], [OMG, ZRX, BAT]);
-      await enterAndCheckMarkets([ZRX], [OMG, ZRX, BAT]);
-      await enterAndCheckMarkets([BAT], [OMG, ZRX, BAT]);
+      await enterAndCheckMarkets([ZRX, BAT], [OMG, ZRX, BAT]);
+      // try adding again
+      await comptroller.connect(customer).enterMarkets([OMG, ZRX, BAT].map(t => t.address));
+      const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
+      expect(assetsIn).to.deep.equal([OMG, ZRX, BAT].map(t => t.address));
     });
 
     it("the market must be listed for add to succeed", async () => {
@@ -298,8 +294,6 @@ describe("Comptroller: assetListTest", () => {
     it("adds to the asset list only once", async () => {
       await setBalance(await BAT.wallet.getAddress(), 10n ** 18n);
       await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, await customer.getAddress(), 1);
-
-      await enterAndCheckMarkets([BAT], [BAT]);
 
       await comptroller.connect(BAT.wallet).borrowAllowed(BAT.address, await customer.getAddress(), 1);
       const assetsIn = await comptroller.getAssetsIn(await customer.getAddress());
