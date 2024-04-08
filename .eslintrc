@@ -10,8 +10,7 @@
     "project": ".eslinttsconfigrc"
   },
   "plugins": [
-    "@typescript-eslint",
-    "jest"
+    "@typescript-eslint"
   ],
   "root": true,
   "rules": {
@@ -36,8 +35,7 @@
     "no-control-regex": "warn"
   },
   "env": {
-    "node": true,
-    "jest/globals": true
+    "node": true
   },
   "globals": {
     "ethers": "readonly",

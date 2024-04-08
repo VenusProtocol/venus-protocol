@@ -19,7 +19,6 @@ async function fastForwardPatch(patch, comptroller, blocks) {
 }
 
 const fs = require("fs");
-const diffStringsUnified = require("jest-diff").default;
 
 async function preRedeem(vToken, redeemer, redeemTokens, redeemAmount) {
   await preSupply(vToken, redeemer, redeemTokens);
@@ -39,7 +38,6 @@ const getGasCostFile = name => {
 const recordGasCost = (totalFee, key, filename, opcodes = {}) => {
   let fileObj = getGasCostFile(filename);
   const newCost = { fee: totalFee, opcodes: opcodes };
-  console.log(diffStringsUnified(fileObj[key], newCost));
   fileObj[key] = newCost;
   fs.writeFileSync(filename, JSON.stringify(fileObj, null, " "), "utf-8");
 };
