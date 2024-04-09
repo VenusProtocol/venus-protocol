@@ -1,3 +1,12 @@
+## [7.6.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.3...v7.6.0-dev.4) (2024-04-09)
+
+
+### Features
+
+* add deployments of IR for bscmainnet ([b91ad15](https://github.com/VenusProtocol/venus-protocol/commit/b91ad1578434e386cd1f5538a03156533f9ec190))
+* updating deployment files ([ae58d9d](https://github.com/VenusProtocol/venus-protocol/commit/ae58d9df09b3057f5e88a267c3da2a57c559d661))
+* updating deployment files ([cf5baaf](https://github.com/VenusProtocol/venus-protocol/commit/cf5baaf89ee7319bcb2d4fc07866874d18c8075f))
+
 ## [7.6.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.2...v7.6.0-dev.3) (2024-04-09)
 
 
