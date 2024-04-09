@@ -28,7 +28,6 @@
     "JumpRateModel_base0bps_slope10000bps_jump25000bps_kink8000bps": "0x9e8fbACBfbD811Fc561af3Af7df8e38dEd4c52F3",
     "JumpRateModel_base0bps_slope10000bps_jump50000bps_kink8000bps": "0x958F4C84d3ad523Fa9936Dc465A123C7AD43D69B",
     "JumpRateModel_base0bps_slope687bps_jump25000bps_kink8000bps": "0xB105F9B511836cc7dF9F3dD0Ec4873766b5b6660",
-    "JumpRateModel_base2000bps_slope15000bps_jump25000bps_kink8000bps": "0x81908BBaad3f6fC74093540Ab2E9B749BB62aA0d",
     "LINK": "0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD",
     "LTC": "0x4338665CBB7B2485A8855A139b75D5e34AB0DB94",
     "LUNA": "0x156ab3346823B651294766e23e6Cf87254d68962",
