@@ -5,11 +5,19 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
 interface IVToken is IERC20Upgradeable {
+    function accrueInterest() external returns (uint256);
+
     function redeem(uint256 redeemTokens) external returns (uint256);
+
+    function redeemUnderlying(uint256 redeemAmount) external returns (uint256);
 
     function borrowBalanceCurrent(address borrower) external returns (uint256);
 
+    function balanceOfUnderlying(address owner) external returns (uint256);
+
     function comptroller() external view returns (IComptroller);
+
+    function borrowBalanceStored(address account) external view returns (uint256);
 }
 
 interface IVBep20 is IVToken {
@@ -24,11 +32,11 @@ interface IVBep20 is IVToken {
     ) external returns (uint256);
 
     function underlying() external view returns (address);
-
-    function redeemUnderlying(uint256 repayAmount) external returns (uint256);
 }
 
 interface IVBNB is IVToken {
+    function repayBorrowBehalf(address borrower) external payable;
+
     function liquidateBorrow(address borrower, IVToken vTokenCollateral) external payable;
 }
 
