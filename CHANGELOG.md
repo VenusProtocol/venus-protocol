@@ -1,3 +1,11 @@
+## [7.6.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.2...v7.6.0-dev.3) (2024-04-09)
+
+
+### Features
+
+* add redeemAndRepayBatch to the governance helper ([5c7ca53](https://github.com/VenusProtocol/venus-protocol/commit/5c7ca537fa2bfc6fe20cb5147bafaaf76841382d))
+* updating deployment files ([0874d1e](https://github.com/VenusProtocol/venus-protocol/commit/0874d1ec2bc8e23950d7dffb375c808a3f3c6c3d))
+
 ## [7.6.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.1...v7.6.0-dev.2) (2024-03-27)
 
 
