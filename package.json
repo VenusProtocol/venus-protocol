@@ -71,7 +71,6 @@
     "chai": "^4.3.6",
     "eslint": "^8.25.0",
     "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-jest": "^27.1.2",
     "ethers": "^5.7.0",
     "hardhat": "^2.19.2",
     "hardhat-contract-sizer": "^2.8.0",
