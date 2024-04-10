@@ -233,6 +233,13 @@ describe("VAIController", async () => {
       expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(50));
       expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(10));
     });
+
+    it("fails if can't set the new minted amount in comptroller", async () => {
+      comptroller.setMintedVAIOf.returns(42);
+      const tx = vaiController.connect(user1).repayVAI(bigNumber18.mul(60));
+      await expect(tx).to.be.revertedWith("comptroller rejection");
+      comptroller.setMintedVAIOf.reset();
+    });
   });
 
   describe("#getHypotheticalAccountLiquidity", async () => {
@@ -308,7 +315,7 @@ describe("VAIController", async () => {
       await mineUpTo(99999999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
-      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(50));
+      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
       expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(10));
       expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(50));
     });

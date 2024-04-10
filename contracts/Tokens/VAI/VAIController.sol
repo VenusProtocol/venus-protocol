@@ -219,17 +219,15 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
     }
 
     /**
-     * @notice Repay VAI Internal
-     * @notice Borrowed VAIs are repaid by another user (possibly the borrower).
+     * @dev Repay VAI, expecting interest to be accrued
+     * @dev Borrowed VAIs are repaid by another user (possibly the borrower).
      * @param payer the account paying off the VAI
      * @param borrower the account with the debt being payed off
-     * @param repayAmount the amount of VAI being returned
-     * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     * @param repayAmount the amount of VAI being repaid
+     * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
-    function repayVAIFresh(address payer, address borrower, uint repayAmount) internal returns (uint, uint) {
-        MathError mErr;
-
-        (uint burn, uint partOfCurrentInterest, uint partOfPastInterest) = getVAICalculateRepayAmount(
+    function repayVAIFresh(address payer, address borrower, uint256 repayAmount) internal returns (uint256, uint256) {
+        (uint256 burn, uint256 partOfCurrentInterest, uint256 partOfPastInterest) = getVAICalculateRepayAmount(
             borrower,
             repayAmount
         );
@@ -239,25 +237,19 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
         bool success = _vai.transferFrom(payer, receiver, partOfCurrentInterest);
         require(success == true, "failed to transfer VAI fee");
 
-        uint vaiBalanceBorrower = comptroller.mintedVAIs(borrower);
-        uint accountVAINew;
+        uint256 vaiBalanceBorrower = comptroller.mintedVAIs(borrower);
 
-        (mErr, accountVAINew) = subUInt(vaiBalanceBorrower, burn);
-        require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+        uint256 accountVAINew = sub_(sub_(vaiBalanceBorrower, burn), partOfPastInterest);
+        pastVAIInterest[borrower] = sub_(pastVAIInterest[borrower], partOfPastInterest);
 
-        (mErr, accountVAINew) = subUInt(accountVAINew, partOfPastInterest);
-        require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+        uint256 error = comptroller.setMintedVAIOf(borrower, accountVAINew);
+        // We have to revert upon error since side-effects already happened at this point
+        require(error == uint256(Error.NO_ERROR), "comptroller rejection");
 
-        (mErr, pastVAIInterest[borrower]) = subUInt(pastVAIInterest[borrower], partOfPastInterest);
-        require(mErr == MathError.NO_ERROR, "VAI_BURN_AMOUNT_CALCULATION_FAILED");
+        uint256 repaidAmount = add_(burn, partOfCurrentInterest);
+        emit RepayVAI(payer, borrower, repaidAmount);
 
-        uint error = comptroller.setMintedVAIOf(borrower, accountVAINew);
-        if (error != 0) {
-            return (error, 0);
-        }
-        emit RepayVAI(payer, borrower, burn);
-
-        return (uint(Error.NO_ERROR), burn);
+        return (uint256(Error.NO_ERROR), repaidAmount);
     }
 
     /**
