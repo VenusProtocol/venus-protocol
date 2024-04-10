@@ -201,21 +201,41 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
     }
 
     /**
-     * @notice The repay function transfers VAI into the protocol and burn, reducing the user's borrow balance.
+     * @notice The repay function transfers VAI into the protocol and burn, reducing the sender's borrow balance.
      * Before repaying an asset, users must first approve the VAI to access their VAI balance.
-     * @param repayVAIAmount The amount of the VAI to be repaid.
-     * @return 0 on success, otherwise an error code
+     * @param amount The amount of VAI to be repaid.
+     * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
-    function repayVAI(uint repayVAIAmount) external nonReentrant returns (uint, uint) {
-        if (address(comptroller) != address(0)) {
-            accrueVAIInterest();
+    function repayVAI(uint256 amount) external nonReentrant returns (uint256, uint256) {
+        return _repayVAI(msg.sender, amount);
+    }
 
-            require(repayVAIAmount > 0, "repayVAIAmount cannt be zero");
+    /**
+     * @notice The repay function transfers VAI into the protocol and burn, reducing the borrower's borrow balance.
+     * Borrowed VAIs are repaid by another user (possibly the borrower).
+     * @param borrower The account to repay the debt for.
+     * @param amount The amount of VAI to be repaid.
+     * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     */
+    function repayVAIBehalf(address borrower, uint256 amount) external nonReentrant returns (uint256, uint256) {
+        return _repayVAI(borrower, amount);
+    }
 
-            require(!comptroller.protocolPaused(), "protocol is paused");
-
-            return repayVAIFresh(msg.sender, msg.sender, repayVAIAmount);
+    /**
+     * @dev Checks the parameters and the protocol state, accrues interest, and invokes repayVAIFresh.
+     * @param borrower The account to repay the debt for.
+     * @param amount The amount of VAI to be repaid.
+     * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     */
+    function _repayVAI(address borrower, uint256 amount) internal returns (uint256, uint256) {
+        if (address(comptroller) == address(0)) {
+            return (0, 0);
         }
+        _ensureNonzeroAmount(amount);
+        _ensureNotPaused();
+
+        accrueVAIInterest();
+        return repayVAIFresh(msg.sender, borrower, amount);
     }
 
     /**

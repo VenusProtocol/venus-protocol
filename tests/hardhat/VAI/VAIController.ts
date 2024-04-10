@@ -2,6 +2,7 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Wallet, constants } from "ethers";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import {
@@ -239,6 +240,41 @@ describe("VAIController", async () => {
       const tx = vaiController.connect(user1).repayVAI(bigNumber18.mul(60));
       await expect(tx).to.be.revertedWith("comptroller rejection");
       comptroller.setMintedVAIOf.reset();
+    });
+  });
+
+  describe("#repayVAIBehalf", () => {
+    beforeEach(async () => {
+      await vaiController.connect(user1).mintVAI(parseUnits("100", 18));
+      await vai.allocateTo(user2.address, parseUnits("100", 18));
+      await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
+    });
+
+    it("success for zero rate", async () => {
+      await vaiController.connect(user2).repayVAIBehalf(user1.address, parseUnits("100", 18));
+      expect(await vai.balanceOf(user2.address)).to.equal(0);
+      expect(await comptroller.mintedVAIs(user1.address)).to.equal(0);
+    });
+
+    it("success for 1.2 rate repay all", async () => {
+      await vai.allocateTo(user2.address, parseUnits("20", 18));
+      await vaiController.setBaseRate(parseUnits("0.2", 18));
+      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+
+      await vaiController.connect(user2).repayVAIBehalf(user1.address, parseUnits("120", 18));
+      expect(await vai.balanceOf(user2.address)).to.equal(0);
+      expect(await comptroller.mintedVAIs(user1.address)).to.equal(0);
+      expect(await vai.balanceOf(treasuryAddress.address)).to.equal(parseUnits("20", 18));
+    });
+
+    it("success for 1.2 rate repay half", async () => {
+      await vaiController.setBaseRate(parseUnits("0.2", 18));
+      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+
+      await vaiController.connect(user2).repayVAIBehalf(user1.address, parseUnits("60", 18));
+      expect(await vai.balanceOf(user2.address)).to.equal(parseUnits("40", 18));
+      expect(await comptroller.mintedVAIs(user1.address)).to.equal(parseUnits("50", 18));
+      expect(await vai.balanceOf(treasuryAddress.address)).to.equal(parseUnits("10", 18));
     });
   });
 
