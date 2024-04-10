@@ -754,10 +754,10 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
         uint delta;
 
         (mErr, delta) = mulUInt(getVAIRepayRatePerBlock(), getBlockNumber() - accrualBlockNumber);
-        require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
+        require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCRUE_FAILED");
 
         (mErr, delta) = addUInt(delta, vaiMintIndex);
-        require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCURE_FAILED");
+        require(mErr == MathError.NO_ERROR, "VAI_INTEREST_ACCRUE_FAILED");
 
         vaiMintIndex = delta;
         accrualBlockNumber = getBlockNumber();
@@ -805,7 +805,7 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
      * @param newReceiver the address of the VAI fee receiver
      */
     function setReceiver(address newReceiver) external onlyAdmin {
-        require(newReceiver != address(0), "invalid receiver address");
+        _ensureNonzeroAddress(newReceiver);
 
         address old = receiver;
         receiver = newReceiver;
@@ -861,8 +861,18 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
         require(IAccessControlManagerV5(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
-    /// @notice Reverts if the passed address is zero
+    /// @dev Reverts if the protocol is paused
+    function _ensureNotPaused() private view {
+        require(!comptroller.protocolPaused(), "protocol is paused");
+    }
+
+    /// @dev Reverts if the passed address is zero
     function _ensureNonzeroAddress(address someone) private pure {
         require(someone != address(0), "can't be zero address");
+    }
+
+    /// @dev Reverts if the passed amount is zero
+    function _ensureNonzeroAmount(uint256 amount) private pure {
+        require(amount > 0, "amount can't be zero");
     }
 }

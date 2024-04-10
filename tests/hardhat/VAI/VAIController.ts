@@ -528,7 +528,7 @@ describe("VAIController", async () => {
     });
 
     it("reverts if the receiver is zero address", async () => {
-      await expect(vaiController.setReceiver(constants.AddressZero)).to.be.revertedWith("invalid receiver address");
+      await expect(vaiController.setReceiver(constants.AddressZero)).to.be.revertedWith("can't be zero address");
     });
 
     it("emits NewVAIReceiver event", async () => {
