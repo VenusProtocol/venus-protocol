@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.8.13;
+pragma solidity 0.8.25;
 
 // This library is heavily inspired by Uniswap v4 Currency lib
 // (https://github.com/Uniswap/v4-core/blob/b230769238879e1d4f58ffa57a4696b0c390d188/src/types/Currency.sol)

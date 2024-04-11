@@ -111,21 +111,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.8.13",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-          outputSelection: {
-            "*": {
-              "*": ["storageLayout"],
-            },
-          },
-        },
-      },
-      {
-        version: "0.8.20",
+        version: "0.8.25",
         settings: {
           optimizer: {
             enabled: true,
