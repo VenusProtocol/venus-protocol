@@ -1,3 +1,14 @@
+## [8.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.5...v8.0.0-dev.1) (2024-04-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* migrate to Solidity 0.8.25
+
+### Features
+
+* migrate to Solidity 0.8.25 ([3bbb396](https://github.com/VenusProtocol/venus-protocol/commit/3bbb396efb30cb0b5a8a4f19d3bfa930ac9b0b20))
+
 ## [7.6.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.4...v7.6.0-dev.5) (2024-04-10)
 
 ## [7.6.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.3...v7.6.0-dev.4) (2024-04-09)
