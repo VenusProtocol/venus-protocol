@@ -27,6 +27,8 @@
     "InterestRateModelVBNB": "0xF558Be24F2CACb65a4BB41A155631C83B15388F1",
     "JumpRateModel_base0bps_slope10000bps_jump25000bps_kink8000bps": "0x9e8fbACBfbD811Fc561af3Af7df8e38dEd4c52F3",
     "JumpRateModel_base0bps_slope10000bps_jump50000bps_kink8000bps": "0x958F4C84d3ad523Fa9936Dc465A123C7AD43D69B",
+    "JumpRateModel_base0bps_slope1250bps_jump25000bps_kink8000bps": "0x1485A27D95D3d2878a6641055dD3a643F296CCf6",
+    "JumpRateModel_base0bps_slope1250bps_jump50000bps_kink8000bps": "0x9Fca5d66Cc0DF990080825051E825A8104a7ffA4",
     "JumpRateModel_base0bps_slope687bps_jump25000bps_kink8000bps": "0xB105F9B511836cc7dF9F3dD0Ec4873766b5b6660",
     "LINK": "0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD",
     "LTC": "0x4338665CBB7B2485A8855A139b75D5e34AB0DB94",
