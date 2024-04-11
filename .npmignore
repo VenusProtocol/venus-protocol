@@ -16,7 +16,6 @@ tests
 CODE_OF_CONDUCT.md
 Dockerfile
 gasCosts.json
-jest.config.js
 LICENSE
 Makefile
 reporterConfig.json
