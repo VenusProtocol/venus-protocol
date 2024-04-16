@@ -21,7 +21,7 @@ import "./lib.sol";
 
 contract VAI is LibNote {
     // --- Auth ---
-    mapping(address => uint) public wards;
+    mapping(address => uint256) public wards;
 
     function rely(address guy) external note auth {
         wards[guy] = 1;
@@ -43,19 +43,19 @@ contract VAI is LibNote {
     uint8 public constant decimals = 18;
     uint256 public totalSupply;
 
-    mapping(address => uint) public balanceOf;
-    mapping(address => mapping(address => uint)) public allowance;
-    mapping(address => uint) public nonces;
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
+    mapping(address => uint256) public nonces;
 
-    event Approval(address indexed src, address indexed guy, uint wad);
-    event Transfer(address indexed src, address indexed dst, uint wad);
+    event Approval(address indexed src, address indexed guy, uint256 wad);
+    event Transfer(address indexed src, address indexed dst, uint256 wad);
 
     // --- Math ---
-    function add(uint x, uint y) internal pure returns (uint z) {
+    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x + y) >= x, "VAI math error");
     }
 
-    function sub(uint x, uint y) internal pure returns (uint z) {
+    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x - y) <= x, "VAI math error");
     }
 
@@ -78,13 +78,13 @@ contract VAI is LibNote {
     }
 
     // --- Token ---
-    function transfer(address dst, uint wad) external returns (bool) {
+    function transfer(address dst, uint256 wad) external returns (bool) {
         return transferFrom(msg.sender, dst, wad);
     }
 
-    function transferFrom(address src, address dst, uint wad) public returns (bool) {
+    function transferFrom(address src, address dst, uint256 wad) public returns (bool) {
         require(balanceOf[src] >= wad, "VAI/insufficient-balance");
-        if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
+        if (src != msg.sender && allowance[src][msg.sender] != uint256(-1)) {
             require(allowance[src][msg.sender] >= wad, "VAI/insufficient-allowance");
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
@@ -94,15 +94,15 @@ contract VAI is LibNote {
         return true;
     }
 
-    function mint(address usr, uint wad) external auth {
+    function mint(address usr, uint256 wad) external auth {
         balanceOf[usr] = add(balanceOf[usr], wad);
         totalSupply = add(totalSupply, wad);
         emit Transfer(address(0), usr, wad);
     }
 
-    function burn(address usr, uint wad) external {
+    function burn(address usr, uint256 wad) external {
         require(balanceOf[usr] >= wad, "VAI/insufficient-balance");
-        if (usr != msg.sender && allowance[usr][msg.sender] != uint(-1)) {
+        if (usr != msg.sender && allowance[usr][msg.sender] != uint256(-1)) {
             require(allowance[usr][msg.sender] >= wad, "VAI/insufficient-allowance");
             allowance[usr][msg.sender] = sub(allowance[usr][msg.sender], wad);
         }
@@ -111,22 +111,22 @@ contract VAI is LibNote {
         emit Transfer(usr, address(0), wad);
     }
 
-    function approve(address usr, uint wad) external returns (bool) {
+    function approve(address usr, uint256 wad) external returns (bool) {
         allowance[msg.sender][usr] = wad;
         emit Approval(msg.sender, usr, wad);
         return true;
     }
 
     // --- Alias ---
-    function push(address usr, uint wad) external {
+    function push(address usr, uint256 wad) external {
         transferFrom(msg.sender, usr, wad);
     }
 
-    function pull(address usr, uint wad) external {
+    function pull(address usr, uint256 wad) external {
         transferFrom(usr, msg.sender, wad);
     }
 
-    function move(address src, address dst, uint wad) external {
+    function move(address src, address dst, uint256 wad) external {
         transferFrom(src, dst, wad);
     }
 
@@ -153,7 +153,7 @@ contract VAI is LibNote {
         require(holder == ecrecover(digest, v, r, s), "VAI/invalid-permit");
         require(expiry == 0 || now <= expiry, "VAI/permit-expired");
         require(nonce == nonces[holder]++, "VAI/invalid-nonce");
-        uint wad = allowed ? uint(-1) : 0;
+        uint256 wad = allowed ? uint256(-1) : 0;
         allowance[holder][spender] = wad;
         emit Approval(holder, spender, wad);
     }
