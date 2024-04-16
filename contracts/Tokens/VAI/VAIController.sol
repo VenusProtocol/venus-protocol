@@ -75,15 +75,6 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
     /// @notice Emitted when VAI token address is changed by admin
     event NewVaiToken(address oldVaiToken, address newVaiToken);
 
-    /*** Main Actions ***/
-    struct MintLocalVars {
-        uint oErr;
-        MathError mathErr;
-        uint mintAmount;
-        uint accountMintVAINew;
-        uint accountMintableVAI;
-    }
-
     function initialize() external onlyAdmin {
         require(vaiMintIndex == 0, "already initialized");
 
@@ -107,97 +98,61 @@ contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Ex
      * @return 0 on success, otherwise an error code
      */
     // solhint-disable-next-line code-complexity
-    function mintVAI(uint mintVAIAmount) external nonReentrant returns (uint) {
-        if (address(comptroller) != address(0)) {
-            require(mintVAIAmount > 0, "mintVAIAmount cannot be zero");
-            require(!comptroller.protocolPaused(), "protocol is paused");
-
-            accrueVAIInterest();
-
-            MintLocalVars memory vars;
-
-            address minter = msg.sender;
-            address _vai = vai;
-            uint vaiTotalSupply = EIP20Interface(_vai).totalSupply();
-            uint vaiNewTotalSupply;
-
-            (vars.mathErr, vaiNewTotalSupply) = addUInt(vaiTotalSupply, mintVAIAmount);
-            require(vaiNewTotalSupply <= mintCap, "mint cap reached");
-
-            if (vars.mathErr != MathError.NO_ERROR) {
-                return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-            }
-
-            (vars.oErr, vars.accountMintableVAI) = getMintableVAI(minter);
-            if (vars.oErr != uint(Error.NO_ERROR)) {
-                return uint(Error.REJECTION);
-            }
-
-            // check that user have sufficient mintableVAI balance
-            if (mintVAIAmount > vars.accountMintableVAI) {
-                return fail(Error.REJECTION, FailureInfo.VAI_MINT_REJECTION);
-            }
-
-            // Calculate the minted balance based on interest index
-            uint totalMintedVAI = comptroller.mintedVAIs(minter);
-
-            if (totalMintedVAI > 0) {
-                uint256 repayAmount = getVAIRepayAmount(minter);
-                uint remainedAmount;
-
-                (vars.mathErr, remainedAmount) = subUInt(repayAmount, totalMintedVAI);
-                if (vars.mathErr != MathError.NO_ERROR) {
-                    return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-                }
-
-                (vars.mathErr, pastVAIInterest[minter]) = addUInt(pastVAIInterest[minter], remainedAmount);
-                if (vars.mathErr != MathError.NO_ERROR) {
-                    return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-                }
-
-                totalMintedVAI = repayAmount;
-            }
-
-            (vars.mathErr, vars.accountMintVAINew) = addUInt(totalMintedVAI, mintVAIAmount);
-            require(vars.mathErr == MathError.NO_ERROR, "VAI_MINT_AMOUNT_CALCULATION_FAILED");
-            uint error = comptroller.setMintedVAIOf(minter, vars.accountMintVAINew);
-            if (error != 0) {
-                return error;
-            }
-
-            uint feeAmount;
-            uint remainedAmount;
-            vars.mintAmount = mintVAIAmount;
-            if (treasuryPercent != 0) {
-                (vars.mathErr, feeAmount) = mulUInt(vars.mintAmount, treasuryPercent);
-                if (vars.mathErr != MathError.NO_ERROR) {
-                    return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-                }
-
-                (vars.mathErr, feeAmount) = divUInt(feeAmount, 1e18);
-                if (vars.mathErr != MathError.NO_ERROR) {
-                    return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-                }
-
-                (vars.mathErr, remainedAmount) = subUInt(vars.mintAmount, feeAmount);
-                if (vars.mathErr != MathError.NO_ERROR) {
-                    return failOpaque(Error.MATH_ERROR, FailureInfo.MINT_FEE_CALCULATION_FAILED, uint(vars.mathErr));
-                }
-
-                VAI(_vai).mint(treasuryAddress, feeAmount);
-
-                emit MintFee(minter, feeAmount);
-            } else {
-                remainedAmount = vars.mintAmount;
-            }
-
-            VAI(_vai).mint(minter, remainedAmount);
-            vaiMinterInterestIndex[minter] = vaiMintIndex;
-
-            emit MintVAI(minter, remainedAmount);
-
-            return uint(Error.NO_ERROR);
+    function mintVAI(uint256 mintVAIAmount) external nonReentrant returns (uint256) {
+        if (address(comptroller) == address(0)) {
+            return uint256(Error.NO_ERROR);
         }
+
+        _ensureNonzeroAmount(mintVAIAmount);
+        _ensureNotPaused();
+        accrueVAIInterest();
+
+        uint256 err;
+        address minter = msg.sender;
+        address _vai = vai;
+        uint256 vaiTotalSupply = EIP20Interface(_vai).totalSupply();
+
+        uint256 vaiNewTotalSupply = add_(vaiTotalSupply, mintVAIAmount);
+        require(vaiNewTotalSupply <= mintCap, "mint cap reached");
+
+        uint256 accountMintableVAI;
+        (err, accountMintableVAI) = getMintableVAI(minter);
+        require(err == uint256(Error.NO_ERROR), "could not compute mintable amount");
+
+        // check that user have sufficient mintableVAI balance
+        require(mintVAIAmount <= accountMintableVAI, "minting more than allowed");
+
+        // Calculate the minted balance based on interest index
+        uint256 totalMintedVAI = comptroller.mintedVAIs(minter);
+
+        if (totalMintedVAI > 0) {
+            uint256 repayAmount = getVAIRepayAmount(minter);
+            uint256 remainedAmount = sub_(repayAmount, totalMintedVAI);
+            pastVAIInterest[minter] = add_(pastVAIInterest[minter], remainedAmount);
+            totalMintedVAI = repayAmount;
+        }
+
+        uint256 accountMintVAINew = add_(totalMintedVAI, mintVAIAmount);
+        err = comptroller.setMintedVAIOf(minter, accountMintVAINew);
+        require(err == uint256(Error.NO_ERROR), "comptroller rejection");
+
+        uint256 remainedAmount;
+        if (treasuryPercent != 0) {
+            uint256 feeAmount = div_(mul_(mintVAIAmount, treasuryPercent), 1e18);
+            remainedAmount = sub_(mintVAIAmount, feeAmount);
+            VAI(_vai).mint(treasuryAddress, feeAmount);
+
+            emit MintFee(minter, feeAmount);
+        } else {
+            remainedAmount = mintVAIAmount;
+        }
+
+        VAI(_vai).mint(minter, remainedAmount);
+        vaiMinterInterestIndex[minter] = vaiMintIndex;
+
+        emit MintVAI(minter, remainedAmount);
+
+        return uint256(Error.NO_ERROR);
     }
 
     /**

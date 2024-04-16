@@ -194,10 +194,41 @@ describe("VAIController", async () => {
   });
 
   describe("#mintVAI", async () => {
+    const mintAmount = parseUnits("100", 18);
+
     it("success", async () => {
-      await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
-      expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
-      expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(100));
+      await vaiController.connect(user1).mintVAI(mintAmount);
+      expect(await vai.balanceOf(user1.address)).to.eq(mintAmount);
+      expect(await comptroller.mintedVAIs(user1.address)).to.eq(mintAmount);
+    });
+
+    it("fails if there's not enough collateral", async () => {
+      await vusdt.harnessSetBalance(user1.address, 0);
+      const tx = vaiController.connect(user1).mintVAI(mintAmount);
+      await expect(tx).to.be.revertedWith("minting more than allowed");
+    });
+
+    it("fails if minting beyond mint cap", async () => {
+      await vaiController.setMintCap(parseUnits("99", 18));
+      await vaiController.connect(user1).mintVAI(parseUnits("99", 18));
+      const tx = vaiController.connect(user1).mintVAI(1);
+      await expect(tx).to.be.revertedWith("mint cap reached");
+    });
+
+    it("fails if can't set the minted amount in comptroller", async () => {
+      comptroller.setMintedVAIOf.returns(42);
+      const tx = vaiController.connect(user1).mintVAI(mintAmount);
+      await expect(tx).to.be.revertedWith("comptroller rejection");
+      comptroller.setMintedVAIOf.reset();
+    });
+
+    it("puts previously accrued interest to pastInterest", async () => {
+      await vaiController.connect(user1).mintVAI(parseUnits("10", 18));
+      await vaiController.setBaseRate(parseUnits("0.2", 18));
+      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+      await vaiController.connect(user1).mintVAI(parseUnits("20", 18));
+      expect(await comptroller.mintedVAIs(user1.address)).to.eq(parseUnits("32", 18));
+      expect(await vaiController.pastVAIInterest(user1.address)).to.eq(parseUnits("2", 18));
     });
   });
 
