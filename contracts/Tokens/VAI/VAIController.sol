@@ -8,6 +8,7 @@ import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol
 import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 import { VToken, EIP20Interface } from "../VTokens/VToken.sol";
 import { VAIUnitroller, VAIControllerStorageG4 } from "./VAIUnitroller.sol";
+import { VAIControllerInterface } from "./VAIControllerInterface.sol";
 import { VAI } from "./VAI.sol";
 import { IPrime } from "../Prime/IPrime.sol";
 import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
@@ -17,7 +18,7 @@ import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
  * @author Venus
  * @notice This is the implementation contract for the VAIUnitroller proxy
  */
-contract VAIController is VAIControllerStorageG4, VAIControllerErrorReporter, Exponential {
+contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAIControllerErrorReporter, Exponential {
     /// @notice Initial index used in interest computations
     uint public constant INITIAL_VAI_MINT_INDEX = 1e18;
 
