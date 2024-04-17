@@ -50,6 +50,7 @@ extendConfig((config: HardhatConfig) => {
           "node_modules/@venusprotocol/governance-contracts/deployments/opbnbmainnet",
           "node_modules/@venusprotocol/token-bridge/deployments/opbnbmainnet",
         ],
+        arbitrumsepolia: ["node_modules/@venusprotocol/governance-contracts/deployments/arbitrumsepolia"],
       },
     };
   }
