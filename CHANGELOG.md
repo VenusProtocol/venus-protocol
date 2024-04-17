@@ -1,3 +1,74 @@
+## [8.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.5.0...v8.0.0) (2024-04-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* migrate to Solidity 0.8.25
+
+### Features
+
+* add deployments of IR for bscmainnet ([b91ad15](https://github.com/VenusProtocol/venus-protocol/commit/b91ad1578434e386cd1f5538a03156533f9ec190))
+* add redeemAndRepayBatch to the governance helper ([5c7ca53](https://github.com/VenusProtocol/venus-protocol/commit/5c7ca537fa2bfc6fe20cb5147bafaaf76841382d))
+* add VTreasuryV8 deployment on arbitrum sepolia ([850d5b9](https://github.com/VenusProtocol/venus-protocol/commit/850d5b96a7159361e5ecf55ec64c0eb34623c3a0))
+* migrate to Solidity 0.8.25 ([3bbb396](https://github.com/VenusProtocol/venus-protocol/commit/3bbb396efb30cb0b5a8a4f19d3bfa930ac9b0b20))
+* updating deployment files ([ae58d9d](https://github.com/VenusProtocol/venus-protocol/commit/ae58d9df09b3057f5e88a267c3da2a57c559d661))
+* updating deployment files ([0874d1e](https://github.com/VenusProtocol/venus-protocol/commit/0874d1ec2bc8e23950d7dffb375c808a3f3c6c3d))
+* updating deployment files ([cf5baaf](https://github.com/VenusProtocol/venus-protocol/commit/cf5baaf89ee7319bcb2d4fc07866874d18c8075f))
+* updating deployment files ([ec48969](https://github.com/VenusProtocol/venus-protocol/commit/ec48969a6c117e2ea2e2b90b02a96470816659ee))
+* updating deployment files ([b65fb19](https://github.com/VenusProtocol/venus-protocol/commit/b65fb196f1e4c8f723c28485265082f201dc5c8f))
+* updating deployment files ([e6fcaae](https://github.com/VenusProtocol/venus-protocol/commit/e6fcaaef0b3928f801c4372d2ef229ef8ac8c550))
+* updating deployment files ([5a6c3dd](https://github.com/VenusProtocol/venus-protocol/commit/5a6c3ddc30dea5f7bddfbeedc5a70403ad11f454))
+* updating deployment files ([c7eed76](https://github.com/VenusProtocol/venus-protocol/commit/c7eed76887b01622bc26c7504f06436489e2c28a))
+
+
+### Bug Fixes
+
+* added deployments ([913eb66](https://github.com/VenusProtocol/venus-protocol/commit/913eb66d113e86b9c5abe594dc1d0ecd71878eff))
+* backward compatibility ([859458c](https://github.com/VenusProtocol/venus-protocol/commit/859458cb96234727f6211fd1cd454345f672de67))
+* deployed xvs vault ([f06d9bc](https://github.com/VenusProtocol/venus-protocol/commit/f06d9bcf4ffddfa30d21a795381aee864b48ba74))
+* fixed integration tests ([3521609](https://github.com/VenusProtocol/venus-protocol/commit/3521609b019cc9d8b11b8435e1d445a57b992f90))
+* fixed lock period ([ef0ebf1](https://github.com/VenusProtocol/venus-protocol/commit/ef0ebf1adc3bf484f482cdd04ea2b2b4185e5aad))
+* fixed prime test ([2051fbc](https://github.com/VenusProtocol/venus-protocol/commit/2051fbc53eb45926141964adcace4c630a8c9fb6))
+* fixed TimeManagerV5 ([c5aea51](https://github.com/VenusProtocol/venus-protocol/commit/c5aea5157214d3ed5bae2597e77c3bf5ca78f8eb))
+* fork test for testing invalid opcode ([2a8ac14](https://github.com/VenusProtocol/venus-protocol/commit/2a8ac141598873fc521b250e779862d0ee55d4e3))
+* integrated time manager in xvs vault ([acb5538](https://github.com/VenusProtocol/venus-protocol/commit/acb5538d859af9c4a2165bf450e83def2c5b49a6))
+* optimised storage slot ([4d7debd](https://github.com/VenusProtocol/venus-protocol/commit/4d7debdc67141b754217e5286476404eefc5549a))
+* redeployed ([d06b583](https://github.com/VenusProtocol/venus-protocol/commit/d06b5839186fcfedf29199becfbda06cb583b625))
+* resolved conflict ([46d2838](https://github.com/VenusProtocol/venus-protocol/commit/46d2838ad07d994d2b5a499373bb5a55689c3e8b))
+* rpc for arbitrumOne ([8340342](https://github.com/VenusProtocol/venus-protocol/commit/8340342008c1a88e9049acd532c2a434d9ea9736))
+* rpc for arbitrumSepolia ([a0453d4](https://github.com/VenusProtocol/venus-protocol/commit/a0453d4cfd5c5ad494656e180be5cb5ea932dba4))
+* use funcs from utils ([a2a22b2](https://github.com/VenusProtocol/venus-protocol/commit/a2a22b2993c1ac5deb9d8bade5e3ab2c2744cfed))
+
+## [8.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.5...v8.0.0-dev.1) (2024-04-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* migrate to Solidity 0.8.25
+
+### Features
+
+* migrate to Solidity 0.8.25 ([3bbb396](https://github.com/VenusProtocol/venus-protocol/commit/3bbb396efb30cb0b5a8a4f19d3bfa930ac9b0b20))
+
+## [7.6.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.4...v7.6.0-dev.5) (2024-04-10)
+
+## [7.6.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.3...v7.6.0-dev.4) (2024-04-09)
+
+
+### Features
+
+* add deployments of IR for bscmainnet ([b91ad15](https://github.com/VenusProtocol/venus-protocol/commit/b91ad1578434e386cd1f5538a03156533f9ec190))
+* updating deployment files ([ae58d9d](https://github.com/VenusProtocol/venus-protocol/commit/ae58d9df09b3057f5e88a267c3da2a57c559d661))
+* updating deployment files ([cf5baaf](https://github.com/VenusProtocol/venus-protocol/commit/cf5baaf89ee7319bcb2d4fc07866874d18c8075f))
+
+## [7.6.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.2...v7.6.0-dev.3) (2024-04-09)
+
+
+### Features
+
+* add redeemAndRepayBatch to the governance helper ([5c7ca53](https://github.com/VenusProtocol/venus-protocol/commit/5c7ca537fa2bfc6fe20cb5147bafaaf76841382d))
+* updating deployment files ([0874d1e](https://github.com/VenusProtocol/venus-protocol/commit/0874d1ec2bc8e23950d7dffb375c808a3f3c6c3d))
+
 ## [7.6.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v7.6.0-dev.1...v7.6.0-dev.2) (2024-03-27)
 
 

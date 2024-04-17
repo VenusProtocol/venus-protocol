@@ -7,13 +7,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await getNamedAccounts();
   const normalVipTimelockAddress = (await deployments.get("NormalTimelock")).address;
+  const vBNBAddress = (await deployments.get("vBNB")).address;
 
   await deploy("TokenRedeemer", {
     contract: "TokenRedeemer",
     from: deployer,
     log: true,
     autoMine: true,
-    args: [normalVipTimelockAddress],
+    args: [normalVipTimelockAddress, vBNBAddress],
   });
 };
 
