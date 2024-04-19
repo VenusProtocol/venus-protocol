@@ -5,7 +5,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
 import { Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 
-import { IVToken, IVBep20, IVBNB } from "../InterfacesV8.sol";
+import { IVAIController, IVToken, IVBep20, IVBNB } from "../InterfacesV8.sol";
 import { Currency, CurrencyLibrary } from "../lib/Currency.sol";
 
 contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
@@ -103,6 +103,26 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
         Currency.wrap(address(vToken)).transferAll(receiver);
     }
 
+    function batchRepayVAI(
+        IVAIController vaiController,
+        address[] calldata borrowers,
+        address receiver
+    ) external nonReentrant onlyOwner {
+        vaiController.accrueVAIInterest();
+        Currency vai = Currency.wrap(vaiController.getVAIAddress());
+        uint256 balance = vai.balanceOfSelf();
+        vai.approve(address(vaiController), type(uint256).max);
+        uint256 borrowersCount = borrowers.length;
+        for (uint256 i = 0; i < borrowersCount && balance != 0; ++i) {
+            address borrower = borrowers[i];
+            uint256 debt = vaiController.getVAIRepayAmount(borrower);
+            _repayVAI(vaiController, borrower, _min(debt, balance));
+            balance = vai.balanceOfSelf();
+        }
+        vai.approve(address(vaiController), 0);
+        vai.transferAll(receiver);
+    }
+
     function sweepTokens(address token, address destination) external onlyOwner {
         Currency.wrap(token).transferAll(destination);
     }
@@ -135,6 +155,16 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
             if (err != 0) {
                 revert RepaymentFailed(err);
             }
+        }
+    }
+
+    function _repayVAI(IVAIController vaiController, address borrower, uint256 amount) internal {
+        if (amount == 0) {
+            return;
+        }
+        (uint256 err, ) = vaiController.repayVAIBehalf(borrower, amount);
+        if (err != 0) {
+            revert RepaymentFailed(err);
         }
     }
 

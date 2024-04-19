@@ -1,13 +1,21 @@
 import { smock } from "@defi-wonderland/smock";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { BigNumber, BigNumberish } from "ethers";
 import { Interface, parseEther, parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
-import { FaucetToken, TokenRedeemer, TokenRedeemer__factory, VBNB, VBep20 } from "../../../typechain";
+import {
+  FaucetToken,
+  TokenRedeemer,
+  TokenRedeemer__factory,
+  VAI,
+  VAIController,
+  VBNB,
+  VBep20,
+} from "../../../typechain";
 import { deployComptrollerWithMarkets } from "../fixtures/ComptrollerWithMarkets";
 import { FORK_MAINNET, around, forking, initMainnetUser } from "./utils";
 
@@ -60,6 +68,8 @@ interface TokenRedeemerFixture {
   vToken: VBep20;
   vToken2: VBep20;
   vBNB: VBNB;
+  vaiController: VAIController;
+  vai: VAI;
   underlying: FaucetToken;
   underlying2: FaucetToken;
   owner: SignerWithAddress;
@@ -68,9 +78,33 @@ interface TokenRedeemerFixture {
   treasury: SignerWithAddress;
 }
 
+interface VAIControllerFixture {
+  vaiController: VAIController;
+  vai: VAI;
+}
+
+const deployVAIController = async (acmAddress: string): Promise<VAIControllerFixture> => {
+  const vaiControllerFactory = await ethers.getContractFactory("VAIController");
+  const vaiControllerImpl = await vaiControllerFactory.deploy();
+  const vaiUnitrollerFactory = await ethers.getContractFactory("VAIUnitroller");
+  const vaiUnitroller = await vaiUnitrollerFactory.deploy();
+  await vaiUnitroller._setPendingImplementation(vaiControllerImpl.address);
+  await vaiControllerImpl._become(vaiUnitroller.address);
+  const vaiController = await ethers.getContractAt("VAIController", vaiUnitroller.address);
+  await vaiController.initialize();
+  const vaiFactory = await ethers.getContractFactory("VAI");
+  const vai = await vaiFactory.deploy(56);
+  await vai.rely(vaiController.address);
+  await vaiController.setVAIToken(vai.address);
+  await vaiController.setAccessControl(acmAddress);
+  return { vaiController, vai };
+};
+
 const setupLocal = async (): Promise<TokenRedeemerFixture> => {
   const [, owner, supplier, treasury, borrower1, borrower2, borrower3] = await ethers.getSigners();
-  const { comptroller, vTokens, vBNB } = await deployComptrollerWithMarkets({ numBep20Tokens: 2 });
+  const { comptroller, vTokens, vBNB, accessControlManager } = await deployComptrollerWithMarkets({
+    numBep20Tokens: 2,
+  });
   const [vToken, vToken2] = vTokens;
 
   const redeemer = await deployTokenRedeemer(owner, vBNB);
@@ -81,6 +115,11 @@ const setupLocal = async (): Promise<TokenRedeemerFixture> => {
   await comptroller._setCollateralFactor(vToken.address, parseUnits("0.9", 18));
   const underlying = await ethers.getContractAt("FaucetToken", await vToken.underlying());
   const underlying2 = await ethers.getContractAt("FaucetToken", await vToken2.underlying());
+
+  const { vaiController, vai } = await deployVAIController(accessControlManager.address);
+  await comptroller._setVAIController(vaiController.address);
+  await vaiController._setComptroller(comptroller.address);
+  await comptroller._setVAIMintRate(10000);
 
   await underlying.allocateTo(supplier.address, SUPPLIED_AMOUNT);
   await underlying.connect(supplier).approve(vToken.address, SUPPLIED_AMOUNT);
@@ -110,6 +149,8 @@ const setupLocal = async (): Promise<TokenRedeemerFixture> => {
     vToken2,
     underlying2,
     vBNB,
+    vaiController,
+    vai,
     borrowers,
   };
 };
@@ -150,7 +191,34 @@ const setupFork = async (): Promise<TokenRedeemerFixture> => {
     }),
   );
 
-  return { redeemer, supplier, vToken, underlying, owner: timelock, treasury, vToken2, underlying2, vBNB, borrowers };
+  const vaiController = await ethers.getContractAt("VAIController", await comptroller.vaiController(), timelock);
+
+  // @todo: remove the following lines and update the fork block once this upgrade is executed on chain
+  const vaiUnitroller = await ethers.getContractAt("VAIUnitroller", vaiController.address);
+  const vaiControllerFactory = await ethers.getContractFactory("VAIController");
+  const vaiControllerImpl = await vaiControllerFactory.deploy();
+  await vaiUnitroller.connect(timelock)._setPendingImplementation(vaiControllerImpl.address);
+  await vaiControllerImpl.connect(timelock)._become(vaiUnitroller.address);
+
+  await vaiController.setBaseRate(0);
+  await vaiController.setFloatRate(0);
+  await vaiController.toggleOnlyPrimeHolderMint();
+  const vai = await ethers.getContractAt("VAI", await vaiController.getVAIAddress(), timelock);
+
+  return {
+    redeemer,
+    supplier,
+    vToken,
+    underlying,
+    owner: timelock,
+    treasury,
+    vToken2,
+    underlying2,
+    vBNB,
+    vaiController,
+    vai,
+    borrowers,
+  };
 };
 
 const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
@@ -159,6 +227,8 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
     let vToken: VBep20;
     let vToken2: VBep20;
     let vBNB: VBNB;
+    let vaiController: VAIController;
+    let vai: VAI;
     let underlying: FaucetToken;
     let underlying2: FaucetToken;
     let owner: SignerWithAddress;
@@ -168,8 +238,20 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
     let treasury: SignerWithAddress;
 
     beforeEach(async () => {
-      ({ redeemer, vToken, underlying, owner, supplier, treasury, vToken2, underlying2, vBNB, borrowers } =
-        await loadFixture(setup));
+      ({
+        redeemer,
+        vToken,
+        underlying,
+        owner,
+        supplier,
+        treasury,
+        vToken2,
+        underlying2,
+        vBNB,
+        vaiController,
+        vai,
+        borrowers,
+      } = await loadFixture(setup));
       [someone] = await ethers.getSigners();
     });
 
@@ -538,6 +620,95 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
             expect(await underlying2.balanceOf(redeemer.address)).to.equal(0);
           });
         });
+      });
+    });
+
+    describe("batchRepayVAI", () => {
+      let borrower: SignerWithAddress;
+
+      before(() => {
+        borrower = borrowers[0];
+      });
+
+      after(async () => {
+        await ethers.provider.send("evm_setAutomine", [true]);
+      });
+
+      it("fails if called by a non-owner", async () => {
+        await expect(
+          redeemer.connect(someone).batchRepayVAI(vaiController.address, [borrower.address], treasury.address),
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("repays one borrow succesfully", async () => {
+        await vaiController.connect(borrower).mintVAI(BORROWED_AMOUNT);
+        await vai.mint(redeemer.address, BORROWED_AMOUNT);
+        expect(await vaiController.getVAIRepayAmount(borrower.address)).to.equal(BORROWED_AMOUNT);
+        await redeemer.connect(owner).batchRepayVAI(vaiController.address, [borrower.address], treasury.address);
+        expect(await vaiController.getVAIRepayAmount(borrower.address)).to.equal(0);
+      });
+
+      it("repays multiple borrows succesfully and transfers refund to treasury", async () => {
+        for (const borrower of borrowers) {
+          await vaiController.connect(borrower).mintVAI(BORROWED_AMOUNT);
+        }
+        await vai.mint(redeemer.address, BORROWED_AMOUNT.mul(borrowers.length + 1));
+        const tx = await redeemer.connect(owner).batchRepayVAI(
+          vaiController.address,
+          borrowers.map(b => b.address),
+          treasury.address,
+        );
+        for (const borrower of borrowers) {
+          expect(await vaiController.getVAIRepayAmount(borrower.address)).to.equal(0);
+        }
+        await expect(tx).to.changeTokenBalance(vai, treasury.address, BORROWED_AMOUNT);
+      });
+
+      it("partially repays borrows if insufficient VAI", async () => {
+        await vaiController.connect(borrowers[0]).mintVAI(parseUnits("50", 18));
+        await vaiController.connect(borrowers[1]).mintVAI(parseUnits("100", 18));
+        await vaiController.connect(borrowers[2]).mintVAI(parseUnits("200", 18));
+        await vai.mint(redeemer.address, parseUnits("100", 18));
+        await redeemer.connect(owner).batchRepayVAI(
+          vaiController.address,
+          borrowers.map(b => b.address),
+          treasury.address,
+        );
+        expect(await vaiController.getVAIRepayAmount(borrowers[0].address)).to.equal(0);
+        expect(await vaiController.getVAIRepayAmount(borrowers[1].address)).to.equal(parseUnits("50", 18));
+        expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.equal(parseUnits("200", 18));
+      });
+
+      it("can repay small amounts without failure", async () => {
+        await vaiController.connect(borrowers[0]).mintVAI(1);
+        await vaiController.connect(borrowers[1]).mintVAI(2);
+        await vaiController.connect(borrowers[2]).mintVAI(3);
+        await vai.mint(redeemer.address, 3);
+        expect(await vai.balanceOf(redeemer.address)).to.equal(3);
+        await ethers.provider.send("evm_setAutomine", [false]);
+        await vaiController.setBaseRate(parseUnits("105120", 18)); // 1% each block
+        await mine(99);
+        await vaiController.accrueVAIInterest();
+        await mine();
+        // 100 blocks here, so debt before the repayment is twice the initial amount
+        expect(await vaiController.getVAIRepayAmount(borrowers[0].address)).to.equal(2);
+        expect(await vaiController.getVAIRepayAmount(borrowers[1].address)).to.equal(4);
+        expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.equal(6);
+        // We transfer the refund to someone instead of treasury here so that we don't need
+        // to account for interest that is also transferred to treasury
+        const tx = await redeemer.connect(owner).batchRepayVAI(
+          vaiController.address,
+          borrowers.map(b => b.address),
+          someone.address,
+        );
+        await mine();
+        expect(await vaiController.getVAIRepayAmount(borrowers[0].address)).to.equal(0);
+        // The second repayment doesn't happen due to rounding in VAIController
+        expect(await vaiController.getVAIRepayAmount(borrowers[1].address)).to.equal(4);
+        expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.equal(6);
+        await ethers.provider.send("evm_setAutomine", [true]);
+        // Still transfers 1 wei refund to treasury
+        await expect(tx).to.changeTokenBalance(vai, someone.address, 1);
       });
     });
 
