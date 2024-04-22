@@ -157,8 +157,9 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     }
 
     /**
-     * @notice The repay function transfers VAI into the protocol and burn, reducing the sender's borrow balance.
-     * Before repaying an asset, users must first approve the VAI to access their VAI balance.
+     * @notice The repay function transfers VAI interest into the protocol and burns the rest,
+     * reducing the borrower's borrow balance. Before repaying VAI, users must first approve
+     * VAIController to access their VAI balance.
      * @param amount The amount of VAI to be repaid.
      * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
@@ -167,8 +168,9 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     }
 
     /**
-     * @notice The repay function transfers VAI into the protocol and burn, reducing the borrower's borrow balance.
-     * Borrowed VAIs are repaid by another user (possibly the borrower).
+     * @notice The repay on behalf function transfers VAI interest into the protocol and burns the rest,
+     * reducing the borrower's borrow balance. Borrowed VAIs are repaid by another user (possibly the borrower).
+     * Before repaying VAI, the payer must first approve VAIController to access their VAI balance.
      * @param borrower The account to repay the debt for.
      * @param amount The amount of VAI to be repaid.
      * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
