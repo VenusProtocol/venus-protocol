@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -8,9 +8,24 @@ interface AdminAccounts {
   [key: string]: string;
 }
 
+interface Config {
+  [key: string]: number;
+}
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deployer } = await getNamedAccounts();
+
+  const isTimeBased = false; // configure this value if time based deployment
+
+  const blocksPerYear: Config = {
+    bsctestnet: 10_512_000, // 3 sec per block
+    sepolia: 2_628_000, // 12 sec per block
+    arbitrumsepolia: 0, // time based deployment
+    bscmainnet: 10_512_000,
+    ethereum: 2_628_000,
+    hardhat: 100,
+  };
 
   const adminAccount: AdminAccounts = {
     sepolia: "0x94fa6078b6b8a26f0b6edffbe6501b22a10470fb", // SEPOLIA MULTISIG
@@ -31,7 +46,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const xvsVaultProxy = await ethers.getContractAt("XVSVault", xvsVaultProxyDeployment.address);
 
-  let txn = await xvsVaultProxy.setXvsStore(xvs.address, xvsStoreDeployment.address);
+  let txn = await xvsVaultProxy.initializeTimeManager(isTimeBased, blocksPerYear[network.name]);
+  await txn.wait();
+
+  txn = await xvsVaultProxy.setXvsStore(xvs, xvsStoreDeployment.address);
   await txn.wait();
 
   txn = await xvsVaultProxy.setAccessControl(accessControlManager.address);
