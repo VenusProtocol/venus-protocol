@@ -239,6 +239,16 @@ describe("VAIController", async () => {
       await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
     });
 
+    it("reverts if the protocol is paused", async () => {
+      comptroller.protocolPaused.returns(true);
+      try {
+        const tx = vaiController.connect(user1).repayVAI(bigNumber18.mul(100));
+        await expect(tx).to.be.revertedWith("protocol is paused");
+      } finally {
+        comptroller.protocolPaused.reset();
+      }
+    });
+
     it("success for zero rate", async () => {
       await vaiController.connect(user1).repayVAI(bigNumber18.mul(100));
       expect(await vai.balanceOf(user1.address)).to.eq(BigNumber.from(0));
@@ -284,6 +294,16 @@ describe("VAIController", async () => {
     it("reverts if called with borrower = zero address", async () => {
       const tx = vaiController.connect(user2).repayVAIBehalf(ethers.constants.AddressZero, parseUnits("100", 18));
       await expect(tx).to.be.revertedWith("can't be zero address");
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      comptroller.protocolPaused.returns(true);
+      try {
+        const tx = vaiController.connect(user2).repayVAIBehalf(user1.address, parseUnits("100", 18));
+        await expect(tx).to.be.revertedWith("protocol is paused");
+      } finally {
+        comptroller.protocolPaused.reset();
+      }
     });
 
     it("success for zero rate", async () => {
@@ -364,6 +384,16 @@ describe("VAIController", async () => {
       expect(await comptroller.liquidationIncentiveMantissa()).to.eq(bigNumber18);
     });
 
+    it("reverts if the protocol is paused", async () => {
+      comptroller.protocolPaused.returns(true);
+      try {
+        const tx = vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
+        await expect(tx).to.be.revertedWith("protocol is paused");
+      } finally {
+        comptroller.protocolPaused.reset();
+      }
+    });
+
     it("success for zero rate 0.2 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
       await vaiController.harnessSetBlockNumber(BigNumber.from(100000000));
@@ -421,6 +451,16 @@ describe("VAIController", async () => {
       await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
       expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
       await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      comptroller.protocolPaused.returns(true);
+      try {
+        const tx = vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
+        await expect(tx).to.be.revertedWith("protocol is paused");
+      } finally {
+        comptroller.protocolPaused.reset();
+      }
     });
 
     it("success for zero rate", async () => {

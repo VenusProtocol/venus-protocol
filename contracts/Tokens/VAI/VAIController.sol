@@ -241,7 +241,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         uint256 repayAmount,
         VTokenInterface vTokenCollateral
     ) external nonReentrant returns (uint256, uint256) {
-        require(!comptroller.protocolPaused(), "protocol is paused");
+        _ensureNotPaused();
 
         uint256 error = vTokenCollateral.accrueInterest();
         if (error != uint256(Error.NO_ERROR)) {
