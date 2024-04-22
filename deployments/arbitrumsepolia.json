@@ -197,7 +197,7 @@
       ]
     },
     "XVSStore": {
-      "address": "0x3c49eB8FaDD3FdB0a4Bbb40F8A7e3ce821298607",
+      "address": "0x4e909DA6693215dC630104715c035B159dDb67Dd",
       "abi": [
         {
           "inputs": [],
@@ -435,7 +435,7 @@
       ]
     },
     "XVSVaultProxy": {
-      "address": "0xC431A15F5359CdF230c9Bd6b11B538bC2aE2C52B",
+      "address": "0x407507DC2809D3aa31D54EcA3BEde5C5c4C8A17F",
       "abi": [
         {
           "inputs": [],
@@ -684,7 +684,7 @@
       ]
     },
     "XVSVaultProxy_Implementation": {
-      "address": "0xde9b9f7F141AEec2640E4eB34761eB50D2aa1BFD",
+      "address": "0xD806D9859948F57990185AE00555505C9B6EaACE",
       "abi": [
         {
           "inputs": [],
