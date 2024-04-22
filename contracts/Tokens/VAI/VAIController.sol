@@ -174,6 +174,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     function repayVAIBehalf(address borrower, uint256 amount) external nonReentrant returns (uint256, uint256) {
+        _ensureNonzeroAddress(borrower);
         return _repayVAI(borrower, amount);
     }
 

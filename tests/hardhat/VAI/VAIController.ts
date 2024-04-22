@@ -281,6 +281,11 @@ describe("VAIController", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
     });
 
+    it("reverts if called with borrower = zero address", async () => {
+      const tx = vaiController.connect(user2).repayVAIBehalf(ethers.constants.AddressZero, parseUnits("100", 18));
+      await expect(tx).to.be.revertedWith("can't be zero address");
+    });
+
     it("success for zero rate", async () => {
       await vaiController.connect(user2).repayVAIBehalf(user1.address, parseUnits("100", 18));
       expect(await vai.balanceOf(user2.address)).to.equal(0);
