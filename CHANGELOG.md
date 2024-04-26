@@ -1,3 +1,12 @@
+## [8.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v8.0.0...v8.1.0-dev.1) (2024-04-26)
+
+
+### Features
+
+* add deployments for XVSVault on arbitrum sepolia ([bdb1a21](https://github.com/VenusProtocol/venus-protocol/commit/bdb1a219f9c329af11f456edec6443d964840956))
+* updating deployment files ([2782c68](https://github.com/VenusProtocol/venus-protocol/commit/2782c68c55d42edb43610be5c1c42d5467e77480))
+* updating deployment files ([cbf20db](https://github.com/VenusProtocol/venus-protocol/commit/cbf20dbb8c5968c218d72aee4063e9b2a180740f))
+
 ## [8.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.5.0...v8.0.0) (2024-04-11)
 
 
