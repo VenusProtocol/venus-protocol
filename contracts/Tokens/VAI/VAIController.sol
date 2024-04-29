@@ -456,7 +456,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
          * We use this formula to calculate mintable VAI amount.
          * totalSupplyAmount * VAIMintRate - (totalBorrowAmount + mintedVAIOf)
          */
-        for (i = 0; i < enteredMarkets.length; i++) {
+        uint256 marketsCount = enteredMarkets.length;
+        for (i = 0; i < marketsCount; i++) {
             (vars.oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = enteredMarkets[i]
                 .getAccountSnapshot(minter);
             if (vars.oErr != 0) {
