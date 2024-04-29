@@ -95,6 +95,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     /**
      * @notice The mintVAI function mints and transfers VAI from the protocol to the user, and adds a borrow balance.
      * The amount minted must be less than the user's Account Liquidity and the mint vai limit.
+     * @dev If the Comptroller address is not set, minting is a no-op and the function returns the success code.
      * @param mintVAIAmount The amount of the VAI to be minted.
      * @return 0 on success, otherwise an error code
      */
@@ -160,6 +161,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @notice The repay function transfers VAI interest into the protocol and burns the rest,
      * reducing the borrower's borrow balance. Before repaying VAI, users must first approve
      * VAIController to access their VAI balance.
+     * @dev If the Comptroller address is not set, repayment is a no-op and the function returns the success code.
      * @param amount The amount of VAI to be repaid.
      * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
@@ -171,6 +173,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @notice The repay on behalf function transfers VAI interest into the protocol and burns the rest,
      * reducing the borrower's borrow balance. Borrowed VAIs are repaid by another user (possibly the borrower).
      * Before repaying VAI, the payer must first approve VAIController to access their VAI balance.
+     * @dev If the Comptroller address is not set, repayment is a no-op and the function returns the success code.
      * @param borrower The account to repay the debt for.
      * @param amount The amount of VAI to be repaid.
      * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
@@ -182,6 +185,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
 
     /**
      * @dev Checks the parameters and the protocol state, accrues interest, and invokes repayVAIFresh.
+     * @dev If the Comptroller address is not set, repayment is a no-op and the function returns the success code.
      * @param borrower The account to repay the debt for.
      * @param amount The amount of VAI to be repaid.
      * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
@@ -258,6 +262,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     /**
      * @notice The liquidator liquidates the borrowers collateral by repay borrowers VAI.
      *  The collateral seized is transferred to the liquidator.
+     * @dev If the Comptroller address is not set, liquidation is a no-op and the function returns the success code.
      * @param liquidator The address repaying the VAI and seizing collateral
      * @param borrower The borrower of this VAI to be liquidated
      * @param vTokenCollateral The market in which to seize collateral from the borrower
