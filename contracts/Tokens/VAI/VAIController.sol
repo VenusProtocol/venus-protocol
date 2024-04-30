@@ -163,7 +163,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * VAIController to access their VAI balance.
      * @dev If the Comptroller address is not set, repayment is a no-op and the function returns the success code.
      * @param amount The amount of VAI to be repaid.
-     * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     * @return Error code (0=success, otherwise a failure, see ErrorReporter.sol)
+     * @return Actual repayment amount
      */
     function repayVAI(uint256 amount) external nonReentrant returns (uint256, uint256) {
         return _repayVAI(msg.sender, amount);
@@ -176,7 +177,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @dev If the Comptroller address is not set, repayment is a no-op and the function returns the success code.
      * @param borrower The account to repay the debt for.
      * @param amount The amount of VAI to be repaid.
-     * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     * @return Error code (0=success, otherwise a failure, see ErrorReporter.sol)
+     * @return Actual repayment amount
      */
     function repayVAIBehalf(address borrower, uint256 amount) external nonReentrant returns (uint256, uint256) {
         _ensureNonzeroAddress(borrower);
@@ -188,7 +190,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @dev If the Comptroller address is not set, repayment is a no-op and the function returns the success code.
      * @param borrower The account to repay the debt for.
      * @param amount The amount of VAI to be repaid.
-     * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     * @return Error code (0=success, otherwise a failure, see ErrorReporter.sol)
+     * @return Actual repayment amount
      */
     function _repayVAI(address borrower, uint256 amount) internal returns (uint256, uint256) {
         if (address(comptroller) == address(0)) {
@@ -207,7 +210,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @param payer the account paying off the VAI
      * @param borrower the account with the debt being payed off
      * @param repayAmount the amount of VAI being repaid
-     * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     * @return Error code (0=success, otherwise a failure, see ErrorReporter.sol)
+     * @return Actual repayment amount
      */
     function repayVAIFresh(address payer, address borrower, uint256 repayAmount) internal returns (uint256, uint256) {
         (uint256 burn, uint256 partOfCurrentInterest, uint256 partOfPastInterest) = getVAICalculateRepayAmount(
@@ -240,7 +244,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @param borrower The borrower of vai to be liquidated
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @param repayAmount The amount of the underlying borrowed asset to repay
-     * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
+     * @return Error code (0=success, otherwise a failure, see ErrorReporter.sol)
+     * @return Actual repayment amount
      */
     function liquidateVAI(
         address borrower,
@@ -267,7 +272,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @param borrower The borrower of this VAI to be liquidated
      * @param vTokenCollateral The market in which to seize collateral from the borrower
      * @param repayAmount The amount of the VAI to repay
-     * @return (uint256, uint256) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment VAI.
+     * @return Error code (0=success, otherwise a failure, see ErrorReporter.sol)
+     * @return Actual repayment amount
      */
     function liquidateVAIFresh(
         address liquidator,
@@ -436,7 +442,8 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @notice Function that returns the amount of VAI a user can mint based on their account liquidy and the VAI mint rate
      * If mintEnabledOnlyForPrimeHolder is true, only Prime holders are able to mint VAI
      * @param minter The account to check mintable VAI
-     @return (uint256, uint256) Tuple of error code and mintable VAI. Error 0 means no error. Mintable amount has 18 decimals
+     * @return Error code (0=success, otherwise a failure, see ErrorReporter.sol for details)
+     * @return Mintable amount (with 18 decimals)
      */
     // solhint-disable-next-line code-complexity
     function getMintableVAI(address minter) public view returns (uint256, uint256) {
@@ -676,8 +683,9 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @notice Calculate how much VAI the user needs to repay
      * @param borrower The address of the VAI borrower
      * @param repayAmount The amount of VAI being returned
-     * @return (uint256, uint256, uint256) Amount of VAI to be burned, amount of VAI the user needs to pay in current interest
-     *   and amount of VAI the user needs to pay in past interest
+     * @return Amount of VAI to be burned
+     * @return Amount of VAI the user needs to pay in current interest
+     * @return Amount of VAI the user needs to pay in past interest
      */
     function getVAICalculateRepayAmount(
         address borrower,
