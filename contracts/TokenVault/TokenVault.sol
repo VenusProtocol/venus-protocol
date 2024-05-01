@@ -37,19 +37,23 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
     /// @notice Event emitted when tokens are updated
     event UpdateTokens(address token, bool isAdded);
 
+    /// @notice Event Emitted when lock period of token is set
+    event SetLockPeriod(address token, uint128 lockPeriod);
+
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    constructor(address _token, bool _timeBased, uint256 _blocksPerYear) TimeManagerV8(_timeBased, _blocksPerYear) {
-        ensureNonzeroAddress(_token);
-        tokens[_token] = true;
-    }
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(bool _timeBased, uint256 _blocksPerYear) TimeManagerV8(_timeBased, _blocksPerYear) {}
 
     /**
      * @notice Initialize the contract
      * @param _accessControlManager  Address of access control manager
+     * @param _token Address of token
      */
-    function initialize(address _accessControlManager) external initializer {
+    function initialize(address _accessControlManager, address _token) external initializer {
         ensureNonzeroAddress(_accessControlManager);
+        ensureNonzeroAddress(_token);
+        tokens[_token] = true;
         accessControlManager = _accessControlManager;
     }
 
@@ -68,6 +72,20 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
     }
 
     /**
+     * @notice Sets Lock period of particular token
+     * @param _token Address of token
+     * @param _lockPeriod  Minimum time between withdrawal request and its execution
+     * @custom:event Emit SetLockPeriod with token and its lock period
+     * @custom:access Controlled by Access Control Manager
+     */
+    function setLockPeriod(address _token, uint128 _lockPeriod) external {
+        _ensureAllowed("setLockPeriod(address,uint128)");
+        require(tokens[_token], "TokenVault::setLockPeriod: token is not registered");
+        tokenLockPeriod[_token] = _lockPeriod;
+        emit SetLockPeriod(_token, _lockPeriod);
+    }
+
+    /**
      * @notice Deposit token to TokenVault
      * @param _token Address of token to be deposited
      * @param _amount Amount of token to be deposited
@@ -76,9 +94,9 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
     function deposit(address _token, uint256 _amount) external nonReentrant whenNotPaused {
         require(tokens[_token], "TokenVault::deposit: token is not registered");
         require(_amount > 0, "TokenVault::deposit: invalid amount");
-        UserInfo storage user = userInfos[msg.sender][_token];
+        UserInfo storage user = userInfos[_token][msg.sender];
         IERC20Upgradeable(_token).safeTransferFrom(msg.sender, address(this), _amount);
-        userInfos[msg.sender][_token].amount = user.amount + _amount;
+        userInfos[_token][msg.sender].amount = user.amount + _amount;
         _moveDelegates(address(0), delegates[msg.sender], _amount, _token);
         emit Deposit(msg.sender, _token, _amount);
     }
@@ -90,8 +108,8 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
      */
     function executeWithdrawal(address _token) external nonReentrant whenNotPaused {
         require(tokens[_token], "TokenVault::executeWithdrawal: token is not registered");
-        UserInfo storage user = userInfos[msg.sender][_token];
-        WithdrawalRequest[] storage requests = withdrawalRequests[msg.sender][_token];
+        UserInfo storage user = userInfos[_token][msg.sender];
+        WithdrawalRequest[] storage requests = withdrawalRequests[_token][msg.sender];
 
         uint256 withdrawalAmount;
 
@@ -102,6 +120,24 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
         IERC20Upgradeable(_token).safeTransfer(address(msg.sender), withdrawalAmount);
         totalPendingWithdrawals[_token] = totalPendingWithdrawals[_token] - withdrawalAmount;
         emit ExecutedWithdrawal(msg.sender, _token, withdrawalAmount);
+    }
+
+    /**
+     * @notice Pause the vault
+     * @custom:access Controlled by Access Controlled Manager
+     */
+    function pause() external {
+        _ensureAllowed("pause()");
+        _pause();
+    }
+
+    /**
+     * @notice Unpause the vault
+     * @custom:access Controlled by Access Controlled Manager
+     */
+    function unpause() external {
+        _ensureAllowed("unpause()");
+        _unpause();
     }
 
     /**
@@ -160,7 +196,7 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
      * @return Total amount of requested but not yet executed withdrawals (including both executable and locked ones)
      */
     function getRequestedAmount(address _token, address _user) external view returns (uint256) {
-        require(tokens[_token], "TokenVault::getRequestedAmount: token is not reistered");
+        require(tokens[_token], "TokenVault::getRequestedAmount: token is not registered");
         UserInfo storage user = userInfos[_token][_user];
         return user.pendingWithdrawals;
     }
@@ -172,7 +208,7 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
      * @return An array of withdrawal requests
      */
     function getWithdrawalRequests(address _token, address _user) external view returns (WithdrawalRequest[] memory) {
-        require(tokens[_token], "TokenVault::getWithdrawalRequests: token is not reistered");
+        require(tokens[_token], "TokenVault::getWithdrawalRequests: token is not registered");
         return withdrawalRequests[_token][_user];
     }
 
@@ -232,7 +268,7 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
         address _token,
         address _user
     ) external view returns (uint256 amount, uint256 pendingWithdrawals) {
-        require(tokens[_token], "TokenVault::getUserInfo: token is not reistered");
+        require(tokens[_token], "TokenVault::getUserInfo: token is not registered");
         UserInfo storage user = userInfos[_token][_user];
         amount = user.amount;
         pendingWithdrawals = user.pendingWithdrawals;
@@ -244,6 +280,7 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
      * @param _token Address of token
      */
     function delegate(address _delegatee, address _token) external whenNotPaused {
+        require(tokens[_token], "TokenVault::delegate: token is not registered");
         return _delegate(msg.sender, _delegatee, _token);
     }
 
@@ -452,7 +489,7 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
      * @return The balance that user staked
      */
     function getStakeAmount(address _account, address _token) internal view returns (uint256) {
-        require(tokens[_token], "TokenVault::getStakeAmount: token is not reistered");
+        require(tokens[_token], "TokenVault::getStakeAmount: token is not registered");
         UserInfo storage user = userInfos[_token][_account];
         return user.amount - (user.pendingWithdrawals);
     }
