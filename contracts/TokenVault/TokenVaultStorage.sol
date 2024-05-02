@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity ^0.8.25;
+pragma solidity 0.8.25;
 
 contract TokenVaultStorage {
     /// @notice Info of each user.
@@ -19,9 +19,6 @@ contract TokenVaultStorage {
         uint32 fromBlockOrSecond;
         uint256 votes;
     }
-
-    // Access Control Manager
-    address public accessControlManager;
 
     /// @notice The EIP-712 typehash for the contract's domain
     bytes32 public constant DOMAIN_TYPEHASH =

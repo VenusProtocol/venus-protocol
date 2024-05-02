@@ -1,3 +1,4 @@
+import { FakeContract, smock } from "@defi-wonderland/smock";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
@@ -5,21 +6,21 @@ import { BigNumber } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
-import { MockToken, TokenVault } from "../../../typechain";
+import { IAccessControlManagerV8, MockToken, TokenVault } from "../../../typechain";
 
 describe("TokenVault", async () => {
   let deployer: SignerWithAddress;
   let signer1: SignerWithAddress;
   let tokenVault: TokenVault;
-  let accessControlManager;
+  let accessControlManager: FakeContract<IAccessControlManagerV8>;
   let token: MockToken;
   let amount: BigNumber;
 
   const tokenVaultFixture = async () => {
     [deployer, signer1] = await ethers.getSigners();
     amount = parseUnits("10", 18);
-    const accessControlManagerFactory = await ethers.getContractFactory("AccessControlManager");
-    accessControlManager = await accessControlManagerFactory.deploy();
+    accessControlManager = await smock.fake<IAccessControlManagerV8>("AccessControlManager");
+    accessControlManager.isAllowedToCall.returns(true);
     const tokenFactory = await ethers.getContractFactory("MockToken");
     token = await tokenFactory.deploy("MockToken", "MT", 18);
     const tokenVaultFactory = await ethers.getContractFactory("TokenVault");
@@ -28,25 +29,6 @@ describe("TokenVault", async () => {
       initializer: "initialize",
       unsafeAllow: ["constructor"],
     });
-
-    let tx = await accessControlManager.giveCallPermission(
-      tokenVault.address,
-      "updateTokens(address,bool)",
-      deployer.address,
-    );
-    await tx.wait();
-    tx = await accessControlManager.giveCallPermission(
-      tokenVault.address,
-      "setLockPeriod(address,uint128)",
-      deployer.address,
-    );
-    await tx.wait();
-
-    tx = await accessControlManager.giveCallPermission(tokenVault.address, "pause()", deployer.address);
-    await tx.wait();
-
-    tx = await accessControlManager.giveCallPermission(tokenVault.address, "unpause()", deployer.address);
-    await tx.wait();
 
     await tokenVault.setLockPeriod(token.address, 300);
     await token.faucet(parseUnits("100", 18));

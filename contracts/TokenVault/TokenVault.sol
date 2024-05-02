@@ -2,12 +2,11 @@
 
 pragma solidity 0.8.25;
 
-import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { TimeManagerV8 } from "@venusprotocol/solidity-utilities/contracts/TimeManagerV8.sol";
@@ -18,7 +17,13 @@ import { TokenVaultStorage } from "./TokenVaultStorage.sol";
  * @author Venus
  * @notice Token vault is a generic vault that can support multiple token. User can lock their supported token in the TokenVault to receive voting rights in Venus governance.
  */
-contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, TokenVaultStorage {
+contract TokenVault is
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    TimeManagerV8,
+    AccessControlledV8,
+    TokenVaultStorage
+{
     /// @notice Event emitted when deposit
     event Deposit(address indexed user, address indexed token, uint256 indexed amount);
 
@@ -56,7 +61,7 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
         ensureNonzeroAddress(_accessControlManager);
         ensureNonzeroAddress(_token);
         tokens[_token] = true;
-        accessControlManager = _accessControlManager;
+        __AccessControlled_init(_accessControlManager);
     }
 
     /**
@@ -67,7 +72,7 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
      * @custom:event Emit UpdateTokens with address of token and its bool value
      */
     function updateTokens(address _token, bool _isAdded) external {
-        _ensureAllowed("updateTokens(address,bool)");
+        _checkAccessAllowed("updateTokens(address,bool)");
         ensureNonzeroAddress(address(_token));
         tokens[_token] = _isAdded;
         emit UpdateTokens(_token, _isAdded);
@@ -81,7 +86,7 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
      * @custom:access Controlled by Access Control Manager
      */
     function setLockPeriod(address _token, uint128 _lockPeriod) external {
-        _ensureAllowed("setLockPeriod(address,uint128)");
+        _checkAccessAllowed("setLockPeriod(address,uint128)");
         isTokenRegistered(_token);
         tokenLockPeriod[_token] = _lockPeriod;
         emit SetLockPeriod(_token, _lockPeriod);
@@ -130,7 +135,7 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
      * @custom:access Controlled by Access Controlled Manager
      */
     function pause() external {
-        _ensureAllowed("pause()");
+        _checkAccessAllowed("pause()");
         _pause();
     }
 
@@ -139,7 +144,7 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
      * @custom:access Controlled by Access Controlled Manager
      */
     function unpause() external {
-        _ensureAllowed("unpause()");
+        _checkAccessAllowed("unpause()");
         _unpause();
     }
 
@@ -321,16 +326,6 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
     }
 
     /**
-     * @notice Set Access Control Manager
-     * @param _accessControlManager Address of Access Control Manager
-     */
-    function setAccessControlManager(address _accessControlManager) external {
-        _ensureAllowed("setAccessControlManager(address)");
-        ensureNonzeroAddress(_accessControlManager);
-        accessControlManager = _accessControlManager;
-    }
-
-    /**
      * @notice Gets the current votes balance for `account`
      * @param _account The address to get votes balance
      * @param _token Address of token
@@ -498,17 +493,6 @@ contract TokenVault is Pausable, ReentrancyGuard, Initializable, TimeManagerV8, 
     function getStakeAmount(address _account, address _token) internal view returns (uint256) {
         UserInfo storage user = userInfos[_token][_account];
         return user.amount - (user.pendingWithdrawals);
-    }
-
-    /**
-     * @dev Ensure that the caller has permission to execute a specific function
-     * @param functionSig_ Function signature to be checked for permission
-     */
-    function _ensureAllowed(string memory functionSig_) internal view {
-        require(
-            IAccessControlManagerV8(accessControlManager).isAllowedToCall(msg.sender, functionSig_),
-            "access denied"
-        );
     }
 
     /**
