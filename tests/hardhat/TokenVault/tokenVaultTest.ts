@@ -21,7 +21,7 @@ describe("TokenVault", async () => {
     const accessControlManagerFactory = await ethers.getContractFactory("AccessControlManager");
     accessControlManager = await accessControlManagerFactory.deploy();
     const tokenFactory = await ethers.getContractFactory("MockToken");
-    token = await tokenFactory.deploy("HARD_Token", "HARD", 18);
+    token = await tokenFactory.deploy("MockToken", "MT", 18);
     const tokenVaultFactory = await ethers.getContractFactory("TokenVault");
     tokenVault = await upgrades.deployProxy(tokenVaultFactory, [accessControlManager.address, token.address], {
       constructorArgs: [false, 10512000],
@@ -65,10 +65,14 @@ describe("TokenVault", async () => {
     it("Reverts if token is not registered or zero amount is given ", async () => {
       const tokenFactory = await ethers.getContractFactory("MockToken");
       const dummyToken = await tokenFactory.deploy("DUMMY_Token", "DUMMY", 18);
-      await expect(tokenVault.deposit(dummyToken.address, amount)).to.be.revertedWith(
-        "TokenVault::deposit: token is not registered",
+      await expect(tokenVault.deposit(dummyToken.address, amount)).to.be.revertedWithCustomError(
+        tokenVault,
+        "UnregisteredToken",
       );
-      await expect(tokenVault.deposit(token.address, 0)).to.be.revertedWith("TokenVault::deposit: invalid amount");
+      await expect(tokenVault.deposit(token.address, 0)).to.be.revertedWithCustomError(
+        tokenVault,
+        "ZeroAmountNotAllowed",
+      );
     });
     it("Reverts if vault is paused", async () => {
       await tokenVault.pause();
@@ -84,8 +88,9 @@ describe("TokenVault", async () => {
     it("Reverts if token is not registered", async () => {
       const tokenFactory = await ethers.getContractFactory("MockToken");
       const dummyToken = await tokenFactory.deploy("DUMMY_Token", "DUMMY", 18);
-      await expect(tokenVault.delegate(signer1.address, dummyToken.address)).to.be.revertedWith(
-        "TokenVault::delegate: token is not registered",
+      await expect(tokenVault.delegate(signer1.address, dummyToken.address)).to.be.revertedWithCustomError(
+        tokenVault,
+        "UnregisteredToken",
       );
     });
     it("Delegate successfully", async () => {
@@ -133,21 +138,25 @@ describe("TokenVault", async () => {
     it("Reverts if token is not registered", async () => {
       const tokenFactory = await ethers.getContractFactory("MockToken");
       const dummyToken = await tokenFactory.deploy("DUMMY_Token", "DUMMY", 18);
-      await expect(tokenVault.requestWithdrawal(dummyToken.address, amount)).to.be.revertedWith(
-        "TokenVault::requestWithdrawal: token is not registered",
+      await expect(tokenVault.requestWithdrawal(dummyToken.address, amount)).to.be.revertedWithCustomError(
+        tokenVault,
+        "UnregisteredToken",
       );
-      await expect(tokenVault.executeWithdrawal(dummyToken.address)).to.be.revertedWith(
-        "TokenVault::executeWithdrawal: token is not registered",
+      await expect(tokenVault.executeWithdrawal(dummyToken.address)).to.be.revertedWithCustomError(
+        tokenVault,
+        "UnregisteredToken",
       );
     });
     it("Reverts if zero amount is passed for withdrawal", async () => {
-      await expect(tokenVault.requestWithdrawal(token.address, 0)).to.be.revertedWith(
-        "TokenVault::requestWithdrawal: requested amount cannot be zero",
+      await expect(tokenVault.requestWithdrawal(token.address, 0)).to.be.revertedWithCustomError(
+        tokenVault,
+        "ZeroAmountNotAllowed",
       );
     });
     it("User cannot withdrawal more than deposit", async () => {
-      await expect(tokenVault.requestWithdrawal(token.address, amount)).to.be.revertedWith(
-        "TokenVault::requestWithdrawal: requested amount is invalid",
+      await expect(tokenVault.requestWithdrawal(token.address, amount)).to.be.revertedWithCustomError(
+        tokenVault,
+        "InvalidAmount",
       );
     });
   });

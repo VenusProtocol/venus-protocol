@@ -58,6 +58,15 @@ contract TokenVaultStorage {
     /// @notice A record of states for signing / validating signatures
     mapping(address => uint) public nonces;
 
+    /// @notice Thrown when token is not registered
+    error UnregisteredToken(address token);
+
+    /// @notice Thrown when zero amount is passed
+    error ZeroAmountNotAllowed();
+
+    /// @notice Thrown when given amount is invalid
+    error InvalidAmount();
+
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
