@@ -36,6 +36,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     arbitrumone: "0x14e0E151b33f9802b3e75b621c1457afc44DcAA0", // ARBITRUM ONE MULTISIG
     bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
     bsctestnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
+    hardhat: deployer,
   };
 
   const accessControlManager = await ethers.getContract("AccessControlManager");
@@ -49,7 +50,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   let txn = await xvsVaultProxy.initializeTimeManager(isTimeBased, blocksPerYear[network.name]);
   await txn.wait();
 
-  txn = await xvsVaultProxy.setXvsStore(xvs, xvsStoreDeployment.address);
+  txn = await xvsVaultProxy.setXvsStore(xvs.address, xvsStoreDeployment.address);
   await txn.wait();
 
   txn = await xvsVaultProxy.setAccessControl(accessControlManager.address);
