@@ -1,3 +1,11 @@
+## [9.0.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.1...v9.0.0-dev.2) (2024-05-06)
+
+
+### Features
+
+* support batch repayments of VAI in governance helper ([7087b4d](https://github.com/VenusProtocol/venus-protocol/commit/7087b4d27ef7b39c26df955d3d2bb47cd09ba987))
+* updating deployment files ([316075b](https://github.com/VenusProtocol/venus-protocol/commit/316075bc505217d85f90321ad67a8d9fdbe7d5da))
+
 ## [9.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v8.1.0...v9.0.0-dev.1) (2024-05-04)
 
 
