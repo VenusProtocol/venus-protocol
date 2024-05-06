@@ -1,3 +1,10 @@
+## [9.0.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.2...v9.0.0-dev.3) (2024-05-06)
+
+
+### Bug Fixes
+
+* fix deployment scripts to work with hardhat ([79ed318](https://github.com/VenusProtocol/venus-protocol/commit/79ed3183de8d84dd0a41e589f39fe1dcbc39414a))
+
 ## [9.0.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.1...v9.0.0-dev.2) (2024-05-06)
 
 
