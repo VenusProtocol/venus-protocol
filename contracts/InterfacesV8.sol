@@ -41,11 +41,15 @@ interface IVBNB is IVToken {
 }
 
 interface IVAIController {
+    function accrueVAIInterest() external;
+
     function liquidateVAI(
         address borrower,
         uint256 repayAmount,
         IVToken vTokenCollateral
     ) external returns (uint256, uint256);
+
+    function repayVAIBehalf(address borrower, uint256 amount) external returns (uint256, uint256);
 
     function getVAIAddress() external view returns (address);
 
