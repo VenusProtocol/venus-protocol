@@ -23,11 +23,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const prime = await ethers.getContract("Prime");
   const plp = await ethers.getContract("PrimeLiquidityProvider");
 
-  console.log("Transferring Prime ownership to Timelock");
-  await prime.transferOwnership(adminAccount[network.name]);
+  if (network.name !== "hardhat") {
+    console.log("Transferring Prime ownership to Timelock");
+    await prime.transferOwnership(adminAccount[network.name]);
 
-  console.log("Transferring PLP ownership to Timelock");
-  await plp.transferOwnership(adminAccount[network.name]);
+    console.log("Transferring PLP ownership to Timelock");
+    await plp.transferOwnership(adminAccount[network.name]);
+  }
 };
 
 func.tags = ["Prime"];
