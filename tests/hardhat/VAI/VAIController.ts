@@ -2,6 +2,7 @@ import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture, mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { BigNumber, Wallet, constants } from "ethers";
+import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import {
@@ -193,10 +194,41 @@ describe("VAIController", async () => {
   });
 
   describe("#mintVAI", async () => {
+    const mintAmount = parseUnits("100", 18);
+
     it("success", async () => {
-      await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
-      expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
-      expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(100));
+      await vaiController.connect(user1).mintVAI(mintAmount);
+      expect(await vai.balanceOf(user1.address)).to.eq(mintAmount);
+      expect(await comptroller.mintedVAIs(user1.address)).to.eq(mintAmount);
+    });
+
+    it("fails if there's not enough collateral", async () => {
+      await vusdt.harnessSetBalance(user1.address, 0);
+      const tx = vaiController.connect(user1).mintVAI(mintAmount);
+      await expect(tx).to.be.revertedWith("minting more than allowed");
+    });
+
+    it("fails if minting beyond mint cap", async () => {
+      await vaiController.setMintCap(parseUnits("99", 18));
+      await vaiController.connect(user1).mintVAI(parseUnits("99", 18));
+      const tx = vaiController.connect(user1).mintVAI(1);
+      await expect(tx).to.be.revertedWith("mint cap reached");
+    });
+
+    it("fails if can't set the minted amount in comptroller", async () => {
+      comptroller.setMintedVAIOf.returns(42);
+      const tx = vaiController.connect(user1).mintVAI(mintAmount);
+      await expect(tx).to.be.revertedWith("comptroller rejection");
+      comptroller.setMintedVAIOf.reset();
+    });
+
+    it("puts previously accrued interest to pastInterest", async () => {
+      await vaiController.connect(user1).mintVAI(parseUnits("10", 18));
+      await vaiController.setBaseRate(parseUnits("0.2", 18));
+      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+      await vaiController.connect(user1).mintVAI(parseUnits("20", 18));
+      expect(await comptroller.mintedVAIs(user1.address)).to.eq(parseUnits("32", 18));
+      expect(await vaiController.pastVAIInterest(user1.address)).to.eq(parseUnits("2", 18));
     });
   });
 
@@ -205,6 +237,16 @@ describe("VAIController", async () => {
       await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
       expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
       await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      comptroller.protocolPaused.returns(true);
+      try {
+        const tx = vaiController.connect(user1).repayVAI(bigNumber18.mul(100));
+        await expect(tx).to.be.revertedWith("protocol is paused");
+      } finally {
+        comptroller.protocolPaused.reset();
+      }
     });
 
     it("success for zero rate", async () => {
@@ -232,6 +274,63 @@ describe("VAIController", async () => {
       expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(40));
       expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(50));
       expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(10));
+    });
+
+    it("fails if can't set the new minted amount in comptroller", async () => {
+      comptroller.setMintedVAIOf.returns(42);
+      const tx = vaiController.connect(user1).repayVAI(bigNumber18.mul(60));
+      await expect(tx).to.be.revertedWith("comptroller rejection");
+      comptroller.setMintedVAIOf.reset();
+    });
+  });
+
+  describe("#repayVAIBehalf", () => {
+    beforeEach(async () => {
+      await vaiController.connect(user1).mintVAI(parseUnits("100", 18));
+      await vai.allocateTo(user2.address, parseUnits("100", 18));
+      await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
+    });
+
+    it("reverts if called with borrower = zero address", async () => {
+      const tx = vaiController.connect(user2).repayVAIBehalf(ethers.constants.AddressZero, parseUnits("100", 18));
+      await expect(tx).to.be.revertedWith("can't be zero address");
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      comptroller.protocolPaused.returns(true);
+      try {
+        const tx = vaiController.connect(user2).repayVAIBehalf(user1.address, parseUnits("100", 18));
+        await expect(tx).to.be.revertedWith("protocol is paused");
+      } finally {
+        comptroller.protocolPaused.reset();
+      }
+    });
+
+    it("success for zero rate", async () => {
+      await vaiController.connect(user2).repayVAIBehalf(user1.address, parseUnits("100", 18));
+      expect(await vai.balanceOf(user2.address)).to.equal(0);
+      expect(await comptroller.mintedVAIs(user1.address)).to.equal(0);
+    });
+
+    it("success for 1.2 rate repay all", async () => {
+      await vai.allocateTo(user2.address, parseUnits("20", 18));
+      await vaiController.setBaseRate(parseUnits("0.2", 18));
+      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+
+      await vaiController.connect(user2).repayVAIBehalf(user1.address, parseUnits("120", 18));
+      expect(await vai.balanceOf(user2.address)).to.equal(0);
+      expect(await comptroller.mintedVAIs(user1.address)).to.equal(0);
+      expect(await vai.balanceOf(treasuryAddress.address)).to.equal(parseUnits("20", 18));
+    });
+
+    it("success for 1.2 rate repay half", async () => {
+      await vaiController.setBaseRate(parseUnits("0.2", 18));
+      await vaiController.harnessFastForward(BLOCKS_PER_YEAR);
+
+      await vaiController.connect(user2).repayVAIBehalf(user1.address, parseUnits("60", 18));
+      expect(await vai.balanceOf(user2.address)).to.equal(parseUnits("40", 18));
+      expect(await comptroller.mintedVAIs(user1.address)).to.equal(parseUnits("50", 18));
+      expect(await vai.balanceOf(treasuryAddress.address)).to.equal(parseUnits("10", 18));
     });
   });
 
@@ -285,6 +384,16 @@ describe("VAIController", async () => {
       expect(await comptroller.liquidationIncentiveMantissa()).to.eq(bigNumber18);
     });
 
+    it("reverts if the protocol is paused", async () => {
+      comptroller.protocolPaused.returns(true);
+      try {
+        const tx = vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
+        await expect(tx).to.be.revertedWith("protocol is paused");
+      } finally {
+        comptroller.protocolPaused.reset();
+      }
+    });
+
     it("success for zero rate 0.2 vusdt collateralFactor", async () => {
       await vai.connect(user2).approve(vaiController.address, ethers.constants.MaxUint256);
       await vaiController.harnessSetBlockNumber(BigNumber.from(100000000));
@@ -308,7 +417,7 @@ describe("VAIController", async () => {
       await mineUpTo(99999999);
       await vaiController.connect(user2).liquidateVAI(user1.address, bigNumber18.mul(60), vusdt.address);
       expect(await vai.balanceOf(user2.address)).to.eq(bigNumber18.mul(40));
-      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(50));
+      expect(await vusdt.balanceOf(user2.address)).to.eq(bigNumber18.mul(60));
       expect(await vai.balanceOf(treasuryAddress.address)).to.eq(bigNumber18.mul(10));
       expect(await comptroller.mintedVAIs(user1.address)).to.eq(bigNumber18.mul(50));
     });
@@ -342,6 +451,16 @@ describe("VAIController", async () => {
       await vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
       expect(await vai.balanceOf(user1.address)).to.eq(bigNumber18.mul(100));
       await vai.connect(user1).approve(vaiController.address, ethers.constants.MaxUint256);
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      comptroller.protocolPaused.returns(true);
+      try {
+        const tx = vaiController.connect(user1).mintVAI(bigNumber18.mul(100));
+        await expect(tx).to.be.revertedWith("protocol is paused");
+      } finally {
+        comptroller.protocolPaused.reset();
+      }
     });
 
     it("success for zero rate", async () => {
@@ -521,7 +640,7 @@ describe("VAIController", async () => {
     });
 
     it("reverts if the receiver is zero address", async () => {
-      await expect(vaiController.setReceiver(constants.AddressZero)).to.be.revertedWith("invalid receiver address");
+      await expect(vaiController.setReceiver(constants.AddressZero)).to.be.revertedWith("can't be zero address");
     });
 
     it("emits NewVAIReceiver event", async () => {

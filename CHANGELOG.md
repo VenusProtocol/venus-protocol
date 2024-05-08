@@ -1,3 +1,70 @@
+## [9.0.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.2...v9.0.0-dev.3) (2024-05-06)
+
+
+### Bug Fixes
+
+* fix deployment scripts to work with hardhat ([79ed318](https://github.com/VenusProtocol/venus-protocol/commit/79ed3183de8d84dd0a41e589f39fe1dcbc39414a))
+
+## [9.0.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.1...v9.0.0-dev.2) (2024-05-06)
+
+
+### Features
+
+* support batch repayments of VAI in governance helper ([7087b4d](https://github.com/VenusProtocol/venus-protocol/commit/7087b4d27ef7b39c26df955d3d2bb47cd09ba987))
+* updating deployment files ([316075b](https://github.com/VenusProtocol/venus-protocol/commit/316075bc505217d85f90321ad67a8d9fdbe7d5da))
+
+## [9.0.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v8.1.0...v9.0.0-dev.1) (2024-05-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* revert upon failed mint
+* return the actually repaid amount including interest
+
+### Features
+
+* add deployments for VAIController upgrade ([5d93c7e](https://github.com/VenusProtocol/venus-protocol/commit/5d93c7e8e660278521a1aceed15d942a7559189a))
+* add repayVAIBehalf ([265fa4c](https://github.com/VenusProtocol/venus-protocol/commit/265fa4c7fbdb885e8146b0e2758990abb978b746))
+* deploy audited version of VAIController ([071a1f1](https://github.com/VenusProtocol/venus-protocol/commit/071a1f1e79add330de7ff5d5ee6f4ad2f0cf013e))
+* updating deployment files ([ca8c89c](https://github.com/VenusProtocol/venus-protocol/commit/ca8c89c02d3c1519956ee552d28aa18ec4687917))
+* updating deployment files ([a5c61de](https://github.com/VenusProtocol/venus-protocol/commit/a5c61de626ce4a42924201bcafc08c2f75ddc9ce))
+* updating deployment files ([d184717](https://github.com/VenusProtocol/venus-protocol/commit/d1847172d18cb490b4c23e0f8e583cff682afb8e))
+
+
+### Bug Fixes
+
+* certik/VAI-02 add zero address check for borrower ([233ffcc](https://github.com/VenusProtocol/venus-protocol/commit/233ffcc60c7eabc6d199546554c9b2e455780593))
+* define VAIControllerInterface correctly ([f3af464](https://github.com/VenusProtocol/venus-protocol/commit/f3af464657e1a9cdbc93a8d10aed859f1f74c905))
+* return the actually repaid amount including interest ([6b7636b](https://github.com/VenusProtocol/venus-protocol/commit/6b7636bd45184aac804b16e3217764ecb9d1594e))
+
+
+### Performance Improvements
+
+* cache markets count in getMintableVAI ([f1a45fd](https://github.com/VenusProtocol/venus-protocol/commit/f1a45fd34cd503fe4e3f24551be64e54a2e183cf))
+
+
+### Code Refactoring
+
+* revert upon failed mint ([f24073a](https://github.com/VenusProtocol/venus-protocol/commit/f24073a789b8f3a02ac3524c7496c5ede943c335))
+
+## [8.1.0](https://github.com/VenusProtocol/venus-protocol/compare/v8.0.0...v8.1.0) (2024-04-26)
+
+
+### Features
+
+* add deployments for XVSVault on arbitrum sepolia ([bdb1a21](https://github.com/VenusProtocol/venus-protocol/commit/bdb1a219f9c329af11f456edec6443d964840956))
+* updating deployment files ([2782c68](https://github.com/VenusProtocol/venus-protocol/commit/2782c68c55d42edb43610be5c1c42d5467e77480))
+* updating deployment files ([cbf20db](https://github.com/VenusProtocol/venus-protocol/commit/cbf20dbb8c5968c218d72aee4063e9b2a180740f))
+
+## [8.1.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v8.0.0...v8.1.0-dev.1) (2024-04-26)
+
+
+### Features
+
+* add deployments for XVSVault on arbitrum sepolia ([bdb1a21](https://github.com/VenusProtocol/venus-protocol/commit/bdb1a219f9c329af11f456edec6443d964840956))
+* updating deployment files ([2782c68](https://github.com/VenusProtocol/venus-protocol/commit/2782c68c55d42edb43610be5c1c42d5467e77480))
+* updating deployment files ([cbf20db](https://github.com/VenusProtocol/venus-protocol/commit/cbf20dbb8c5968c218d72aee4063e9b2a180740f))
+
 ## [8.0.0](https://github.com/VenusProtocol/venus-protocol/compare/v7.5.0...v8.0.0) (2024-04-11)
 
 
