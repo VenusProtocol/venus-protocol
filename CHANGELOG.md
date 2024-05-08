@@ -1,3 +1,12 @@
+## [9.0.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.3...v9.0.0-dev.4) (2024-05-08)
+
+
+### Features
+
+* add deployments for Prime on arbitrumsepolia ([991a124](https://github.com/VenusProtocol/venus-protocol/commit/991a124d069d707d9eb0cda79a7b4587888b453d))
+* updating deployment files ([60dc9f1](https://github.com/VenusProtocol/venus-protocol/commit/60dc9f16bb5f6a14a8ae18ba4663a4efda4b25c7))
+* updating deployment files ([db0e4cb](https://github.com/VenusProtocol/venus-protocol/commit/db0e4cbbb7e7ea742eb5880a78a7dbc8887faf3d))
+
 ## [9.0.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.2...v9.0.0-dev.3) (2024-05-06)
 
 
