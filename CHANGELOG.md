@@ -1,3 +1,10 @@
+## [9.0.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.4...v9.0.0-dev.5) (2024-05-09)
+
+
+### Bug Fixes
+
+* remove duplicate scripts ([043b037](https://github.com/VenusProtocol/venus-protocol/commit/043b0378c017a5185018914cd3db4e5f4771adeb))
+
 ## [9.0.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.3...v9.0.0-dev.4) (2024-05-08)
 
 
