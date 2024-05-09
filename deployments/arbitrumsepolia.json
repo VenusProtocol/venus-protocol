@@ -684,7 +684,7 @@
       ]
     },
     "XVSVaultProxy_Implementation": {
-      "address": "0xD806D9859948F57990185AE00555505C9B6EaACE",
+      "address": "0xBac8Bb6008d7BBD5cdC4BfC745B3b8664Bca14BC",
       "abi": [
         {
           "inputs": [],
@@ -2259,6 +2259,32 @@
             }
           ],
           "name": "totalAllocPoints",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "totalPendingWithdrawals",
           "outputs": [
             {
               "internalType": "uint256",
