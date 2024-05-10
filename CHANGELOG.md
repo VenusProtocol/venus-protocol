@@ -1,3 +1,11 @@
+## [9.0.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.5...v9.0.0-dev.6) (2024-05-10)
+
+
+### Features
+
+* add VTreasuryV8 deployment on arbitrum one ([73e7eef](https://github.com/VenusProtocol/venus-protocol/commit/73e7eefef42f8115d216b58c0cdff269dc2e3627))
+* updating deployment files ([f3af972](https://github.com/VenusProtocol/venus-protocol/commit/f3af9724b4f58f9ef8c528333f3d8112aa7ad675))
+
 ## [9.0.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.4...v9.0.0-dev.5) (2024-05-09)
 
 
