@@ -14,19 +14,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  await deploy("XVSVaultProxy", {
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
+  // await deploy("XVSVaultProxy", {
+  //   from: deployer,
+  //   args: [],
+  //   log: true,
+  //   autoMine: true,
+  // });
 
-  await deploy("XVSStore", {
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
+  // await deploy("XVSStore", {
+  //   from: deployer,
+  //   args: [],
+  //   log: true,
+  //   autoMine: true,
+  // });
 };
 
 func.tags = ["deploy-vault"];

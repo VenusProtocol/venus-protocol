@@ -3270,10 +3270,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/solidity-utilities@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "@venusprotocol/solidity-utilities@npm:2.0.1"
-  checksum: 057beb3a3a8d9e3c3836f089163ddd4d5149082eb333ef9bade5b76f2d1760e27e817aefe7ec0a4cef6812945c5be78df7ef2f064d881dc01d9ce5206156d1da
+"@venusprotocol/solidity-utilities@npm:^2.0.2":
+  version: 2.0.2
+  resolution: "@venusprotocol/solidity-utilities@npm:2.0.2"
+  checksum: 8c5af8945db3b40bbab66c63a41ebe13dd748fb498bd9898963f7a80f80bff505cd3d1cc9e5e266c3a2270dea66362ad489c483248bd09014b3c903cd4246908
   languageName: node
   linkType: hard
 
@@ -3374,7 +3374,7 @@ __metadata:
     "@venusprotocol/governance-contracts": ^2.0.0
     "@venusprotocol/oracle": 2.0.0
     "@venusprotocol/protocol-reserve": ^2.0.0
-    "@venusprotocol/solidity-utilities": ^2.0.1
+    "@venusprotocol/solidity-utilities": ^2.0.2
     "@venusprotocol/token-bridge": ^2.0.0
     bignumber.js: ^9.1.2
     chai: ^4.3.6
