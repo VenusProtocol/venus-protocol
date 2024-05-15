@@ -11,14 +11,9 @@ import { Currency, CurrencyLibrary } from "../lib/Currency.sol";
 contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
     using CurrencyLibrary for Currency;
 
-    struct AccountBorrows {
+    struct Repayment {
         address borrower;
         uint256 amount;
-    }
-
-    struct Borrows {
-        uint256 totalBorrows;
-        AccountBorrows[] accountBorrows;
     }
 
     IVBNB public immutable VBNB;
@@ -70,30 +65,30 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
 
     function redeemAndBatchRepay(
         IVToken vToken,
-        address[] calldata borrowers,
+        Repayment[] calldata requestedRepayments,
         address receiver
     ) external nonReentrant onlyOwner {
         _accrueInterest(vToken);
 
-        (uint256 totalBorrowedAmount, AccountBorrows[] memory borrows) = _getBorrows(vToken, borrowers);
+        (uint256 totalBorrowedAmount, Repayment[] memory repayments) = _getAmountsToRepay(vToken, requestedRepayments);
         _redeemUpTo(vToken, totalBorrowedAmount);
 
         Currency underlying = _underlying(vToken);
         uint256 balance = underlying.balanceOfSelf();
         underlying.approve(address(vToken), totalBorrowedAmount);
-        uint256 borrowsCount = borrows.length;
+        uint256 repaymentsCount = repayments.length;
         // The code below assumes no fees on transfer
         if (balance >= totalBorrowedAmount) {
             // If we're doing a full repayment, we can optimize it by skipping the balance checks
-            for (uint256 i = 0; i < borrowsCount; ++i) {
-                AccountBorrows memory accountBorrows = borrows[i];
-                _repay(vToken, accountBorrows.borrower, accountBorrows.amount);
+            for (uint256 i = 0; i < repaymentsCount; ++i) {
+                Repayment memory repayment = repayments[i];
+                _repay(vToken, repayment.borrower, repayment.amount);
             }
         } else {
             // Otherwise, we have to check and update the balance on every iteration
-            for (uint256 i = 0; i < borrowsCount && balance != 0; ++i) {
-                AccountBorrows memory accountBorrows = borrows[i];
-                _repay(vToken, accountBorrows.borrower, _min(accountBorrows.amount, balance));
+            for (uint256 i = 0; i < repaymentsCount && balance != 0; ++i) {
+                Repayment memory repayment = repayments[i];
+                _repay(vToken, repayment.borrower, _min(repayment.amount, balance));
                 balance = underlying.balanceOfSelf();
             }
         }
@@ -105,18 +100,20 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
 
     function batchRepayVAI(
         IVAIController vaiController,
-        address[] calldata borrowers,
+        Repayment[] calldata requestedRepayments,
         address receiver
     ) external nonReentrant onlyOwner {
         vaiController.accrueVAIInterest();
         Currency vai = Currency.wrap(vaiController.getVAIAddress());
         uint256 balance = vai.balanceOfSelf();
         vai.approve(address(vaiController), type(uint256).max);
-        uint256 borrowersCount = borrowers.length;
-        for (uint256 i = 0; i < borrowersCount && balance != 0; ++i) {
-            address borrower = borrowers[i];
-            uint256 debt = vaiController.getVAIRepayAmount(borrower);
-            _repayVAI(vaiController, borrower, _min(debt, balance));
+        uint256 repaymentsCount = requestedRepayments.length;
+        for (uint256 i = 0; i < repaymentsCount && balance != 0; ++i) {
+            Repayment calldata requestedRepayment = requestedRepayments[i];
+            uint256 repaymentCap = requestedRepayment.amount;
+            uint256 debt = vaiController.getVAIRepayAmount(requestedRepayment.borrower);
+            uint256 amount = _min(repaymentCap, debt);
+            _repayVAI(vaiController, requestedRepayment.borrower, _min(amount, balance));
             balance = vai.balanceOfSelf();
         }
         vai.approve(address(vaiController), 0);
@@ -168,20 +165,22 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
         }
     }
 
-    function _getBorrows(
+    function _getAmountsToRepay(
         IVToken vToken,
-        address[] calldata borrowers
-    ) internal view returns (uint256, AccountBorrows[] memory) {
-        uint256 borrowersCount = borrowers.length;
-        AccountBorrows[] memory borrows = new AccountBorrows[](borrowersCount);
-        uint256 totalBorrowedAmount = 0;
-        for (uint256 i = 0; i < borrowers.length; ++i) {
-            address borrower = borrowers[i];
-            uint256 amount = vToken.borrowBalanceStored(borrower);
-            totalBorrowedAmount += amount;
-            borrows[i] = AccountBorrows({ borrower: borrower, amount: amount });
+        Repayment[] calldata requestedRepayments
+    ) internal view returns (uint256, Repayment[] memory) {
+        uint256 repaymentsCount = requestedRepayments.length;
+        Repayment[] memory actualRepayments = new Repayment[](repaymentsCount);
+        uint256 totalAmountToRepay = 0;
+        for (uint256 i = 0; i < repaymentsCount; ++i) {
+            Repayment calldata requestedRepayment = requestedRepayments[i];
+            uint256 repaymentCap = requestedRepayment.amount;
+            uint256 debt = vToken.borrowBalanceStored(requestedRepayment.borrower);
+            uint256 amountToRepay = _min(repaymentCap, debt);
+            totalAmountToRepay += amountToRepay;
+            actualRepayments[i] = Repayment({ borrower: requestedRepayment.borrower, amount: amountToRepay });
         }
-        return (totalBorrowedAmount, borrows);
+        return (totalAmountToRepay, actualRepayments);
     }
 
     function _underlying(IVToken vToken) internal view returns (Currency) {
