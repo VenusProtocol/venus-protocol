@@ -45,6 +45,22 @@ contract TokenRedeemer is ReentrancyGuard, Ownable2Step {
         underlying.transferAll(destination);
     }
 
+    function redeemUnderlyingAndTransfer(
+        IVToken vToken,
+        address destination,
+        uint256 amount,
+        address receiver
+    ) external nonReentrant onlyOwner {
+        Currency underlying = _underlying(vToken);
+        underlying.transferAll(receiver); // Just in case there were some underlying tokens on the contract
+        uint256 err = vToken.redeemUnderlying(amount);
+        if (err != 0) {
+            revert RedeemFailed(err);
+        }
+        underlying.transferAll(destination);
+        Currency.wrap(address(vToken)).transferAll(receiver);
+    }
+
     function redeemUnderlyingAndRepayBorrowBehalf(
         IVToken vToken,
         address borrower,
