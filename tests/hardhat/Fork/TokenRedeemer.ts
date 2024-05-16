@@ -304,17 +304,11 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
     });
 
     describe("redeemUnderlyingAndTransfer", () => {
-      let borrower: SignerWithAddress;
-
-      before(() => {
-        borrower = borrowers[0];
-      });
-
       it("should fail if called by a non-owner", async () => {
         await expect(
           redeemer
             .connect(someone)
-            .redeemUnderlyingAndTransfer(vToken.address, borrower.address, REPAY_AMOUNT, treasury.address),
+            .redeemUnderlyingAndTransfer(vToken.address, supplier.address, REPAY_AMOUNT, treasury.address),
         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
 
@@ -322,40 +316,37 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         await expect(
           redeemer
             .connect(owner)
-            .redeemUnderlyingAndTransfer(vToken2.address, borrower.address, REPAY_AMOUNT, treasury.address),
+            .redeemUnderlyingAndTransfer(vToken2.address, supplier.address, REPAY_AMOUNT, treasury.address),
         ).to.be.reverted;
       });
 
       it("should redeem and transfer succesfully", async () => {
-        await vToken2.connect(borrower).borrow(BORROWED_AMOUNT);
-        const vTokenAmount = await vToken2.balanceOf(treasury.address);
+        const vTokenAmount = await vToken.balanceOf(supplier.address);
+        const exchRateCurr = await vToken.callStatic.exchangeRateCurrent();
+        const vTokenRedeemAmount = SUPPLIED_AMOUNT.mul(parseUnits("1", 18)).div(exchRateCurr);
+        const supplierOldBalance = await underlying.balanceOf(supplier.address);
 
-        await vToken2.connect(treasury).transfer(redeemer.address, vTokenAmount);
-
-        const borrowBalanceOld = await vToken2.borrowBalanceStored(borrower.address);
-        const exchRateCurr = await vToken2.callStatic.exchangeRateCurrent();
-        const vTokenRedeemAmount = REPAY_AMOUNT.mul(parseUnits("1", 18)).div(exchRateCurr);
-
-        const closeToRepayAmount = around(vTokenRedeemAmount, parseUnits("0.1", 18));
+        const closeToredeemTokens = around(vTokenRedeemAmount, parseUnits("0.1", 18));
         const closeToRemainingVtokenBal = around(vTokenAmount.sub(vTokenRedeemAmount), parseUnits("0.1", 18));
 
+        await vToken.connect(supplier).transfer(redeemer.address, vTokenAmount);
+        expect(await vToken.balanceOf(redeemer.address)).equals(vTokenAmount);
+        expect(await vToken.balanceOf(supplier.address)).equals(0);
         const tx = await redeemer
           .connect(owner)
-          .redeemUnderlyingAndTransfer(vToken2.address, borrower.address, REPAY_AMOUNT, treasury.address);
+          .redeemUnderlyingAndTransfer(vToken.address, supplier.address, SUPPLIED_AMOUNT, treasury.address);
 
         await expect(tx)
-          .to.be.emit(vToken2, "Redeem")
-          .withArgs(redeemer.address, REPAY_AMOUNT, closeToRepayAmount, closeToRemainingVtokenBal);
+          .to.be.emit(vToken, "Redeem")
+          .withArgs(redeemer.address, SUPPLIED_AMOUNT, closeToredeemTokens, closeToRemainingVtokenBal);
 
-        await expect(tx).to.emit(vToken2, "Transfer").withArgs(redeemer.address, vToken2.address, closeToRepayAmount);
+        await expect(tx).to.emit(vToken, "Transfer").withArgs(redeemer.address, vToken.address, closeToredeemTokens);
 
-        const BorrowerNewBalance = await underlying2.balanceOf(borrower.address);
-        const receiverVtokenBalanceNew = await vToken2.balanceOf(treasury.address);
-        const redeemerUnderlyingBal = await underlying2.balanceOf(redeemer.address);
-        const redeemerVtokenBalance = await vToken2.balanceOf(redeemer.address);
+        const supplierNewBalance = await underlying.balanceOf(supplier.address);
+        const redeemerUnderlyingBal = await underlying.balanceOf(redeemer.address);
+        const redeemerVtokenBalance = await vToken.balanceOf(redeemer.address);
 
-        expect(BorrowerNewBalance).equals(borrowBalanceOld.add(REPAY_AMOUNT));
-        expect(receiverVtokenBalanceNew).to.closeTo(vTokenAmount.sub(vTokenRedeemAmount), parseUnits("0.1", 18));
+        expect(supplierNewBalance).equals(supplierOldBalance.add(SUPPLIED_AMOUNT));
         expect(redeemerUnderlyingBal).equals(0);
         expect(redeemerVtokenBalance).equals(0);
       });
