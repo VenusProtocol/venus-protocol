@@ -326,7 +326,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         const vTokenRedeemAmount = SUPPLIED_AMOUNT.mul(parseUnits("1", 18)).div(exchRateCurr);
         const supplierOldBalance = await underlying.balanceOf(supplier.address);
 
-        const closeToredeemTokens = around(vTokenRedeemAmount, parseUnits("0.1", 18));
+        const closeToRedeemTokens = around(vTokenRedeemAmount, parseUnits("0.1", 18));
         const closeToRemainingVtokenBal = around(vTokenAmount.sub(vTokenRedeemAmount), parseUnits("0.1", 18));
 
         await vToken.connect(supplier).transfer(redeemer.address, vTokenAmount);
@@ -338,9 +338,9 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
 
         await expect(tx)
           .to.be.emit(vToken, "Redeem")
-          .withArgs(redeemer.address, SUPPLIED_AMOUNT, closeToredeemTokens, closeToRemainingVtokenBal);
+          .withArgs(redeemer.address, SUPPLIED_AMOUNT, closeToRedeemTokens, closeToRemainingVtokenBal);
 
-        await expect(tx).to.emit(vToken, "Transfer").withArgs(redeemer.address, vToken.address, closeToredeemTokens);
+        await expect(tx).to.emit(vToken, "Transfer").withArgs(redeemer.address, vToken.address, closeToRedeemTokens);
 
         const supplierNewBalance = await underlying.balanceOf(supplier.address);
         const redeemerUnderlyingBal = await underlying.balanceOf(redeemer.address);
