@@ -306,6 +306,55 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
       });
     });
 
+    describe("redeemUnderlyingAndTransfer", () => {
+      it("should fail if called by a non-owner", async () => {
+        await expect(
+          redeemer
+            .connect(someone)
+            .redeemUnderlyingAndTransfer(vToken.address, supplier.address, REPAY_AMOUNT, treasury.address),
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("should revert if redeemer does not have vToken balance", async () => {
+        await expect(
+          redeemer
+            .connect(owner)
+            .redeemUnderlyingAndTransfer(vToken2.address, supplier.address, REPAY_AMOUNT, treasury.address),
+        ).to.be.reverted;
+      });
+
+      it("should redeem and transfer succesfully", async () => {
+        const vTokenAmount = await vToken.balanceOf(supplier.address);
+        const exchRateCurr = await vToken.callStatic.exchangeRateCurrent();
+        const vTokenRedeemAmount = SUPPLIED_AMOUNT.mul(parseUnits("1", 18)).div(exchRateCurr);
+        const supplierOldBalance = await underlying.balanceOf(supplier.address);
+
+        const closeToRedeemTokens = around(vTokenRedeemAmount, parseUnits("0.1", 18));
+        const closeToRemainingVtokenBal = around(vTokenAmount.sub(vTokenRedeemAmount), parseUnits("0.1", 18));
+
+        await vToken.connect(supplier).transfer(redeemer.address, vTokenAmount);
+        expect(await vToken.balanceOf(redeemer.address)).equals(vTokenAmount);
+        expect(await vToken.balanceOf(supplier.address)).equals(0);
+        const tx = await redeemer
+          .connect(owner)
+          .redeemUnderlyingAndTransfer(vToken.address, supplier.address, SUPPLIED_AMOUNT, treasury.address);
+
+        await expect(tx)
+          .to.be.emit(vToken, "Redeem")
+          .withArgs(redeemer.address, SUPPLIED_AMOUNT, closeToRedeemTokens, closeToRemainingVtokenBal);
+
+        await expect(tx).to.emit(vToken, "Transfer").withArgs(redeemer.address, vToken.address, closeToRedeemTokens);
+
+        const supplierNewBalance = await underlying.balanceOf(supplier.address);
+        const redeemerUnderlyingBal = await underlying.balanceOf(redeemer.address);
+        const redeemerVtokenBalance = await vToken.balanceOf(redeemer.address);
+
+        expect(supplierNewBalance).equals(supplierOldBalance.add(SUPPLIED_AMOUNT));
+        expect(redeemerUnderlyingBal).equals(0);
+        expect(redeemerVtokenBalance).equals(0);
+      });
+    });
+
     describe("redeemUnderlyingAndRepayBorrowBehalf", () => {
       let borrower: SignerWithAddress;
 
