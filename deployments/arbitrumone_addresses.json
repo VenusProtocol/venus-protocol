@@ -1,5 +1,7 @@
 {
   "name": "arbitrumone",
   "chainId": "42161",
-  "addresses": {}
+  "addresses": {
+    "VTreasuryV8": "0x8a662ceAC418daeF956Bc0e6B2dd417c80CDA631"
+  }
 }

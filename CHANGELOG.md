@@ -1,3 +1,27 @@
+## [9.0.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.5...v9.0.0-dev.6) (2024-05-10)
+
+
+### Features
+
+* add VTreasuryV8 deployment on arbitrum one ([73e7eef](https://github.com/VenusProtocol/venus-protocol/commit/73e7eefef42f8115d216b58c0cdff269dc2e3627))
+* updating deployment files ([f3af972](https://github.com/VenusProtocol/venus-protocol/commit/f3af9724b4f58f9ef8c528333f3d8112aa7ad675))
+
+## [9.0.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.4...v9.0.0-dev.5) (2024-05-09)
+
+
+### Bug Fixes
+
+* remove duplicate scripts ([043b037](https://github.com/VenusProtocol/venus-protocol/commit/043b0378c017a5185018914cd3db4e5f4771adeb))
+
+## [9.0.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.3...v9.0.0-dev.4) (2024-05-08)
+
+
+### Features
+
+* add deployments for Prime on arbitrumsepolia ([991a124](https://github.com/VenusProtocol/venus-protocol/commit/991a124d069d707d9eb0cda79a7b4587888b453d))
+* updating deployment files ([60dc9f1](https://github.com/VenusProtocol/venus-protocol/commit/60dc9f16bb5f6a14a8ae18ba4663a4efda4b25c7))
+* updating deployment files ([db0e4cb](https://github.com/VenusProtocol/venus-protocol/commit/db0e4cbbb7e7ea742eb5880a78a7dbc8887faf3d))
+
 ## [9.0.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.2...v9.0.0-dev.3) (2024-05-06)
 
 
