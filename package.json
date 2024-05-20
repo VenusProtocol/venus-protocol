@@ -35,7 +35,7 @@
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
     "@venusprotocol/governance-contracts": "^2.0.0",
     "@venusprotocol/protocol-reserve": "^2.0.0",
-    "@venusprotocol/solidity-utilities": "^2.0.2",
+    "@venusprotocol/solidity-utilities": "^2.0.3",
     "@venusprotocol/token-bridge": "^2.0.0",
     "bignumber.js": "^9.1.2",
     "dotenv": "^16.0.1",
