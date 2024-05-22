@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // solhint-disable max-line-length
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.25;
 
 // Below is code from 0x's LibFixedMath.sol. Changes:
 // - addition of 0.8-style errors

@@ -1,27 +1,23 @@
 pragma solidity ^0.5.16;
 
-import "../VTokens/VTokenInterfaces.sol";
+import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
 
 contract VAIControllerInterface {
-    function getVAIAddress() public view returns (address);
+    function mintVAI(uint256 mintVAIAmount) external returns (uint256);
 
-    function getMintableVAI(address minter) public view returns (uint, uint);
+    function repayVAI(uint256 amount) external returns (uint256, uint256);
 
-    function mintVAI(address minter, uint mintVAIAmount) external returns (uint);
-
-    function repayVAI(address repayer, uint repayVAIAmount) external returns (uint);
+    function repayVAIBehalf(address borrower, uint256 amount) external returns (uint256, uint256);
 
     function liquidateVAI(
         address borrower,
-        uint repayAmount,
+        uint256 repayAmount,
         VTokenInterface vTokenCollateral
-    ) external returns (uint, uint);
+    ) external returns (uint256, uint256);
 
-    function _initializeVenusVAIState(uint blockNumber) external returns (uint);
+    function getMintableVAI(address minter) external view returns (uint256, uint256);
 
-    function updateVenusVAIMintIndex() external returns (uint);
+    function getVAIAddress() external view returns (address);
 
-    function calcDistributeVAIMinterVenus(address vaiMinter) external returns (uint, uint, uint, uint);
-
-    function getVAIRepayAmount(address account) public view returns (uint);
+    function getVAIRepayAmount(address account) external view returns (uint256);
 }
