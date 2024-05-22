@@ -41,7 +41,7 @@ contract VAIControllerStorageG1 is VAIUnitrollerAdminStorage {
     bool public isVenusVAIInitialized;
 
     /// @notice The Venus VAI minter index as of the last time they accrued XVS
-    mapping(address => uint) public venusVAIMinterIndex;
+    mapping(address => uint256) public venusVAIMinterIndex;
 }
 
 contract VAIControllerStorageG2 is VAIControllerStorageG1 {
@@ -58,28 +58,28 @@ contract VAIControllerStorageG2 is VAIControllerStorageG1 {
     bool internal _notEntered;
 
     /// @notice The base rate for stability fee
-    uint public baseRateMantissa;
+    uint256 public baseRateMantissa;
 
     /// @notice The float rate for stability fee
-    uint public floatRateMantissa;
+    uint256 public floatRateMantissa;
 
     /// @notice The address for VAI interest receiver
     address public receiver;
 
     /// @notice Accumulator of the total earned interest rate since the opening of the market. For example: 0.6 (60%)
-    uint public vaiMintIndex;
+    uint256 public vaiMintIndex;
 
     /// @notice Block number that interest was last accrued at
-    uint internal accrualBlockNumber;
+    uint256 internal accrualBlockNumber;
 
     /// @notice Global vaiMintIndex as of the most recent balance-changing action for user
-    mapping(address => uint) internal vaiMinterInterestIndex;
+    mapping(address => uint256) internal vaiMinterInterestIndex;
 
     /// @notice Tracks the amount of mintedVAI of a user that represents the accrued interest
-    mapping(address => uint) public pastVAIInterest;
+    mapping(address => uint256) public pastVAIInterest;
 
     /// @notice VAI mint cap
-    uint public mintCap;
+    uint256 public mintCap;
 
     /// @notice Access control manager address
     address public accessControl;

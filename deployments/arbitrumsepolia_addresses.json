@@ -2,6 +2,15 @@
   "name": "arbitrumsepolia",
   "chainId": "421614",
   "addresses": {
-    "VTreasuryV8": "0x4e7ab1fD841E1387Df4c91813Ae03819C33D5bdB"
+    "Prime": "0xAdB04AC4942683bc41E27d18234C8DC884786E89",
+    "PrimeLiquidityProvider": "0xE82c2c10F55D3268126C29ec813dC6F086904694",
+    "PrimeLiquidityProvider_Implementation": "0x134303557e9338c202D5C70603d8758a465b058B",
+    "PrimeLiquidityProvider_Proxy": "0xE82c2c10F55D3268126C29ec813dC6F086904694",
+    "Prime_Implementation": "0x255EFC81Ba715FA7C2C27bdd983A3CeF9BB07fEf",
+    "Prime_Proxy": "0xAdB04AC4942683bc41E27d18234C8DC884786E89",
+    "VTreasuryV8": "0x4e7ab1fD841E1387Df4c91813Ae03819C33D5bdB",
+    "XVSStore": "0x4e909DA6693215dC630104715c035B159dDb67Dd",
+    "XVSVaultProxy": "0x407507DC2809D3aa31D54EcA3BEde5C5c4C8A17F",
+    "XVSVaultProxy_Implementation": "0xD806D9859948F57990185AE00555505C9B6EaACE"
   }
 }

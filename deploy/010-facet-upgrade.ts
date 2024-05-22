@@ -7,7 +7,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await getNamedAccounts();
 
-  await deploy("MarketFacet", {
+  await deploy("PolicyFacet", {
     from: deployer,
     args: [],
     log: true,
@@ -15,13 +15,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   await deploy("SetterFacet", {
-    from: deployer,
-    args: [],
-    log: true,
-    autoMine: true,
-  });
-
-  await deploy("PolicyFacet", {
     from: deployer,
     args: [],
     log: true,
