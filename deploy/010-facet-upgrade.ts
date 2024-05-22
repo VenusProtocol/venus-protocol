@@ -21,7 +21,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
   });
 
-  await deploy("RewardFacet", {
+  await deploy("MarketFacet", {
     from: deployer,
     args: [],
     log: true,
