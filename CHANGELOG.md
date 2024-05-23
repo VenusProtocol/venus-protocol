@@ -1,3 +1,11 @@
+## [9.0.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.6...v9.0.0-dev.7) (2024-05-23)
+
+
+### Features
+
+* updating deployment files ([345c8f9](https://github.com/VenusProtocol/venus-protocol/commit/345c8f99dfe06452de87a31c7b1f209b393974d3))
+* updating deployment files ([289e547](https://github.com/VenusProtocol/venus-protocol/commit/289e5471ecbc950028a14a2e689f9f132d2db80a))
+
 ## [9.0.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.5...v9.0.0-dev.6) (2024-05-10)
 
 
