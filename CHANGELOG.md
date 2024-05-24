@@ -1,3 +1,13 @@
+## [9.0.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.7...v9.0.0-dev.8) (2024-05-24)
+
+
+### Features
+
+* add redeemUnderlyingAndTransfer function in TokenRedeemer ([8c9b19b](https://github.com/VenusProtocol/venus-protocol/commit/8c9b19b467f17bf8b98588bb1f1c5ef4dff8305c))
+* allow specifying amounts during batch repayments ([2dd92c2](https://github.com/VenusProtocol/venus-protocol/commit/2dd92c2116eb6dbf277eb15bfe71e065703bdf37))
+* deploy updated TokenRedeemer ([6baea46](https://github.com/VenusProtocol/venus-protocol/commit/6baea46d002884fb5d2db948130a09fcc1b883c6))
+* updating deployment files ([d9e183b](https://github.com/VenusProtocol/venus-protocol/commit/d9e183b69012cf8617c273033f8022066342e632))
+
 ## [9.0.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.6...v9.0.0-dev.7) (2024-05-23)
 
 
