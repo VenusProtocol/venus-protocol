@@ -2,6 +2,9 @@
   "name": "arbitrumone",
   "chainId": "42161",
   "addresses": {
-    "VTreasuryV8": "0x8a662ceAC418daeF956Bc0e6B2dd417c80CDA631"
+    "VTreasuryV8": "0x8a662ceAC418daeF956Bc0e6B2dd417c80CDA631",
+    "XVSStore": "0x507D9923c954AAD8eC530ed8Dedb75bFc893Ec5e",
+    "XVSVaultProxy": "0x8b79692AAB2822Be30a6382Eb04763A74752d5B4",
+    "XVSVaultProxy_Implementation": "0x4C4BedC003e4E2f3A057DeC35aeF26F64Cb07384"
   }
 }
