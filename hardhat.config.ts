@@ -54,6 +54,7 @@ extendConfig((config: HardhatConfig) => {
           "node_modules/@venusprotocol/governance-contracts/deployments/arbitrumsepolia",
           "node_modules/@venusprotocol/token-bridge/deployments/arbitrumsepolia",
         ],
+        arbitrumone: ["node_modules/@venusprotocol/governance-contracts/deployments/arbitrumone"],
       },
     };
   }
