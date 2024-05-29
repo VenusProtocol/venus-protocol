@@ -1,3 +1,22 @@
+## [9.0.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.8...v9.0.0-dev.9) (2024-05-29)
+
+
+### Features
+
+* updating deployment files ([b6e816b](https://github.com/VenusProtocol/venus-protocol/commit/b6e816b3c1df37c7df36ae391506e14324b9f6d5))
+* updating deployment files ([6061646](https://github.com/VenusProtocol/venus-protocol/commit/6061646853926a1a9074d19598592e08fd7f31ca))
+* updating deployment files ([0123134](https://github.com/VenusProtocol/venus-protocol/commit/0123134e839a263eb8286865ee500b6b26162393))
+* updating deployment files ([3b394e5](https://github.com/VenusProtocol/venus-protocol/commit/3b394e5ed4f49ef0a65078596ae7e7bcc0699adb))
+* updating deployment files ([96dbef9](https://github.com/VenusProtocol/venus-protocol/commit/96dbef96df49a5571251318591e8ad887a312364))
+* updating deployment files ([7288ff7](https://github.com/VenusProtocol/venus-protocol/commit/7288ff7b6d09ac0204e2eb3d2a0cb5913be8cd63))
+* updating deployment files ([fb927da](https://github.com/VenusProtocol/venus-protocol/commit/fb927da63ceed8e873df999b3dfefac2071ec306))
+* updating deployment files ([653e85d](https://github.com/VenusProtocol/venus-protocol/commit/653e85d1d3ba6ef77a42b1d2fb7d2c5fbdc37380))
+
+
+### Bug Fixes
+
+* uncomment needed deployment script ([ddc0ffb](https://github.com/VenusProtocol/venus-protocol/commit/ddc0ffbf86c6d0fef8cb3d289ef6e4f4888c1213))
+
 ## [9.0.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0-dev.7...v9.0.0-dev.8) (2024-05-24)
 
 
