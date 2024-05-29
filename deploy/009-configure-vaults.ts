@@ -22,6 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bsctestnet: 10_512_000, // 3 sec per block
     sepolia: 2_628_000, // 12 sec per block
     arbitrumsepolia: 0, // time based deployment
+    arbitrumone: 0, // time based deployment
     bscmainnet: 10_512_000,
     ethereum: 2_628_000,
     hardhat: 100,
