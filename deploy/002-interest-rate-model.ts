@@ -1,3 +1,4 @@
+import { parseUnits } from "ethers/lib/utils";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -21,6 +22,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
     args: [0, "40000000000000000", "1080000000000000000", "700000000000000000"],
+  });
+
+  await deploy("InterestRateModelVBNB", {
+    contract: "JumpRateModel",
+    from: deployer,
+    log: true,
+    autoMine: true,
+    args: [0, parseUnits("0.625", 18), parseUnits("6.8", 18), parseUnits("0.8", 18)],
   });
 };
 
