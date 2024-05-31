@@ -22,6 +22,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bsctestnet: 10_512_000, // 3 sec per block
     sepolia: 2_628_000, // 12 sec per block
     arbitrumsepolia: 0, // time based deployment
+    arbitrumone: 0, // time based deployment
     bscmainnet: 10_512_000,
     ethereum: 2_628_000,
     hardhat: 100,
@@ -36,6 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     arbitrumone: "0x14e0E151b33f9802b3e75b621c1457afc44DcAA0", // ARBITRUM ONE MULTISIG
     bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
     bsctestnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
+    hardhat: deployer,
   };
 
   const accessControlManager = await ethers.getContract("AccessControlManager");
@@ -44,16 +46,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const xvsVaultProxyDeployment = await ethers.getContract("XVSVaultProxy");
   const xvsStoreDeployment = await ethers.getContract("XVSStore");
 
-  const xvsVaultProxy = await ethers.getContractAt("XVSVault", xvsVaultProxyDeployment.address);
+  let xvsVault = await ethers.getContract("XVSVaultProxy_Implementation");
+  await xvsVaultProxyDeployment._setPendingImplementation(xvsVault.address);
+  await xvsVault._become(xvsVaultProxyDeployment.address);
 
-  let txn = await xvsVaultProxy.initializeTimeManager(isTimeBased, blocksPerYear[network.name]);
+  xvsVault = await ethers.getContractAt("XVSVault", xvsVaultProxyDeployment.address);
+
+  let txn = await xvsVault.initializeTimeManager(isTimeBased, blocksPerYear[network.name]);
   await txn.wait();
 
-  txn = await xvsVaultProxy.setXvsStore(xvs, xvsStoreDeployment.address);
+  txn = await xvsVault.setXvsStore(xvs.address, xvsStoreDeployment.address);
   await txn.wait();
 
-  txn = await xvsVaultProxy.setAccessControl(accessControlManager.address);
+  txn = await xvsVault.setAccessControl(accessControlManager.address);
   await txn.wait();
+
+  await xvsStoreDeployment.setNewOwner(xvsVaultProxyDeployment.address);
 
   if (!hre.network.live) {
     const tx = await accessControlManager.giveCallPermission(
@@ -70,7 +78,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const rewardPerBlock = "61805555555555555";
     const lockPeriod = 604800;
 
-    await xvsVaultProxy.add(rewardToken, allocPoint, token, rewardPerBlock, lockPeriod);
+    await xvsVault.add(rewardToken, allocPoint, token, rewardPerBlock, lockPeriod);
   } else {
     const owner = adminAccount[hre.network.name];
     console.log("Please accept ownership of vault and store");

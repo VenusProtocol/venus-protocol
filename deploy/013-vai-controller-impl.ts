@@ -4,18 +4,19 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deploy } = deployments;
+
   const { deployer } = await getNamedAccounts();
 
-  await deployments.delete("XVSVault");
-
-  await deploy("XVSVault", {
+  await deploy("VaiController", {
+    contract: "VAIController",
     from: deployer,
-    args: [],
     log: true,
     autoMine: true,
+    args: [],
   });
 };
 
-func.tags = ["xvs-vault"];
+func.tags = ["VAIController"];
+func.skip = async hre => hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet";
 
 export default func;

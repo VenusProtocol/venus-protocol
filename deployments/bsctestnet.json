@@ -42255,7 +42255,7 @@
       ]
     },
     "VaiController": {
-      "address": "0x7CE5E45a34104d6Df05779c3d3Fe71c9F11843C5",
+      "address": "0x181936d73641c0B002649B7dD08b51ab935d58C2",
       "abi": [
         {
           "anonymous": false,
@@ -42343,6 +42343,25 @@
           "inputs": [
             {
               "indexed": false,
+              "internalType": "bool",
+              "name": "previousMintEnabledOnlyForPrimeHolder",
+              "type": "bool"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "newMintEnabledOnlyForPrimeHolder",
+              "type": "bool"
+            }
+          ],
+          "name": "MintOnlyForPrimeHolder",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
               "internalType": "address",
               "name": "minter",
               "type": "address"
@@ -42362,6 +42381,25 @@
           "inputs": [
             {
               "indexed": false,
+              "internalType": "address",
+              "name": "oldAccessControlAddress",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "newAccessControlAddress",
+              "type": "address"
+            }
+          ],
+          "name": "NewAccessControl",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
               "internalType": "contract ComptrollerInterface",
               "name": "oldComptroller",
               "type": "address"
@@ -42374,6 +42412,25 @@
             }
           ],
           "name": "NewComptroller",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "oldPrime",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "newPrime",
+              "type": "address"
+            }
+          ],
+          "name": "NewPrime",
           "type": "event"
         },
         {
@@ -42438,6 +42495,101 @@
           "inputs": [
             {
               "indexed": false,
+              "internalType": "uint256",
+              "name": "oldBaseRateMantissa",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "newBaseRateMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "NewVAIBaseRate",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "oldFloatRateMantissa",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "newFlatRateMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "NewVAIFloatRate",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "oldMintCap",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "newMintCap",
+              "type": "uint256"
+            }
+          ],
+          "name": "NewVAIMintCap",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "oldReceiver",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "newReceiver",
+              "type": "address"
+            }
+          ],
+          "name": "NewVAIReceiver",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "oldVaiToken",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "address",
+              "name": "newVaiToken",
+              "type": "address"
+            }
+          ],
+          "name": "NewVaiToken",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
               "internalType": "address",
               "name": "payer",
               "type": "address"
@@ -42457,6 +42609,21 @@
           ],
           "name": "RepayVAI",
           "type": "event"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "INITIAL_VAI_MINT_INDEX",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
         },
         {
           "constant": false,
@@ -42528,12 +42695,51 @@
         {
           "constant": true,
           "inputs": [],
+          "name": "accessControl",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [],
+          "name": "accrueVAIInterest",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
           "name": "admin",
           "outputs": [
             {
               "internalType": "address",
               "name": "",
               "type": "address"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "baseRateMantissa",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
             }
           ],
           "payable": false,
@@ -42558,7 +42764,22 @@
         {
           "constant": true,
           "inputs": [],
-          "name": "getBlockNumber",
+          "name": "floatRateMantissa",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "getBlocksPerYear",
           "outputs": [
             {
               "internalType": "uint256",
@@ -42605,6 +42826,114 @@
               "internalType": "address",
               "name": "",
               "type": "address"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "borrower",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "repayAmount",
+              "type": "uint256"
+            }
+          ],
+          "name": "getVAICalculateRepayAmount",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "minter",
+              "type": "address"
+            }
+          ],
+          "name": "getVAIMinterInterestIndex",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            }
+          ],
+          "name": "getVAIRepayAmount",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "getVAIRepayRate",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "getVAIRepayRatePerBlock",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
             }
           ],
           "payable": false,
@@ -42672,6 +43001,36 @@
           "type": "function"
         },
         {
+          "constant": true,
+          "inputs": [],
+          "name": "mintCap",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "mintEnabledOnlyForPrimeHolder",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "constant": false,
           "inputs": [
             {
@@ -42690,6 +43049,27 @@
           ],
           "payable": false,
           "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "pastVAIInterest",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
           "type": "function"
         },
         {
@@ -42723,11 +43103,41 @@
           "type": "function"
         },
         {
+          "constant": true,
+          "inputs": [],
+          "name": "prime",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "receiver",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "constant": false,
           "inputs": [
             {
               "internalType": "uint256",
-              "name": "repayVAIAmount",
+              "name": "amount",
               "type": "uint256"
             }
           ],
@@ -42738,6 +43148,157 @@
               "name": "",
               "type": "uint256"
             },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "borrower",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "name": "repayVAIBehalf",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "newAccessControlAddress",
+              "type": "address"
+            }
+          ],
+          "name": "setAccessControl",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "newBaseRateMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "setBaseRate",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "newFloatRateMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "setFloatRate",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "_mintCap",
+              "type": "uint256"
+            }
+          ],
+          "name": "setMintCap",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "prime_",
+              "type": "address"
+            }
+          ],
+          "name": "setPrimeToken",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "newReceiver",
+              "type": "address"
+            }
+          ],
+          "name": "setReceiver",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "vai_",
+              "type": "address"
+            }
+          ],
+          "name": "setVAIToken",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [],
+          "name": "toggleOnlyPrimeHolderMint",
+          "outputs": [
             {
               "internalType": "uint256",
               "name": "",
@@ -42811,12 +43372,12 @@
         {
           "constant": true,
           "inputs": [],
-          "name": "venusInitialIndex",
+          "name": "vaiMintIndex",
           "outputs": [
             {
-              "internalType": "uint224",
+              "internalType": "uint256",
               "name": "",
-              "type": "uint224"
+              "type": "uint256"
             }
           ],
           "payable": false,
@@ -51523,7 +52084,7 @@
       ]
     },
     "XVSVaultProxy_Implementation": {
-      "address": "0x0fdbe58bbf3190d21a0589d0a448682d68de66a2",
+      "address": "0x6F869480eEEbB66b58a930892AddC0067Fb43B20",
       "abi": [
         {
           "inputs": [],
@@ -51766,7 +52327,7 @@
             {
               "indexed": false,
               "internalType": "uint256",
-              "name": "rewardPerBlock",
+              "name": "rewardPerBlockOrSecond",
               "type": "uint256"
             },
             {
@@ -52031,10 +52592,25 @@
           "type": "function"
         },
         {
+          "constant": true,
+          "inputs": [],
+          "name": "SECONDS_PER_YEAR",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "constant": false,
           "inputs": [
             {
-              "internalType": "contract IXVSVaultProxy",
+              "internalType": "contract XVSVaultProxy",
               "name": "xvsVaultProxy",
               "type": "address"
             }
@@ -52080,7 +52656,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "_rewardPerBlock",
+              "name": "_rewardPerBlockOrSecond",
               "type": "uint256"
             },
             {
@@ -52112,6 +52688,21 @@
         },
         {
           "constant": true,
+          "inputs": [],
+          "name": "blocksOrSecondsPerYear",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -52128,7 +52719,7 @@
           "outputs": [
             {
               "internalType": "uint32",
-              "name": "fromBlock",
+              "name": "fromBlockOrSecond",
               "type": "uint32"
             },
             {
@@ -52289,6 +52880,21 @@
         },
         {
           "constant": true,
+          "inputs": [],
+          "name": "getBlockNumberOrTimestamp",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
           "inputs": [
             {
               "internalType": "address",
@@ -52349,7 +52955,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "blockNumber",
+              "name": "blockNumberOrSecond",
               "type": "uint256"
             }
           ],
@@ -52501,6 +53107,26 @@
           "type": "function"
         },
         {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "bool",
+              "name": "timeBased_",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blocksPerYear_",
+              "type": "uint256"
+            }
+          ],
+          "name": "initializeTimeManager",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
           "constant": true,
           "inputs": [
             {
@@ -52510,6 +53136,21 @@
             }
           ],
           "name": "isStakedToken",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "isTimeBased",
           "outputs": [
             {
               "internalType": "bool",
@@ -52718,7 +53359,7 @@
             },
             {
               "internalType": "uint256",
-              "name": "lastRewardBlock",
+              "name": "lastRewardBlockOrSecond",
               "type": "uint256"
             },
             {
@@ -52841,11 +53482,32 @@
           "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "_rewardToken",
               "type": "address"
             }
           ],
           "name": "rewardTokenAmountsPerBlock",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "rewardTokenAmountsPerBlockOrSecond",
           "outputs": [
             {
               "internalType": "uint256",
@@ -52936,7 +53598,7 @@
               "type": "uint256"
             }
           ],
-          "name": "setRewardAmountPerBlock",
+          "name": "setRewardAmountPerBlockOrSecond",
           "outputs": [],
           "payable": false,
           "stateMutability": "nonpayable",
@@ -52997,6 +53659,32 @@
             }
           ],
           "name": "totalAllocPoints",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "totalPendingWithdrawals",
           "outputs": [
             {
               "internalType": "uint256",

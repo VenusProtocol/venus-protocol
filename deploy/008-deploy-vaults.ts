@@ -29,6 +29,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 };
 
-func.tags = ["deploy-vault"];
+func.tags = ["xvs-vault"];
 
 export default func;
