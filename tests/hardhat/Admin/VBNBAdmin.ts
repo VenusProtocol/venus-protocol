@@ -136,7 +136,7 @@ describe("VBNBAdmin", () => {
       )) as InterestRateModelHarness;
 
       await VBNBAdmin.setInterestRateModel(InterestRateModelHarness.address);
-      // expect(await vBNB.interestRateModel()).to.be.equal(InterestRateModelHarness.address);
+      expect(await vBNB.interestRateModel()).to.be.equal(InterestRateModelHarness.address);
     });
   });
 });
