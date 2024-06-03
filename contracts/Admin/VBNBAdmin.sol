@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-
-pragma solidity 0.8.13;
+pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
@@ -90,6 +89,17 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
         );
 
         emit ReservesReduced(reduceAmount);
+    }
+
+    /**
+     * @notice Sets the interest rate model of the vBNB contract
+     * @param newInterestRateModel Address of the new interest rate model
+     * @custom:access Controlled by ACM
+     */
+    function setInterestRateModel(address newInterestRateModel) external {
+        _checkAccessAllowed("_setInterestRateModel(address)");
+        uint256 err = vBNB._setInterestRateModel(newInterestRateModel);
+        require(err == 0, "setting interest rate model failed");
     }
 
     /**
