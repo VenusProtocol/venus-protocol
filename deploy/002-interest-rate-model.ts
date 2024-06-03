@@ -24,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [0, "40000000000000000", "1080000000000000000", "700000000000000000"],
   });
 
-  await deploy("InterestRateModelVBNB", {
+  await deploy("InterestRateModelVBNBPreLaunchpad", {
     contract: "JumpRateModel",
     from: deployer,
     log: true,
