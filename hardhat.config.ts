@@ -52,9 +52,14 @@ extendConfig((config: HardhatConfig) => {
         ],
         arbitrumsepolia: [
           "node_modules/@venusprotocol/governance-contracts/deployments/arbitrumsepolia",
+          "node_modules/@venusprotocol/oracle/deployments/arbitrumsepolia",
           "node_modules/@venusprotocol/token-bridge/deployments/arbitrumsepolia",
         ],
-        arbitrumone: ["node_modules/@venusprotocol/governance-contracts/deployments/arbitrumone"],
+        arbitrumone: [
+          "node_modules/@venusprotocol/governance-contracts/deployments/arbitrumone",
+          "node_modules/@venusprotocol/oracle/deployments/arbitrumone",
+          "node_modules/@venusprotocol/token-bridge/deployments/arbitrumone",
+        ],
       },
     };
   }

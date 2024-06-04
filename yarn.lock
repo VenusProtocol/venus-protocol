@@ -3141,17 +3141,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/governance-contracts@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "@venusprotocol/governance-contracts@npm:2.0.0"
-  dependencies:
-    "@venusprotocol/solidity-utilities": 2.0.0
-    hardhat-deploy-ethers: ^0.3.0-beta.13
-    module-alias: ^2.2.2
-  checksum: 18b56d951c4e68fa1edadc93ed44daa55c8b81294778a4969d940a084de6d949630eacd4702d1b92f04ad5d709963a3a0a790014871ec34b0b2f4806cebc731c
-  languageName: node
-  linkType: hard
-
 "@venusprotocol/governance-contracts@npm:^2.1.0":
   version: 2.1.0
   resolution: "@venusprotocol/governance-contracts@npm:2.1.0"
@@ -3179,16 +3168,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/oracle@npm:2.0.0":
-  version: 2.0.0
-  resolution: "@venusprotocol/oracle@npm:2.0.0"
+"@venusprotocol/oracle@npm:v2.3.0":
+  version: 2.3.0
+  resolution: "@venusprotocol/oracle@npm:2.3.0"
   dependencies:
     "@chainlink/contracts": ^0.5.1
     "@defi-wonderland/smock": ^2.3.4
     "@nomicfoundation/hardhat-network-helpers": ^1.0.8
     "@openzeppelin/contracts": ^4.6.0
     "@openzeppelin/contracts-upgradeable": ^4.7.3
-    "@venusprotocol/governance-contracts": ^2.0.0
+    "@venusprotocol/governance-contracts": ^2.1.0
     "@venusprotocol/solidity-utilities": ^2.0.0
     "@venusprotocol/venus-protocol": ^6.0.0
     ethers: ^5.6.8
@@ -3196,7 +3185,7 @@ __metadata:
     hardhat-deploy: ^0.11.14
     module-alias: ^2.2.2
     solidity-docgen: ^0.6.0-beta.29
-  checksum: 00673550cdc63244eba2872b32253454a3b2062c2759075c68449b2923f2bb645e971d5ca0cbfd288bddd092d346a5f3e49d10bbb97d743fb33f9ece14179723
+  checksum: 6ba484f72eef7701a92be1673ec5c3d7d180c79aa17c7b7ef0c3848fbf15b456e5cc7633bf0a1fbb4ff36ba05524b3f70f966e40c4f32f8b8cff551c6605878b
   languageName: node
   linkType: hard
 
@@ -3383,7 +3372,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": ^5.40.0
     "@typescript-eslint/parser": ^5.40.0
     "@venusprotocol/governance-contracts": ^2.1.0
-    "@venusprotocol/oracle": 2.0.0
+    "@venusprotocol/oracle": v2.3.0
     "@venusprotocol/protocol-reserve": ^2.0.0
     "@venusprotocol/solidity-utilities": ^2.0.3
     "@venusprotocol/token-bridge": ^2.0.0

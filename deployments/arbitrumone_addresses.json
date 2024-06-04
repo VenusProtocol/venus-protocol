@@ -2,6 +2,12 @@
   "name": "arbitrumone",
   "chainId": "42161",
   "addresses": {
+    "Prime": "0xFE69720424C954A2da05648a0FAC84f9bf11Ef49",
+    "PrimeLiquidityProvider": "0x86bf21dB200f29F21253080942Be8af61046Ec29",
+    "PrimeLiquidityProvider_Implementation": "0x920079Ffedbcc627A9d690c34C9206555E903Dd6",
+    "PrimeLiquidityProvider_Proxy": "0x86bf21dB200f29F21253080942Be8af61046Ec29",
+    "Prime_Implementation": "0x62822989F8De6b2Eb8d972e1B0e77E8a3286dBBc",
+    "Prime_Proxy": "0xFE69720424C954A2da05648a0FAC84f9bf11Ef49",
     "VTreasuryV8": "0x8a662ceAC418daeF956Bc0e6B2dd417c80CDA631",
     "XVSStore": "0x507D9923c954AAD8eC530ed8Dedb75bFc893Ec5e",
     "XVSVaultProxy": "0x8b79692AAB2822Be30a6382Eb04763A74752d5B4",
