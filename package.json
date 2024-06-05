@@ -1,6 +1,6 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "9.0.0",
+  "version": "9.1.0",
   "description": "The Venus Money Market",
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
@@ -66,7 +66,7 @@
     "@types/node": "^18.7.1",
     "@typescript-eslint/eslint-plugin": "^5.40.0",
     "@typescript-eslint/parser": "^5.40.0",
-    "@venusprotocol/oracle": "2.0.0",
+    "@venusprotocol/oracle": "v2.3.0",
     "bignumber.js": "^9.1.2",
     "chai": "^4.3.6",
     "eslint": "^8.25.0",
