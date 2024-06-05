@@ -36383,7 +36383,7 @@
       ]
     },
     "VBNBAdmin_Implementation": {
-      "address": "0x698B2c7c82B980265ed4B4a7653a5735E93767b4",
+      "address": "0x90c891bb2b1821ADE159ECa6FbA0418b2bD1b86D",
       "abi": [
         {
           "inputs": [
@@ -36648,6 +36648,25 @@
           ],
           "name": "setAccessControlManager",
           "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "newInterestRateModel",
+              "type": "address"
+            }
+          ],
+          "name": "setInterestRateModel",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
           "stateMutability": "nonpayable",
           "type": "function"
         },
