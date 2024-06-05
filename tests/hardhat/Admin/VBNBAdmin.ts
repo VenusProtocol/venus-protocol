@@ -60,6 +60,8 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   const accessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
   accessControl.isAllowedToCall.returns(true);
 
+  await mockVBNB.setAccessControlManager(accessControl.address);
+
   const VBNBAdminFactory = await ethers.getContractFactory("VBNBAdmin");
   const VBNBAdmin: VBNBAdmin = await upgrades.deployProxy(
     VBNBAdminFactory,
@@ -123,6 +125,18 @@ describe("VBNBAdmin", () => {
       expect(balance).to.be.equal(0);
       balance = await WBNB.balanceOf(protocolShareReserve.address);
       expect(balance).to.be.equal(amount);
+    });
+  });
+
+  describe("set interest rate model", () => {
+    it("setInterestRateModel", async () => {
+      const interestRateModelHarnessFactory = await ethers.getContractFactory("InterestRateModelHarness");
+      const InterestRateModelHarness = (await interestRateModelHarnessFactory.deploy(
+        BigNumber.from(18).mul(5),
+      )) as InterestRateModelHarness;
+
+      await VBNBAdmin.setInterestRateModel(InterestRateModelHarness.address);
+      expect(await vBNB.interestRateModel()).to.be.equal(InterestRateModelHarness.address);
     });
   });
 });

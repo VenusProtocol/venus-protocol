@@ -9,6 +9,8 @@ interface VTokenInterface {
     function _acceptAdmin() external returns (uint);
 
     function comptroller() external returns (address);
+
+    function _setInterestRateModel(address newInterestRateModel) external returns (uint);
 }
 
 interface IWBNB is IERC20Upgradeable {

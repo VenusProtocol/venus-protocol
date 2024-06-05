@@ -92,6 +92,16 @@ contract VBNBAdmin is ReentrancyGuardUpgradeable, AccessControlledV8, VBNBAdminS
     }
 
     /**
+     * @notice Sets the interest rate model of the vBNB contract
+     * @param newInterestRateModel Address of the new interest rate model
+     * @custom:access Controlled by ACM
+     */
+    function setInterestRateModel(address newInterestRateModel) public returns (uint256) {
+        _checkAccessAllowed("setInterestRateModel(address)");
+        return vBNB._setInterestRateModel(newInterestRateModel);
+    }
+
+    /**
      * @notice Wraps BNB into WBNB
      */
     function _wrapBNB() internal {
