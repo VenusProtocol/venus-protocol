@@ -48,7 +48,8 @@ contract ComptrollerErrorReporter {
         SET_VAI_MINT_RATE_CHECK,
         SET_VAICONTROLLER_OWNER_CHECK,
         SET_MINTED_VAI_REJECTION,
-        SET_TREASURY_OWNER_CHECK
+        SET_TREASURY_OWNER_CHECK,
+        UNLIST_MARKET_NOT_LISTED
     }
 
     /**

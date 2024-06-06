@@ -22,6 +22,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /// @notice Emitted when the borrowing or redeeming delegate rights are updated for an account
     event DelegateUpdated(address indexed approver, address indexed delegate, bool approved);
 
+    /// @notice Emitted when an admin unlists a market
+    event MarketUnlisted(address indexed vToken);
+
     /// @notice Indicator that this is a Comptroller contract (for inspection)
     function isComptroller() public pure returns (bool) {
         return true;
@@ -33,7 +36,25 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return A dynamic list with the assets the account has entered
      */
     function getAssetsIn(address account) external view returns (VToken[] memory) {
-        return accountAssets[account];
+        uint256 len;
+        VToken[] memory _accountAssets = accountAssets[account];
+        uint256 _accountAssetsLength = _accountAssets.length;
+
+        VToken[] memory assetsIn = new VToken[](_accountAssetsLength);
+
+        for (uint256 i; i < _accountAssetsLength; ++i) {
+            Market memory market = markets[address(_accountAssets[i])];
+            if (market.isListed) {
+                assetsIn[len] = _accountAssets[i];
+                ++len;
+            }
+        }
+
+        assembly {
+            mstore(assetsIn, len)
+        }
+
+        return assetsIn;
     }
 
     /**
@@ -110,6 +131,42 @@ contract MarketFacet is IMarketFacet, FacetBase {
         }
 
         return results;
+    }
+
+    /**
+     * @notice Unlist a market by setting isListed to false
+     * @dev Checks if market actions are paused and borrowCap/supplyCap/CF are set to 0
+     * @param market The address of the market (vToken) to unlist
+     * @return uint256 0=success, otherwise a failure. (See enum Error for details)
+     */
+    function unlistMarket(address market) external returns (uint256) {
+        ensureAllowed("unlistMarket(address)");
+
+        Market storage _market = markets[market];
+
+        if (!_market.isListed) {
+            return fail(Error.MARKET_NOT_LISTED, FailureInfo.UNLIST_MARKET_NOT_LISTED);
+        }
+
+        require(actionPaused(market, Action.BORROW), "borrow action is not paused");
+        require(actionPaused(market, Action.MINT), "mint action is not paused");
+        require(actionPaused(market, Action.REDEEM), "redeem action is not paused");
+        require(actionPaused(market, Action.REPAY), "repay action is not paused");
+        require(actionPaused(market, Action.ENTER_MARKET), "enter market action is not paused");
+        require(actionPaused(market, Action.LIQUIDATE), "liquidate action is not paused");
+        require(actionPaused(market, Action.SEIZE), "seize action is not paused");
+        require(actionPaused(market, Action.TRANSFER), "transfer action is not paused");
+        require(actionPaused(market, Action.EXIT_MARKET), "exit market action is not paused");
+
+        require(borrowCaps[market] == 0, "borrow cap is not 0");
+        require(supplyCaps[market] == 0, "supply cap is not 0");
+
+        require(_market.collateralFactorMantissa == 0, "collateral factor is not 0");
+
+        _market.isListed = false;
+        emit MarketUnlisted(market);
+
+        return uint256(Error.NO_ERROR);
     }
 
     /**

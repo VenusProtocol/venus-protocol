@@ -182,7 +182,7 @@ contract ComptrollerV3Storage is ComptrollerV2Storage {
     /// @notice The borrowCapGuardian can set borrowCaps to any number for any market. Lowering the borrow cap could disable borrowing on the given market.
     address public borrowCapGuardian;
 
-    /// @notice Borrow caps enforced by borrowAllowed for each vToken address. Defaults to zero which corresponds to unlimited borrowing.
+    /// @notice Borrow caps enforced by borrowAllowed for each vToken address.
     mapping(address => uint256) public borrowCaps;
 }
 
