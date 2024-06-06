@@ -31,4 +31,6 @@ interface IMarketFacet {
     function getAllMarkets() external view returns (VToken[] memory);
 
     function updateDelegate(address delegate, bool allowBorrows) external;
+
+    function unlistMarket(address market) external returns (uint256);
 }

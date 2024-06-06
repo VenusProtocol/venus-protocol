@@ -20,6 +20,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
   });
+
+  await deploy("MarketFacet", {
+    from: deployer,
+    args: [],
+    log: true,
+    autoMine: true,
+  });
 };
 
 func.tags = ["FacetUpgrade"];
