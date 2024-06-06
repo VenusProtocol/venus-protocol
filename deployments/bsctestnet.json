@@ -4520,7 +4520,7 @@
       ]
     },
     "MarketFacet": {
-      "address": "0xF2F2aE5480c4527787Fb7Cde1Ed9A3EdfD40A60d",
+      "address": "0x00a949FfDa9B216fBA9C4E5b40ef561Af0FDb723",
       "abi": [
         {
           "anonymous": false,
@@ -4634,6 +4634,19 @@
             }
           ],
           "name": "MarketListed",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "MarketUnlisted",
           "type": "event"
         },
         {
@@ -5411,6 +5424,27 @@
           ],
           "payable": false,
           "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "market",
+              "type": "address"
+            }
+          ],
+          "name": "unlistMarket",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "nonpayable",
           "type": "function"
         },
         {
@@ -7826,7 +7860,7 @@
       ]
     },
     "PolicyFacet": {
-      "address": "0x7b17b28687B817158c20e3d1bf100106fBE794cf",
+      "address": "0x085C8d0133291348004AabFfbE7CAc2097aF2aa1",
       "abi": [
         {
           "anonymous": false,
@@ -18178,7 +18212,7 @@
       ]
     },
     "SetterFacet": {
-      "address": "0xaBdE9599a4aEcE4fEC59fBF2b8445149bc8B2c70",
+      "address": "0x490DFD07f592452307817C4283866035BDb3b275",
       "abi": [
         {
           "anonymous": false,
