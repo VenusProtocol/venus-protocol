@@ -225,6 +225,9 @@ const setupFork = async (): Promise<TokenRedeemerFixture> => {
   };
 };
 
+// whether v is between 99.9% * v and 100.1% * v
+const closeTo = (v: BigNumber) => around(v, v.mul(1).div(1000));
+
 const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
   describe("TokenRedeemer", () => {
     let redeemer: TokenRedeemer;
@@ -307,6 +310,55 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
       });
     });
 
+    describe("redeemUnderlyingAndTransfer", () => {
+      it("should fail if called by a non-owner", async () => {
+        await expect(
+          redeemer
+            .connect(someone)
+            .redeemUnderlyingAndTransfer(vToken.address, supplier.address, REPAY_AMOUNT, treasury.address),
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("should revert if redeemer does not have vToken balance", async () => {
+        await expect(
+          redeemer
+            .connect(owner)
+            .redeemUnderlyingAndTransfer(vToken2.address, supplier.address, REPAY_AMOUNT, treasury.address),
+        ).to.be.reverted;
+      });
+
+      it("should redeem and transfer succesfully", async () => {
+        const vTokenAmount = await vToken.balanceOf(supplier.address);
+        const exchRateCurr = await vToken.callStatic.exchangeRateCurrent();
+        const vTokenRedeemAmount = SUPPLIED_AMOUNT.mul(parseUnits("1", 18)).div(exchRateCurr);
+        const supplierOldBalance = await underlying.balanceOf(supplier.address);
+
+        const closeToRedeemTokens = around(vTokenRedeemAmount, parseUnits("0.1", 18));
+        const closeToRemainingVtokenBal = around(vTokenAmount.sub(vTokenRedeemAmount), parseUnits("0.1", 18));
+
+        await vToken.connect(supplier).transfer(redeemer.address, vTokenAmount);
+        expect(await vToken.balanceOf(redeemer.address)).equals(vTokenAmount);
+        expect(await vToken.balanceOf(supplier.address)).equals(0);
+        const tx = await redeemer
+          .connect(owner)
+          .redeemUnderlyingAndTransfer(vToken.address, supplier.address, SUPPLIED_AMOUNT, treasury.address);
+
+        await expect(tx)
+          .to.be.emit(vToken, "Redeem")
+          .withArgs(redeemer.address, SUPPLIED_AMOUNT, closeToRedeemTokens, closeToRemainingVtokenBal);
+
+        await expect(tx).to.emit(vToken, "Transfer").withArgs(redeemer.address, vToken.address, closeToRedeemTokens);
+
+        const supplierNewBalance = await underlying.balanceOf(supplier.address);
+        const redeemerUnderlyingBal = await underlying.balanceOf(redeemer.address);
+        const redeemerVtokenBalance = await vToken.balanceOf(redeemer.address);
+
+        expect(supplierNewBalance).equals(supplierOldBalance.add(SUPPLIED_AMOUNT));
+        expect(redeemerUnderlyingBal).equals(0);
+        expect(redeemerVtokenBalance).equals(0);
+      });
+    });
+
     describe("redeemUnderlyingAndRepayBorrowBehalf", () => {
       let borrower: SignerWithAddress;
 
@@ -364,9 +416,6 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
     });
 
     describe("redeemAndBatchRepay", () => {
-      // whether v is between 99.9% * v and 100.1% * v
-      const closeTo = (v: BigNumber) => around(v, v.mul(1).div(1000));
-
       const either = (a: BigNumberish, b: BigNumberish) => (v: BigNumberish) => {
         const v_ = BigNumber.from(v);
         return v_.eq(a) || v_.eq(b);
@@ -377,7 +426,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           await expect(
             redeemer.connect(someone).redeemAndBatchRepay(
               vToken2.address,
-              borrowers.map(b => b.address),
+              borrowers.map(b => ({ borrower: b.address, amount: ethers.constants.MaxUint256 })),
               treasury.address,
             ),
           ).to.be.revertedWith("Ownable: caller is not the owner");
@@ -401,14 +450,14 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
       };
 
       describe("Full repayment", () => {
-        let borrowerAddresses: string[];
+        let repayments: TokenRedeemer.RepaymentStruct[];
         let requiredVTokens: BigNumber;
         let excessVTokens: BigNumber;
         let totalBorrow: BigNumber;
 
         describe("Native asset", () => {
           beforeEach(async () => {
-            borrowerAddresses = borrowers.map(b => b.address);
+            repayments = borrowers.map(b => ({ borrower: b.address, amount: ethers.constants.MaxUint256 }));
             await vBNB.connect(borrowers[0]).borrow(parseEther("1"));
             await vBNB.connect(borrowers[1]).borrow(parseEther("2"));
             await vBNB.connect(borrowers[2]).borrow(parseEther("3"));
@@ -421,9 +470,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           });
 
           it("redeems just the required amount of vTokens", async () => {
-            const tx = await redeemer
-              .connect(owner)
-              .redeemAndBatchRepay(vBNB.address, borrowerAddresses, treasury.address);
+            const tx = await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, repayments, treasury.address);
             await expectBNBRedeemEvent(
               tx,
               redeemer.address,
@@ -434,16 +481,14 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           });
 
           it("repays all borrows in full", async () => {
-            await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, borrowerAddresses, treasury.address);
+            await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, repayments, treasury.address);
             for (const borrower of borrowers) {
               expect(await vBNB.callStatic.borrowBalanceCurrent(borrower.address)).to.equal(0);
             }
           });
 
           it("transfers the excess vTokens to the receiver", async () => {
-            const tx = await redeemer
-              .connect(owner)
-              .redeemAndBatchRepay(vBNB.address, borrowerAddresses, treasury.address);
+            const tx = await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, repayments, treasury.address);
             await expect(tx)
               .to.emit(vBNB, "Transfer")
               .withArgs(redeemer.address, treasury.address, closeTo(excessVTokens));
@@ -452,16 +497,14 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           it("transfers the excess BNB to the receiver", async () => {
             const excessBNB = parseEther("1234");
             await treasury.sendTransaction({ to: redeemer.address, value: excessBNB });
-            const tx = await redeemer
-              .connect(owner)
-              .redeemAndBatchRepay(vBNB.address, borrowerAddresses, treasury.address);
+            const tx = await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, repayments, treasury.address);
             await expect(tx).to.changeEtherBalance(treasury.address, excessBNB);
           });
         });
 
         describe("Tokens", () => {
           beforeEach(async () => {
-            borrowerAddresses = borrowers.map(b => b.address);
+            repayments = borrowers.map(b => ({ borrower: b.address, amount: ethers.constants.MaxUint256 }));
             await vToken2.connect(borrowers[0]).borrow(parseUnits("1", 18));
             await vToken2.connect(borrowers[1]).borrow(parseUnits("2", 18));
             await vToken2.connect(borrowers[2]).borrow(parseUnits("3", 18));
@@ -474,25 +517,35 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           });
 
           it("redeems just the required amount of vTokens", async () => {
-            const tx = await redeemer
-              .connect(owner)
-              .redeemAndBatchRepay(vToken2.address, borrowerAddresses, treasury.address);
+            const tx = await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, repayments, treasury.address);
             await expect(tx)
               .to.emit(vToken2, "Redeem")
               .withArgs(redeemer.address, closeTo(totalBorrow), closeTo(requiredVTokens), closeTo(excessVTokens));
           });
 
+          it("repays up to specified caps", async () => {
+            const repayments = borrowers.map(b => ({ borrower: b.address, amount: parseUnits("0.5", 18) }));
+            await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, repayments, treasury.address);
+            expect(await vToken2.callStatic.borrowBalanceCurrent(borrowers[0].address)).to.satisfy(
+              closeTo(parseUnits("0.5", 18)),
+            );
+            expect(await vToken2.callStatic.borrowBalanceCurrent(borrowers[1].address)).to.satisfy(
+              closeTo(parseUnits("1.5", 18)),
+            );
+            expect(await vToken2.callStatic.borrowBalanceCurrent(borrowers[2].address)).to.satisfy(
+              closeTo(parseUnits("2.5", 18)),
+            );
+          });
+
           it("repays all borrows in full", async () => {
-            await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, borrowerAddresses, treasury.address);
+            await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, repayments, treasury.address);
             for (const borrower of borrowers) {
               expect(await vToken2.callStatic.borrowBalanceCurrent(borrower.address)).to.equal(0);
             }
           });
 
           it("transfers the excess vTokens to the receiver", async () => {
-            const tx = await redeemer
-              .connect(owner)
-              .redeemAndBatchRepay(vToken2.address, borrowerAddresses, treasury.address);
+            const tx = await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, repayments, treasury.address);
             await expect(tx)
               .to.emit(vToken2, "Transfer")
               .withArgs(redeemer.address, treasury.address, closeTo(excessVTokens));
@@ -501,9 +554,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           it("transfers the excess underlying to the receiver", async () => {
             const excessUnderlying = parseUnits("1234", 18);
             await underlying2.connect(treasury).transfer(redeemer.address, excessUnderlying);
-            const tx = await redeemer
-              .connect(owner)
-              .redeemAndBatchRepay(vToken2.address, borrowerAddresses, treasury.address);
+            const tx = await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, repayments, treasury.address);
             await expect(tx)
               .to.emit(underlying2, "Transfer")
               .withArgs(redeemer.address, treasury.address, excessUnderlying);
@@ -512,13 +563,13 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
       });
 
       describe("Partial repayment", () => {
-        let borrowerAddresses: string[];
+        let repayments: TokenRedeemer.RepaymentStruct[];
         let availableVTokens: BigNumber;
         let coveredBorrow: BigNumber;
 
         describe("Native asset", () => {
           beforeEach(async () => {
-            borrowerAddresses = borrowers.map(b => b.address);
+            repayments = borrowers.map(b => ({ borrower: b.address, amount: ethers.constants.MaxUint256 }));
             await vBNB.connect(borrowers[0]).borrow(parseEther("1"));
             await vBNB.connect(borrowers[1]).borrow(parseEther("2"));
             await vBNB.connect(borrowers[2]).borrow(parseEther("3"));
@@ -529,9 +580,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           });
 
           it("redeems all available vTokens, up to 1 vToken wei", async () => {
-            const tx = await redeemer
-              .connect(owner)
-              .redeemAndBatchRepay(vBNB.address, borrowerAddresses, treasury.address);
+            const tx = await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, repayments, treasury.address);
             await expectBNBRedeemEvent(
               tx,
               redeemer.address,
@@ -544,7 +593,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           it("repays the three borrows: [in full, partially, no repayment]", async () => {
             const borrow3Before = await vBNB.callStatic.borrowBalanceCurrent(borrowers[2].address);
             const expectedBorrow2After = parseEther("0.5");
-            await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, borrowerAddresses, treasury.address);
+            await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, repayments, treasury.address);
             expect(await vBNB.callStatic.borrowBalanceCurrent(borrowers[0].address)).to.equal(0);
             expect(await vBNB.callStatic.borrowBalanceCurrent(borrowers[1].address)).to.satisfy(
               closeTo(expectedBorrow2After),
@@ -555,7 +604,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           it("uses the excess BNB to repay the debt in full", async () => {
             const excessBNB = parseEther("1234");
             await treasury.sendTransaction({ to: redeemer.address, value: excessBNB });
-            await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, borrowerAddresses, treasury.address);
+            await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, repayments, treasury.address);
             for (const borrower of borrowers) {
               expect(await vToken2.callStatic.borrowBalanceCurrent(borrower.address)).to.equal(0);
             }
@@ -564,7 +613,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           it("does not keep any vBNB or BNB balance", async () => {
             const excessBNB = parseEther("1234");
             await treasury.sendTransaction({ to: redeemer.address, value: excessBNB });
-            await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, borrowerAddresses, treasury.address);
+            await redeemer.connect(owner).redeemAndBatchRepay(vBNB.address, repayments, treasury.address);
             expect(await vBNB.balanceOf(redeemer.address)).to.equal(0);
             expect(await ethers.provider.getBalance(redeemer.address)).to.equal(0);
           });
@@ -572,7 +621,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
 
         describe("Tokens", () => {
           beforeEach(async () => {
-            borrowerAddresses = borrowers.map(b => b.address);
+            repayments = borrowers.map(b => ({ borrower: b.address, amount: ethers.constants.MaxUint256 }));
             await vToken2.connect(borrowers[0]).borrow(parseUnits("1", 18));
             await vToken2.connect(borrowers[1]).borrow(parseUnits("2", 18));
             await vToken2.connect(borrowers[2]).borrow(parseUnits("3", 18));
@@ -583,9 +632,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           });
 
           it("redeems all available vTokens, up to 1 vToken wei", async () => {
-            const tx = await redeemer
-              .connect(owner)
-              .redeemAndBatchRepay(vToken2.address, borrowerAddresses, treasury.address);
+            const tx = await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, repayments, treasury.address);
             await expect(tx).to.emit(vToken2, "Redeem").withArgs(
               redeemer.address,
               closeTo(coveredBorrow),
@@ -597,7 +644,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           it("repays the three borrows: [in full, partially, no repayment]", async () => {
             const borrow3Before = await vToken2.callStatic.borrowBalanceCurrent(borrowers[2].address);
             const expectedBorrow2After = parseUnits("0.5", 18);
-            await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, borrowerAddresses, treasury.address);
+            await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, repayments, treasury.address);
             expect(await vToken2.callStatic.borrowBalanceCurrent(borrowers[0].address)).to.equal(0);
             expect(await vToken2.callStatic.borrowBalanceCurrent(borrowers[1].address)).to.satisfy(
               closeTo(expectedBorrow2After),
@@ -610,16 +657,16 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           it("uses the excess underlying to repay the debt in full", async () => {
             const excessUnderlying = parseUnits("1234", 18);
             await underlying2.connect(treasury).transfer(redeemer.address, excessUnderlying);
-            await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, borrowerAddresses, treasury.address);
+            await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, repayments, treasury.address);
             for (const borrower of borrowers) {
               expect(await vToken2.callStatic.borrowBalanceCurrent(borrower.address)).to.equal(0);
             }
           });
 
-          it("does not keep any vBNB or underlying balance", async () => {
+          it("does not keep any vToken or underlying balance", async () => {
             const excessUnderlying = parseUnits("1234", 18);
             await underlying2.connect(treasury).transfer(redeemer.address, excessUnderlying);
-            await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, borrowerAddresses, treasury.address);
+            await redeemer.connect(owner).redeemAndBatchRepay(vToken2.address, repayments, treasury.address);
             expect(await vToken2.balanceOf(redeemer.address)).to.equal(0);
             expect(await underlying2.balanceOf(redeemer.address)).to.equal(0);
           });
@@ -629,9 +676,13 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
 
     describe("batchRepayVAI", () => {
       let borrower: SignerWithAddress;
+      let repayment: TokenRedeemer.RepaymentStruct;
+      let repayments: TokenRedeemer.RepaymentStruct[];
 
       before(() => {
         borrower = borrowers[0];
+        repayment = { borrower: borrower.address, amount: ethers.constants.MaxUint256 };
+        repayments = borrowers.map(b => ({ borrower: b.address, amount: ethers.constants.MaxUint256 }));
       });
 
       after(async () => {
@@ -640,7 +691,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
 
       it("fails if called by a non-owner", async () => {
         await expect(
-          redeemer.connect(someone).batchRepayVAI(vaiController.address, [borrower.address], treasury.address),
+          redeemer.connect(someone).batchRepayVAI(vaiController.address, [], treasury.address),
         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
 
@@ -648,7 +699,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         await vaiController.connect(borrower).mintVAI(BORROWED_AMOUNT);
         await vai.mint(redeemer.address, BORROWED_AMOUNT);
         expect(await vaiController.getVAIRepayAmount(borrower.address)).to.equal(BORROWED_AMOUNT);
-        await redeemer.connect(owner).batchRepayVAI(vaiController.address, [borrower.address], treasury.address);
+        await redeemer.connect(owner).batchRepayVAI(vaiController.address, [repayment], treasury.address);
         expect(await vaiController.getVAIRepayAmount(borrower.address)).to.equal(0);
       });
 
@@ -657,15 +708,23 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
           await vaiController.connect(borrower).mintVAI(BORROWED_AMOUNT);
         }
         await vai.mint(redeemer.address, BORROWED_AMOUNT.mul(borrowers.length + 1));
-        const tx = await redeemer.connect(owner).batchRepayVAI(
-          vaiController.address,
-          borrowers.map(b => b.address),
-          treasury.address,
-        );
+        const tx = await redeemer.connect(owner).batchRepayVAI(vaiController.address, repayments, treasury.address);
         for (const borrower of borrowers) {
           expect(await vaiController.getVAIRepayAmount(borrower.address)).to.equal(0);
         }
         await expect(tx).to.changeTokenBalance(vai, treasury.address, BORROWED_AMOUNT);
+      });
+
+      it("repays up to caps", async () => {
+        await vaiController.connect(borrowers[0]).mintVAI(parseUnits("1", 18));
+        await vaiController.connect(borrowers[1]).mintVAI(parseUnits("2", 18));
+        await vaiController.connect(borrowers[2]).mintVAI(parseUnits("3", 18));
+        await vai.mint(redeemer.address, parseUnits("1.5", 18));
+        const repayments = borrowers.map(b => ({ borrower: b.address, amount: parseUnits("0.5", 18) }));
+        await redeemer.connect(owner).batchRepayVAI(vaiController.address, repayments, treasury.address);
+        expect(await vaiController.getVAIRepayAmount(borrowers[0].address)).to.satisfy(closeTo(parseUnits("0.5", 18)));
+        expect(await vaiController.getVAIRepayAmount(borrowers[1].address)).to.satisfy(closeTo(parseUnits("1.5", 18)));
+        expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.satisfy(closeTo(parseUnits("2.5", 18)));
       });
 
       it("partially repays borrows if insufficient VAI", async () => {
@@ -673,11 +732,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         await vaiController.connect(borrowers[1]).mintVAI(parseUnits("100", 18));
         await vaiController.connect(borrowers[2]).mintVAI(parseUnits("200", 18));
         await vai.mint(redeemer.address, parseUnits("100", 18));
-        await redeemer.connect(owner).batchRepayVAI(
-          vaiController.address,
-          borrowers.map(b => b.address),
-          treasury.address,
-        );
+        await redeemer.connect(owner).batchRepayVAI(vaiController.address, repayments, treasury.address);
         expect(await vaiController.getVAIRepayAmount(borrowers[0].address)).to.equal(0);
         expect(await vaiController.getVAIRepayAmount(borrowers[1].address)).to.equal(parseUnits("50", 18));
         expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.equal(parseUnits("200", 18));
@@ -700,11 +755,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         expect(await vaiController.getVAIRepayAmount(borrowers[2].address)).to.equal(6);
         // We transfer the refund to someone instead of treasury here so that we don't need
         // to account for interest that is also transferred to treasury
-        const tx = await redeemer.connect(owner).batchRepayVAI(
-          vaiController.address,
-          borrowers.map(b => b.address),
-          someone.address,
-        );
+        const tx = await redeemer.connect(owner).batchRepayVAI(vaiController.address, repayments, someone.address);
         await mine();
         expect(await vaiController.getVAIRepayAmount(borrowers[0].address)).to.equal(0);
         // The second repayment doesn't happen due to rounding in VAIController
