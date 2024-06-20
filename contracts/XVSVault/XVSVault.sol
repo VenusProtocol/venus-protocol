@@ -882,6 +882,10 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
         emit StoreUpdated(oldXvsContract, oldStore, _xvs, _xvsStore);
     }
 
+    function setXvsAddress(address _xvs) external onlyAdmin {
+        xvsAddress = _xvs;
+    }
+
     /**
      * @notice Sets the address of the prime token contract
      * @param _primeToken address of the prime token contract
