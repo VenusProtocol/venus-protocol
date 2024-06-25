@@ -1,6 +1,5 @@
 import { contracts as governanceBscMainnet } from "@venusprotocol/governance-contracts/deployments/bscmainnet.json";
 import { contracts as governanceBscTestnet } from "@venusprotocol/governance-contracts/deployments/bsctestnet.json";
-import { ethers } from "hardhat";
 import { DeploymentsExtension } from "hardhat-deploy/types";
 
 import { addresses as venusProtocolBscMainnet } from "../deployments/bscmainnet_addresses.json";
@@ -12,14 +11,18 @@ export enum InterestRateModels {
   JumpRate,
 }
 
-export type TokenConfig = {
-  isMock: boolean;
-  name?: string;
-  symbol: string;
-  decimals?: number;
-  tokenAddress: string;
-  faucetInitialLiquidity?: boolean;
-};
+export type TokenConfig =
+  | {
+      isMock: true;
+      name: string;
+      symbol: string;
+      decimals: number;
+    }
+  | {
+      isMock: false;
+      symbol: string;
+      tokenAddress: string;
+    };
 
 export type VTokenConfig = {
   name: string;
@@ -77,7 +80,12 @@ export const globalConfig: NetworkConfig = {
         name: "First Digital USD",
         symbol: "FDUSD",
         decimals: 18,
-        tokenAddress: ethers.constants.AddressZero,
+      },
+      {
+        isMock: true,
+        name: "Wrapped BNB",
+        symbol: "WBNB",
+        decimals: 18,
       },
     ],
     marketsConfig: [
@@ -108,7 +116,6 @@ export const globalConfig: NetworkConfig = {
         name: "First Digital USD",
         symbol: "FDUSD",
         decimals: 18,
-        tokenAddress: ethers.constants.AddressZero,
       },
     ],
     marketsConfig: [
@@ -136,9 +143,7 @@ export const globalConfig: NetworkConfig = {
     tokensConfig: [
       {
         isMock: false,
-        name: "First Digital USD",
         symbol: "FDUSD",
-        decimals: 18,
         tokenAddress: "0xc5f0f7b66764F6ec8C8Dff7BA683102295E16409",
       },
     ],
@@ -187,15 +192,6 @@ export function getTokenConfig(tokenSymbol: string, tokens: TokenConfig[]): Toke
     return tokenCofig;
   } else {
     throw Error(`Token ${tokenSymbol} is not found in the config`);
-  }
-}
-
-export async function getTokenAddress(tokenConfig: TokenConfig, deployments: DeploymentsExtension) {
-  if (tokenConfig.isMock) {
-    const token = await deployments.get(`Mock${tokenConfig.symbol}`);
-    return token.address;
-  } else {
-    return tokenConfig.tokenAddress;
   }
 }
 
