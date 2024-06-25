@@ -1,3 +1,10 @@
+## [9.2.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.1.0...v9.2.0-dev.1) (2024-06-25)
+
+
+### Features
+
+* add second mock token ([77ce780](https://github.com/VenusProtocol/venus-protocol/commit/77ce780094384179af133456a7519a714f9035f2))
+
 ## [9.1.0](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0...v9.1.0) (2024-06-04)
 
 
