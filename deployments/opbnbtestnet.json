@@ -684,7 +684,7 @@
       ]
     },
     "XVSVaultProxy_Implementation": {
-      "address": "0x85B0711FB5Bef4CfeDb90BD2F392b943fd9f556D",
+      "address": "0xc8614663Cc4ee868EF5267891E177586d7105D7F",
       "abi": [
         {
           "inputs": [],
@@ -2224,6 +2224,21 @@
             }
           ],
           "name": "setWithdrawalLockingPeriod",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_xvs",
+              "type": "address"
+            }
+          ],
+          "name": "setXvsAddress",
           "outputs": [],
           "payable": false,
           "stateMutability": "nonpayable",
