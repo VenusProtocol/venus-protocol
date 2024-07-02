@@ -60,8 +60,8 @@ contract TwoKinksInterestRateModel is InterestRateModel {
 
     /**
      * @notice Construct an interest rate model
-     * @param multiplierPerYear The rate of increase in interest rate wrt utilization (scaled by 1e18)
      * @param baseRatePerYear The approximate target base APR, as a mantissa (scaled by 1e18)
+     * @param multiplierPerYear The rate of increase in interest rate wrt utilization (scaled by 1e18)
      * @param kink1_ The utilization point at which the multiplier2 is applied
      * @param multiplier2PerYear The multiplier after hitting kink1
      * @param baseRate2PerYear The base rate after hitting kink1
@@ -69,8 +69,8 @@ contract TwoKinksInterestRateModel is InterestRateModel {
      * @param jumpMultiplierPerYear The multiplierPerBlock after hitting a specified utilization point
      */
     constructor(
-        int256 multiplierPerYear, 
         int256 baseRatePerYear, 
+        int256 multiplierPerYear, 
         int256 kink1_,
         int256 multiplier2PerYear,
         int256 baseRate2PerYear,
