@@ -69,8 +69,8 @@ contract TwoKinksInterestRateModel is InterestRateModel {
      * @param jumpMultiplierPerYear The multiplierPerBlock after hitting a specified utilization point
      */
     constructor(
-        int256 baseRatePerYear, 
-        int256 multiplierPerYear, 
+        int256 baseRatePerYear,
+        int256 multiplierPerYear,
         int256 kink1_,
         int256 multiplier2PerYear,
         int256 baseRate2PerYear,
@@ -121,13 +121,13 @@ contract TwoKinksInterestRateModel is InterestRateModel {
         if (util < kink1) {
             return _max(0, util.mul(multiplierPerBlock).div(expScale).add(baseRatePerBlock));
         } else if (util < kink2) {
-            int256 rate1 = util.mul(multiplierPerBlock).div(expScale).add(baseRatePerBlock);
+            int256 rate1 = kink1.mul(multiplierPerBlock).div(expScale).add(baseRatePerBlock);
             int256 rate2 = util.sub(kink1).mul(multiplier2PerBlock).div(expScale).add(baseRate2PerBlock);
             return _max(0, rate1.add(rate2));
         } else {
-            int256 rate1 = util.mul(multiplierPerBlock).div(expScale).add(baseRatePerBlock);
+            int256 rate1 = kink1.mul(multiplierPerBlock).div(expScale).add(baseRatePerBlock);
             int256 rate2 = kink2.sub(kink1).mul(multiplier2PerBlock).div(expScale).add(baseRate2PerBlock);
-            int256 rate3 = util.sub(kink2).mul(jumpMultiplierPerBlock).div(expScale).add(rate2);
+            int256 rate3 = util.sub(kink2).mul(jumpMultiplierPerBlock).div(expScale);
             return _max(0, rate1.add(rate2).add(rate3));
         }
     }

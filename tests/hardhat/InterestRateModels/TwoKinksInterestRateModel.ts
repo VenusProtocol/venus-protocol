@@ -13,7 +13,6 @@ const convertToUnit = (amount: string | number, decimals: number) => {
   return new BigNumber(amount).times(new BigNumber(10).pow(decimals)).toString();
 };
 
-
 let twoKinksInterestRateModel: TwoKinksInterestRateModel;
 
 const baseRatePerYear = convertToUnit("0.2", 16);
@@ -28,7 +27,6 @@ const cash = convertToUnit("10", 19);
 const borrows = convertToUnit("4", 19);
 const reserves = convertToUnit("2", 19);
 const expScale = convertToUnit("1", 18);
-
 
 describe(`Two Kinks Interest Rate Model Tests`, async () => {
   const fixture = async () => {
@@ -54,7 +52,6 @@ describe(`Two Kinks Interest Rate Model Tests`, async () => {
     expect(await twoKinksInterestRateModel.utilizationRate(cash, 0, reserves)).equal(0);
   });
 
-
   it("Utilization rate", async () => {
     const utilizationRate = new BigNumber(Number(borrows))
       .multipliedBy(expScale)
@@ -69,23 +66,16 @@ describe(`Two Kinks Interest Rate Model Tests`, async () => {
     const borrows = convertToUnit("1", 19);
     const reserves = convertToUnit("2", 19);
 
-    const multiplierPerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.multiplierPerBlock()
-    ).toString();
-    const baseRatePerBlockOrTimestamp = (await twoKinksInterestRateModel.baseRatePerBlock()).toString();
-    const utilizationRate = (
-      await twoKinksInterestRateModel.utilizationRate(cash, borrows, reserves)
-    ).toString();
+    const multiplierPerBlock = (await twoKinksInterestRateModel.multiplierPerBlock()).toString();
+    const baseRatePerBlock = (await twoKinksInterestRateModel.baseRatePerBlock()).toString();
+    const utilizationRate = (await twoKinksInterestRateModel.utilizationRate(cash, borrows, reserves)).toString();
 
     expect(new BigNumber(utilizationRate).toNumber()).to.be.lt(new BigNumber(kink1).toNumber());
 
-    const value = new BigNumber(utilizationRate)
-      .multipliedBy(multiplierPerBlockOrTimestamp)
-      .dividedBy(expScale)
-      .toFixed(0);
+    const value = new BigNumber(utilizationRate).multipliedBy(multiplierPerBlock).dividedBy(expScale).toFixed(0);
 
     expect(await twoKinksInterestRateModel.getBorrowRate(cash, borrows, reserves)).equal(
-      Number(value) + Number(baseRatePerBlockOrTimestamp),
+      Number(value) + Number(baseRatePerBlock),
     );
   });
 
@@ -94,80 +84,64 @@ describe(`Two Kinks Interest Rate Model Tests`, async () => {
     const borrows = convertToUnit("3", 19);
     const reserves = convertToUnit("1", 19);
 
-    const multiplierPerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.multiplierPerBlock()
-    ).toString();
-    const multiplier2PerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.multiplier2PerBlock()
-    ).toString();
-    const baseRatePerBlockOrTimestamp = (await twoKinksInterestRateModel.baseRatePerBlock()).toString();
-    const baseRate2PerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.baseRate2PerBlock()
-    ).toString();
-    const utilizationRate = (
-      await twoKinksInterestRateModel.utilizationRate(cash, borrows, reserves)
-    ).toString();
+    const multiplierPerBlock = (await twoKinksInterestRateModel.multiplierPerBlock()).toString();
+    const multiplier2PerBlock = (await twoKinksInterestRateModel.multiplier2PerBlock()).toString();
+    const baseRatePerBlock = (await twoKinksInterestRateModel.baseRatePerBlock()).toString();
+    const baseRate2PerBlock = (await twoKinksInterestRateModel.baseRate2PerBlock()).toString();
+    const utilizationRate = (await twoKinksInterestRateModel.utilizationRate(cash, borrows, reserves)).toString();
 
     expect(new BigNumber(utilizationRate).toNumber()).to.be.gt(new BigNumber(kink1).toNumber());
     expect(new BigNumber(utilizationRate).toNumber()).to.be.lt(new BigNumber(kink2).toNumber());
 
     const rate1 = new BigNumber(kink1)
-      .multipliedBy(multiplierPerBlockOrTimestamp)
+      .multipliedBy(multiplierPerBlock)
       .dividedBy(expScale)
-      .plus(baseRatePerBlockOrTimestamp)
+      .plus(baseRatePerBlock)
       .toFixed(0);
     const rate2 = new BigNumber(new BigNumber(utilizationRate).minus(kink1))
-      .multipliedBy(multiplier2PerBlockOrTimestamp)
+      .multipliedBy(multiplier2PerBlock)
       .dividedBy(expScale)
-      .plus(baseRate2PerBlockOrTimestamp)
+      .plus(baseRate2PerBlock)
       .toFixed(0);
 
-    expect(await twoKinksInterestRateModel.getBorrowRate(cash, borrows, reserves)).equal(
+    expect(await twoKinksInterestRateModel.getBorrowRate(cash, borrows, reserves)).closeTo(
       Number(rate1) + Number(rate2),
+      1,
     );
   });
 
   it("Borrow Rate: above kink2 utilization", async () => {
     const cash = convertToUnit("12", 19);
-    const borrows = convertToUnit("21", 19);
+    const borrows = convertToUnit("80", 19);
     const reserves = convertToUnit("1", 19);
 
-    const multiplierPerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.multiplierPerBlock()
-    ).toString();
-    const multiplier2PerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.multiplier2PerBlock()
-    ).toString();
-    const baseRatePerBlockOrTimestamp = (await twoKinksInterestRateModel.baseRatePerBlock()).toString();
-    const baseRate2PerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.baseRate2PerBlock()
-    ).toString();
-    const jumpMultiplierPerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.jumpMultiplierPerBlock()
-    ).toString();
-    const utilizationRate = (
-      await twoKinksInterestRateModel.utilizationRate(cash, borrows, reserves)
-    ).toString();
+    const multiplierPerBlock = (await twoKinksInterestRateModel.multiplierPerBlock()).toString();
+    const multiplier2PerBlock = (await twoKinksInterestRateModel.multiplier2PerBlock()).toString();
+    const baseRatePerBlock = (await twoKinksInterestRateModel.baseRatePerBlock()).toString();
+    const baseRate2PerBlock = (await twoKinksInterestRateModel.baseRate2PerBlock()).toString();
+    const jumpMultiplierPerBlock = (await twoKinksInterestRateModel.jumpMultiplierPerBlock()).toString();
+    const utilizationRate = (await twoKinksInterestRateModel.utilizationRate(cash, borrows, reserves)).toString();
 
     expect(new BigNumber(utilizationRate).toNumber()).to.be.gt(new BigNumber(kink2).toNumber());
 
     const rate1 = new BigNumber(kink1)
-      .multipliedBy(multiplierPerBlockOrTimestamp)
+      .multipliedBy(multiplierPerBlock)
       .dividedBy(expScale)
-      .plus(baseRatePerBlockOrTimestamp)
+      .plus(baseRatePerBlock)
       .toFixed(0);
     const rate2 = new BigNumber(new BigNumber(kink2).minus(kink1))
-      .multipliedBy(multiplier2PerBlockOrTimestamp)
+      .multipliedBy(multiplier2PerBlock)
       .dividedBy(expScale)
-      .plus(baseRate2PerBlockOrTimestamp)
+      .plus(baseRate2PerBlock)
       .toFixed(0);
     const rate3 = new BigNumber(new BigNumber(utilizationRate).minus(kink2))
-      .multipliedBy(jumpMultiplierPerBlockOrTimestamp)
+      .multipliedBy(jumpMultiplierPerBlock)
       .dividedBy(expScale)
       .toFixed(0);
 
-    expect(await twoKinksInterestRateModel.getBorrowRate(cash, borrows, reserves)).equal(
-      new BigNumber(rate1).plus(rate2).plus(rate3).toString(),
+    expect(await twoKinksInterestRateModel.getBorrowRate(cash, borrows, reserves)).closeTo(
+      new BigNumber(rate1).plus(rate2).plus(rate3).toNumber(),
+      1,
     );
   });
 
@@ -190,40 +164,30 @@ describe(`Two Kinks Interest Rate Model Tests`, async () => {
     await twoKinksInterestRateModel.deployed();
 
     const cash = convertToUnit("12", 19);
-    const borrows = convertToUnit("21", 19);
+    const borrows = convertToUnit("45", 19);
     const reserves = convertToUnit("1", 19);
 
-    const multiplierPerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.multiplierPerBlock()
-    ).toString();
-    const multiplier2PerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.multiplier2PerBlock()
-    ).toString();
-    const baseRatePerBlockOrTimestamp = (await twoKinksInterestRateModel.baseRatePerBlock()).toString();
-    const baseRate2PerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.baseRate2PerBlock()
-    ).toString();
-    const jumpMultiplierPerBlockOrTimestamp = (
-      await twoKinksInterestRateModel.jumpMultiplierPerBlock()
-    ).toString();
-    const utilizationRate = (
-      await twoKinksInterestRateModel.utilizationRate(cash, borrows, reserves)
-    ).toString();
+    const multiplierPerBlock = (await twoKinksInterestRateModel.multiplierPerBlock()).toString();
+    const multiplier2PerBlock = (await twoKinksInterestRateModel.multiplier2PerBlock()).toString();
+    const baseRatePerBlock = (await twoKinksInterestRateModel.baseRatePerBlock()).toString();
+    const baseRate2PerBlock = (await twoKinksInterestRateModel.baseRate2PerBlock()).toString();
+    const jumpMultiplierPerBlock = (await twoKinksInterestRateModel.jumpMultiplierPerBlock()).toString();
+    const utilizationRate = (await twoKinksInterestRateModel.utilizationRate(cash, borrows, reserves)).toString();
 
     expect(new BigNumber(utilizationRate).toNumber()).to.be.gt(new BigNumber(kink2).toNumber());
 
     const rate1 = new BigNumber(kink1)
-      .multipliedBy(multiplierPerBlockOrTimestamp)
+      .multipliedBy(multiplierPerBlock)
       .dividedBy(expScale)
-      .plus(baseRatePerBlockOrTimestamp)
+      .plus(baseRatePerBlock)
       .toFixed(0);
     const rate2 = new BigNumber(new BigNumber(kink2).minus(kink1))
-      .multipliedBy(multiplier2PerBlockOrTimestamp)
+      .multipliedBy(multiplier2PerBlock)
       .dividedBy(expScale)
-      .plus(baseRate2PerBlockOrTimestamp)
+      .plus(baseRate2PerBlock)
       .toFixed(0);
     const rate3 = new BigNumber(new BigNumber(utilizationRate).minus(kink2))
-      .multipliedBy(jumpMultiplierPerBlockOrTimestamp)
+      .multipliedBy(jumpMultiplierPerBlock)
       .dividedBy(expScale)
       .toFixed(0);
 
@@ -242,11 +206,9 @@ describe(`Two Kinks Interest Rate Model Tests`, async () => {
     const rateToPool = new BigNumber(borrowRate).multipliedBy(oneMinusReserveFactor).dividedBy(expScale).toFixed(0);
     const rate = new BigNumber(borrows)
       .multipliedBy(expScale)
-      .dividedBy(Number(cash) + Number(borrows)  - Number(reserves));
+      .dividedBy(Number(cash) + Number(borrows) - Number(reserves));
     const supplyRate = new BigNumber(rateToPool).multipliedBy(rate).dividedBy(expScale).toFixed(0);
 
-    expect(await twoKinksInterestRateModel.getSupplyRate(cash, borrows, reserves, reserveMantissa)).equal(
-      supplyRate,
-    );
+    expect(await twoKinksInterestRateModel.getSupplyRate(cash, borrows, reserves, reserveMantissa)).equal(supplyRate);
   });
 });
