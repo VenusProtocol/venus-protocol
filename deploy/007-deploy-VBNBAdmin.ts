@@ -1,20 +1,23 @@
-import deployPSR from "@venusprotocol/protocol-reserve/dist/deploy/001-psr";
 import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+
+const ADDRESS_ONE = "0x0000000000000000000000000000000000000001";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  // Ensure PSR is deployed
-  await deployPSR(hre);
-
   const wBNBAddress = (await deployments.get("WBNB")).address;
   const vBNBAddress = (await deployments.get("vBNB")).address;
   const acmAddress = (await deployments.get("AccessControlManager")).address;
-  const protocolShareReserveAddress = (await deployments.get("ProtocolShareReserve")).address;
+  let protocolShareReserveAddress = (await ethers.getContractOrNull("ProtocolShareReserve"))?.address;
+  if (!protocolShareReserveAddress) {
+    console.warn("ProtocolShareReserve contract not found, using dummy address");
+    protocolShareReserveAddress = ADDRESS_ONE;
+  }
+
   const normalVipTimelockAddress = (await deployments.get("NormalTimelock")).address;
 
   await deploy("VBNBAdmin", {
