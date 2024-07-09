@@ -90,6 +90,7 @@
     "web3-utils": "^1.7.5"
   },
   "peerDependencies": {
+    "@venusprotocol/oracle": "*",
     "@venusprotocol/protocol-reserve": "*"
   },
   "_moduleAliases": {
