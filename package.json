@@ -34,7 +34,7 @@
     "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
     "@venusprotocol/governance-contracts": "^2.1.0",
-    "@venusprotocol/protocol-reserve": "^2.0.0",
+    "@venusprotocol/protocol-reserve": "https://github.com/VenusProtocol/protocol-reserve#1122647c4ca3845f1f24eb907898657811fe6adc",
     "@venusprotocol/solidity-utilities": "^2.0.3",
     "@venusprotocol/token-bridge": "^2.0.0",
     "bignumber.js": "^9.1.2",
@@ -66,7 +66,7 @@
     "@types/node": "^18.7.1",
     "@typescript-eslint/eslint-plugin": "^5.40.0",
     "@typescript-eslint/parser": "^5.40.0",
-    "@venusprotocol/oracle": "v2.3.0",
+    "@venusprotocol/oracle": "https://github.com/VenusProtocol/oracle#e80102610bbf3beac2d4c1c09f37e7aca1388d10",
     "bignumber.js": "^9.1.2",
     "chai": "^4.3.6",
     "eslint": "^8.25.0",
@@ -91,7 +91,8 @@
   },
   "peerDependencies": {
     "@venusprotocol/oracle": "*",
-    "@venusprotocol/protocol-reserve": "*"
+    "@venusprotocol/protocol-reserve": "*",
+    "@venusprotocol/governance-contracts": "*"
   },
   "_moduleAliases": {
     "@nomiclabs/hardhat-ethers": "node_modules/hardhat-deploy-ethers"
