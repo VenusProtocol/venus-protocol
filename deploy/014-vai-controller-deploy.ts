@@ -16,6 +16,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     autoMine: true,
     args: [],
   });
+
+  await deploy("VaiUnitroller", {
+    contract: "VAIUnitroller",
+    from: deployer,
+    log: true,
+    autoMine: true,
+    args: [],
+  });
 };
 
 func.tags = ["VAIController"];
