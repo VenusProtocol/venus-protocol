@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 import { DeployFunction, DeployResult } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { InterestRateModels, getConfig, getTokenConfig } from "../helpers/deploymentConfig";
+import { InterestRateModels, getConfig, getTokenConfig, skipRemoteNetworks } from "../helpers/deploymentConfig";
 
 const mantissaToBps = (num: BigNumberish) => {
   return BigNumber.from(num).div(parseUnits("1", 14)).toString();
@@ -88,10 +88,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["Markets"];
-func.skip = async hre =>
-  hre.network.name === "sepolia" ||
-  hre.network.name === "opbnbtestnet" ||
-  hre.network.name === "opbnbmainnet" ||
-  hre.network.name === "ethereum";
+func.skip = skipRemoteNetworks();
 
 export default func;

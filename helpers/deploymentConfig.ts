@@ -2,6 +2,7 @@ import { contracts as governanceBscMainnet } from "@venusprotocol/governance-con
 import { contracts as governanceBscTestnet } from "@venusprotocol/governance-contracts/deployments/bsctestnet.json";
 import { DeploymentsExtension } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+
 import { addresses as venusProtocolBscMainnet } from "../deployments/bscmainnet_addresses.json";
 import { addresses as venusProtocolBscTestnet } from "../deployments/bsctestnet_addresses.json";
 import { convertToUnit } from "./utils";
@@ -13,16 +14,16 @@ export enum InterestRateModels {
 
 export type TokenConfig =
   | {
-    isMock: true;
-    name: string;
-    symbol: string;
-    decimals: number;
-  }
+      isMock: true;
+      name: string;
+      symbol: string;
+      decimals: number;
+    }
   | {
-    isMock: false;
-    symbol: string;
-    tokenAddress: string;
-  };
+      isMock: false;
+      symbol: string;
+      tokenAddress: string;
+    };
 
 export type VTokenConfig = {
   name: string;
@@ -204,16 +205,12 @@ export const getContractAddressOrNullAddress = async (deployments: DeploymentsEx
   }
 };
 
-export const skipRemoteNetworks =
-  () =>
-  async (hre: HardhatRuntimeEnvironment) => {
-    return (
-      hre.network.name !== "bscmainnet" &&
-      hre.network.name !== "bsctestnet" &&
-      hre.network.name !== "hardhat"
-    );
-  };
+export const skipRemoteNetworks = () => async (hre: HardhatRuntimeEnvironment) => {
+  return hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet" && hre.network.name !== "hardhat";
+};
 
-export const skipSourceNetworks = ({ hardhat }: { hardhat: boolean } = { hardhat: false }) => async (hre: HardhatRuntimeEnvironment) => {
-  return hre.network.name === "bsctestnet" || hre.network.name === "bscmainnet" || hardhat;
-}
+export const skipSourceNetworks =
+  ({ hardhat }: { hardhat: boolean } = { hardhat: false }) =>
+  async (hre: HardhatRuntimeEnvironment) => {
+    return hre.network.name === "bsctestnet" || hre.network.name === "bscmainnet" || hardhat;
+  };

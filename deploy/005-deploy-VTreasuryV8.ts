@@ -2,6 +2,8 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { skipSourceNetworks } from "../helpers/deploymentConfig";
+
 interface AdminAccounts {
   [key: string]: string;
 }
@@ -57,6 +59,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["VTreasuryV8"];
-func.skip = async hre => hre.network.name === "bsctestnet" || hre.network.name === "bscmainnet";
+func.skip = skipSourceNetworks();
 
 export default func;
