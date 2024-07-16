@@ -1,5 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { skipRemoteNetworks } from '../helpers/deploymentConfig';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -17,6 +18,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["VAIController"];
-func.skip = async hre => hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet";
+func.skip = skipRemoteNetworks()
 
 export default func;
