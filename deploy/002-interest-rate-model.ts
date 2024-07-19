@@ -7,21 +7,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { deployer } = await getNamedAccounts();
 
-  // await deploy("InterestRateModelVUSDC", {
-  //   contract: "JumpRateModel",
-  //   from: deployer,
-  //   log: true,
-  //   autoMine: true,
-  //   args: [0, "50000000000000000", "1090000000000000000", "800000000000000000"],
-  // });
+  await deploy("InterestRateModelVUSDC", {
+    contract: "JumpRateModel",
+    from: deployer,
+    log: true,
+    autoMine: true,
+    args: [0, "50000000000000000", "1090000000000000000", "800000000000000000"],
+  });
 
-  // await deploy("InterestRateModelVETH", {
-  //   contract: "JumpRateModel",
-  //   from: deployer,
-  //   log: true,
-  //   autoMine: true,
-  //   args: [0, "40000000000000000", "1080000000000000000", "700000000000000000"],
-  // });
+  await deploy("InterestRateModelVETH", {
+    contract: "JumpRateModel",
+    from: deployer,
+    log: true,
+    autoMine: true,
+    args: [0, "40000000000000000", "1080000000000000000", "700000000000000000"],
+  });
 
   await deploy("InterestRateModelVBNB", {
     contract: "JumpRateModel",
@@ -34,6 +34,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.tags = ["InterestRateModel"];
 // These contracts are not deployed on a live network so we only want to try and deploy them locally
-// func.skip = async hre => hre.network.name !== "hardhat";
+func.skip = async hre => hre.network.name !== "hardhat";
 
 export default func;
