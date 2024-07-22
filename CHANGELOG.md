@@ -1,3 +1,21 @@
+## [9.2.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.1...v9.2.0-dev.2) (2024-07-22)
+
+
+### Features
+
+* updating deployment files ([1ed8231](https://github.com/VenusProtocol/venus-protocol/commit/1ed823169723d2762ceb81d887f4a887801a0244))
+
+
+### Bug Fixes
+
+* deploy proxy and set implementation ([0112a0f](https://github.com/VenusProtocol/venus-protocol/commit/0112a0f122333b6bef5b3b46f295765f620cbc97))
+* deploy Vai controller on hardhat ([6706439](https://github.com/VenusProtocol/venus-protocol/commit/6706439b904f13ce86abf5ba3af68bb4d36f3694))
+* deploy XVS on all networks ([6481a2c](https://github.com/VenusProtocol/venus-protocol/commit/6481a2cbeee2c90569fec1834ba7a3c76e8d0162))
+* deployed new IR ([dbfa635](https://github.com/VenusProtocol/venus-protocol/commit/dbfa6350fee1316613e9827f7dfa4db4fae7943a))
+* fix type error which fails build ([57aba60](https://github.com/VenusProtocol/venus-protocol/commit/57aba60f61cdbac448af1dfa1e65a3fcbcd3fdf1))
+* fixed deploy script ([21f12bd](https://github.com/VenusProtocol/venus-protocol/commit/21f12bd16a5a84afc2de562f82ff53a59f55e443))
+* uncommented code ([0a62f53](https://github.com/VenusProtocol/venus-protocol/commit/0a62f538b78e4f39b460861ff1fcbda4d8b81a4f))
+
 ## [9.2.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.1.0...v9.2.0-dev.1) (2024-06-25)
 
 
