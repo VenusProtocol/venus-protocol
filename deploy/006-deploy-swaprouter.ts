@@ -33,6 +33,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.tags = ["SwapRouter"];
 // Pancake Factory is not deployed on the local network
-func.skip = skipRemoteNetworks({ hardhat: false });
+func.skip = skipRemoteNetworks();
 
 export default func;
