@@ -127,7 +127,7 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
      * @notice Calculates the utilization rate of the market: `borrows / (cash + borrows - reserves)`
      * @param cash The amount of cash in the market
      * @param borrows The amount of borrows in the market
-     * @param reserves The amount of reserves in the market (currently unused)
+     * @param reserves The amount of reserves in the market
      * @return The utilization rate as a mantissa between [0, EXP_SCALE]
      */
     function utilizationRate(uint256 cash, uint256 borrows, uint256 reserves) public pure returns (uint256) {
