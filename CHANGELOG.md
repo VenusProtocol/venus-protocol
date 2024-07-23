@@ -1,3 +1,10 @@
+## [9.2.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.2...v9.2.0-dev.3) (2024-07-23)
+
+
+### Bug Fixes
+
+* add missing import ([7bd3491](https://github.com/VenusProtocol/venus-protocol/commit/7bd3491ac6282606926749d49b6ae8be8fda5cd5))
+
 ## [9.2.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.1...v9.2.0-dev.2) (2024-07-22)
 
 
