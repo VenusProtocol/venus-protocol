@@ -1,3 +1,30 @@
+## [9.2.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.3...v9.2.0-dev.4) (2024-07-23)
+
+
+### Features
+
+* updating deployment files ([7e37125](https://github.com/VenusProtocol/venus-protocol/commit/7e37125afa710bbb76b9851db9d09bbcbb87bed6))
+* updating deployment files ([d89969a](https://github.com/VenusProtocol/venus-protocol/commit/d89969ae25a6715016af56d62cc4a55d773d19a8))
+* updating deployment files ([caa262f](https://github.com/VenusProtocol/venus-protocol/commit/caa262fb249a0e59b8513a9dcc0a98c574bd3161))
+* updating deployment files ([3aaa586](https://github.com/VenusProtocol/venus-protocol/commit/3aaa586fd93ca72c6662d97762b2f00d698e52e6))
+* updating deployment files ([c492d3b](https://github.com/VenusProtocol/venus-protocol/commit/c492d3bec451b46dad120170dcd684ebc92a8b10))
+
+
+### Bug Fixes
+
+* added function to update IR ([7514bbc](https://github.com/VenusProtocol/venus-protocol/commit/7514bbc04b21ad07a7170b5fc13434582280c2c3))
+* deployed new IR ([300d0af](https://github.com/VenusProtocol/venus-protocol/commit/300d0af1e050ae9211b8fd8ba2f0b1b447c894f6))
+* deployed new IR ([f0724dd](https://github.com/VenusProtocol/venus-protocol/commit/f0724ddb17f7a47ce85c0913ca73736a60b077a4))
+* deployed new vbnb admin implementation ([34fbc1a](https://github.com/VenusProtocol/venus-protocol/commit/34fbc1a5790256d024c5ffb8da79f33534b46e48))
+* deployed on testnet ([613418c](https://github.com/VenusProtocol/venus-protocol/commit/613418cf1e29b35ac777364757c6de0816940ad1))
+* redeployed with acm signature fix ([a13820f](https://github.com/VenusProtocol/venus-protocol/commit/a13820f72c811cb4d8197af4ad730a9984e1efb7))
+* remove deployment from script ([29af8c6](https://github.com/VenusProtocol/venus-protocol/commit/29af8c617e6148849170cefab61d23e41e0ad005))
+* removed files ([373a93d](https://github.com/VenusProtocol/venus-protocol/commit/373a93d5b9a777252bc24844e259f2e9830cd88b))
+* removed ir deployment ([9cd374c](https://github.com/VenusProtocol/venus-protocol/commit/9cd374ca00ae1501aab3c501e7e590312f6da17e))
+* resolved conflict ([c3aac43](https://github.com/VenusProtocol/venus-protocol/commit/c3aac4319648cc393f6ae3c085d6dfb2c9b9deed))
+* uncomment test ([5f97c2c](https://github.com/VenusProtocol/venus-protocol/commit/5f97c2c48a0016471eb6e022b3282bf7d54b9de6))
+* use public and return code ([c0bab52](https://github.com/VenusProtocol/venus-protocol/commit/c0bab5227dc5ea11a0e56e31dfeffa7e7c89dfc1))
+
 ## [9.2.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.2...v9.2.0-dev.3) (2024-07-23)
 
 
