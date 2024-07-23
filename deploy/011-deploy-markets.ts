@@ -1,6 +1,7 @@
 import { BigNumber, BigNumberish } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
+import { network } from "hardhat";
 import { DeployFunction, DeployResult } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -64,9 +65,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     const underlyingDecimals = Number(await tokenContract.decimals());
-
-    console.log(`Deploying VBep20 Proxy for ${symbol} with Implementation ${preconfiguredAddresses.VTokenImpl}`);
-
+    const normalTimelock = await ethers.getContract("NormalTimelock")
+    const vBep20DelegateDeployment = await deploy("VBep20Delegate", { from: deployer })
+    console.log(`Deploying VBep20 Proxy for ${symbol} with Implementation ${vBep20DelegateDeployment.address}`);
+    
     await deploy(`${symbol}`, {
       contract: "VBep20Delegator",
       from: deployer,
@@ -78,8 +80,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         name,
         symbol,
         VTOKEN_DECIMALS,
-        preconfiguredAddresses.NormalTimelock,
-        preconfiguredAddresses.VTokenImpl,
+        network.live ? normalTimelock.address : deployer,
+        vBep20DelegateDeployment.address,
         EMPTY_BYTES_ARRAY,
       ],
       log: true,

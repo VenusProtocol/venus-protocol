@@ -1,5 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { onlyHardhat } from "../helpers/deploymentConfig";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -95,6 +96,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.tags = ["VBep20"];
 // The deployed contracts are mocks so we only run this locally
-func.skip = async hre => hre.network.name !== "hardhat";
+func.skip = onlyHardhat();
 
 export default func;
