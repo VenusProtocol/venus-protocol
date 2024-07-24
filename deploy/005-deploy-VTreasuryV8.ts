@@ -38,6 +38,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     hardhat: deployer,
   };
 
+  const deployerSigner = await hre.ethers.getSigner(deployer);
+
   const treasuryInstance = await deploy("VTreasuryV8", {
     contract: "VTreasuryV8",
     from: deployer,
@@ -51,10 +53,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const VTreasuryV8 = await ethers.getContractAt("VTreasuryV8", treasuryInstance.address);
 
-  console.log("Transferring owner to venus admin account");
-  const tx = await VTreasuryV8.transferOwnership(adminAccount);
-  tx.wait();
-  console.log("Ownership Transferred to: ", await VTreasuryV8.pendingOwner());
+  if ((await VTreasuryV8.owner()).toLowerCase() != adminAccount.toLowerCase()) {
+    console.log("Transferring owner to venus admin account");
+    const tx = await VTreasuryV8.connect(deployerSigner).transferOwnership(adminAccount);
+    tx.wait();
+    console.log("Ownership Transferred to: ", await VTreasuryV8.pendingOwner());
+  }
 };
 
 func.tags = ["VTreasuryV8"];
