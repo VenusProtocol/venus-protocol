@@ -19,7 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
 
   const { deployer } = await getNamedAccounts();
-  const { tokensConfig, marketsConfig, preconfiguredAddresses } = await getConfig(hre.network.name);
+  const { tokensConfig, marketsConfig } = await getConfig(hre.network.name);
 
   const comptrollerDeployment = await deployments.get("Unitroller");
 
@@ -65,10 +65,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     const underlyingDecimals = Number(await tokenContract.decimals());
-    const normalTimelock = await ethers.getContract("NormalTimelock")
-    const vBep20DelegateDeployment = await deploy("VBep20Delegate", { from: deployer })
+    const normalTimelock = await ethers.getContract("NormalTimelock");
+    const vBep20DelegateDeployment = await deploy("VBep20Delegate", { from: deployer });
     console.log(`Deploying VBep20 Proxy for ${symbol} with Implementation ${vBep20DelegateDeployment.address}`);
-    
+
     await deploy(`${symbol}`, {
       contract: "VBep20Delegator",
       from: deployer,

@@ -1,5 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+
 import { onlyHardhat } from "../helpers/deploymentConfig";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
