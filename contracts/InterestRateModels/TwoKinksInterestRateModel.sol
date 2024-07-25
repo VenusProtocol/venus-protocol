@@ -6,7 +6,7 @@ import { InterestRateModelV8 } from "./InterestRateModelV8.sol";
 /**
  * @title TwoKinksInterestRateModel
  * @author Venus
- * @notice An interest rate model with two different steep increase each after a certain utilization threshold called **kink** is reached.
+ * @notice An interest rate model with two different slope increase or decrease each after a certain utilization threshold called **kink** is reached.
  */
 contract TwoKinksInterestRateModel is InterestRateModelV8 {
     int256 public constant BLOCKS_PER_YEAR = (60 * 60 * 24 * 365) / 3; // (assuming 3s blocks)
@@ -48,7 +48,7 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
     int256 public immutable KINK_2;
 
     /**
-     * @notice The multiplier per block after hitting KINK_2
+     * @notice The multiplier of utilization rate per block that gives the slope 3 of interest rate
      */
     int256 public immutable JUMP_MULTIPLIER_PER_BLOCK;
 
@@ -68,10 +68,10 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
     /**
      * @notice Construct an interest rate model
      * @param baseRatePerYear_ The approximate target base APR, as a mantissa (scaled by EXP_SCALE)
-     * @param multiplierPerYear_ The rate of increase in interest rate wrt utilization (scaled by EXP_SCALE)
+     * @param multiplierPerYear_ The rate of increase or decrease in interest rate wrt utilization (scaled by EXP_SCALE)
      * @param kink1_ The utilization point at which the multiplier2 is applied
-     * @param multiplier2PerYear_ The rate of increase in interest rate wrt utilization after hitting KINK_1 (scaled by EXP_SCALE)
-     * @param baseRate2PerYear_ The approximate target base APR after hitting KINK_1, as a mantissa (scaled by EXP_SCALE)
+     * @param multiplier2PerYear_ The rate of increase or decrease in interest rate wrt utilization after hitting KINK_1 (scaled by EXP_SCALE)
+     * @param baseRate2PerYear_ The additional base APR after hitting KINK_1, as a mantissa (scaled by EXP_SCALE)
      * @param kink2_ The utilization point at which the jump multiplier is applied
      * @param jumpMultiplierPerYear_ The multiplier after hitting KINK_2
      */
@@ -106,7 +106,7 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
      * @param cash The amount of cash in the market
      * @param borrows The amount of borrows in the market
      * @param reserves The amount of reserves in the market
-     * @return The borrow rate percentage per slot (block) as a mantissa (scaled by 1e18)
+     * @return The borrow rate percentage per slot (block) as a mantissa (scaled by EXP_SCALE)
      */
     function getBorrowRate(uint256 cash, uint256 borrows, uint256 reserves) external view override returns (uint256) {
         return _getBorrowRate(cash, borrows, reserves);
