@@ -6,11 +6,9 @@ import "@matterlabs/hardhat-zksync-solc";
 import "@matterlabs/hardhat-zksync-verify";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@typechain/hardhat";
-
 import "hardhat-deploy";
-import { HardhatUserConfig,extendConfig } from "hardhat/config";
+import { HardhatUserConfig, extendConfig } from "hardhat/config";
 import { HardhatConfig } from "hardhat/types";
-
 import "solidity-coverage";
 import "solidity-docgen";
 
