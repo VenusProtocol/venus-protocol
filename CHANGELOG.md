@@ -1,3 +1,15 @@
+## [9.2.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.4...v9.2.0-dev.5) (2024-07-29)
+
+
+### Features
+
+* updating deployment files ([21ed31e](https://github.com/VenusProtocol/venus-protocol/commit/21ed31eae5d42a5234820c3b0aab2e2012b9c2e8))
+
+
+### Bug Fixes
+
+* remove outdated addresses ([a12ea8f](https://github.com/VenusProtocol/venus-protocol/commit/a12ea8f32627e193f302d5848bb018c7d8df59de))
+
 ## [9.2.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.3...v9.2.0-dev.4) (2024-07-23)
 
 
