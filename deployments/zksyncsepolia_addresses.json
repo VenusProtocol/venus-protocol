@@ -1,0 +1,9 @@
+{
+  "name": "zksyncsepolia",
+  "chainId": "300",
+  "addresses": {
+    "XVSStore": "0xf0DaEFE5f5df4170426F88757EcdF45430332d88",
+    "XVSVaultProxy": "0x825f9EE3b2b1C159a5444A111A70607f3918564e",
+    "XVSVaultProxy_Implementation": "0x553d7bd61c4D9E1c23bcdcCA49e859a77FE6aa67"
+  }
+}
