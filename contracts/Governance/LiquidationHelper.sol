@@ -34,12 +34,23 @@ contract LiquidationHelper is Ownable2Step {
 
     function liquidateBatch(LiquidationOrder[] calldata orders) external onlyOwner {
         uint256 ordersCount = orders.length;
-        for (uint256 i = 0; i < ordersCount; ++i) {
+        for (uint256 i; i < ordersCount; ++i) {
             _liquidateBorrow(orders[i]);
         }
     }
 
     function sweepTokens(address token, address destination) external onlyOwner {
+        _sweepTokens(token, destination);
+    }
+
+    function sweepTokensBatch(address[] calldata tokens, address destination) external onlyOwner {
+        uint256 tokensCount = tokens.length;
+        for (uint256 i; i < tokensCount; ++i) {
+            _sweepTokens(tokens[i], destination);
+        }
+    }
+
+    function _sweepTokens(address token, address destination) internal {
         Currency.wrap(token).transferAll(destination);
     }
 

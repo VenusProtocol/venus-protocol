@@ -25,6 +25,7 @@ const LIQUIDATOR = "0x0870793286aada55d39ce7f82fb2766e8004cf43";
 const VUSDT = "0xfD5840Cd36d94D7229439859C0112a4185BC0255";
 const VBNB = "0xA07c5b74C9B40447a954e1466938b865b6BBea36";
 const TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
+const NATIVE = "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB";
 
 const deployLiquidationHelper = async (owner: { address: string }): Promise<LiquidationHelper> => {
   const liquidationHelperFactory: LiquidationHelper__factory = await ethers.getContractFactory("LiquidationHelper");
@@ -163,10 +164,26 @@ const test = () => {
       });
 
       it("sweeps native asset to destination", async () => {
-        const NATIVE = "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB";
         const amount = parseEther("1");
         await treasury.sendTransaction({ to: liquidationHelper.address, value: amount });
         const tx = await liquidationHelper.connect(owner).sweepTokens(NATIVE, treasury.address);
+        await expect(tx).to.changeEtherBalance(treasury.address, amount);
+      });
+    });
+
+    describe("sweepTokensBatch", () => {
+      it("fails if called by a non-owner", async () => {
+        await expect(
+          liquidationHelper.connect(someone).sweepTokensBatch([usdt.address, NATIVE], treasury.address),
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("sweeps batch of tokens to destination if called by owner", async () => {
+        const amount = parseUnits("1", 18);
+        await usdt.connect(treasury).transfer(liquidationHelper.address, amount);
+        await treasury.sendTransaction({ to: liquidationHelper.address, value: amount });
+        const tx = await liquidationHelper.connect(owner).sweepTokensBatch([usdt.address, NATIVE], treasury.address);
+        await expect(tx).to.changeTokenBalance(usdt, treasury.address, amount);
         await expect(tx).to.changeEtherBalance(treasury.address, amount);
       });
     });
