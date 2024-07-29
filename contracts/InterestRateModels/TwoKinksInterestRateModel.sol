@@ -169,13 +169,26 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
             return _max(0, ((util * MULTIPLIER_PER_BLOCK) / expScale) + BASE_RATE_PER_BLOCK);
         } else if (util < KINK_2) {
             int256 rate1 = (((KINK_1 * MULTIPLIER_PER_BLOCK) / expScale) + BASE_RATE_PER_BLOCK);
-            int256 rate2 = (((util - KINK_1) * MULTIPLIER_2_PER_BLOCK) / expScale) + BASE_RATE_2_PER_BLOCK;
+            int256 slope2Util;
+            unchecked {
+                slope2Util = util - KINK_1;
+            }
+            int256 rate2 = ((slope2Util * MULTIPLIER_2_PER_BLOCK) / expScale) + BASE_RATE_2_PER_BLOCK;
 
             return _max(0, rate1 + rate2);
         } else {
             int256 rate1 = (((KINK_1 * MULTIPLIER_PER_BLOCK) / expScale) + BASE_RATE_PER_BLOCK);
-            int256 rate2 = (((KINK_2 - KINK_1) * MULTIPLIER_2_PER_BLOCK) / expScale) + BASE_RATE_2_PER_BLOCK;
-            int256 rate3 = (((util - KINK_2) * JUMP_MULTIPLIER_PER_BLOCK) / expScale);
+            int256 slope2Util;
+
+            unchecked {
+                slope2Util = KINK_2 - KINK_1;
+            }
+            int256 rate2 = ((slope2Util * MULTIPLIER_2_PER_BLOCK) / expScale) + BASE_RATE_2_PER_BLOCK;
+            int256 slope3Util;
+            unchecked {
+                slope3Util = util - KINK_2;
+            }
+            int256 rate3 = ((slope3Util * JUMP_MULTIPLIER_PER_BLOCK) / expScale);
 
             return _max(0, rate1 + rate2 + rate3);
         }
