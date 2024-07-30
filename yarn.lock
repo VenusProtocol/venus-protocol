@@ -3780,6 +3780,7 @@ __metadata:
     ethers: ^5.7.0
     hardhat: ^2.19.2
     hardhat-contract-sizer: ^2.8.0
+    hardhat-dependency-compiler: ^1.2.1
     hardhat-deploy: ^0.12.4
     hardhat-deploy-ethers: ^0.3.0-beta.13
     hardhat-gas-reporter: ^1.0.8
@@ -7439,6 +7440,15 @@ __metadata:
   peerDependencies:
     hardhat: ^2.0.0
   checksum: 870e7cad5d96ad7288b64da0faec7962a9a18e1eaaa02ed474e4f9285cd4b1a0fc6f66326e6a7476f7063fdf99aee57f227084519b1fb3723700a2d65fc65cfa
+  languageName: node
+  linkType: hard
+
+"hardhat-dependency-compiler@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "hardhat-dependency-compiler@npm:1.2.1"
+  peerDependencies:
+    hardhat: ^2.0.0
+  checksum: cc18ca535d861ff06d906ce639669a366879e37f15cb6d83f6a516e183d3fa6d9964a551195fe7bc106dcb2fab2c96eb0360a55cf69fd2b759c6fd01c6dc3d8b
   languageName: node
   linkType: hard
 

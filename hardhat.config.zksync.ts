@@ -6,6 +6,7 @@ import "@matterlabs/hardhat-zksync-solc";
 import "@matterlabs/hardhat-zksync-verify";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@typechain/hardhat";
+import "hardhat-dependency-compiler";
 import "hardhat-deploy";
 import { HardhatUserConfig, extendConfig } from "hardhat/config";
 import { HardhatConfig } from "hardhat/types";
@@ -115,6 +116,13 @@ const config: HardhatUserConfig = {
       },
     ],
     deployments: {},
+  },
+  dependencyCompiler: {
+    paths: [
+      "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol",
+      "hardhat-deploy/solc_0.8/proxy/OptimizedTransparentUpgradeableProxy.sol",
+      "hardhat-deploy/solc_0.8/openzeppelin/proxy/transparent/ProxyAdmin.sol",
+    ],
   },
   docgen: {
     outputDir: "./docgen-docs",
