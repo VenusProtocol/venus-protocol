@@ -23,7 +23,11 @@ extendConfig((config: HardhatConfig) => {
     config.external = {
       ...config.external,
       deployments: {
-        zksyncsepolia: [],
+        zksyncsepolia: [
+          "node_modules/@venusprotocol/governance-contracts/deployments/zksyncsepolia",
+          "node_modules/@venusprotocol/oracle/deployments/zksyncsepolia",
+          "node_modules/@venusprotocol/token-bridge/deployments/zksyncsepolia",
+        ],
       },
     };
   }
@@ -31,18 +35,6 @@ extendConfig((config: HardhatConfig) => {
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
-  zksolc: {
-    version: "1.5.1",
-    compilerSource: "binary",
-    settings: {
-      metadata: {
-        // do not include the metadata hash, since this is machine dependent
-        // and we want all generated code to be deterministic
-        // https://docs.soliditylang.org/en/v0.7.6/metadata.html
-        bytecodeHash: "none",
-      },
-    },
-  },
   solidity: {
     compilers: [
       {
@@ -138,7 +130,7 @@ function isFork() {
         loggingEnabled: false,
         forking: {
           url: process.env[`ARCHIVE_NODE_${process.env.FORKED_NETWORK}`] || "https://sepolia.era.zksync.dev",
-          blockNumber: 21068448, // TODO: change this
+          blockNumber: 40392000,
         },
         accounts: {
           accountsBalance: "1000000000000000000",
