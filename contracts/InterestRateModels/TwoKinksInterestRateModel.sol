@@ -84,7 +84,7 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
         int256 kink2_,
         int256 jumpMultiplierPerYear_
     ) {
-        if (baseRatePerYear_ < 0 || baseRate2PerYear_ < 0 || kink1_ < 0 || kink2_ < 0) {
+        if (baseRatePerYear_ < 0 || baseRate2PerYear_ < 0) {
             revert NegativeValueNotAllowed();
         }
 
