@@ -43,7 +43,9 @@ junit.xml
 # hardhat
 typechain
 artifacts
+artifacts-zk
 cache
+cache-zk
 
 # OZ
 .openzeppelin/
