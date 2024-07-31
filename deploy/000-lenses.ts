@@ -1,6 +1,8 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { skipRemoteNetworks } from "../helpers/deploymentConfig";
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deploy } = deployments;
@@ -30,10 +32,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["Lens"];
-func.skip = async hre =>
-  hre.network.name === "sepolia" ||
-  hre.network.name === "opbnbtestnet" ||
-  hre.network.name === "opbnbmainnet" ||
-  hre.network.name === "ethereum";
+func.skip = skipRemoteNetworks();
 
 export default func;
