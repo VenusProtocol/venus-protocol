@@ -1,3 +1,29 @@
+## [9.2.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.5...v9.2.0-dev.6) (2024-08-01)
+
+
+### Features
+
+* add config for zksync ([45b42ce](https://github.com/VenusProtocol/venus-protocol/commit/45b42ce826f6e1ab64c396678afd9c48e75b7e54))
+* add VTreasuryV8 deployment on zksyncsepolia ([56b54c5](https://github.com/VenusProtocol/venus-protocol/commit/56b54c58d142b3ba67821f8c4b5334f1bf544aef))
+* updating deployment files ([d4ddde4](https://github.com/VenusProtocol/venus-protocol/commit/d4ddde4536da12f659d8d58e3bfd5d2cc1deefa9))
+
+
+### Bug Fixes
+
+* remove zksyncsepolia in ci.yml ([637b94d](https://github.com/VenusProtocol/venus-protocol/commit/637b94d44d000cadae133973d8fff23811e23915))
+
+## [9.2.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.4...v9.2.0-dev.5) (2024-07-29)
+
+
+### Features
+
+* updating deployment files ([21ed31e](https://github.com/VenusProtocol/venus-protocol/commit/21ed31eae5d42a5234820c3b0aab2e2012b9c2e8))
+
+
+### Bug Fixes
+
+* remove outdated addresses ([a12ea8f](https://github.com/VenusProtocol/venus-protocol/commit/a12ea8f32627e193f302d5848bb018c7d8df59de))
+
 ## [9.2.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.3...v9.2.0-dev.4) (2024-07-23)
 
 
