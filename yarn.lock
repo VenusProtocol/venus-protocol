@@ -3559,9 +3559,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/oracle@npm:v2.3.0":
-  version: 2.3.0
-  resolution: "@venusprotocol/oracle@npm:2.3.0"
+"@venusprotocol/oracle@npm:2.5.0-dev.2":
+  version: 2.5.0-dev.2
+  resolution: "@venusprotocol/oracle@npm:2.5.0-dev.2"
   dependencies:
     "@chainlink/contracts": ^0.5.1
     "@defi-wonderland/smock": ^2.3.4
@@ -3573,10 +3573,10 @@ __metadata:
     "@venusprotocol/venus-protocol": ^6.0.0
     ethers: ^5.6.8
     hardhat: ^2.16.1
-    hardhat-deploy: ^0.11.14
+    hardhat-deploy: ^0.12.4
     module-alias: ^2.2.2
     solidity-docgen: ^0.6.0-beta.29
-  checksum: 6ba484f72eef7701a92be1673ec5c3d7d180c79aa17c7b7ef0c3848fbf15b456e5cc7633bf0a1fbb4ff36ba05524b3f70f966e40c4f32f8b8cff551c6605878b
+  checksum: 86acf39fc66be4f1b1c673b5e040d29688e69ab5b77831d5abb481c407caf0f08caf79dcf7d679e3961fe2938a0acbfc7a5b4fb26f300c05807cf508e4eac6cd
   languageName: node
   linkType: hard
 
@@ -3768,7 +3768,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": ^5.40.0
     "@typescript-eslint/parser": ^5.40.0
     "@venusprotocol/governance-contracts": ^2.1.0
-    "@venusprotocol/oracle": v2.3.0
+    "@venusprotocol/oracle": 2.5.0-dev.2
     "@venusprotocol/protocol-reserve": ^2.0.0
     "@venusprotocol/solidity-utilities": ^2.0.3
     "@venusprotocol/token-bridge": ^2.0.0
