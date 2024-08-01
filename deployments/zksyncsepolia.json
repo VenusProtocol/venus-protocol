@@ -195,13 +195,7 @@
           "type": "receive"
         }
       ]
-    }
-  }
-}
-{
-  "name": "zksyncsepolia",
-  "chainId": "300",
-  "contracts": {
+    },
     "XVSStore": {
       "address": "0xf0DaEFE5f5df4170426F88757EcdF45430332d88",
       "abi": [
