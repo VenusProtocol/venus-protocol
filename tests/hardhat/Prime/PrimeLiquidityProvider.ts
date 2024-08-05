@@ -52,7 +52,7 @@ const fixture = async () => {
     ],
     {
       constructorArgs: [false, 10512000],
-      unsafeAllow: "constructor",
+      unsafeAllow: ["constructor", "internal-function-storage"],
     },
   );
 
