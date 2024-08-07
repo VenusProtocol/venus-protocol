@@ -31,7 +31,6 @@
     "clean": "hardhat clean && hardhat clean --config hardhat.config.zksync.ts"
   },
   "dependencies": {
-    "@defi-wonderland/smock": "2.3.5",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
@@ -47,6 +46,7 @@
   "devDependencies": {
     "@commitlint/cli": "^17.0.3",
     "@commitlint/config-conventional": "^17.0.3",
+    "@defi-wonderland/smock": "2.3.5",
     "@ethersproject/abi": "^5.6.4",
     "@ethersproject/abstract-provider": "^5",
     "@ethersproject/abstract-signer": "^5",

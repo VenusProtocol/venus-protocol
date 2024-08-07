@@ -13,7 +13,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
     skipIfAlreadyDeployed: true,
-    maxFeePerGas: "200000000",
   });
 
   await deploy("XVSVaultProxy", {
@@ -22,7 +21,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
     skipIfAlreadyDeployed: true,
-    maxFeePerGas: "200000000",
   });
 
   await deploy("XVSStore", {
@@ -31,7 +29,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     autoMine: true,
     skipIfAlreadyDeployed: true,
-    maxFeePerGas: "200000000",
   });
 };
 

@@ -190,6 +190,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     ],
     {
       constructorArgs: [false, 10512000],
+      // To allow the usage constructor & internal functions that might change storage
       unsafeAllow: ["constructor", "internal-function-storage"],
     },
   );
@@ -217,6 +218,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     ],
     {
       constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap, false],
+      // To allow the usage constructor & internal functions that might change storage
       unsafeAllow: ["constructor", "internal-function-storage"],
     },
   );
