@@ -119,7 +119,6 @@ const config: HardhatUserConfig = {
   },
   dependencyCompiler: {
     paths: [
-      "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol",
       "hardhat-deploy/solc_0.8/proxy/OptimizedTransparentUpgradeableProxy.sol",
       "hardhat-deploy/solc_0.8/openzeppelin/proxy/transparent/ProxyAdmin.sol",
     ],
