@@ -1,3 +1,12 @@
+## [9.2.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.6...v9.2.0-dev.7) (2024-08-08)
+
+
+### Features
+
+* deployment of XVSVault on zksyncsepolia ([0afc425](https://github.com/VenusProtocol/venus-protocol/commit/0afc4253b38db7b6f3f9fce988c89f5bfad307c1))
+* updating deployment files ([2847c80](https://github.com/VenusProtocol/venus-protocol/commit/2847c80d66bfb3dc3eacb8540e64ec14befb1ae0))
+* updating deployment files ([fc3f331](https://github.com/VenusProtocol/venus-protocol/commit/fc3f3311785de87931f1704c7d3a246dd5b194e6))
+
 ## [9.2.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.5...v9.2.0-dev.6) (2024-08-01)
 
 
