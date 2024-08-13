@@ -1,3 +1,11 @@
+## [9.2.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.7...v9.2.0-dev.8) (2024-08-13)
+
+
+### Features
+
+* Prime deployments on zksync sepolia ([5716327](https://github.com/VenusProtocol/venus-protocol/commit/571632700882626edbf2bfea20ad5ce5ae9fbefc))
+* updating deployment files ([b3281eb](https://github.com/VenusProtocol/venus-protocol/commit/b3281ebd86b662ce7ae29a2a35b7a29b81f39664))
+
 ## [9.2.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.6...v9.2.0-dev.7) (2024-08-08)
 
 
