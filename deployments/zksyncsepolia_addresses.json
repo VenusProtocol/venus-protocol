@@ -2,6 +2,13 @@
   "name": "zksyncsepolia",
   "chainId": "300",
   "addresses": {
+    "DefaultProxyAdmin": "0x18E44f588a4DcF2F7145d35A5C226e129040b6D3",
+    "Prime": "0x72b85930F7f8D00ACe5EAD10a315C17b8954FBcF",
+    "PrimeLiquidityProvider": "0x3407c349F80E4E9544c73ca1E9334CeEA7266517",
+    "PrimeLiquidityProvider_Implementation": "0xc2897703257C8cb174ed1Ec87Fa96d1847B4Cd5C",
+    "PrimeLiquidityProvider_Proxy": "0x3407c349F80E4E9544c73ca1E9334CeEA7266517",
+    "Prime_Implementation": "0x42639e7691189f8b87Ee0e1d209Af763855156C4",
+    "Prime_Proxy": "0x72b85930F7f8D00ACe5EAD10a315C17b8954FBcF",
     "VTreasuryV8": "0x943eBE4460a12F551D60A68f510Ea10CD8d564BA",
     "XVSStore": "0xf0DaEFE5f5df4170426F88757EcdF45430332d88",
     "XVSVaultProxy": "0x825f9EE3b2b1C159a5444A111A70607f3918564e",
