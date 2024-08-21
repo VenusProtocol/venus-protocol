@@ -1,3 +1,24 @@
+## [9.2.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.8...v9.2.0-dev.9) (2024-08-21)
+
+
+### Bug Fixes
+
+* added TwoKinksInterestRateModel ([11510df](https://github.com/VenusProtocol/venus-protocol/commit/11510df081d8626107a0ff64a82004695986e572))
+* fix comment ([e9aee5c](https://github.com/VenusProtocol/venus-protocol/commit/e9aee5ce51795cc4ec35588bb9af3190070f8746))
+* fixed tests ([f3a10bb](https://github.com/VenusProtocol/venus-protocol/commit/f3a10bb03edae8a9a967bb72c20a845f9341fae0))
+* max utilisation rate ([35c832e](https://github.com/VenusProtocol/venus-protocol/commit/35c832eed9a773fe0f4bdaed1ab9d6e696201cad))
+* removed SignedSafeMath ([2864022](https://github.com/VenusProtocol/venus-protocol/commit/2864022a634434331fbded9848539a07640d500d))
+* use solidity 0.8 ([9124f4f](https://github.com/VenusProtocol/venus-protocol/commit/9124f4fd4f97437bff9f819a02f05622bd51fbee))
+* ven-s2 ([cf5b528](https://github.com/VenusProtocol/venus-protocol/commit/cf5b5287559b12841339f322de4478f9a4757783))
+* ven-s3 ([ae53d56](https://github.com/VenusProtocol/venus-protocol/commit/ae53d56ba0fa2a05c3c5605b8d9f48703fbcc775))
+* vpb-01 ([4c9be09](https://github.com/VenusProtocol/venus-protocol/commit/4c9be09cc591e9f1eff5a596e699d380340c8073))
+* vpb-01 ([191b1c4](https://github.com/VenusProtocol/venus-protocol/commit/191b1c4d2c29d77ca5b79072881ea9d631adf2d6))
+* vpb-02 ([414bd7d](https://github.com/VenusProtocol/venus-protocol/commit/414bd7d71eac5ce5eefd16ffcb5971c08c20f75e))
+* vpb-03 ([f339105](https://github.com/VenusProtocol/venus-protocol/commit/f339105dbce91c202beed6d6a14fcf75efb29058))
+* vpb-03 alleviation ([72133a8](https://github.com/VenusProtocol/venus-protocol/commit/72133a8b164f7f2f78bd4d795f5460f891c74c78))
+* vpb-05 ([b5df8d2](https://github.com/VenusProtocol/venus-protocol/commit/b5df8d29db3e3d9e86ac01e82b5c3ab39b9222e4))
+* wip - unit tests ([0cb0b21](https://github.com/VenusProtocol/venus-protocol/commit/0cb0b2168255b31315a45763a57a088ee772f084))
+
 ## [9.2.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.7...v9.2.0-dev.8) (2024-08-13)
 
 
