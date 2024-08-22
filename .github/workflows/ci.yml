@@ -143,7 +143,7 @@ jobs:
             EXPORT=true yarn hardhat export --network ${NETWORK} --export ./deployments/${NETWORK}.json
             jq -M '{name, chainId, addresses: .contracts | map_values(.address)}' ./deployments/${NETWORK}.json > ./deployments/${NETWORK}_addresses.json
           done
-          for NETWORK in zksyncsepolia; do
+          for NETWORK in zksyncsepolia zksyncmainnet; do
             EXPORT=true yarn hardhat export --network ${NETWORK} --export ./deployments/${NETWORK}.json --config hardhat.config.zksync.ts
             jq -M '{name, chainId, addresses: .contracts | map_values(.address)}' ./deployments/${NETWORK}.json > ./deployments/${NETWORK}_addresses.json
           done

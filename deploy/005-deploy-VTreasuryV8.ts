@@ -33,6 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     arbitrumone: "0x14e0E151b33f9802b3e75b621c1457afc44DcAA0", // ARBITRUM_ONE MULTISIG
     xlayertestnet: "0x5961449d63149035aCfC0714D5155f24C9819004", // XLAYER TESTNET MULTISIG
     zksyncsepolia: "0xa2f83de95E9F28eD443132C331B6a9C9B7a9F866", // ZKSYNC SEPOLIA MULTISIG
+    zksyncmainnet: "0x751Aa759cfBB6CE71A43b48e40e1cCcFC66Ba4aa", // ZKSYNC MAINNET MULTISIG
     bscmainnet: await getTimelock(),
     bsctestnet: await getTimelock(),
     hardhat: deployer,
