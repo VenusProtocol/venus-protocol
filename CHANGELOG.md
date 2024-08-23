@@ -1,3 +1,11 @@
+## [9.2.0-dev.10](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.9...v9.2.0-dev.10) (2024-08-23)
+
+
+### Features
+
+* add interest rate model deployments for Chaos recs ([52127eb](https://github.com/VenusProtocol/venus-protocol/commit/52127eb3d40589d0fb09ed383b5a410fb52ad8b6))
+* updating deployment files ([e18f96d](https://github.com/VenusProtocol/venus-protocol/commit/e18f96d0fdab08520e53118609993dcad4fe063b))
+
 ## [9.2.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.8...v9.2.0-dev.9) (2024-08-21)
 
 
