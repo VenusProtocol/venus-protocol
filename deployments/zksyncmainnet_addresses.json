@@ -2,6 +2,10 @@
   "name": "zksyncmainnet",
   "chainId": "324",
   "addresses": {
-    "VTreasuryV8": "0xB2e9174e23382f7744CebF7e0Be54cA001D95599"
+    "DefaultProxyAdmin": "0x8Ea1A989B036f7Ef21bb95CE4E7961522Ca00287",
+    "VTreasuryV8": "0xB2e9174e23382f7744CebF7e0Be54cA001D95599",
+    "XVSStore": "0x29FB1fEe4F469641b63978d0975cDa148Cf938Ee",
+    "XVSVaultProxy": "0x58DDAF7e1F08fAfAdDf2169C45dB5420497634D5",
+    "XVSVaultProxy_Implementation": "0xb7f1d55914CD8c05ac225c3c1a30281Fcc169f25"
   }
 }
