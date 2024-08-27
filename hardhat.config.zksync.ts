@@ -29,6 +29,12 @@ extendConfig((config: HardhatConfig) => {
           "node_modules/@venusprotocol/oracle/deployments/zksyncsepolia",
           "node_modules/@venusprotocol/token-bridge/deployments/zksyncsepolia",
         ],
+
+        zksyncmainnet: [
+          "node_modules/@venusprotocol/governance-contracts/deployments/zksyncmainnet",
+          "node_modules/@venusprotocol/oracle/deployments/zksyncmainnet",
+          "node_modules/@venusprotocol/token-bridge/deployments/zksyncmainnet",
+        ],
       },
     };
   }
@@ -79,6 +85,14 @@ const config: HardhatUserConfig = {
       url: process.env.ARCHIVE_NODE_zksyncsepolia || "https://sepolia.era.zksync.dev",
       ethNetwork: "sepolia",
       verifyURL: "https://explorer.sepolia.era.zksync.dev/contract_verification",
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+      zksync: true,
+      live: true,
+    },
+    zksyncmainnet: {
+      url: process.env.ARCHIVE_NODE_zksyncmainnet || "https://mainnet.era.zksync.io",
+      ethNetwork: "mainnet",
+      verifyURL: "https://zksync2-mainnet-explorer.zksync.io/contract_verification",
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
       zksync: true,
       live: true,
