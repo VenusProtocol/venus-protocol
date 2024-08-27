@@ -1,3 +1,16 @@
+## [9.2.0-dev.11](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.10...v9.2.0-dev.11) (2024-08-27)
+
+
+### Features
+
+* add deployments of VTreasury on zksync ([2887b61](https://github.com/VenusProtocol/venus-protocol/commit/2887b61856089003882566e3b89ad1f7547b4708))
+* updating deployment files ([f7e1d9a](https://github.com/VenusProtocol/venus-protocol/commit/f7e1d9ae5efb76ea4e98d7768e6a5b1ec3adf6f7))
+
+
+### Bug Fixes
+
+* url ([f2d060d](https://github.com/VenusProtocol/venus-protocol/commit/f2d060d726886075b3126fd4c21f7f4244c9bbc0))
+
 ## [9.2.0-dev.10](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.9...v9.2.0-dev.10) (2024-08-23)
 
 
