@@ -34,8 +34,6 @@
     "Liquidator_Implementation": "0xE26cE9b5FDd602225cCcC4cef7FAE596Dcf2A965",
     "Liquidator_Proxy": "0x0870793286aada55d39ce7f82fb2766e8004cf43",
     "MATIC": "0xCC42724C6683B7E57334c4E856f4c9965ED682bD",
-    "MATIC_Implementation": "0xba5fe23f8a3a24bed3236f05f2fcf35fd0bf0b5c",
-    "MATIC_Proxy": "0xCC42724C6683B7E57334c4E856f4c9965ED682bD",
     "MarketFacet": "0x4b093a3299F39615bA6b34B7897FDedCe7b83D63",
     "MoveDebtDelegate": "0x89621C48EeC04A85AfadFD37d32077e65aFe2226",
     "MoveDebtDelegate_Implementation": "0x8439932C45e646FcC1009690417A65BF48f68Ce7",
