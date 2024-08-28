@@ -20,9 +20,9 @@ By default, git merges the upstream changes into your local branch on pull. This
 2. Prefer short and descriptive names for branches (good: `polynomial-interest-curve`, bad: `fix-rate`).
 3. Use lowercase words separated by dashes (good: `xvs-vault`, bad: `XVSVault`).
 4. You may include work type into the branch name (ok: `feature/polynomial-interest-curve`).
-5. Make sure no-one else works in your feature branch.
+5. Make sure no one else works in your feature branch.
 
-## Make commmits
+## Make commits
 
 1. The commits should be self-contained and solve one specific problem. Avoid commits incorporating several completely unrelated changes. You can use `git add -p <file>` to stage just a part of the file.
 1. The commit messages should have a header and a body. Forget about commit -m.
@@ -45,7 +45,7 @@ When you rewrite your history, GitHub will refuse to accept your changes. This i
 1. Every feature branch should have one active maintainer. No-one else is allowed to directly commit to your feature branch.
 2. You can safely force-push to your feature branch. If your colleague wants to contribute, ask them to push their changes into a separate branch, and then cherry-pick. If you want to help your colleague, push your changes to a separate branch and let your colleague cherry-pick. This would help you to avoid any potential conflicts stemming from force-pushing.
 3. **Always** use `--force-with-lease` and not `--force`/`-f` to force-push. Things happen, and someone may violate the “one active maintainer” rule. Force with lease would save you the trouble of recovering someone's work :)
-4. **Never** force-push to master or any branch that has several maintainers. The only exception to this rule is when a secret (API key, private key, etc.) is accidentially committed, in which case you should immediately wipe it out and notify the security team as soon as possible.
+4. **Never** force-push to master or any branch that has several maintainers. The only exception to this rule is when a secret (API key, private key, etc.) is accidentally committed, in which case you should immediately wipe it out and notify the security team as soon as possible.
 
 ## Make a pull request
 
@@ -61,7 +61,7 @@ When you rewrite your history, GitHub will refuse to accept your changes. This i
 
 ## Closing thoughts
 
-This policy may require some time and effort: writing lenghty commit messages and doing an interactive rebase isn't as straightforward as `git commit -am`. This pays out quickly, however. When you do `git bisect` to find a bug, you'd really appreciate descriptive commits instead of just "Update file" or "Some fixes". When you're reviewing a PR, you can limit the mental burden by looking at individual commits instead of diving straight into 40 files changed. When you're a newcomer and wonder why a function you wanted to use suddenly disappeared before you fully understood the code, you'll be happy to see the reason straight in `git log`. The same goes for when you `git blame` to understand why a certain line of code is written the way it is.
+This policy may require some time and effort: writing lengthy commit messages and doing an interactive rebase isn't as straightforward as `git commit -am`. This pays out quickly, however. When you do `git bisect` to find a bug, you'd really appreciate descriptive commits instead of just "Update file" or "Some fixes". When you're reviewing a PR, you can limit the mental burden by looking at individual commits instead of diving straight into 40 files changed. When you're a newcomer and wonder why a function you wanted to use suddenly disappeared before you fully understood the code, you'll be happy to see the reason straight in `git log`. The same goes for when you `git blame` to understand why a certain line of code is written the way it is.
 
 If we were to summarize everything written above into just three bullet points, we'd go with:
 

@@ -25,6 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bsctestnet: TEN_MINUTES,
     sepolia: TEN_MINUTES,
     arbitrumsepolia: TEN_MINUTES,
+    zksyncsepolia: TEN_MINUTES,
     bscmainnet: NINETY_DAYS,
     ethereum: NINETY_DAYS,
     arbitrumone: NINETY_DAYS,
@@ -37,6 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bscmainnet: 0,
     ethereum: 0,
     arbitrumone: 0,
+    zksyncsepolia: 0,
     hardhat: 0,
   };
 
@@ -45,6 +47,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     sepolia: 2_628_000, // 12 sec per block
     arbitrumsepolia: 0, // time based contracts
     arbitrumone: 0, // time based contracts
+    zksyncsepolia: 0, // time based contracts
     bscmainnet: 10_512_000,
     ethereum: 2_628_000,
     hardhat: 100,
@@ -73,10 +76,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     opbnbmainnet: "0xC46796a21a3A9FAB6546aF3434F2eBfFd0604207", // OPBNBMAINNET MULTISIG
     arbitrumsepolia: "0x1426A5Ae009c4443188DA8793751024E358A61C2", // ARBITRUM SEPOLIA MULTISIG
     arbitrumone: "0x14e0E151b33f9802b3e75b621c1457afc44DcAA0", // ARBITRUM ONE MULTISIG
+    zksyncsepolia: "0xa2f83de95E9F28eD443132C331B6a9C9B7a9F866", // ZKSYNC SEPOLIA MULTISIG
     bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
     bsctestnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
   };
 
+  // Explicitly mentioning Default Proxy Admin contract path to fetch it from hardhat-deploy instead of OpenZeppelin
+  // as zksync doesnot compile OpenZeppelin contracts using zksolc. It is backward compatible for all networks as well.
+  const defaultProxyAdmin = await hre.artifacts.readArtifact(
+    "hardhat-deploy/solc_0.8/openzeppelin/proxy/transparent/ProxyAdmin.sol:ProxyAdmin",
+  );
   await deploy("PrimeLiquidityProvider", {
     from: deployer,
     log: true,
@@ -84,10 +93,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [isTimeBased, blocksPerYear[networkName]],
     proxy: {
       owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
-      proxyContract: "OpenZeppelinTransparentProxy",
+      proxyContract: "OptimizedTransparentUpgradeableProxy",
       execute: {
         methodName: "initialize",
         args: [acmAddress, [], [], [], loopsLimit],
+      },
+      viaAdminContract: {
+        name: "DefaultProxyAdmin",
+        artifact: defaultProxyAdmin,
       },
     },
   });
@@ -109,7 +122,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ],
     proxy: {
       owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
-      proxyContract: "OpenZeppelinTransparentProxy",
+      proxyContract: "OptimizedTransparentUpgradeableProxy",
       execute: {
         methodName: "initialize",
         args: [
@@ -124,6 +137,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           resilientOracleAddress,
           loopsLimit,
         ],
+      },
+      viaAdminContract: {
+        name: "DefaultProxyAdmin",
+        artifact: defaultProxyAdmin,
       },
     },
   });

@@ -1,6 +1,6 @@
 {
   "name": "@venusprotocol/venus-protocol",
-  "version": "9.1.0",
+  "version": "9.2.0-dev.11",
   "description": "The Venus Money Market",
   "repository": "git@github.com:VenusProtocol/venus-protocol.git",
   "author": "Venus",
@@ -16,10 +16,10 @@
     "deployments"
   ],
   "scripts": {
-    "compile": "hardhat compile",
+    "compile": "hardhat compile && hardhat compile --config hardhat.config.zksync.ts",
     "coverage": "hardhat coverage",
     "test": "hardhat test",
-    "build": "rm -rf dist && tsc --declaration && hardhat compile",
+    "build": "rm -rf dist && tsc --declaration && hardhat compile && hardhat compile --config hardhat.config.zksync.ts",
     "lint": "yarn lint:ts && yarn lint:sol && yarn prettier:check",
     "lint:ts": "eslint --ignore-path ./.eslintignore --ext .js,.ts .",
     "lint:sol": "solhint \"contracts/**/*.sol\"",
@@ -27,7 +27,8 @@
     "prettier": "prettier --write \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
     "prettier:check": "prettier --check \"**/*.{js,json,md,ts,yaml,yml,sol}\"",
     "docgen": "hardhat docgen",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "clean": "hardhat clean && hardhat clean --config hardhat.config.zksync.ts"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
@@ -44,15 +45,20 @@
   "devDependencies": {
     "@commitlint/cli": "^17.0.3",
     "@commitlint/config-conventional": "^17.0.3",
-    "@defi-wonderland/smock": "^2.2.0",
+    "@defi-wonderland/smock": "2.3.5",
     "@ethersproject/abi": "^5.6.4",
     "@ethersproject/abstract-provider": "^5",
     "@ethersproject/abstract-signer": "^5",
     "@ethersproject/bytes": "^5.0.0",
     "@ethersproject/providers": "^5.6.8",
+    "@matterlabs/hardhat-zksync": "^0.2.0",
+    "@matterlabs/hardhat-zksync-deploy": "^0.11.0",
+    "@matterlabs/hardhat-zksync-solc": "^1.2.1",
+    "@matterlabs/hardhat-zksync-verify": "0.7.0",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.8",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@openzeppelin/hardhat-upgrades": "^1.21.0",
     "@semantic-release/changelog": "^6.0.1",
@@ -62,19 +68,21 @@
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
     "@types/chai": "^4.3.1",
+    "@types/debug": "^4.1.12",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.7.1",
     "@typescript-eslint/eslint-plugin": "^5.40.0",
     "@typescript-eslint/parser": "^5.40.0",
-    "@venusprotocol/oracle": "v2.3.0",
+    "@venusprotocol/oracle": "2.5.0-dev.2",
     "bignumber.js": "^9.1.2",
     "chai": "^4.3.6",
     "eslint": "^8.25.0",
     "eslint-config-prettier": "^8.5.0",
     "ethers": "^5.7.0",
-    "hardhat": "^2.19.2",
+    "hardhat": "2.19.5",
     "hardhat-contract-sizer": "^2.8.0",
-    "hardhat-deploy": "^0.11.14",
+    "hardhat-dependency-compiler": "^1.2.1",
+    "hardhat-deploy": "^0.12.4",
     "hardhat-deploy-ethers": "^0.3.0-beta.13",
     "hardhat-gas-reporter": "^1.0.8",
     "husky": "^8.0.1",
@@ -87,7 +95,8 @@
     "ts-node": "^10.9.1",
     "typechain": "^8.1.0",
     "typescript": "^4.7.4",
-    "web3-utils": "^1.7.5"
+    "web3-utils": "^1.7.5",
+    "zksync-ethers": "^5.9.1"
   },
   "_moduleAliases": {
     "@nomiclabs/hardhat-ethers": "node_modules/hardhat-deploy-ethers"

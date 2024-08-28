@@ -1,0 +1,7 @@
+{
+  "name": "zksyncmainnet",
+  "chainId": "324",
+  "addresses": {
+    "VTreasuryV8": "0xB2e9174e23382f7744CebF7e0Be54cA001D95599"
+  }
+}
