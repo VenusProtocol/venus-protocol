@@ -4,6 +4,8 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { skipRemoteNetworks } from "../helpers/deploymentConfig";
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts, getChainId } = hre;
   const { deploy } = deployments;
@@ -74,7 +76,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = "psm_initial_deploy"; // id required to prevent re-execution
 func.tags = ["PSM"];
-func.skip = async hre =>
-  hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet" && hre.network.name !== "hardhat";
+func.skip = skipRemoteNetworks();
 
 export default func;
