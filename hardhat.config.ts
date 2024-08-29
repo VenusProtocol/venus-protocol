@@ -7,6 +7,7 @@ import "@nomiclabs/hardhat-etherscan";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import fs from "fs";
+import "hardhat-dependency-compiler";
 import "hardhat-deploy";
 import { HardhatUserConfig, extendConfig, task } from "hardhat/config";
 import { HardhatConfig } from "hardhat/types";
@@ -365,6 +366,12 @@ const config: HardhatUserConfig = {
     outputDir: "./docgen-docs",
     pages: "files",
     templates: "docgen-templates",
+  },
+  dependencyCompiler: {
+    paths: [
+      "hardhat-deploy/solc_0.8/proxy/OptimizedTransparentUpgradeableProxy.sol",
+      "hardhat-deploy/solc_0.8/openzeppelin/proxy/transparent/ProxyAdmin.sol",
+    ],
   },
 };
 

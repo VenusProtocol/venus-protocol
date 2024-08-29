@@ -3,6 +3,8 @@ import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { skipRemoteNetworks } from "../helpers/deploymentConfig";
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network, getNamedAccounts } = hre;
   const { deploy } = deployments;
@@ -46,10 +48,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = "vbnbadmin_deploy"; // id required to prevent re-execution
 func.tags = ["VBNBAdmin"];
-func.skip = async hre =>
-  hre.network.name === "sepolia" ||
-  hre.network.name === "opbnbtestnet" ||
-  hre.network.name === "opbnbmainnet" ||
-  hre.network.name === "ethereum";
+func.skip = skipRemoteNetworks();
 
 export default func;

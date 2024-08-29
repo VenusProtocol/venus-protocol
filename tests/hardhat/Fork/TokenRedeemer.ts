@@ -323,7 +323,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         ).to.be.reverted;
       });
 
-      it("should redeem and transfer succesfully", async () => {
+      it("should redeem and transfer successfully", async () => {
         const vTokenAmount = await vToken.balanceOf(supplier.address);
         const exchRateCurr = await vToken.callStatic.exchangeRateCurrent();
         const vTokenRedeemAmount = SUPPLIED_AMOUNT.mul(parseUnits("1", 18)).div(exchRateCurr);
@@ -370,7 +370,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         ).to.be.reverted;
       });
 
-      it("should redeem and repay succesfully", async () => {
+      it("should redeem and repay successfully", async () => {
         await vToken2.connect(borrower).borrow(BORROWED_AMOUNT);
         const vTokenAmount = await vToken2.balanceOf(treasury.address);
 
@@ -691,7 +691,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
 
-      it("repays one borrow succesfully", async () => {
+      it("repays one borrow successfully", async () => {
         await vaiController.connect(borrower).mintVAI(BORROWED_AMOUNT);
         await vai.mint(redeemer.address, BORROWED_AMOUNT);
         expect(await vaiController.getVAIRepayAmount(borrower.address)).to.equal(BORROWED_AMOUNT);
@@ -699,7 +699,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         expect(await vaiController.getVAIRepayAmount(borrower.address)).to.equal(0);
       });
 
-      it("repays multiple borrows succesfully and transfers refund to treasury", async () => {
+      it("repays multiple borrows successfully and transfers refund to treasury", async () => {
         for (const borrower of borrowers) {
           await vaiController.connect(borrower).mintVAI(BORROWED_AMOUNT);
         }
