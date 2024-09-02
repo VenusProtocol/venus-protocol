@@ -8,7 +8,9 @@ import "@nomicfoundation/hardhat-chai-matchers";
 import "@typechain/hardhat";
 import "hardhat-dependency-compiler";
 import "hardhat-deploy";
+import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
 import { HardhatUserConfig, extendConfig } from "hardhat/config";
+import { subtask } from "hardhat/config";
 import { HardhatConfig } from "hardhat/types";
 import "solidity-coverage";
 import "solidity-docgen";
@@ -76,7 +78,7 @@ const config: HardhatUserConfig = {
     ],
   },
   zksolc: {
-    version: "1.5.0",
+    version: "1.5.3",
     settings: {},
   },
   networks: {
@@ -166,5 +168,16 @@ function isFork() {
         zksync: true,
       };
 }
+
+// Added a subtask to exclude some old version solidity files from compilation due to limitation in zksync compiler, https://docs.zksync.io/zk-stack/components/compiler/toolchain/solidity#limitations
+subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(async (_, __, runSuper) => {
+  const paths = await runSuper();
+  // List the files to exclude that have an old version of Solidity (0.5.16) and are not being deployed on zkSync
+  const filesToExclude = ["VTreasury", "VBNB", "MockProtocolShareReserve", "MockVBNB", "WBNB"];
+
+  return paths.filter(p => {
+    return !filesToExclude.some(file => p.includes(file));
+  });
+});
 
 export default config;
