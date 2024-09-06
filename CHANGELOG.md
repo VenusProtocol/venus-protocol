@@ -1,3 +1,12 @@
+## [9.2.0-dev.14](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.13...v9.2.0-dev.14) (2024-09-06)
+
+
+### Features
+
+* add xvs vaults deployments on zksync ([c6c8e4f](https://github.com/VenusProtocol/venus-protocol/commit/c6c8e4fcf767be4a5e3e8502400630f21de8b114))
+* updating deployment files ([f57bca4](https://github.com/VenusProtocol/venus-protocol/commit/f57bca4eb040d4dd365327e32b37163dd8d733e4))
+* updating deployment files ([61d2793](https://github.com/VenusProtocol/venus-protocol/commit/61d27939f2f24a09fce3ccc925ac7deede817d1e))
+
 ## [9.2.0-dev.13](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.12...v9.2.0-dev.13) (2024-09-05)
 
 
