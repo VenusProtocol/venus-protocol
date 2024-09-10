@@ -1,3 +1,11 @@
+## [9.2.0-dev.15](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.14...v9.2.0-dev.15) (2024-09-10)
+
+
+### Features
+
+* prime deployment on zksync ([5398273](https://github.com/VenusProtocol/venus-protocol/commit/539827342f381d7d67835db2483e0f8d98e5f0b6))
+* updating deployment files ([f34105f](https://github.com/VenusProtocol/venus-protocol/commit/f34105f02fcf3891de04aef205cdb40a256a3ea2))
+
 ## [9.2.0-dev.14](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.13...v9.2.0-dev.14) (2024-09-06)
 
 
