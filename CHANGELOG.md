@@ -1,3 +1,10 @@
+## [9.2.0-dev.16](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.15...v9.2.0-dev.16) (2024-09-10)
+
+
+### Features
+
+* bump dependencies with venus packages ([7d19086](https://github.com/VenusProtocol/venus-protocol/commit/7d190860f8d8788137c023da5b3a03a27e3570a8))
+
 ## [9.2.0-dev.15](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.14...v9.2.0-dev.15) (2024-09-10)
 
 
