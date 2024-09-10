@@ -1,0 +1,7 @@
+{
+  "name": "opsepolia",
+  "chainId": "11155420",
+  "addresses": {
+    "VTreasuryV8": "0x5A1a12F47FA7007C9e23cf5e025F3f5d3aC7d755"
+  }
+}

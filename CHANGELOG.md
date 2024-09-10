@@ -1,3 +1,247 @@
+## [9.2.0-dev.16](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.15...v9.2.0-dev.16) (2024-09-10)
+
+
+### Features
+
+* bump dependencies with venus packages ([7d19086](https://github.com/VenusProtocol/venus-protocol/commit/7d190860f8d8788137c023da5b3a03a27e3570a8))
+
+## [9.2.0-dev.15](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.14...v9.2.0-dev.15) (2024-09-10)
+
+
+### Features
+
+* prime deployment on zksync ([5398273](https://github.com/VenusProtocol/venus-protocol/commit/539827342f381d7d67835db2483e0f8d98e5f0b6))
+* updating deployment files ([f34105f](https://github.com/VenusProtocol/venus-protocol/commit/f34105f02fcf3891de04aef205cdb40a256a3ea2))
+
+## [9.2.0-dev.14](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.13...v9.2.0-dev.14) (2024-09-06)
+
+
+### Features
+
+* add xvs vaults deployments on zksync ([c6c8e4f](https://github.com/VenusProtocol/venus-protocol/commit/c6c8e4fcf767be4a5e3e8502400630f21de8b114))
+* updating deployment files ([f57bca4](https://github.com/VenusProtocol/venus-protocol/commit/f57bca4eb040d4dd365327e32b37163dd8d733e4))
+* updating deployment files ([61d2793](https://github.com/VenusProtocol/venus-protocol/commit/61d27939f2f24a09fce3ccc925ac7deede817d1e))
+
+## [9.2.0-dev.13](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.12...v9.2.0-dev.13) (2024-09-05)
+
+
+### Features
+
+* added unlistMarket ([282a1a8](https://github.com/VenusProtocol/venus-protocol/commit/282a1a83479798907c870b036d2df8e30414c5d6))
+* updating deployment files ([f351525](https://github.com/VenusProtocol/venus-protocol/commit/f351525ec8ffe20261ee3fa53bc6ad7ff1309449))
+* updating deployment files ([ae12fbe](https://github.com/VenusProtocol/venus-protocol/commit/ae12fbe279145f7c0d98cbd5af05effcb2638cf6))
+* updating deployment files ([5b96e3f](https://github.com/VenusProtocol/venus-protocol/commit/5b96e3ff14e74a80272eaa7d083b264c6a4d7efb))
+* updating deployment files ([13a058d](https://github.com/VenusProtocol/venus-protocol/commit/13a058dcd5953a9ac4c65a4601f13e0fab2b40aa))
+* updating deployment files ([fb324fd](https://github.com/VenusProtocol/venus-protocol/commit/fb324fd1efd5ab6dddb759be6fa113742f95f253))
+* updating deployment files ([316ad1a](https://github.com/VenusProtocol/venus-protocol/commit/316ad1a91dbb7ccc1d274553c1adbe0475a081e7))
+* updating deployment files ([9352924](https://github.com/VenusProtocol/venus-protocol/commit/935292415bc22f79163581858c083a117f1743d3))
+* updating deployment files ([0f7b89c](https://github.com/VenusProtocol/venus-protocol/commit/0f7b89ced191dd196b929af83c1632a65c065fdf))
+* updating deployment files ([b55a69b](https://github.com/VenusProtocol/venus-protocol/commit/b55a69b9fdc326e96a351f44bd2b83a42c19b4c1))
+* updating deployment files ([7c0c222](https://github.com/VenusProtocol/venus-protocol/commit/7c0c22272b082d1c1f93170cec7dc52068e22b36))
+
+
+### Bug Fixes
+
+* add all facets ([96cec24](https://github.com/VenusProtocol/venus-protocol/commit/96cec24a34e1c9d826d4050c8423feb25fb9754a))
+* check events and errors ([2ec617c](https://github.com/VenusProtocol/venus-protocol/commit/2ec617c21108e5b38592e55d3dfc644861a2e226))
+* check for state instead of modifiying state ([615891e](https://github.com/VenusProtocol/venus-protocol/commit/615891e47c99b5eadd916957673634afe520cca6))
+* check unlist ([9ccd8c6](https://github.com/VenusProtocol/venus-protocol/commit/9ccd8c6e606456f9a26ff2552a310161625d37da))
+* deployed facets on mainnet ([1497031](https://github.com/VenusProtocol/venus-protocol/commit/14970316b1338d5785cc4e1a1300d9653e2ea14d))
+* deployed facets to testnet ([da81b57](https://github.com/VenusProtocol/venus-protocol/commit/da81b578b3eea9a799b625a76392df328c3bfebd))
+* deployed on testnet ([92ed6ba](https://github.com/VenusProtocol/venus-protocol/commit/92ed6ba7e0f20cb357c87c951f5b2a9d1b1afe72))
+* deployed opbnbtestnet ([10b4bb1](https://github.com/VenusProtocol/venus-protocol/commit/10b4bb11157573b0441f87158591030a33679dd0))
+* deployed setter fac ([9089389](https://github.com/VenusProtocol/venus-protocol/commit/9089389ae6a7969383d01570d31a97844fdcc730))
+* deployed setter facet ([de541c4](https://github.com/VenusProtocol/venus-protocol/commit/de541c4dcc4cb1902885ae601f767b6ee2cf929f))
+* filter unlisted markets from getAssetsIn ([1f1e0b6](https://github.com/VenusProtocol/venus-protocol/commit/1f1e0b68943c21d6d745944f51d872ef2f0864d5))
+* fixed borrow cap 0 means infinite ([526bcd1](https://github.com/VenusProtocol/venus-protocol/commit/526bcd10f865c1c102b9684788d33a2645beaf59))
+* fixed borrow tests in assets list tests ([78f21ae](https://github.com/VenusProtocol/venus-protocol/commit/78f21ae44313d7fc7901a7a0165f9d35a317d442))
+* fixed deployments ([b135af3](https://github.com/VenusProtocol/venus-protocol/commit/b135af30d403620d2c398495bf0bae54a7af0710))
+* fixed fork test ([89659d5](https://github.com/VenusProtocol/venus-protocol/commit/89659d51979784b720acffe108db46391fd3365b))
+* fixed fork test ([c966020](https://github.com/VenusProtocol/venus-protocol/commit/c9660203d2d615ecb9ee53dfba5a7f07d487f9b1))
+* fixed lint ([abb29ce](https://github.com/VenusProtocol/venus-protocol/commit/abb29cec0a15ae247f4846f4e2e5d47f2f139e88))
+* fixed test ([07a9d13](https://github.com/VenusProtocol/venus-protocol/commit/07a9d134149b4f89e32a257747f42abadc2b45f2))
+* fixed tests ([b0558aa](https://github.com/VenusProtocol/venus-protocol/commit/b0558aa5bbd1623131aa7434435dd534eaf2401c))
+* fixed tests ([bcf7176](https://github.com/VenusProtocol/venus-protocol/commit/bcf7176af7548abdb6b7949e4e8a1cb238f0d8ee))
+* fixed unlist market test ([1155c03](https://github.com/VenusProtocol/venus-protocol/commit/1155c033e8552a23bac3b5ba22bd321e40498957))
+* move unlistMarket to MarketFacet ([4a7f33c](https://github.com/VenusProtocol/venus-protocol/commit/4a7f33c67b1cfd6b283899efe49360c6d84fe3b7))
+* optimised getAssetsIn ([38d2a62](https://github.com/VenusProtocol/venus-protocol/commit/38d2a6233c7d7fe74e60f68d9a31f0b0b5231dc3))
+* rebased ([fe188f2](https://github.com/VenusProtocol/venus-protocol/commit/fe188f2e631915105a63dfb73d172aeb99dba7cc))
+* rebased ([fce93f7](https://github.com/VenusProtocol/venus-protocol/commit/fce93f7c527b444f4c5d6547b87312393476013c))
+* redeployed contracts ([36a1d7c](https://github.com/VenusProtocol/venus-protocol/commit/36a1d7cb653ef3e1ecb5c2d9c64b60f6b32506fc))
+* redeployed market and setter facets ([e3db4a0](https://github.com/VenusProtocol/venus-protocol/commit/e3db4a0b930109e1e199bec0da3a5ba007ec01e4))
+* redeployed market facet ([a6ad473](https://github.com/VenusProtocol/venus-protocol/commit/a6ad4733f3197be1bb93d83966d6dde6c0b6974c))
+* removed deployments ([45519de](https://github.com/VenusProtocol/venus-protocol/commit/45519dee9a4ffc9e5ece17cc63c32826f09b5ca0))
+* removed deployments ([b0e2644](https://github.com/VenusProtocol/venus-protocol/commit/b0e264492653ff05f5b6ceaa47670273f79435ce))
+* removed deployments ([8f0feeb](https://github.com/VenusProtocol/venus-protocol/commit/8f0feeb1fd099424c5eee28fe8e49293d5bfccc7))
+* removed only ([b699bb1](https://github.com/VenusProtocol/venus-protocol/commit/b699bb13ae0158034032e3d6b768f45e7413155b))
+* reset deployments ([8282f74](https://github.com/VenusProtocol/venus-protocol/commit/8282f74f70ee8c4927bfdae967e0f49d157f3eee))
+* resolved conflict ([a047a3d](https://github.com/VenusProtocol/venus-protocol/commit/a047a3d67de1bac7b6067319d01b4d13646aef9b))
+* resolved conflict ([99ec183](https://github.com/VenusProtocol/venus-protocol/commit/99ec183136b3d013a7ecc56d3487157e98fcbd51))
+* resolved conflict ([34a3569](https://github.com/VenusProtocol/venus-protocol/commit/34a3569f24485c76e661e36e592313d48352d1cd))
+* resolved conflict ([5513cf1](https://github.com/VenusProtocol/venus-protocol/commit/5513cf177ab6a909fcc99f2526c5efbf3ebbe9b5))
+* reverted redeployed market facet ([61bbf6a](https://github.com/VenusProtocol/venus-protocol/commit/61bbf6a4febe0a349a021d62d54707d6e323a5b9))
+* set borrow cap ([bd7d444](https://github.com/VenusProtocol/venus-protocol/commit/bd7d444247a6b13c1f9ed0360ddde3b744526464))
+* update comment ([499400c](https://github.com/VenusProtocol/venus-protocol/commit/499400c67c1c3a0f371387168b580941403cc146))
+* updated facet deploy ([43bc382](https://github.com/VenusProtocol/venus-protocol/commit/43bc3827bc3bacd0b6ff19169bbf2b823008e0bb))
+* use memory instead of storage ([8e6c549](https://github.com/VenusProtocol/venus-protocol/commit/8e6c549f8082165864acd91ec2eb4758f813a837))
+* VPB-01 ([36ee37b](https://github.com/VenusProtocol/venus-protocol/commit/36ee37bd94b291a66685e633bba5c5136ce03a3c))
+* VPB-04 ([e9595f9](https://github.com/VenusProtocol/venus-protocol/commit/e9595f9f8865620a8bab8a2fb418bde0d8bd9ee3))
+* VPB-05 ([086c073](https://github.com/VenusProtocol/venus-protocol/commit/086c073fa31df3cf34971b255843dff6232e8dd7))
+* VPB-05 ([52236a3](https://github.com/VenusProtocol/venus-protocol/commit/52236a321e8be625f9aeb14568c1357e4273f48c))
+* VPB-05 ([f283bd3](https://github.com/VenusProtocol/venus-protocol/commit/f283bd3712f6bd38e0d753f55706b5e481da4161))
+* wip - tests for unlisting market ([bdc8162](https://github.com/VenusProtocol/venus-protocol/commit/bdc8162fc6bb59a079a37984eb148e9f401d2531))
+
+## [9.2.0-dev.12](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.11...v9.2.0-dev.12) (2024-09-02)
+
+
+### Features
+
+* updating deployment files ([fd30e01](https://github.com/VenusProtocol/venus-protocol/commit/fd30e010af39235cc91c50a25eff3db13a3c157c))
+
+## [9.2.0-dev.11](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.10...v9.2.0-dev.11) (2024-08-27)
+
+
+### Features
+
+* add deployments of VTreasury on zksync ([2887b61](https://github.com/VenusProtocol/venus-protocol/commit/2887b61856089003882566e3b89ad1f7547b4708))
+* updating deployment files ([f7e1d9a](https://github.com/VenusProtocol/venus-protocol/commit/f7e1d9ae5efb76ea4e98d7768e6a5b1ec3adf6f7))
+
+
+### Bug Fixes
+
+* url ([f2d060d](https://github.com/VenusProtocol/venus-protocol/commit/f2d060d726886075b3126fd4c21f7f4244c9bbc0))
+
+## [9.2.0-dev.10](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.9...v9.2.0-dev.10) (2024-08-23)
+
+
+### Features
+
+* add interest rate model deployments for Chaos recs ([52127eb](https://github.com/VenusProtocol/venus-protocol/commit/52127eb3d40589d0fb09ed383b5a410fb52ad8b6))
+* updating deployment files ([e18f96d](https://github.com/VenusProtocol/venus-protocol/commit/e18f96d0fdab08520e53118609993dcad4fe063b))
+
+## [9.2.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.8...v9.2.0-dev.9) (2024-08-21)
+
+
+### Bug Fixes
+
+* added TwoKinksInterestRateModel ([11510df](https://github.com/VenusProtocol/venus-protocol/commit/11510df081d8626107a0ff64a82004695986e572))
+* fix comment ([e9aee5c](https://github.com/VenusProtocol/venus-protocol/commit/e9aee5ce51795cc4ec35588bb9af3190070f8746))
+* fixed tests ([f3a10bb](https://github.com/VenusProtocol/venus-protocol/commit/f3a10bb03edae8a9a967bb72c20a845f9341fae0))
+* max utilisation rate ([35c832e](https://github.com/VenusProtocol/venus-protocol/commit/35c832eed9a773fe0f4bdaed1ab9d6e696201cad))
+* removed SignedSafeMath ([2864022](https://github.com/VenusProtocol/venus-protocol/commit/2864022a634434331fbded9848539a07640d500d))
+* use solidity 0.8 ([9124f4f](https://github.com/VenusProtocol/venus-protocol/commit/9124f4fd4f97437bff9f819a02f05622bd51fbee))
+* ven-s2 ([cf5b528](https://github.com/VenusProtocol/venus-protocol/commit/cf5b5287559b12841339f322de4478f9a4757783))
+* ven-s3 ([ae53d56](https://github.com/VenusProtocol/venus-protocol/commit/ae53d56ba0fa2a05c3c5605b8d9f48703fbcc775))
+* vpb-01 ([4c9be09](https://github.com/VenusProtocol/venus-protocol/commit/4c9be09cc591e9f1eff5a596e699d380340c8073))
+* vpb-01 ([191b1c4](https://github.com/VenusProtocol/venus-protocol/commit/191b1c4d2c29d77ca5b79072881ea9d631adf2d6))
+* vpb-02 ([414bd7d](https://github.com/VenusProtocol/venus-protocol/commit/414bd7d71eac5ce5eefd16ffcb5971c08c20f75e))
+* vpb-03 ([f339105](https://github.com/VenusProtocol/venus-protocol/commit/f339105dbce91c202beed6d6a14fcf75efb29058))
+* vpb-03 alleviation ([72133a8](https://github.com/VenusProtocol/venus-protocol/commit/72133a8b164f7f2f78bd4d795f5460f891c74c78))
+* vpb-05 ([b5df8d2](https://github.com/VenusProtocol/venus-protocol/commit/b5df8d29db3e3d9e86ac01e82b5c3ab39b9222e4))
+* wip - unit tests ([0cb0b21](https://github.com/VenusProtocol/venus-protocol/commit/0cb0b2168255b31315a45763a57a088ee772f084))
+
+## [9.2.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.7...v9.2.0-dev.8) (2024-08-13)
+
+
+### Features
+
+* Prime deployments on zksync sepolia ([5716327](https://github.com/VenusProtocol/venus-protocol/commit/571632700882626edbf2bfea20ad5ce5ae9fbefc))
+* updating deployment files ([b3281eb](https://github.com/VenusProtocol/venus-protocol/commit/b3281ebd86b662ce7ae29a2a35b7a29b81f39664))
+
+## [9.2.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.6...v9.2.0-dev.7) (2024-08-08)
+
+
+### Features
+
+* deployment of XVSVault on zksyncsepolia ([0afc425](https://github.com/VenusProtocol/venus-protocol/commit/0afc4253b38db7b6f3f9fce988c89f5bfad307c1))
+* updating deployment files ([2847c80](https://github.com/VenusProtocol/venus-protocol/commit/2847c80d66bfb3dc3eacb8540e64ec14befb1ae0))
+* updating deployment files ([fc3f331](https://github.com/VenusProtocol/venus-protocol/commit/fc3f3311785de87931f1704c7d3a246dd5b194e6))
+
+## [9.2.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.5...v9.2.0-dev.6) (2024-08-01)
+
+
+### Features
+
+* add config for zksync ([45b42ce](https://github.com/VenusProtocol/venus-protocol/commit/45b42ce826f6e1ab64c396678afd9c48e75b7e54))
+* add VTreasuryV8 deployment on zksyncsepolia ([56b54c5](https://github.com/VenusProtocol/venus-protocol/commit/56b54c58d142b3ba67821f8c4b5334f1bf544aef))
+* updating deployment files ([d4ddde4](https://github.com/VenusProtocol/venus-protocol/commit/d4ddde4536da12f659d8d58e3bfd5d2cc1deefa9))
+
+
+### Bug Fixes
+
+* remove zksyncsepolia in ci.yml ([637b94d](https://github.com/VenusProtocol/venus-protocol/commit/637b94d44d000cadae133973d8fff23811e23915))
+
+## [9.2.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.4...v9.2.0-dev.5) (2024-07-29)
+
+
+### Features
+
+* updating deployment files ([21ed31e](https://github.com/VenusProtocol/venus-protocol/commit/21ed31eae5d42a5234820c3b0aab2e2012b9c2e8))
+
+
+### Bug Fixes
+
+* remove outdated addresses ([a12ea8f](https://github.com/VenusProtocol/venus-protocol/commit/a12ea8f32627e193f302d5848bb018c7d8df59de))
+
+## [9.2.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.3...v9.2.0-dev.4) (2024-07-23)
+
+
+### Features
+
+* updating deployment files ([7e37125](https://github.com/VenusProtocol/venus-protocol/commit/7e37125afa710bbb76b9851db9d09bbcbb87bed6))
+* updating deployment files ([d89969a](https://github.com/VenusProtocol/venus-protocol/commit/d89969ae25a6715016af56d62cc4a55d773d19a8))
+* updating deployment files ([caa262f](https://github.com/VenusProtocol/venus-protocol/commit/caa262fb249a0e59b8513a9dcc0a98c574bd3161))
+* updating deployment files ([3aaa586](https://github.com/VenusProtocol/venus-protocol/commit/3aaa586fd93ca72c6662d97762b2f00d698e52e6))
+* updating deployment files ([c492d3b](https://github.com/VenusProtocol/venus-protocol/commit/c492d3bec451b46dad120170dcd684ebc92a8b10))
+
+
+### Bug Fixes
+
+* added function to update IR ([7514bbc](https://github.com/VenusProtocol/venus-protocol/commit/7514bbc04b21ad07a7170b5fc13434582280c2c3))
+* deployed new IR ([300d0af](https://github.com/VenusProtocol/venus-protocol/commit/300d0af1e050ae9211b8fd8ba2f0b1b447c894f6))
+* deployed new IR ([f0724dd](https://github.com/VenusProtocol/venus-protocol/commit/f0724ddb17f7a47ce85c0913ca73736a60b077a4))
+* deployed new vbnb admin implementation ([34fbc1a](https://github.com/VenusProtocol/venus-protocol/commit/34fbc1a5790256d024c5ffb8da79f33534b46e48))
+* deployed on testnet ([613418c](https://github.com/VenusProtocol/venus-protocol/commit/613418cf1e29b35ac777364757c6de0816940ad1))
+* redeployed with acm signature fix ([a13820f](https://github.com/VenusProtocol/venus-protocol/commit/a13820f72c811cb4d8197af4ad730a9984e1efb7))
+* remove deployment from script ([29af8c6](https://github.com/VenusProtocol/venus-protocol/commit/29af8c617e6148849170cefab61d23e41e0ad005))
+* removed files ([373a93d](https://github.com/VenusProtocol/venus-protocol/commit/373a93d5b9a777252bc24844e259f2e9830cd88b))
+* removed ir deployment ([9cd374c](https://github.com/VenusProtocol/venus-protocol/commit/9cd374ca00ae1501aab3c501e7e590312f6da17e))
+* resolved conflict ([c3aac43](https://github.com/VenusProtocol/venus-protocol/commit/c3aac4319648cc393f6ae3c085d6dfb2c9b9deed))
+* uncomment test ([5f97c2c](https://github.com/VenusProtocol/venus-protocol/commit/5f97c2c48a0016471eb6e022b3282bf7d54b9de6))
+* use public and return code ([c0bab52](https://github.com/VenusProtocol/venus-protocol/commit/c0bab5227dc5ea11a0e56e31dfeffa7e7c89dfc1))
+
+## [9.2.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.2...v9.2.0-dev.3) (2024-07-23)
+
+
+### Bug Fixes
+
+* add missing import ([7bd3491](https://github.com/VenusProtocol/venus-protocol/commit/7bd3491ac6282606926749d49b6ae8be8fda5cd5))
+
+## [9.2.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0-dev.1...v9.2.0-dev.2) (2024-07-22)
+
+
+### Features
+
+* updating deployment files ([1ed8231](https://github.com/VenusProtocol/venus-protocol/commit/1ed823169723d2762ceb81d887f4a887801a0244))
+
+
+### Bug Fixes
+
+* deploy proxy and set implementation ([0112a0f](https://github.com/VenusProtocol/venus-protocol/commit/0112a0f122333b6bef5b3b46f295765f620cbc97))
+* deploy Vai controller on hardhat ([6706439](https://github.com/VenusProtocol/venus-protocol/commit/6706439b904f13ce86abf5ba3af68bb4d36f3694))
+* deploy XVS on all networks ([6481a2c](https://github.com/VenusProtocol/venus-protocol/commit/6481a2cbeee2c90569fec1834ba7a3c76e8d0162))
+* deployed new IR ([dbfa635](https://github.com/VenusProtocol/venus-protocol/commit/dbfa6350fee1316613e9827f7dfa4db4fae7943a))
+* fix type error which fails build ([57aba60](https://github.com/VenusProtocol/venus-protocol/commit/57aba60f61cdbac448af1dfa1e65a3fcbcd3fdf1))
+* fixed deploy script ([21f12bd](https://github.com/VenusProtocol/venus-protocol/commit/21f12bd16a5a84afc2de562f82ff53a59f55e443))
+* uncommented code ([0a62f53](https://github.com/VenusProtocol/venus-protocol/commit/0a62f538b78e4f39b460861ff1fcbda4d8b81a4f))
+
+## [9.2.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.1.0...v9.2.0-dev.1) (2024-06-25)
+
+
+### Features
+
+* add second mock token ([77ce780](https://github.com/VenusProtocol/venus-protocol/commit/77ce780094384179af133456a7519a714f9035f2))
+
 ## [9.1.0](https://github.com/VenusProtocol/venus-protocol/compare/v9.0.0...v9.1.0) (2024-06-04)
 
 

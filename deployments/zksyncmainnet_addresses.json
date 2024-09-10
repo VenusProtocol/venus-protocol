@@ -1,0 +1,17 @@
+{
+  "name": "zksyncmainnet",
+  "chainId": "324",
+  "addresses": {
+    "DefaultProxyAdmin": "0x8Ea1A989B036f7Ef21bb95CE4E7961522Ca00287",
+    "Prime": "0xdFe62Dcba3Ce0A827439390d7d45Af8baE599978",
+    "PrimeLiquidityProvider": "0x0EDE6d7fB474614C5D3d5a16581628bb96CB5dff",
+    "PrimeLiquidityProvider_Implementation": "0x51b0368406e534dcBD353009492b11E8d359513e",
+    "PrimeLiquidityProvider_Proxy": "0x0EDE6d7fB474614C5D3d5a16581628bb96CB5dff",
+    "Prime_Implementation": "0x9ac8ABCA1442Ca53347e9F06851abFA2826Ca972",
+    "Prime_Proxy": "0xdFe62Dcba3Ce0A827439390d7d45Af8baE599978",
+    "VTreasuryV8": "0xB2e9174e23382f7744CebF7e0Be54cA001D95599",
+    "XVSStore": "0x84266F552756cBed893b1FFA85248cD99501e3ce",
+    "XVSVaultProxy": "0xbbB3C88192a5B0DB759229BeF49DcD1f168F326F",
+    "XVSVaultProxy_Implementation": "0x513323f8bd847Bd4C7C73DD69098B38789Ae0590"
+  }
+}

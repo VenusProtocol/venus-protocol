@@ -299,9 +299,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Set the given borrow caps for the given vToken market Borrowing that brings total borrows to or above borrow cap will revert
-     * @dev Allows a privileged role to set the borrowing cap for a vToken market. A borrow cap of 0 corresponds to unlimited borrowing
+     * @dev Allows a privileged role to set the borrowing cap for a vToken market. A borrow cap of 0 corresponds to Borrow not allowed
      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
-     * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to unlimited borrowing
+     * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to Borrow not allowed
      */
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
         ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");

@@ -110,8 +110,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.BORROW);
-
         ensureListed(markets[vToken]);
+
+        uint256 borrowCap = borrowCaps[vToken];
+        require(borrowCap != 0, "market borrow cap is 0");
 
         if (!markets[vToken].accountMembership[borrower]) {
             // only vTokens may call borrowAllowed if borrower not in market
@@ -128,12 +130,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.PRICE_ERROR);
         }
 
-        uint256 borrowCap = borrowCaps[vToken];
-        // Borrow cap of 0 corresponds to unlimited borrowing
-        if (borrowCap != 0) {
-            uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
-            require(nextTotalBorrows < borrowCap, "market borrow cap reached");
-        }
+        uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
+        require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
         (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             borrower,

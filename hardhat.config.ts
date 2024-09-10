@@ -7,6 +7,7 @@ import "@nomiclabs/hardhat-etherscan";
 import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import fs from "fs";
+import "hardhat-dependency-compiler";
 import "hardhat-deploy";
 import { HardhatUserConfig, extendConfig, task } from "hardhat/config";
 import { HardhatConfig } from "hardhat/types";
@@ -201,6 +202,18 @@ const config: HardhatUserConfig = {
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
+    opsepolia: {
+      url: process.env.ARCHIVE_NODE_opsepolia || "https://sepolia.optimism.io",
+      chainId: 11155420,
+      live: true,
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+    },
+    opmainnet: {
+      url: process.env.ARCHIVE_NODE_opmainnet || "https://mainnet.optimism.io",
+      chainId: 10,
+      live: true,
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+    },
   },
   etherscan: {
     apiKey: {
@@ -214,6 +227,8 @@ const config: HardhatUserConfig = {
       arbitrumone: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       xlayertestnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       xlayermainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      opsepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      opmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     },
     customChains: [
       {
@@ -296,6 +311,22 @@ const config: HardhatUserConfig = {
           browserURL: "https://www.oklink.com/xlayer",
         },
       },
+      {
+        network: "opsepolia",
+        chainId: 11155420,
+        urls: {
+          apiURL: "https://api-sepolia-optimistic.etherscan.io/api/",
+          browserURL: "https://sepolia-optimistic.etherscan.io/",
+        },
+      },
+      {
+        network: "opmainnet",
+        chainId: 10,
+        urls: {
+          apiURL: "https://api-optimistic.etherscan.io/api",
+          browserURL: "https://optimistic.etherscan.io/",
+        },
+      },
     ],
   },
   paths: {
@@ -335,6 +366,12 @@ const config: HardhatUserConfig = {
     outputDir: "./docgen-docs",
     pages: "files",
     templates: "docgen-templates",
+  },
+  dependencyCompiler: {
+    paths: [
+      "hardhat-deploy/solc_0.8/proxy/OptimizedTransparentUpgradeableProxy.sol",
+      "hardhat-deploy/solc_0.8/openzeppelin/proxy/transparent/ProxyAdmin.sol",
+    ],
   },
 };
 
