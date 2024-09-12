@@ -4,6 +4,7 @@
   "addresses": {
     "XVSStore": "0xE888FA54b32BfaD3cE0e3C7D566EFe809a6A0143",
     "XVSVaultProxy": "0x4d344e48F02234E82D7D1dB84d0A4A18Aa43Dacc",
-    "XVSVaultProxy_Implementation": "0x7A02458c1c1504Abf37160401A5020ED003ba347"
+    "XVSVaultProxy_Implementation": "0x7A02458c1c1504Abf37160401A5020ED003ba347",
+    "VTreasuryV8": "0x5A1a12F47FA7007C9e23cf5e025F3f5d3aC7d755"
   }
 }
