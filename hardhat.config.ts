@@ -61,6 +61,11 @@ extendConfig((config: HardhatConfig) => {
           "node_modules/@venusprotocol/oracle/deployments/arbitrumone",
           "node_modules/@venusprotocol/token-bridge/deployments/arbitrumone",
         ],
+        opsepolia: [
+          "node_modules/@venusprotocol/governance-contracts/deployments/opsepolia",
+          "node_modules/@venusprotocol/oracle/deployments/opsepolia",
+          "node_modules/@venusprotocol/token-bridge/deployments/opsepolia",
+        ],
       },
     };
   }
