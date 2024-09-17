@@ -31,7 +31,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       log: true,
       autoMine: true,
-      args: [0, "225000000000000000", "6800000000000000000", "700000000000000000"],
+      args: [0, "225000000000000000", "6800000000000000000", "500000000000000000"],
     });
   }
 };
