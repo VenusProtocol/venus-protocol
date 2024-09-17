@@ -1,5 +1,7 @@
 {
   "name": "opmainnet",
   "chainId": "10",
-  "addresses": {}
+  "addresses": {
+    "VTreasuryV8": "0x104c01EB7b4664551BE6A9bdB26a8C5c6Be7d3da"
+  }
 }
