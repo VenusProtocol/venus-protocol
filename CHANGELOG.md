@@ -1,3 +1,11 @@
+## [9.3.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0-dev.2...v9.3.0-dev.3) (2024-09-17)
+
+
+### Features
+
+* deployment files for the prime and plp contracts on opsepolia ([29a293b](https://github.com/VenusProtocol/venus-protocol/commit/29a293b4ed25ddbf482d1badda8c808ce6024008))
+* updating deployment files ([22bb4d4](https://github.com/VenusProtocol/venus-protocol/commit/22bb4d45712a60b918ea11d3248a8e74b6f3cc4e))
+
 ## [9.3.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0-dev.1...v9.3.0-dev.2) (2024-09-17)
 
 
