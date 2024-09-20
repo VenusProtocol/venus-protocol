@@ -1,3 +1,11 @@
+## [9.3.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0-dev.3...v9.3.0-dev.4) (2024-09-20)
+
+
+### Features
+
+* deployment files for the treasury on op mainnet ([7a48028](https://github.com/VenusProtocol/venus-protocol/commit/7a48028ef6a3d1260c9e05e1cd7fe545a392cb58))
+* updating deployment files ([2d182dc](https://github.com/VenusProtocol/venus-protocol/commit/2d182dce0e7af2b5f24dd63c01b6e4b1449c59b0))
+
 ## [9.3.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0-dev.2...v9.3.0-dev.3) (2024-09-17)
 
 
