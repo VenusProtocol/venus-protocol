@@ -1,3 +1,11 @@
+## [9.3.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0-dev.4...v9.3.0-dev.5) (2024-09-27)
+
+
+### Features
+
+* deployment files of xvs vault on op mainnet ([22f00d4](https://github.com/VenusProtocol/venus-protocol/commit/22f00d4e48fd58638abfe85da6248e92c9c9d018))
+* updating deployment files ([c45ed5d](https://github.com/VenusProtocol/venus-protocol/commit/c45ed5d32201b39db7fda84a4bd5bf15f882ef6f))
+
 ## [9.3.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0-dev.3...v9.3.0-dev.4) (2024-09-20)
 
 
