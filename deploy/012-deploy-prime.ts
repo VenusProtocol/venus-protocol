@@ -31,6 +31,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ethereum: NINETY_DAYS,
     arbitrumone: NINETY_DAYS,
     zksyncmainnet: NINETY_DAYS,
+    opmainnet: NINETY_DAYS,
   };
 
   const xVSVaultPoolId: Config = {
@@ -43,6 +44,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     zksyncsepolia: 0,
     zksyncmainnet: 0,
     opsepolia: 0,
+    opmainnet: 0,
     hardhat: 0,
   };
 
@@ -54,6 +56,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     zksyncsepolia: 0, // time based contracts
     zksyncmainnet: 0, // time based contracts
     opsepolia: 0, // time based contracts
+    opmainnet: 0, // time based contracts
     bscmainnet: 10_512_000,
     ethereum: 2_628_000,
     hardhat: 100,
@@ -85,6 +88,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     zksyncsepolia: "0xa2f83de95E9F28eD443132C331B6a9C9B7a9F866", // ZKSYNC SEPOLIA MULTISIG
     zksyncmainnet: "0x751Aa759cfBB6CE71A43b48e40e1cCcFC66Ba4aa", // ZKSYNC MAINNET MULTISIG
     opsepolia: "0xd57365EE4E850e881229e2F8Aa405822f289e78d", // OPSEPOLIA MULTISIG
+    opmainnet: "0x2e94dd14E81999CdBF5deDE31938beD7308354b3", // OPMAINNET MULTISIG
     bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
     bsctestnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
   };
