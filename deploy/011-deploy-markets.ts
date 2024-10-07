@@ -85,6 +85,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         EMPTY_BYTES_ARRAY,
       ],
       log: true,
+      skipIfAlreadyDeployed: true,
     });
   }
 };
