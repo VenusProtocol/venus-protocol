@@ -1,5 +1,10 @@
 {
   "name": "opmainnet",
   "chainId": "10",
-  "addresses": {}
+  "addresses": {
+    "VTreasuryV8": "0x104c01EB7b4664551BE6A9bdB26a8C5c6Be7d3da",
+    "XVSStore": "0xFE548630954129923f63113923eF5373E10589d3",
+    "XVSVaultProxy": "0x133120607C018c949E91AE333785519F6d947e01",
+    "XVSVaultProxy_Implementation": "0x8B8651EEB002a7991F2287500B17a395E8cfe7d9"
+  }
 }

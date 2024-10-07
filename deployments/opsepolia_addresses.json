@@ -2,6 +2,16 @@
   "name": "opsepolia",
   "chainId": "11155420",
   "addresses": {
-    "VTreasuryV8": "0x5A1a12F47FA7007C9e23cf5e025F3f5d3aC7d755"
+    "DefaultProxyAdmin": "0xa9aaf2A1cCf2C3a87997942abaA740887cC89241",
+    "Prime": "0x54dEb59698c628be5EEd5AD41Fd825Eb3Be89704",
+    "PrimeLiquidityProvider": "0xE3EC955b94D197a8e4081844F3f25F81047A9AF5",
+    "PrimeLiquidityProvider_Implementation": "0x66aaabFb90852D16e419aB739a64bFa3b5B0a16f",
+    "PrimeLiquidityProvider_Proxy": "0xE3EC955b94D197a8e4081844F3f25F81047A9AF5",
+    "Prime_Implementation": "0x84cca3c7719d1F9c35b5cfF14BE05801B8fD69d7",
+    "Prime_Proxy": "0x54dEb59698c628be5EEd5AD41Fd825Eb3Be89704",
+    "VTreasuryV8": "0x5A1a12F47FA7007C9e23cf5e025F3f5d3aC7d755",
+    "XVSStore": "0xE888FA54b32BfaD3cE0e3C7D566EFe809a6A0143",
+    "XVSVaultProxy": "0x4d344e48F02234E82D7D1dB84d0A4A18Aa43Dacc",
+    "XVSVaultProxy_Implementation": "0x7A02458c1c1504Abf37160401A5020ED003ba347"
   }
 }
