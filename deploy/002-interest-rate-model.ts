@@ -46,6 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["InterestRateModel"];
-func.skip = async hre => hre.network.name !== "hardhat" && hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet";
+func.skip = async hre =>
+  hre.network.name !== "hardhat" && hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet";
 
 export default func;
