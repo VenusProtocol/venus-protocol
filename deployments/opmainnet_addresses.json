@@ -1,5 +1,17 @@
 {
   "name": "opmainnet",
   "chainId": "10",
-  "addresses": {}
+  "addresses": {
+    "DefaultProxyAdmin": "0xeaF9490cBEA6fF9bA1D23671C39a799CeD0DCED2",
+    "Prime": "0xE76d2173546Be97Fa6E18358027BdE9742a649f7",
+    "PrimeLiquidityProvider": "0x6412f6cd58D0182aE150b90B5A99e285b91C1a12",
+    "PrimeLiquidityProvider_Implementation": "0xF3B8d6b1778548F975D6eBebD8a8e515832Cfb0a",
+    "PrimeLiquidityProvider_Proxy": "0x6412f6cd58D0182aE150b90B5A99e285b91C1a12",
+    "Prime_Implementation": "0x7DCF81746fFA44C4469eBA2F6Db86AE3d5f92b10",
+    "Prime_Proxy": "0xE76d2173546Be97Fa6E18358027BdE9742a649f7",
+    "VTreasuryV8": "0x104c01EB7b4664551BE6A9bdB26a8C5c6Be7d3da",
+    "XVSStore": "0xFE548630954129923f63113923eF5373E10589d3",
+    "XVSVaultProxy": "0x133120607C018c949E91AE333785519F6d947e01",
+    "XVSVaultProxy_Implementation": "0x8B8651EEB002a7991F2287500B17a395E8cfe7d9"
+  }
 }
