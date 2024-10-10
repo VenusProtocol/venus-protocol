@@ -1,3 +1,13 @@
+## [9.3.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0-dev.5...v9.3.0-dev.6) (2024-10-10)
+
+
+### Features
+
+* deployment files for plp and prime on opmainnet ([8dffc68](https://github.com/VenusProtocol/venus-protocol/commit/8dffc6851d2849ec651126c80077e840cec85a69))
+* updating deployment files ([a09e96b](https://github.com/VenusProtocol/venus-protocol/commit/a09e96bb6e1d15d49e439b90fb7875cf85072af2))
+* updating deployment files ([8436f6d](https://github.com/VenusProtocol/venus-protocol/commit/8436f6dcee8714e365f219aa1baf1ec02328df0f))
+* use packages that include the Optimism deployment ([75a772d](https://github.com/VenusProtocol/venus-protocol/commit/75a772ddc5149424e4074f0787890ef4aaa7bb82))
+
 ## [9.3.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0-dev.4...v9.3.0-dev.5) (2024-09-27)
 
 
