@@ -52,7 +52,7 @@ export type NetworkConfig = {
 };
 
 export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
-  const vTreasuryAddress = (await ethers.getContract("VTreasuryV8")).address;
+  const vTreasuryAddress = (await ethers.getContract("VTreasury")).address;
   return {
     hardhat: {
       tokensConfig: [
@@ -143,6 +143,13 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           symbol: "FDUSD",
           decimals: 18,
         },
+        {
+          isMock: false,
+          name: "Trust Wallet",
+          symbol: "TWT",
+          decimals: 18,
+          tokenAddress: "0xb99c6b26fdf3678c6e2aff8466e3625a0e7182f8",
+        },
       ],
       marketsConfig: [
         {
@@ -160,6 +167,22 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           initialSupply: convertToUnit(9000, 18),
           supplyCap: convertToUnit(5_500_000, 18),
           borrowCap: convertToUnit(4_400_000, 18),
+          vTokenReceiver: vTreasuryAddress,
+        },
+        {
+          name: "Venus TWT",
+          asset: "TWT",
+          symbol: "vTWT",
+          rateModel: InterestRateModels.JumpRate.toString(),
+          baseRatePerYear: convertToUnit("0.02", 18),
+          multiplierPerYear: convertToUnit("0.2", 18),
+          jumpMultiplierPerYear: convertToUnit("3", 18),
+          kink_: convertToUnit("0.5", 18),
+          collateralFactor: convertToUnit("0.5", 18),
+          reserveFactor: convertToUnit("0.25", 18),
+          initialSupply: convertToUnit(5_000, 18),
+          supplyCap: convertToUnit(3_000_000, 18),
+          borrowCap: convertToUnit(1_000_000, 18),
           vTokenReceiver: vTreasuryAddress,
         },
       ],
