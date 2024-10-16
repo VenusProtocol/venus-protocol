@@ -52,7 +52,12 @@ export type NetworkConfig = {
 };
 
 export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
-  const vTreasuryAddress = (await ethers.getContract("VTreasury")).address;
+  let vTreasuryAddress;
+  try {
+    vTreasuryAddress = (await ethers.getContract("VTreasuryV8")).address;
+  } catch {
+    vTreasuryAddress = (await ethers.getContract("VTreasury")).address;
+  }
   return {
     hardhat: {
       tokensConfig: [
