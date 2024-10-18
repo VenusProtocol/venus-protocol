@@ -16,7 +16,7 @@
     "DefaultProxyAdmin": "0x6beb6D2695B67FEb73ad4f172E8E2975497187e4",
     "ETH": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8",
     "FIL": "0x0D8Ce2A99Bb6e3B7Db580eD848240e4a0F9aE153",
-    "InterestRateModelVBNB": "0xDb8347b96c94Be24B9c077A4CDDAAD074F6480cf",
+    "InterestRateModelVBNB": "0xC682145a767ca98B743B895f1Bd2D4696bC9C2eC",
     "JumpRateModel_base0bps_slope10000bps_jump25000bps_kink8000bps": "0x9e8fbACBfbD811Fc561af3Af7df8e38dEd4c52F3",
     "JumpRateModel_base0bps_slope10000bps_jump50000bps_kink8000bps": "0x958F4C84d3ad523Fa9936Dc465A123C7AD43D69B",
     "JumpRateModel_base0bps_slope1000bps_jump25000bps_kink8000bps": "0x62A8919C4C413fd4F9aef7348540Bc4B1b5CC805",
