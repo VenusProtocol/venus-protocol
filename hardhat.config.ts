@@ -208,7 +208,7 @@ const config: HardhatUserConfig = {
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
     basesepolia: {
-      url: process.env.ARCHIVE_NODE_basesepolia || "https://sepolia.base.org	",
+      url: process.env.ARCHIVE_NODE_basesepolia || "https://sepolia.base.org",
       chainId: 84532,
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
