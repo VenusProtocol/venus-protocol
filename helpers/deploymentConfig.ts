@@ -52,7 +52,12 @@ export type NetworkConfig = {
 };
 
 export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
-  const vTreasuryAddress = (await ethers.getContract("VTreasuryV8")).address;
+  let vTreasuryAddress;
+  try {
+    vTreasuryAddress = (await ethers.getContract("VTreasuryV8")).address;
+  } catch {
+    vTreasuryAddress = (await ethers.getContract("VTreasury")).address;
+  }
   return {
     hardhat: {
       tokensConfig: [
@@ -143,6 +148,13 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           symbol: "FDUSD",
           decimals: 18,
         },
+        {
+          isMock: false,
+          name: "Trust Wallet",
+          symbol: "TWT",
+          decimals: 18,
+          tokenAddress: "0xb99c6b26fdf3678c6e2aff8466e3625a0e7182f8",
+        },
       ],
       marketsConfig: [
         {
@@ -162,6 +174,22 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit(4_400_000, 18),
           vTokenReceiver: vTreasuryAddress,
         },
+        {
+          name: "Venus TWT",
+          asset: "TWT",
+          symbol: "vTWT",
+          rateModel: InterestRateModels.JumpRate.toString(),
+          baseRatePerYear: convertToUnit("0.02", 18),
+          multiplierPerYear: convertToUnit("0.2", 18),
+          jumpMultiplierPerYear: convertToUnit("3", 18),
+          kink_: convertToUnit("0.5", 18),
+          collateralFactor: convertToUnit("0.5", 18),
+          reserveFactor: convertToUnit("0.25", 18),
+          initialSupply: convertToUnit(5_000, 18),
+          supplyCap: convertToUnit(2_000_000, 18),
+          borrowCap: convertToUnit(1_000_000, 18),
+          vTokenReceiver: vTreasuryAddress,
+        },
       ],
     },
     bscmainnet: {
@@ -170,6 +198,11 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           isMock: false,
           symbol: "FDUSD",
           tokenAddress: "0xc5f0f7b66764F6ec8C8Dff7BA683102295E16409",
+        },
+        {
+          isMock: false,
+          symbol: "TWT",
+          tokenAddress: "0x4B0F1812e5Df2A09796481Ff14017e6005508003",
         },
       ],
       marketsConfig: [
@@ -191,37 +224,19 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           vTokenReceiver: vTreasuryAddress,
         },
         {
-          name: "Venus DOGE",
-          asset: "DOGE",
-          symbol: "vDOGE",
+          name: "Venus TWT",
+          asset: "TWT",
+          symbol: "vTWT",
           rateModel: InterestRateModels.JumpRate.toString(),
-          baseRatePerYear: "0",
-          multiplierPerYear: convertToUnit("0.06875", 18),
-          jumpMultiplierPerYear: convertToUnit("2.5", 18),
-          kink_: convertToUnit("0.8", 18),
-          collateralFactor: convertToUnit("0.75", 18),
-          liquidationThreshold: convertToUnit("0.8", 18),
-          reserveFactor: convertToUnit("0.1", 18),
-          initialSupply: convertToUnit(9000, 18),
-          supplyCap: convertToUnit(5_500_000, 18),
-          borrowCap: convertToUnit(4_400_000, 18),
-          vTokenReceiver: vTreasuryAddress,
-        },
-        {
-          name: "Venus USDT",
-          asset: "USDT",
-          symbol: "vUSDT",
-          rateModel: InterestRateModels.JumpRate.toString(),
-          baseRatePerYear: "0",
-          multiplierPerYear: convertToUnit("0.1", 18),
-          jumpMultiplierPerYear: convertToUnit("2.5", 18),
-          kink_: convertToUnit("0.8", 18),
-          collateralFactor: convertToUnit("0.75", 18),
-          liquidationThreshold: convertToUnit("0.8", 18),
-          reserveFactor: convertToUnit("0.1", 18),
-          initialSupply: convertToUnit(9000, 18),
-          supplyCap: convertToUnit(5_500_000, 18),
-          borrowCap: convertToUnit(4_400_000, 18),
+          baseRatePerYear: convertToUnit("0.02", 18),
+          multiplierPerYear: convertToUnit("0.2", 18),
+          jumpMultiplierPerYear: convertToUnit("3", 18),
+          kink_: convertToUnit("0.5", 18),
+          collateralFactor: convertToUnit("0.5", 18),
+          reserveFactor: convertToUnit("0.25", 18),
+          initialSupply: convertToUnit(4_401, 18),
+          supplyCap: convertToUnit(2_000_000, 18),
+          borrowCap: convertToUnit(1_000_000, 18),
           vTokenReceiver: vTreasuryAddress,
         },
       ],
