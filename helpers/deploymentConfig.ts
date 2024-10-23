@@ -32,7 +32,6 @@ export type VTokenConfig = {
   jumpMultiplierPerYear: string;
   kink_: string;
   collateralFactor: string;
-  liquidationThreshold: string;
   reserveFactor: string;
   initialSupply: string;
   supplyCap: string;
@@ -155,6 +154,12 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           decimals: 18,
           tokenAddress: "0xb99c6b26fdf3678c6e2aff8466e3625a0e7182f8",
         },
+        {
+          isMock: true,
+          name: "Solv BTC",
+          symbol: "SolvBTC",
+          decimals: 18,
+        },
       ],
       marketsConfig: [
         {
@@ -167,7 +172,6 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           jumpMultiplierPerYear: convertToUnit("2.5", 18),
           kink_: convertToUnit("0.8", 18),
           collateralFactor: convertToUnit("0.75", 18),
-          liquidationThreshold: convertToUnit("0.8", 18),
           reserveFactor: convertToUnit("0.1", 18),
           initialSupply: convertToUnit(9000, 18),
           supplyCap: convertToUnit(5_500_000, 18),
@@ -190,6 +194,22 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit(1_000_000, 18),
           vTokenReceiver: vTreasuryAddress,
         },
+        {
+          name: "Venus SolvBTC",
+          asset: "SolvBTC",
+          symbol: "vSolvBTC",
+          rateModel: InterestRateModels.JumpRate.toString(),
+          baseRatePerYear: "0",
+          multiplierPerYear: convertToUnit("0.09", 18),
+          jumpMultiplierPerYear: convertToUnit("2", 18),
+          kink_: convertToUnit("0.5", 18),
+          collateralFactor: convertToUnit("0.75", 18),
+          reserveFactor: convertToUnit("0.2", 18),
+          initialSupply: convertToUnit("0.1572404", 18),
+          supplyCap: convertToUnit("100", 18),
+          borrowCap: convertToUnit("55", 18),
+          vTokenReceiver: vTreasuryAddress,
+        },
       ],
     },
     bscmainnet: {
@@ -204,6 +224,13 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           symbol: "TWT",
           tokenAddress: "0x4B0F1812e5Df2A09796481Ff14017e6005508003",
         },
+        {
+          isMock: false,
+          name: "Solv BTC",
+          symbol: "SolvBTC",
+          decimals: 18,
+          tokenAddress: "0x4aae823a6a0b376de6a78e74ecc5b079d38cbcf7",
+        },
       ],
       marketsConfig: [
         {
@@ -216,7 +243,6 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           jumpMultiplierPerYear: convertToUnit("5.0", 18),
           kink_: convertToUnit("0.8", 18),
           collateralFactor: convertToUnit("0.75", 18),
-          liquidationThreshold: convertToUnit("0.8", 18),
           reserveFactor: convertToUnit("0.1", 18),
           initialSupply: convertToUnit(9000, 18),
           supplyCap: convertToUnit(5_500_000, 18),
@@ -238,6 +264,22 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           supplyCap: convertToUnit(2_000_000, 18),
           borrowCap: convertToUnit(1_000_000, 18),
           vTokenReceiver: vTreasuryAddress,
+        },
+        {
+          name: "Venus SolvBTC",
+          asset: "SolvBTC",
+          symbol: "vSolvBTC",
+          rateModel: InterestRateModels.JumpRate.toString(),
+          baseRatePerYear: "0",
+          multiplierPerYear: convertToUnit("0.09", 18),
+          jumpMultiplierPerYear: convertToUnit("2", 18),
+          kink_: convertToUnit("0.5", 18),
+          collateralFactor: convertToUnit("0.75", 18),
+          reserveFactor: convertToUnit("0.2", 18),
+          initialSupply: convertToUnit("0.1572404", 18),
+          supplyCap: convertToUnit("100", 18),
+          borrowCap: convertToUnit("55", 18),
+          vTokenReceiver: "0xD5bAa0C3d61Ba3f4899565f269e5f9b186AAf14B",
         },
       ],
     },
