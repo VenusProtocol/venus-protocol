@@ -1,3 +1,27 @@
+## [9.4.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0...v9.4.0-dev.1) (2024-10-23)
+
+
+### Features
+
+* add mainnet deployments of TWT market ([f92fcf8](https://github.com/VenusProtocol/venus-protocol/commit/f92fcf858990cb47dc0b375feca6c2032eeb692e))
+* add SolvBTC market ([a0e2b61](https://github.com/VenusProtocol/venus-protocol/commit/a0e2b61224f0c4ca1bbe0871086eba62cc09895f))
+* add TWT market in core pool on bsctestnet ([df6028e](https://github.com/VenusProtocol/venus-protocol/commit/df6028e393e234bacd86e2bff87e234efaf99ba7))
+* updating deployment files ([3cf6cf1](https://github.com/VenusProtocol/venus-protocol/commit/3cf6cf12cdf97944e2935563da432d01bfe10c73))
+* updating deployment files ([8581e06](https://github.com/VenusProtocol/venus-protocol/commit/8581e06866052050eaa89e4bb10f058a842d589a))
+* updating deployment files ([fd40785](https://github.com/VenusProtocol/venus-protocol/commit/fd40785c87b98c1147631e134e587f6916e14017))
+* updating deployment files ([0bf8812](https://github.com/VenusProtocol/venus-protocol/commit/0bf8812e232130184608ed8626d9aeb6e60ea36a))
+* updating deployment files ([c8038cb](https://github.com/VenusProtocol/venus-protocol/commit/c8038cb53e0aee20344b1aa14e268aacbea0979e))
+
+
+### Bug Fixes
+
+* deployed on bsctestnet and bscmainnet ([a483cf4](https://github.com/VenusProtocol/venus-protocol/commit/a483cf455d2121c25cd33d6d385c82618e0bc1cf))
+* fixed lint ([b0c4089](https://github.com/VenusProtocol/venus-protocol/commit/b0c408976529f26b995a77589cda0cda8fc82935))
+* hardhat deployments ([84308d4](https://github.com/VenusProtocol/venus-protocol/commit/84308d48964c084ccb71b2309d8fdebaf2772aa4))
+* merge conflict ([d8b092e](https://github.com/VenusProtocol/venus-protocol/commit/d8b092ea3055b08061febb4cbfdb51d0833b8393))
+* updated params and redeployed ([a0e26e9](https://github.com/VenusProtocol/venus-protocol/commit/a0e26e96765d4c754a6db5afca59ea9dadf6b5ac))
+* updated yarn.lock ([df678bd](https://github.com/VenusProtocol/venus-protocol/commit/df678bd0c32a04026f4bb7672a4e569fbad71dd1))
+
 ## [9.3.0](https://github.com/VenusProtocol/venus-protocol/compare/v9.2.0...v9.3.0) (2024-10-10)
 
 
