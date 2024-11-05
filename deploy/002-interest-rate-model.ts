@@ -22,6 +22,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       log: true,
       autoMine: true,
+      args: [0, "40000000000000000", "1080000000000000000", "700000000000000000"],
+    });
+  }
+
+  if (network.name === "bscmainnet") {
+    await deploy("InterestRateModelVETH", {
+      contract: "JumpRateModel",
+      from: deployer,
+      log: true,
+      autoMine: true,
       args: [0, parseUnits("0.03", 18), parseUnits("4.5", 18), parseUnits("0.9", 18)],
     });
   }
