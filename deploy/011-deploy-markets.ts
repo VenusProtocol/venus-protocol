@@ -66,7 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     const underlyingDecimals = Number(await tokenContract.decimals());
     const normalTimelock = await ethers.getContract("NormalTimelock");
-    const vBep20DelegateDeployment = await deploy("VBep20Delegate", { from: deployer });
+    const vBep20DelegateDeployment = await deploy("VBep20Delegate", { from: deployer, skipIfAlreadyDeployed: true });
     console.log(`Deploying VBep20 Proxy for ${symbol} with Implementation ${vBep20DelegateDeployment.address}`);
 
     await deploy(`${symbol}`, {
@@ -85,6 +85,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         EMPTY_BYTES_ARRAY,
       ],
       log: true,
+      skipIfAlreadyDeployed: true,
     });
   }
 };
