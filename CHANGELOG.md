@@ -1,3 +1,17 @@
+## [9.4.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.1...v9.4.0-dev.2) (2024-11-14)
+
+
+### Features
+
+* updating deployment files ([9f1a591](https://github.com/VenusProtocol/venus-protocol/commit/9f1a591387868f7d8ab7a393ddb54b573962f075))
+
+
+### Bug Fixes
+
+* deployed vETH IRM ([e11713c](https://github.com/VenusProtocol/venus-protocol/commit/e11713c94800a8f985fcf01cecf571494b937e06))
+* fixed yarn ([6779e55](https://github.com/VenusProtocol/venus-protocol/commit/6779e556baf1e5236397178cf8ac80baee51c4b2))
+* updated  IRM params ([c95d8ac](https://github.com/VenusProtocol/venus-protocol/commit/c95d8ac946759da7eb74e6aef00e4adc4ed209ed))
+
 ## [9.4.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0...v9.4.0-dev.1) (2024-10-23)
 
 
