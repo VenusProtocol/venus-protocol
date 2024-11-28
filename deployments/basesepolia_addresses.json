@@ -3,6 +3,12 @@
   "chainId": "84532",
   "addresses": {
     "DefaultProxyAdmin": "0xB85dD19112c4BF1240FeD0f26E8D0b0576a82546",
+    "Prime": "0xF0168dde19Ce84B07530B9eD7c32C3292ebBb19B",
+    "PrimeLiquidityProvider": "0x792c51fb738145a39E18935D17E6B8F3A56F6bfa",
+    "PrimeLiquidityProvider_Implementation": "0xf82b7985B2d3CDC40448eCB680B8d51a29EeD303",
+    "PrimeLiquidityProvider_Proxy": "0x792c51fb738145a39E18935D17E6B8F3A56F6bfa",
+    "Prime_Implementation": "0x78583CdB9E9eBac15A7125a3cC850333149Dab9e",
+    "Prime_Proxy": "0xF0168dde19Ce84B07530B9eD7c32C3292ebBb19B",
     "VTreasuryV8": "0x07e880DaA6572829cE8ABaaf0f5323A4eFC417A6"
   }
 }
