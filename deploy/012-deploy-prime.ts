@@ -27,12 +27,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     arbitrumsepolia: TEN_MINUTES,
     zksyncsepolia: TEN_MINUTES,
     opsepolia: TEN_MINUTES,
+    basesepolia: TEN_MINUTES,
     bscmainnet: NINETY_DAYS,
     ethereum: NINETY_DAYS,
     arbitrumone: NINETY_DAYS,
     zksyncmainnet: NINETY_DAYS,
     opmainnet: NINETY_DAYS,
-    basesepolia: NINETY_DAYS,
   };
 
   const xVSVaultPoolId: Config = {
