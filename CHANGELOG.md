@@ -1,3 +1,33 @@
+## [9.4.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.2...v9.4.0-dev.3) (2024-11-22)
+
+
+### Features
+
+* deployed VTreasury to basesepolia ([13aa8c1](https://github.com/VenusProtocol/venus-protocol/commit/13aa8c18e61d3302a8b79724be63433a979e8e1b))
+* updating deployment files ([567c94f](https://github.com/VenusProtocol/venus-protocol/commit/567c94f4073be589711a510a532e4f06aa377efd))
+
+
+### Bug Fixes
+
+* added to custom chains ([777909d](https://github.com/VenusProtocol/venus-protocol/commit/777909dfa6e4e22def057a7fc10e342a0e95e11b))
+* fixed url ([d663e71](https://github.com/VenusProtocol/venus-protocol/commit/d663e71814fa53729d1c62083bb357d0684ee25b))
+* fixed yarn lock ([aac7867](https://github.com/VenusProtocol/venus-protocol/commit/aac786782298a82635df49d2d63aa093ff3606d0))
+* updated ci ([3af2230](https://github.com/VenusProtocol/venus-protocol/commit/3af22304174e0e9386f2f7ecbb61765e9ce31428))
+
+## [9.4.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.1...v9.4.0-dev.2) (2024-11-14)
+
+
+### Features
+
+* updating deployment files ([9f1a591](https://github.com/VenusProtocol/venus-protocol/commit/9f1a591387868f7d8ab7a393ddb54b573962f075))
+
+
+### Bug Fixes
+
+* deployed vETH IRM ([e11713c](https://github.com/VenusProtocol/venus-protocol/commit/e11713c94800a8f985fcf01cecf571494b937e06))
+* fixed yarn ([6779e55](https://github.com/VenusProtocol/venus-protocol/commit/6779e556baf1e5236397178cf8ac80baee51c4b2))
+* updated  IRM params ([c95d8ac](https://github.com/VenusProtocol/venus-protocol/commit/c95d8ac946759da7eb74e6aef00e4adc4ed209ed))
+
 ## [9.4.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0...v9.4.0-dev.1) (2024-10-23)
 
 
