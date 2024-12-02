@@ -2,7 +2,6 @@
   "name": "basesepolia",
   "chainId": "84532",
   "addresses": {
-    "DefaultProxyAdmin": "0xB85dD19112c4BF1240FeD0f26E8D0b0576a82546",
     "VTreasuryV8": "0x07e880DaA6572829cE8ABaaf0f5323A4eFC417A6"
   }
 }
