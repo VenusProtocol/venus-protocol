@@ -2,6 +2,9 @@
   "name": "basesepolia",
   "chainId": "84532",
   "addresses": {
-    "VTreasuryV8": "0x07e880DaA6572829cE8ABaaf0f5323A4eFC417A6"
+    "VTreasuryV8": "0x07e880DaA6572829cE8ABaaf0f5323A4eFC417A6",
+    "XVSStore": "0x059f1eA3973738C649d63bF4dA18221ecA418cDC",
+    "XVSVaultProxy": "0x9b5D0aDfCEcC8ed422d714EcbcE2FFA436e269B8",
+    "XVSVaultProxy_Implementation": "0x00D346f25beA6D90503314CAABbf5d0c53b091D0"
   }
 }
