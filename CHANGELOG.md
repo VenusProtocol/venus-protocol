@@ -1,3 +1,21 @@
+## [9.4.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.4...v9.4.0-dev.5) (2024-12-03)
+
+
+### Features
+
+* deployed prime on base sepolia ([384251a](https://github.com/VenusProtocol/venus-protocol/commit/384251a4d65c849de45c0f9ec9e21c8a3c3b1d5d))
+* updating deployment files ([eb66a92](https://github.com/VenusProtocol/venus-protocol/commit/eb66a92f5ee40812172cf5d705992918e3ddb707))
+* updating deployment files ([380b745](https://github.com/VenusProtocol/venus-protocol/commit/380b7459c5daa241ab1eb254540141786081d2a8))
+* updating deployment files ([f22c41d](https://github.com/VenusProtocol/venus-protocol/commit/f22c41dbe2a5ef9b57284936924d108acaf7e72e))
+
+
+### Bug Fixes
+
+* merge conflict ([c7d7999](https://github.com/VenusProtocol/venus-protocol/commit/c7d7999c820076ca16250449715661fcf9a64d45))
+* redeployed contract with new xvs vauly ([6bc94d0](https://github.com/VenusProtocol/venus-protocol/commit/6bc94d095e3edb5275228985f284df1173f147f8))
+* redeployed prime ([7948f3c](https://github.com/VenusProtocol/venus-protocol/commit/7948f3ca6abe9555b943b92c47f05feabf931ad0))
+* revert config ([0214ea8](https://github.com/VenusProtocol/venus-protocol/commit/0214ea8841c225887dc84f8721fd51ce7cd5e629))
+
 ## [9.4.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.3...v9.4.0-dev.4) (2024-12-03)
 
 
