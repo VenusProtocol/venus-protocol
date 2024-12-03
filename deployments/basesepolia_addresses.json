@@ -2,6 +2,13 @@
   "name": "basesepolia",
   "chainId": "84532",
   "addresses": {
+    "DefaultProxyAdmin": "0xB85dD19112c4BF1240FeD0f26E8D0b0576a82546",
+    "Prime": "0x15A1AC7fA14C5900Ba93853375d66b6bB6A83B50",
+    "PrimeLiquidityProvider": "0xb5BA66311C5f9A5C9d3CeE0183F5426DD694dE37",
+    "PrimeLiquidityProvider_Implementation": "0xc88D27e8103688445a0C0850566D9418E61ca0fC",
+    "PrimeLiquidityProvider_Proxy": "0xb5BA66311C5f9A5C9d3CeE0183F5426DD694dE37",
+    "Prime_Implementation": "0x926Afca8C8ACe02858765278ffc94EF4Fcd9dd3a",
+    "Prime_Proxy": "0x15A1AC7fA14C5900Ba93853375d66b6bB6A83B50",
     "VTreasuryV8": "0x07e880DaA6572829cE8ABaaf0f5323A4eFC417A6",
     "XVSStore": "0x059f1eA3973738C649d63bF4dA18221ecA418cDC",
     "XVSVaultProxy": "0x9b5D0aDfCEcC8ed422d714EcbcE2FFA436e269B8",
