@@ -1,3 +1,17 @@
+## [9.4.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.3...v9.4.0-dev.4) (2024-12-03)
+
+
+### Features
+
+* deployed xvs vault and store ([9efd0b9](https://github.com/VenusProtocol/venus-protocol/commit/9efd0b9919794217e34b49fed623c898fba7b6cc))
+* updating deployment files ([c87b845](https://github.com/VenusProtocol/venus-protocol/commit/c87b8453cdc5f315b4421ec6125080f99bdce2ef))
+* updating deployment files ([ffe0597](https://github.com/VenusProtocol/venus-protocol/commit/ffe0597c4517fe22143b3c655ed969cc93db9d6c))
+
+
+### Bug Fixes
+
+* redeployed contracts with correct xvs ([da20eed](https://github.com/VenusProtocol/venus-protocol/commit/da20eed770fed0582bcf4a437362fd3dff21bed8))
+
 ## [9.4.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.2...v9.4.0-dev.3) (2024-11-22)
 
 
