@@ -1,0 +1,7 @@
+{
+  "name": "basemainnet",
+  "chainId": "8453",
+  "addresses": {
+    "VTreasuryV8": "0xbefD8d06f403222dd5E8e37D2ba93320A97939D1"
+  }
+}
