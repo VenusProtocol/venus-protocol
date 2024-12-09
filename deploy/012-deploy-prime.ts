@@ -49,7 +49,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     opmainnet: 0,
     hardhat: 0,
     basesepolia: 0,
-    basemainnet: 0
+    basemainnet: 0,
   };
 
   const blocksPerYear: Config = {
@@ -74,15 +74,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const xvsVaultAlphaNumerator = 1;
   const xvsVaultAlphaDenominator = 2;
   const loopsLimit = 20;
-  const isTimeBased = true; // revise this value when deploying on L2s
+  const isTimeBased = false; // revise this value when deploying on L2s
 
   const corePoolAddress = await getContractAddressOrNullAddress(deployments, "Unitroller");
   const wrappedNativeToken = await getContractAddressOrNullAddress(deployments, "WBNB");
   const nativeMarket = await getContractAddressOrNullAddress(deployments, "vBNB");
-  const acmAddress = "0x9E6CeEfDC6183e4D0DF8092A9B90cDF659687daB"; // (await deployments.get("AccessControlManager")).address;
-  const xvsVaultAddress = "0x708B54F2C3f3606ea48a8d94dab88D9Ab22D7fCd"; // (await deployments.get("XVSVaultProxy")).address;
-  const xvsAddress = "0xebB7873213c8d1d9913D8eA39Aa12d74cB107995"; // (await deployments.get("XVS")).address;
-  const resilientOracleAddress = "0xcBBf58bD5bAdE357b634419B70b215D5E9d6FbeD"; // (await deployments.get("ResilientOracle")).address;
+  const acmAddress = (await deployments.get("AccessControlManager")).address;
+  const xvsVaultAddress = (await deployments.get("XVSVaultProxy")).address;
+  const xvsAddress = (await deployments.get("XVS")).address;
+  const resilientOracleAddress = (await deployments.get("ResilientOracle")).address;
 
   const adminAccount: AdminAccounts = {
     sepolia: "0x94fa6078b6b8a26f0b6edffbe6501b22a10470fb", // SEPOLIA MULTISIG
@@ -96,10 +96,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     opsepolia: "0xd57365EE4E850e881229e2F8Aa405822f289e78d", // OPSEPOLIA MULTISIG
     opmainnet: "0x2e94dd14E81999CdBF5deDE31938beD7308354b3", // OPMAINNET MULTISIG
     basesepolia: "0xdf3b635d2b535f906BB02abb22AED71346E36a00", // BASE SEPOLIA MULTISIG
-    basemainent: "0x1803Cf1D3495b43cC628aa1d8638A981F8CD341C", // BASE MAINNET MULTISIG
+    basemainnet: "0x1803Cf1D3495b43cC628aa1d8638A981F8CD341C", // BASE MAINNET MULTISIG
     bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
     bsctestnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
   };
+
+  const pa = await ethers.getContract("DefaultProxyAdmin");
+  console.log(await pa.owner());
 
   // Explicitly mentioning Default Proxy Admin contract path to fetch it from hardhat-deploy instead of OpenZeppelin
   // as zksync doesnot compile OpenZeppelin contracts using zksolc. It is backward compatible for all networks as well.

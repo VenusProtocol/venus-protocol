@@ -217,10 +217,7 @@ const config: HardhatUserConfig = {
       url: process.env.ARCHIVE_NODE_basemainnet || "https://mainnet.base.org",
       chainId: 8453,
       live: true,
-      // accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
-      accounts: {
-        mnemonic: process.env.MNEMONIC || ""
-      }
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
   },
   etherscan: {
