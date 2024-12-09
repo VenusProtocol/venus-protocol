@@ -101,9 +101,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     bsctestnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
   };
 
-  const pa = await ethers.getContract("DefaultProxyAdmin");
-  console.log(await pa.owner());
-
   // Explicitly mentioning Default Proxy Admin contract path to fetch it from hardhat-deploy instead of OpenZeppelin
   // as zksync doesnot compile OpenZeppelin contracts using zksolc. It is backward compatible for all networks as well.
   const defaultProxyAdmin = await hre.artifacts.readArtifact(
