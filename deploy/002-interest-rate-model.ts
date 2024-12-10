@@ -44,11 +44,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       autoMine: true,
       args: [
         0,
-        parseUnits("0.225", 18),
+        parseUnits("0.125", 18),
         parseUnits("0.4", 18),
-        parseUnits("0.35", 18),
+        parseUnits("0.9", 18),
         parseUnits("0.21", 18),
-        parseUnits("0.7", 18),
+        parseUnits("0.8", 18),
         parseUnits("5", 18),
       ],
     });
