@@ -1,3 +1,11 @@
+## [9.4.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.5...v9.4.0-dev.6) (2024-12-11)
+
+
+### Features
+
+* deployed IRM ([539f995](https://github.com/VenusProtocol/venus-protocol/commit/539f9956f3034fe6d9a3832eb19edb569a091f19))
+* updating deployment files ([9009c9b](https://github.com/VenusProtocol/venus-protocol/commit/9009c9bd30fa8ccba47b116b2e9c94f42f7cdc96))
+
 ## [9.4.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.4...v9.4.0-dev.5) (2024-12-03)
 
 
