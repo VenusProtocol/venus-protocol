@@ -1,3 +1,11 @@
+## [9.4.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.6...v9.4.0-dev.7) (2024-12-12)
+
+
+### Features
+
+* deployed treasury ([61d8bc1](https://github.com/VenusProtocol/venus-protocol/commit/61d8bc1080b49ce40391ac1cff5186e7e46467b8))
+* updating deployment files ([219576b](https://github.com/VenusProtocol/venus-protocol/commit/219576bc5cc5e8d356875740aa3be44cd32c2a70))
+
 ## [9.4.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.5...v9.4.0-dev.6) (2024-12-11)
 
 
