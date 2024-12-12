@@ -36,6 +36,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     opsepolia: "0xd57365EE4E850e881229e2F8Aa405822f289e78d", // OPSEPOLIA MULTISIG
     opmainnet: "0x2e94dd14E81999CdBF5deDE31938beD7308354b3", // OPMAINNET MULTISIG
     basesepolia: "0xdf3b635d2b535f906BB02abb22AED71346E36a00", // BASE SEPOLIA MULTISIG
+    basemainnet: "0x1803Cf1D3495b43cC628aa1d8638A981F8CD341C", // BASE MAINNET MULTISIG
     bscmainnet: await getTimelock(),
     bsctestnet: await getTimelock(),
     hardhat: deployer,
