@@ -2,6 +2,9 @@
   "name": "basemainnet",
   "chainId": "8453",
   "addresses": {
-    "VTreasuryV8": "0xbefD8d06f403222dd5E8e37D2ba93320A97939D1"
+    "VTreasuryV8": "0xbefD8d06f403222dd5E8e37D2ba93320A97939D1",
+    "XVSStore": "0x11b084Cfa559a82AAC0CcD159dBea27899c7955A",
+    "XVSVaultProxy": "0x708B54F2C3f3606ea48a8d94dab88D9Ab22D7fCd",
+    "XVSVaultProxy_Implementation": "0x322F1a2E03F089F8ce510855e793970D6f0EFcF9"
   }
 }
