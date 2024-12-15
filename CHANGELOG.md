@@ -1,3 +1,11 @@
+## [9.4.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.7...v9.4.0-dev.8) (2024-12-15)
+
+
+### Features
+
+* deployed XVS vault and store on base mainnet ([5941bed](https://github.com/VenusProtocol/venus-protocol/commit/5941bed39f47a5836c4a8be035123002509aad02))
+* updating deployment files ([467a09f](https://github.com/VenusProtocol/venus-protocol/commit/467a09fe2e15848e20a55fe9c35896e3387b9582))
+
 ## [9.4.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.6...v9.4.0-dev.7) (2024-12-12)
 
 
