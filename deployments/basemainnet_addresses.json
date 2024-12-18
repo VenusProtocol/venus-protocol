@@ -2,6 +2,13 @@
   "name": "basemainnet",
   "chainId": "8453",
   "addresses": {
+    "DefaultProxyAdmin": "0x7B06EF6b68648C61aFE0f715740fE3950B90746B",
+    "Prime": "0xD2e84244f1e9Fca03Ff024af35b8f9612D5d7a30",
+    "PrimeLiquidityProvider": "0xcB293EB385dEFF2CdeDa4E7060974BB90ee0B208",
+    "PrimeLiquidityProvider_Implementation": "0x646dF53c39e9220dDEB4a72F2C3a8Bd50fbefa11",
+    "PrimeLiquidityProvider_Proxy": "0xcB293EB385dEFF2CdeDa4E7060974BB90ee0B208",
+    "Prime_Implementation": "0xdFCDD96A355991C313503Afc0291b74f133d30b6",
+    "Prime_Proxy": "0xD2e84244f1e9Fca03Ff024af35b8f9612D5d7a30",
     "VTreasuryV8": "0xbefD8d06f403222dd5E8e37D2ba93320A97939D1",
     "XVSStore": "0x11b084Cfa559a82AAC0CcD159dBea27899c7955A",
     "XVSVaultProxy": "0x708B54F2C3f3606ea48a8d94dab88D9Ab22D7fCd",
