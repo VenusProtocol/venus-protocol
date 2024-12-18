@@ -26,7 +26,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ["MockTokens"];
-// These are mock tokens
-func.skip = async hre => hre.network.name !== "hardhat";
 
 export default func;

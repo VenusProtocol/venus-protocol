@@ -1,3 +1,4 @@
+import { parseUnits } from "ethers/lib/utils";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -26,17 +27,36 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   if (network.name === "bscmainnet") {
-    await deploy("InterestRateModelVBNB", {
+    await deploy("InterestRateModelVETH", {
       contract: "JumpRateModel",
       from: deployer,
       log: true,
       autoMine: true,
-      args: [0, "225000000000000000", "6800000000000000000", "500000000000000000"],
+      args: [0, parseUnits("0.03", 18), parseUnits("4.5", 18), parseUnits("0.9", 18)],
+    });
+  }
+
+  if (network.name === "bscmainnet" || network.name === "bsctestnet") {
+    await deploy("InterestRateModelVBNB", {
+      contract: "TwoKinksInterestRateModel",
+      from: deployer,
+      log: true,
+      autoMine: true,
+      args: [
+        0,
+        parseUnits("0.125", 18),
+        parseUnits("0.4", 18),
+        parseUnits("0.9", 18),
+        parseUnits("0.21", 18),
+        parseUnits("0.8", 18),
+        parseUnits("5", 18),
+      ],
     });
   }
 };
 
 func.tags = ["InterestRateModel"];
-func.skip = async hre => hre.network.name !== "hardhat" && hre.network.name !== "bscmainnet";
+func.skip = async hre =>
+  hre.network.name !== "hardhat" && hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet";
 
 export default func;
