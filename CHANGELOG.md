@@ -1,3 +1,27 @@
+## [9.4.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.7...v9.4.0-dev.8) (2024-12-15)
+
+
+### Features
+
+* deployed XVS vault and store on base mainnet ([5941bed](https://github.com/VenusProtocol/venus-protocol/commit/5941bed39f47a5836c4a8be035123002509aad02))
+* updating deployment files ([467a09f](https://github.com/VenusProtocol/venus-protocol/commit/467a09fe2e15848e20a55fe9c35896e3387b9582))
+
+## [9.4.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.6...v9.4.0-dev.7) (2024-12-12)
+
+
+### Features
+
+* deployed treasury ([61d8bc1](https://github.com/VenusProtocol/venus-protocol/commit/61d8bc1080b49ce40391ac1cff5186e7e46467b8))
+* updating deployment files ([219576b](https://github.com/VenusProtocol/venus-protocol/commit/219576bc5cc5e8d356875740aa3be44cd32c2a70))
+
+## [9.4.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.5...v9.4.0-dev.6) (2024-12-11)
+
+
+### Features
+
+* deployed IRM ([539f995](https://github.com/VenusProtocol/venus-protocol/commit/539f9956f3034fe6d9a3832eb19edb569a091f19))
+* updating deployment files ([9009c9b](https://github.com/VenusProtocol/venus-protocol/commit/9009c9bd30fa8ccba47b116b2e9c94f42f7cdc96))
+
 ## [9.4.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0-dev.4...v9.4.0-dev.5) (2024-12-03)
 
 
