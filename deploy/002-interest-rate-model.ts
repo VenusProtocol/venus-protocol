@@ -1,6 +1,11 @@
+import { BigNumber, BigNumberish } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+
+const mantissaToBps = (num: BigNumberish) => {
+  return BigNumber.from(num).div(parseUnits("1", 14)).toString();
+};
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, network } = hre;
@@ -33,6 +38,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       log: true,
       autoMine: true,
       args: [0, parseUnits("0.03", 18), parseUnits("4.5", 18), parseUnits("0.9", 18)],
+    });
+
+    const baseRatePerYear = parseUnits("0", 18);
+    const multiplierPerYear = parseUnits("0.175", 18);
+    const jumpMultiplierPerYear = parseUnits("2.5", 18);
+    const kink = parseUnits("0.8", 18);
+    const [b, m, j, k] = [baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink].map(mantissaToBps);
+    const rateModelName = `JumpRateModel_base${b}bps_slope${m}bps_jump${j}bps_kink${k}bps`;
+
+    await deploy(rateModelName, {
+      contract: "JumpRateModel",
+      from: deployer,
+      log: true,
+      autoMine: true,
+      args: [baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink],
     });
   }
 
