@@ -40,12 +40,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       args: [0, parseUnits("0.03", 18), parseUnits("4.5", 18), parseUnits("0.9", 18)],
     });
 
-    const baseRatePerYear = parseUnits("0", 18);
-    const multiplierPerYear = parseUnits("0.175", 18);
-    const jumpMultiplierPerYear = parseUnits("2.5", 18);
-    const kink = parseUnits("0.8", 18);
+    let baseRatePerYear = parseUnits("0", 18);
+    let multiplierPerYear = parseUnits("0.175", 18);
+    let jumpMultiplierPerYear = parseUnits("2.5", 18);
+    let kink = parseUnits("0.8", 18);
     const [b, m, j, k] = [baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink].map(mantissaToBps);
-    const rateModelName = `JumpRateModel_base${b}bps_slope${m}bps_jump${j}bps_kink${k}bps`;
+    let rateModelName = `JumpRateModel_base${b}bps_slope${m}bps_jump${j}bps_kink${k}bps`;
 
     await deploy(rateModelName, {
       contract: "JumpRateModel",
@@ -53,6 +53,43 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       log: true,
       autoMine: true,
       args: [baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink],
+      skipIfAlreadyDeployed: true,
+    });
+
+    baseRatePerYear = parseUnits("0", 18);
+    multiplierPerYear = parseUnits("0.15", 18);
+    jumpMultiplierPerYear = parseUnits("3", 18);
+    kink = parseUnits("0.8", 18);
+    const baseRatePerYear2 = parseUnits("0", 18);
+    const multiplierPerYear2 = parseUnits("0.9", 18);
+    const kink2_ = parseUnits("0.9", 18);
+
+    const [b1, m1, k1, m2, b2, k2, j2] = [
+      baseRatePerYear,
+      multiplierPerYear,
+      kink,
+      multiplierPerYear2,
+      baseRatePerYear2,
+      kink2_,
+      jumpMultiplierPerYear,
+    ].map(mantissaToBps);
+    rateModelName = `TwoKinks_base${b1}bps_slope${m1}bps_kink${k1}bps_slope2${m2}bps_base2${b2}bps_kink2${k2}bps_jump${j2}bps`;
+
+    await deploy(rateModelName, {
+      contract: "TwoKinksInterestRateModel",
+      from: deployer,
+      log: true,
+      autoMine: true,
+      args: [
+        baseRatePerYear,
+        multiplierPerYear,
+        kink,
+        multiplierPerYear2,
+        baseRatePerYear2,
+        kink2_,
+        jumpMultiplierPerYear,
+      ],
+      skipIfAlreadyDeployed: true,
     });
   }
 
