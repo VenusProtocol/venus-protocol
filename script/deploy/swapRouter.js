@@ -9,7 +9,7 @@ const main = async () => {
   const deployer = await signers[0].getAddress();
   const swapRouterContractFactory = await ethers.getContractFactory("SwapRouter");
 
-  const network = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet" ? Mainnet : Testnet;
+  const network = process.env.FORKED_NETWORK === "bscmainnet" ? Mainnet : Testnet;
 
   const WBNB = network.Contracts.WBNB;
   const FACTORY = network.Contracts.pancakeFactory;

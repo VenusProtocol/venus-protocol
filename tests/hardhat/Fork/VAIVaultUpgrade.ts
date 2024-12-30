@@ -15,7 +15,7 @@ import {
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 import { forking } from "./utils";
 
-const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 
 // Address of the vault proxy

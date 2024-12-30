@@ -7,7 +7,7 @@ import { ethers } from "hardhat";
 import { XVSVaultProxy__factory, XVSVault__factory, XVS__factory } from "../../../typechain";
 
 const hre = require("hardhat");
-const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 let FORK_ENDPOINT;
 
 const poolId = 0;
@@ -235,6 +235,7 @@ describe("XVSVault", async () => {
     });
 
     it("Verify Reward Debt for affectedUser3", async () => {
+      console.log("FORK_ENDPOINT", FORK_ENDPOINT);
       await reset(`${FORK_ENDPOINT}`, 25458045);
       await sendGasCost();
       await deployAndConfigureOldVault();

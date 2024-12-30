@@ -19,7 +19,7 @@ import {
 import { IBEP20__factory } from "../../../typechain/factories/contracts/Utils";
 import { initMainnetUser, setForkBlock } from "./utils";
 
-const FORK_MAINNET = process.env.FORK_MAINNET === "true";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 // Address of already deployed access control manager
 const ACM = "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555";

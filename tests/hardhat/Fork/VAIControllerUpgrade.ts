@@ -22,7 +22,7 @@ import {
 } from "../../../typechain";
 import { around, forking, initMainnetUser } from "./utils";
 
-const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 const forkedNetwork = () => {
   const net = process.env.FORKED_NETWORK || "";

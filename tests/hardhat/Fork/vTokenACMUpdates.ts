@@ -53,7 +53,7 @@ async function configure() {
   await vBusd.connect(impersonatedTimelock).setProtocolShareReserve(protocolShareReserve.address);
 }
 
-const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 if (FORK_MAINNET) {
   describe("VToken ACM Upgrade", () => {

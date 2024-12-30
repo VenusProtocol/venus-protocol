@@ -84,7 +84,7 @@ forking(31873700, () => {
   let ownerSigner: SignerWithAddress; //eslint-disable-line
   let diamondUnitroller;
 
-  if (process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet") {
+  if (process.env.FORKED_NETWORK === "bscmainnet") {
     before(async () => {
       /*
        *  Forking mainnet

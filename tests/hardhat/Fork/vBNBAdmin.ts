@@ -67,7 +67,7 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   };
 };
 
-const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 if (FORK_MAINNET) {
   const blockNumber = 29244056;

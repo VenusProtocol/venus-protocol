@@ -25,7 +25,7 @@ import { initMainnetUser, setForkBlock } from "./utils";
 
 const { ethers } = require("hardhat");
 
-const FORK_MAINNET = process.env.FORK_MAINNET === "true";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 // Address of the VAI_UNITROLLER
 const VAI_CONTROLLER = "0x004065D34C6b18cE4370ced1CeBDE94865DbFAFE";
