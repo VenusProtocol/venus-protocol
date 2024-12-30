@@ -54,7 +54,7 @@ async function configureNew(vTokenAddress: string) {
   await vTokenImpl.deployed();
   await vTokenProxy.connect(impersonatedTimelock)._setImplementation(vTokenImpl.address, true, "0x00");
   const vToken = VBep20Delegate__factory.connect(vTokenAddress, impersonatedTimelock);
-  protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  protocolShareReserve = await smock.fake<IProtocolShareReserve>("ProtocolShareReserve");
   await vToken.setAccessControlManager(ACM);
   await accessControlManager.giveCallPermission(
     vToken.address,

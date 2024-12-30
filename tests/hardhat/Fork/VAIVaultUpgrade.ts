@@ -54,7 +54,7 @@ async function deployAndConfigureNewVault() {
 
   const vaiVaultProxy = VAIVaultProxy__factory.connect(vaultProxy, admin);
 
-  const vaiVaultFactory = await ethers.getContractFactory("contracts/Vault/VAIVault.sol:VAIVault");
+  const vaiVaultFactory = await ethers.getContractFactory("contracts/VAIVault/VAIVault.sol:VAIVault");
   const vaiVaultImpl = await vaiVaultFactory.deploy();
   await vaiVaultImpl.deployed();
 

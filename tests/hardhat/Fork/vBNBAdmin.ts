@@ -40,7 +40,9 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
   const vBNB = MockVBNB__factory.connect(vBNB_ADDRESS, admin);
   const WBNB = WBNB__factory.connect(WBNB_ADDRESS, admin);
 
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+    "contracts/InterfacesV8.sol:IProtocolShareReserve",
+  );
 
   const accessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
   accessControl.isAllowedToCall.returns(true);
