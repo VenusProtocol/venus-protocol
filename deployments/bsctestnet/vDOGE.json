@@ -1,5 +1,5 @@
 {
-  "address": "0xb6e9322C49FD75a367Fcb17B0Fcd62C5070EbCBe",
+  "address": "0xF912d3001CAf6DC4ADD366A62Cc9115B4303c9A9",
   "abi": [
     {
       "inputs": [
@@ -369,6 +369,31 @@
         }
       ],
       "name": "Redeem",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "redeemer",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "feeAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "redeemTokens",
+          "type": "uint256"
+        }
+      ],
+      "name": "RedeemFee",
       "type": "event"
     },
     {
@@ -2833,12 +2858,64 @@
       "constant": false,
       "inputs": [
         {
+          "internalType": "address",
+          "name": "redeemer",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "redeemTokens",
+          "type": "uint256"
+        }
+      ],
+      "name": "redeemBehalf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
           "internalType": "uint256",
           "name": "redeemAmount",
           "type": "uint256"
         }
       ],
       "name": "redeemUnderlying",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "redeemer",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "redeemAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "redeemUnderlyingBehalf",
       "outputs": [
         {
           "internalType": "uint256",
@@ -3004,13 +3081,7 @@
         }
       ],
       "name": "setProtocolShareReserve",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
+      "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
       "type": "function"
@@ -3025,13 +3096,7 @@
         }
       ],
       "name": "setReduceReservesBlockDelta",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
+      "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
       "type": "function"
@@ -3200,5 +3265,5 @@
     }
   ],
   "numDeployments": 1,
-  "implementation": "0x8d79c8f4400fe68fd17040539fe5e1706c1f2850"
+  "implementation": "0xad6aa8bb4829560412a94aa930745f407bf8000b"
 }

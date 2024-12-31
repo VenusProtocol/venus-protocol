@@ -3273,13 +3273,7 @@
         }
       ],
       "name": "setProtocolShareReserve",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
+      "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
       "type": "function"
@@ -3294,13 +3288,7 @@
         }
       ],
       "name": "setReduceReservesBlockDelta",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
+      "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
       "type": "function"
@@ -3469,5 +3457,5 @@
     }
   ],
   "numDeployments": 1,
-  "implementation": "0xdb1869ca9e008e102350f2e0c356500503a4d043"
+  "implementation": "0xad6aa8bb4829560412a94aa930745f407bf8000b"
 }
