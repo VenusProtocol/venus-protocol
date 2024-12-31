@@ -1,3 +1,13 @@
+## [9.5.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0...v9.5.0-dev.1) (2024-12-31)
+
+
+### Features
+
+* deployed irm for bscmainnet ([7def41f](https://github.com/VenusProtocol/venus-protocol/commit/7def41f6b23e264500a0f1fc6cc8ecd736eca21e))
+* deployed two kinks IRM on bsc mainnet ([6af507c](https://github.com/VenusProtocol/venus-protocol/commit/6af507c4c362a0262a0397da301fab5493ed98cf))
+* updating deployment files ([ffede77](https://github.com/VenusProtocol/venus-protocol/commit/ffede7701698dd2e542a81b4d0fb49c83f802d56))
+* updating deployment files ([30b5160](https://github.com/VenusProtocol/venus-protocol/commit/30b51601480bbbe60bfb702bb772282fe5c08b05))
+
 ## [9.4.0](https://github.com/VenusProtocol/venus-protocol/compare/v9.3.0...v9.4.0) (2024-12-18)
 
 
