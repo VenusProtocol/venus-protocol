@@ -1,3 +1,16 @@
+## [9.5.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0-dev.1...v9.5.0-dev.2) (2025-01-02)
+
+
+### Features
+
+* add fork deployment ([a3baefb](https://github.com/VenusProtocol/venus-protocol/commit/a3baefb694a0efb2ad099ac2d4d279a8d91f5046))
+* updating deployment files ([dd76350](https://github.com/VenusProtocol/venus-protocol/commit/dd76350d649705549a699ca85dd5d9ebb7297543))
+
+
+### Bug Fixes
+
+* update contract/ artifact paths and imports ([05ea2ab](https://github.com/VenusProtocol/venus-protocol/commit/05ea2ab863882a04d695f91a93657458275d6ea4))
+
 ## [9.5.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0...v9.5.0-dev.1) (2024-12-31)
 
 
