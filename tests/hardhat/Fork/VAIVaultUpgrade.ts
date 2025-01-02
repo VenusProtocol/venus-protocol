@@ -15,7 +15,7 @@ import {
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 import { forking } from "./utils";
 
-const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 
 // Address of the vault proxy
@@ -54,7 +54,7 @@ async function deployAndConfigureNewVault() {
 
   const vaiVaultProxy = VAIVaultProxy__factory.connect(vaultProxy, admin);
 
-  const vaiVaultFactory = await ethers.getContractFactory("contracts/Vault/VAIVault.sol:VAIVault");
+  const vaiVaultFactory = await ethers.getContractFactory("contracts/VAIVault/VAIVault.sol:VAIVault");
   const vaiVaultImpl = await vaiVaultFactory.deploy();
   await vaiVaultImpl.deployed();
 

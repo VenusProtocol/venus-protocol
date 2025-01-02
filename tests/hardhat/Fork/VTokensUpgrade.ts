@@ -33,7 +33,7 @@ import {
 const { expect } = chai;
 chai.use(smock.matchers);
 
-const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 const NORMAL_TIMELOCK = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
 const ACM = "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555";
@@ -54,7 +54,7 @@ async function configureNew(vTokenAddress: string) {
   await vTokenImpl.deployed();
   await vTokenProxy.connect(impersonatedTimelock)._setImplementation(vTokenImpl.address, true, "0x00");
   const vToken = VBep20Delegate__factory.connect(vTokenAddress, impersonatedTimelock);
-  protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  protocolShareReserve = await smock.fake<IProtocolShareReserve>("ProtocolShareReserve");
   await vToken.setAccessControlManager(ACM);
   await accessControlManager.giveCallPermission(
     vToken.address,
