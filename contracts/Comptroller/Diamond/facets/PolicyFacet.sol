@@ -6,6 +6,8 @@ import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
+import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanReceiver.sol";
+import { VTokenInterface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
  * @title PolicyFacet
@@ -19,6 +21,9 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
 
     /// @notice Emitted when a new supply-side XVS speed is calculated for a market
     event VenusSupplySpeedUpdated(VToken indexed vToken, uint256 newSpeed);
+
+    // @notice Emitted When the flash loan is successfully executed
+    event FlashLoanExecuted(address receiver, VTokenInterface[] assets, uint256[] amounts);
 
     /**
      * @notice Checks if the account should be allowed to mint tokens in the given market
@@ -357,6 +362,60 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             prime.accrueInterestAndUpdateScore(borrower, vTokenCollateral);
             prime.accrueInterestAndUpdateScore(liquidator, vTokenCollateral);
         }
+    }
+
+    /**
+     * @notice Executes a flashLoan operation with the specified assets and amounts.
+     * @dev Transfer the specified assets to the receiver contract and ensures that the total repayment (amount + fee)
+     *      is returned by the receiver contract after the operation for each asset. The function performs checks to ensure the validity
+     *      of parameters, that flashLoans are enabled for the given assets, and that the total repayment is sufficient.
+     *      Reverts on invalid parameters, disabled flashLoans, or insufficient repayment.
+     * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
+     * @param assets The addresses of the assets to be loaned.
+     * @param amounts The amounts of each asset to be loaned.
+     * custom:requirements
+     *      - `assets.length` must be equal to `amounts.length`.
+     *      - `assets.length` and `amounts.length` must not be zero.
+     *      - The `receiver` address must not be the zero address.
+     *      - FlashLoans must be enabled for each asset.
+     *      - The `receiver` contract must repay the loan with the appropriate fee.
+     * custom:reverts
+     *      - Reverts with `InvalidFlashLoanParams()` if parameter checks fail.
+     *      - Reverts with `FlashLoanNotEnabled(asset)` if flashLoans are disabled for any of the requested assets.
+     *      - Reverts with `ExecuteFlashLoanFailed` if the receiver contract fails to execute the operation.
+     *      - Reverts with `InsufficientReypaymentBalance(asset)` if the repayment (amount + fee) is insufficient after the operation.
+     */
+    function executeFlashLoan(
+        address receiver,
+        VTokenInterface[] calldata assets,
+        uint256[] calldata amounts
+    ) external {
+        // Asset and amount length must be equals and not be zero
+        if (assets.length != amounts.length || assets.length == 0 || receiver == address(0)) {
+            revert("Invalid flashLoan params");
+        }
+
+        uint256 len = assets.length;
+        uint256[] memory fees = new uint256[](len);
+        uint256[] memory balanceBefore = new uint256[](len);
+
+        for (uint256 j; j < len; j++) {
+            (fees[j], ) = (assets[j]).calculateFee(receiver, amounts[j]);
+
+            // Transfer the asset
+            (balanceBefore[j]) = (assets[j]).transferUnderlying(receiver, amounts[j]);
+        }
+
+        // Call the execute operation on receiver contract
+        if (!IFlashLoanReceiver(receiver).executeOperation(assets, amounts, fees, receiver, "")) {
+            revert("Execute flashLoan failed");
+        }
+
+        for (uint256 k; k < len; k++) {
+            (assets[k]).verifyBalance(balanceBefore[k], amounts[k] + fees[k]);
+        }
+
+        emit FlashLoanExecuted(receiver, assets, amounts);
     }
 
     /**

@@ -158,11 +158,21 @@ contract VTokenStorageBase {
 
 contract VTokenStorage is VTokenStorageBase {
     /**
+     * @notice flashLoan is enabled for this market or not
+     */
+    bool public isFlashLoanEnabled;
+
+    /**
+     * @notice fee percentage collected by protocol on flashLoan
+     */
+    uint256 public flashLoanFeeMantissa;
+
+    /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[50] private __gap;
+    uint256[48] private __gap;
 }
 
 contract VTokenInterface is VTokenStorage {
@@ -284,6 +294,26 @@ contract VTokenInterface is VTokenStorage {
     /// @notice Emitted when access control address is changed by admin
     event NewAccessControlManager(address oldAccessControlAddress, address newAccessControlAddress);
 
+    /**
+     * @notice Event emitted when flashLoanEnabled status is changed
+     */
+    event ToggleFlashLoanEnabled(bool oldEnabled, bool enabled);
+
+    /**
+     * @notice Event emitted when flashLoan is executed
+     */
+    event FlashLoanExecuted(address receiver, address underlying, uint256 amount);
+
+    /**
+     * @notice Event emitted when asset is transferred to receiver
+     */
+    event FlashLoanAmountTransferred(address asset, address receiver, uint256 amount);
+
+    /**
+     * @notice Event emitted when flashLoan fee mantissa is updated
+     */
+    event FlashLoanFeeUpdated(uint256 oldFee, uint256 fee);
+
     /*** User Interface ***/
 
     function transfer(address dst, uint amount) external returns (bool);
@@ -312,6 +342,14 @@ contract VTokenInterface is VTokenStorage {
     /*** Admin Function ***/
     function _reduceReserves(uint reduceAmount) external returns (uint);
 
+    // function _toggleFlashLoan() external returns(uint256);
+
+    // function _setFlashLoanFeeMantissa(uint256 fee) external returns(uint256);
+
+    function transferUnderlying(address receiver, uint256 amount) external returns (uint256 balanceBefore);
+
+    // function executeFlashLoan(address receiver, uint256 amount) external returns (uint256);
+
     function balanceOf(address owner) external view returns (uint);
 
     function allowance(address owner, address spender) external view returns (uint);
@@ -337,6 +375,10 @@ contract VTokenInterface is VTokenStorage {
     function borrowBalanceStored(address account) public view returns (uint);
 
     function exchangeRateStored() public view returns (uint);
+
+    function calculateFee(address receiver, uint256 amount) public view returns (uint256 fee, uint256 repaymentAmount);
+
+    function verifyBalance(uint256 balanceBefore, uint256 repaymentAmount) public view returns (uint256);
 }
 
 contract VBep20Interface {
