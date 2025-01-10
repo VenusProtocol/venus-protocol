@@ -2,7 +2,7 @@
 
 pragma solidity 0.5.16;
 
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
@@ -15,10 +15,10 @@ import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
  */
 contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     /// @notice Emitted when a new borrow-side XVS speed is calculated for a market
-    event VenusBorrowSpeedUpdated(VToken indexed vToken, uint256 newSpeed);
+    event VenusBorrowSpeedUpdated(VTokenInterface indexed vToken, uint256 newSpeed);
 
     /// @notice Emitted when a new supply-side XVS speed is calculated for a market
-    event VenusSupplySpeedUpdated(VToken indexed vToken, uint256 newSpeed);
+    event VenusSupplySpeedUpdated(VTokenInterface indexed vToken, uint256 newSpeed);
 
     /**
      * @notice Checks if the account should be allowed to mint tokens in the given market
@@ -36,8 +36,8 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 supplyCap = supplyCaps[vToken];
         require(supplyCap != 0, "market supply cap is 0");
 
-        uint256 vTokenSupply = VToken(vToken).totalSupply();
-        Exp memory exchangeRate = Exp({ mantissa: VToken(vToken).exchangeRateStored() });
+        uint256 vTokenSupply = VTokenInterface(vToken).totalSupply();
+        Exp memory exchangeRate = Exp({ mantissa: VTokenInterface(vToken).exchangeRateStored() });
         uint256 nextTotalSupply = mul_ScalarTruncateAddUInt(exchangeRate, vTokenSupply, mintAmount);
         require(nextTotalSupply <= supplyCap, "market supply cap reached");
 
@@ -120,22 +120,22 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             require(msg.sender == vToken, "sender must be vToken");
 
             // attempt to add borrower to the market
-            Error err = addToMarketInternal(VToken(vToken), borrower);
+            Error err = addToMarketInternal(VTokenInterface(vToken), borrower);
             if (err != Error.NO_ERROR) {
                 return uint256(err);
             }
         }
 
-        if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
+        if (oracle.getUnderlyingPrice(VTokenInterface(vToken)) == 0) {
             return uint256(Error.PRICE_ERROR);
         }
 
-        uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
+        uint256 nextTotalBorrows = add_(VTokenInterface(vToken).totalBorrows(), borrowAmount);
         require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
         (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             borrower,
-            VToken(vToken),
+            VTokenInterface(vToken),
             0,
             borrowAmount
         );
@@ -147,7 +147,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         // Keep the flywheel moving
-        Exp memory borrowIndex = Exp({ mantissa: VToken(vToken).borrowIndex() });
+        Exp memory borrowIndex = Exp({ mantissa: VTokenInterface(vToken).borrowIndex() });
         updateVenusBorrowIndex(vToken, borrowIndex);
         distributeBorrowerVenus(vToken, borrower, borrowIndex);
 
@@ -186,7 +186,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         ensureListed(markets[vToken]);
 
         // Keep the flywheel moving
-        Exp memory borrowIndex = Exp({ mantissa: VToken(vToken).borrowIndex() });
+        Exp memory borrowIndex = Exp({ mantissa: VTokenInterface(vToken).borrowIndex() });
         updateVenusBorrowIndex(vToken, borrowIndex);
         distributeBorrowerVenus(vToken, borrower, borrowIndex);
 
@@ -241,7 +241,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 borrowBalance;
         if (address(vTokenBorrowed) != address(vaiController)) {
             ensureListed(markets[vTokenBorrowed]);
-            borrowBalance = VToken(vTokenBorrowed).borrowBalanceStored(borrower);
+            borrowBalance = VTokenInterface(vTokenBorrowed).borrowBalanceStored(borrower);
         } else {
             borrowBalance = vaiController.getVAIRepayAmount(borrower);
         }
@@ -254,7 +254,12 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+            borrower,
+            VTokenInterface(address(0)),
+            0,
+            0
+        );
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }
@@ -326,7 +331,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             ensureListed(markets[vTokenBorrowed]);
         }
 
-        if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
+        if (VTokenInterface(vTokenCollateral).comptroller() != VTokenInterface(vTokenBorrowed).comptroller()) {
             return uint256(Error.COMPTROLLER_MISMATCH);
         }
 
@@ -416,7 +421,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
         (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
-            VToken(address(0)),
+            VTokenInterface(address(0)),
             0,
             0
         );
@@ -442,7 +447,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     ) external view returns (uint256, uint256, uint256) {
         (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             account,
-            VToken(vTokenModify),
+            VTokenInterface(vTokenModify),
             redeemTokens,
             borrowAmount
         );
@@ -458,7 +463,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param borrowSpeeds New XVS speed for borrow
      */
     function _setVenusSpeeds(
-        VToken[] calldata vTokens,
+        VTokenInterface[] calldata vTokens,
         uint256[] calldata supplySpeeds,
         uint256[] calldata borrowSpeeds
     ) external {
@@ -473,7 +478,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
     }
 
-    function setVenusSpeedInternal(VToken vToken, uint256 supplySpeed, uint256 borrowSpeed) internal {
+    function setVenusSpeedInternal(VTokenInterface vToken, uint256 supplySpeed, uint256 borrowSpeed) internal {
         ensureListed(markets[address(vToken)]);
 
         if (venusSupplySpeeds[address(vToken)] != supplySpeed) {

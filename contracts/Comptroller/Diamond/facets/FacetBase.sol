@@ -2,7 +2,8 @@
 
 pragma solidity 0.5.16;
 
-import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
+import { ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV16Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
@@ -27,7 +28,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
     uint256 internal constant collateralFactorMaxMantissa = 0.9e18; // 0.9
 
     /// @notice Emitted when an account enters a market
-    event MarketEntered(VToken indexed vToken, address indexed account);
+    event MarketEntered(VTokenInterface indexed vToken, address indexed account);
 
     /// @notice Emitted when XVS is distributed to VAI Vault
     event DistributedVAIVaultVenus(uint256 amount);
@@ -142,7 +143,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
      */
     function getHypotheticalAccountLiquidityInternal(
         address account,
-        VToken vTokenModify,
+        VTokenInterface vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount
     ) internal view returns (Error, uint256, uint256) {
@@ -162,7 +163,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
      * @param borrower The address of the account to modify
      * @return Success indicator for whether the market was entered
      */
-    function addToMarketInternal(VToken vToken, address borrower) internal returns (Error) {
+    function addToMarketInternal(VTokenInterface vToken, address borrower) internal returns (Error) {
         checkActionPauseState(address(vToken), Action.ENTER_MARKET);
         Market storage marketToJoin = markets[address(vToken)];
         ensureListed(marketToJoin);
@@ -203,7 +204,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
         (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             redeemer,
-            VToken(vToken),
+            VTokenInterface(vToken),
             redeemTokens,
             0
         );

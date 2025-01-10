@@ -32,7 +32,7 @@ contract VAIControllerHarness is VAIController {
         address liquidator,
         address borrower,
         uint repayAmount,
-        VToken vTokenCollateral
+        VTokenInterface vTokenCollateral
     ) public returns (uint) {
         (uint err, ) = liquidateVAIFresh(liquidator, borrower, repayAmount, vTokenCollateral);
         return err;

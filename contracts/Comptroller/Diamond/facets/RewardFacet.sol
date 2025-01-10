@@ -2,7 +2,7 @@
 
 pragma solidity 0.5.16;
 
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 import { IRewardFacet } from "../interfaces/IRewardFacet.sol";
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
@@ -36,7 +36,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
      * @param holder The address to claim XVS for
      * @param vTokens The list of markets to claim XVS in
      */
-    function claimVenus(address holder, VToken[] memory vTokens) public {
+    function claimVenus(address holder, VTokenInterface[] memory vTokens) public {
         address[] memory holders = new address[](1);
         holders[0] = holder;
         claimVenus(holders, vTokens, true, true);
@@ -49,7 +49,12 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
      * @param borrowers Whether or not to claim XVS earned by borrowing
      * @param suppliers Whether or not to claim XVS earned by supplying
      */
-    function claimVenus(address[] memory holders, VToken[] memory vTokens, bool borrowers, bool suppliers) public {
+    function claimVenus(
+        address[] memory holders,
+        VTokenInterface[] memory vTokens,
+        bool borrowers,
+        bool suppliers
+    ) public {
         claimVenus(holders, vTokens, borrowers, suppliers, false);
     }
 
@@ -174,7 +179,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
      */
     function claimVenus(
         address[] memory holders,
-        VToken[] memory vTokens,
+        VTokenInterface[] memory vTokens,
         bool borrowers,
         bool suppliers,
         bool collateral
@@ -187,7 +192,12 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
 
             // If there is a positive shortfall, the XVS reward is accrued,
             // but won't be granted to this holder
-            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(holder, VToken(address(0)), 0, 0);
+            (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+                holder,
+                VTokenInterface(address(0)),
+                0,
+                0
+            );
 
             uint256 value = venusAccrued[holder];
             delete venusAccrued[holder];
@@ -210,7 +220,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
      */
     function updateAndDistributeRewardsInternal(
         address[] memory holders,
-        VToken[] memory vTokens,
+        VTokenInterface[] memory vTokens,
         bool borrowers,
         bool suppliers
     ) internal {
@@ -219,7 +229,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         uint256 vTokensLength = vTokens.length;
 
         for (uint256 i; i < vTokensLength; ++i) {
-            VToken vToken = vTokens[i];
+            VTokenInterface vToken = vTokens[i];
             ensureListed(markets[address(vToken)]);
             if (borrowers) {
                 Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });

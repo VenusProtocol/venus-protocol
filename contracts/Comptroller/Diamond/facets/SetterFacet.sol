@@ -2,7 +2,7 @@
 
 pragma solidity 0.5.16;
 
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 import { ISetterFacet } from "../interfaces/ISetterFacet.sol";
 import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
 import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
@@ -22,7 +22,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /// @notice Emitted when a collateral factor is changed by admin
     event NewCollateralFactor(
-        VToken indexed vToken,
+        VTokenInterface indexed vToken,
         uint256 oldCollateralFactorMantissa,
         uint256 newCollateralFactorMantissa
     );
@@ -34,7 +34,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     event NewPriceOracle(PriceOracle oldPriceOracle, PriceOracle newPriceOracle);
 
     /// @notice Emitted when borrow cap for a vToken is changed
-    event NewBorrowCap(VToken indexed vToken, uint256 newBorrowCap);
+    event NewBorrowCap(VTokenInterface indexed vToken, uint256 newBorrowCap);
 
     /// @notice Emitted when VAIController is changed
     event NewVAIController(VAIControllerInterface oldVAIController, VAIControllerInterface newVAIController);
@@ -61,7 +61,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     event NewComptrollerLens(address oldComptrollerLens, address newComptrollerLens);
 
     /// @notice Emitted when supply cap for a vToken is changed
-    event NewSupplyCap(VToken indexed vToken, uint256 newSupplyCap);
+    event NewSupplyCap(VTokenInterface indexed vToken, uint256 newSupplyCap);
 
     /// @notice Emitted when access control address is changed by admin
     event NewAccessControl(address oldAccessControlAddress, address newAccessControlAddress);
@@ -70,7 +70,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     event NewPauseGuardian(address oldPauseGuardian, address newPauseGuardian);
 
     /// @notice Emitted when an action is paused on a market
-    event ActionPausedMarket(VToken indexed vToken, Action indexed action, bool pauseState);
+    event ActionPausedMarket(VTokenInterface indexed vToken, Action indexed action, bool pauseState);
 
     /// @notice Emitted when VAI Vault info is changed
     event NewVAIVaultInfo(address indexed vault_, uint256 releaseStartBlock_, uint256 releaseInterval_);
@@ -196,7 +196,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
     function _setCollateralFactor(
-        VToken vToken,
+        VTokenInterface vToken,
         uint256 newCollateralFactorMantissa
     )
         external
@@ -303,7 +303,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
      * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to Borrow not allowed
      */
-    function _setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
+    function _setMarketBorrowCaps(VTokenInterface[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
         ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");
 
         uint256 numMarkets = vTokens.length;
@@ -323,7 +323,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param vTokens The addresses of the markets (tokens) to change the supply caps for
      * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed
      */
-    function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
+    function _setMarketSupplyCaps(VTokenInterface[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
         ensureAllowed("_setMarketSupplyCaps(address[],uint256[])");
 
         uint256 numMarkets = vTokens.length;
@@ -379,7 +379,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     function setActionPausedInternal(address market, Action action, bool paused) internal {
         ensureListed(markets[market]);
         _actionPaused[market][uint256(action)] = paused;
-        emit ActionPausedMarket(VToken(market), action, paused);
+        emit ActionPausedMarket(VTokenInterface(market), action, paused);
     }
 
     /**
@@ -597,7 +597,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         ensureAdmin();
         ensureNonzeroAddress(xvsVToken_);
 
-        address underlying = VToken(xvsVToken_).underlying();
+        address underlying = VTokenInterface(xvsVToken_).underlying();
         require(underlying == xvs, "invalid xvs vtoken address");
 
         emit NewXVSVToken(xvsVToken, xvsVToken_);

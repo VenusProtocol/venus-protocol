@@ -2,7 +2,7 @@
 
 pragma solidity 0.5.16;
 
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 interface IPolicyFacet {
     function mintAllowed(address vToken, address minter, uint256 mintAmount) external returns (uint256);
@@ -84,7 +84,7 @@ interface IPolicyFacet {
     ) external view returns (uint256, uint256, uint256);
 
     function _setVenusSpeeds(
-        VToken[] calldata vTokens,
+        VTokenInterface[] calldata vTokens,
         uint256[] calldata supplySpeeds,
         uint256[] calldata borrowSpeeds
     ) external;

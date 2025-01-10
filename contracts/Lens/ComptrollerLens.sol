@@ -2,10 +2,10 @@ pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
 import "../Tokens/VTokens/VBep20.sol";
-import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import "../Tokens/EIP20Interface.sol";
-import "../Oracle/PriceOracle.sol";
+import { PriceOracle } from "../Oracle/PriceOracle.sol";
 import "../Utils/ErrorReporter.sol";
 import "../Comptroller/ComptrollerInterface.sol";
 import "../Comptroller/ComptrollerLensInterface.sol";
@@ -52,10 +52,10 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     ) external view returns (uint, uint) {
         /* Read oracle prices for borrowed and collateral markets */
         uint priceBorrowedMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
-            VToken(vTokenBorrowed)
+            VTokenInterface(vTokenBorrowed)
         );
         uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
-            VToken(vTokenCollateral)
+            VTokenInterface(vTokenCollateral)
         );
         if (priceBorrowedMantissa == 0 || priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
@@ -100,7 +100,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         /* Read oracle prices for borrowed and collateral markets */
         uint priceBorrowedMantissa = 1e18; // Note: this is VAI
         uint priceCollateralMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(
-            VToken(vTokenCollateral)
+            VTokenInterface(vTokenCollateral)
         );
         if (priceCollateralMantissa == 0) {
             return (uint(Error.PRICE_ERROR), 0);
@@ -143,7 +143,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
     function getHypotheticalAccountLiquidity(
         address comptroller,
         address account,
-        VToken vTokenModify,
+        VTokenInterface vTokenModify,
         uint redeemTokens,
         uint borrowAmount
     ) external view returns (uint, uint, uint) {
@@ -151,10 +151,10 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint oErr;
 
         // For each asset the account is in
-        VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
+        VTokenInterface[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
         uint assetsCount = assets.length;
         for (uint i = 0; i < assetsCount; ++i) {
-            VToken asset = assets[i];
+            VTokenInterface asset = assets[i];
 
             // Read the balances and exchange rate from the vToken
             (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(

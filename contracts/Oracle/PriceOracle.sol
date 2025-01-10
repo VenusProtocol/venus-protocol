@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
 
 contract PriceOracle {
     /// @notice Indicator that this is a PriceOracle contract (for inspection)
@@ -12,5 +12,5 @@ contract PriceOracle {
      * @return The underlying asset price mantissa (scaled by 1e18).
      *  Zero means the price is unavailable.
      */
-    function getUnderlyingPrice(VToken vToken) external view returns (uint);
+    function getUnderlyingPrice(VTokenInterface vToken) external view returns (uint);
 }

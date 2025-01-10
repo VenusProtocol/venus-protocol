@@ -25,7 +25,7 @@ contract ComptrollerScenario is ComptrollerMock {
         return vaiAddress;
     }
 
-    function membershipLength(VToken vToken) public view returns (uint) {
+    function membershipLength(VTokenInterface vToken) public view returns (uint) {
         return accountAssets[address(vToken)].length;
     }
 
@@ -62,7 +62,7 @@ contract ComptrollerScenario is ComptrollerMock {
         return venusMarkets;
     }
 
-    function unlist(VToken vToken) public {
+    function unlist(VTokenInterface vToken) public {
         markets[address(vToken)].isListed = false;
     }
 
@@ -70,10 +70,10 @@ contract ComptrollerScenario is ComptrollerMock {
      * @notice Recalculate and update XVS speeds for all XVS markets
      */
     function refreshVenusSpeeds() public {
-        VToken[] memory allMarkets_ = allMarkets;
+        VTokenInterface[] memory allMarkets_ = allMarkets;
 
         for (uint i = 0; i < allMarkets_.length; i++) {
-            VToken vToken = allMarkets_[i];
+            VTokenInterface vToken = allMarkets_[i];
             Exp memory borrowIndex = Exp({ mantissa: vToken.borrowIndex() });
             updateVenusSupplyIndex(address(vToken));
             updateVenusBorrowIndex(address(vToken), borrowIndex);
@@ -82,7 +82,7 @@ contract ComptrollerScenario is ComptrollerMock {
         Exp memory totalUtility = Exp({ mantissa: 0 });
         Exp[] memory utilities = new Exp[](allMarkets_.length);
         for (uint i = 0; i < allMarkets_.length; i++) {
-            VToken vToken = allMarkets_[i];
+            VTokenInterface vToken = allMarkets_[i];
             if (venusSpeeds[address(vToken)] > 0) {
                 Exp memory assetPrice = Exp({ mantissa: oracle.getUnderlyingPrice(vToken) });
                 Exp memory utility = mul_(assetPrice, vToken.totalBorrows());
@@ -92,7 +92,7 @@ contract ComptrollerScenario is ComptrollerMock {
         }
 
         for (uint i = 0; i < allMarkets_.length; i++) {
-            VToken vToken = allMarkets[i];
+            VTokenInterface vToken = allMarkets[i];
             uint newSpeed = totalUtility.mantissa > 0 ? mul_(venusRate, div_(utilities[i], totalUtility)) : 0;
             setVenusSpeedInternal(vToken, newSpeed, newSpeed);
         }

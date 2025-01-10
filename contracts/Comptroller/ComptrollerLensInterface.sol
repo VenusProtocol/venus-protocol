@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
 
 interface ComptrollerLensInterface {
     function liquidateCalculateSeizeTokens(
@@ -20,7 +20,7 @@ interface ComptrollerLensInterface {
     function getHypotheticalAccountLiquidity(
         address comptroller,
         address account,
-        VToken vTokenModify,
+        VTokenInterface vTokenModify,
         uint redeemTokens,
         uint borrowAmount
     ) external view returns (uint, uint, uint);

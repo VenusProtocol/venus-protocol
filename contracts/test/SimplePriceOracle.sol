@@ -1,13 +1,13 @@
 pragma solidity ^0.5.16;
 
-import "../Oracle/PriceOracle.sol";
+import { PriceOracle } from "../Oracle/PriceOracle.sol";
 import "../Tokens/VTokens/VBep20.sol";
 
 contract SimplePriceOracle is PriceOracle {
     mapping(address => uint) internal prices;
     event PricePosted(address asset, uint previousPriceMantissa, uint requestedPriceMantissa, uint newPriceMantissa);
 
-    function getUnderlyingPrice(VToken vToken) public view returns (uint) {
+    function getUnderlyingPrice(VTokenInterface vToken) public view returns (uint) {
         if (compareStrings(vToken.symbol(), "vBNB")) {
             return 1e18;
         } else if (compareStrings(vToken.symbol(), "VAI")) {
@@ -17,7 +17,7 @@ contract SimplePriceOracle is PriceOracle {
         }
     }
 
-    function setUnderlyingPrice(VToken vToken, uint underlyingPriceMantissa) public {
+    function setUnderlyingPrice(VTokenInterface vToken, uint underlyingPriceMantissa) public {
         address asset = address(VBep20(address(vToken)).underlying());
         emit PricePosted(asset, prices[asset], underlyingPriceMantissa, underlyingPriceMantissa);
         prices[asset] = underlyingPriceMantissa;

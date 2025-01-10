@@ -6,7 +6,7 @@ import { VAIControllerErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
 import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
-import { VToken, EIP20Interface } from "../VTokens/VToken.sol";
+import { VTokenInterface, EIP20Interface } from "../VTokens/VToken.sol";
 import { VAIUnitroller, VAIControllerStorageG4 } from "./VAIUnitroller.sol";
 import { VAIControllerInterface } from "./VAIControllerInterface.sol";
 import { VAI } from "./VAI.sol";
@@ -452,7 +452,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         }
 
         PriceOracle oracle = comptroller.oracle();
-        VToken[] memory enteredMarkets = comptroller.getAssetsIn(minter);
+        VTokenInterface[] memory enteredMarkets = comptroller.getAssetsIn(minter);
 
         AccountAmountLocalVars memory vars; // Holds all our calculation results
 
@@ -587,7 +587,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
 
         if (baseRateMantissa > 0) {
             if (floatRateMantissa > 0) {
-                uint256 oraclePrice = oracle.getUnderlyingPrice(VToken(getVAIAddress()));
+                uint256 oraclePrice = oracle.getUnderlyingPrice(VTokenInterface(getVAIAddress()));
                 if (1e18 > oraclePrice) {
                     uint256 delta;
                     uint256 rate;

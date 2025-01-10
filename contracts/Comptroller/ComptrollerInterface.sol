@@ -1,8 +1,8 @@
 pragma solidity ^0.5.16;
 
-import "../Tokens/VTokens/VToken.sol";
-import "../Oracle/PriceOracle.sol";
-import "../Tokens/VAI/VAIControllerInterface.sol";
+import { VTokenInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
+import { PriceOracle } from "../Oracle/PriceOracle.sol";
+import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerTypes } from "./ComptrollerStorage.sol";
 
 contract ComptrollerInterface {
@@ -104,7 +104,7 @@ contract ComptrollerInterface {
 
     function getAccountLiquidity(address) external view returns (uint, uint, uint);
 
-    function getAssetsIn(address) external view returns (VToken[] memory);
+    function getAssetsIn(address) external view returns (VTokenInterface[] memory);
 
     function claimVenus(address) external;
 
@@ -114,7 +114,7 @@ contract ComptrollerInterface {
 
     function venusBorrowSpeeds(address) external view returns (uint);
 
-    function getAllMarkets() external view returns (VToken[] memory);
+    function getAllMarkets() external view returns (VTokenInterface[] memory);
 
     function venusSupplierIndex(address, address) external view returns (uint);
 

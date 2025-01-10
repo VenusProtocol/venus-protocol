@@ -3,7 +3,7 @@
 pragma solidity 0.5.16;
 
 import { PriceOracle } from "../../../Oracle/PriceOracle.sol";
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 import { ComptrollerTypes } from "../../ComptrollerStorage.sol";
 import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensInterface.sol";
@@ -16,7 +16,10 @@ interface ISetterFacet {
 
     function _setAccessControl(address newAccessControlAddress) external returns (uint256);
 
-    function _setCollateralFactor(VToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256);
+    function _setCollateralFactor(
+        VTokenInterface vToken,
+        uint256 newCollateralFactorMantissa
+    ) external returns (uint256);
 
     function _setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
 
@@ -24,9 +27,9 @@ interface ISetterFacet {
 
     function _setPauseGuardian(address newPauseGuardian) external returns (uint256);
 
-    function _setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external;
+    function _setMarketBorrowCaps(VTokenInterface[] calldata vTokens, uint256[] calldata newBorrowCaps) external;
 
-    function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external;
+    function _setMarketSupplyCaps(VTokenInterface[] calldata vTokens, uint256[] calldata newSupplyCaps) external;
 
     function _setProtocolPaused(bool state) external returns (bool);
 

@@ -4,7 +4,7 @@ pragma solidity 0.5.16;
 
 import { IMarketFacet } from "../interfaces/IMarketFacet.sol";
 import { FacetBase } from "./FacetBase.sol";
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
  * @title MarketFacet
@@ -14,10 +14,10 @@ import { VToken } from "../../../Tokens/VTokens/VToken.sol";
  */
 contract MarketFacet is IMarketFacet, FacetBase {
     /// @notice Emitted when an admin supports a market
-    event MarketListed(VToken indexed vToken);
+    event MarketListed(VTokenInterface indexed vToken);
 
     /// @notice Emitted when an account exits a market
-    event MarketExited(VToken indexed vToken, address indexed account);
+    event MarketExited(VTokenInterface indexed vToken, address indexed account);
 
     /// @notice Emitted when the borrowing or redeeming delegate rights are updated for an account
     event DelegateUpdated(address indexed approver, address indexed delegate, bool approved);
@@ -35,12 +35,12 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param account The address of the account to pull assets for
      * @return A dynamic list with the assets the account has entered
      */
-    function getAssetsIn(address account) external view returns (VToken[] memory) {
+    function getAssetsIn(address account) external view returns (VTokenInterface[] memory) {
         uint256 len;
-        VToken[] memory _accountAssets = accountAssets[account];
+        VTokenInterface[] memory _accountAssets = accountAssets[account];
         uint256 _accountAssetsLength = _accountAssets.length;
 
-        VToken[] memory assetsIn = new VToken[](_accountAssetsLength);
+        VTokenInterface[] memory assetsIn = new VTokenInterface[](_accountAssetsLength);
 
         for (uint256 i; i < _accountAssetsLength; ++i) {
             Market memory market = markets[address(_accountAssets[i])];
@@ -62,7 +62,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @dev The automatic getter may be used to access an individual market
      * @return The list of market addresses
      */
-    function getAllMarkets() external view returns (VToken[] memory) {
+    function getAllMarkets() external view returns (VTokenInterface[] memory) {
         return allMarkets;
     }
 
@@ -113,7 +113,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param vToken The vToken to check
      * @return True if the account is in the asset, otherwise false
      */
-    function checkMembership(address account, VToken vToken) external view returns (bool) {
+    function checkMembership(address account, VTokenInterface vToken) external view returns (bool) {
         return markets[address(vToken)].accountMembership[account];
     }
 
@@ -127,7 +127,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         uint256[] memory results = new uint256[](len);
         for (uint256 i; i < len; ++i) {
-            results[i] = uint256(addToMarketInternal(VToken(vTokens[i]), msg.sender));
+            results[i] = uint256(addToMarketInternal(VTokenInterface(vTokens[i]), msg.sender));
         }
 
         return results;
@@ -179,7 +179,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     function exitMarket(address vTokenAddress) external returns (uint256) {
         checkActionPauseState(vTokenAddress, Action.EXIT_MARKET);
 
-        VToken vToken = VToken(vTokenAddress);
+        VTokenInterface vToken = VTokenInterface(vTokenAddress);
         /* Get sender tokensHeld and amountOwed underlying from the vToken */
         (uint256 oErr, uint256 tokensHeld, uint256 amountOwed, ) = vToken.getAccountSnapshot(msg.sender);
         require(oErr == 0, "getAccountSnapshot failed"); // semi-opaque error code
@@ -207,7 +207,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
 
         /* Delete vToken from the account’s list of assets */
         // In order to delete vToken, copy last item in list to location of item to be removed, reduce length by 1
-        VToken[] storage userAssetList = accountAssets[msg.sender];
+        VTokenInterface[] storage userAssetList = accountAssets[msg.sender];
         uint256 len = userAssetList.length;
         uint256 i;
         for (; i < len; ++i) {
@@ -232,7 +232,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @param vToken The address of the market (token) to list
      * @return uint256 0=success, otherwise a failure. (See enum Error for details)
      */
-    function _supportMarket(VToken vToken) external returns (uint256) {
+    function _supportMarket(VTokenInterface vToken) external returns (uint256) {
         ensureAllowed("_supportMarket(address)");
 
         if (markets[address(vToken)].isListed) {
@@ -277,7 +277,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         emit DelegateUpdated(approver, delegate, approved);
     }
 
-    function _addMarketInternal(VToken vToken) internal {
+    function _addMarketInternal(VTokenInterface vToken) internal {
         uint256 allMarketsLength = allMarkets.length;
         for (uint256 i; i < allMarketsLength; ++i) {
             require(allMarkets[i] != vToken, "already added");

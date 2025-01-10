@@ -2,13 +2,14 @@ pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
 import "../Tokens/VTokens/VBep20.sol";
-import "../Tokens/VTokens/VToken.sol";
-import "../Oracle/PriceOracle.sol";
+import { VTokenInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
+import { PriceOracle } from "../Oracle/PriceOracle.sol";
 import "../Tokens/EIP20Interface.sol";
 import "../Tokens/XVS/XVS.sol";
 import "../Comptroller/ComptrollerInterface.sol";
 import "../Utils/SafeMath.sol";
 import { ComptrollerTypes } from "../Comptroller/ComptrollerStorage.sol";
+import "../Utils/Exponential.sol";
 
 contract VenusLens is ExponentialNoError {
     using SafeMath for uint;
@@ -61,7 +62,7 @@ contract VenusLens is ExponentialNoError {
     }
 
     struct AccountLimits {
-        VToken[] markets;
+        VTokenInterface[] markets;
         uint liquidity;
         uint shortfall;
     }
@@ -115,7 +116,7 @@ contract VenusLens is ExponentialNoError {
      * @param vToken The address of the vToken to fetch VTokenMetadata
      * @return VTokenMetadata struct with vToken supply and borrow information.
      */
-    function vTokenMetadata(VToken vToken) public returns (VTokenMetadata memory) {
+    function vTokenMetadata(VTokenInterface vToken) public returns (VTokenMetadata memory) {
         uint exchangeRateCurrent = vToken.exchangeRateCurrent();
         address comptrollerAddress = address(vToken.comptroller());
         ComptrollerInterface comptroller = ComptrollerInterface(comptrollerAddress);
@@ -188,11 +189,11 @@ contract VenusLens is ExponentialNoError {
      */
     function getDailyXVS(address payable account, address comptrollerAddress) external returns (uint) {
         ComptrollerInterface comptrollerInstance = ComptrollerInterface(comptrollerAddress);
-        VToken[] memory vTokens = comptrollerInstance.getAllMarkets();
+        VTokenInterface[] memory vTokens = comptrollerInstance.getAllMarkets();
         uint dailyXvsPerAccount = 0;
 
         for (uint i = 0; i < vTokens.length; i++) {
-            VToken vToken = vTokens[i];
+            VTokenInterface vToken = vTokens[i];
             if (!compareStrings(vToken.symbol(), "vUST") && !compareStrings(vToken.symbol(), "vLUNA")) {
                 VTokenMetadata memory metaDataItem = vTokenMetadata(vToken);
 
@@ -235,7 +236,7 @@ contract VenusLens is ExponentialNoError {
      * @param account Account address to fetch the balance of
      * @return VTokenBalances with token balance information
      */
-    function vTokenBalances(VToken vToken, address payable account) public returns (VTokenBalances memory) {
+    function vTokenBalances(VTokenInterface vToken, address payable account) public returns (VTokenBalances memory) {
         uint balanceOf = vToken.balanceOf(account);
         uint borrowBalanceCurrent = vToken.borrowBalanceCurrent(account);
         uint balanceOfUnderlying = vToken.balanceOfUnderlying(account);
@@ -270,7 +271,7 @@ contract VenusLens is ExponentialNoError {
      * @return VTokenBalances Array with token balance information
      */
     function vTokenBalancesAll(
-        VToken[] calldata vTokens,
+        VTokenInterface[] calldata vTokens,
         address payable account
     ) external returns (VTokenBalances[] memory) {
         uint vTokenCount = vTokens.length;
@@ -286,7 +287,7 @@ contract VenusLens is ExponentialNoError {
      * @param vToken address of the vToken
      * @return response struct with underlyingPrice info of vToken
      */
-    function vTokenUnderlyingPrice(VToken vToken) public view returns (VTokenUnderlyingPrice memory) {
+    function vTokenUnderlyingPrice(VTokenInterface vToken) public view returns (VTokenUnderlyingPrice memory) {
         ComptrollerInterface comptroller = ComptrollerInterface(address(vToken.comptroller()));
         PriceOracle priceOracle = comptroller.oracle();
 
@@ -300,7 +301,7 @@ contract VenusLens is ExponentialNoError {
      * @return array of response structs with underlying price information of vTokens
      */
     function vTokenUnderlyingPriceAll(
-        VToken[] calldata vTokens
+        VTokenInterface[] calldata vTokens
     ) external view returns (VTokenUnderlyingPrice[] memory) {
         uint vTokenCount = vTokens.length;
         VTokenUnderlyingPrice[] memory res = new VTokenUnderlyingPrice[](vTokenCount);
@@ -507,7 +508,7 @@ contract VenusLens is ExponentialNoError {
         address holder,
         ComptrollerInterface comptroller
     ) external view returns (RewardSummary memory) {
-        VToken[] memory vTokens = comptroller.getAllMarkets();
+        VTokenInterface[] memory vTokens = comptroller.getAllMarkets();
         ClaimVenusLocalVariables memory vars;
         RewardSummary memory rewardSummary;
         rewardSummary.distributorAddress = address(comptroller);

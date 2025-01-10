@@ -2,7 +2,7 @@
 
 pragma solidity 0.5.16;
 
-import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 interface IMarketFacet {
     function isComptroller() external pure returns (bool);
@@ -18,17 +18,17 @@ interface IMarketFacet {
         uint256 actualRepayAmount
     ) external view returns (uint256, uint256);
 
-    function checkMembership(address account, VToken vToken) external view returns (bool);
+    function checkMembership(address account, VTokenInterface vToken) external view returns (bool);
 
     function enterMarkets(address[] calldata vTokens) external returns (uint256[] memory);
 
     function exitMarket(address vToken) external returns (uint256);
 
-    function _supportMarket(VToken vToken) external returns (uint256);
+    function _supportMarket(VTokenInterface vToken) external returns (uint256);
 
-    function getAssetsIn(address account) external view returns (VToken[] memory);
+    function getAssetsIn(address account) external view returns (VTokenInterface[] memory);
 
-    function getAllMarkets() external view returns (VToken[] memory);
+    function getAllMarkets() external view returns (VTokenInterface[] memory);
 
     function updateDelegate(address delegate, bool allowBorrows) external;
 

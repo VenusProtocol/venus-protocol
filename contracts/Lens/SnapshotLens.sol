@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
 import { ExponentialNoError } from "../Utils/ExponentialNoError.sol";
 import "../Utils/SafeMath.sol";
 import "../Comptroller/ComptrollerInterface.sol";
@@ -56,7 +56,7 @@ contract SnapshotLens is ExponentialNoError {
         address comptrollerAddress
     ) public returns (AccountSnapshot[] memory) {
         // For each asset the account is in
-        VToken[] memory assets = ComptrollerInterface(comptrollerAddress).getAllMarkets();
+        VTokenInterface[] memory assets = ComptrollerInterface(comptrollerAddress).getAllMarkets();
         AccountSnapshot[] memory accountSnapshots = new AccountSnapshot[](assets.length);
         for (uint256 i = 0; i < assets.length; ++i) {
             accountSnapshots[i] = getAccountSnapshot(account, comptrollerAddress, assets[i]);
@@ -65,7 +65,7 @@ contract SnapshotLens is ExponentialNoError {
     }
 
     function isACollateral(address account, address asset, address comptrollerAddress) public view returns (bool) {
-        VToken[] memory assetsAsCollateral = ComptrollerInterface(comptrollerAddress).getAssetsIn(account);
+        VTokenInterface[] memory assetsAsCollateral = ComptrollerInterface(comptrollerAddress).getAssetsIn(account);
         for (uint256 j = 0; j < assetsAsCollateral.length; ++j) {
             if (address(assetsAsCollateral[j]) == asset) {
                 return true;
@@ -78,7 +78,7 @@ contract SnapshotLens is ExponentialNoError {
     function getAccountSnapshot(
         address payable account,
         address comptrollerAddress,
-        VToken vToken
+        VTokenInterface vToken
     ) public returns (AccountSnapshot memory) {
         AccountSnapshotLocalVars memory vars; // Holds all our calculation results
         uint oErr;

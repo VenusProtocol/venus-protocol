@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
-import "../../Comptroller/ComptrollerInterface.sol";
-import "../../InterestRateModels/InterestRateModel.sol";
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { InterestRateModel } from "../../InterestRateModels/InterestRateModel.sol";
 
 interface IProtocolShareReserveV5 {
     enum IncomeType {

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.5.16;
 
-import { VToken } from "../Tokens/VTokens/VToken.sol";
+import { VTokenInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
 import { PriceOracle } from "../Oracle/PriceOracle.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
@@ -68,7 +68,7 @@ contract ComptrollerV1Storage is ComptrollerTypes, UnitrollerAdminStorage {
     /**
      * @notice Per-account mapping of "assets you are in", capped by maxAssets
      */
-    mapping(address => VToken[]) public accountAssets;
+    mapping(address => VTokenInterface[]) public accountAssets;
 
     struct Market {
         /// @notice Whether or not this market is listed
@@ -117,7 +117,7 @@ contract ComptrollerV1Storage is ComptrollerTypes, UnitrollerAdminStorage {
     }
 
     /// @notice A list of all markets
-    VToken[] public allMarkets;
+    VTokenInterface[] public allMarkets;
 
     /// @notice The rate at which the flywheel distributes XVS, per block
     uint256 internal venusRate;
