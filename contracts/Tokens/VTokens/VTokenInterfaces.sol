@@ -342,13 +342,7 @@ contract VTokenInterface is VTokenStorage {
     /*** Admin Function ***/
     function _reduceReserves(uint reduceAmount) external returns (uint);
 
-    // function _toggleFlashLoan() external returns(uint256);
-
-    // function _setFlashLoanFeeMantissa(uint256 fee) external returns(uint256);
-
-    function transferUnderlying(address receiver, uint256 amount) external returns (uint256 balanceBefore);
-
-    // function executeFlashLoan(address receiver, uint256 amount) external returns (uint256);
+    function executeFlashLoan(address payable receiver, uint256 amount) external returns (uint256);
 
     function balanceOf(address owner) external view returns (uint);
 

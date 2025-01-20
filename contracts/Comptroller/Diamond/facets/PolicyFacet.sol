@@ -7,7 +7,6 @@ import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanReceiver.sol";
-import { VTokenInterface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
  * @title PolicyFacet
@@ -23,7 +22,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     event VenusSupplySpeedUpdated(VToken indexed vToken, uint256 newSpeed);
 
     // @notice Emitted When the flash loan is successfully executed
-    event FlashLoanExecuted(address receiver, VTokenInterface[] assets, uint256[] amounts);
+    event FlashLoanExecuted(address receiver, VToken[] assets, uint256[] amounts);
 
     /**
      * @notice Checks if the account should be allowed to mint tokens in the given market
@@ -385,13 +384,9 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *      - Reverts with `ExecuteFlashLoanFailed` if the receiver contract fails to execute the operation.
      *      - Reverts with `InsufficientReypaymentBalance(asset)` if the repayment (amount + fee) is insufficient after the operation.
      */
-    function executeFlashLoan(
-        address receiver,
-        VTokenInterface[] calldata assets,
-        uint256[] calldata amounts
-    ) external {
+    function executeFlashLoan(address payable receiver, VToken[] calldata assets, uint256[] calldata amounts) external {
         // Asset and amount length must be equals and not be zero
-        if (assets.length != amounts.length || assets.length == 0 || receiver == address(0)) {
+        if (assets.length != amounts.length || assets.length == 0) {
             revert("Invalid flashLoan params");
         }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.5.16;
 
-import { VTokenInterface } from "../../Tokens/VTokens/VTokenInterfaces.sol";
+import { VToken } from "../../Tokens/VTokens/VToken.sol";
 
 /// @title IFlashLoanReceiver
 /// @notice Interface for flashLoan receiver contract, which execute custom logic with flash-borrowed assets.
@@ -19,7 +19,7 @@ interface IFlashLoanReceiver {
      * @return True if the operation succeeds and the borrowed amount plus the premium is repaid, false otherwise.
      */
     function executeOperation(
-        VTokenInterface[] calldata assets,
+        VToken[] calldata assets,
         uint256[] calldata amounts,
         uint256[] calldata premiums,
         address initiator,
