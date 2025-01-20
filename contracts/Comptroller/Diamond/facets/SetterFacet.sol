@@ -114,27 +114,31 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
-     * @notice Sets a new price oracle for the comptroller
-     * @dev Allows the contract admin to set a new price oracle used by the Comptroller
+     * @notice Alias to _setPriceOracle to support the Isolated Lending Comptroller Interface
+     * @param newOracle The new price oracle to set
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setPriceOracle(
-        PriceOracle newOracle
-    ) external compareAddress(address(oracle), address(newOracle)) returns (uint256) {
-        // Check caller is admin
-        ensureAdmin();
-        ensureNonzeroAddress(address(newOracle));
+    function setPriceOracle(PriceOracle newOracle) external returns (uint256) {
+        __setPriceOracle(newOracle);
+    }
 
-        // Track the old oracle for the comptroller
-        PriceOracle oldOracle = oracle;
+    /**
+     * @notice Sets a new price oracle for the comptroller
+     * @dev Allows the contract admin to set a new price oracle used by the Comptroller
+     * @param newOracle The new price oracle to set
+     * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
+     */
+    function _setPriceOracle(PriceOracle newOracle) external returns (uint256) {
+        __setPriceOracle(newOracle);
+    }
 
-        // Set comptroller's oracle to newOracle
-        oracle = newOracle;
-
-        // Emit NewPriceOracle(oldOracle, newOracle)
-        emit NewPriceOracle(oldOracle, newOracle);
-
-        return uint256(Error.NO_ERROR);
+    /**
+     * @notice Alias to _setCloseFactor to support the Isolated Lending Comptroller Interface
+     * @param newCloseFactorMantissa New close factor, scaled by 1e18
+     * @return uint256 0=success, otherwise will revert
+     */
+    function setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256) {
+        __setCloseFactor(newCloseFactorMantissa);
     }
 
     /**
@@ -143,28 +147,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newCloseFactorMantissa New close factor, scaled by 1e18
      * @return uint256 0=success, otherwise will revert
      */
-    function _setCloseFactor(
-        uint256 newCloseFactorMantissa
-    ) external compareValue(closeFactorMantissa, newCloseFactorMantissa) returns (uint256) {
-        // Check caller is admin
-        ensureAdmin();
-
-        Exp memory newCloseFactorExp = Exp({ mantissa: newCloseFactorMantissa });
-
-        //-- Check close factor <= 0.9
-        Exp memory highLimit = Exp({ mantissa: closeFactorMaxMantissa });
-        //-- Check close factor >= 0.05
-        Exp memory lowLimit = Exp({ mantissa: closeFactorMinMantissa });
-
-        if (lessThanExp(highLimit, newCloseFactorExp) || greaterThanExp(lowLimit, newCloseFactorExp)) {
-            return fail(Error.INVALID_CLOSE_FACTOR, FailureInfo.SET_CLOSE_FACTOR_VALIDATION);
-        }
-
-        uint256 oldCloseFactorMantissa = closeFactorMantissa;
-        closeFactorMantissa = newCloseFactorMantissa;
-        emit NewCloseFactor(oldCloseFactorMantissa, newCloseFactorMantissa);
-
-        return uint256(Error.NO_ERROR);
+    function _setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256) {
+        __setCloseFactor(newCloseFactorMantissa);
     }
 
     /**
@@ -189,49 +173,42 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
+     * @notice Alias to _setCollateralFactor to support the Isolated Lending Comptroller Interface
+     * @param vToken The market to set the factor on
+     * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
+     * @param newLiquidationThresholdMantissa The new liquidation threshold, scaled by 1e18
+     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
+     */
+    function setCollateralFactor(
+        VToken vToken,
+        uint256 newCollateralFactorMantissa,
+        uint256 newLiquidationThresholdMantissa
+    ) external returns (uint256) {
+        require(
+            newCollateralFactorMantissa == newLiquidationThresholdMantissa,
+            "collateral factor and liquidation threshold must be the same"
+        );
+        __setCollateralFactor(vToken, newCollateralFactorMantissa);
+    }
+
+    /**
      * @notice Sets the collateralFactor for a market
      * @dev Allows a privileged role to set the collateralFactorMantissa
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
-    function _setCollateralFactor(
-        VToken vToken,
-        uint256 newCollateralFactorMantissa
-    )
-        external
-        compareValue(markets[address(vToken)].collateralFactorMantissa, newCollateralFactorMantissa)
-        returns (uint256)
-    {
-        // Check caller is allowed by access control manager
-        ensureAllowed("_setCollateralFactor(address,uint256)");
-        ensureNonzeroAddress(address(vToken));
+    function _setCollateralFactor(VToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256) {
+        __setCollateralFactor(vToken, newCollateralFactorMantissa);
+    }
 
-        // Verify market is listed
-        Market storage market = markets[address(vToken)];
-        ensureListed(market);
-
-        Exp memory newCollateralFactorExp = Exp({ mantissa: newCollateralFactorMantissa });
-
-        //-- Check collateral factor <= 0.9
-        Exp memory highLimit = Exp({ mantissa: collateralFactorMaxMantissa });
-        if (lessThanExp(highLimit, newCollateralFactorExp)) {
-            return fail(Error.INVALID_COLLATERAL_FACTOR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION);
-        }
-
-        // If collateral factor != 0, fail if price == 0
-        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(vToken) == 0) {
-            return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
-        }
-
-        // Set market's collateral factor to new collateral factor, remember old value
-        uint256 oldCollateralFactorMantissa = market.collateralFactorMantissa;
-        market.collateralFactorMantissa = newCollateralFactorMantissa;
-
-        // Emit event with asset, old collateral factor, and new collateral factor
-        emit NewCollateralFactor(vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
-
-        return uint256(Error.NO_ERROR);
+    /**
+     * @notice Alias to _setLiquidationIncentive to support the Isolated Lending Comptroller Interface
+     * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
+     * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
+     */
+    function setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256) {
+        return __setLiquidationIncentive(newLiquidationIncentiveMantissa);
     }
 
     /**
@@ -240,22 +217,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newLiquidationIncentiveMantissa New liquidationIncentive scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
-    function _setLiquidationIncentive(
-        uint256 newLiquidationIncentiveMantissa
-    ) external compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint256) {
-        ensureAllowed("_setLiquidationIncentive(uint256)");
-
-        require(newLiquidationIncentiveMantissa >= 1e18, "incentive < 1e18");
-
-        // Save current value for use in log
-        uint256 oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
-        // Set liquidation incentive to new incentive
-        liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
-
-        // Emit event with old incentive, new incentive
-        emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
-
-        return uint256(Error.NO_ERROR);
+    function _setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256) {
+        return __setLiquidationIncentive(newLiquidationIncentiveMantissa);
     }
 
     /**
@@ -298,23 +261,31 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
+     * @notice Alias to _setMarketBorrowCaps to support the Isolated Lending Comptroller Interface
+     * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
+     * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to Borrow not allowed
+     */
+    function setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
+        __setMarketBorrowCaps(vTokens, newBorrowCaps);
+    }
+
+    /**
      * @notice Set the given borrow caps for the given vToken market Borrowing that brings total borrows to or above borrow cap will revert
      * @dev Allows a privileged role to set the borrowing cap for a vToken market. A borrow cap of 0 corresponds to Borrow not allowed
      * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
      * @param newBorrowCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to Borrow not allowed
      */
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external {
-        ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");
+        __setMarketBorrowCaps(vTokens, newBorrowCaps);
+    }
 
-        uint256 numMarkets = vTokens.length;
-        uint256 numBorrowCaps = newBorrowCaps.length;
-
-        require(numMarkets != 0 && numMarkets == numBorrowCaps, "invalid input");
-
-        for (uint256 i; i < numMarkets; ++i) {
-            borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
-            emit NewBorrowCap(vTokens[i], newBorrowCaps[i]);
-        }
+    /**
+     * @notice Alias to _setMarketSupplyCaps to support the Isolated Lending Comptroller Interface
+     * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
+     * @param newSupplyCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to Borrow not allowed
+     */
+    function setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
+        __setMarketSupplyCaps(vTokens, newSupplyCaps);
     }
 
     /**
@@ -324,17 +295,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed
      */
     function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
-        ensureAllowed("_setMarketSupplyCaps(address[],uint256[])");
-
-        uint256 numMarkets = vTokens.length;
-        uint256 numSupplyCaps = newSupplyCaps.length;
-
-        require(numMarkets != 0 && numMarkets == numSupplyCaps, "invalid input");
-
-        for (uint256 i; i < numMarkets; ++i) {
-            supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
-            emit NewSupplyCap(vTokens[i], newSupplyCaps[i]);
-        }
+        __setMarketSupplyCaps(vTokens, newSupplyCaps);
     }
 
     /**
@@ -352,6 +313,16 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
+     * @notice Alias to _setActionsPaused to support the Isolated Lending Comptroller Interface
+     * @param markets_ Markets to pause/unpause the actions on
+     * @param actions_ List of action ids to pause/unpause
+     * @param paused_ The new paused state (true=paused, false=unpaused)
+     */
+    function setActionsPaused(address[] calldata markets_, Action[] calldata actions_, bool paused_) external {
+        __setActionsPaused(markets_, actions_, paused_);
+    }
+
+    /**
      * @notice Pause/unpause certain actions
      * @dev Allows a privileged role to pause/unpause the protocol action state
      * @param markets_ Markets to pause/unpause the actions on
@@ -359,15 +330,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param paused_ The new paused state (true=paused, false=unpaused)
      */
     function _setActionsPaused(address[] calldata markets_, Action[] calldata actions_, bool paused_) external {
-        ensureAllowed("_setActionsPaused(address[],uint8[],bool)");
-
-        uint256 numMarkets = markets_.length;
-        uint256 numActions = actions_.length;
-        for (uint256 marketIdx; marketIdx < numMarkets; ++marketIdx) {
-            for (uint256 actionIdx; actionIdx < numActions; ++actionIdx) {
-                setActionPausedInternal(markets_[marketIdx], actions_[actionIdx], paused_);
-            }
-        }
+        __setActionsPaused(markets_, actions_, paused_);
     }
 
     /**
@@ -530,18 +493,29 @@ contract SetterFacet is ISetterFacet, FacetBase {
     }
 
     /**
+     * @notice Alias to _setPrimeToken to support the Isolated Lending Comptroller Interface
+     * @param _prime The new prime token contract to be set
+     */
+    function setPrimeToken(IPrime _prime) external returns (uint256) {
+        return __setPrimeToken(_prime);
+    }
+
+    /**
      * @notice Sets the prime token contract for the comptroller
+     * @param _prime The new prime token contract to be set
      * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
-    function _setPrimeToken(IPrime _prime) external returns (uint) {
-        ensureAdmin();
-        ensureNonzeroAddress(address(_prime));
+    function _setPrimeToken(IPrime _prime) external returns (uint256) {
+        return __setPrimeToken(_prime);
+    }
 
-        IPrime oldPrime = prime;
-        prime = _prime;
-        emit NewPrimeToken(oldPrime, _prime);
-
-        return uint(Error.NO_ERROR);
+    /**
+     * @notice Alias to _setForcedLiquidation to support the Isolated Lending Comptroller Interface
+     * @param vTokenBorrowed Borrowed vToken
+     * @param enable Whether to enable forced liquidations
+     */
+    function setForcedLiquidation(address vTokenBorrowed, bool enable) external {
+        __setForcedLiquidation(vTokenBorrowed, enable);
     }
 
     /** @notice Enables forced liquidations for a market. If forced liquidation is enabled,
@@ -551,12 +525,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param enable Whether to enable forced liquidations
      */
     function _setForcedLiquidation(address vTokenBorrowed, bool enable) external {
-        ensureAllowed("_setForcedLiquidation(address,bool)");
-        if (vTokenBorrowed != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
-        }
-        isForcedLiquidationEnabled[vTokenBorrowed] = enable;
-        emit IsForcedLiquidationEnabledUpdated(vTokenBorrowed, enable);
+        __setForcedLiquidation(vTokenBorrowed, enable);
     }
 
     /**
@@ -602,5 +571,165 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         emit NewXVSVToken(xvsVToken, xvsVToken_);
         xvsVToken = xvsVToken_;
+    }
+
+    function __setPriceOracle(
+        PriceOracle newOracle
+    ) internal compareAddress(address(oracle), address(newOracle)) returns (uint256) {
+        // Check caller is admin
+        ensureAdmin();
+        ensureNonzeroAddress(address(newOracle));
+
+        // Track the old oracle for the comptroller
+        PriceOracle oldOracle = oracle;
+
+        // Set comptroller's oracle to newOracle
+        oracle = newOracle;
+
+        // Emit NewPriceOracle(oldOracle, newOracle)
+        emit NewPriceOracle(oldOracle, newOracle);
+
+        return uint256(Error.NO_ERROR);
+    }
+
+    function __setCloseFactor(
+        uint256 newCloseFactorMantissa
+    ) internal compareValue(closeFactorMantissa, newCloseFactorMantissa) returns (uint256) {
+        // Check caller is admin
+        ensureAdmin();
+
+        Exp memory newCloseFactorExp = Exp({ mantissa: newCloseFactorMantissa });
+
+        //-- Check close factor <= 0.9
+        Exp memory highLimit = Exp({ mantissa: closeFactorMaxMantissa });
+        //-- Check close factor >= 0.05
+        Exp memory lowLimit = Exp({ mantissa: closeFactorMinMantissa });
+
+        if (lessThanExp(highLimit, newCloseFactorExp) || greaterThanExp(lowLimit, newCloseFactorExp)) {
+            return fail(Error.INVALID_CLOSE_FACTOR, FailureInfo.SET_CLOSE_FACTOR_VALIDATION);
+        }
+
+        uint256 oldCloseFactorMantissa = closeFactorMantissa;
+        closeFactorMantissa = newCloseFactorMantissa;
+        emit NewCloseFactor(oldCloseFactorMantissa, newCloseFactorMantissa);
+
+        return uint256(Error.NO_ERROR);
+    }
+
+    function __setCollateralFactor(
+        VToken vToken,
+        uint256 newCollateralFactorMantissa
+    )
+        internal
+        compareValue(markets[address(vToken)].collateralFactorMantissa, newCollateralFactorMantissa)
+        returns (uint256)
+    {
+        // Check caller is allowed by access control manager
+        ensureAllowed("_setCollateralFactor(address,uint256)");
+        ensureNonzeroAddress(address(vToken));
+
+        // Verify market is listed
+        Market storage market = markets[address(vToken)];
+        ensureListed(market);
+
+        Exp memory newCollateralFactorExp = Exp({ mantissa: newCollateralFactorMantissa });
+
+        //-- Check collateral factor <= 0.9
+        Exp memory highLimit = Exp({ mantissa: collateralFactorMaxMantissa });
+        if (lessThanExp(highLimit, newCollateralFactorExp)) {
+            return fail(Error.INVALID_COLLATERAL_FACTOR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION);
+        }
+
+        // If collateral factor != 0, fail if price == 0
+        if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(vToken) == 0) {
+            return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
+        }
+
+        // Set market's collateral factor to new collateral factor, remember old value
+        uint256 oldCollateralFactorMantissa = market.collateralFactorMantissa;
+        market.collateralFactorMantissa = newCollateralFactorMantissa;
+
+        // Emit event with asset, old collateral factor, and new collateral factor
+        emit NewCollateralFactor(vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
+
+        return uint256(Error.NO_ERROR);
+    }
+
+    function __setLiquidationIncentive(
+        uint256 newLiquidationIncentiveMantissa
+    ) internal compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint256) {
+        ensureAllowed("_setLiquidationIncentive(uint256)");
+
+        require(newLiquidationIncentiveMantissa >= 1e18, "incentive < 1e18");
+
+        // Save current value for use in log
+        uint256 oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;
+        // Set liquidation incentive to new incentive
+        liquidationIncentiveMantissa = newLiquidationIncentiveMantissa;
+
+        // Emit event with old incentive, new incentive
+        emit NewLiquidationIncentive(oldLiquidationIncentiveMantissa, newLiquidationIncentiveMantissa);
+
+        return uint256(Error.NO_ERROR);
+    }
+
+    function __setMarketBorrowCaps(VToken[] memory vTokens, uint256[] memory newBorrowCaps) internal {
+        ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");
+
+        uint256 numMarkets = vTokens.length;
+        uint256 numBorrowCaps = newBorrowCaps.length;
+
+        require(numMarkets != 0 && numMarkets == numBorrowCaps, "invalid input");
+
+        for (uint256 i; i < numMarkets; ++i) {
+            borrowCaps[address(vTokens[i])] = newBorrowCaps[i];
+            emit NewBorrowCap(vTokens[i], newBorrowCaps[i]);
+        }
+    }
+
+    function __setMarketSupplyCaps(VToken[] memory vTokens, uint256[] memory newSupplyCaps) internal {
+        ensureAllowed("_setMarketSupplyCaps(address[],uint256[])");
+
+        uint256 numMarkets = vTokens.length;
+        uint256 numSupplyCaps = newSupplyCaps.length;
+
+        require(numMarkets != 0 && numMarkets == numSupplyCaps, "invalid input");
+
+        for (uint256 i; i < numMarkets; ++i) {
+            supplyCaps[address(vTokens[i])] = newSupplyCaps[i];
+            emit NewSupplyCap(vTokens[i], newSupplyCaps[i]);
+        }
+    }
+
+    function __setPrimeToken(IPrime _prime) internal returns (uint) {
+        ensureAdmin();
+        ensureNonzeroAddress(address(_prime));
+
+        IPrime oldPrime = prime;
+        prime = _prime;
+        emit NewPrimeToken(oldPrime, _prime);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    function __setForcedLiquidation(address vTokenBorrowed, bool enable) internal {
+        ensureAllowed("_setForcedLiquidation(address,bool)");
+        if (vTokenBorrowed != address(vaiController)) {
+            ensureListed(markets[vTokenBorrowed]);
+        }
+        isForcedLiquidationEnabled[vTokenBorrowed] = enable;
+        emit IsForcedLiquidationEnabledUpdated(vTokenBorrowed, enable);
+    }
+
+    function __setActionsPaused(address[] memory markets_, Action[] memory actions_, bool paused_) internal {
+        ensureAllowed("_setActionsPaused(address[],uint8[],bool)");
+
+        uint256 numMarkets = markets_.length;
+        uint256 numActions = actions_.length;
+        for (uint256 marketIdx; marketIdx < numMarkets; ++marketIdx) {
+            for (uint256 actionIdx; actionIdx < numActions; ++actionIdx) {
+                setActionPausedInternal(markets_[marketIdx], actions_[actionIdx], paused_);
+            }
+        }
     }
 }

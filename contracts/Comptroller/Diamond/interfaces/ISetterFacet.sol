@@ -10,13 +10,25 @@ import { ComptrollerLensInterface } from "../../../Comptroller/ComptrollerLensIn
 import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
 
 interface ISetterFacet {
+    function setPriceOracle(PriceOracle newOracle) external returns (uint256);
+
     function _setPriceOracle(PriceOracle newOracle) external returns (uint256);
+
+    function setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256);
 
     function _setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256);
 
     function _setAccessControl(address newAccessControlAddress) external returns (uint256);
 
+    function setCollateralFactor(
+        VToken vToken,
+        uint256 newCollateralFactorMantissa,
+        uint256 newLiquidationThresholdMantissa
+    ) external returns (uint256);
+
     function _setCollateralFactor(VToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256);
+
+    function setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
 
     function _setLiquidationIncentive(uint256 newLiquidationIncentiveMantissa) external returns (uint256);
 
@@ -24,7 +36,11 @@ interface ISetterFacet {
 
     function _setPauseGuardian(address newPauseGuardian) external returns (uint256);
 
+    function setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external;
+
     function _setMarketBorrowCaps(VToken[] calldata vTokens, uint256[] calldata newBorrowCaps) external;
+
+    function setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external;
 
     function _setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external;
 
@@ -56,7 +72,11 @@ interface ISetterFacet {
 
     function _setForcedLiquidation(address vToken, bool enable) external;
 
+    function setPrimeToken(IPrime _prime) external returns (uint256);
+
     function _setPrimeToken(IPrime _prime) external returns (uint);
+
+    function setForcedLiquidation(address vTokenBorrowed, bool enable) external;
 
     function _setForcedLiquidationForUser(address borrower, address vTokenBorrowed, bool enable) external;
 
