@@ -372,7 +372,7 @@ contract VTokenInterface is VTokenStorage {
 
     function calculateFee(address receiver, uint256 amount) public view returns (uint256 fee, uint256 repaymentAmount);
 
-    function verifyBalance(uint256 balanceBefore, uint256 repaymentAmount) public view returns (uint256);
+    function verifyBalance(uint256 balanceBefore, uint256 repaymentAmount) public view;
 }
 
 contract VBep20Interface {

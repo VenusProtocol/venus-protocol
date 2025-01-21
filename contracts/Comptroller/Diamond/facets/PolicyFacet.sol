@@ -379,10 +379,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *      - FlashLoans must be enabled for each asset.
      *      - The `receiver` contract must repay the loan with the appropriate fee.
      * custom:reverts
-     *      - Reverts with `InvalidFlashLoanParams()` if parameter checks fail.
-     *      - Reverts with `FlashLoanNotEnabled(asset)` if flashLoans are disabled for any of the requested assets.
-     *      - Reverts with `ExecuteFlashLoanFailed` if the receiver contract fails to execute the operation.
-     *      - Reverts with `InsufficientReypaymentBalance(asset)` if the repayment (amount + fee) is insufficient after the operation.
+     *      - Reverts with `Invalid flashLoan params` if parameter checks fail.
+     *      - Reverts with `FlashLoan not enabled` if flashLoans are disabled for any of the requested assets.
+     *      - Reverts with `Execute flashLoan failed` if the receiver contract fails to execute the operation.
+     *      - Reverts with `Insufficient reypayment balance` if the repayment (amount + fee) is insufficient after the operation.
      */
     function executeFlashLoan(address payable receiver, VToken[] calldata assets, uint256[] calldata amounts) external {
         // Asset and amount length must be equals and not be zero
