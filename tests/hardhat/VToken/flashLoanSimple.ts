@@ -169,7 +169,7 @@ describe("FlashLoan", async () => {
     it("Set fee on flashLoan", async () => {
       accessControlManager.isAllowedToCall.returns(true);
       await vTokenA._setFlashLoanFeeMantissa(feeMantissa);
-      
+
       expect(await vTokenA.flashLoanFeeMantissa()).to.be.equal(feeMantissa);
     });
 
@@ -192,13 +192,13 @@ describe("FlashLoan", async () => {
 
     it("Only comptroller can transfer underlying assets to receiver contract", async () => {
       await vTokenA.connect(comptrollerSigner).transferUnderlying(minter.address, parseUnits("1", 18));
-      
+
       expect(await underlyingA.balanceOf(minter.address)).to.be.equal(parseUnits("1", 18));
     });
 
     it("Emit TransferUnderlying event on transfer underlying assets to receiver contract", async () => {
       const result = await vTokenA.connect(comptrollerSigner).transferUnderlying(receiver.address, parseUnits("1", 18));
-      
+
       await expect(result)
         .to.emit(vTokenA, "FlashLoanAmountTransferred")
         .withArgs(underlyingA.address, receiver.address, parseUnits("1", 18));
