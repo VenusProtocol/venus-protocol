@@ -37,6 +37,8 @@ export const initMainnetUser = async (user: string, balance?: NumberLike) => {
 
 export const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
 
+export const FORK_TESTNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bsctestnet";
+
 export const around = (expected: BigNumberish, tolerance: BigNumberish) => {
   return (actual: BigNumberish) => {
     const diff = BigNumber.from(expected).sub(actual).abs();
