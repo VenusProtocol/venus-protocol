@@ -706,7 +706,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @notice Verifies that the balance after a flash loan is sufficient to cover the repayment amount.
      * @param balanceBefore The balance before the flash loan.
      * @param repaymentAmount The total amount to be repaid (amount + fee).
-     * @return NO_ERROR Indicates that the balance verification was successful.
      * @dev This function reverts if the balance after the flash loan is insufficient to cover the repayment amount.
      */
     function verifyBalance(uint256 balanceBefore, uint256 repaymentAmount) public view {

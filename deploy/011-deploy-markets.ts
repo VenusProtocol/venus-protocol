@@ -26,7 +26,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`Got deployment of Unitroller with address: ${comptrollerDeployment.address}`);
 
   for (const market of marketsConfig) {
-    const { name, asset, symbol, rateModel, baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink_ } = market;
+    const {
+      name,
+      asset,
+      symbol,
+      rateModel,
+      baseRatePerYear,
+      multiplierPerYear,
+      jumpMultiplierPerYear,
+      kink_,
+      isFlashLoanEnabled,
+      flashLoanFeeMantissa,
+    } = market;
 
     const token = getTokenConfig(asset, tokensConfig);
     let tokenContract;
@@ -83,6 +94,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         network.live ? normalTimelock.address : deployer,
         vBep20DelegateDeployment.address,
         EMPTY_BYTES_ARRAY,
+        isFlashLoanEnabled,
+        flashLoanFeeMantissa,
       ],
       log: true,
       skipIfAlreadyDeployed: true,

@@ -114,12 +114,12 @@ describe("FlashLoan", async () => {
       false,
       feeMantissa,
     );
-    vTokenA.setAccessControlManager(contracts.accessControlManager.address);
+    await vTokenA.setAccessControlManager(contracts.accessControlManager.address);
 
     return { ...contracts, vTokenA, underlyingA };
   }
 
-  beforeEach(async () => {
+  before(async () => {
     [minter, alice, receiver] = await ethers.getSigners();
     ({ accessControlManager, comptroller, vTokenA, underlyingA } = await loadFixture(deploy));
     comptrollerSigner = await initMainnetUser(comptroller.address, ethers.utils.parseUnits("2"));
@@ -142,10 +142,7 @@ describe("FlashLoan", async () => {
     });
 
     it("Disable flashLoan feature", async () => {
-      expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
-      await vTokenA._toggleFlashLoan();
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
-
       await vTokenA._toggleFlashLoan();
       expect(await vTokenA.isFlashLoanEnabled()).to.be.false;
     });
@@ -180,8 +177,8 @@ describe("FlashLoan", async () => {
   });
 
   describe("Transfer underlying assets to receiver contract", () => {
-    beforeEach(async () => {
-      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("1", 18));
+    before(async () => {
+      await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("100", 18));
     });
 
     it("Revert if not comptroller", async () => {
@@ -206,7 +203,7 @@ describe("FlashLoan", async () => {
   });
 
   describe("FlashLoan Single Asset", () => {
-    beforeEach(async () => {
+    before(async () => {
       const MockFlashLoanSimpleReceiver = await ethers.getContractFactory<MockFlashLoanSimpleReceiver__factory>(
         "MockFlashLoanSimpleReceiver",
       );
