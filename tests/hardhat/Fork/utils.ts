@@ -35,7 +35,7 @@ export const initMainnetUser = async (user: string, balance?: NumberLike) => {
   return ethers.getSigner(user);
 };
 
-export const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+export const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 export const FORK_TESTNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bsctestnet";
 

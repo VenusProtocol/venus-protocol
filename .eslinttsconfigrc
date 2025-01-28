@@ -1,4 +1,4 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["./typechain", "./deploy", "./tests", "./script", "./scenario", "saddle.config.js", "docgen-templates", "commitlint.config.js", "./hardhat.config.zksync.ts"]
+  "include": ["./typechain", "./deploy", "./tests", "./script", "./scenario", "saddle.config.js", "docgen-templates", "commitlint.config.js", "./hardhat.config.zksync.ts", "type-extensions.ts"]
 }
