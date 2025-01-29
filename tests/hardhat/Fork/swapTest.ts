@@ -57,7 +57,7 @@ const MIN_AMOUNT_OUT_BUSD = 250;
 
 async function deploySimpleComptroller() {
   oracle = await smock.fake<PriceOracle>("PriceOracle");
-  accessControl = await smock.fake<IAccessControlManager>("IAccessControlManager");
+  accessControl = await smock.fake<IAccessControlManager>("IAccessControlManagerV8");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");

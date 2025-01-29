@@ -12,7 +12,7 @@ import {
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 import { forking } from "./utils";
 
-const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 const poolId = 0;
 // Address of the vault proxy

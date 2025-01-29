@@ -35,7 +35,7 @@ async function configureTimeLock() {
   impersonatedTimeLock = await initMainnetUser(NORMAL_TIMELOCK, parseUnits("2"));
 }
 
-const FORK = process.env.FORK === "true";
+const FORK = !!process.env.FORKED_NETWORK;
 
 async function setup() {
   user1 = await initMainnetUser(USER_1, parseUnits("2"));
