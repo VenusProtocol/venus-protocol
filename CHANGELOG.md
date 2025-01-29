@@ -1,3 +1,11 @@
+## [9.5.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0-dev.2...v9.5.0-dev.3) (2025-01-29)
+
+
+### Features
+
+* add THE market to the Core pool ([363a26c](https://github.com/VenusProtocol/venus-protocol/commit/363a26c171c39c93feb577fdc916b95cf222f89c))
+* updating deployment files ([3d14331](https://github.com/VenusProtocol/venus-protocol/commit/3d14331c2e2de84bf8ff672ed3d3d9fceeae6bf5))
+
 ## [9.5.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0-dev.1...v9.5.0-dev.2) (2025-01-02)
 
 
