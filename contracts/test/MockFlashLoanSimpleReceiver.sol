@@ -2,7 +2,7 @@
 pragma solidity ^0.5.16;
 
 import { FlashLoanSimpleReceiverBase } from "../FlashLoan/base/FlashLoanSimpleReceiverBase.sol";
-import { VTokenInterface } from "../Tokens/VTokens/VTokenInterfaces.sol";
+import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { EIP20NonStandardInterface } from "../Tokens/EIP20NonStandardInterface.sol";
 
 /// @title MockFlashLoanSimpleReceiver
@@ -12,9 +12,9 @@ import { EIP20NonStandardInterface } from "../Tokens/EIP20NonStandardInterface.s
 contract MockFlashLoanSimpleReceiver is FlashLoanSimpleReceiverBase {
     /**
      * @notice Constructor that initializes the flashLoan receiver with a reference to the VToken contract.
-     * @param vToken The address of the VTokenInterface contract that supports flashLoan functionality.
+     * @param vToken The address of the VToken contract that supports flashLoan functionality.
      */
-    constructor(VTokenInterface vToken) public FlashLoanSimpleReceiverBase(vToken) {}
+    constructor(VToken vToken) public FlashLoanSimpleReceiverBase(vToken) {}
 
     /**
      * @notice Requests a flash loan from the VToken contract.

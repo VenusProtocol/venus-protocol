@@ -342,8 +342,6 @@ contract VTokenInterface is VTokenStorage {
     /*** Admin Function ***/
     function _reduceReserves(uint reduceAmount) external returns (uint);
 
-    function executeFlashLoan(address payable receiver, uint256 amount) external returns (uint256);
-
     function balanceOf(address owner) external view returns (uint);
 
     function allowance(address owner, address spender) external view returns (uint);
@@ -369,10 +367,6 @@ contract VTokenInterface is VTokenStorage {
     function borrowBalanceStored(address account) public view returns (uint);
 
     function exchangeRateStored() public view returns (uint);
-
-    function calculateFee(address receiver, uint256 amount) public view returns (uint256 fee, uint256 repaymentAmount);
-
-    function verifyBalance(uint256 balanceBefore, uint256 repaymentAmount) public view;
 }
 
 contract VBep20Interface {
