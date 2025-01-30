@@ -36,7 +36,7 @@ async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
   const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
-  //   const ComptrollerFactory = await smock.mock<Comptroller__factory>("ComptrollerMock");
+
   const result = await deployDiamond("");
   const unitroller = result.unitroller;
   const comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
@@ -275,6 +275,13 @@ describe("Comptroller", () => {
       expect(await comptroller.oracle()).to.equal(newOracle.address);
     });
 
+    it("setPriceOracle is alias for _setPriceOracle", async () => {
+      await expect(comptroller.setPriceOracle(newOracle.address))
+        .to.emit(comptroller, "NewPriceOracle")
+        .withArgs(oracle.address, newOracle.address);
+      expect(await comptroller.oracle()).to.equal(newOracle.address);
+    });
+
     it("Should revert on same values", async () => {
       await expect(comptroller._setPriceOracle(oracle.address)).to.be.revertedWith(
         "old address is same as new address",
@@ -402,12 +409,22 @@ describe("Comptroller", () => {
         .withArgs(vToken.address, "0", half);
     });
 
+    it("succeeds and sets market using alias", async () => {
+      await comptroller.supportMarket(vToken.address);
+      await expect(comptroller._setCollateralFactor(vToken.address, half))
+        .emit(comptroller, "NewCollateralFactor")
+        .withArgs(vToken.address, "0", half);
+
+      expect(await comptroller.isMarketListed(vToken.address)).to.be.true;
+    });
+
     it("should revert on same values", async () => {
       await comptroller._supportMarket(vToken.address);
       await comptroller._setCollateralFactor(vToken.address, half);
       await expect(comptroller._setCollateralFactor(vToken.address, half)).to.be.revertedWith(
         "old value is same as new value",
       );
+      expect(await comptroller.isMarketListed(vToken.address)).to.be.true;
     });
   });
 
@@ -446,6 +463,14 @@ describe("Comptroller", () => {
       expect(await comptroller.isForcedLiquidationEnabled(vToken.address)).to.be.true;
 
       await comptroller._setForcedLiquidation(vToken.address, false);
+      expect(await comptroller.isForcedLiquidationEnabled(vToken.address)).to.be.false;
+    });
+
+    it("should alias setForcedLiquidation to _setForcedLiquidation", async () => {
+      await comptroller.setForcedLiquidation(vToken.address, true);
+      expect(await comptroller.isForcedLiquidationEnabled(vToken.address)).to.be.true;
+
+      await comptroller.setForcedLiquidation(vToken.address, false);
       expect(await comptroller.isForcedLiquidationEnabled(vToken.address)).to.be.false;
     });
 
@@ -931,6 +956,16 @@ describe("Comptroller", () => {
             .connect(vToken.wallet)
             .callStatic.borrowAllowed(vToken.address, root.address, convertToUnit("0.9999", 18)),
         ).to.be.revertedWith("market borrow cap is 0");
+      });
+
+      it("getBorrowingPower is an alias for getAccountLiquidity", async () => {
+        console.log(vToken.wallet._address);
+        const accountLiquidity = await comptroller.getAccountLiquidity(vToken.wallet._address);
+        const borrowingPower = await comptroller.getBorrowingPower(vToken.wallet._address);
+
+        expect(borrowingPower[0]).to.eq(accountLiquidity[0]);
+        expect(borrowingPower[1]).to.eq(accountLiquidity[1]);
+        expect(borrowingPower[2]).to.eq(accountLiquidity[2]);
       });
     });
   });
