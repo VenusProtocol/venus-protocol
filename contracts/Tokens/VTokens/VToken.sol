@@ -8,6 +8,7 @@ import "../../Tokens/EIP20NonStandardInterface.sol";
 import "../../InterestRateModels/InterestRateModel.sol";
 import "./VTokenInterfaces.sol";
 import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
+import { IFlashLoanSimpleReceiver } from "../../FlashLoan/interfaces/IFlashLoanSimpleReceiver.sol";
 
 /**
  * @title Venus's vToken Contract
@@ -119,7 +120,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return The total borrows with interest
      */
     function totalBorrowsCurrent() external nonReentrant returns (uint) {
-        require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
+        ensureAccrueInterest();
         return totalBorrows;
     }
 
@@ -129,7 +130,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return The calculated balance
      */
     function borrowBalanceCurrent(address account) external nonReentrant returns (uint) {
-        require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
+        ensureAccrueInterest();
         return borrowBalanceStored(account);
     }
 
@@ -207,11 +208,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     // @custom:event Emits NewReserveFactor event
     function _setReserveFactor(uint newReserveFactorMantissa_) external nonReentrant returns (uint) {
         ensureAllowed("_setReserveFactor(uint256)");
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reserve factor change failed.
-            return fail(Error(error), FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
-        }
+        checkAccrueInterest(FailureInfo.SET_RESERVE_FACTOR_ACCRUE_INTEREST_FAILED);
+
         // _setReserveFactorFresh emits reserve-factor-specific logs on errors, so we don't need to.
         return _setReserveFactorFresh(newReserveFactorMantissa_);
     }
@@ -242,11 +240,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     // @custom:event Emits ReservesReduced event
     function _reduceReserves(uint reduceAmount_) external nonReentrant returns (uint) {
         ensureAllowed("_reduceReserves(uint256)");
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
-            return fail(Error(error), FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
-        }
+        checkAccrueInterest(FailureInfo.REDUCE_RESERVES_ACCRUE_INTEREST_FAILED);
 
         // If reserves were reduced in accrueInterest
         if (reduceReservesBlockNumber == block.number) return (uint(Error.NO_ERROR));
@@ -347,6 +341,102 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
+     * @notice Transfers the underlying asset to the specified address.
+     * @dev Can only be called by the Comptroller contract. This function performs the actual transfer of the underlying
+     *      asset by calling the `doTransferOut` internal function.
+     * @param to The address to which the underlying asset is to be transferred.
+     * @param amount The amount of the underlying asset to transfer.
+     * requirements
+     *      - The caller must be the Comptroller contract.
+     * custom:reverts
+     *      - Reverts with "Only Comptroller" if the caller is not the Comptroller.
+     * custom:event Emits FlashLoanAmountTransferred event on successful transfer of amount to receiver
+     */
+    function transferUnderlying(
+        address payable to,
+        uint256 amount
+    ) external nonReentrant returns (uint256 balanceBefore) {
+        if (msg.sender != address(comptroller)) {
+            revert("Invalid comptroller");
+        }
+
+        doTransferOut(to, amount);
+
+        balanceBefore = getCashPrior();
+        emit FlashLoanAmountTransferred(underlying, to, amount);
+    }
+
+    /**
+     * @notice Executes a flashLoan operation.
+     * @dev Transfers the amount to the receiver contract and ensures that the total repayment (amount + fee)
+     *      is returned by the receiver contract after the operation. The function performs checks to ensure the validity
+     *      of parameters, that flashLoan is enabled for the given asset, and that the total repayment is sufficient.
+     *      Reverts on invalid parameters, disabled flashLoans, or insufficient repayment.
+     * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
+     * @param amount The amount of asset to be loaned.
+     * custom:requirements
+     *      - The `receiver` address must not be the zero address.
+     *      - FlashLoans must be enabled for the asset.
+     *      - The `receiver` contract must repay the loan with the appropriate fee.
+     * custom:reverts
+     *      - Reverts with `FlashLoan not enabled` if flashLoans are disabled for any of the requested assets.
+     *      - Reverts with `Execute flashLoan failed` if the receiver contract fails to execute the operation.
+     *      - Reverts with `Insufficient reypayment balance` if the repayment (amount + fee) is insufficient after the operation.
+     * custom:event Emits FlashLoanExecuted event on success
+     */
+    function executeFlashLoan(address payable receiver, uint256 amount) external nonReentrant returns (uint256) {
+        uint256 repaymentAmount;
+        uint256 fee;
+        (fee, repaymentAmount) = calculateFee(receiver, amount);
+
+        IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(receiver);
+
+        // Transfer the underlying asset to the receiver.
+        doTransferOut(receiver, amount);
+
+        uint256 balanceBefore = getCashPrior();
+
+        // Call the execute operation on receiver contract
+        if (!receiverContract.executeOperation(underlying, amount, fee, msg.sender, "")) {
+            revert("Execute flashLoan failed");
+        }
+
+        verifyBalance(balanceBefore, repaymentAmount);
+
+        emit FlashLoanExecuted(receiver, underlying, amount);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Enable or disable flash loan for the market
+     * custom:access Only Governance
+     * custom:event Emits ToggleFlashLoanEnabled event on success
+     */
+    function _toggleFlashLoan() external returns (uint256) {
+        ensureAllowed("_toggleFlashLoan()");
+        isFlashLoanEnabled = !isFlashLoanEnabled;
+
+        emit ToggleFlashLoanEnabled(!isFlashLoanEnabled, isFlashLoanEnabled);
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /**
+     * @notice Update flashLoan fee mantissa
+     * custom:access Only Governance
+     * custom:event Emits FlashLoanFeeUpdated event on success
+     */
+    function _setFlashLoanFeeMantissa(uint256 fee) external returns (uint256) {
+        ensureAllowed("_setFlashLoanFeeMantissa(uint256)");
+
+        emit FlashLoanFeeUpdated(flashLoanFeeMantissa, fee);
+        flashLoanFeeMantissa = fee;
+
+        return uint(Error.NO_ERROR);
+    }
+
+    /**
      * @notice Initialize the money market
      * @param comptroller_ The address of the Comptroller
      * @param interestRateModel_ The address of the interest rate model
@@ -354,6 +444,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param name_ EIP-20 name of this token
      * @param symbol_ EIP-20 symbol of this token
      * @param decimals_ EIP-20 decimal precision of this token
+     * @param flashLoanEnabled_ Enable flashLoan or not for this market
+     * @param flashLoanFeeMantissa_ FlashLoan fee mantissa
      */
     function initialize(
         ComptrollerInterface comptroller_,
@@ -361,26 +453,32 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
-        uint8 decimals_
+        uint8 decimals_,
+        bool flashLoanEnabled_,
+        uint256 flashLoanFeeMantissa_
     ) public {
         ensureAdmin(msg.sender);
-        require(accrualBlockNumber == 0 && borrowIndex == 0, "market may only be initialized once");
+        require(
+            accrualBlockNumber == 0 && borrowIndex == 0 && (initialExchangeRateMantissa_ > 0),
+            "market may only be initialized once"
+        );
 
         // Set initial exchange rate
         initialExchangeRateMantissa = initialExchangeRateMantissa_;
-        require(initialExchangeRateMantissa > 0, "initial exchange rate must be greater than zero.");
 
         // Set the comptroller
-        uint err = _setComptroller(comptroller_);
-        require(err == uint(Error.NO_ERROR), "setting comptroller failed");
+        uint ComptrollerErr = _setComptroller(comptroller_);
 
         // Initialize block number and borrow index (block number mocks depend on comptroller being set)
         accrualBlockNumber = block.number;
         borrowIndex = mantissaOne;
 
         // Set the interest rate model (depends on block number / borrow index)
-        err = _setInterestRateModelFresh(interestRateModel_);
-        require(err == uint(Error.NO_ERROR), "setting interest rate model failed");
+        uint InterestModelErr = _setInterestRateModelFresh(interestRateModel_);
+        require(
+            (ComptrollerErr == uint(Error.NO_ERROR)) && (InterestModelErr == uint(Error.NO_ERROR)),
+            "comptroller or interest model initialization failed"
+        );
 
         name = name_;
         symbol = symbol_;
@@ -388,6 +486,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         // The counter starts true to prevent changing it from zero to non-zero (i.e. smaller cost/refund)
         _notEntered = true;
+
+        isFlashLoanEnabled = flashLoanEnabled_;
+        flashLoanFeeMantissa = flashLoanFeeMantissa_;
     }
 
     /**
@@ -395,7 +496,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return Calculated exchange rate scaled by 1e18
      */
     function exchangeRateCurrent() public nonReentrant returns (uint) {
-        require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
+        ensureAccrueInterest();
         return exchangeRateStored();
     }
 
@@ -537,15 +638,14 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         // Check caller is admin
         ensureAdmin(msg.sender);
 
-        ComptrollerInterface oldComptroller = comptroller;
         // Ensure invoke comptroller.isComptroller() returns true
         require(newComptroller.isComptroller(), "marker method returned false");
 
+        // Emit NewComptroller(oldComptroller, newComptroller)
+        emit NewComptroller(comptroller, newComptroller);
+
         // Set market's comptroller to newComptroller
         comptroller = newComptroller;
-
-        // Emit NewComptroller(oldComptroller, newComptroller)
-        emit NewComptroller(oldComptroller, newComptroller);
 
         return uint(Error.NO_ERROR);
     }
@@ -558,11 +658,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function _setInterestRateModel(InterestRateModel newInterestRateModel_) public returns (uint) {
         ensureAllowed("_setInterestRateModel(address)");
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted change of interest rate model failed
-            return fail(Error(error), FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
-        }
+        checkAccrueInterest(FailureInfo.SET_INTEREST_RATE_MODEL_ACCRUE_INTEREST_FAILED);
+
         // _setInterestRateModelFresh emits interest-rate-model-update-specific logs on errors, so we don't need to.
         return _setInterestRateModelFresh(newInterestRateModel_);
     }
@@ -587,6 +684,33 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         (MathError err, uint result) = borrowBalanceStoredInternal(account);
         ensureNoMathError(err);
         return result;
+    }
+
+    /**
+     * @notice Calculates the fee and repayment amount for a flash loan.
+     * @param receiver The address of the receiver of the flash loan.
+     * @param amount The amount of the flash loan.
+     * @return fee The calculated fee for the flash loan.
+     * @return repaymentAmount The total amount to be repaid (amount + fee).
+     * @dev This function reverts if flash loans are not enabled.
+     */
+    function calculateFee(address receiver, uint256 amount) public view returns (uint256 fee, uint256 repaymentAmount) {
+        if (!isFlashLoanEnabled) revert("FlashLoan not enabled");
+        ensureNonZeroAddress(receiver);
+
+        fee = (amount * flashLoanFeeMantissa) / 1e18;
+        repaymentAmount = amount + fee;
+    }
+
+    /**
+     * @notice Verifies that the balance after a flash loan is sufficient to cover the repayment amount.
+     * @param balanceBefore The balance before the flash loan.
+     * @param repaymentAmount The total amount to be repaid (amount + fee).
+     * @dev This function reverts if the balance after the flash loan is insufficient to cover the repayment amount.
+     */
+    function verifyBalance(uint256 balanceBefore, uint256 repaymentAmount) public view {
+        // balanceAfter should be greater than the fee calculated
+        if ((getCashPrior() - balanceBefore) < repaymentAmount) revert("Insufficient reypayment balance");
     }
 
     /**
@@ -666,11 +790,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
      */
     function mintInternal(uint mintAmount) internal nonReentrant returns (uint, uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted mint failed
-            return (fail(Error(error), FailureInfo.MINT_ACCRUE_INTEREST_FAILED), 0);
-        }
+        checkAccrueInterest(FailureInfo.MINT_ACCRUE_INTEREST_FAILED);
+
         // mintFresh emits the actual Mint event if successful and logs on errors, so we don't need to
         return mintFresh(msg.sender, mintAmount);
     }
@@ -758,11 +879,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual mint amount.
      */
     function mintBehalfInternal(address receiver, uint mintAmount) internal nonReentrant returns (uint, uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted mintBehalf failed
-            return (fail(Error(error), FailureInfo.MINT_ACCRUE_INTEREST_FAILED), 0);
-        }
+        checkAccrueInterest(FailureInfo.MINT_ACCRUE_INTEREST_FAILED);
+
         // mintBelahfFresh emits the actual Mint event if successful and logs on errors, so we don't need to
         return mintBehalfFresh(msg.sender, receiver, mintAmount);
     }
@@ -859,11 +977,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         address payable receiver,
         uint redeemTokens
     ) internal nonReentrant returns (uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted redeem failed
-            return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
-        }
+        checkAccrueInterest(FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
+
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
         return redeemFresh(redeemer, receiver, redeemTokens, 0);
     }
@@ -882,11 +997,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         address payable receiver,
         uint redeemAmount
     ) internal nonReentrant returns (uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted redeem failed
-            return fail(Error(error), FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
-        }
+        checkAccrueInterest(FailureInfo.REDEEM_ACCRUE_INTEREST_FAILED);
+
         // redeemFresh emits redeem-specific logs on errors, so we don't need to
         return redeemFresh(redeemer, receiver, 0, redeemAmount);
     }
@@ -1034,11 +1146,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         address payable receiver,
         uint borrowAmount
     ) internal nonReentrant returns (uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
-            return fail(Error(error), FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
-        }
+        checkAccrueInterest(FailureInfo.BORROW_ACCRUE_INTEREST_FAILED);
+
         // borrowFresh emits borrow-specific logs on errors, so we don't need to
         return borrowFresh(borrower, receiver, borrowAmount);
     }
@@ -1116,11 +1225,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     function repayBorrowInternal(uint repayAmount) internal nonReentrant returns (uint, uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
-            return (fail(Error(error), FailureInfo.REPAY_BORROW_ACCRUE_INTEREST_FAILED), 0);
-        }
+        checkAccrueInterest(FailureInfo.REPAY_BORROW_ACCRUE_INTEREST_FAILED);
+
         // repayBorrowFresh emits repay-borrow-specific logs on errors, so we don't need to
         return repayBorrowFresh(msg.sender, msg.sender, repayAmount);
     }
@@ -1132,11 +1238,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return (uint, uint) An error code (0=success, otherwise a failure, see ErrorReporter.sol), and the actual repayment amount.
      */
     function repayBorrowBehalfInternal(address borrower, uint repayAmount) internal nonReentrant returns (uint, uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted borrow failed
-            return (fail(Error(error), FailureInfo.REPAY_BEHALF_ACCRUE_INTEREST_FAILED), 0);
-        }
+        checkAccrueInterest(FailureInfo.REPAY_BEHALF_ACCRUE_INTEREST_FAILED);
+
         // repayBorrowFresh emits repay-borrow-specific logs on errors, so we don't need to
         return repayBorrowFresh(msg.sender, borrower, repayAmount);
     }
@@ -1239,13 +1342,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint repayAmount,
         VTokenInterface vTokenCollateral
     ) internal nonReentrant returns (uint, uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
-            return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED), 0);
-        }
+        checkAccrueInterest(FailureInfo.LIQUIDATE_ACCRUE_BORROW_INTEREST_FAILED);
 
-        error = vTokenCollateral.accrueInterest();
+        uint error = vTokenCollateral.accrueInterest();
         if (error != uint(Error.NO_ERROR)) {
             // accrueInterest emits logs on errors, but we still want to log the fact that an attempted liquidation failed
             return (fail(Error(error), FailureInfo.LIQUIDATE_ACCRUE_COLLATERAL_INTEREST_FAILED), 0);
@@ -1324,10 +1423,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             address(vTokenCollateral),
             actualRepayAmount
         );
-        require(amountSeizeError == uint(Error.NO_ERROR), "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED");
 
-        /* Revert if borrower collateral token balance < seizeTokens */
-        require(vTokenCollateral.balanceOf(borrower) >= seizeTokens, "LIQUIDATE_SEIZE_TOO_MUCH");
+        require(
+            (amountSeizeError == uint(Error.NO_ERROR)) && (vTokenCollateral.balanceOf(borrower) >= seizeTokens),
+            "LIQUIDATE_COMPTROLLER_CALCULATE_AMOUNT_SEIZE_FAILED or LIQUIDATE_SEIZE_TOO_MUCH"
+        );
 
         // If this is also the collateral, run seizeInternal to avoid re-entrancy, otherwise make an external call
         uint seizeError;
@@ -1449,11 +1549,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _addReservesInternal(uint addAmount) internal nonReentrant returns (uint) {
-        uint error = accrueInterest();
-        if (error != uint(Error.NO_ERROR)) {
-            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reduce reserves failed.
-            return fail(Error(error), FailureInfo.ADD_RESERVES_ACCRUE_INTEREST_FAILED);
-        }
+        checkAccrueInterest(FailureInfo.ADD_RESERVES_ACCRUE_INTEREST_FAILED);
+        uint error;
 
         // _addReservesFresh emits reserve-addition-specific logs on errors, so we don't need to.
         (error, ) = _addReservesFresh(addAmount);
@@ -1562,24 +1659,19 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      */
     function _setInterestRateModelFresh(InterestRateModel newInterestRateModel) internal returns (uint) {
-        // Used to store old model for use in the event that is emitted on success
-        InterestRateModel oldInterestRateModel;
         // We fail gracefully unless market's block number equals current block number
         if (accrualBlockNumber != block.number) {
             return fail(Error.MARKET_NOT_FRESH, FailureInfo.SET_INTEREST_RATE_MODEL_FRESH_CHECK);
         }
 
-        // Track the market's current interest rate model
-        oldInterestRateModel = interestRateModel;
-
         // Ensure invoke newInterestRateModel.isInterestRateModel() returns true
         require(newInterestRateModel.isInterestRateModel(), "marker method returned false");
 
+        // Emit NewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel)
+        emit NewMarketInterestRateModel(interestRateModel, newInterestRateModel);
+
         // Set the interest rate model to newInterestRateModel
         interestRateModel = newInterestRateModel;
-
-        // Emit NewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel)
-        emit NewMarketInterestRateModel(oldInterestRateModel, newInterestRateModel);
 
         return uint(Error.NO_ERROR);
     }
@@ -1690,6 +1782,18 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     function ensureNonZeroAddress(address address_) private pure {
         require(address_ != address(0), "zero address");
+    }
+
+    function ensureAccrueInterest() private {
+        require(accrueInterest() == uint(Error.NO_ERROR), "accrue interest failed");
+    }
+
+    function checkAccrueInterest(FailureInfo info) private returns (uint) {
+        uint error = accrueInterest();
+        if (error != uint(Error.NO_ERROR)) {
+            // accrueInterest emits logs on errors, but on top of that we want to log the fact that an attempted reserve factor change failed.
+            return fail(Error(error), info);
+        }
     }
 
     /*** Safe Token ***/

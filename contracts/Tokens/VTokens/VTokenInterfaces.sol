@@ -158,11 +158,21 @@ contract VTokenStorageBase {
 
 contract VTokenStorage is VTokenStorageBase {
     /**
+     * @notice flashLoan is enabled for this market or not
+     */
+    bool public isFlashLoanEnabled;
+
+    /**
+     * @notice fee percentage collected by protocol on flashLoan
+     */
+    uint256 public flashLoanFeeMantissa;
+
+    /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[50] private __gap;
+    uint256[48] private __gap;
 }
 
 contract VTokenInterface is VTokenStorage {
@@ -283,6 +293,26 @@ contract VTokenInterface is VTokenStorage {
 
     /// @notice Emitted when access control address is changed by admin
     event NewAccessControlManager(address oldAccessControlAddress, address newAccessControlAddress);
+
+    /**
+     * @notice Event emitted when flashLoanEnabled status is changed
+     */
+    event ToggleFlashLoanEnabled(bool oldEnabled, bool enabled);
+
+    /**
+     * @notice Event emitted when flashLoan is executed
+     */
+    event FlashLoanExecuted(address receiver, address underlying, uint256 amount);
+
+    /**
+     * @notice Event emitted when asset is transferred to receiver
+     */
+    event FlashLoanAmountTransferred(address asset, address receiver, uint256 amount);
+
+    /**
+     * @notice Event emitted when flashLoan fee mantissa is updated
+     */
+    event FlashLoanFeeUpdated(uint256 oldFee, uint256 fee);
 
     /*** User Interface ***/
 

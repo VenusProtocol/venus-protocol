@@ -97,6 +97,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     "vusdt",
     BigNumber.from(18),
     wallet.address,
+    false,
+    0,
   )) as VBep20Harness;
   const veth = (await vTokenFactory.deploy(
     eth.address,
@@ -107,6 +109,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     "veth",
     BigNumber.from(18),
     wallet.address,
+    false,
+    0,
   )) as VBep20Harness;
   const vbnb = (await vTokenFactory.deploy(
     wbnb.address,
@@ -117,6 +121,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     "vbnb",
     BigNumber.from(18),
     wallet.address,
+    false,
+    0,
   )) as VBep20Harness;
 
   //0.2 reserve factor

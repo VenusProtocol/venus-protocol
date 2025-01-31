@@ -20,6 +20,8 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      * @param admin_ Address of the administrator of this token
      * @param implementation_ The address of the implementation the contract delegates to
      * @param becomeImplementationData The encoded args for becomeImplementation
+     * @param flashLoanEnabled_ Enable flashLoan or not for this market
+     * @param flashLoanFeeMantissa_ FlashLoan fee mantissa
      */
     constructor(
         address underlying_,
@@ -31,7 +33,9 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         uint8 decimals_,
         address payable admin_,
         address implementation_,
-        bytes memory becomeImplementationData
+        bytes memory becomeImplementationData,
+        bool flashLoanEnabled_,
+        uint256 flashLoanFeeMantissa_
     ) public {
         // Creator of the contract is admin during initialization
         admin = msg.sender;
@@ -40,14 +44,16 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         delegateTo(
             implementation_,
             abi.encodeWithSignature(
-                "initialize(address,address,address,uint256,string,string,uint8)",
+                "initialize(address,address,address,uint256,string,string,uint8,bool,uint256)",
                 underlying_,
                 comptroller_,
                 interestRateModel_,
                 initialExchangeRateMantissa_,
                 name_,
                 symbol_,
-                decimals_
+                decimals_,
+                flashLoanEnabled_,
+                flashLoanFeeMantissa_
             )
         );
 

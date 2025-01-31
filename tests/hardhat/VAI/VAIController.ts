@@ -133,6 +133,8 @@ describe("VAIController", async () => {
       "vusdt",
       BigNumber.from(18),
       wallet.address,
+      false,
+      0,
     )) as VBep20Harness;
 
     await priceOracle.setUnderlyingPrice(vusdt.address, bigNumber18);
