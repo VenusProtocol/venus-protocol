@@ -3607,7 +3607,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@venusprotocol/venus-protocol@^9.1.0, @venusprotocol/venus-protocol@workspace:.":
+"@venusprotocol/venus-protocol@npm:^9.1.0":
+  version: 9.5.0
+  resolution: "@venusprotocol/venus-protocol@npm:9.5.0"
+  dependencies:
+    "@nomicfoundation/hardhat-ethers": ^3.0.0
+    "@openzeppelin/contracts": 4.9.3
+    "@openzeppelin/contracts-upgradeable": ^4.8.0
+    "@venusprotocol/governance-contracts": ^2.6.0
+    "@venusprotocol/protocol-reserve": ^3.0.0
+    "@venusprotocol/solidity-utilities": ^2.0.3
+    "@venusprotocol/token-bridge": ^2.4.0
+    bignumber.js: ^9.1.2
+    dotenv: ^16.0.1
+    module-alias: ^2.2.2
+  checksum: 6c0369389864ba5916c204c7b33c572a6ae96e45e31b80b512d811b0eedaf7a0f794466673619ea3cebc41b359d246ab45c4f384a1530748ab6a08101e65d440
+  languageName: node
+  linkType: hard
+
+"@venusprotocol/venus-protocol@workspace:.":
   version: 0.0.0-use.local
   resolution: "@venusprotocol/venus-protocol@workspace:."
   dependencies:
