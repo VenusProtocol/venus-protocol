@@ -5,8 +5,8 @@ import { Signer } from "ethers";
 
 import { convertToUnit } from "../../../helpers/utils";
 import {
-  Comptroller,
-  Comptroller__factory,
+  ComptrollerHarness as Comptroller,
+  ComptrollerHarness__factory as Comptroller__factory,
   FaucetToken__factory,
   IAccessControlManagerV8__factory,
   IProtocolShareReserve,
@@ -20,12 +20,12 @@ import {
   VAI__factory,
   VBep20Delegate__factory,
 } from "../../../typechain";
-import { IAccessControlManager } from "../../../typechain/contracts/Governance";
+import { IAccessControlManagerV8 } from "../../../typechain";
 import { initMainnetUser, setForkBlock } from "./utils";
 
 const { ethers } = require("hardhat");
 
-const FORK_MAINNET = process.env.FORK_MAINNET === "true";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 // Address of the VAI_UNITROLLER
 const VAI_CONTROLLER = "0x004065D34C6b18cE4370ced1CeBDE94865DbFAFE";
@@ -45,7 +45,7 @@ const VBNB = "0xA07c5b74C9B40447a954e1466938b865b6BBea36";
 const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
 
 let impersonatedTimelock: Signer;
-let accessControlManager: IAccessControlManager;
+let accessControlManager: IAccessControlManagerV8;
 let liquidatorOld: Liquidator;
 let liquidatorNew: Liquidator;
 let comptroller: Comptroller;
@@ -65,7 +65,7 @@ async function deployAndConfigureLiquidator() {
   const liquidatorNewImpl = await liquidatorNewFactory.deploy(UNITROLLER, VBNB, WBNB);
 
   const proxyAdmin = ProxyAdmin__factory.connect("0x2b40B43AC5F7949905b0d2Ed9D6154a8ce06084a", impersonatedTimelock);
-  protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  protocolShareReserve = await smock.fake<IProtocolShareReserve>("contracts/InterfacesV8.sol:IProtocolShareReserve");
 
   const data = liquidatorNewImpl.interface.encodeFunctionData("initialize", [
     convertToUnit(5, 16),
