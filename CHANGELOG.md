@@ -1,3 +1,13 @@
+## [9.6.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0...v9.6.0-dev.1) (2025-02-04)
+
+
+### Features
+
+* add deployment config and files for vSOL on bsc mainnet ([f302989](https://github.com/VenusProtocol/venus-protocol/commit/f30298974b79bae869655e6e9b9bd0a32610f6be))
+* add deployment config for new market in bsc testnet ([fe08dcb](https://github.com/VenusProtocol/venus-protocol/commit/fe08dcb5a7a237139f43da0b49f792254c5e1aad))
+* updating deployment files ([95b7f26](https://github.com/VenusProtocol/venus-protocol/commit/95b7f26079c57603f95f6770dca30d96e28a94e3))
+* updating deployment files ([dc1df01](https://github.com/VenusProtocol/venus-protocol/commit/dc1df010a330167fcdc7ac3924e3065a58b5f284))
+
 ## [9.5.0](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0...v9.5.0) (2025-01-29)
 
 
