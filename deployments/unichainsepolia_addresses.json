@@ -1,0 +1,7 @@
+{
+  "name": "unichainsepolia",
+  "chainId": "1301",
+  "addresses": {
+    "VTreasuryV8": "0x0C7CB62F2194cD701bcE8FD8067b43A3Bb76428e"
+  }
+}
