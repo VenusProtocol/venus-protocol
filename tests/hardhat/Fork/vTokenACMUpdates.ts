@@ -46,14 +46,16 @@ async function configure() {
   await vBusdProxy.connect(impersonatedTimelock)._setImplementation(vBusdImpl.address, true, "0x00");
   vBusd = VBep20Delegate__factory.connect(VBUSD, impersonatedTimelock);
   await vBusd.setAccessControlManager(ACM);
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
+    "contracts/InterfacesV8.sol:IProtocolShareReserve",
+  );
   await grantPermission("setReduceReservesBlockDelta(uint256)");
   await expect(vBusd.connect(impersonatedTimelock).setReduceReservesBlockDelta(0)).to.be.revertedWith("Invalid Input");
   await vBusd.connect(impersonatedTimelock).setReduceReservesBlockDelta(1000);
   await vBusd.connect(impersonatedTimelock).setProtocolShareReserve(protocolShareReserve.address);
 }
 
-const FORK_MAINNET = process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 if (FORK_MAINNET) {
   describe("VToken ACM Upgrade", () => {

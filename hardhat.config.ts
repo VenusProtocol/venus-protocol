@@ -9,7 +9,7 @@ import "@typechain/hardhat";
 import fs from "fs";
 import "hardhat-dependency-compiler";
 import "hardhat-deploy";
-import { HardhatUserConfig, extendConfig, task } from "hardhat/config";
+import { HardhatUserConfig, extendConfig, extendEnvironment, task } from "hardhat/config";
 import { HardhatConfig } from "hardhat/types";
 import "solidity-coverage";
 import "solidity-docgen";
@@ -18,6 +18,22 @@ require("hardhat-contract-sizer");
 require("dotenv").config();
 
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
+
+const getRpcUrl = (networkName: string): string => {
+  let uri;
+  if (networkName) {
+    uri = process.env[`ARCHIVE_NODE_${networkName}`];
+  }
+  if (!uri) {
+    throw new Error(`invalid uri or network not supported by node provider : ${uri}`);
+  }
+
+  return uri;
+};
+
+extendEnvironment(hre => {
+  hre.getNetworkName = () => process.env.FORKED_NETWORK || hre.network.name;
+});
 
 extendConfig((config: HardhatConfig) => {
   if (process.env.EXPORT !== "true") {
@@ -68,6 +84,15 @@ extendConfig((config: HardhatConfig) => {
         ],
       },
     };
+  }
+  if (process.env.HARDHAT_FORK_NETWORK) {
+    config!.external!.deployments!.hardhat = [
+      `./deployments/${process.env.HARDHAT_FORK_NETWORK}`,
+      `node_modules/@venusprotocol/oracle/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
+      `node_modules/@venusprotocol/venus-protocol/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
+      `node_modules/@venusprotocol/protocol-reserve/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
+      `node_modules/@venusprotocol/governance-contracts/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
+    ];
   }
 });
 
@@ -207,6 +232,18 @@ const config: HardhatUserConfig = {
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
+    basesepolia: {
+      url: process.env.ARCHIVE_NODE_basesepolia || "https://sepolia.base.org",
+      chainId: 84532,
+      live: true,
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+    },
+    basemainnet: {
+      url: process.env.ARCHIVE_NODE_basemainnet || "https://mainnet.base.org",
+      chainId: 8453,
+      live: true,
+      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
+    },
     unichainsepolia: {
       url: process.env.ARCHIVE_NODE_unichainsepolia || "https://sepolia.unichain.org",
       chainId: 1301,
@@ -226,6 +263,8 @@ const config: HardhatUserConfig = {
       arbitrumone: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       opsepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       opmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      basesepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      basemainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       unichainsepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     },
     customChains: [
@@ -310,6 +349,22 @@ const config: HardhatUserConfig = {
         },
       },
       {
+        network: "basesepolia",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://sepolia.basescan.org/",
+        },
+      },
+      {
+        network: "basemainnet",
+        chainId: 8453,
+        urls: {
+          apiURL: "https://api.basescan.org/api",
+          browserURL: "https://basescan.org/",
+        },
+      },
+      {
         network: "unichainsepolia",
         chainId: 1301,
         urls: {
@@ -366,14 +421,12 @@ const config: HardhatUserConfig = {
 };
 
 function isFork() {
-  return process.env.FORK === "true"
+  return process.env.FORKED_NETWORK
     ? {
         allowUnlimitedContractSize: false,
         loggingEnabled: false,
         forking: {
-          url:
-            process.env[`ARCHIVE_NODE_${process.env.FORKED_NETWORK}`] ||
-            "https://data-seed-prebsc-1-s1.binance.org:8545",
+          url: getRpcUrl(process.env.FORKED_NETWORK as string) || "https://data-seed-prebsc-1-s1.binance.org:8545",
           blockNumber: 21068448,
         },
         accounts: {
