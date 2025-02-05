@@ -1,0 +1,11 @@
+{
+  "name": "unichainsepolia",
+  "chainId": "1301",
+  "addresses": {
+    "DefaultProxyAdmin": "0x256735eFdfDf135bD6991854e0065909e57804aa",
+    "VTreasuryV8": "0x0C7CB62F2194cD701bcE8FD8067b43A3Bb76428e",
+    "XVSStore": "0xeE012BeFEa825a21b6346EF0f78249740ca2569b",
+    "XVSVaultProxy": "0x3a33d235E23B6B54004E25FF8E622228df16717a",
+    "XVSVaultProxy_Implementation": "0xcAA889268DC77CE858401384515902AdE351c780"
+  }
+}
