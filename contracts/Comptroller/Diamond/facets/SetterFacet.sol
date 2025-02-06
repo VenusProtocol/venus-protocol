@@ -119,7 +119,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function setPriceOracle(PriceOracle newOracle) external returns (uint256) {
-        __setPriceOracle(newOracle);
+        return __setPriceOracle(newOracle);
     }
 
     /**
@@ -129,7 +129,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function _setPriceOracle(PriceOracle newOracle) external returns (uint256) {
-        __setPriceOracle(newOracle);
+        return __setPriceOracle(newOracle);
     }
 
     /**
@@ -138,7 +138,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise will revert
      */
     function setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256) {
-        __setCloseFactor(newCloseFactorMantissa);
+        return __setCloseFactor(newCloseFactorMantissa);
     }
 
     /**
@@ -148,7 +148,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise will revert
      */
     function _setCloseFactor(uint256 newCloseFactorMantissa) external returns (uint256) {
-        __setCloseFactor(newCloseFactorMantissa);
+        return __setCloseFactor(newCloseFactorMantissa);
     }
 
     /**
@@ -188,7 +188,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
             newCollateralFactorMantissa == newLiquidationThresholdMantissa,
             "collateral factor and liquidation threshold must be the same"
         );
-        __setCollateralFactor(vToken, newCollateralFactorMantissa);
+        return __setCollateralFactor(vToken, newCollateralFactorMantissa);
     }
 
     /**
@@ -199,7 +199,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
     function _setCollateralFactor(VToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256) {
-        __setCollateralFactor(vToken, newCollateralFactorMantissa);
+        return __setCollateralFactor(vToken, newCollateralFactorMantissa);
     }
 
     /**
