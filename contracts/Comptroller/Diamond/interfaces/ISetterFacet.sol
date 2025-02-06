@@ -46,6 +46,12 @@ interface ISetterFacet {
 
     function _setProtocolPaused(bool state) external returns (bool);
 
+    function setActionsPaused(
+        address[] calldata markets,
+        ComptrollerTypes.Action[] calldata actions,
+        bool paused
+    ) external;
+
     function _setActionsPaused(
         address[] calldata markets,
         ComptrollerTypes.Action[] calldata actions,
