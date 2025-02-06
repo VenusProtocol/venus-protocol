@@ -118,6 +118,15 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
+     * @notice Check if a market is marked as listed (active)
+     * @param vToken vToken Address for the market to check
+     * @return listed True if listed otherwise false
+     */
+    function isMarketListed(VToken vToken) external view returns (bool) {
+        return markets[address(vToken)].isListed;
+    }
+
+    /**
      * @notice Add assets to be included in account liquidity calculation
      * @param vTokens The list of addresses of the vToken markets to be enabled
      * @return Success indicator for whether each corresponding market was entered
@@ -243,15 +252,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
      */
     function _supportMarket(VToken vToken) external returns (uint256) {
         return __supportMarket(vToken);
-    }
-
-    /**
-     * @notice Check if a market is marked as listed (active)
-     * @param vToken vToken Address for the market to check
-     * @return listed True if listed otherwise false
-     */
-    function isMarketListed(VToken vToken) external view returns (bool) {
-        return markets[address(vToken)].isListed;
     }
 
     /**
