@@ -281,8 +281,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
     /**
      * @notice Alias to _setMarketSupplyCaps to support the Isolated Lending Comptroller Interface
-     * @param vTokens The addresses of the markets (tokens) to change the borrow caps for
-     * @param newSupplyCaps The new borrow cap values in underlying to be set. A value of 0 corresponds to Borrow not allowed
+     * @param vTokens The addresses of the markets (tokens) to change the supply caps for
+     * @param newSupplyCaps The new supply cap values in underlying to be set. A value of 0 corresponds to Minting NotAllowed
      */
     function setMarketSupplyCaps(VToken[] calldata vTokens, uint256[] calldata newSupplyCaps) external {
         __setMarketSupplyCaps(vTokens, newSupplyCaps);
@@ -495,6 +495,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /**
      * @notice Alias to _setPrimeToken to support the Isolated Lending Comptroller Interface
      * @param _prime The new prime token contract to be set
+     * @return uint 0=success, otherwise a failure (see ErrorReporter.sol for details)
      */
     function setPrimeToken(IPrime _prime) external returns (uint256) {
         return __setPrimeToken(_prime);
@@ -573,6 +574,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
         xvsVToken = xvsVToken_;
     }
 
+    /**
+     * @dev Updates the valid price oracle. Used by _setPriceOracle and setPriceOracle
+     * @param newOracle The new price oracle to be set
+     * @return uint256 0=success, otherwise reverted
+     */
     function __setPriceOracle(
         PriceOracle newOracle
     ) internal compareAddress(address(oracle), address(newOracle)) returns (uint256) {
@@ -592,6 +598,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
         return uint256(Error.NO_ERROR);
     }
 
+    /**
+     * @dev Updates the close factor. Used by _setCloseFactor and setCloseFactor
+     * @param newCloseFactorMantissa The new close factor to be set
+     * @return uint256 0=success, otherwise reverted
+     */
     function __setCloseFactor(
         uint256 newCloseFactorMantissa
     ) internal compareValue(closeFactorMantissa, newCloseFactorMantissa) returns (uint256) {
@@ -616,6 +627,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
         return uint256(Error.NO_ERROR);
     }
 
+    /**
+     * @dev Updates the collateral factor. Used by _setCollateralFactor and setCollateralFactor
+     * @param vToken The market to set the factor on
+     * @param newCollateralFactorMantissa The new collateral factor to be set
+     * @return uint256 0=success, otherwise reverted
+     */
     function __setCollateralFactor(
         VToken vToken,
         uint256 newCollateralFactorMantissa
@@ -655,6 +672,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
         return uint256(Error.NO_ERROR);
     }
 
+    /**
+     * @dev Updates the liquidation incentive. Used by _setLiquidationIncentive and setLiquidationIncentive
+     * @param newLiquidationIncentiveMantissa The new liquidation incentive to be set
+     * @return uint256 0=success, otherwise reverted
+     */
     function __setLiquidationIncentive(
         uint256 newLiquidationIncentiveMantissa
     ) internal compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint256) {
@@ -673,6 +695,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
         return uint256(Error.NO_ERROR);
     }
 
+    /**
+     * @dev Updates the borrow caps. Used by _setMarketBorrowCaps and setMarketBorrowCaps
+     * @param vTokens The markets to set the borrow caps on
+     * @param newBorrowCaps The new borrow caps to be set
+     */
     function __setMarketBorrowCaps(VToken[] memory vTokens, uint256[] memory newBorrowCaps) internal {
         ensureAllowed("_setMarketBorrowCaps(address[],uint256[])");
 
@@ -687,6 +714,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
         }
     }
 
+    /**
+     * @dev Updates the supply caps. Used by _setMarketSupplyCaps and setMarketSupplyCaps
+     * @param vTokens The markets to set the supply caps on
+     * @param newSupplyCaps The new supply caps to be set
+     */
     function __setMarketSupplyCaps(VToken[] memory vTokens, uint256[] memory newSupplyCaps) internal {
         ensureAllowed("_setMarketSupplyCaps(address[],uint256[])");
 
@@ -712,6 +744,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
         return uint(Error.NO_ERROR);
     }
 
+    /**
+     * @dev Updates the forced liquidation. Used by _setForcedLiquidation and setForcedLiquidation
+     * @param vTokenBorrowed The market to set the forced liquidation on
+     * @param enable Whether to enable forced liquidations
+     */
     function __setForcedLiquidation(address vTokenBorrowed, bool enable) internal {
         ensureAllowed("_setForcedLiquidation(address,bool)");
         if (vTokenBorrowed != address(vaiController)) {
@@ -721,6 +758,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
         emit IsForcedLiquidationEnabledUpdated(vTokenBorrowed, enable);
     }
 
+    /**
+     * @dev Updates the actions paused. Used by _setActionsPaused and setActionsPaused
+     * @param markets_ The markets to set the actions paused on
+     * @param actions_ The actions to set the paused state on
+     * @param paused_ The new paused state to be set
+     */
     function __setActionsPaused(address[] memory markets_, Action[] memory actions_, bool paused_) internal {
         ensureAllowed("_setActionsPaused(address[],uint8[],bool)");
 

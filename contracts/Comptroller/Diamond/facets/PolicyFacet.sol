@@ -410,10 +410,11 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     /**
      * @notice Alias to getAccountLiquidity to support the Isolated Lending Comptroller Interface
      * @param account The account get liquidity for
+     * @return (possible error code (semi-opaque),
+                account liquidity in excess of collateral requirements,
+     *          account shortfall below collateral requirements)
      */
-    function getBorrowingPower(
-        address account
-    ) external view returns (uint256 error, uint256 liquidity, uint256 shortfall) {
+    function getBorrowingPower(address account) external view returns (uint256, uint256, uint256) {
         return _getAccountLiquidity(account);
     }
 
