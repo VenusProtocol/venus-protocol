@@ -178,7 +178,7 @@ const setupFork = async (): Promise<BUSDLiquidatorFixture> => {
   await busd.connect(busdHolder).transfer(someone.address, parseUnits("10000", 18));
   await busd.connect(someone).approve(busdLiquidator.address, parseUnits("10000", 18));
 
-  return { comptroller, busdLiquidator, vCollateral, vBUSD, busd, treasuryAddress };
+  return { comptroller, busdLiquidator, vCollateral, vBUSD, busd, treasuryAddress, collateral };
 };
 
 const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {

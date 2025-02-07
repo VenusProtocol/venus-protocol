@@ -20,7 +20,7 @@ forking(34340887, () => {
   let diamond: Diamond;
   let owner: SignerWithAddress;
 
-  if (process.env.FORK === "true" && process.env.FORKED_NETWORK === "bscmainnet") {
+  if (process.env.FORKED_NETWORK === "bscmainnet") {
     before(async () => {
       await impersonateAccount(OWNER);
       owner = await ethers.getSigner(OWNER);

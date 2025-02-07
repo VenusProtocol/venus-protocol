@@ -6,8 +6,8 @@ import { ethers } from "hardhat";
 
 import { convertToUnit } from "../../../helpers/utils";
 import {
-  Comptroller,
-  Comptroller__factory,
+  ComptrollerHarness as Comptroller,
+  ComptrollerHarness__factory as Comptroller__factory,
   IAccessControlManagerV8,
   IAccessControlManagerV8__factory,
   IProtocolShareReserve,
@@ -19,7 +19,7 @@ import {
 import { IBEP20__factory } from "../../../typechain/factories/contracts/Utils";
 import { initMainnetUser, setForkBlock } from "./utils";
 
-const FORK_MAINNET = process.env.FORK_MAINNET === "true";
+const FORK_MAINNET = process.env.FORKED_NETWORK === "bscmainnet";
 
 // Address of already deployed access control manager
 const ACM = "0x4788629ABc6cFCA10F9f969efdEAa1cF70c23555";
@@ -50,7 +50,7 @@ async function deployAndConfigureLiquidator() {
 
   const liquidatorNewFactory = await ethers.getContractFactory("Liquidator");
   const liquidatorNewImpl = await liquidatorNewFactory.deploy(UNITROLLER, VBNB, WBNB);
-  protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
+  protocolShareReserve = await smock.fake<IProtocolShareReserve>("contracts/InterfacesV8.sol:IProtocolShareReserve");
   const proxyAdmin = ProxyAdmin__factory.connect("0x2b40B43AC5F7949905b0d2Ed9D6154a8ce06084a", impersonatedTimelock);
   const data = liquidatorNewImpl.interface.encodeFunctionData("initialize", [
     convertToUnit(5, 16),

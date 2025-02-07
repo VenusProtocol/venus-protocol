@@ -19,7 +19,7 @@ forking(36322844, () => {
   let xvsVaultProxy: XVSVaultProxy;
   let owner: SignerWithAddress;
 
-  if (process.env.FORK === "true" && process.env.FORKED_NETWORK === "bsctestnet") {
+  if (process.env.FORKED_NETWORK === "bsctestnet") {
     before(async () => {
       await impersonateAccount(TIMELOCK);
       owner = await ethers.getSigner(TIMELOCK);
