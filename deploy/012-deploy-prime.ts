@@ -27,6 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     arbitrumsepolia: TEN_MINUTES,
     zksyncsepolia: TEN_MINUTES,
     opsepolia: TEN_MINUTES,
+    unichainsepolia: TEN_MINUTES,
     basesepolia: TEN_MINUTES,
     basemainnet: NINETY_DAYS,
     bscmainnet: NINETY_DAYS,
@@ -47,6 +48,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     zksyncmainnet: 0,
     opsepolia: 0,
     opmainnet: 0,
+    unichainsepolia: 0,
     hardhat: 0,
     basesepolia: 0,
     basemainnet: 0,
@@ -61,6 +63,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     zksyncmainnet: 0, // time based contracts
     opsepolia: 0, // time based contracts
     opmainnet: 0, // time based contracts
+    unichainsepolia: 0, // time based contracts
     basesepolia: 0, // time based contracts
     basemainnet: 0, // time based contracts
     bscmainnet: 10_512_000,
@@ -95,6 +98,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     zksyncmainnet: "0x751Aa759cfBB6CE71A43b48e40e1cCcFC66Ba4aa", // ZKSYNC MAINNET MULTISIG
     opsepolia: "0xd57365EE4E850e881229e2F8Aa405822f289e78d", // OPSEPOLIA MULTISIG
     opmainnet: "0x2e94dd14E81999CdBF5deDE31938beD7308354b3", // OPMAINNET MULTISIG
+    unichainsepolia: "0x9831D3A641E8c7F082EEA75b8249c99be9D09a34", // UNICHAIN SEPOLIA MULTISIG
     basesepolia: "0xdf3b635d2b535f906BB02abb22AED71346E36a00", // BASE SEPOLIA MULTISIG
     basemainnet: "0x1803Cf1D3495b43cC628aa1d8638A981F8CD341C", // BASE MAINNET MULTISIG
     bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
