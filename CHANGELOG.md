@@ -1,3 +1,12 @@
+## [9.6.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.2...v9.6.0-dev.3) (2025-02-07)
+
+
+### Features
+
+* updating deployment files ([ac9ddc3](https://github.com/VenusProtocol/venus-protocol/commit/ac9ddc32d2af9a79f55dea63654ae851ee0d8801))
+* updating deployment files ([33e2a34](https://github.com/VenusProtocol/venus-protocol/commit/33e2a3421e9468afef19476ad10c931ecbc247eb))
+* XVS vault deployments on unichain sepolia ([470e7b0](https://github.com/VenusProtocol/venus-protocol/commit/470e7b089e822656ed7105d409f9b59e7d533a8a))
+
 ## [9.6.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.1...v9.6.0-dev.2) (2025-02-06)
 
 
