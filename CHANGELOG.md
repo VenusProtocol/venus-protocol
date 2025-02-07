@@ -1,3 +1,16 @@
+## [9.6.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.1...v9.6.0-dev.2) (2025-02-06)
+
+
+### Features
+
+* treasury deployment on unichainsepolia ([ed53717](https://github.com/VenusProtocol/venus-protocol/commit/ed5371774efee1eec4e777d13dba3a1c3e2e1d6a))
+* updating deployment files ([1583805](https://github.com/VenusProtocol/venus-protocol/commit/158380540931ec9f8177673ea129d337fff07fd9))
+
+
+### Bug Fixes
+
+* yarn ([bad7dfa](https://github.com/VenusProtocol/venus-protocol/commit/bad7dfa612613c7e3c19254b7d1784d11d7b987c))
+
 ## [9.6.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0...v9.6.0-dev.1) (2025-02-04)
 
 
