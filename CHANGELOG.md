@@ -1,3 +1,10 @@
+## [9.6.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.4...v9.6.0-dev.5) (2025-02-07)
+
+
+### Features
+
+* update dependencies ([8b85e33](https://github.com/VenusProtocol/venus-protocol/commit/8b85e33bc7c7cbbc2618419f99bf125a1a6791e1))
+
 ## [9.6.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.3...v9.6.0-dev.4) (2025-02-07)
 
 
