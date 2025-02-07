@@ -1,3 +1,12 @@
+## [9.6.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.3...v9.6.0-dev.4) (2025-02-07)
+
+
+### Features
+
+* deploy & configure prime on unichain sepolia ([3b8f9ce](https://github.com/VenusProtocol/venus-protocol/commit/3b8f9cec3e1ffbd6294435742a4fd63925ce547e))
+* updating deployment files ([fd7b97f](https://github.com/VenusProtocol/venus-protocol/commit/fd7b97f97cd9d1c6685d358aa65e75462c5adaf8))
+* updating deployment files ([56e8e8f](https://github.com/VenusProtocol/venus-protocol/commit/56e8e8f363d1f4ccdfecf90bd0e11a9428b4c149))
+
 ## [9.6.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.2...v9.6.0-dev.3) (2025-02-07)
 
 
