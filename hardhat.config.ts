@@ -272,6 +272,7 @@ const config: HardhatUserConfig = {
       basesepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       basemainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       unichainsepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
+      unichainmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     },
     customChains: [
       {
@@ -376,6 +377,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: `https://api-sepolia.uniscan.xyz/api/`,
           browserURL: "https://sepolia.uniscan.xyz/",
+        },
+      },
+      {
+        network: "unichainmainnet",
+        chainId: 130,
+        urls: {
+          apiURL: `https://api.uniscan.xyz/api/`,
+          browserURL: "https://uniscan.xyz/",
         },
       },
     ],
