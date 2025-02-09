@@ -139,7 +139,7 @@ jobs:
 
       - name: Export deployments
         run: |
-          for NETWORK in bsctestnet bscmainnet ethereum sepolia opbnbtestnet opbnbmainnet arbitrumsepolia arbitrumone opsepolia opmainnet basesepolia basemainnet unichainmainnet; do
+          for NETWORK in bsctestnet bscmainnet ethereum sepolia opbnbtestnet opbnbmainnet arbitrumsepolia arbitrumone opsepolia opmainnet basesepolia basemainnet unichainsepolia unichainmainnet; do
             EXPORT=true yarn hardhat export --network ${NETWORK} --export ./deployments/${NETWORK}.json
             jq -M '{name, chainId, addresses: .contracts | map_values(.address)}' ./deployments/${NETWORK}.json > ./deployments/${NETWORK}_addresses.json
           done

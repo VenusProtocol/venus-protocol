@@ -1,3 +1,65 @@
+## [9.6.0](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0...v9.6.0) (2025-02-07)
+
+
+### Features
+
+* add deployment config and files for vSOL on bsc mainnet ([f302989](https://github.com/VenusProtocol/venus-protocol/commit/f30298974b79bae869655e6e9b9bd0a32610f6be))
+* add deployment config for new market in bsc testnet ([fe08dcb](https://github.com/VenusProtocol/venus-protocol/commit/fe08dcb5a7a237139f43da0b49f792254c5e1aad))
+* deploy & configure prime on unichain sepolia ([3b8f9ce](https://github.com/VenusProtocol/venus-protocol/commit/3b8f9cec3e1ffbd6294435742a4fd63925ce547e))
+* treasury deployment on unichainsepolia ([ed53717](https://github.com/VenusProtocol/venus-protocol/commit/ed5371774efee1eec4e777d13dba3a1c3e2e1d6a))
+* update dependencies ([8b85e33](https://github.com/VenusProtocol/venus-protocol/commit/8b85e33bc7c7cbbc2618419f99bf125a1a6791e1))
+* updating deployment files ([fd7b97f](https://github.com/VenusProtocol/venus-protocol/commit/fd7b97f97cd9d1c6685d358aa65e75462c5adaf8))
+* updating deployment files ([56e8e8f](https://github.com/VenusProtocol/venus-protocol/commit/56e8e8f363d1f4ccdfecf90bd0e11a9428b4c149))
+* updating deployment files ([ac9ddc3](https://github.com/VenusProtocol/venus-protocol/commit/ac9ddc32d2af9a79f55dea63654ae851ee0d8801))
+* updating deployment files ([33e2a34](https://github.com/VenusProtocol/venus-protocol/commit/33e2a3421e9468afef19476ad10c931ecbc247eb))
+* updating deployment files ([1583805](https://github.com/VenusProtocol/venus-protocol/commit/158380540931ec9f8177673ea129d337fff07fd9))
+* updating deployment files ([95b7f26](https://github.com/VenusProtocol/venus-protocol/commit/95b7f26079c57603f95f6770dca30d96e28a94e3))
+* updating deployment files ([dc1df01](https://github.com/VenusProtocol/venus-protocol/commit/dc1df010a330167fcdc7ac3924e3065a58b5f284))
+* XVS vault deployments on unichain sepolia ([470e7b0](https://github.com/VenusProtocol/venus-protocol/commit/470e7b089e822656ed7105d409f9b59e7d533a8a))
+
+
+### Bug Fixes
+
+* yarn ([bad7dfa](https://github.com/VenusProtocol/venus-protocol/commit/bad7dfa612613c7e3c19254b7d1784d11d7b987c))
+
+## [9.6.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.4...v9.6.0-dev.5) (2025-02-07)
+
+
+### Features
+
+* update dependencies ([8b85e33](https://github.com/VenusProtocol/venus-protocol/commit/8b85e33bc7c7cbbc2618419f99bf125a1a6791e1))
+
+## [9.6.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.3...v9.6.0-dev.4) (2025-02-07)
+
+
+### Features
+
+* deploy & configure prime on unichain sepolia ([3b8f9ce](https://github.com/VenusProtocol/venus-protocol/commit/3b8f9cec3e1ffbd6294435742a4fd63925ce547e))
+* updating deployment files ([fd7b97f](https://github.com/VenusProtocol/venus-protocol/commit/fd7b97f97cd9d1c6685d358aa65e75462c5adaf8))
+* updating deployment files ([56e8e8f](https://github.com/VenusProtocol/venus-protocol/commit/56e8e8f363d1f4ccdfecf90bd0e11a9428b4c149))
+
+## [9.6.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.2...v9.6.0-dev.3) (2025-02-07)
+
+
+### Features
+
+* updating deployment files ([ac9ddc3](https://github.com/VenusProtocol/venus-protocol/commit/ac9ddc32d2af9a79f55dea63654ae851ee0d8801))
+* updating deployment files ([33e2a34](https://github.com/VenusProtocol/venus-protocol/commit/33e2a3421e9468afef19476ad10c931ecbc247eb))
+* XVS vault deployments on unichain sepolia ([470e7b0](https://github.com/VenusProtocol/venus-protocol/commit/470e7b089e822656ed7105d409f9b59e7d533a8a))
+
+## [9.6.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.1...v9.6.0-dev.2) (2025-02-06)
+
+
+### Features
+
+* treasury deployment on unichainsepolia ([ed53717](https://github.com/VenusProtocol/venus-protocol/commit/ed5371774efee1eec4e777d13dba3a1c3e2e1d6a))
+* updating deployment files ([1583805](https://github.com/VenusProtocol/venus-protocol/commit/158380540931ec9f8177673ea129d337fff07fd9))
+
+
+### Bug Fixes
+
+* yarn ([bad7dfa](https://github.com/VenusProtocol/venus-protocol/commit/bad7dfa612613c7e3c19254b7d1784d11d7b987c))
+
 ## [9.6.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0...v9.6.0-dev.1) (2025-02-04)
 
 
