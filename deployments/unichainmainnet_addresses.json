@@ -1,0 +1,7 @@
+{
+  "name": "unichainmainnet",
+  "chainId": "130",
+  "addresses": {
+    "VTreasuryV8": "0x958F4C84d3ad523Fa9936Dc465A123C7AD43D69B"
+  }
+}
