@@ -1,3 +1,102 @@
+## [9.6.0](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0...v9.6.0) (2025-02-07)
+
+
+### Features
+
+* add deployment config and files for vSOL on bsc mainnet ([f302989](https://github.com/VenusProtocol/venus-protocol/commit/f30298974b79bae869655e6e9b9bd0a32610f6be))
+* add deployment config for new market in bsc testnet ([fe08dcb](https://github.com/VenusProtocol/venus-protocol/commit/fe08dcb5a7a237139f43da0b49f792254c5e1aad))
+* deploy & configure prime on unichain sepolia ([3b8f9ce](https://github.com/VenusProtocol/venus-protocol/commit/3b8f9cec3e1ffbd6294435742a4fd63925ce547e))
+* treasury deployment on unichainsepolia ([ed53717](https://github.com/VenusProtocol/venus-protocol/commit/ed5371774efee1eec4e777d13dba3a1c3e2e1d6a))
+* update dependencies ([8b85e33](https://github.com/VenusProtocol/venus-protocol/commit/8b85e33bc7c7cbbc2618419f99bf125a1a6791e1))
+* updating deployment files ([fd7b97f](https://github.com/VenusProtocol/venus-protocol/commit/fd7b97f97cd9d1c6685d358aa65e75462c5adaf8))
+* updating deployment files ([56e8e8f](https://github.com/VenusProtocol/venus-protocol/commit/56e8e8f363d1f4ccdfecf90bd0e11a9428b4c149))
+* updating deployment files ([ac9ddc3](https://github.com/VenusProtocol/venus-protocol/commit/ac9ddc32d2af9a79f55dea63654ae851ee0d8801))
+* updating deployment files ([33e2a34](https://github.com/VenusProtocol/venus-protocol/commit/33e2a3421e9468afef19476ad10c931ecbc247eb))
+* updating deployment files ([1583805](https://github.com/VenusProtocol/venus-protocol/commit/158380540931ec9f8177673ea129d337fff07fd9))
+* updating deployment files ([95b7f26](https://github.com/VenusProtocol/venus-protocol/commit/95b7f26079c57603f95f6770dca30d96e28a94e3))
+* updating deployment files ([dc1df01](https://github.com/VenusProtocol/venus-protocol/commit/dc1df010a330167fcdc7ac3924e3065a58b5f284))
+* XVS vault deployments on unichain sepolia ([470e7b0](https://github.com/VenusProtocol/venus-protocol/commit/470e7b089e822656ed7105d409f9b59e7d533a8a))
+
+
+### Bug Fixes
+
+* yarn ([bad7dfa](https://github.com/VenusProtocol/venus-protocol/commit/bad7dfa612613c7e3c19254b7d1784d11d7b987c))
+
+## [9.6.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.4...v9.6.0-dev.5) (2025-02-07)
+
+
+### Features
+
+* update dependencies ([8b85e33](https://github.com/VenusProtocol/venus-protocol/commit/8b85e33bc7c7cbbc2618419f99bf125a1a6791e1))
+
+## [9.6.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.3...v9.6.0-dev.4) (2025-02-07)
+
+
+### Features
+
+* deploy & configure prime on unichain sepolia ([3b8f9ce](https://github.com/VenusProtocol/venus-protocol/commit/3b8f9cec3e1ffbd6294435742a4fd63925ce547e))
+* updating deployment files ([fd7b97f](https://github.com/VenusProtocol/venus-protocol/commit/fd7b97f97cd9d1c6685d358aa65e75462c5adaf8))
+* updating deployment files ([56e8e8f](https://github.com/VenusProtocol/venus-protocol/commit/56e8e8f363d1f4ccdfecf90bd0e11a9428b4c149))
+
+## [9.6.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.2...v9.6.0-dev.3) (2025-02-07)
+
+
+### Features
+
+* updating deployment files ([ac9ddc3](https://github.com/VenusProtocol/venus-protocol/commit/ac9ddc32d2af9a79f55dea63654ae851ee0d8801))
+* updating deployment files ([33e2a34](https://github.com/VenusProtocol/venus-protocol/commit/33e2a3421e9468afef19476ad10c931ecbc247eb))
+* XVS vault deployments on unichain sepolia ([470e7b0](https://github.com/VenusProtocol/venus-protocol/commit/470e7b089e822656ed7105d409f9b59e7d533a8a))
+
+## [9.6.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0-dev.1...v9.6.0-dev.2) (2025-02-06)
+
+
+### Features
+
+* treasury deployment on unichainsepolia ([ed53717](https://github.com/VenusProtocol/venus-protocol/commit/ed5371774efee1eec4e777d13dba3a1c3e2e1d6a))
+* updating deployment files ([1583805](https://github.com/VenusProtocol/venus-protocol/commit/158380540931ec9f8177673ea129d337fff07fd9))
+
+
+### Bug Fixes
+
+* yarn ([bad7dfa](https://github.com/VenusProtocol/venus-protocol/commit/bad7dfa612613c7e3c19254b7d1784d11d7b987c))
+
+## [9.6.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0...v9.6.0-dev.1) (2025-02-04)
+
+
+### Features
+
+* add deployment config and files for vSOL on bsc mainnet ([f302989](https://github.com/VenusProtocol/venus-protocol/commit/f30298974b79bae869655e6e9b9bd0a32610f6be))
+* add deployment config for new market in bsc testnet ([fe08dcb](https://github.com/VenusProtocol/venus-protocol/commit/fe08dcb5a7a237139f43da0b49f792254c5e1aad))
+* updating deployment files ([95b7f26](https://github.com/VenusProtocol/venus-protocol/commit/95b7f26079c57603f95f6770dca30d96e28a94e3))
+* updating deployment files ([dc1df01](https://github.com/VenusProtocol/venus-protocol/commit/dc1df010a330167fcdc7ac3924e3065a58b5f284))
+
+## [9.5.0](https://github.com/VenusProtocol/venus-protocol/compare/v9.4.0...v9.5.0) (2025-01-29)
+
+
+### Features
+
+* add fork deployment ([a3baefb](https://github.com/VenusProtocol/venus-protocol/commit/a3baefb694a0efb2ad099ac2d4d279a8d91f5046))
+* add THE market to the Core pool ([363a26c](https://github.com/VenusProtocol/venus-protocol/commit/363a26c171c39c93feb577fdc916b95cf222f89c))
+* deployed irm for bscmainnet ([7def41f](https://github.com/VenusProtocol/venus-protocol/commit/7def41f6b23e264500a0f1fc6cc8ecd736eca21e))
+* deployed two kinks IRM on bsc mainnet ([6af507c](https://github.com/VenusProtocol/venus-protocol/commit/6af507c4c362a0262a0397da301fab5493ed98cf))
+* updating deployment files ([3d14331](https://github.com/VenusProtocol/venus-protocol/commit/3d14331c2e2de84bf8ff672ed3d3d9fceeae6bf5))
+* updating deployment files ([dd76350](https://github.com/VenusProtocol/venus-protocol/commit/dd76350d649705549a699ca85dd5d9ebb7297543))
+* updating deployment files ([ffede77](https://github.com/VenusProtocol/venus-protocol/commit/ffede7701698dd2e542a81b4d0fb49c83f802d56))
+* updating deployment files ([30b5160](https://github.com/VenusProtocol/venus-protocol/commit/30b51601480bbbe60bfb702bb772282fe5c08b05))
+
+
+### Bug Fixes
+
+* update contract/ artifact paths and imports ([05ea2ab](https://github.com/VenusProtocol/venus-protocol/commit/05ea2ab863882a04d695f91a93657458275d6ea4))
+
+## [9.5.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0-dev.2...v9.5.0-dev.3) (2025-01-29)
+
+
+### Features
+
+* add THE market to the Core pool ([363a26c](https://github.com/VenusProtocol/venus-protocol/commit/363a26c171c39c93feb577fdc916b95cf222f89c))
+* updating deployment files ([3d14331](https://github.com/VenusProtocol/venus-protocol/commit/3d14331c2e2de84bf8ff672ed3d3d9fceeae6bf5))
+
 ## [9.5.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0-dev.1...v9.5.0-dev.2) (2025-01-02)
 
 
