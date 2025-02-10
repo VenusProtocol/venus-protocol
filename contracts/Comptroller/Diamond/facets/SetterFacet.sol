@@ -733,6 +733,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
         }
     }
 
+    /**
+     * @dev Updates the prime token. Used by _setPrimeToken and setPrimeToken
+     * @param _prime The new prime token to be set
+     * @return uint256 0=success, otherwise reverted
+     */
     function __setPrimeToken(IPrime _prime) internal returns (uint) {
         ensureAdmin();
         ensureNonzeroAddress(address(_prime));
