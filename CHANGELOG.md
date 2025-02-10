@@ -1,3 +1,12 @@
+## [9.7.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0...v9.7.0-dev.1) (2025-02-10)
+
+
+### Features
+
+* treasury deployment on unichain ([6e21ebc](https://github.com/VenusProtocol/venus-protocol/commit/6e21ebceb04d2d5363632dd95f043ef0a954adae))
+* update dependencies ([6838200](https://github.com/VenusProtocol/venus-protocol/commit/6838200dbca67769e2eee1072676aa275a800dd4))
+* updating deployment files ([8f8eb58](https://github.com/VenusProtocol/venus-protocol/commit/8f8eb58e5972e2b581ed16bc76058416955e0920))
+
 ## [9.6.0](https://github.com/VenusProtocol/venus-protocol/compare/v9.5.0...v9.6.0) (2025-02-07)
 
 
