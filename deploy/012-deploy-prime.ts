@@ -80,7 +80,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const xvsVaultAlphaNumerator = 1;
   const xvsVaultAlphaDenominator = 2;
   const loopsLimit = 20;
-  const isTimeBased = true; // revise this value when deploying on L2s
+  const isTimeBased = blocksPerYear[network.name] === 0;
 
   const corePoolAddress = await getContractAddressOrNullAddress(deployments, "Unitroller");
   const wrappedNativeToken = await getContractAddressOrNullAddress(deployments, "WBNB");
