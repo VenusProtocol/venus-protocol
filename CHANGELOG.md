@@ -1,3 +1,13 @@
+## [9.7.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.7.0-dev.1...v9.7.0-dev.2) (2025-02-11)
+
+
+### Features
+
+* add prime deployment on unichainmainnet ([1096270](https://github.com/VenusProtocol/venus-protocol/commit/1096270638447018002fceeb15ee19c8c3aa4340))
+* updating deployment files ([3ea6b33](https://github.com/VenusProtocol/venus-protocol/commit/3ea6b336834ccaa98a6f3c4542a9e9eb59eb3ee3))
+* updating deployment files ([cd9b9bd](https://github.com/VenusProtocol/venus-protocol/commit/cd9b9bd1ff00eb7ba784c957ac35ba106167c8b7))
+* xvs vault on unichain ([c5213ab](https://github.com/VenusProtocol/venus-protocol/commit/c5213abc0b5d6379dc4297f780d07f04c1114078))
+
 ## [9.7.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0...v9.7.0-dev.1) (2025-02-10)
 
 
