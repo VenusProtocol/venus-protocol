@@ -2,6 +2,16 @@
   "name": "unichainmainnet",
   "chainId": "130",
   "addresses": {
-    "VTreasuryV8": "0x958F4C84d3ad523Fa9936Dc465A123C7AD43D69B"
+    "DefaultProxyAdmin": "0x78e9fff2ab8daAB8559070d897C399E5e1C5074c",
+    "Prime": "0x600aFf613d40D87C8Fe90Cb2e78e8e6667c0C872",
+    "PrimeLiquidityProvider": "0x045a45603E1b073F444fe3Be7d5C7e0a5035afB7",
+    "PrimeLiquidityProvider_Implementation": "0xE20E19E37E240D5A19A3899E988C474A922bB8fC",
+    "PrimeLiquidityProvider_Proxy": "0x045a45603E1b073F444fe3Be7d5C7e0a5035afB7",
+    "Prime_Implementation": "0xb0f8c39D9157243d3aFD30Be005459f0B8C61E95",
+    "Prime_Proxy": "0x600aFf613d40D87C8Fe90Cb2e78e8e6667c0C872",
+    "VTreasuryV8": "0x958F4C84d3ad523Fa9936Dc465A123C7AD43D69B",
+    "XVSStore": "0x0ee4b35c2cEAb19856Bf35505F81608d12B2a7Bb",
+    "XVSVaultProxy": "0x5ECa0FBBc5e7bf49dbFb1953a92784F8e4248eF6",
+    "XVSVaultProxy_Implementation": "0x2ba0F45f7368d2A56d0c9e5a29af363987BE1d02"
   }
 }
