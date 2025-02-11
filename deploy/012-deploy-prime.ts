@@ -35,6 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     arbitrumone: NINETY_DAYS,
     zksyncmainnet: NINETY_DAYS,
     opmainnet: NINETY_DAYS,
+    unichainmainnet: NINETY_DAYS,
   };
 
   const xVSVaultPoolId: Config = {
@@ -52,6 +53,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     hardhat: 0,
     basesepolia: 0,
     basemainnet: 0,
+    unichainmainnet: 0,
   };
 
   const blocksPerYear: Config = {
@@ -66,6 +68,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     unichainsepolia: 0, // time based contracts
     basesepolia: 0, // time based contracts
     basemainnet: 0, // time based contracts
+    unichainmainnet: 0,
     bscmainnet: 10_512_000,
     ethereum: 2_628_000,
     hardhat: 100,
@@ -77,7 +80,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const xvsVaultAlphaNumerator = 1;
   const xvsVaultAlphaDenominator = 2;
   const loopsLimit = 20;
-  const isTimeBased = false; // revise this value when deploying on L2s
+  const isTimeBased = blocksPerYear[network.name] === 0;
 
   const corePoolAddress = await getContractAddressOrNullAddress(deployments, "Unitroller");
   const wrappedNativeToken = await getContractAddressOrNullAddress(deployments, "WBNB");
@@ -101,6 +104,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     unichainsepolia: "0x9831D3A641E8c7F082EEA75b8249c99be9D09a34", // UNICHAIN SEPOLIA MULTISIG
     basesepolia: "0xdf3b635d2b535f906BB02abb22AED71346E36a00", // BASE SEPOLIA MULTISIG
     basemainnet: "0x1803Cf1D3495b43cC628aa1d8638A981F8CD341C", // BASE MAINNET MULTISIG
+    unichainmainnet: "0x1803Cf1D3495b43cC628aa1d8638A981F8CD341C", // UNICHAIN MAINNET MULTISIG
     bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
     bsctestnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
   };
