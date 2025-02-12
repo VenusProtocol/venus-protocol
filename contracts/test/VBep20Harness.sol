@@ -20,7 +20,9 @@ contract VBep20Harness is VBep20Immutable {
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
-        address payable admin_
+        address payable admin_,
+        bool flashLoanEnabled_,
+        uint256 flashLoanFeeMantissa_
     )
         public
         VBep20Immutable(
@@ -31,7 +33,9 @@ contract VBep20Harness is VBep20Immutable {
             name_,
             symbol_,
             decimals_,
-            admin_
+            admin_,
+            flashLoanEnabled_,
+            flashLoanFeeMantissa_
         )
     {}
 
@@ -178,7 +182,9 @@ contract VBep20Scenario is VBep20Immutable {
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
-        address payable admin_
+        address payable admin_,
+        bool flashLoanEnabled_,
+        uint256 flashLoanFeeMantissa_
     )
         public
         VBep20Immutable(
@@ -189,7 +195,9 @@ contract VBep20Scenario is VBep20Immutable {
             name_,
             symbol_,
             decimals_,
-            admin_
+            admin_,
+            flashLoanEnabled_,
+            flashLoanFeeMantissa_
         )
     {}
 
@@ -216,7 +224,9 @@ contract VEvil is VBep20Scenario {
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
-        address payable admin_
+        address payable admin_,
+        bool flashLoanEnabled_,
+        uint256 flashLoanFeeMantissa_
     )
         public
         VBep20Scenario(
@@ -227,7 +237,9 @@ contract VEvil is VBep20Scenario {
             name_,
             symbol_,
             decimals_,
-            admin_
+            admin_,
+            flashLoanEnabled_,
+            flashLoanFeeMantissa_
         )
     {}
 
@@ -247,7 +259,9 @@ contract VBep20DelegatorScenario is VBep20Delegator {
         uint8 decimals_,
         address payable admin_,
         address implementation_,
-        bytes memory becomeImplementationData
+        bytes memory becomeImplementationData,
+        bool flashLoanEnabled_,
+        uint256 flashLoanFeeMantissa_
     )
         public
         VBep20Delegator(
@@ -260,7 +274,9 @@ contract VBep20DelegatorScenario is VBep20Delegator {
             decimals_,
             admin_,
             implementation_,
-            becomeImplementationData
+            becomeImplementationData,
+            flashLoanEnabled_,
+            flashLoanFeeMantissa_
         )
     {}
 

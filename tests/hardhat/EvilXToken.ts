@@ -93,6 +93,8 @@ describe("Evil Token test", async () => {
       admin.address,
       vDelegatee1.address,
       "0x00",
+      false,
+      0,
     );
     await vDelegator1.deployed();
 
@@ -123,6 +125,8 @@ describe("Evil Token test", async () => {
       admin.address,
       vDelegatee1.address,
       "0x00",
+      false,
+      0,
     );
     await vDelegator2.deployed();
 
