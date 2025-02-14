@@ -51,7 +51,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     basemainnet: basemainnetGovernanceDeployments.contracts.NormalTimelock.address,
     unichainsepolia: "0x5e20F5A2e23463D39287185DF84607DF7068F314", // unichainsepoliaGovernanceDeployments.contracts.NormalTimelock.address
     unichainmainnet: "0xCb04dc78c99E20724023e5265fE177aa532E8164", // unichainmainnetGovernanceDeployments.contracts.NormalTimelock.address
-    berachainbartio: "0x08Cf9d51df988F1E69174D22b7f93f97e1aAEbeE", // berachainbartioGovernanceDeployments.contracts.NormalTimelock.address
+    berachainbartio: "0x8699D418D8bae5CFdc566E4fce897B08bd9B03B0", // berachainbartioGovernanceDeployments.contracts.NormalTimelock.address
     bscmainnet: await getTimelock(),
     bsctestnet: await getTimelock(),
     hardhat: deployer,
