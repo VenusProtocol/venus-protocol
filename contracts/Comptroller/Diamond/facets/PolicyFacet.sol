@@ -405,7 +405,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address dst,
         uint256 transferTokens
     ) external returns (uint256) {
-        ensureUserAllowed(src);
+        ensureUserAllowed(dst);
         // Pausing is a very serious situation - we revert to sound the alarms
         checkProtocolPauseState();
         checkActionPauseState(vToken, Action.TRANSFER);
@@ -434,7 +434,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     // solhint-disable-next-line no-unused-vars
     function transferVerify(address vToken, address src, address dst, uint256 transferTokens) external {
-        ensureUserAllowed(src);
+        ensureUserAllowed(dst);
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(src, vToken);
             prime.accrueInterestAndUpdateScore(dst, vToken);
