@@ -2,7 +2,7 @@
 
 pragma solidity =0.8.19;
 
-import { IKeyringChecker } from "../interfaces/IKeyringChecker.sol";
+import { IKeyringChecker } from "../IKeyringChecker.sol";
 
 /// @title Mocked Keyring Checker
 /// @notice A mock implementation of IKeyringChecker for testing purposes
