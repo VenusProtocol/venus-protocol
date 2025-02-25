@@ -8,6 +8,8 @@ import opbnbtestnetGovernanceDeployments from "@venusprotocol/governance-contrac
 import opmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/opmainnet.json";
 import opsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/opsepolia.json";
 import sepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/sepolia.json";
+import unichainmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/unichainmainnet.json";
+import unichainsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/unichainsepolia.json";
 import zksyncmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/zksyncmainnet.json";
 import zksyncsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/zksyncsepolia.json";
 import { ethers } from "hardhat";
@@ -49,8 +51,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     opmainnet: opmainnetGovernanceDeployments.contracts.NormalTimelock.address,
     basesepolia: basesepoliaGovernanceDeployments.contracts.NormalTimelock.address,
     basemainnet: basemainnetGovernanceDeployments.contracts.NormalTimelock.address,
-    unichainsepolia: "0x5e20F5A2e23463D39287185DF84607DF7068F314", // unichainsepoliaGovernanceDeployments.contracts.NormalTimelock.address
-    unichainmainnet: "0xCb04dc78c99E20724023e5265fE177aa532E8164", // unichainmainnetGovernanceDeployments.contracts.NormalTimelock.address
+    unichainsepolia: unichainsepoliaGovernanceDeployments.contracts.NormalTimelock.address,
+    unichainmainnet: unichainmainnetGovernanceDeployments.contracts.NormalTimelock.address,
     berachainbartio: "0x8699D418D8bae5CFdc566E4fce897B08bd9B03B0", // berachainbartioGovernanceDeployments.contracts.NormalTimelock.address
     bscmainnet: await getTimelock(),
     bsctestnet: await getTimelock(),
