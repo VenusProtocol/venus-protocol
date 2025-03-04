@@ -1,0 +1,10 @@
+{
+  "name": "berachainbartio",
+  "chainId": "80084",
+  "addresses": {
+    "VTreasuryV8": "0xF2f878a9cF9a43409F673CfA17B4F1E9D8169211",
+    "XVSStore": "0xED54Eaa582f07886c15A22eF81582f68dBd987C1",
+    "XVSVaultProxy": "0x622E4e8104F7ebc94Aa81Db2613A751c39e6688b",
+    "XVSVaultProxy_Implementation": "0xBc084367C7050100ddc1FEf70c9242e041ccd111"
+  }
+}
