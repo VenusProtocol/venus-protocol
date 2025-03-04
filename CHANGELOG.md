@@ -1,3 +1,19 @@
+## [9.8.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.7.0...v9.8.0-dev.1) (2025-03-04)
+
+
+### Features
+
+* deployed treasury ([f5ea4fb](https://github.com/VenusProtocol/venus-protocol/commit/f5ea4fb67a8cb4e9028e5cafd6a0a211118761b7))
+* deployed xvs vault and store ([a357ea4](https://github.com/VenusProtocol/venus-protocol/commit/a357ea4e0ca4fb3cc5b5e985d1f70405ba7ded8f))
+* redeployed treasury ([5ab2c49](https://github.com/VenusProtocol/venus-protocol/commit/5ab2c49d4b14e3ed73883a4b9278e854b9b32f3f))
+* updating deployment files ([aca8b80](https://github.com/VenusProtocol/venus-protocol/commit/aca8b80cfe04b19f952ec384f2fc32dcf953614e))
+* updating deployment files ([464282e](https://github.com/VenusProtocol/venus-protocol/commit/464282e7d4fcc32b71589f6f6060637d0b73bd75))
+
+
+### Bug Fixes
+
+* fixed lint ([cd2c592](https://github.com/VenusProtocol/venus-protocol/commit/cd2c592a320bb71189962f2e6a9137ab73727a6b))
+
 ## [9.7.0](https://github.com/VenusProtocol/venus-protocol/compare/v9.6.0...v9.7.0) (2025-02-11)
 
 
