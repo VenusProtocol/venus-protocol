@@ -372,6 +372,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
      * @param assets The addresses of the assets to be loaned.
      * @param amounts The amounts of each asset to be loaned.
+     * @param param The bytes passed in the executeOperation call.
      * custom:requirements
      *      - `assets.length` must be equal to `amounts.length`.
      *      - `assets.length` and `amounts.length` must not be zero.
@@ -384,30 +385,35 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *      - Reverts with `Execute flashLoan failed` if the receiver contract fails to execute the operation.
      *      - Reverts with `Insufficient reypayment balance` if the repayment (amount + fee) is insufficient after the operation.
      */
-    function executeFlashLoan(address payable receiver, VToken[] calldata assets, uint256[] calldata amounts) external {
+    function executeFlashLoan(
+        address payable receiver,
+        VToken[] calldata assets,
+        uint256[] calldata amounts,
+        bytes calldata param
+    ) external {
+        ensureNonzeroAddress(receiver);
         // Asset and amount length must be equals and not be zero
         if (assets.length != amounts.length || assets.length == 0) {
             revert("Invalid flashLoan params");
         }
 
-        uint256 len = assets.length;
-        uint256[] memory fees = new uint256[](len);
-        uint256[] memory balanceBefore = new uint256[](len);
+        uint256[] memory fees = new uint256[](assets.length);
+        uint256[] memory balanceAfterTransfer = new uint256[](assets.length);
 
-        for (uint256 j; j < len; j++) {
-            (fees[j], ) = (assets[j]).calculateFee(receiver, amounts[j]);
+        for (uint256 j; j < assets.length; j++) {
+            (fees[j], ) = (assets[j]).calculateFlashLoanFee(amounts[j]);
 
             // Transfer the asset
-            (balanceBefore[j]) = (assets[j]).transferUnderlying(receiver, amounts[j]);
+            (balanceAfterTransfer[j]) = (assets[j]).transferUnderlying(receiver, amounts[j]);
         }
 
         // Call the execute operation on receiver contract
-        if (!IFlashLoanReceiver(receiver).executeOperation(assets, amounts, fees, receiver, "")) {
+        if (!IFlashLoanReceiver(receiver).executeOperation(assets, amounts, fees, receiver, param)) {
             revert("Execute flashLoan failed");
         }
 
-        for (uint256 k; k < len; k++) {
-            (assets[k]).verifyBalance(balanceBefore[k], amounts[k] + fees[k]);
+        for (uint256 k; k < assets.length; k++) {
+            (assets[k]).verifyBalance(balanceAfterTransfer[k], amounts[k] + fees[k]);
         }
 
         emit FlashLoanExecuted(receiver, assets, amounts);

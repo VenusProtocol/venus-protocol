@@ -216,9 +216,9 @@ describe("FlashLoan", async () => {
     });
 
     it("Should revert if the flashLoan is not enabled", async () => {
-      await expect(mockReceiverSimple.requestFlashLoan(flashLoanAmount, mockReceiverSimple.address)).to.be.revertedWith(
-        "FlashLoan not enabled",
-      );
+      await expect(
+        mockReceiverSimple.requestFlashLoan(flashLoanAmount, mockReceiverSimple.address, "0x"),
+      ).to.be.revertedWith("FlashLoan not enabled");
     });
 
     it("FlashLoan for single underlying", async () => {
@@ -227,7 +227,7 @@ describe("FlashLoan", async () => {
 
       const flashLoan = await mockReceiverSimple
         .connect(alice)
-        .requestFlashLoan(flashLoanAmount, mockReceiverSimple.address);
+        .requestFlashLoan(flashLoanAmount, mockReceiverSimple.address, "0x");
 
       const balanceAfterflashLoan = await underlyingA.balanceOf(vTokenA.address);
       const fee = BigNumber.from(flashLoanAmount).mul(feeMantissa).div(parseUnits("1", 18));

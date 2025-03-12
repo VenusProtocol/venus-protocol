@@ -170,6 +170,7 @@ describe("FlashLoan", async () => {
           [vTokenA.address, vTokenB.address],
           [flashLoanAmount1, flashLoanAmount2],
           mockReceiverContract.address,
+          "0x",
         ),
       ).to.be.revertedWith("FlashLoan not enabled");
     });
@@ -197,6 +198,7 @@ describe("FlashLoan", async () => {
           [vTokenA.address, vTokenB.address],
           [flashLoanAmount1, flashLoanAmount2],
           mockReceiverContract.address,
+          "0x",
         );
 
       // Get the balance after the flashLoan

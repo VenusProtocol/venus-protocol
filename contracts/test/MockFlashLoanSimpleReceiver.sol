@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.5.16;
 
-import { FlashLoanSimpleReceiverBase } from "../FlashLoan/base/FlashLoanSimpleReceiverBase.sol";
+import { FlashLoanSimpleReceiverBase } from "./FlashLoanSimpleReceiverBase.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { EIP20NonStandardInterface } from "../Tokens/EIP20NonStandardInterface.sol";
 
@@ -18,15 +18,14 @@ contract MockFlashLoanSimpleReceiver is FlashLoanSimpleReceiverBase {
 
     /**
      * @notice Requests a flash loan from the VToken contract.
-     * @param amount_ The amount of tokens to borrow through the flash loan.
+     * @param amount The amount of tokens to borrow through the flash loan.
+     * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
+     * @param param Additional encoded parameters passed with the flash loan.
      * @dev This function calls the `executeFlashLoan` function of the VToken contract.
      */
-    function requestFlashLoan(uint256 amount_, address payable receiver) external {
-        //address payable receiver = payable(address(this)); // Receiver address is this contract itself
-        uint256 amount = amount_; // Set the requested amount
-
+    function requestFlashLoan(uint256 amount, address payable receiver, bytes calldata param) external {
         // Request the flashLoan from the VToken contract
-        VTOKEN.executeFlashLoan(receiver, amount);
+        VTOKEN.executeFlashLoan(receiver, amount, param);
     }
 
     /**

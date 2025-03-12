@@ -374,6 +374,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      Reverts on invalid parameters, disabled flashLoans, or insufficient repayment.
      * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
      * @param amount The amount of asset to be loaned.
+     * @param param Additional encoded parameters passed with the flash loan.
      * custom:requirements
      *      - The `receiver` address must not be the zero address.
      *      - FlashLoans must be enabled for the asset.
@@ -384,10 +385,16 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - Reverts with `Insufficient reypayment balance` if the repayment (amount + fee) is insufficient after the operation.
      * custom:event Emits FlashLoanExecuted event on success
      */
-    function executeFlashLoan(address payable receiver, uint256 amount) external nonReentrant returns (uint256) {
+    function executeFlashLoan(
+        address payable receiver,
+        uint256 amount,
+        bytes calldata param
+    ) external nonReentrant returns (uint256) {
         uint256 repaymentAmount;
         uint256 fee;
-        (fee, repaymentAmount) = calculateFee(receiver, amount);
+
+        ensureNonZeroAddress(receiver);
+        (fee, repaymentAmount) = calculateFlashLoanFee(amount);
 
         IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(receiver);
 
@@ -397,7 +404,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 balanceBefore = getCashPrior();
 
         // Call the execute operation on receiver contract
-        if (!receiverContract.executeOperation(underlying, amount, fee, msg.sender, "")) {
+        if (!receiverContract.executeOperation(underlying, amount, fee, msg.sender, param)) {
             revert("Execute flashLoan failed");
         }
 
@@ -688,18 +695,19 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Calculates the fee and repayment amount for a flash loan.
-     * @param receiver The address of the receiver of the flash loan.
      * @param amount The amount of the flash loan.
      * @return fee The calculated fee for the flash loan.
      * @return repaymentAmount The total amount to be repaid (amount + fee).
      * @dev This function reverts if flash loans are not enabled.
      */
-    function calculateFee(address receiver, uint256 amount) public view returns (uint256 fee, uint256 repaymentAmount) {
+    function calculateFlashLoanFee(uint256 amount) public view returns (uint256, uint256) {
         if (!isFlashLoanEnabled) revert("FlashLoan not enabled");
-        ensureNonZeroAddress(receiver);
 
-        fee = (amount * flashLoanFeeMantissa) / 1e18;
-        repaymentAmount = amount + fee;
+        (MathError mathErr, uint256 fee) = mulScalarTruncate(Exp({ mantissa: amount }), flashLoanFeeMantissa);
+
+        if (mathErr != MathError.NO_ERROR) revert("Fee calculation failed");
+        uint256 repaymentAmount = amount + fee;
+        return (fee, repaymentAmount);
     }
 
     /**

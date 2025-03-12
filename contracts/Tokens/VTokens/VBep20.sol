@@ -183,7 +183,8 @@ contract VBep20 is VToken, VBep20Interface {
      * @param symbol_ BEP-20 symbol of this token
      * @param decimals_ BEP-20 decimal precision of this token
      * @param flashLoanEnabled_ Enable flashLoan or not for this market
-     * @param flashLoanFeeMantissa_ FlashLoan fee mantissa*/
+     * @param flashLoanFeeMantissa_ FlashLoan fee mantissa
+     */
     function initialize(
         address underlying_,
         ComptrollerInterface comptroller_,

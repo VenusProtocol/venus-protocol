@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.5.16;
 
-import { FlashLoanReceiverBase } from "../FlashLoan/base/FlashLoanReceiverBase.sol";
+import { FlashLoanReceiverBase } from "./FlashLoanReceiverBase.sol";
 import { ComptrollerInterface } from "../Comptroller/ComptrollerInterface.sol";
 import { VToken } from "../Tokens/VTokens/VToken.sol";
 import { EIP20NonStandardInterface } from "../Tokens/EIP20NonStandardInterface.sol";
@@ -19,20 +19,19 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
     /**
      * @notice Requests a flash loan from the Comptroller contract.
      * @dev This function calls the `executeFlashLoan` function from the Comptroller to initiate a flash loan.
-     * @param assets_ An array of VToken contracts that support flash loans.
-     * @param amount_ An array of amounts to borrow in the flash loan for each corresponding asset.
+     * @param assets An array of VToken contracts that support flash loans.
+     * @param amount An array of amounts to borrow in the flash loan for each corresponding asset.
+     * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
+     * @param param Additional encoded parameters passed with the flash loan.
      */
     function requestFlashLoan(
-        VToken[] calldata assets_,
-        uint256[] calldata amount_,
-        address payable receiver
+        VToken[] calldata assets,
+        uint256[] calldata amount,
+        address payable receiver,
+        bytes calldata param
     ) external {
-        //address payable receiver = payable(address(this)); // Receiver address is this contract itself
-        uint256[] memory amount = amount_; // Set the requested amounts
-
         // Request the flashLoan from the Comptroller contract
-        COMPTROLLER.executeFlashLoan(receiver, assets_, amount);
-        //UNITROLLER.executeFlashLoan(receiver, assets_, amount);
+        COMPTROLLER.executeFlashLoan(receiver, assets, amount, param);
     }
 
     /**
@@ -66,6 +65,7 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
 
             // Transfer the repayment (amount + premium) back to the VToken contract
             EIP20NonStandardInterface(VToken(assets[k]).underlying()).transfer(address(VToken(assets[k])), total);
+
             ++k;
         }
 
