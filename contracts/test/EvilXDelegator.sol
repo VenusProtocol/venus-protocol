@@ -40,7 +40,7 @@ contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface
         delegateTo(
             implementation_,
             abi.encodeWithSignature(
-                "initialize(address,address,address,uint256,string,string,uint8,bool,uint256)",
+                "initialize(address,address,address,uint256,string,string,uint8,bool,uint256,uint256)",
                 underlying_,
                 comptroller_,
                 interestRateModel_,
@@ -49,6 +49,7 @@ contract EvilXDelegator is VTokenInterface, VBep20Interface, VDelegatorInterface
                 symbol_,
                 decimals_,
                 false,
+                0,
                 0
             )
         );

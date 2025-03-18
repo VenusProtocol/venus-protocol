@@ -46,7 +46,7 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         delegateTo(
             implementation_,
             abi.encodeWithSignature(
-                "initialize(address,address,address,uint256,string,string,uint8,bool,uint256)",
+                "initialize(address,address,address,uint256,string,string,uint8,bool,uint256,uint256)",
                 underlying_,
                 comptroller_,
                 interestRateModel_,

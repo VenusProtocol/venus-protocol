@@ -95,6 +95,7 @@ describe("Evil Token test", async () => {
       "0x00",
       false,
       0,
+      0,
     );
     await vDelegator1.deployed();
 
@@ -127,6 +128,7 @@ describe("Evil Token test", async () => {
       "0x00",
       false,
       0,
+      0,
     );
     await vDelegator2.deployed();
 
@@ -158,7 +160,6 @@ describe("Evil Token test", async () => {
       "0x00",
     );
     await vDelegator3.deployed();
-
     vToken3 = await ethers.getContractAt("EvilXToken", vDelegator3.address);
     await unitroller._supportMarket(vToken3.address);
 

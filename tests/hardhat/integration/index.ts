@@ -99,6 +99,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     wallet.address,
     false,
     0,
+    0,
   )) as VBep20Harness;
   const veth = (await vTokenFactory.deploy(
     eth.address,
@@ -111,6 +112,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     wallet.address,
     false,
     0,
+    0,
   )) as VBep20Harness;
   const vbnb = (await vTokenFactory.deploy(
     wbnb.address,
@@ -122,6 +124,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     BigNumber.from(18),
     wallet.address,
     false,
+    0,
     0,
   )) as VBep20Harness;
 

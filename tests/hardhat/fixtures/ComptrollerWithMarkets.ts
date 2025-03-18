@@ -310,6 +310,7 @@ export const deployVBNB = async (
     admin,
     false,
     0,
+    0,
   );
   return vBNB;
 };

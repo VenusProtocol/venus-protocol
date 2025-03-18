@@ -50,6 +50,7 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
     admin.address,
     false,
     0,
+    0,
   );
 
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
