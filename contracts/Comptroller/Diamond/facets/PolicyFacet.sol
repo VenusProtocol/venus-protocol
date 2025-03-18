@@ -408,7 +408,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         // Call the execute operation on receiver contract
-        if (!IFlashLoanReceiver(receiver).executeOperation(assets, amounts, fees, receiver, param)) {
+        if (!IFlashLoanReceiver(msg.sender).executeOperation(assets, amounts, fees, receiver, param)) {
             revert("Execute flashLoan failed");
         }
 

@@ -350,7 +350,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - The caller must be the Comptroller contract.
      * custom:reverts
      *      - Reverts with "Only Comptroller" if the caller is not the Comptroller.
-     * custom:event Emits FlashLoanAmountTransferred event on successful transfer of amount to receiver
+     * custom:event Emits TransferUnderlying event on successful transfer of amount to receiver
      */
     function transferUnderlying(
         address payable to,
@@ -363,7 +363,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         doTransferOut(to, amount);
 
         balanceBefore = getCashPrior();
-        emit FlashLoanAmountTransferred(underlying, to, amount);
+        emit TransferUnderlying(underlying, to, amount);
     }
 
     /**
@@ -396,7 +396,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         ensureNonZeroAddress(receiver);
         (fee, repaymentAmount) = calculateFlashLoanFee(amount);
 
-        IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(receiver);
+        IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(msg.sender);
 
         // Transfer the underlying asset to the receiver.
         doTransferOut(receiver, amount);
