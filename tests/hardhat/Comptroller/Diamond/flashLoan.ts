@@ -29,8 +29,10 @@ chai.use(smock.matchers);
 
 const flashLoanAmount1 = parseUnits("10", 18);
 const flashLoanAmount2 = parseUnits("10", 18);
-const feeMantissaTokenA = parseUnits("0.01", 18);
-const feeMantissaTokenB = parseUnits("0.02", 18);
+const protocolFeeMantissaTokenA = parseUnits("0.01", 18);
+const protocolFeeMantissaTokenB = parseUnits("0.02", 18);
+const supplierFeeMantissaTokenA = parseUnits("0.01", 18);
+const supplierFeeMantissaTokenB = parseUnits("0.02", 18);
 
 // Declare the types here
 type FlashLoanContractsFixture = {
@@ -114,7 +116,8 @@ describe("FlashLoan", async () => {
       18,
       contracts.admin.address,
       true,
-      feeMantissaTokenA,
+      protocolFeeMantissaTokenA,
+      supplierFeeMantissaTokenA,
     );
 
     vTokenA.setAccessControlManager(contracts.accessControlManager.address);
@@ -131,7 +134,8 @@ describe("FlashLoan", async () => {
       18,
       contracts.admin.address,
       true,
-      feeMantissaTokenB,
+      protocolFeeMantissaTokenB,
+      supplierFeeMantissaTokenB,
     );
 
     vTokenA.setAccessControlManager(contracts.accessControlManager.address);
@@ -205,8 +209,12 @@ describe("FlashLoan", async () => {
       const afterBalanceVTokenA = await underlyingA.balanceOf(vTokenA.address);
       const afterBalanceVTokenB = await underlyingB.balanceOf(vTokenB.address);
 
-      const feeOnFlashLoanTokenA = BigNumber.from(flashLoanAmount1).mul(feeMantissaTokenA).div(parseUnits("1", 18));
-      const feeOnFlashLoanTokenB = BigNumber.from(flashLoanAmount2).mul(feeMantissaTokenB).div(parseUnits("1", 18));
+      const feeOnFlashLoanTokenA = BigNumber.from(flashLoanAmount1)
+        .mul(protocolFeeMantissaTokenA.add(supplierFeeMantissaTokenA))
+        .div(parseUnits("1", 18));
+      const feeOnFlashLoanTokenB = BigNumber.from(flashLoanAmount2)
+        .mul(protocolFeeMantissaTokenB.add(supplierFeeMantissaTokenB))
+        .div(parseUnits("1", 18));
 
       expect(afterBalanceVTokenA).to.be.equal(beforeBalanceVTokenA.add(feeOnFlashLoanTokenA));
       expect(afterBalanceVTokenB).to.be.equal(beforeBalanceVTokenB.add(feeOnFlashLoanTokenB));

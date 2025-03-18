@@ -21,7 +21,8 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
      * @param implementation_ The address of the implementation the contract delegates to
      * @param becomeImplementationData The encoded args for becomeImplementation
      * @param flashLoanEnabled_ Enable flashLoan or not for this market
-     * @param flashLoanFeeMantissa_ FlashLoan fee mantissa
+     * @param flashLoanProtocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
+     * @param flashLoanSupplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
      */
     constructor(
         address underlying_,
@@ -35,7 +36,8 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
         address implementation_,
         bytes memory becomeImplementationData,
         bool flashLoanEnabled_,
-        uint256 flashLoanFeeMantissa_
+        uint256 flashLoanProtocolFeeMantissa_,
+        uint256 flashLoanSupplierFeeMantissa_
     ) public {
         // Creator of the contract is admin during initialization
         admin = msg.sender;
@@ -53,7 +55,8 @@ contract VBep20Delegator is VTokenInterface, VBep20Interface, VDelegatorInterfac
                 symbol_,
                 decimals_,
                 flashLoanEnabled_,
-                flashLoanFeeMantissa_
+                flashLoanProtocolFeeMantissa_,
+                flashLoanSupplierFeeMantissa_
             )
         );
 

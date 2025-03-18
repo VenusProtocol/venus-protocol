@@ -18,7 +18,8 @@ contract MockVBNB is VToken {
      * @param decimals_ BEP-20 decimal precision of this token
      * @param admin_ Address of the administrator of this token
      * @param flashLoanEnabled_ Enable flashLoan or not for this market
-     * @param flashLoanFeeMantissa_ FlashLoan fee mantissa
+     * @param flashLoanProtocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
+     * @param flashLoanSupplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
      */
     constructor(
         ComptrollerInterface comptroller_,
@@ -29,7 +30,8 @@ contract MockVBNB is VToken {
         uint8 decimals_,
         address payable admin_,
         bool flashLoanEnabled_,
-        uint256 flashLoanFeeMantissa_
+        uint256 flashLoanProtocolFeeMantissa_,
+        uint256 flashLoanSupplierFeeMantissa_
     ) public {
         // Creator of the contract is admin during initialization
         admin = msg.sender;
@@ -42,7 +44,8 @@ contract MockVBNB is VToken {
             symbol_,
             decimals_,
             flashLoanEnabled_,
-            flashLoanFeeMantissa_
+            flashLoanProtocolFeeMantissa_,
+            flashLoanSupplierFeeMantissa_
         );
 
         // Set the proper admin now that initialization is done

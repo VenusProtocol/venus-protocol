@@ -22,7 +22,8 @@ contract VBep20Harness is VBep20Immutable {
         uint8 decimals_,
         address payable admin_,
         bool flashLoanEnabled_,
-        uint256 flashLoanFeeMantissa_
+        uint256 flashLoanProtocolFeeMantissa_,
+        uint256 flashLoanSupplierFeeMantissa_
     )
         public
         VBep20Immutable(
@@ -35,7 +36,8 @@ contract VBep20Harness is VBep20Immutable {
             decimals_,
             admin_,
             flashLoanEnabled_,
-            flashLoanFeeMantissa_
+            flashLoanProtocolFeeMantissa_,
+            flashLoanSupplierFeeMantissa_
         )
     {}
 
@@ -184,7 +186,8 @@ contract VBep20Scenario is VBep20Immutable {
         uint8 decimals_,
         address payable admin_,
         bool flashLoanEnabled_,
-        uint256 flashLoanFeeMantissa_
+        uint256 flashLoanProtocolFeeMantissa_,
+        uint256 flashLoanSupplierFeeMantissa_
     )
         public
         VBep20Immutable(
@@ -197,7 +200,8 @@ contract VBep20Scenario is VBep20Immutable {
             decimals_,
             admin_,
             flashLoanEnabled_,
-            flashLoanFeeMantissa_
+            flashLoanProtocolFeeMantissa_,
+            flashLoanSupplierFeeMantissa_
         )
     {}
 
@@ -226,7 +230,8 @@ contract VEvil is VBep20Scenario {
         uint8 decimals_,
         address payable admin_,
         bool flashLoanEnabled_,
-        uint256 flashLoanFeeMantissa_
+        uint256 flashLoanProtocolFeeMantissa_,
+        uint256 flashLoanSupplierFeeMantissa_
     )
         public
         VBep20Scenario(
@@ -239,7 +244,8 @@ contract VEvil is VBep20Scenario {
             decimals_,
             admin_,
             flashLoanEnabled_,
-            flashLoanFeeMantissa_
+            flashLoanProtocolFeeMantissa_,
+            flashLoanSupplierFeeMantissa_
         )
     {}
 
@@ -261,7 +267,8 @@ contract VBep20DelegatorScenario is VBep20Delegator {
         address implementation_,
         bytes memory becomeImplementationData,
         bool flashLoanEnabled_,
-        uint256 flashLoanFeeMantissa_
+        uint256 flashLoanProtocolFeeMantissa_,
+        uint256 flashLoanSupplierFeeMantissa_
     )
         public
         VBep20Delegator(
@@ -276,7 +283,8 @@ contract VBep20DelegatorScenario is VBep20Delegator {
             implementation_,
             becomeImplementationData,
             flashLoanEnabled_,
-            flashLoanFeeMantissa_
+            flashLoanProtocolFeeMantissa_,
+            flashLoanSupplierFeeMantissa_
         )
     {}
 

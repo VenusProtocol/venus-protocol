@@ -431,14 +431,26 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
     /**
      * @notice Update flashLoan fee mantissa
+     * @param protocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
+     * @param supplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
+     * @return uint Returns 0 on success, otherwise returns a failure code (see ErrorReporter.sol for details).
      * custom:access Only Governance
      * custom:event Emits FlashLoanFeeUpdated event on success
      */
-    function _setFlashLoanFeeMantissa(uint256 fee) external returns (uint256) {
+    function _setFlashLoanFeeMantissa(
+        uint256 protocolFeeMantissa_,
+        uint256 supplierFeeMantissa_
+    ) external returns (uint256) {
         ensureAllowed("_setFlashLoanFeeMantissa(uint256)");
 
-        emit FlashLoanFeeUpdated(flashLoanFeeMantissa, fee);
-        flashLoanFeeMantissa = fee;
+        emit FlashLoanFeeUpdated(
+            flashLoanProtocolFeeMantissa,
+            protocolFeeMantissa_,
+            flashLoanSupplierFeeMantissa,
+            supplierFeeMantissa_
+        );
+        flashLoanProtocolFeeMantissa = protocolFeeMantissa_;
+        flashLoanSupplierFeeMantissa = supplierFeeMantissa_;
 
         return uint(Error.NO_ERROR);
     }
@@ -452,7 +464,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param symbol_ EIP-20 symbol of this token
      * @param decimals_ EIP-20 decimal precision of this token
      * @param flashLoanEnabled_ Enable flashLoan or not for this market
-     * @param flashLoanFeeMantissa_ FlashLoan fee mantissa
+     * @param flashLoanProtocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
+     * @param flashLoanSupplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
      */
     function initialize(
         ComptrollerInterface comptroller_,
@@ -462,7 +475,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         string memory symbol_,
         uint8 decimals_,
         bool flashLoanEnabled_,
-        uint256 flashLoanFeeMantissa_
+        uint256 flashLoanProtocolFeeMantissa_,
+        uint256 flashLoanSupplierFeeMantissa_
     ) public {
         ensureAdmin(msg.sender);
         require(
@@ -495,7 +509,8 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         _notEntered = true;
 
         isFlashLoanEnabled = flashLoanEnabled_;
-        flashLoanFeeMantissa = flashLoanFeeMantissa_;
+        flashLoanProtocolFeeMantissa = flashLoanProtocolFeeMantissa_;
+        flashLoanSupplierFeeMantissa = flashLoanSupplierFeeMantissa_;
     }
 
     /**
@@ -703,7 +718,11 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function calculateFlashLoanFee(uint256 amount) public view returns (uint256, uint256) {
         if (!isFlashLoanEnabled) revert("FlashLoan not enabled");
 
-        (MathError mathErr, uint256 fee) = mulScalarTruncate(Exp({ mantissa: amount }), flashLoanFeeMantissa);
+        (MathError addMathErr, uint256 totalFee) = addUInt(flashLoanProtocolFeeMantissa, flashLoanSupplierFeeMantissa);
+
+        if (addMathErr != MathError.NO_ERROR) revert("Fee calculation failed");
+
+        (MathError mathErr, uint256 fee) = mulScalarTruncate(Exp({ mantissa: amount }), totalFee);
 
         if (mathErr != MathError.NO_ERROR) revert("Fee calculation failed");
         uint256 repaymentAmount = amount + fee;

@@ -37,7 +37,8 @@ const USDT_ADDRESS = "0xA11c8D9DC9b66E209Ef60F0C8D969D3CD988782c";
 const USDT_HOLDER = "0xbEe5b9859B03FEefd5Ae3ce7C5d92f3b09a55149";
 const USER = "0x4C45758bF15AF0714E4CC44C4EFd177e209C2890";
 
-const flashLoanFeeMantissa = parseUnits("0.01", 6);
+const flashLoanProtocolFeeMantissa = parseUnits("0.01", 6);
+const flashLoanSupplierFeeMantissa = parseUnits("0.01", 6);
 const flashLoanAmount = parseUnits("0.5", 6);
 
 type SetupProtocolFixture = {
@@ -137,13 +138,17 @@ forking(47432690, async () => {
 
         // Enable flashLoan feature by the admin
         await vUSDT.connect(timeLockUser)._toggleFlashLoan();
-        await vUSDT.connect(timeLockUser)._setFlashLoanFeeMantissa(flashLoanFeeMantissa);
+        await vUSDT
+          .connect(timeLockUser)
+          ._setFlashLoanFeeMantissa(flashLoanProtocolFeeMantissa, flashLoanSupplierFeeMantissa);
 
         await vUSDT.connect(user).executeFlashLoan(mockReceiverSimpleFlashLoan.address, flashLoanAmount);
 
         // Check if the USDT balance in vUSDT increased, validating flashLoan repayment with fees
         const balanceAfter = await USDT.balanceOf(vUSDT.address);
-        const totalFlashLoanFee = flashLoanAmount.mul(flashLoanFeeMantissa).div(parseUnits("1", 18));
+        const totalFlashLoanFee = flashLoanAmount
+          .mul(flashLoanProtocolFeeMantissa.add(flashLoanSupplierFeeMantissa))
+          .div(parseUnits("1", 18));
 
         expect(balanceAfter.toString()).to.be.equal(balanceBefore.add(totalFlashLoanFee).toString());
       });

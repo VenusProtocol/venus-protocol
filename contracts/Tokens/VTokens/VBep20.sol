@@ -183,7 +183,8 @@ contract VBep20 is VToken, VBep20Interface {
      * @param symbol_ BEP-20 symbol of this token
      * @param decimals_ BEP-20 decimal precision of this token
      * @param flashLoanEnabled_ Enable flashLoan or not for this market
-     * @param flashLoanFeeMantissa_ FlashLoan fee mantissa
+     * @param flashLoanProtocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
+     * @param flashLoanSupplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
      */
     function initialize(
         address underlying_,
@@ -194,7 +195,8 @@ contract VBep20 is VToken, VBep20Interface {
         string memory symbol_,
         uint8 decimals_,
         bool flashLoanEnabled_,
-        uint256 flashLoanFeeMantissa_
+        uint256 flashLoanProtocolFeeMantissa_,
+        uint256 flashLoanSupplierFeeMantissa_
     ) public {
         // VToken initialize does the bulk of the work
         super.initialize(
@@ -205,7 +207,8 @@ contract VBep20 is VToken, VBep20Interface {
             symbol_,
             decimals_,
             flashLoanEnabled_,
-            flashLoanFeeMantissa_
+            flashLoanProtocolFeeMantissa_,
+            flashLoanSupplierFeeMantissa_
         );
 
         // Set underlying and sanity check it

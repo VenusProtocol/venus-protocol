@@ -165,14 +165,19 @@ contract VTokenStorage is VTokenStorageBase {
     /**
      * @notice fee percentage collected by protocol on flashLoan
      */
-    uint256 public flashLoanFeeMantissa;
+    uint256 public flashLoanProtocolFeeMantissa;
+
+    /**
+     * @notice fee percentage collected by protocol on flashLoan
+     */
+    uint256 public flashLoanSupplierFeeMantissa;
 
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[48] private __gap;
+    uint256[47] private __gap;
 }
 
 contract VTokenInterface is VTokenStorage {
@@ -312,7 +317,12 @@ contract VTokenInterface is VTokenStorage {
     /**
      * @notice Event emitted when flashLoan fee mantissa is updated
      */
-    event FlashLoanFeeUpdated(uint256 oldFee, uint256 fee);
+    event FlashLoanFeeUpdated(
+        uint256 oldFlashLoanProtocolFeeMantissa,
+        uint256 flashLoanProtocolFeeMantissa,
+        uint256 oldFlashLoanSupplierFeeMantissa,
+        uint256 flashLoanSupplierFeeMantissa
+    );
 
     /*** User Interface ***/
 

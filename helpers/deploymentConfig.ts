@@ -38,7 +38,8 @@ export type VTokenConfig = {
   borrowCap: string;
   vTokenReceiver: string;
   isFlashLoanEnabled: boolean;
-  flashLoanFeeMantissa: string;
+  flashLoanProtocolFeeMantissa: string;
+  flashLoanSupplierFeeMantissa: string;
 };
 
 export type DeploymentConfig = {
@@ -105,7 +106,8 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit(4_400_000, 18),
           vTokenReceiver: vTreasuryAddress,
           isFlashLoanEnabled: false,
-          flashLoanFeeMantissa: "0",
+          flashLoanProtocolFeeMantissa: "0",
+          flashLoanSupplierFeeMantissa: "0",
         },
         {
           name: "Venus DOGE",
@@ -124,7 +126,8 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit("4400000000", 18),
           vTokenReceiver: vTreasuryAddress,
           isFlashLoanEnabled: false,
-          flashLoanFeeMantissa: "0",
+          flashLoanProtocolFeeMantissa: "0",
+          flashLoanSupplierFeeMantissa: "0",
         },
         {
           name: "Venus USDT",
@@ -143,7 +146,8 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit("4400000", 18),
           vTokenReceiver: vTreasuryAddress,
           isFlashLoanEnabled: false,
-          flashLoanFeeMantissa: "0",
+          flashLoanProtocolFeeMantissa: "0",
+          flashLoanSupplierFeeMantissa: "0",
         },
       ],
     },
@@ -186,7 +190,8 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit(4_400_000, 18),
           vTokenReceiver: vTreasuryAddress,
           isFlashLoanEnabled: false,
-          flashLoanFeeMantissa: "0",
+          flashLoanProtocolFeeMantissa: "0",
+          flashLoanSupplierFeeMantissa: "0",
         },
         {
           name: "Venus TWT",
@@ -204,7 +209,8 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit(1_000_000, 18),
           vTokenReceiver: vTreasuryAddress,
           isFlashLoanEnabled: false,
-          flashLoanFeeMantissa: "0",
+          flashLoanProtocolFeeMantissa: "0",
+          flashLoanSupplierFeeMantissa: "0",
         },
         {
           name: "Venus SolvBTC",
@@ -222,7 +228,8 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit("55", 18),
           vTokenReceiver: vTreasuryAddress,
           isFlashLoanEnabled: false,
-          flashLoanFeeMantissa: "0",
+          flashLoanProtocolFeeMantissa: "0",
+          flashLoanSupplierFeeMantissa: "0",
         },
       ],
     },
@@ -263,7 +270,8 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit(4_400_000, 18),
           vTokenReceiver: vTreasuryAddress,
           isFlashLoanEnabled: false,
-          flashLoanFeeMantissa: "0",
+          flashLoanProtocolFeeMantissa: "0",
+          flashLoanSupplierFeeMantissa: "0",
         },
         {
           name: "Venus TWT",
@@ -281,7 +289,8 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit(1_000_000, 18),
           vTokenReceiver: vTreasuryAddress,
           isFlashLoanEnabled: false,
-          flashLoanFeeMantissa: "0",
+          flashLoanProtocolFeeMantissa: "0",
+          flashLoanSupplierFeeMantissa: "0",
         },
         {
           name: "Venus SolvBTC",
@@ -299,7 +308,8 @@ export const getGlobalConfig: () => Promise<NetworkConfig> = async () => {
           borrowCap: convertToUnit("55", 18),
           vTokenReceiver: "0xD5bAa0C3d61Ba3f4899565f269e5f9b186AAf14B",
           isFlashLoanEnabled: false,
-          flashLoanFeeMantissa: "0",
+          flashLoanProtocolFeeMantissa: "0",
+          flashLoanSupplierFeeMantissa: "0",
         },
       ],
     },

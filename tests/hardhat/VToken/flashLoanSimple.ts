@@ -29,7 +29,8 @@ const { expect } = chai;
 chai.use(smock.matchers);
 
 const flashLoanAmount = parseUnits("4", 18);
-const feeMantissa = parseUnits("0.01", 18);
+const protocolFeeMantissa = parseUnits("0.01", 18);
+const supplierFeeMantissa = parseUnits("0.01", 18);
 
 // Declare the types here
 type FlashLoanContractsFixture = {
@@ -112,7 +113,8 @@ describe("FlashLoan", async () => {
       18,
       contracts.admin.address,
       false,
-      feeMantissa,
+      protocolFeeMantissa,
+      supplierFeeMantissa,
     );
     await vTokenA.setAccessControlManager(contracts.accessControlManager.address);
 
@@ -160,19 +162,24 @@ describe("FlashLoan", async () => {
     it("Should have access to set fee on flashLoan", async () => {
       accessControlManager.isAllowedToCall.returns(false);
 
-      await expect(vTokenA._setFlashLoanFeeMantissa(feeMantissa)).to.be.revertedWith("access denied");
+      await expect(vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa)).to.be.revertedWith(
+        "access denied",
+      );
     });
 
     it("Set fee on flashLoan", async () => {
       accessControlManager.isAllowedToCall.returns(true);
-      await vTokenA._setFlashLoanFeeMantissa(feeMantissa);
+      await vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
 
-      expect(await vTokenA.flashLoanFeeMantissa()).to.be.equal(feeMantissa);
+      expect(await vTokenA.flashLoanProtocolFeeMantissa()).to.be.equal(protocolFeeMantissa);
+      expect(await vTokenA.flashLoanSupplierFeeMantissa()).to.be.equal(supplierFeeMantissa);
     });
 
     it("Emit FlashLoanFeeUpdated event on set fee on flashLoan", async () => {
-      const result = await vTokenA._setFlashLoanFeeMantissa(feeMantissa);
-      await expect(result).to.emit(vTokenA, "FlashLoanFeeUpdated").withArgs(10000000000000000n, feeMantissa);
+      const result = await vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
+      await expect(result)
+        .to.emit(vTokenA, "FlashLoanFeeUpdated")
+        .withArgs(10000000000000000n, protocolFeeMantissa, 10000000000000000n, supplierFeeMantissa);
     });
   });
 
@@ -197,7 +204,7 @@ describe("FlashLoan", async () => {
       const result = await vTokenA.connect(comptrollerSigner).transferUnderlying(receiver.address, parseUnits("1", 18));
 
       await expect(result)
-        .to.emit(vTokenA, "FlashLoanAmountTransferred")
+        .to.emit(vTokenA, "TransferUnderlying")
         .withArgs(underlyingA.address, receiver.address, parseUnits("1", 18));
     });
   });
@@ -209,7 +216,7 @@ describe("FlashLoan", async () => {
       );
       mockReceiverSimple = await MockFlashLoanSimpleReceiver.deploy(vTokenA.address);
       await mockReceiverSimple.deployed();
-      await vTokenA._setFlashLoanFeeMantissa(feeMantissa);
+      await vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);
       await underlyingA.harnessSetBalance(mockReceiverSimple.address, parseUnits("1", 18));
       await underlyingA.harnessSetBalance(vTokenA.address, parseUnits("10", 18));
       await underlyingA.harnessSetBalance(underlyingA.address, parseUnits("1", 18));
@@ -230,7 +237,9 @@ describe("FlashLoan", async () => {
         .requestFlashLoan(flashLoanAmount, mockReceiverSimple.address, "0x");
 
       const balanceAfterflashLoan = await underlyingA.balanceOf(vTokenA.address);
-      const fee = BigNumber.from(flashLoanAmount).mul(feeMantissa).div(parseUnits("1", 18));
+      const fee = BigNumber.from(flashLoanAmount)
+        .mul(protocolFeeMantissa.add(supplierFeeMantissa))
+        .div(parseUnits("1", 18));
 
       expect(balanceAfterflashLoan).to.be.equal(balanceBeforeflashLoan.add(fee));
       await expect(flashLoan)

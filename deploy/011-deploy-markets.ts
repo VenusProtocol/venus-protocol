@@ -36,7 +36,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       jumpMultiplierPerYear,
       kink_,
       isFlashLoanEnabled,
-      flashLoanFeeMantissa,
+      flashLoanProtocolFeeMantissa,
+      flashLoanSupplierFeeMantissa,
     } = market;
 
     const token = getTokenConfig(asset, tokensConfig);
@@ -95,7 +96,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         vBep20DelegateDeployment.address,
         EMPTY_BYTES_ARRAY,
         isFlashLoanEnabled,
-        flashLoanFeeMantissa,
+        flashLoanProtocolFeeMantissa,
+        flashLoanSupplierFeeMantissa,
       ],
       log: true,
       skipIfAlreadyDeployed: true,

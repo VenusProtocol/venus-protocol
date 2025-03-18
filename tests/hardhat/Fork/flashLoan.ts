@@ -40,15 +40,14 @@ const USDT_HOLDER = "0xbEe5b9859B03FEefd5Ae3ce7C5d92f3b09a55149";
 const vBUSD_ADDRESS = "0x08e0A5575De71037aE36AbfAfb516595fE68e5e4";
 const BUSD_ADDRESS = "0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47";
 const BUSD_HOLDER = "0x72253172CECFb70561b73FCF3Fa77A52a1D035c7";
-
 const OLD_POLICY_FACET = "0x085C8d0133291348004AabFfbE7CAc2097aF2aa1";
 const COMPTROLLER_ADDRESS = "0x94d1820b2D1c7c7452A163983Dc888CEC546b77D";
 const USER = "0x4C45758bF15AF0714E4CC44C4EFd177e209C2890";
 
-const USDTFlashLoanFeeMantissa = parseUnits("0.05", 6);
-const BUSDFlashLoanFeeMantissa = parseUnits("0.03", 18);
-const USDTFlashLoanAmount = parseUnits("20", 6);
-const BUSDFlashLoanAmount = parseUnits("20", 18);
+const USDTFlashLoanProtocolFeeMantissa = parseUnits("0.05", 6);
+const USDTFlashLoanSupplierFeeMantissa = parseUnits("0.03", 18);
+const BUSDFlashLoanProtocolFeeMantissa = parseUnits("20", 6);
+const BUSDFlashLoanSupplierFeeMantissa = parseUnits("20", 18);
 
 type SetupProtocolFixture = {
   diamond: Diamond;
@@ -180,7 +179,7 @@ forking(47432690, () => {
             .executeFlashLoan(
               mockFlashLoanReceiver.address,
               [vUSDT.address, vBUSD.address],
-              [USDTFlashLoanAmount, BUSDFlashLoanAmount],
+              [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
             ),
         ).to.be.revertedWith("FlashLoan not enabled");
       });
@@ -191,7 +190,7 @@ forking(47432690, () => {
           policyFacet.connect(user).executeFlashLoan(
             mockFlashLoanReceiver.address,
             [vUSDT.address], // Only one asset provided
-            [USDTFlashLoanAmount, BUSDFlashLoanAmount], // Two loan amounts provided
+            [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa], // Two loan amounts provided
           ),
         ).to.be.revertedWith("Invalid flashLoan params");
       });
@@ -205,7 +204,7 @@ forking(47432690, () => {
           policyFacet.connect(user).executeFlashLoan(
             AddressZero,
             [vUSDT.address, vBUSD.address], // Zero address as an asset, which is invalid
-            [USDTFlashLoanAmount, BUSDFlashLoanAmount],
+            [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
           ),
         ).to.be.revertedWith("zero address");
       });
@@ -227,8 +226,12 @@ forking(47432690, () => {
         await vUSDT.connect(timeLockUser)._toggleFlashLoan();
         await vBUSD.connect(timeLockUser)._toggleFlashLoan();
 
-        await vUSDT.connect(timeLockUser)._setFlashLoanFeeMantissa(USDTFlashLoanFeeMantissa);
-        await vBUSD.connect(timeLockUser)._setFlashLoanFeeMantissa(BUSDFlashLoanFeeMantissa);
+        await vUSDT
+          .connect(timeLockUser)
+          ._setFlashLoanFeeMantissa(USDTFlashLoanProtocolFeeMantissa, USDTFlashLoanSupplierFeeMantissa);
+        await vBUSD
+          .connect(timeLockUser)
+          ._setFlashLoanFeeMantissa(BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa);
 
         // user initiates a flashLoan of USDT and BUSD through the policyFacet contract
         await policyFacet
@@ -236,15 +239,19 @@ forking(47432690, () => {
           .executeFlashLoan(
             mockFlashLoanReceiver.address,
             [vUSDT.address, vBUSD.address],
-            [USDTFlashLoanAmount, BUSDFlashLoanAmount],
+            [BUSDFlashLoanProtocolFeeMantissa, BUSDFlashLoanSupplierFeeMantissa],
           );
 
         // Record USDT and BUSD balances in vUSDT and vBUSD contracts after flashLoan
         const balanceAfterUSDT = await USDT.balanceOf(vUSDT.address);
         const balanceAfterBUSD = await BUSD.balanceOf(vBUSD.address);
 
-        const USDTFlashLoanFee = USDTFlashLoanAmount.mul(USDTFlashLoanFeeMantissa).div(parseUnits("1", 18));
-        const BUSDFlashLoanFee = BUSDFlashLoanAmount.mul(BUSDFlashLoanFeeMantissa).div(parseUnits("1", 18));
+        const USDTFlashLoanFee = BUSDFlashLoanProtocolFeeMantissa.mul(USDTFlashLoanProtocolFeeMantissa).div(
+          parseUnits("1", 18),
+        );
+        const BUSDFlashLoanFee = BUSDFlashLoanSupplierFeeMantissa.mul(USDTFlashLoanSupplierFeeMantissa).div(
+          parseUnits("1", 18),
+        );
 
         // Validate that USDT and BUSD balances in the contracts increased, confirming repayment plus fees
         expect(balanceAfterBUSD).to.be.equal(balanceBeforeBUSD.add(BUSDFlashLoanFee));
