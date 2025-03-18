@@ -350,9 +350,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      - The caller must be the Comptroller contract.
      * custom:reverts
      *      - Reverts with "Only Comptroller" if the caller is not the Comptroller.
-     * custom:event Emits TransferUnderlying event on successful transfer of amount to receiver
+     * custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
      */
-    function transferUnderlying(
+    function transferOutUnderlying(
         address payable to,
         uint256 amount
     ) external nonReentrant returns (uint256 balanceBefore) {
@@ -363,7 +363,36 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         doTransferOut(to, amount);
 
         balanceBefore = getCashPrior();
-        emit TransferUnderlying(underlying, to, amount);
+        emit TransferOutUnderlying(underlying, to, amount);
+    }
+
+    /**
+     * @notice Transfers the underlying asset from the specified address.
+     * @dev Can only be called by the Comptroller contract. This function performs the actual transfer of the underlying
+     *      asset by calling the `doTransferIn` internal function.
+     * @param from The address from which the underlying asset is to be transferred.
+     * @param amount The amount of the underlying asset to transfer.
+     * @param balanceBefore Cash before transfer in
+     * requirements
+     *      - The caller must be the Comptroller contract.
+     * custom:reverts
+     *      - Reverts with "Only Comptroller" if the caller is not the Comptroller.
+     * custom:event Emits TransferOutUnderlying event on successful transfer of amount to receiver
+     */
+    function transferInUnderlyingAndVerify(
+        address payable from,
+        uint256 amount,
+        uint256 balanceBefore
+    ) external nonReentrant {
+        if (msg.sender != address(comptroller)) {
+            revert("Invalid comptroller");
+        }
+
+        doTransferIn(from, amount);
+
+        if ((getCashPrior() - balanceBefore) < amount) revert("Insufficient reypayment balance");
+
+        emit TransferInUnderlyingAndVerify(underlying, from, amount);
     }
 
     /**
@@ -408,7 +437,9 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             revert("Execute flashLoan failed");
         }
 
-        verifyBalance(balanceBefore, repaymentAmount);
+        doTransferIn(receiver, repaymentAmount);
+
+        if ((getCashPrior() - balanceBefore) < repaymentAmount) revert("Insufficient reypayment balance");
 
         emit FlashLoanExecuted(receiver, underlying, amount);
 
@@ -737,7 +768,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      */
     function verifyBalance(uint256 balanceBefore, uint256 repaymentAmount) public view {
         // balanceAfter should be greater than the fee calculated
-        if ((getCashPrior() - balanceBefore) < repaymentAmount) revert("Insufficient reypayment balance");
     }
 
     /**

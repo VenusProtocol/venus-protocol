@@ -64,7 +64,7 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
             uint256 total = amounts[k] + premiums[k];
 
             // Transfer the repayment (amount + premium) back to the VToken contract
-            EIP20NonStandardInterface(VToken(assets[k]).underlying()).transfer(address(VToken(assets[k])), total);
+            EIP20NonStandardInterface(VToken(assets[k]).underlying()).approve(address(VToken(assets[k])), total);
 
             ++k;
         }

@@ -189,22 +189,24 @@ describe("FlashLoan", async () => {
     });
 
     it("Revert if not comptroller", async () => {
-      await expect(vTokenA.transferUnderlying(minter.address, parseUnits("1", 18))).to.be.revertedWith(
+      await expect(vTokenA.transferOutUnderlying(minter.address, parseUnits("1", 18))).to.be.revertedWith(
         "Invalid comptroller",
       );
     });
 
     it("Only comptroller can transfer underlying assets to receiver contract", async () => {
-      await vTokenA.connect(comptrollerSigner).transferUnderlying(minter.address, parseUnits("1", 18));
+      await vTokenA.connect(comptrollerSigner).transferOutUnderlying(minter.address, parseUnits("1", 18));
 
       expect(await underlyingA.balanceOf(minter.address)).to.be.equal(parseUnits("1", 18));
     });
 
-    it("Emit TransferUnderlying event on transfer underlying assets to receiver contract", async () => {
-      const result = await vTokenA.connect(comptrollerSigner).transferUnderlying(receiver.address, parseUnits("1", 18));
+    it("Emit TransferOutUnderlying event on transfer underlying assets to receiver contract", async () => {
+      const result = await vTokenA
+        .connect(comptrollerSigner)
+        .transferOutUnderlying(receiver.address, parseUnits("1", 18));
 
       await expect(result)
-        .to.emit(vTokenA, "TransferUnderlying")
+        .to.emit(vTokenA, "TransferOutUnderlying")
         .withArgs(underlyingA.address, receiver.address, parseUnits("1", 18));
     });
   });

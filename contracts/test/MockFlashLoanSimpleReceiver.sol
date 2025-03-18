@@ -56,7 +56,7 @@ contract MockFlashLoanSimpleReceiver is FlashLoanSimpleReceiverBase {
         uint256 total = amount + premium;
 
         // Transfer the total amount (principal + premium) back to the VToken contract to repay the loan
-        EIP20NonStandardInterface(asset).transfer(address(VTOKEN), total);
+        EIP20NonStandardInterface(asset).approve(address(VTOKEN), total);
 
         // Return true to indicate successful execution of the flash loan operation
         return true;

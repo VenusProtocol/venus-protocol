@@ -404,7 +404,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             (fees[j], ) = (assets[j]).calculateFlashLoanFee(amounts[j]);
 
             // Transfer the asset
-            (balanceAfterTransfer[j]) = (assets[j]).transferUnderlying(receiver, amounts[j]);
+            (balanceAfterTransfer[j]) = (assets[j]).transferOutUnderlying(receiver, amounts[j]);
         }
 
         // Call the execute operation on receiver contract
@@ -413,7 +413,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         for (uint256 k; k < assets.length; k++) {
-            (assets[k]).verifyBalance(balanceAfterTransfer[k], amounts[k] + fees[k]);
+            (assets[k]).transferInUnderlyingAndVerify(receiver, amounts[k] + fees[k], balanceAfterTransfer[k]);
         }
 
         emit FlashLoanExecuted(receiver, assets, amounts);
