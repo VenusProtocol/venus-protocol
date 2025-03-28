@@ -360,6 +360,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
             revert("Invalid comptroller");
         }
 
+        flashLoanAmount += amount;
         doTransferOut(to, amount);
 
         balanceBefore = getCashPrior();
@@ -372,6 +373,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      *      asset by calling the `doTransferIn` internal function.
      * @param from The address from which the underlying asset is to be transferred.
      * @param amount The amount of the underlying asset to transfer.
+     * @param fee The accrued fee
      * @param balanceBefore Cash before transfer in
      * requirements
      *      - The caller must be the Comptroller contract.
@@ -382,17 +384,20 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     function transferInUnderlyingAndVerify(
         address payable from,
         uint256 amount,
+        uint256 fee,
         uint256 balanceBefore
     ) external nonReentrant {
         if (msg.sender != address(comptroller)) {
             revert("Invalid comptroller");
         }
 
-        doTransferIn(from, amount);
+        uint256 repayment = amount + fee;
+        doTransferIn(from, repayment);
+        flashLoanAmount -= amount;
 
-        if ((getCashPrior() - balanceBefore) < amount) revert("Insufficient reypayment balance");
+        if ((getCashPrior() - balanceBefore) < repayment) revert("Insufficient reypayment balance");
 
-        emit TransferInUnderlyingAndVerify(underlying, from, amount);
+        emit TransferInUnderlyingAndVerify(underlying, from, repayment);
     }
 
     /**
@@ -419,27 +424,40 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 amount,
         bytes calldata param
     ) external nonReentrant returns (uint256) {
-        uint256 repaymentAmount;
-        uint256 fee;
-
         ensureNonZeroAddress(receiver);
-        (fee, repaymentAmount) = calculateFlashLoanFee(amount);
 
         IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(msg.sender);
+
+        // Tracks the flashLoan amount before transferring amount to the receiver
+        flashLoanAmount += amount;
 
         // Transfer the underlying asset to the receiver.
         doTransferOut(receiver, amount);
 
         uint256 balanceBefore = getCashPrior();
+        (uint256 protocolFee, uint256 supplierFee) = calculateFlashLoanFee(amount);
+
+        uint256 fee = protocolFee + supplierFee;
+        uint256 repayAmount = amount + fee;
 
         // Call the execute operation on receiver contract
         if (!receiverContract.executeOperation(underlying, amount, fee, msg.sender, param)) {
             revert("Execute flashLoan failed");
         }
 
-        doTransferIn(receiver, repaymentAmount);
+        doTransferIn(receiver, repayAmount);
 
-        if ((getCashPrior() - balanceBefore) < repaymentAmount) revert("Insufficient reypayment balance");
+        flashLoanAmount -= amount;
+
+        if ((getCashPrior() - balanceBefore) < (repayAmount)) revert("Insufficient reypayment balance");
+
+        doTransferOut(protocolShareReserve, protocolFee);
+
+        IProtocolShareReserveV5(protocolShareReserve).updateAssetsState(
+            address(comptroller),
+            underlying,
+            IProtocolShareReserveV5.IncomeType.FLASHLOAN
+        );
 
         emit FlashLoanExecuted(receiver, underlying, amount);
 
@@ -472,6 +490,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 protocolFeeMantissa_,
         uint256 supplierFeeMantissa_
     ) external returns (uint256) {
+        // update the signature
         ensureAllowed("_setFlashLoanFeeMantissa(uint256)");
 
         emit FlashLoanFeeUpdated(
@@ -740,24 +759,28 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     }
 
     /**
-     * @notice Calculates the fee and repayment amount for a flash loan.
+     * @notice Calculates the protocol fee and supplier fee for a flash loan.
      * @param amount The amount of the flash loan.
-     * @return fee The calculated fee for the flash loan.
-     * @return repaymentAmount The total amount to be repaid (amount + fee).
+     * @return protocolFee The portion of the fee allocated to the protocol.
+     * @return supplierFee The portion of the fee allocated to the supplier.
      * @dev This function reverts if flash loans are not enabled.
      */
     function calculateFlashLoanFee(uint256 amount) public view returns (uint256, uint256) {
         if (!isFlashLoanEnabled) revert("FlashLoan not enabled");
 
-        (MathError addMathErr, uint256 totalFee) = addUInt(flashLoanProtocolFeeMantissa, flashLoanSupplierFeeMantissa);
+        (MathError protocolMulErr, uint256 protocolFee) = mulScalarTruncate(
+            Exp({ mantissa: amount }),
+            flashLoanProtocolFeeMantissa
+        );
+        if (protocolMulErr != MathError.NO_ERROR) revert("Fee calculation failed");
 
-        if (addMathErr != MathError.NO_ERROR) revert("Fee calculation failed");
+        (MathError supplierMulErr, uint256 supplierFee) = mulScalarTruncate(
+            Exp({ mantissa: amount }),
+            flashLoanProtocolFeeMantissa
+        );
+        if (supplierMulErr != MathError.NO_ERROR) revert("Fee calculation failed");
 
-        (MathError mathErr, uint256 fee) = mulScalarTruncate(Exp({ mantissa: amount }), totalFee);
-
-        if (mathErr != MathError.NO_ERROR) revert("Fee calculation failed");
-        uint256 repaymentAmount = amount + fee;
-        return (fee, repaymentAmount);
+        return (protocolFee, supplierFee);
     }
 
     /**
@@ -1801,14 +1824,18 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         } else {
             /*
              * Otherwise:
-             *  exchangeRate = (totalCash + totalBorrows - totalReserves) / totalSupply
+             *  exchangeRate = (totalCash + totalBorrows + flashLoanAmount - totalReserves) / totalSupply
              */
             uint totalCash = getCashPrior();
             uint cashPlusBorrowsMinusReserves;
             Exp memory exchangeRate;
             MathError mathErr;
 
-            (mathErr, cashPlusBorrowsMinusReserves) = addThenSubUInt(totalCash, totalBorrows, totalReserves);
+            (mathErr, cashPlusBorrowsMinusReserves) = addThenSubUInt(
+                totalCash + flashLoanAmount,
+                totalBorrows,
+                totalReserves
+            );
             if (mathErr != MathError.NO_ERROR) {
                 return (mathErr, 0);
             }

@@ -6,7 +6,8 @@ import "../../InterestRateModels/InterestRateModel.sol";
 interface IProtocolShareReserveV5 {
     enum IncomeType {
         SPREAD,
-        LIQUIDATION
+        LIQUIDATION,
+        FLASHLOAN
     }
 
     function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
@@ -173,11 +174,16 @@ contract VTokenStorage is VTokenStorageBase {
     uint256 public flashLoanSupplierFeeMantissa;
 
     /**
+     * @notice variable to store the flashLoan amount
+     */
+    uint256 public flashLoanAmount;
+
+    /**
      * @dev This empty reserved space is put in place to allow future versions to add new
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[47] private __gap;
+    uint256[46] private __gap;
 }
 
 contract VTokenInterface is VTokenStorage {

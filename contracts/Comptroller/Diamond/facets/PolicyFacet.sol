@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: BSD-3-Clause
-
 pragma solidity 0.5.16;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
@@ -7,6 +6,7 @@ import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
 import { IFlashLoanReceiver } from "../../../FlashLoan/interfaces/IFlashLoanReceiver.sol";
+import { IProtocolShareReserveV5 } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
  * @title PolicyFacet
@@ -397,23 +397,33 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             revert("Invalid flashLoan params");
         }
 
-        uint256[] memory fees = new uint256[](assets.length);
+        uint256[] memory protocolFees = new uint256[](assets.length);
+        uint256[] memory supplierFees = new uint256[](assets.length);
+        uint256[] memory totalFees = new uint256[](assets.length);
         uint256[] memory balanceAfterTransfer = new uint256[](assets.length);
 
         for (uint256 j; j < assets.length; j++) {
-            (fees[j], ) = (assets[j]).calculateFlashLoanFee(amounts[j]);
-
+            (protocolFees[j], supplierFees[j]) = (assets[j]).calculateFlashLoanFee(amounts[j]);
+            totalFees[j] = protocolFees[j] + supplierFees[j]; // Sum protocol and supplier fees
             // Transfer the asset
             (balanceAfterTransfer[j]) = (assets[j]).transferOutUnderlying(receiver, amounts[j]);
         }
 
         // Call the execute operation on receiver contract
-        if (!IFlashLoanReceiver(msg.sender).executeOperation(assets, amounts, fees, receiver, param)) {
+        if (!IFlashLoanReceiver(receiver).executeOperation(assets, amounts, totalFees, msg.sender, param)) {
             revert("Execute flashLoan failed");
         }
 
         for (uint256 k; k < assets.length; k++) {
-            (assets[k]).transferInUnderlyingAndVerify(receiver, amounts[k] + fees[k], balanceAfterTransfer[k]);
+            (assets[k]).transferInUnderlyingAndVerify(receiver, amounts[k], totalFees[k], balanceAfterTransfer[k]);
+            (assets[k]).transferOutUnderlying(assets[k].protocolShareReserve(), protocolFees[k]);
+
+            // Update protocol share reserve state
+            IProtocolShareReserveV5(assets[k].protocolShareReserve()).updateAssetsState(
+                address(assets[k].comptroller()),
+                address(assets[k].underlying()),
+                IProtocolShareReserveV5.IncomeType.FLASHLOAN
+            );
         }
 
         emit FlashLoanExecuted(receiver, assets, amounts);

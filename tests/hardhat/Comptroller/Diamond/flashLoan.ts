@@ -1,7 +1,6 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import chai from "chai";
-import { BigNumber } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { SignerWithAddress } from "hardhat-deploy-ethers/signers";
@@ -14,6 +13,7 @@ import {
   ComptrollerLens__factory,
   ComptrollerMock,
   IAccessControlManagerV5,
+  IProtocolShareReserve,
   InterestRateModel,
   MockFlashLoanReceiver,
   MockFlashLoanReceiver__factory,
@@ -88,6 +88,7 @@ describe("FlashLoan", async () => {
   let unitroller: Unitroller;
   let comptroller: ComptrollerMock;
   let mockReceiverContract: MockFlashLoanReceiver;
+  let protocolShareReserveMock: FakeContract<IProtocolShareReserve>;
 
   type Contracts = FlashLoanContractsFixture & {
     vTokenA: MockContract<VBep20Harness>;
@@ -105,6 +106,12 @@ describe("FlashLoan", async () => {
   async function deploy(): Promise<Contracts> {
     const contracts = await flashLoanTestFixture();
     const underlyingA = await mockUnderlying("TokenA", "TKNA");
+
+    protocolShareReserveMock = await smock.fake<IProtocolShareReserve>(
+      "contracts/InterfacesV8.sol:IProtocolShareReserve",
+    );
+    protocolShareReserveMock.updateAssetsState.returns(true);
+
     const vTokenAFactory = await smock.mock<VBep20Harness__factory>("VBep20Harness");
     const vTokenA = await vTokenAFactory.deploy(
       underlyingA.address,
@@ -138,7 +145,9 @@ describe("FlashLoan", async () => {
       supplierFeeMantissaTokenB,
     );
 
-    vTokenA.setAccessControlManager(contracts.accessControlManager.address);
+    vTokenB.setAccessControlManager(contracts.accessControlManager.address);
+    await vTokenA.setProtocolShareReserve(protocolShareReserveMock.address);
+    await vTokenB.setProtocolShareReserve(protocolShareReserveMock.address);
 
     return { ...contracts, vTokenA, vTokenB, underlyingA, underlyingB };
   }
@@ -179,8 +188,8 @@ describe("FlashLoan", async () => {
       ).to.be.revertedWith("FlashLoan not enabled");
     });
 
-    it("FlashLoan for multiple underlying", async () => {
-      // Admin Enable flashLoan for multiple vToken
+    it("FlashLoan for multiple underlying and transfer funds to PSR", async () => {
+      // Enable flashLoan for multiple vToken
       expect(await vTokenA.isFlashLoanEnabled()).to.be.true;
       expect(await vTokenB.isFlashLoanEnabled()).to.be.true;
 
@@ -194,6 +203,8 @@ describe("FlashLoan", async () => {
       // Get the balance before the flashLoan
       const beforeBalanceVTokenA = await underlyingA.balanceOf(vTokenA.address);
       const beforeBalanceVTokenB = await underlyingB.balanceOf(vTokenB.address);
+      const psrABalanceBefore = await underlyingA.balanceOf(protocolShareReserveMock.address);
+      const psrBBalanceBefore = await underlyingB.balanceOf(protocolShareReserveMock.address);
 
       // Execute the flashLoan from the mockReceiverContract
       const flashLoan = await mockReceiverContract
@@ -209,15 +220,24 @@ describe("FlashLoan", async () => {
       const afterBalanceVTokenA = await underlyingA.balanceOf(vTokenA.address);
       const afterBalanceVTokenB = await underlyingB.balanceOf(vTokenB.address);
 
-      const feeOnFlashLoanTokenA = BigNumber.from(flashLoanAmount1)
-        .mul(protocolFeeMantissaTokenA.add(supplierFeeMantissaTokenA))
-        .div(parseUnits("1", 18));
-      const feeOnFlashLoanTokenB = BigNumber.from(flashLoanAmount2)
-        .mul(protocolFeeMantissaTokenB.add(supplierFeeMantissaTokenB))
-        .div(parseUnits("1", 18));
+      // Calculate expected fees
+      const protocolFeeA = flashLoanAmount1.mul(protocolFeeMantissaTokenA).div(parseUnits("1", 18));
+      const supplierFeeA = flashLoanAmount1.mul(supplierFeeMantissaTokenA).div(parseUnits("1", 18));
 
-      expect(afterBalanceVTokenA).to.be.equal(beforeBalanceVTokenA.add(feeOnFlashLoanTokenA));
-      expect(afterBalanceVTokenB).to.be.equal(beforeBalanceVTokenB.add(feeOnFlashLoanTokenB));
+      const protocolFeeB = flashLoanAmount2.mul(protocolFeeMantissaTokenB).div(parseUnits("1", 18));
+      const supplierFeeB = flashLoanAmount2.mul(supplierFeeMantissaTokenB).div(parseUnits("1", 18));
+
+      // Verify vToken balances
+      expect(afterBalanceVTokenA).to.be.equal(beforeBalanceVTokenA.add(supplierFeeA));
+      expect(afterBalanceVTokenB).to.be.equal(beforeBalanceVTokenB.add(supplierFeeB));
+
+      // Verify protocol share reserve balances
+      expect(await underlyingA.balanceOf(protocolShareReserveMock.address)).to.equal(
+        psrABalanceBefore.add(protocolFeeA),
+      );
+      expect(await underlyingB.balanceOf(protocolShareReserveMock.address)).to.equal(
+        psrBBalanceBefore.add(protocolFeeB),
+      );
 
       await expect(flashLoan)
         .to.emit(comptroller, "FlashLoanExecuted")
@@ -226,6 +246,18 @@ describe("FlashLoan", async () => {
           [vTokenA.address, vTokenB.address],
           [flashLoanAmount1, flashLoanAmount2],
         );
+
+      expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
+        comptroller.address,
+        underlyingA.address,
+        2,
+      );
+
+      expect(protocolShareReserveMock.updateAssetsState).to.have.been.calledWith(
+        comptroller.address,
+        underlyingB.address,
+        2,
+      );
     });
   });
 });
