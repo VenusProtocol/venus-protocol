@@ -1,3 +1,11 @@
+## [9.8.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.1...v9.8.0-dev.2) (2025-03-31)
+
+
+### Features
+
+* deploy lisUSD market to Core pool on BNB mainnet and testnet ([cd931dd](https://github.com/VenusProtocol/venus-protocol/commit/cd931dd96d4d9b9ffeed11f86a4f17163d31dd7a))
+* updating deployment files ([df3e7dd](https://github.com/VenusProtocol/venus-protocol/commit/df3e7dde8453cab00f733f4e82df73956384c001))
+
 ## [9.8.0-dev.1](https://github.com/VenusProtocol/venus-protocol/compare/v9.7.0...v9.8.0-dev.1) (2025-03-04)
 
 
