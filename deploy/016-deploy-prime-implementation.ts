@@ -47,7 +47,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     basesepolia: 0, // time based contracts
     basemainnet: 0, // time based contracts
     unichainmainnet: 0,
-    bscmainnet: 10_512_000,
+    bscmainnet: 21024000,
     ethereum: 2_628_000,
     hardhat: 100,
   };

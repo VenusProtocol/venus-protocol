@@ -913,8 +913,6 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
 
     /**
      * @notice set Block per year in Time Manager
-     * @param timeBased_ A boolean indicating whether the contract is based on time or block
-     * If timeBased is true than blocksPerYear_ param is ignored as blocksOrSecondsPerYear is set to SECONDS_PER_YEAR
      * @param blocksPerYear_ The number of blocks per year
      */
     function setBlocksPerYear(uint256 blocksPerYear_) external onlyAdmin {
