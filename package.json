@@ -34,7 +34,7 @@
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0",
-    "@venusprotocol/governance-contracts": "^2.10.0",
+    "@venusprotocol/governance-contracts": "^2.11.0-dev.1",
     "@venusprotocol/protocol-reserve": "^3.2.0",
     "@venusprotocol/solidity-utilities": "^2.0.3",
     "@venusprotocol/token-bridge": "^2.6.0",
