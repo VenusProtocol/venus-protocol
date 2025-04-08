@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import { InterestRateModelV8 } from "./InterestRateModelV8.sol";
+import { IRateModelWithUtilization } from "./IRateModelWithUtilization.sol";
 
 /**
  * @title TwoKinksInterestRateModel
  * @author Venus
  * @notice An interest rate model with two different slope increase or decrease each after a certain utilization threshold called **kink** is reached.
  */
-contract TwoKinksInterestRateModel is InterestRateModelV8 {
+contract TwoKinksInterestRateModel is IRateModelWithUtilization {
     int256 public constant BLOCKS_PER_YEAR = (60 * 60 * 24 * 365) / 3; // (assuming 3s blocks)
 
     ////////////////////// SLOPE 1 //////////////////////
@@ -152,13 +152,9 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
     }
 
     /**
-     * @notice Calculates the utilization rate of the market: `borrows / (cash + borrows - reserves)`
-     * @param cash The amount of cash in the market
-     * @param borrows The amount of borrows in the market
-     * @param reserves The amount of reserves in the market
-     * @return The utilization rate as a mantissa between [0, EXP_SCALE]
+     * @inheritdoc IRateModelWithUtilization
      */
-    function utilizationRate(uint256 cash, uint256 borrows, uint256 reserves) public pure returns (uint256) {
+    function utilizationRate(uint256 cash, uint256 borrows, uint256 reserves) public pure override returns (uint256) {
         // Utilization rate is 0 when there are no borrows
         if (borrows == 0) {
             return 0;
@@ -174,7 +170,7 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
     }
 
     /**
-     * @notice Calculates the current borrow rate per slot (block), with the error code expected by the market
+     * @dev Calculates the current borrow rate per slot (block), with the error code expected by the market
      * @param cash The amount of cash in the market
      * @param borrows The amount of borrows in the market
      * @param reserves The amount of reserves in the market
@@ -206,7 +202,7 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
     }
 
     /**
-     * @notice Returns 0 if number is less than 0, otherwise returns the input
+     * @dev Returns 0 if number is less than 0, otherwise returns the input
      * @param number The first number
      * @return The maximum of 0 and input number
      */
