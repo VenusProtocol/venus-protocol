@@ -746,7 +746,7 @@ const test = (setup: () => Promise<TokenRedeemerFixture>) => () => {
         expect(await vai.balanceOf(redeemer.address)).to.equal(3);
         await ethers.provider.send("evm_setAutomine", [false]);
         await vaiController.setBaseRate(parseUnits("105120", 18)); // 1% each block
-        await mine(99);
+        await mine(198);
         await vaiController.accrueVAIInterest();
         await mine();
         // 100 blocks here, so debt before the repayment is twice the initial amount
