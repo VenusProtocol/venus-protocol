@@ -4,15 +4,15 @@ import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
-import { CheckpointRateModel, InterestRateModelV8 } from "../../../typechain";
+import { CheckpointRateModel, IRateModelWithUtilization } from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
 
 describe("CheckpointRateModel tests", () => {
   let checkpointRateModel: CheckpointRateModel;
-  let oldRateModel: FakeContract<InterestRateModelV8>;
-  let newRateModel: FakeContract<InterestRateModelV8>;
+  let oldRateModel: FakeContract<IRateModelWithUtilization>;
+  let newRateModel: FakeContract<IRateModelWithUtilization>;
   let checkpointTimestamp: number;
   const cash = parseUnits("10", 18);
   const borrows = parseUnits("4", 18);
@@ -21,8 +21,8 @@ describe("CheckpointRateModel tests", () => {
 
   const fixture = async () => {
     const interestRateModelFactory = await ethers.getContractFactory("WhitePaperInterestRateModel");
-    oldRateModel = await smock.fake<InterestRateModelV8>(interestRateModelFactory.interface);
-    newRateModel = await smock.fake<InterestRateModelV8>(interestRateModelFactory.interface);
+    oldRateModel = await smock.fake<IRateModelWithUtilization>(interestRateModelFactory.interface);
+    newRateModel = await smock.fake<IRateModelWithUtilization>(interestRateModelFactory.interface);
 
     const checkpointRateModelFactory = await ethers.getContractFactory("CheckpointRateModel");
     checkpointTimestamp = (await time.latest()) + 100; // 100 seconds in the future
@@ -57,9 +57,11 @@ describe("CheckpointRateModel tests", () => {
 
     oldRateModel.getBorrowRate.returns(100);
     oldRateModel.getSupplyRate.returns(50);
+    oldRateModel.utilizationRate.returns(1234);
 
     expect(await checkpointRateModel.getBorrowRate(cash, borrows, reserves)).to.equal(100);
     expect(await checkpointRateModel.getSupplyRate(cash, borrows, reserves, reserveFactorMantissa)).to.equal(50);
+    expect(await checkpointRateModel.utilizationRate(cash, borrows, reserves)).to.equal(1234);
   });
 
   it("should use new rate model after checkpoint", async () => {
@@ -67,9 +69,11 @@ describe("CheckpointRateModel tests", () => {
 
     newRateModel.getBorrowRate.returns(200);
     newRateModel.getSupplyRate.returns(100);
+    newRateModel.utilizationRate.returns(4321);
 
     expect(await checkpointRateModel.getBorrowRate(cash, borrows, reserves)).to.equal(200);
     expect(await checkpointRateModel.getSupplyRate(cash, borrows, reserves, reserveFactorMantissa)).to.equal(100);
+    expect(await checkpointRateModel.utilizationRate(cash, borrows, reserves)).to.equal(4321);
   });
 
   it("should return the correct current rate model", async () => {
