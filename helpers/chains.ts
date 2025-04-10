@@ -25,8 +25,8 @@ export type BlocksPerYear = number | "time-based";
 
 export const blocksPerYear = {
   hardhat: 100,
-  bsctestnet: 10_512_000, // 3 sec per block
-  bscmainnet: 10_512_000,
+  bsctestnet: 21_024_000, // 1.5 sec per block
+  bscmainnet: 21_024_000,
   sepolia: 2_628_000, // 12 sec per block
   ethereum: 2_628_000,
   opbnbtestnet: 31_536_000, // 1 sec per block
