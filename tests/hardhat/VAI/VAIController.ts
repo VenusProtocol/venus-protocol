@@ -144,9 +144,8 @@ describe("VAIController", async () => {
   }
 
   beforeEach("deploy Comptroller", async () => {
-    ({ usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt } = await loadFixture(
-      comptrollerFixture,
-    ));
+    ({ usdt, accessControl, comptroller, priceOracle, vai, vaiController, vusdt } =
+      await loadFixture(comptrollerFixture));
     accessControl.isAllowedToCall.reset();
     accessControl.isAllowedToCall.returns(true);
     await vusdt.setAccessControlManager(accessControl.address);
