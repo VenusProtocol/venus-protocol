@@ -3,6 +3,8 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ParsedVTokenConfig } from "./markets/types";
 
+export const DEFAULT_BLOCKS_PER_YEAR = 21024000;
+
 export type TokenConfig =
   | {
       isMock: true;
