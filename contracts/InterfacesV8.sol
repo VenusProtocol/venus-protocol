@@ -110,7 +110,8 @@ interface ILiquidator {
 interface IProtocolShareReserve {
     enum IncomeType {
         SPREAD,
-        LIQUIDATION
+        LIQUIDATION,
+        ERC4626_WRAPPER_REWARDS
     }
 
     function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
