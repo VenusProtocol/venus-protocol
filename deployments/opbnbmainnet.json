@@ -684,7 +684,7 @@
       ]
     },
     "XVSVaultProxy_Implementation": {
-      "address": "0xc3D1F7CC89dce0A1245803fe9e0E62B8EC351196",
+      "address": "0x16c4d000d27aFc73492fFeF5daE48B4Fa5e11847",
       "abi": [
         {
           "inputs": [],
@@ -833,6 +833,25 @@
             }
           ],
           "name": "ExecutedWithdrawal",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "bool",
+              "name": "timebased",
+              "type": "bool"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "blocksOrSecondsPerYear",
+              "type": "uint256"
+            }
+          ],
+          "name": "InitializeTimeManager",
           "type": "event"
         },
         {
@@ -1025,6 +1044,25 @@
             }
           ],
           "name": "RewardAmountUpdated",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "prevBlocksPeryear",
+              "type": "uint256"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "newBlocksPerYear",
+              "type": "uint256"
+            }
+          ],
+          "name": "SetBlocksPerYear",
           "type": "event"
         },
         {
@@ -2154,6 +2192,21 @@
             }
           ],
           "name": "setAccessControl",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "blocksPerYear_",
+              "type": "uint256"
+            }
+          ],
+          "name": "setBlocksPerYear",
           "outputs": [],
           "payable": false,
           "stateMutability": "nonpayable",
