@@ -1,3 +1,11 @@
+## [9.8.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.2...v9.8.0-dev.3) (2025-04-14)
+
+
+### Features
+
+* 2-kinks for vBNB with lower base rate in the 2nd slope ([534419d](https://github.com/VenusProtocol/venus-protocol/commit/534419ddc65d453ad371b3246119c7a47763487d))
+* updating deployment files ([4c613a3](https://github.com/VenusProtocol/venus-protocol/commit/4c613a32790224930d8a353ef56902584bdec5ac))
+
 ## [9.8.0-dev.2](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.1...v9.8.0-dev.2) (2025-03-31)
 
 
