@@ -1,3 +1,13 @@
+## [9.8.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.3...v9.8.0-dev.4) (2025-04-15)
+
+
+### Features
+
+* add Ethena markets to the BNB Core pool ([0845fee](https://github.com/VenusProtocol/venus-protocol/commit/0845feeb647a6fe3eb0a50956ffb2df6da4bc238))
+* add Ethena markets to the BNB Core pool on mainnet ([b2b96ac](https://github.com/VenusProtocol/venus-protocol/commit/b2b96acfc67456dfa97410fd18e0a98e7d4414f4))
+* updating deployment files ([2d17568](https://github.com/VenusProtocol/venus-protocol/commit/2d175682f47589e76c80a71d786c4be277edd8af))
+* updating deployment files ([e21bc02](https://github.com/VenusProtocol/venus-protocol/commit/e21bc02a94543cb03b54cc9f55664b21d580a4cc))
+
 ## [9.8.0-dev.3](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.2...v9.8.0-dev.3) (2025-04-14)
 
 
