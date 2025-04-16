@@ -4,6 +4,8 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { convertToUnit } from "./utils";
 
+export const DEFAULT_BLOCKS_PER_YEAR = 21024000;
+
 export enum InterestRateModels {
   WhitePaper,
   JumpRate,

@@ -5,6 +5,7 @@ import { BigNumberish, Wallet } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
+import { DEFAULT_BLOCKS_PER_YEAR } from "../../../helpers/deploymentConfig";
 import { IERC20Upgradeable, XVS, XVSStore, XVSVaultScenario, XVSVaultScenario__factory } from "../../../typechain";
 import { IAccessControlManager } from "../../../typechain/contracts/Governance";
 
@@ -41,7 +42,7 @@ describe("XVSVault", async () => {
 
     const xvsVaultFactory = await smock.mock<XVSVaultScenario__factory>("XVSVaultScenario");
     xvsVault = await xvsVaultFactory.deploy();
-    await xvsVault.initializeTimeManager(false, 10512000);
+    await xvsVault.initializeTimeManager(false, DEFAULT_BLOCKS_PER_YEAR);
 
     const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
     accessControl.isAllowedToCall.returns(true);
