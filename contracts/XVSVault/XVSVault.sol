@@ -912,7 +912,7 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
     }
 
     /**
-     * @notice set Block per year in Time Manager
+     * @notice Sets the block per year in Time Manager
      * @param blocksPerYear_ The number of blocks per year
      */
     function setBlocksPerYear(uint256 blocksPerYear_) external {
