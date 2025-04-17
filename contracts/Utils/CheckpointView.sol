@@ -36,6 +36,7 @@ contract CheckpointView {
     /**
      * @notice Fallback function that proxies the view calls to the current data source
      * @param input Input data (with a function selector) for the call
+     * @return The data returned by the called function on the current data source
      */
     fallback(bytes calldata input) external returns (bytes memory) {
         return _getCurrentDataSource().functionStaticCall(input);
