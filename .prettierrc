@@ -1,5 +1,5 @@
 {
-  "arrowParens": avoid,
+  "arrowParens": "avoid",
   "bracketSpacing": true,
   "endOfLine": "auto",
   "importOrder": ["module-alias/register", "<THIRD_PARTY_MODULES>", "^[./]"],
@@ -9,6 +9,7 @@
   "printWidth": 120,
   "singleQuote": false,
   "tabWidth": 2,
-  "trailingComma": all,
+  "trailingComma": "all",
   "overrides": [{ "files": "*.sol", "options": { "tabWidth": 4 } }],
+  "plugins": ["@trivago/prettier-plugin-sort-imports", "prettier-plugin-solidity"]
 }

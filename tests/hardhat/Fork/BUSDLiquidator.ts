@@ -194,9 +194,8 @@ const test = (setup: () => Promise<BUSDLiquidatorFixture>) => () => {
     let collateral: Contract;
 
     beforeEach(async () => {
-      ({ comptroller, busdLiquidator, vCollateral, vBUSD, busd, treasuryAddress, collateral } = await loadFixture(
-        setup,
-      ));
+      ({ comptroller, busdLiquidator, vCollateral, vBUSD, busd, treasuryAddress, collateral } =
+        await loadFixture(setup));
       [, , borrower, someone] = await ethers.getSigners();
     });
 

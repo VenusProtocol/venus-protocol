@@ -931,9 +931,8 @@ describe("PrimeScenario Token", () => {
     beforeEach(async () => {
       const [wallet, user1] = await ethers.getSigners();
 
-      ({ comptroller, prime, vusdt, veth, xvsVault, xvs, oracle, _primeLiquidityProvider } = await loadFixture(
-        deployProtocol,
-      ));
+      ({ comptroller, prime, vusdt, veth, xvsVault, xvs, oracle, _primeLiquidityProvider } =
+        await loadFixture(deployProtocol));
 
       const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
       accessControl.isAllowedToCall.returns(true);
