@@ -100,13 +100,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       log: true,
       autoMine: true,
       args: [
-        0,
-        parseUnits("0.125", 18),
-        parseUnits("0.4", 18),
-        parseUnits("0.9", 18),
-        parseUnits("0.05", 18),
-        parseUnits("0.8", 18),
-        parseUnits("5", 18),
+        parseUnits("0", 18), // base rate 1
+        parseUnits("0.035", 18), // multiplier 1
+        parseUnits("0.8", 18), // kink 1
+        parseUnits("1.75", 18), // multiplier 2
+        parseUnits("0", 18), // base rate 2
+        parseUnits("0.9", 18), // kink 2
+        parseUnits("3", 18), // jump multiplier
       ],
     });
   }
