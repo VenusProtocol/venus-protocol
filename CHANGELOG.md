@@ -1,3 +1,11 @@
+## [9.8.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.4...v9.8.0-dev.5) (2025-04-21)
+
+
+### Features
+
+* 2-kinks for vBNB following Chaos Labs recommendations ([7bd567f](https://github.com/VenusProtocol/venus-protocol/commit/7bd567f313f5f48ef6595ce2b55dfbc4d5930294))
+* updating deployment files ([10c3745](https://github.com/VenusProtocol/venus-protocol/commit/10c37453df2487d155b928a15bcbe2ef59257167))
+
 ## [9.8.0-dev.4](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.3...v9.8.0-dev.4) (2025-04-15)
 
 
