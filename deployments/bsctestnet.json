@@ -1596,298 +1596,7 @@
         }
       ]
     },
-    "InterestRateModelVBNB": {
-      "address": "0x46D9269a8Db9623ac2baAB305B119a39BAfd8668",
-      "abi": [
-        {
-          "inputs": [
-            {
-              "internalType": "int256",
-              "name": "baseRatePerYear_",
-              "type": "int256"
-            },
-            {
-              "internalType": "int256",
-              "name": "multiplierPerYear_",
-              "type": "int256"
-            },
-            {
-              "internalType": "int256",
-              "name": "kink1_",
-              "type": "int256"
-            },
-            {
-              "internalType": "int256",
-              "name": "multiplier2PerYear_",
-              "type": "int256"
-            },
-            {
-              "internalType": "int256",
-              "name": "baseRate2PerYear_",
-              "type": "int256"
-            },
-            {
-              "internalType": "int256",
-              "name": "kink2_",
-              "type": "int256"
-            },
-            {
-              "internalType": "int256",
-              "name": "jumpMultiplierPerYear_",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "constructor"
-        },
-        {
-          "inputs": [],
-          "name": "InvalidKink",
-          "type": "error"
-        },
-        {
-          "inputs": [],
-          "name": "NegativeValueNotAllowed",
-          "type": "error"
-        },
-        {
-          "inputs": [],
-          "name": "BASE_RATE_2_PER_BLOCK",
-          "outputs": [
-            {
-              "internalType": "int256",
-              "name": "",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "BASE_RATE_PER_BLOCK",
-          "outputs": [
-            {
-              "internalType": "int256",
-              "name": "",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "BLOCKS_PER_YEAR",
-          "outputs": [
-            {
-              "internalType": "int256",
-              "name": "",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "JUMP_MULTIPLIER_PER_BLOCK",
-          "outputs": [
-            {
-              "internalType": "int256",
-              "name": "",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "KINK_1",
-          "outputs": [
-            {
-              "internalType": "int256",
-              "name": "",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "KINK_2",
-          "outputs": [
-            {
-              "internalType": "int256",
-              "name": "",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "MULTIPLIER_2_PER_BLOCK",
-          "outputs": [
-            {
-              "internalType": "int256",
-              "name": "",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "MULTIPLIER_PER_BLOCK",
-          "outputs": [
-            {
-              "internalType": "int256",
-              "name": "",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "RATE_1",
-          "outputs": [
-            {
-              "internalType": "int256",
-              "name": "",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "RATE_2",
-          "outputs": [
-            {
-              "internalType": "int256",
-              "name": "",
-              "type": "int256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "cash",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "borrows",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "reserves",
-              "type": "uint256"
-            }
-          ],
-          "name": "getBorrowRate",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "cash",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "borrows",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "reserves",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "reserveFactorMantissa",
-              "type": "uint256"
-            }
-          ],
-          "name": "getSupplyRate",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "isInterestRateModel",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "cash",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "borrows",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "reserves",
-              "type": "uint256"
-            }
-          ],
-          "name": "utilizationRate",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "pure",
-          "type": "function"
-        }
-      ]
-    },
-    "JumpRateModel_base0bps_slope1000bps_jump20000bps_kink7500bps": {
+    "JumpRateModel_base0bps_slope1000bps_jump20000bps_kink7500bps_bpy10512000": {
       "address": "0xebb0B3Ca7c4095b1392C75e96f8Dc565c9047FAa",
       "abi": [
         {
@@ -2138,7 +1847,7 @@
         }
       ]
     },
-    "JumpRateModel_base0bps_slope1000bps_jump25000bps_kink8000bps": {
+    "JumpRateModel_base0bps_slope1000bps_jump25000bps_kink8000bps_bpy10512000": {
       "address": "0x4348FC0CBD4ab6E46311ef90ba706169e50fC804",
       "abi": [
         {
@@ -2389,7 +2098,7 @@
         }
       ]
     },
-    "JumpRateModel_base0bps_slope2000bps_jump30000bps_kink5000bps": {
+    "JumpRateModel_base0bps_slope2000bps_jump30000bps_kink5000bps_bpy10512000": {
       "address": "0x40e5d89ca4FED67F4C48A4eA5fe40bC1a1af1726",
       "abi": [
         {
@@ -2640,7 +2349,7 @@
         }
       ]
     },
-    "JumpRateModel_base0bps_slope500bps_jump10900bps_kink8000bps": {
+    "JumpRateModel_base0bps_slope500bps_jump10900bps_kink8000bps_bpy10512000": {
       "address": "0xB200dBd23cff696Cf2E95C0FbccDd3AF7814c00F",
       "abi": [
         {
@@ -2891,7 +2600,7 @@
         }
       ]
     },
-    "JumpRateModel_base0bps_slope500bps_jump5000bps_kink8000bps": {
+    "JumpRateModel_base0bps_slope500bps_jump5000bps_kink8000bps_bpy10512000": {
       "address": "0xfB14Dd85A26e41E4fD62b3B142b17f279c7Bb8B0",
       "abi": [
         {
@@ -3142,7 +2851,7 @@
         }
       ]
     },
-    "JumpRateModel_base0bps_slope687bps_jump25000bps_kink8000bps": {
+    "JumpRateModel_base0bps_slope687bps_jump25000bps_kink8000bps_bpy10512000": {
       "address": "0xf59B7f2733a549dCF82b804d69d9c6a38985B90B",
       "abi": [
         {
@@ -3393,7 +3102,7 @@
         }
       ]
     },
-    "JumpRateModel_base0bps_slope750bps_jump5000bps_kink8000bps": {
+    "JumpRateModel_base0bps_slope750bps_jump5000bps_kink8000bps_bpy10512000": {
       "address": "0x37bD1aFb1E9965FB9a229f85f71f8bEB5afdA91C",
       "abi": [
         {
@@ -3644,7 +3353,7 @@
         }
       ]
     },
-    "JumpRateModel_base0bps_slope900bps_jump20000bps_kink5000bps": {
+    "JumpRateModel_base0bps_slope900bps_jump20000bps_kink5000bps_bpy10512000": {
       "address": "0x12b88631a2033c0e9afA36b295cdFCf49493E89e",
       "abi": [
         {
@@ -3895,7 +3604,7 @@
         }
       ]
     },
-    "JumpRateModel_base0bps_slope900bps_jump35000bps_kink4500bps": {
+    "JumpRateModel_base0bps_slope900bps_jump35000bps_kink4500bps_bpy10512000": {
       "address": "0xBbA0DEC733d5217A14B934710Cf07F070BA6c01e",
       "abi": [
         {
@@ -4146,7 +3855,7 @@
         }
       ]
     },
-    "JumpRateModel_base200bps_slope1500bps_jump30000bps_kink6000bps": {
+    "JumpRateModel_base200bps_slope1500bps_jump30000bps_kink6000bps_bpy10512000": {
       "address": "0xf334E44BA510079833EcC8eb00fD5Bd26d8048F5",
       "abi": [
         {
@@ -4397,7 +4106,7 @@
         }
       ]
     },
-    "JumpRateModel_base200bps_slope2000bps_jump30000bps_kink5000bps": {
+    "JumpRateModel_base200bps_slope2000bps_jump30000bps_kink5000bps_bpy10512000": {
       "address": "0xF1A8B40CA68d08EFfa31a16a83f4fd9b5c174872",
       "abi": [
         {
@@ -35441,6 +35150,297 @@
         }
       ]
     },
+    "TwoKinks_base0bps_slope350bps_kink8000bps_slope217500bps_base20bps_kink29000bps_jump30000bps_bpy10512000": {
+      "address": "0x46D9269a8Db9623ac2baAB305B119a39BAfd8668",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "int256",
+              "name": "baseRatePerYear_",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "multiplierPerYear_",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "kink1_",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "multiplier2PerYear_",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "baseRate2PerYear_",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "kink2_",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "jumpMultiplierPerYear_",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidKink",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "NegativeValueNotAllowed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BASE_RATE_2_PER_BLOCK",
+          "outputs": [
+            {
+              "internalType": "int256",
+              "name": "",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "BASE_RATE_PER_BLOCK",
+          "outputs": [
+            {
+              "internalType": "int256",
+              "name": "",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "BLOCKS_PER_YEAR",
+          "outputs": [
+            {
+              "internalType": "int256",
+              "name": "",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "JUMP_MULTIPLIER_PER_BLOCK",
+          "outputs": [
+            {
+              "internalType": "int256",
+              "name": "",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "KINK_1",
+          "outputs": [
+            {
+              "internalType": "int256",
+              "name": "",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "KINK_2",
+          "outputs": [
+            {
+              "internalType": "int256",
+              "name": "",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "MULTIPLIER_2_PER_BLOCK",
+          "outputs": [
+            {
+              "internalType": "int256",
+              "name": "",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "MULTIPLIER_PER_BLOCK",
+          "outputs": [
+            {
+              "internalType": "int256",
+              "name": "",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "RATE_1",
+          "outputs": [
+            {
+              "internalType": "int256",
+              "name": "",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "RATE_2",
+          "outputs": [
+            {
+              "internalType": "int256",
+              "name": "",
+              "type": "int256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "cash",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "borrows",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "reserves",
+              "type": "uint256"
+            }
+          ],
+          "name": "getBorrowRate",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "cash",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "borrows",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "reserves",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "reserveFactorMantissa",
+              "type": "uint256"
+            }
+          ],
+          "name": "getSupplyRate",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "isInterestRateModel",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "cash",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "borrows",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "reserves",
+              "type": "uint256"
+            }
+          ],
+          "name": "utilizationRate",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        }
+      ]
+    },
     "USDC": {
       "address": "0x16227D60f7a0e586C66B005219dfc887D13C9531",
       "abi": [
@@ -51871,7 +51871,7 @@
         }
       ]
     },
-    "WhitePaperInterestRateModel_base0bps_slope10000bps": {
+    "WhitePaperInterestRateModel_base0bps_slope10000bps_bpy10512000": {
       "address": "0x562639bbbf595806d910d6bD82d215ac18604A12",
       "abi": [
         {
@@ -52070,7 +52070,7 @@
         }
       ]
     },
-    "WhitepaperInterestRateModel": {
+    "WhitePaperInterestRateModel_base200bps_slope1000bps_bpy10512000": {
       "address": "0xdE9beC5102ee897a2c934321309517dD6c0106F4",
       "abi": [
         {
