@@ -1,3 +1,18 @@
+## [9.8.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.5...v9.8.0-dev.6) (2025-04-21)
+
+
+### Features
+
+* add CheckpointView contract ([1824cb5](https://github.com/VenusProtocol/venus-protocol/commit/1824cb532eda6567fc2507256f0cd0ef26543e87))
+* updating deployment files ([490af9d](https://github.com/VenusProtocol/venus-protocol/commit/490af9d16615becb61f9d677828baf8a2ab46829))
+
+
+### Bug Fixes
+
+* add missing interest rate model deployments ([6d87c47](https://github.com/VenusProtocol/venus-protocol/commit/6d87c47a46c63e7da2a5b6688617672522cfe17d))
+* add missing vUNI deployment ([c64b4f0](https://github.com/VenusProtocol/venus-protocol/commit/c64b4f0816eea4812423f9272a5b202427d2fc20))
+* use consistent name for vBTC deployment on bsctestnet ([3b6f641](https://github.com/VenusProtocol/venus-protocol/commit/3b6f641dfbeab20b2f382df3a958945eff440a4b))
+
 ## [9.8.0-dev.5](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.4...v9.8.0-dev.5) (2025-04-21)
 
 
