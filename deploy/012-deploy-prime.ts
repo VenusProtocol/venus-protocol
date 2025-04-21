@@ -60,7 +60,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   };
 
   const blocksPerYear: Config = {
-    bsctestnet: 10_512_000, // 3 sec per block
+    bsctestnet: 21_024_000, // 1.5 sec per block
     sepolia: 2_628_000, // 12 sec per block
     arbitrumsepolia: 0, // time based contracts
     arbitrumone: 0, // time based contracts
@@ -72,7 +72,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     basesepolia: 0, // time based contracts
     basemainnet: 0, // time based contracts
     unichainmainnet: 0,
-    bscmainnet: 10_512_000,
+    bscmainnet: 21_024_000,
     ethereum: 2_628_000,
     hardhat: 100,
   };
