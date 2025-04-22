@@ -23061,7 +23061,7 @@
       ]
     },
     "PrimeLiquidityProvider_Implementation": {
-      "address": "0x0C52403E16BcB8007C1e54887E1dFC1eC9765D7C",
+      "address": "0x24b4A647B005291e97AdFf7078b912A39C905091",
       "abi": [
         {
           "inputs": [
@@ -24067,7 +24067,7 @@
       ]
     },
     "Prime_Implementation": {
-      "address": "0xBAb8c229B6C19c443b942F228B076Ca0d4f2260E",
+      "address": "0x41F3a1a8000eAc9AD778dEf160C41d8B061965E0",
       "abi": [
         {
           "inputs": [
@@ -48291,7 +48291,7 @@
       ]
     },
     "VaiController": {
-      "address": "0xfdaA5dEEA7850997dA8A6E2F2Ab42E60F1011C19",
+      "address": "0xB2bF2332dbbD15c9F9A6415D9D84C317eA6B774C",
       "abi": [
         {
           "anonymous": false,
@@ -58283,7 +58283,7 @@
       ]
     },
     "XVSVaultProxy_Implementation": {
-      "address": "0x30FA1436071fb25Ee5bf32f17DA23f02ee989d4E",
+      "address": "0x74c8a97BE672db3e9a224648bE566AdA5F43B378",
       "abi": [
         {
           "inputs": [],
@@ -58651,7 +58651,7 @@
             {
               "indexed": true,
               "internalType": "uint256",
-              "name": "prevBlocksPeryear",
+              "name": "prevBlocksPerYear",
               "type": "uint256"
             },
             {
