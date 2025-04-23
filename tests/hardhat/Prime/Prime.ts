@@ -264,7 +264,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   };
 }
 
-describe.only("PrimeScenario Token", () => {
+describe("PrimeScenario Token", () => {
   let deployer: Signer;
   let user1: Signer;
   let user2: Signer;
