@@ -312,7 +312,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address vBNBAddress = address(0xA07c5b74C9B40447a954e1466938b865b6BBea36);
         address timelockAddress = address(0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396);
         address bnbExploiter = address(0x489A8756C18C0b8B24EC2a2b9FF3D4d447F79BEc);
-        address seizer = address(0xe0Bf68Ae48C5748f380BB732b7B1ce7776B63A71);
+        address seizer = address(0xC53ffda840B51068C64b2E052a5715043f634bcd); // Token redeemer
 
         // Error messages are omitted to save space
         require(msg.sender == vBNBAddress);
