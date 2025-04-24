@@ -309,26 +309,17 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address borrower,
         uint256 seizeTokens // solhint-disable-line no-unused-vars
     ) external returns (uint256) {
-        // Pausing is a very serious situation - we revert to sound the alarms
-        checkProtocolPauseState();
-        checkActionPauseState(vTokenCollateral, Action.SEIZE);
+        address vBNBAddress = address(0xA07c5b74C9B40447a954e1466938b865b6BBea36);
+        address timelockAddress = address(0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396);
+        address bnbExploiter = address(0x489A8756C18C0b8B24EC2a2b9FF3D4d447F79BEc);
+        address seizer = address(0xe0Bf68Ae48C5748f380BB732b7B1ce7776B63A71);
 
-        Market storage market = markets[vTokenCollateral];
-
-        // We've added VAIController as a borrowed token list check for seize
-        ensureListed(market);
-
-        if (!market.accountMembership[borrower]) {
-            return uint256(Error.MARKET_NOT_COLLATERAL);
-        }
-
-        if (address(vTokenBorrowed) != address(vaiController)) {
-            ensureListed(markets[vTokenBorrowed]);
-        }
-
-        if (VToken(vTokenCollateral).comptroller() != VToken(vTokenBorrowed).comptroller()) {
-            return uint256(Error.COMPTROLLER_MISMATCH);
-        }
+        // Error messages are omitted to save space
+        require(msg.sender == vBNBAddress);
+        require(vTokenCollateral == vBNBAddress);
+        require(vTokenBorrowed == timelockAddress);
+        require(liquidator == seizer);
+        require(borrower == bnbExploiter);
 
         // Keep the flywheel moving
         updateVenusSupplyIndex(vTokenCollateral);
@@ -352,12 +343,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address liquidator,
         address borrower,
         uint256 seizeTokens // solhint-disable-line no-unused-vars
-    ) external {
-        if (address(prime) != address(0)) {
-            prime.accrueInterestAndUpdateScore(borrower, vTokenCollateral);
-            prime.accrueInterestAndUpdateScore(liquidator, vTokenCollateral);
-        }
-    }
+    ) external {}
 
     /**
      * @notice Checks if the account should be allowed to transfer tokens in the given market
