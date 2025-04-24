@@ -1,3 +1,19 @@
+## [9.8.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.6...v9.8.0-dev.7) (2025-04-24)
+
+
+### Features
+
+* add a script to check interest rate models ([afa598e](https://github.com/VenusProtocol/venus-protocol/commit/afa598e6a2d2f19c1dfa6fad2f18d2ef7abc9c22))
+* refactor deployment config and add missing tokens and markets ([3df1ffe](https://github.com/VenusProtocol/venus-protocol/commit/3df1ffe6e5da362ce017aac1723fed76b7d19fb4))
+* updating deployment files ([95f063f](https://github.com/VenusProtocol/venus-protocol/commit/95f063f0779221bad3979579a06143f67b1c08ef))
+* use the new configuration in deployment scripts ([1a6c6dd](https://github.com/VenusProtocol/venus-protocol/commit/1a6c6dd875ef4ab87ef18e7c5e991e3328c8b2f3))
+
+
+### Bug Fixes
+
+* mark bsc{mainnet,testnet} as live networks ([d932c1b](https://github.com/VenusProtocol/venus-protocol/commit/d932c1b6112c8afb20b9d2da09cfef6a69122b55))
+* typescript errors in configuration ([90f0bc5](https://github.com/VenusProtocol/venus-protocol/commit/90f0bc52f0d7ee43981a96e25b3ebe45c790e7df))
+
 ## [9.8.0-dev.6](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.5...v9.8.0-dev.6) (2025-04-21)
 
 
