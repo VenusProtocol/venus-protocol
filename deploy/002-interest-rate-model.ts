@@ -2,7 +2,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { assertBlockBasedChain, blocksPerYear as chainBlocksPerYear } from "../helpers/chains";
-import { skipRemoteNetworks } from "../helpers/deploymentConfig";
+import { DEFAULT_BLOCKS_PER_YEAR, skipRemoteNetworks } from "../helpers/deploymentConfig";
 import { markets } from "../helpers/markets";
 import { getRateModelName } from "../helpers/rateModelHelpers";
 
@@ -20,7 +20,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       log: true,
       autoMine: true,
-      args: [0, "50000000000000000", "1090000000000000000", "800000000000000000"],
+      args: [0, "50000000000000000", "1090000000000000000", "800000000000000000", DEFAULT_BLOCKS_PER_YEAR],
     });
 
     await deploy("InterestRateModelVETH", {
@@ -28,7 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       log: true,
       autoMine: true,
-      args: [0, "40000000000000000", "1080000000000000000", "700000000000000000"],
+      args: [0, "40000000000000000", "1080000000000000000", "700000000000000000", DEFAULT_BLOCKS_PER_YEAR],
     });
   }
 
@@ -44,11 +44,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       await deploy(rateModelName, {
         from: deployer,
         contract: "WhitePaperInterestRateModel",
-        args: [
-          interestRateModel.baseRatePerYear,
-          interestRateModel.multiplierPerYear,
-          //blocksPerYear
-        ],
+        args: [interestRateModel.baseRatePerYear, interestRateModel.multiplierPerYear, blocksPerYear],
         log: true,
         autoMine: true,
         skipIfAlreadyDeployed: true,
@@ -62,7 +58,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           interestRateModel.multiplierPerYear,
           interestRateModel.jumpMultiplierPerYear,
           interestRateModel.kink,
-          //blocksPerYear
+          blocksPerYear,
         ],
         log: true,
         autoMine: true,
@@ -80,6 +76,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           interestRateModel.baseRatePerYear2,
           interestRateModel.kink2,
           interestRateModel.jumpMultiplierPerYear,
+          blocksPerYear,
         ],
         log: true,
         autoMine: true,

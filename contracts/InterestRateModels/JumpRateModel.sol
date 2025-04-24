@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.5.16;
 
 import "../Utils/SafeMath.sol";
@@ -15,7 +16,7 @@ contract JumpRateModel is InterestRateModel {
     /**
      * @notice The approximate number of blocks per year that is assumed by the interest rate model
      */
-    uint public constant blocksPerYear = (60 * 60 * 24 * 365) / 3; // (assuming 3s blocks)
+    uint public blocksPerYear;
 
     /**
      * @notice The multiplier of utilization rate that gives the slope of the interest rate
@@ -43,11 +44,19 @@ contract JumpRateModel is InterestRateModel {
      * @param multiplierPerYear The rate of increase in interest rate wrt utilization (scaled by 1e18)
      * @param jumpMultiplierPerYear The multiplierPerBlock after hitting a specified utilization point
      * @param kink_ The utilization point at which the jump multiplier is applied
+     * @param blocksPerYear_ The approximate number of blocks per year to assume
      */
-    constructor(uint baseRatePerYear, uint multiplierPerYear, uint jumpMultiplierPerYear, uint kink_) public {
-        baseRatePerBlock = baseRatePerYear.div(blocksPerYear);
-        multiplierPerBlock = multiplierPerYear.div(blocksPerYear);
-        jumpMultiplierPerBlock = jumpMultiplierPerYear.div(blocksPerYear);
+    constructor(
+        uint baseRatePerYear,
+        uint multiplierPerYear,
+        uint jumpMultiplierPerYear,
+        uint kink_,
+        uint blocksPerYear_
+    ) public {
+        blocksPerYear = blocksPerYear_;
+        baseRatePerBlock = baseRatePerYear.div(blocksPerYear_);
+        multiplierPerBlock = multiplierPerYear.div(blocksPerYear_);
+        jumpMultiplierPerBlock = jumpMultiplierPerYear.div(blocksPerYear_);
         kink = kink_;
 
         emit NewInterestParams(baseRatePerBlock, multiplierPerBlock, jumpMultiplierPerBlock, kink);

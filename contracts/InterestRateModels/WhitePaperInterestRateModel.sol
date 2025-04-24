@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.5.16;
 
 import "../Utils/SafeMath.sol";
@@ -16,7 +17,7 @@ contract WhitePaperInterestRateModel is InterestRateModel {
     /**
      * @notice The approximate number of blocks per year that is assumed by the interest rate model
      */
-    uint public constant blocksPerYear = (60 * 60 * 24 * 365) / 3; // (assuming 3s blocks)
+    uint public blocksPerYear;
 
     /**
      * @notice The multiplier of utilization rate that gives the slope of the interest rate
@@ -32,10 +33,12 @@ contract WhitePaperInterestRateModel is InterestRateModel {
      * @notice Construct an interest rate model
      * @param baseRatePerYear The approximate target base APR, as a mantissa (scaled by 1e18)
      * @param multiplierPerYear The rate of increase in interest rate wrt utilization (scaled by 1e18)
+     * @param blocksPerYear_ The approximate number of blocks per year to assume
      */
-    constructor(uint baseRatePerYear, uint multiplierPerYear) public {
-        baseRatePerBlock = baseRatePerYear.div(blocksPerYear);
-        multiplierPerBlock = multiplierPerYear.div(blocksPerYear);
+    constructor(uint baseRatePerYear, uint multiplierPerYear, uint blocksPerYear_) public {
+        blocksPerYear = blocksPerYear_;
+        baseRatePerBlock = baseRatePerYear.div(blocksPerYear_);
+        multiplierPerBlock = multiplierPerYear.div(blocksPerYear_);
 
         emit NewInterestParams(baseRatePerBlock, multiplierPerBlock);
     }
