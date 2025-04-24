@@ -1,3 +1,14 @@
+## [9.8.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.7...v9.8.0-dev.8) (2025-04-24)
+
+
+### Features
+
+* deploy 21024000 blocks per year models to bnb chain ([7ce48af](https://github.com/VenusProtocol/venus-protocol/commit/7ce48afc6cdb65d2dff3efefdcd5f5e25748271c))
+* pass blocks per year as a parameter ([316639f](https://github.com/VenusProtocol/venus-protocol/commit/316639f81605f368784b9aac163975e627bb6ddb))
+* update bsc blocks per year ([d36ca97](https://github.com/VenusProtocol/venus-protocol/commit/d36ca9785b26d2f8f782193693cbc78a2c147d8c))
+* update opBNB blocks per year ([af0a8cc](https://github.com/VenusProtocol/venus-protocol/commit/af0a8cce62f134c82f91f19615d38c436ce7759f))
+* updating deployment files ([71b03be](https://github.com/VenusProtocol/venus-protocol/commit/71b03be5b0a7fd846179926fd26ebc79d71f214e))
+
 ## [9.8.0-dev.7](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.6...v9.8.0-dev.7) (2025-04-24)
 
 
