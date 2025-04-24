@@ -2,7 +2,7 @@ import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { Chain } from "../chains";
-import { getToken, parseTokensExplicit } from "../tokens";
+import { getToken, parseTokens } from "../tokens";
 import bscmainnetMarketsList from "./bscmainnet";
 import bsctestnetMarketsList from "./bsctestnet";
 import hardhatMarketsList from "./hardhat";
@@ -69,19 +69,22 @@ const parseMarket = <chain extends Chain>(chain: chain, raw: RawVTokenConfig<cha
     riskParameters: {
       collateralFactor: parseUnits(raw.riskParameters.collateralFactor, 18),
       reserveFactor: parseUnits(raw.riskParameters.reserveFactor, 18),
-      supplyCap: supplyCap === "uncapped" ? MaxUint256 : parseTokensExplicit(supplyCap, chain, raw.asset),
-      borrowCap: borrowCap === "uncapped" ? MaxUint256 : parseTokensExplicit(borrowCap, chain, raw.asset),
+      supplyCap: supplyCap === "uncapped" ? MaxUint256 : parseTokens(supplyCap, chain, raw.asset),
+      borrowCap: borrowCap === "uncapped" ? MaxUint256 : parseTokens(borrowCap, chain, raw.asset),
     },
     initialSupply: raw.initialSupply
       ? {
-          amount: parseTokensExplicit(raw.initialSupply.amount, chain, raw.asset),
+          amount: parseTokens(raw.initialSupply.amount, chain, raw.asset),
           vTokenReceiver: raw.initialSupply.vTokenReceiver,
         }
       : undefined,
   };
 };
 
-const parseMarkets = <chain extends Chain>(chain: chain, configs: RawVTokenConfig<chain>[]): ParsedVTokenConfig[] => {
+const parseMarkets = <chain extends Chain>(
+  chain: chain,
+  configs: readonly RawVTokenConfig<chain>[],
+): ParsedVTokenConfig[] => {
   return configs.map(config => parseMarket(chain, config));
 };
 
@@ -104,4 +107,4 @@ export const markets = {
   berachainbartio: [],
   zksyncsepolia: [],
   zksyncmainnet: [],
-} as const satisfies Record<Chain, ParsedVTokenConfig[]>;
+} as const satisfies Record<Chain, readonly ParsedVTokenConfig[]>;

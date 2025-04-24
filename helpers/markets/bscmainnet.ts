@@ -688,4 +688,4 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
-] as const satisfies Raw<VTokenConfig<"bscmainnet">>[];
+] as const satisfies readonly Raw<VTokenConfig<"bscmainnet">>[];
