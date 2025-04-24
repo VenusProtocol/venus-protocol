@@ -29,8 +29,8 @@ export const blocksPerYear = {
   bscmainnet: 21_024_000,
   sepolia: 2_628_000, // 12 sec per block
   ethereum: 2_628_000,
-  opbnbtestnet: 31_536_000, // 1 sec per block
-  opbnbmainnet: 31_536_000,
+  opbnbtestnet: 63_072_000, // 0.5 sec per block
+  opbnbmainnet: 63_072_000,
   arbitrumsepolia: "time-based",
   arbitrumone: "time-based",
   opsepolia: "time-based",
