@@ -31,21 +31,11 @@ export const tokens = {
 export type Tokens = typeof tokens;
 export type ChainToken<c extends keyof Tokens> = `${c}:${keyof Tokens[c] & string}`;
 
-const splitChain = <c extends keyof Tokens, t extends keyof Tokens[c] & string>(sig: `${c}:${t}`): [c, t] => {
-  const idx = sig.indexOf(":");
-  return [sig.slice(0, idx), sig.slice(idx + 1)] as [c, t];
-};
-
-export const parseTokens = <c extends keyof Tokens>(amount: `${number}`, token: ChainToken<c>): BigNumber => {
-  const [chain, tokenName] = splitChain(token);
-  return parseTokensExplicit(amount, chain, tokenName);
-};
-
 export const getToken = <c extends keyof Tokens, t extends keyof Tokens[c]>(chain: c, token: t): TokenConfig => {
   return tokens[chain][token] as TokenConfig;
 };
 
-export const parseTokensExplicit = <c extends keyof Tokens, t extends keyof Tokens[c]>(
+export const parseTokens = <c extends keyof Tokens, t extends keyof Tokens[c]>(
   amount: `${number}`,
   chain: c,
   token: t,

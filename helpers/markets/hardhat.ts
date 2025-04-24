@@ -67,4 +67,4 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
-] as const satisfies Raw<VTokenConfig<"hardhat">>[];
+] as const satisfies readonly Raw<VTokenConfig<"hardhat">>[];
