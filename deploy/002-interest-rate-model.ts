@@ -1,18 +1,19 @@
-import { BigNumber, BigNumberish } from "ethers";
-import { parseUnits } from "ethers/lib/utils";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-const mantissaToBps = (num: BigNumberish) => {
-  return BigNumber.from(num).div(parseUnits("1", 14)).toString();
-};
+import { assertBlockBasedChain, blocksPerYear as chainBlocksPerYear } from "../helpers/chains";
+import { skipRemoteNetworks } from "../helpers/deploymentConfig";
+import { markets } from "../helpers/markets";
+import { getRateModelName } from "../helpers/rateModelHelpers";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, network } = hre;
   const { deploy } = deployments;
+  const chain = assertBlockBasedChain(hre.network.name);
 
   const { deployer } = await getNamedAccounts();
 
+  // Keeping this hardcoded since 003-deploy-VBep20 (used in subgraph tests) depends on it
   if (!network.live) {
     await deploy("InterestRateModelVUSDC", {
       contract: "JumpRateModel",
@@ -31,89 +32,64 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     });
   }
 
-  if (network.name === "bscmainnet") {
-    await deploy("InterestRateModelVETH", {
-      contract: "JumpRateModel",
-      from: deployer,
-      log: true,
-      autoMine: true,
-      args: [0, parseUnits("0.03", 18), parseUnits("4.5", 18), parseUnits("0.9", 18)],
-    });
+  const marketsConfig = markets[chain];
+  const blocksPerYear = chainBlocksPerYear[chain];
 
-    let baseRatePerYear = parseUnits("0", 18);
-    let multiplierPerYear = parseUnits("0.175", 18);
-    let jumpMultiplierPerYear = parseUnits("2.5", 18);
-    let kink = parseUnits("0.8", 18);
-    const [b, m, j, k] = [baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink].map(mantissaToBps);
-    let rateModelName = `JumpRateModel_base${b}bps_slope${m}bps_jump${j}bps_kink${k}bps`;
+  for (const market of marketsConfig) {
+    const { interestRateModel, symbol } = market;
+    const rateModelName = getRateModelName(interestRateModel, blocksPerYear);
+    console.log(`Deploying interest rate model ${rateModelName} for ${symbol}`);
 
-    await deploy(rateModelName, {
-      contract: "JumpRateModel",
-      from: deployer,
-      log: true,
-      autoMine: true,
-      args: [baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink],
-      skipIfAlreadyDeployed: true,
-    });
-
-    baseRatePerYear = parseUnits("0", 18);
-    multiplierPerYear = parseUnits("0.15", 18);
-    jumpMultiplierPerYear = parseUnits("3", 18);
-    kink = parseUnits("0.8", 18);
-    const baseRatePerYear2 = parseUnits("0", 18);
-    const multiplierPerYear2 = parseUnits("0.9", 18);
-    const kink2_ = parseUnits("0.9", 18);
-
-    const [b1, m1, k1, m2, b2, k2, j2] = [
-      baseRatePerYear,
-      multiplierPerYear,
-      kink,
-      multiplierPerYear2,
-      baseRatePerYear2,
-      kink2_,
-      jumpMultiplierPerYear,
-    ].map(mantissaToBps);
-    rateModelName = `TwoKinks_base${b1}bps_slope${m1}bps_kink${k1}bps_slope2${m2}bps_base2${b2}bps_kink2${k2}bps_jump${j2}bps`;
-
-    await deploy(rateModelName, {
-      contract: "TwoKinksInterestRateModel",
-      from: deployer,
-      log: true,
-      autoMine: true,
-      args: [
-        baseRatePerYear,
-        multiplierPerYear,
-        kink,
-        multiplierPerYear2,
-        baseRatePerYear2,
-        kink2_,
-        jumpMultiplierPerYear,
-      ],
-      skipIfAlreadyDeployed: true,
-    });
-  }
-
-  if (network.name === "bscmainnet" || network.name === "bsctestnet") {
-    await deploy("InterestRateModelVBNB", {
-      contract: "TwoKinksInterestRateModel",
-      from: deployer,
-      log: true,
-      autoMine: true,
-      args: [
-        parseUnits("0", 18), // base rate 1
-        parseUnits("0.035", 18), // multiplier 1
-        parseUnits("0.8", 18), // kink 1
-        parseUnits("1.75", 18), // multiplier 2
-        parseUnits("0", 18), // base rate 2
-        parseUnits("0.9", 18), // kink 2
-        parseUnits("3", 18), // jump multiplier
-      ],
-    });
+    if (interestRateModel.model === "whitepaper") {
+      await deploy(rateModelName, {
+        from: deployer,
+        contract: "WhitePaperInterestRateModel",
+        args: [
+          interestRateModel.baseRatePerYear,
+          interestRateModel.multiplierPerYear,
+          //blocksPerYear
+        ],
+        log: true,
+        autoMine: true,
+        skipIfAlreadyDeployed: true,
+      });
+    } else if (interestRateModel.model === "jump") {
+      await deploy(rateModelName, {
+        from: deployer,
+        contract: "JumpRateModel",
+        args: [
+          interestRateModel.baseRatePerYear,
+          interestRateModel.multiplierPerYear,
+          interestRateModel.jumpMultiplierPerYear,
+          interestRateModel.kink,
+          //blocksPerYear
+        ],
+        log: true,
+        autoMine: true,
+        skipIfAlreadyDeployed: true,
+      });
+    } else if (interestRateModel.model === "two-kinks") {
+      await deploy(rateModelName, {
+        contract: "TwoKinksInterestRateModel",
+        from: deployer,
+        args: [
+          interestRateModel.baseRatePerYear,
+          interestRateModel.multiplierPerYear,
+          interestRateModel.kink,
+          interestRateModel.multiplierPerYear2,
+          interestRateModel.baseRatePerYear2,
+          interestRateModel.kink2,
+          interestRateModel.jumpMultiplierPerYear,
+        ],
+        log: true,
+        autoMine: true,
+        skipIfAlreadyDeployed: true,
+      });
+    }
   }
 };
 
 func.tags = ["InterestRateModel"];
-func.skip = async hre =>
-  hre.network.name !== "hardhat" && hre.network.name !== "bscmainnet" && hre.network.name !== "bsctestnet";
+func.skip = skipRemoteNetworks();
 
 export default func;
