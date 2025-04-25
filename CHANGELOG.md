@@ -1,3 +1,12 @@
+## [9.8.0-dev.9](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.8...v9.8.0-dev.9) (2025-04-25)
+
+
+### Features
+
+* add deployment scripts for checkpoint rate models ([562c865](https://github.com/VenusProtocol/venus-protocol/commit/562c865255b5eaeddd6512d90a4f6a4afb7d81f2))
+* deploy checkpoint rate models to bnb chain ([12429ad](https://github.com/VenusProtocol/venus-protocol/commit/12429ad2fd572fec59d77d45a9ad80c2311aaf68))
+* updating deployment files ([a405caa](https://github.com/VenusProtocol/venus-protocol/commit/a405caa4c0687abe2b5a50692527b97d08e7e3b4))
+
 ## [9.8.0-dev.8](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.7...v9.8.0-dev.8) (2025-04-24)
 
 
