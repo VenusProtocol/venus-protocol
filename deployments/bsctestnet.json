@@ -810,6 +810,1224 @@
         }
       ]
     },
+    "CheckpointView_From_JumpRateModel_base0bps_slope1000bps_jump20000bps_kink7500bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x962edf115d24240930f7B1CF95EaEC9E49f06F92",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_JumpRateModel_base0bps_slope1000bps_jump25000bps_kink8000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0xa5f1d44f7D2Ea604aAEba6eEd438E07C31Ee1dd2",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_JumpRateModel_base0bps_slope2000bps_jump30000bps_kink5000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x9657300eEa812f2920f416cE4008713690253716",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_JumpRateModel_base0bps_slope500bps_jump10900bps_kink8000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0xdE06A850D42dcff216e1EfCa5358cB167Da247ca",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_JumpRateModel_base0bps_slope500bps_jump5000bps_kink8000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x3985fd3fa7975BB08c962797640A84297fDbe262",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_JumpRateModel_base0bps_slope687bps_jump25000bps_kink8000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x2182450eC9780F17511FeAcE6FC3ED8F774157b3",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_JumpRateModel_base0bps_slope750bps_jump5000bps_kink8000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x24B5bDe69D8e4280a30e1dAbB2f8B0152c30228c",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_JumpRateModel_base0bps_slope900bps_jump20000bps_kink5000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x8f63Ca20A6F0805F44d56Afb4B32520488218540",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_JumpRateModel_base0bps_slope900bps_jump35000bps_kink4500bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x6D95fcD7f086a6EA2e0f1B057c1fbddC1c18C146",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_JumpRateModel_base200bps_slope1500bps_jump30000bps_kink6000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x253B09357D5D1CDE57dB6356cDE77cD0bd963a09",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_JumpRateModel_base200bps_slope2000bps_jump30000bps_kink5000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x93ad9750cA2F89984EE6790A7cEcc4Aa9C07CfeC",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_TwoKinks_base0bps_slope350bps_kink8000bps_slope217500bps_base20bps_kink29000bps_jump30000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x4FAE14f71c3ee15635d7161292eC5F1F09f70Ad7",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_WhitePaperInterestRateModel_base0bps_slope10000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0x9c2666E33aee517975D61e573DbF5b829c342c03",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
+    "CheckpointView_From_WhitePaperInterestRateModel_base200bps_slope1000bps_bpy10512000_To_bpy21024000_At_1744097580": {
+      "address": "0xc8dC4a0a29e2423664556a31349Da3FF26850e8D",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "dataSource1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "dataSource2",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "checkpointTimestamp",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [],
+          "name": "ZeroAddressNotAllowed",
+          "type": "error"
+        },
+        {
+          "stateMutability": "nonpayable",
+          "type": "fallback"
+        },
+        {
+          "inputs": [],
+          "name": "CHECKPOINT_TIMESTAMP",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_1",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DATA_SOURCE_2",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "currentDataSource",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    },
     "ComptrollerLens": {
       "address": "0x350d56985A269C148648207E4Cea9f87656E762a",
       "abi": [
@@ -25386,6 +26604,23 @@
             }
           ],
           "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        }
+      ]
+    },
+    "SetCheckpointBsctestnet": {
+      "address": "0x1466627df311223bC865EbD9CDBe70c2275F8014",
+      "abi": [
+        {
+          "inputs": [],
+          "name": "Unauthorized",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "run",
+          "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
         }
