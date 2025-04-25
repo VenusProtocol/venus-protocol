@@ -104,7 +104,7 @@ export const markets = {
   basemainnet: [],
   unichainsepolia: [],
   unichainmainnet: [],
-  berachainbartio: [],
+  berachainbepolia: [],
   zksyncsepolia: [],
   zksyncmainnet: [],
 } as const satisfies Record<Chain, readonly ParsedVTokenConfig[]>;
