@@ -9,7 +9,7 @@ import { InterestRateModelV8 } from "./InterestRateModelV8.sol";
  * @notice An interest rate model with two different slope increase or decrease each after a certain utilization threshold called **kink** is reached.
  */
 contract TwoKinksInterestRateModel is InterestRateModelV8 {
-    int256 public constant BLOCKS_PER_YEAR = (60 * 60 * 24 * 365) / 3; // (assuming 3s blocks)
+    int256 public immutable BLOCKS_PER_YEAR;
 
     ////////////////////// SLOPE 1 //////////////////////
 
@@ -84,6 +84,7 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
      * @param baseRate2PerYear_ The additional base APR after hitting KINK_1, as a mantissa (scaled by EXP_SCALE)
      * @param kink2_ The utilization point at which the jump multiplier is applied
      * @param jumpMultiplierPerYear_ The multiplier after hitting KINK_2
+     * @param blocksPerYear_ The approximate number of blocks per year to assume
      */
     constructor(
         int256 baseRatePerYear_,
@@ -92,7 +93,8 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
         int256 multiplier2PerYear_,
         int256 baseRate2PerYear_,
         int256 kink2_,
-        int256 jumpMultiplierPerYear_
+        int256 jumpMultiplierPerYear_,
+        int256 blocksPerYear_
     ) {
         if (baseRatePerYear_ < 0 || baseRate2PerYear_ < 0) {
             revert NegativeValueNotAllowed();
@@ -102,6 +104,7 @@ contract TwoKinksInterestRateModel is InterestRateModelV8 {
             revert InvalidKink();
         }
 
+        BLOCKS_PER_YEAR = blocksPerYear_;
         BASE_RATE_PER_BLOCK = baseRatePerYear_ / BLOCKS_PER_YEAR;
         MULTIPLIER_PER_BLOCK = multiplierPerYear_ / BLOCKS_PER_YEAR;
         KINK_1 = kink1_;

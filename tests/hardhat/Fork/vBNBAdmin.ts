@@ -83,9 +83,8 @@ if (FORK_MAINNET) {
       let normalTimelock: Signer;
 
       beforeEach(async () => {
-        ({ vBNB, protocolShareReserve, WBNB, VBNBAdmin, VBNBAdminAsVBNB, normalTimelock } = await loadFixture(
-          setupMarketFixture,
-        ));
+        ({ vBNB, protocolShareReserve, WBNB, VBNBAdmin, VBNBAdminAsVBNB, normalTimelock } =
+          await loadFixture(setupMarketFixture));
       });
 
       it("set VBNBAdmin as vBNB admin", async () => {
