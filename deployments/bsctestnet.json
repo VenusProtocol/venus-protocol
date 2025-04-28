@@ -22499,10 +22499,21 @@
       ]
     },
     "PrimeLiquidityProvider_Implementation": {
-      "address": "0x98d73B2E246a3506686CBA62d2118D2127dfD20E",
+      "address": "0xD2eBa310E843fC6dc242187501bDf7c0F6b46681",
       "abi": [
         {
-          "inputs": [],
+          "inputs": [
+            {
+              "internalType": "bool",
+              "name": "_timeBased",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "_blocksPerYear",
+              "type": "uint256"
+            }
+          ],
           "stateMutability": "nonpayable",
           "type": "constructor"
         },
@@ -22539,6 +22550,11 @@
         },
         {
           "inputs": [],
+          "name": "InvalidBlocksPerYear",
+          "type": "error"
+        },
+        {
+          "inputs": [],
           "name": "InvalidCaller",
           "type": "error"
         },
@@ -22556,6 +22572,11 @@
             }
           ],
           "name": "InvalidDistributionSpeed",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidTimeBasedConfiguration",
           "type": "error"
         },
         {
@@ -22925,7 +22946,20 @@
         },
         {
           "inputs": [],
-          "name": "getBlockNumber",
+          "name": "blocksOrSecondsPerYear",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "getBlockNumberOrTimestamp",
           "outputs": [
             {
               "internalType": "uint256",
@@ -23002,6 +23036,38 @@
           "type": "function"
         },
         {
+          "inputs": [],
+          "name": "isTimeBased",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "token_",
+              "type": "address"
+            }
+          ],
+          "name": "lastAccruedBlock",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -23009,7 +23075,7 @@
               "type": "address"
             }
           ],
-          "name": "lastAccruedBlock",
+          "name": "lastAccruedBlockOrSecond",
           "outputs": [
             {
               "internalType": "uint256",
@@ -23240,7 +23306,7 @@
           "inputs": [
             {
               "internalType": "address",
-              "name": "",
+              "name": "token_",
               "type": "address"
             }
           ],
@@ -23439,18 +23505,18 @@
       ]
     },
     "Prime_Implementation": {
-      "address": "0x72C9Bc4433C912ecd8184B3F7dda55Ee25761896",
+      "address": "0x73Ac7280b8f3EAF7F621c48ae2398733eD9fBC81",
       "abi": [
         {
           "inputs": [
             {
               "internalType": "address",
-              "name": "_wbnb",
+              "name": "_wrappedNativeToken",
               "type": "address"
             },
             {
               "internalType": "address",
-              "name": "_vbnb",
+              "name": "_nativeMarket",
               "type": "address"
             },
             {
@@ -23472,6 +23538,11 @@
               "internalType": "uint256",
               "name": "_maximumXVSCap",
               "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "_timeBased",
+              "type": "bool"
             }
           ],
           "stateMutability": "nonpayable",
@@ -23515,6 +23586,11 @@
         },
         {
           "inputs": [],
+          "name": "InvalidComptroller",
+          "type": "error"
+        },
+        {
+          "inputs": [],
           "name": "InvalidFixedPoint",
           "type": "error"
         },
@@ -23542,6 +23618,11 @@
         {
           "inputs": [],
           "name": "InvalidLimit",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "InvalidTimeBasedConfiguration",
           "type": "error"
         },
         {
@@ -23726,17 +23807,23 @@
             {
               "indexed": true,
               "internalType": "address",
-              "name": "market",
+              "name": "comptroller",
               "type": "address"
             },
             {
               "indexed": true,
+              "internalType": "address",
+              "name": "market",
+              "type": "address"
+            },
+            {
+              "indexed": false,
               "internalType": "uint256",
               "name": "supplyMultiplier",
               "type": "uint256"
             },
             {
-              "indexed": true,
+              "indexed": false,
               "internalType": "uint256",
               "name": "borrowMultiplier",
               "type": "uint256"
@@ -23981,19 +24068,6 @@
         },
         {
           "inputs": [],
-          "name": "BLOCKS_PER_YEAR",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
           "name": "MAXIMUM_XVS_CAP",
           "outputs": [
             {
@@ -24020,6 +24094,19 @@
         },
         {
           "inputs": [],
+          "name": "NATIVE_MARKET",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
           "name": "STAKING_PERIOD",
           "outputs": [
             {
@@ -24033,20 +24120,7 @@
         },
         {
           "inputs": [],
-          "name": "VBNB",
-          "outputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "WBNB",
+          "name": "WRAPPED_NATIVE_TOKEN",
           "outputs": [
             {
               "internalType": "address",
@@ -24112,6 +24186,11 @@
           "inputs": [
             {
               "internalType": "address",
+              "name": "comptroller",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
               "name": "market",
               "type": "address"
             },
@@ -24158,6 +24237,19 @@
           "type": "function"
         },
         {
+          "inputs": [],
+          "name": "blocksOrSecondsPerYear",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [
             {
               "internalType": "address",
@@ -24186,14 +24278,61 @@
           "name": "calculateAPR",
           "outputs": [
             {
-              "internalType": "uint256",
-              "name": "supplyAPR",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "borrowAPR",
-              "type": "uint256"
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "supplyAPR",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "borrowAPR",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "totalScore",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "userScore",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "xvsBalanceForScore",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "capital",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "cappedSupply",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "cappedBorrow",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "supplyCapUSD",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "borrowCapUSD",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct IPrime.APRInfo",
+              "name": "aprInfo",
+              "type": "tuple"
             }
           ],
           "stateMutability": "view",
@@ -24312,14 +24451,61 @@
           "name": "estimateAPR",
           "outputs": [
             {
-              "internalType": "uint256",
-              "name": "supplyAPR",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "borrowAPR",
-              "type": "uint256"
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "supplyAPR",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "borrowAPR",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "totalScore",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "userScore",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "xvsBalanceForScore",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "capital",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "cappedSupply",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "cappedBorrow",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "supplyCapUSD",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "borrowCapUSD",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct IPrime.APRInfo",
+              "name": "aprInfo",
+              "type": "tuple"
             }
           ],
           "stateMutability": "view",
@@ -24333,6 +24519,19 @@
               "internalType": "address[]",
               "name": "",
               "type": "address[]"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "getBlockNumberOrTimestamp",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
             }
           ],
           "stateMutability": "view",
@@ -24402,6 +24601,25 @@
           "inputs": [
             {
               "internalType": "address",
+              "name": "vToken",
+              "type": "address"
+            }
+          ],
+          "name": "incomeDistributionYearly",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
               "name": "xvsVault_",
               "type": "address"
             },
@@ -24452,6 +24670,19 @@
             }
           ],
           "name": "initialize",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "poolRegistry_",
+              "type": "address"
+            }
+          ],
+          "name": "initializeV2",
           "outputs": [],
           "stateMutability": "nonpayable",
           "type": "function"
@@ -24517,6 +24748,38 @@
             }
           ],
           "name": "isScoreUpdated",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "isTimeBased",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "user",
+              "type": "address"
+            }
+          ],
+          "name": "isUserPrimeHolder",
           "outputs": [
             {
               "internalType": "bool",
@@ -24670,6 +24933,19 @@
               "internalType": "uint256",
               "name": "",
               "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "poolRegistry",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
             }
           ],
           "stateMutability": "view",
@@ -51310,7 +51586,7 @@
       ]
     },
     "VaiController": {
-      "address": "0x181936d73641c0B002649B7dD08b51ab935d58C2",
+      "address": "0x52558EED5d8f4c86cC2d5EC5DF155521db8d0D48",
       "abi": [
         {
           "anonymous": false,
@@ -61746,7 +62022,7 @@
       ]
     },
     "XVSVaultProxy_Implementation": {
-      "address": "0x6F869480eEEbB66b58a930892AddC0067Fb43B20",
+      "address": "0x471A33538D8A73fc7148F8B72A2A8BE6Ab9E3723",
       "abi": [
         {
           "inputs": [],
@@ -61895,6 +62171,25 @@
             }
           ],
           "name": "ExecutedWithdrawal",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "bool",
+              "name": "timebased",
+              "type": "bool"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "blocksOrSecondsPerYear",
+              "type": "uint256"
+            }
+          ],
+          "name": "InitializeTimeManager",
           "type": "event"
         },
         {
@@ -62087,6 +62382,25 @@
             }
           ],
           "name": "RewardAmountUpdated",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "prevBlocksPeryear",
+              "type": "uint256"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "newBlocksPerYear",
+              "type": "uint256"
+            }
+          ],
+          "name": "SetBlocksPerYear",
           "type": "event"
         },
         {
@@ -63216,6 +63530,21 @@
             }
           ],
           "name": "setAccessControl",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "blocksPerYear_",
+              "type": "uint256"
+            }
+          ],
+          "name": "setBlocksPerYear",
           "outputs": [],
           "payable": false,
           "stateMutability": "nonpayable",

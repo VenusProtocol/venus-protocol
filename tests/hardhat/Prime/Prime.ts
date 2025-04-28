@@ -4,6 +4,7 @@ import chai from "chai";
 import { BigNumber, Signer, constants } from "ethers";
 import { ethers } from "hardhat";
 
+import { DEFAULT_BLOCKS_PER_YEAR } from "../../../helpers/deploymentConfig.ts";
 import { convertToUnit } from "../../../helpers/utils";
 import {
   BEP20Harness,
@@ -159,7 +160,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
 
   const xvsVaultFactory = await ethers.getContractFactory("XVSVaultScenario");
   const xvsVault: XVSVaultScenario = (await xvsVaultFactory.deploy()) as XVSVaultScenario;
-  await xvsVault.initializeTimeManager(false, 10512000);
+  await xvsVault.initializeTimeManager(false, DEFAULT_BLOCKS_PER_YEAR);
 
   await xvsStore.setNewOwner(xvsVault.address);
   await xvsVault.setXvsStore(xvs.address, xvsStore.address);
@@ -189,7 +190,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       10,
     ],
     {
-      constructorArgs: [false, 10512000],
+      constructorArgs: [false, DEFAULT_BLOCKS_PER_YEAR],
       // To allow the usage constructor & internal functions that might change storage
       unsafeAllow: ["constructor", "internal-function-storage"],
     },
@@ -217,7 +218,15 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
       10,
     ],
     {
-      constructorArgs: [wbnb.address, vbnb.address, 10512000, stakingPeriod, minimumXVS, maximumXVSCap, false],
+      constructorArgs: [
+        wbnb.address,
+        vbnb.address,
+        DEFAULT_BLOCKS_PER_YEAR,
+        stakingPeriod,
+        minimumXVS,
+        maximumXVSCap,
+        false,
+      ],
       // To allow the usage constructor & internal functions that might change storage
       unsafeAllow: ["constructor", "internal-function-storage"],
     },
@@ -1045,7 +1054,7 @@ describe("PrimeScenario Token", () => {
 
     it("APR Estimation", async () => {
       const apr = await prime.calculateAPR(vmatic.address, user1.getAddress());
-      expect(apr.supplyAPR.toString()).to.be.equal("1168000000");
+      expect(apr.supplyAPR.toString()).to.be.equal("2336000000");
     });
 
     it("Hypothetical APR Estimation", async () => {
@@ -1056,8 +1065,8 @@ describe("PrimeScenario Token", () => {
         bigNumber18.mul(100),
         bigNumber18.mul(1000000),
       );
-      expect(apr.supplyAPR.toString()).to.be.equal("525600000");
-      expect(apr.borrowAPR.toString()).to.be.equal("525600000");
+      expect(apr.supplyAPR.toString()).to.be.equal("1051200000");
+      expect(apr.borrowAPR.toString()).to.be.equal("1051200000");
 
       apr = await prime.estimateAPR(
         vmatic.address,
@@ -1066,8 +1075,8 @@ describe("PrimeScenario Token", () => {
         bigNumber18.mul(50),
         bigNumber18.mul(1000000),
       );
-      expect(apr.supplyAPR.toString()).to.be.equal("700800000");
-      expect(apr.borrowAPR.toString()).to.be.equal("700800000");
+      expect(apr.supplyAPR.toString()).to.be.equal("1401600000");
+      expect(apr.borrowAPR.toString()).to.be.equal("1401600000");
 
       apr = await prime.estimateAPR(
         vmatic.address,
@@ -1077,7 +1086,7 @@ describe("PrimeScenario Token", () => {
         bigNumber18.mul(1000000),
       );
       expect(apr.supplyAPR.toString()).to.be.equal("0");
-      expect(apr.borrowAPR.toString()).to.be.equal("1051200000");
+      expect(apr.borrowAPR.toString()).to.be.equal("2102400000");
     });
   });
 });
