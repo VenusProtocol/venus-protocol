@@ -254,6 +254,13 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
   },
+  {
+    isMock: false,
+    name: "World Liberty Financial USD",
+    symbol: "USD1",
+    decimals: 18,
+    tokenAddress: "0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
