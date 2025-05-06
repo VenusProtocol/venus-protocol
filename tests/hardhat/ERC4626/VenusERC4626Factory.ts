@@ -90,6 +90,10 @@ describe("VenusERC4626Factory", () => {
     it("should setup beacon proxy correctly", async () => {
       expect(await beacon.implementation()).to.equal(venusERC4626Impl.address);
     });
+
+    it("should set the owner of the beacon to the owner of the factory", async () => {
+      expect(await beacon.owner()).to.equal(await factory.owner());
+    });
   });
 
   describe("Vault Creation", () => {
@@ -100,6 +104,16 @@ describe("VenusERC4626Factory", () => {
 
       expect(event?.args?.vToken).to.equal(vTokenA.address);
       expect(event?.args?.vault).to.not.equal(constants.AddressZero);
+    });
+
+    it("should set the owner of the vault", async () => {
+      const tx = await factory.createERC4626(vTokenA.address);
+      const receipt = await tx.wait();
+      const deployed = receipt.events?.find(e => e.event === "CreateERC4626")?.args?.vault;
+
+      const venusERC4626 = await ethers.getContractAt("VenusERC4626", deployed);
+
+      expect(await venusERC4626.owner()).to.equal(await factory.owner());
     });
 
     it("should revert for zero vToken address", async () => {
