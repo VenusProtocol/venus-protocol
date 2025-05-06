@@ -20,4 +20,8 @@ abstract contract VTokenInterface {
     function getCash() external view virtual returns (uint);
 
     function exchangeRateStored() public view virtual returns (uint);
+
+    function accrueInterest() public view virtual returns (uint);
+
+    function totalReserves() public view virtual returns (uint);
 }
