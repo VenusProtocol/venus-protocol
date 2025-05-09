@@ -1,3 +1,14 @@
+## [9.8.0-dev.12](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.11...v9.8.0-dev.12) (2025-05-09)
+
+
+### Features
+
+* add USD1 market on mainnet ([1ce2e19](https://github.com/VenusProtocol/venus-protocol/commit/1ce2e1933742fc66e7636cc5af4b155d76960b0d))
+* updating deployment files ([5719258](https://github.com/VenusProtocol/venus-protocol/commit/5719258fd23e6a2b7bd177b83981d1819753dedd))
+* updating deployment files ([edddd01](https://github.com/VenusProtocol/venus-protocol/commit/edddd01bf2d9902540c49f40d2721abbf879616d))
+* updating deployment files ([78b5df4](https://github.com/VenusProtocol/venus-protocol/commit/78b5df4b72ba13c3dfd087ff816432d03f7c71cb))
+* updating deployment files ([f23fac8](https://github.com/VenusProtocol/venus-protocol/commit/f23fac85d826257d9dc340a89925fcca297e179c))
+
 ## [9.8.0-dev.11](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.10...v9.8.0-dev.11) (2025-05-09)
 
 
