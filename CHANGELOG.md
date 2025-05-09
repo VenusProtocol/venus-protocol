@@ -1,3 +1,11 @@
+## [9.8.0-dev.11](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.10...v9.8.0-dev.11) (2025-05-09)
+
+
+### Features
+
+* deployed on bepolia ([c1020e8](https://github.com/VenusProtocol/venus-protocol/commit/c1020e823e621c8799b26edc27bf5138a3ce86a9))
+* updating deployment files ([b7da36e](https://github.com/VenusProtocol/venus-protocol/commit/b7da36e68653f1ea3805a5e30d8b6b742e0465f9))
+
 ## [9.8.0-dev.10](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.9...v9.8.0-dev.10) (2025-04-28)
 
 
