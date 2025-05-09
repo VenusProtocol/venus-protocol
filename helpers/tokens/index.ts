@@ -23,7 +23,7 @@ export const tokens = {
   basemainnet: {},
   unichainsepolia: {},
   unichainmainnet: {},
-  berachainbartio: {},
+  berachainbepolia: {},
   zksyncsepolia: {},
   zksyncmainnet: {},
 } as const satisfies Record<Chain, Record<string, TokenConfig>>;
