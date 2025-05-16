@@ -1,3 +1,16 @@
+## [9.8.0-dev.13](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.12...v9.8.0-dev.13) (2025-05-16)
+
+
+### Features
+
+* updating deployment files ([5bc0f16](https://github.com/VenusProtocol/venus-protocol/commit/5bc0f1647a327044f87f9433736f6fef718761f1))
+
+
+### Bug Fixes
+
+* deployed IRM ([8f897b6](https://github.com/VenusProtocol/venus-protocol/commit/8f897b69452927e5f7ad517cb55555989ee79b36))
+* wip - updated config ([d782800](https://github.com/VenusProtocol/venus-protocol/commit/d782800b841ff9b8cafcf475391f33d7334ab9bd))
+
 ## [9.8.0-dev.12](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.11...v9.8.0-dev.12) (2025-05-09)
 
 
