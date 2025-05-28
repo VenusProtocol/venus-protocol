@@ -8,10 +8,10 @@ export default [
     interestRateModel: {
       model: "two-kinks",
       baseRatePerYear: "0",
-      multiplierPerYear: "0.15",
+      multiplierPerYear: "0.1",
       kink: "0.8",
       baseRatePerYear2: "0",
-      multiplierPerYear2: "0.9",
+      multiplierPerYear2: "0.7",
       kink2: "0.9",
       jumpMultiplierPerYear: "3",
     },
@@ -29,10 +29,10 @@ export default [
     interestRateModel: {
       model: "two-kinks",
       baseRatePerYear: "0",
-      multiplierPerYear: "0.15",
+      multiplierPerYear: "0.1",
       kink: "0.8",
       baseRatePerYear2: "0",
-      multiplierPerYear2: "0.9",
+      multiplierPerYear2: "0.7",
       kink2: "0.9",
       jumpMultiplierPerYear: "3",
     },
@@ -247,7 +247,7 @@ export default [
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
-      multiplierPerYear: "0.175",
+      multiplierPerYear: "0.1",
       kink: "0.8",
       jumpMultiplierPerYear: "2.5",
     },
@@ -461,7 +461,7 @@ export default [
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
-      multiplierPerYear: "0.175",
+      multiplierPerYear: "0.1",
       kink: "0.8",
       jumpMultiplierPerYear: "2.5",
     },
@@ -497,7 +497,7 @@ export default [
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
-      multiplierPerYear: "0.075",
+      multiplierPerYear: "0.1",
       kink: "0.8",
       jumpMultiplierPerYear: "5",
     },
