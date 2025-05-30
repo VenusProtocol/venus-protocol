@@ -211,6 +211,12 @@ const tokens = [
     symbol: "USD1",
     decimals: 18,
   },
+  {
+    isMock: true,
+    name: "xSolvBTC",
+    symbol: "xSolvBTC",
+    decimals: 18,
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
