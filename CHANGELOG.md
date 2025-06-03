@@ -1,3 +1,11 @@
+## [9.8.0-dev.14](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.13...v9.8.0-dev.14) (2025-06-03)
+
+
+### Features
+
+* dpeloyed vtokens and mock tokens ([ee55d8a](https://github.com/VenusProtocol/venus-protocol/commit/ee55d8a435a7d717bf04a865e198f69fe75f0351))
+* updating deployment files ([b092e39](https://github.com/VenusProtocol/venus-protocol/commit/b092e3951d81bda3781958e4dd71e44c437c97a4))
+
 ## [9.8.0-dev.13](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.12...v9.8.0-dev.13) (2025-05-16)
 
 
