@@ -101,7 +101,7 @@ export default [
       model: "two-kinks",
       baseRatePerYear: "0",
       multiplierPerYear: "0.045",
-      kink: "0.65",
+      kink: "0.7",
       baseRatePerYear2: "0",
       multiplierPerYear2: "1.4",
       kink2: "0.8",
