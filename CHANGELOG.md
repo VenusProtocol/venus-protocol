@@ -1,3 +1,11 @@
+## [9.8.0-dev.15](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.14...v9.8.0-dev.15) (2025-06-05)
+
+
+### Features
+
+* new IR for BNB on BNB Chain ([d227bdd](https://github.com/VenusProtocol/venus-protocol/commit/d227bdd20f3405a8b2f2cb95766b2810f4a26efa))
+* updating deployment files ([525e466](https://github.com/VenusProtocol/venus-protocol/commit/525e466d2206d1a783e26ebdb9d745d4e3c21f6c))
+
 ## [9.8.0-dev.14](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.13...v9.8.0-dev.14) (2025-06-03)
 
 
