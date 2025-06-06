@@ -1,3 +1,13 @@
+## [9.8.0-dev.16](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.15...v9.8.0-dev.16) (2025-06-06)
+
+
+### Features
+
+* add mainnet deployments ([b1789c4](https://github.com/VenusProtocol/venus-protocol/commit/b1789c4dd640ffeb32b800e48c1285da9dcbd1d9))
+* update risk parameter and deploy IRM on testnet ([06c4e1a](https://github.com/VenusProtocol/venus-protocol/commit/06c4e1a71199d5f14449b83e06ef13eefdd3791c))
+* updating deployment files ([24f35de](https://github.com/VenusProtocol/venus-protocol/commit/24f35de056be9bfa6384bf845e483d0986362d18))
+* updating deployment files ([16f0f42](https://github.com/VenusProtocol/venus-protocol/commit/16f0f42fa591155d35e5fe2a1ac00866bd661f31))
+
 ## [9.8.0-dev.15](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.14...v9.8.0-dev.15) (2025-06-05)
 
 
