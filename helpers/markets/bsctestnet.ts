@@ -6,9 +6,14 @@ export default [
     symbol: "vUSDC",
     asset: "USDC",
     interestRateModel: {
-      model: "whitepaper",
-      baseRatePerYear: "0.02",
+      model: "two-kinks",
+      baseRatePerYear: "0",
       multiplierPerYear: "0.1",
+      kink: "0.8",
+      baseRatePerYear2: "0",
+      multiplierPerYear2: "0.7",
+      kink2: "0.9",
+      jumpMultiplierPerYear: "3",
     },
     riskParameters: {
       collateralFactor: "0.81",
@@ -22,9 +27,14 @@ export default [
     symbol: "vUSDT",
     asset: "USDT",
     interestRateModel: {
-      model: "whitepaper",
-      baseRatePerYear: "0.02",
+      model: "two-kinks",
+      baseRatePerYear: "0",
       multiplierPerYear: "0.1",
+      kink: "0.8",
+      baseRatePerYear2: "0",
+      multiplierPerYear2: "0.7",
+      kink2: "0.9",
+      jumpMultiplierPerYear: "3",
     },
     riskParameters: {
       collateralFactor: "0.8",
@@ -81,7 +91,7 @@ export default [
     },
     riskParameters: {
       collateralFactor: "0.8",
-      reserveFactor: "0.25",
+      reserveFactor: "0.3",
       supplyCap: "uncapped",
       borrowCap: "0",
     },
@@ -331,7 +341,7 @@ export default [
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
-      multiplierPerYear: "0.05",
+      multiplierPerYear: "0.1",
       kink: "0.8",
       jumpMultiplierPerYear: "1.09",
     },
@@ -367,7 +377,7 @@ export default [
     interestRateModel: {
       model: "jump",
       baseRatePerYear: "0",
-      multiplierPerYear: "0.06875",
+      multiplierPerYear: "0.10",
       kink: "0.8",
       jumpMultiplierPerYear: "2.5",
     },
