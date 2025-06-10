@@ -12,9 +12,9 @@ const checkpoints = {
     toBlocksPerYear: 42_048_000,
   },
   bscmainnet: {
-    at: 1745903100, // 2025-04-29 05:05:00 AM UTC
-    fromBlocksPerYear: 10_512_000,
-    toBlocksPerYear: 21_024_000,
+    at: 1751250600, // 2025-06-30 02:30:00 AM UTC
+    fromBlocksPerYear: 21_024_000,
+    toBlocksPerYear: 42_048_000,
   },
 };
 
