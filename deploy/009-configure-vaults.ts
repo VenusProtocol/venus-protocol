@@ -33,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const isTimeBased = false; // configure this value if time based deployment
 
   const blocksPerYear: Config = {
-    bsctestnet: 21_024_000, // 1.5 sec per block
+    bsctestnet: 42_048_000, // 0.75 sec per block
     sepolia: 2_628_000, // 12 sec per block
     arbitrumsepolia: 0, // time based deployment
     opsepolia: 0, // time based deployment
@@ -42,7 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     zksyncsepolia: 0, // time based deployment
     zksyncmainnet: 0, // time based deployment
     unichainsepolia: 0, // time based deployment
-    bscmainnet: 21_024_000,
+    bscmainnet: 42_048_000,
     ethereum: 2_628_000,
     basesepolia: 0, // time based deployment
     basemainnet: 0, // time based deployment
