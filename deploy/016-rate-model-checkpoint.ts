@@ -7,9 +7,9 @@ import { writeGeneratedContract } from "../helpers/writeFile";
 
 const checkpoints = {
   bsctestnet: {
-    at: 1744097580, // 2025-04-08 07:33:00 AM UTC,
-    fromBlocksPerYear: 10_512_000,
-    toBlocksPerYear: 21_024_000,
+    at: 1748243100, // 2025-05-26 07:05:00 AM UTC,
+    fromBlocksPerYear: 21_024_000,
+    toBlocksPerYear: 42_048_000,
   },
   bscmainnet: {
     at: 1745903100, // 2025-04-29 05:05:00 AM UTC
