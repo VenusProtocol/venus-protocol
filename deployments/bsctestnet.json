@@ -23373,7 +23373,7 @@
       ]
     },
     "PrimeLiquidityProvider_Implementation": {
-      "address": "0xD2eBa310E843fC6dc242187501bDf7c0F6b46681",
+      "address": "0xFB136764E8F3ffA2Ed57F150853dbf08B8a09988",
       "abi": [
         {
           "inputs": [
@@ -24379,7 +24379,7 @@
       ]
     },
     "Prime_Implementation": {
-      "address": "0x73Ac7280b8f3EAF7F621c48ae2398733eD9fBC81",
+      "address": "0x0323505ACde55903D0AC8da7c4d146A7F4b25f77",
       "abi": [
         {
           "inputs": [
@@ -52756,7 +52756,7 @@
       ]
     },
     "VaiController": {
-      "address": "0x52558EED5d8f4c86cC2d5EC5DF155521db8d0D48",
+      "address": "0xDFcbfb82a416B5CEbB80FECFbBF4E055299931FF",
       "abi": [
         {
           "anonymous": false,
