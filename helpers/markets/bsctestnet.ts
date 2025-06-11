@@ -612,4 +612,48 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus asBNB",
+    symbol: "vasBNB",
+    asset: "asBNB",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0.72",
+      reserveFactor: "0.1",
+      supplyCap: "2000",
+      borrowCap: "0"
+    },
+    initialSupply: {
+      amount: "0.14",
+      vTokenReceiver: "VTreasury",
+    }
+  },
+  {
+    name: "Venus USDF",
+    symbol: "vUSDF",
+    asset: "USDF",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5"
+    },
+    riskParameters: {
+      collateralFactor: "0.6",
+      reserveFactor: "0.1",
+      supplyCap: "30000000",
+      borrowCap: "27000000",
+    },
+    initialSupply: {
+      amount: "100",
+      vTokenReceiver: "VTreasury",
+    }
+  }
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];
