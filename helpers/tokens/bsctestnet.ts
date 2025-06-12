@@ -229,7 +229,7 @@ const tokens = [
     name: "USDF",
     symbol: "USDF",
     decimals: 18,
-  }
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);

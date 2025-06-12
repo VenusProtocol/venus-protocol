@@ -627,12 +627,12 @@ export default [
       collateralFactor: "0.72",
       reserveFactor: "0.1",
       supplyCap: "2000",
-      borrowCap: "0"
+      borrowCap: "0",
     },
     initialSupply: {
       amount: "0.14",
       vTokenReceiver: "VTreasury",
-    }
+    },
   },
   {
     name: "Venus USDF",
@@ -643,7 +643,7 @@ export default [
       baseRatePerYear: "0",
       multiplierPerYear: "0.09",
       jumpMultiplierPerYear: "2",
-      kink: "0.5"
+      kink: "0.5",
     },
     riskParameters: {
       collateralFactor: "0.6",
@@ -654,6 +654,6 @@ export default [
     initialSupply: {
       amount: "100",
       vTokenReceiver: "VTreasury",
-    }
-  }
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bsctestnet">>[];
