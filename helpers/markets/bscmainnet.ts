@@ -732,7 +732,6 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
-
   {
     name: "Venus asBNB",
     symbol: "vasBNB",
@@ -774,7 +773,7 @@ export default [
     },
     initialSupply: {
       amount: "20100",
-      vTokenReceiver: "VTreasury",
+      vTokenReceiver: "0xa8c0C6Ee62F5AD95730fe23cCF37d1c1FFAA1c3f",
     },
   },
 ] as const satisfies readonly Raw<VTokenConfig<"bscmainnet">>[];
