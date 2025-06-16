@@ -4,10 +4,6 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { Prime } from "../typechain";
 
-interface ScoreUpdate {
-  [key: string]: string[];
-}
-
 const fetchPrimeHolders = async (prime: Prime, fromBlock: number, toBlock: number): Promise<string[]> => {
   const events = await prime.queryFilter(prime.filters.Mint(), fromBlock, toBlock);
   const users = [];
@@ -54,7 +50,7 @@ const func: DeployFunction = async function () {
   }
 
   console.log(`Total Prime Holders: ${currentPrimeHolders.length}`);
-  console.log("Pending score updates: ", await prime.pendingScoreUpdates());
+  console.log("Pending score updates: ", (await prime.pendingScoreUpdates()).toString());
 
   // update scrores with batch size 100
   const batchSize = 100;
@@ -66,7 +62,7 @@ const func: DeployFunction = async function () {
     console.log(`Updated scores for ${batch.length} users in batch starting from index ${i}`);
   }
 
-  console.log("Pending score updates: ", await prime.pendingScoreUpdates());
+  console.log("Pending score updates: ", (await prime.pendingScoreUpdates()).toString());
 };
 
 func.tags = ["prime-update-scores"];
