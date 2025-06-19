@@ -2,6 +2,9 @@
   "name": "berachainbepolia",
   "chainId": "80069",
   "addresses": {
-    "VTreasuryV8": "0xd0D3FBBE22d9a43d3Aa605590976ac5843597228"
+    "VTreasuryV8": "0xd0D3FBBE22d9a43d3Aa605590976ac5843597228",
+    "XVSStore": "0x8AE454acEC6B57086244c0668D205bC5773952e5",
+    "XVSVaultProxy": "0x19AdEbF431D855684EBb7bcD627CD0e72A47421a",
+    "XVSVaultProxy_Implementation": "0x4481d7419F18F8697Fee17052374A0948972C255"
   }
 }
