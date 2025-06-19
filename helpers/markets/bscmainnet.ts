@@ -754,4 +754,26 @@ export default [
       vTokenReceiver: "VTreasury",
     },
   },
+  {
+    name: "Venus USDF",
+    symbol: "vUSDF",
+    asset: "USDF",
+    interestRateModel: {
+      model: "jump",
+      baseRatePerYear: "0",
+      multiplierPerYear: "0.09",
+      jumpMultiplierPerYear: "2",
+      kink: "0.5",
+    },
+    riskParameters: {
+      collateralFactor: "0.6",
+      reserveFactor: "0.1",
+      supplyCap: "30000000",
+      borrowCap: "27000000",
+    },
+    initialSupply: {
+      amount: "20100",
+      vTokenReceiver: "0xa8c0C6Ee62F5AD95730fe23cCF37d1c1FFAA1c3f",
+    },
+  },
 ] as const satisfies readonly Raw<VTokenConfig<"bscmainnet">>[];

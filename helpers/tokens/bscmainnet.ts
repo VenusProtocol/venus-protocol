@@ -275,6 +275,13 @@ const tokens = [
     decimals: 18,
     tokenAddress: "0x77734e70b6E88b4d82fE632a168EDf6e700912b6",
   },
+  {
+    isMock: false,
+    name: "USDF",
+    symbol: "USDF",
+    decimals: 18,
+    tokenAddress: "0x5A110fC00474038f6c02E89C707D638602EA44B5",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
