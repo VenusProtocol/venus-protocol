@@ -223,9 +223,8 @@ describe("FlashLoan", async () => {
 
   describe("FlashLoan Single Asset", () => {
     before(async () => {
-      const MockFlashLoanSimpleReceiver = await ethers.getContractFactory<MockFlashLoanSimpleReceiver__factory>(
-        "MockFlashLoanSimpleReceiver",
-      );
+      const MockFlashLoanSimpleReceiver =
+        await ethers.getContractFactory<MockFlashLoanSimpleReceiver__factory>("MockFlashLoanSimpleReceiver");
       mockReceiverSimple = await MockFlashLoanSimpleReceiver.deploy(vTokenA.address);
       await mockReceiverSimple.deployed();
       await vTokenA._setFlashLoanFeeMantissa(protocolFeeMantissa, supplierFeeMantissa);

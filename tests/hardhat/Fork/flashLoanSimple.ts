@@ -103,9 +103,8 @@ forking(47432690, async () => {
         user = await initMainnetUser(USER, parseUnits("2"));
 
         // Deploy a mock flashLoan receiver to test flashLoan functionality
-        const MockFlashLoanSimpleReceiver = await ethers.getContractFactory<MockFlashLoanSimpleReceiver__factory>(
-          "MockFlashLoanSimpleReceiver",
-        );
+        const MockFlashLoanSimpleReceiver =
+          await ethers.getContractFactory<MockFlashLoanSimpleReceiver__factory>("MockFlashLoanSimpleReceiver");
         mockReceiverSimpleFlashLoan = await MockFlashLoanSimpleReceiver.deploy(vUSDT.address);
       });
 

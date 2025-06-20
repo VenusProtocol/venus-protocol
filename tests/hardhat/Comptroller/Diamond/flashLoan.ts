@@ -167,9 +167,8 @@ describe("FlashLoan", async () => {
       await comptroller._supportMarket(vTokenA.address);
       await comptroller._supportMarket(vTokenB.address);
 
-      const MockFlashLoanReceiver = await ethers.getContractFactory<MockFlashLoanReceiver__factory>(
-        "MockFlashLoanReceiver",
-      );
+      const MockFlashLoanReceiver =
+        await ethers.getContractFactory<MockFlashLoanReceiver__factory>("MockFlashLoanReceiver");
       mockReceiverContract = await MockFlashLoanReceiver.deploy(unitroller.address);
       await mockReceiverContract.deployed();
     });

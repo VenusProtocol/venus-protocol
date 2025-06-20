@@ -165,9 +165,8 @@ forking(47432690, () => {
 
         user = await initMainnetUser(USER, parseUnits("2"));
 
-        const MockFlashLoanReceiver = await ethers.getContractFactory<MockFlashLoanReceiver__factory>(
-          "MockFlashLoanReceiver",
-        );
+        const MockFlashLoanReceiver =
+          await ethers.getContractFactory<MockFlashLoanReceiver__factory>("MockFlashLoanReceiver");
         mockFlashLoanReceiver = await MockFlashLoanReceiver.deploy(policyFacet.address);
       });
 

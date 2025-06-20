@@ -22,6 +22,11 @@ export default [
       amount: "9000",
       vTokenReceiver: "VTreasury",
     },
+    flashloanConfig: {
+      isFlashLoanEnabled: false,
+      flashLoanProtocolFeeMantissa: "0",
+      flashLoanSupplierFeeMantissa: "0",
+    },
   },
   {
     name: "Venus DOGE",
@@ -44,6 +49,11 @@ export default [
       amount: "9000",
       vTokenReceiver: "VTreasury",
     },
+    flashloanConfig: {
+      isFlashLoanEnabled: false,
+      flashLoanProtocolFeeMantissa: "0",
+      flashLoanSupplierFeeMantissa: "0",
+    },
   },
   {
     name: "Venus USDT",
@@ -65,6 +75,11 @@ export default [
     initialSupply: {
       amount: "9000",
       vTokenReceiver: "VTreasury",
+    },
+    flashloanConfig: {
+      isFlashLoanEnabled: false,
+      flashLoanProtocolFeeMantissa: "0",
+      flashLoanSupplierFeeMantissa: "0",
     },
   },
 ] as const satisfies readonly Raw<VTokenConfig<"hardhat">>[];

@@ -57,6 +57,13 @@ export type VTokenConfig<chain extends Chain = Chain> = {
   interestRateModel: RateModelParams;
   riskParameters: RiskParameters;
   initialSupply?: InitialSupply;
+  flashloanConfig?: FlashloanConfig;
+};
+
+export type FlashloanConfig = {
+  isFlashLoanEnabled: boolean;
+  flashLoanProtocolFeeMantissa: string;
+  flashLoanSupplierFeeMantissa: string;
 };
 
 export type Raw<T> = T extends object
