@@ -33,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const isTimeBased = false; // configure this value if time based deployment
 
   const blocksPerYear: Config = {
-    bsctestnet: 10_512_000, // 3 sec per block
+    bsctestnet: 21_024_000, // 1.5 sec per block
     sepolia: 2_628_000, // 12 sec per block
     arbitrumsepolia: 0, // time based deployment
     opsepolia: 0, // time based deployment
@@ -42,12 +42,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     zksyncsepolia: 0, // time based deployment
     zksyncmainnet: 0, // time based deployment
     unichainsepolia: 0, // time based deployment
-    bscmainnet: 10_512_000,
+    bscmainnet: 21_024_000,
     ethereum: 2_628_000,
     basesepolia: 0, // time based deployment
     basemainnet: 0, // time based deployment
     unichainmainnet: 0, // time based deployment
-    berachainbartio: 0, // time based deployment
+    berachainbepolia: 0, // time based deployment
     hardhat: 100,
   };
 
@@ -68,7 +68,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     basemainnet: basemainnetGovernanceDeployments.contracts.NormalTimelock.address,
     unichainsepolia: unichainsepoliaGovernanceDeployments.contracts.NormalTimelock.address,
     unichainmainnet: unichainmainnetGovernanceDeployments.contracts.NormalTimelock.address,
-    berachainbartio: "0x8699D418D8bae5CFdc566E4fce897B08bd9B03B0", // berachainbartioGovernanceDeployments.contracts.NormalTimelock.address
+    berachainbepolia: "0xAb3DBA18664B96AD54459D06Ca8BD18C9146d5CE", // berachainbepoliaGovernanceDeployments.contracts.NormalTimelock.address
     hardhat: deployer,
   };
 

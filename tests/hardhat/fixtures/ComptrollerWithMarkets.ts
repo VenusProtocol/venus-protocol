@@ -3,6 +3,7 @@ import { BaseContract, BigNumberish } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
+import { DEFAULT_BLOCKS_PER_YEAR } from "../../../helpers/deploymentConfig";
 import {
   ComptrollerLens,
   ComptrollerLens__factory,
@@ -180,6 +181,7 @@ export const deployJumpRateModel = async ({
     multiplierPerYear ?? parseUnits("0.8", 18),
     jumpMultiplierPerYear ?? parseUnits("3", 18),
     kink ?? parseUnits("0.7", 18),
+    DEFAULT_BLOCKS_PER_YEAR,
   );
   await jumpRateModel.deployed();
   return jumpRateModel;

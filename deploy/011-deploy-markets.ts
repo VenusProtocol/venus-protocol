@@ -1,15 +1,13 @@
-import { BigNumber, BigNumberish } from "ethers";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { network } from "hardhat";
-import { DeployFunction, DeployResult } from "hardhat-deploy/types";
+import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { InterestRateModels, getConfig, getTokenConfig, skipRemoteNetworks } from "../helpers/deploymentConfig";
-
-const mantissaToBps = (num: BigNumberish) => {
-  return BigNumber.from(num).div(parseUnits("1", 14)).toString();
-};
+import { assertBlockBasedChain, blocksPerYear as chainBlocksPerYear } from "../helpers/chains";
+import { skipRemoteNetworks } from "../helpers/deploymentConfig";
+import { markets } from "../helpers/markets";
+import { getRateModelName } from "../helpers/rateModelHelpers";
 
 const VTOKEN_DECIMALS = 8;
 const EMPTY_BYTES_ARRAY = "0x";
@@ -19,62 +17,42 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
 
   const { deployer } = await getNamedAccounts();
-  const { tokensConfig, marketsConfig } = await getConfig(hre.network.name);
+  const chain = assertBlockBasedChain(hre.network.name);
+  const marketsConfig = markets[chain];
+  const blocksPerYear = chainBlocksPerYear[chain];
 
   const comptrollerDeployment = await deployments.get("Unitroller");
 
   console.log(`Got deployment of Unitroller with address: ${comptrollerDeployment.address}`);
 
   for (const market of marketsConfig) {
-    const {
-      name,
-      asset,
-      symbol,
-      rateModel,
-      baseRatePerYear,
-      multiplierPerYear,
-      jumpMultiplierPerYear,
-      kink_,
-      isFlashLoanEnabled,
-      flashLoanProtocolFeeMantissa,
-      flashLoanSupplierFeeMantissa,
-    } = market;
+    const { name, asset, symbol, interestRateModel, flashloanConfig } = market;
 
-    const token = getTokenConfig(asset, tokensConfig);
+    const {
+      isFlashLoanEnabled = false,
+      flashLoanProtocolFeeMantissa = "0",
+      flashLoanSupplierFeeMantissa = "0",
+    } = flashloanConfig ?? {};
+
+    // Short-circuit to avoid extra requests to the node if vToken already exists
+    const deployment = await deployments.getOrNull(symbol);
+    if (deployment !== null && deployment !== undefined) {
+      console.log(`Skipping ${symbol} deployment: found at ${deployment.address}`);
+      continue;
+    }
+
     let tokenContract;
-    if (token.isMock) {
-      tokenContract = await ethers.getContract(`Mock${token.symbol}`);
+    if (asset.isMock) {
+      tokenContract = await ethers.getContract(`Mock${asset.symbol}`);
     } else {
       tokenContract = await ethers.getContractAt(
         "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
-        token.tokenAddress,
+        asset.tokenAddress,
       );
     }
 
-    let rateModelAddress: string;
-    if (rateModel === InterestRateModels.JumpRate.toString()) {
-      const [b, m, j, k] = [baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink_].map(mantissaToBps);
-      const rateModelName = `JumpRateModel_base${b}bps_slope${m}bps_jump${j}bps_kink${k}bps`;
-      console.log(`Deploying interest rate model ${rateModelName}`);
-      const result: DeployResult = await deploy(rateModelName, {
-        from: deployer,
-        contract: "JumpRateModel",
-        args: [baseRatePerYear, multiplierPerYear, jumpMultiplierPerYear, kink_],
-        log: true,
-      });
-      rateModelAddress = result.address;
-    } else {
-      const [b, m] = [baseRatePerYear, multiplierPerYear].map(mantissaToBps);
-      const rateModelName = `WhitePaperInterestRateModel_base${b}bps_slope${m}bps`;
-      console.log(`Deploying interest rate model ${rateModelName}`);
-      const result: DeployResult = await deploy(rateModelName, {
-        from: deployer,
-        contract: "WhitePaperInterestRateModel",
-        args: [baseRatePerYear, multiplierPerYear],
-        log: true,
-      });
-      rateModelAddress = result.address;
-    }
+    const rateModelName = getRateModelName(interestRateModel, blocksPerYear);
+    const rateModelAddress = (await deployments.get(rateModelName)).address;
 
     const underlyingDecimals = Number(await tokenContract.decimals());
     const normalTimelock = await ethers.getContract("NormalTimelock");

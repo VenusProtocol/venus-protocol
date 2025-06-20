@@ -1,0 +1,7 @@
+{
+  "name": "berachainbepolia",
+  "chainId": "80069",
+  "addresses": {
+    "VTreasuryV8": "0xd0D3FBBE22d9a43d3Aa605590976ac5843597228"
+  }
+}

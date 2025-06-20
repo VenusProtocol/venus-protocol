@@ -395,9 +395,8 @@ describe("Prime Token", () => {
     let primeLiquidityProvider: PrimeLiquidityProvider;
 
     beforeEach(async () => {
-      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, primeLiquidityProvider } = await loadFixture(
-        deployProtocol,
-      ));
+      ({ comptroller, prime, vusdt, veth, usdt, eth, xvsVault, xvs, primeLiquidityProvider } =
+        await loadFixture(deployProtocol));
 
       await xvs.connect(user1).approve(xvsVault.address, bigNumber18.mul(10000));
       await xvsVault.connect(user1).deposit(xvs.address, 0, bigNumber18.mul(10000));

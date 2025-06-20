@@ -1,14 +1,15 @@
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { getConfig } from "../helpers/deploymentConfig";
+import { assertKnownChain } from "../helpers/chains";
+import { tokens } from "../helpers/tokens";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts }: any = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
-
-  const { tokensConfig } = await getConfig(hre.network.name);
+  const chain = assertKnownChain(hre.network.name);
+  const tokensConfig = Object.values(tokens[chain]);
 
   for (const token of tokensConfig) {
     if (token.isMock) {
