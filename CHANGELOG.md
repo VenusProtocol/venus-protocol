@@ -1,3 +1,21 @@
+## [9.8.0-dev.17](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.16...v9.8.0-dev.17) (2025-06-23)
+
+
+### Features
+
+* add markets configuration for BSC ([d8d1546](https://github.com/VenusProtocol/venus-protocol/commit/d8d15466fbc033c3dc6bb03bbf3093d7b3fcfe8a))
+* deploy markets. Set receiver for vUSDF ([6bd65c2](https://github.com/VenusProtocol/venus-protocol/commit/6bd65c26078ef2087fd7b868c2c7e5aadde5a22f))
+* deploy vasBNB on bsctestnet ([dbf87c8](https://github.com/VenusProtocol/venus-protocol/commit/dbf87c8105e49f93127fcb221eaf542e66ae0113))
+* deploy vUSDF on bsctestnet ([2f4e71a](https://github.com/VenusProtocol/venus-protocol/commit/2f4e71a4f7fcf9fbe0ca78dabfb43e6a896aa150))
+* updating deployment files ([3dd4181](https://github.com/VenusProtocol/venus-protocol/commit/3dd4181f060fae10d818a3a40786b7b42e5e03eb))
+* updating deployment files ([4fb096e](https://github.com/VenusProtocol/venus-protocol/commit/4fb096ed0df59ee1fa44e0ebe18975d4cdf0eb9f))
+* updating deployment files ([70d89bc](https://github.com/VenusProtocol/venus-protocol/commit/70d89bc82e3a6ff76c8a09ce38021332afa1d3fd))
+
+
+### Bug Fixes
+
+* remove USDF market ([b754c0e](https://github.com/VenusProtocol/venus-protocol/commit/b754c0e3db5a7ccba5e43691b501745e7fd9c2a0))
+
 ## [9.8.0-dev.16](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.15...v9.8.0-dev.16) (2025-06-06)
 
 
