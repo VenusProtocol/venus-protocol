@@ -217,6 +217,13 @@ const tokens = [
     symbol: "xSolvBTC",
     decimals: 18,
   },
+  {
+    isMock: false,
+    name: "asBNB",
+    symbol: "asBNB",
+    decimals: 18,
+    tokenAddress: "0xc625f060ad25f4A6c2d9eBF30C133dB61B7AF072",
+  },
 ] as const satisfies readonly TokenConfig[];
 
 export default indexBySymbol(tokens);
