@@ -8,10 +8,10 @@ import opbnbtestnetGovernanceDeployments from "@venusprotocol/governance-contrac
 import opmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/opmainnet.json";
 import opsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/opsepolia.json";
 import sepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/sepolia.json";
+import unichainmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/unichainmainnet.json";
+import unichainsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/unichainsepolia.json";
 import zksyncmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/zksyncmainnet.json";
 import zksyncsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/zksyncsepolia.json";
-import unichainsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/unichainsepolia.json";
-import unichainmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/unichainmainnet.json";
 import { ethers } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
