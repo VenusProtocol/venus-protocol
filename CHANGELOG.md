@@ -1,3 +1,13 @@
+## [9.8.0-dev.18](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.17...v9.8.0-dev.18) (2025-06-24)
+
+
+### Features
+
+* add bscmainnet checkpoint IRMs for Maxwell upgrade ([eaf5f62](https://github.com/VenusProtocol/venus-protocol/commit/eaf5f62cb88499d4dc529208e1609d80d1c48233))
+* add bsctestnet checkpoint IRMs for Maxwell upgrade ([12b8930](https://github.com/VenusProtocol/venus-protocol/commit/12b89306d946d83879479d375c39ebe185bbdea7))
+* update BNB chain blocks per year to 42,048,000 ([8659381](https://github.com/VenusProtocol/venus-protocol/commit/865938170e2ebe2a9a6bd72a20f8dc0c1d15f3a8))
+* updating deployment files ([4ac2351](https://github.com/VenusProtocol/venus-protocol/commit/4ac2351f15d3306473df81c9287c4a7c5acaaa6a))
+
 ## [9.8.0-dev.17](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.16...v9.8.0-dev.17) (2025-06-23)
 
 
