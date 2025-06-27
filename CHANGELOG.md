@@ -1,3 +1,14 @@
+## [9.8.0-dev.19](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.18...v9.8.0-dev.19) (2025-06-27)
+
+
+### Features
+
+* add mainnet deployments ([ca604d4](https://github.com/VenusProtocol/venus-protocol/commit/ca604d4639d916448de6b8477b1b9022182f3762))
+* add updates for block rate update phase 2 on BNB ([c4a889d](https://github.com/VenusProtocol/venus-protocol/commit/c4a889d8c81e23868a2a623b45ce0bfbc08ac3cc))
+* fetch block number from getBlockOrTimestampBasedDeploymentInfo ([0172a76](https://github.com/VenusProtocol/venus-protocol/commit/0172a762b3a888cb7d2e23ce0fc0457884eb2869))
+* updating deployment files ([f319a25](https://github.com/VenusProtocol/venus-protocol/commit/f319a25a1fbecc273d95e6308fc8cb0cc5c6e1da))
+* updating deployment files ([0536f25](https://github.com/VenusProtocol/venus-protocol/commit/0536f2535005fd4c17cb2e54ec8add66c3d0f615))
+
 ## [9.8.0-dev.18](https://github.com/VenusProtocol/venus-protocol/compare/v9.8.0-dev.17...v9.8.0-dev.18) (2025-06-24)
 
 
