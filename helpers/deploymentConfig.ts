@@ -1,9 +1,10 @@
 import { DeploymentsExtension } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
+import { Chain, blocksPerYear } from "./chains";
 import { ParsedVTokenConfig } from "./markets/types";
 
-export const DEFAULT_BLOCKS_PER_YEAR = 21024000;
+export const DEFAULT_BLOCKS_PER_YEAR = 42048000;
 
 export type TokenConfig =
   | {
@@ -22,6 +23,8 @@ export type DeploymentConfig = {
   tokensConfig: Record<string, TokenConfig>;
   marketsConfig: ParsedVTokenConfig[];
 };
+
+export type DeploymentInfo = { isTimeBased: true; blocksPerYear: 0 } | { isTimeBased: false; blocksPerYear: number };
 
 export function getTokenConfig(tokenSymbol: string, tokens: TokenConfig[]): TokenConfig {
   const tokenCofig = tokens.find(
@@ -57,3 +60,11 @@ export const skipSourceNetworks =
   async (hre: HardhatRuntimeEnvironment) => {
     return hre.network.name === "bsctestnet" || hre.network.name === "bscmainnet" || hardhat;
   };
+
+export const getBlockOrTimestampBasedDeploymentInfo = (network: Chain): DeploymentInfo => {
+  const blocksPerYear_ = blocksPerYear[network];
+  if (blocksPerYear_ === "time-based") {
+    return { isTimeBased: true, blocksPerYear: 0 };
+  }
+  return { isTimeBased: false, blocksPerYear: blocksPerYear_ };
+};
