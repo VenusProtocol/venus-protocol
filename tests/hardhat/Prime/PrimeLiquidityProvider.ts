@@ -4,6 +4,7 @@ import { expect } from "chai";
 import { parseUnits } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 
+import { DEFAULT_BLOCKS_PER_YEAR } from "../../../helpers/deploymentConfig";
 import { convertToUnit } from "../../../helpers/utils";
 import {
   FaucetToken,
@@ -51,7 +52,7 @@ const fixture = async () => {
       10,
     ],
     {
-      constructorArgs: [false, 10512000],
+      constructorArgs: [false, DEFAULT_BLOCKS_PER_YEAR],
       // To allow the usage constructor & internal functions that might change storage
       unsafeAllow: ["constructor", "internal-function-storage"],
     },

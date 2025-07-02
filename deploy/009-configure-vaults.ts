@@ -1,58 +1,52 @@
+import arbitrumoneGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/arbitrumone.json";
+import arbitrumsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/arbitrumsepolia.json";
+import basemainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/basemainnet.json";
+import basesepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/basesepolia.json";
+import ethereumGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/ethereum.json";
+import opbnbmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/opbnbmainnet.json";
+import opbnbtestnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/opbnbtestnet.json";
+import opmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/opmainnet.json";
+import opsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/opsepolia.json";
+import sepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/sepolia.json";
+import unichainmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/unichainmainnet.json";
+import unichainsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/unichainsepolia.json";
+import zksyncmainnetGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/zksyncmainnet.json";
+import zksyncsepoliaGovernanceDeployments from "@venusprotocol/governance-contracts/deployments/zksyncsepolia.json";
 import { ethers, network } from "hardhat";
 import { DeployFunction } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import { getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
+import { Chain } from "../helpers/chains";
+import { getBlockOrTimestampBasedDeploymentInfo, getContractAddressOrNullAddress } from "../helpers/deploymentConfig";
 
 interface AdminAccounts {
   [key: string]: string;
-}
-
-interface Config {
-  [key: string]: number;
 }
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deployer } = await getNamedAccounts();
 
-  const isTimeBased = false; // configure this value if time based deployment
-
-  const blocksPerYear: Config = {
-    bsctestnet: 10_512_000, // 3 sec per block
-    sepolia: 2_628_000, // 12 sec per block
-    arbitrumsepolia: 0, // time based deployment
-    opsepolia: 0, // time based deployment
-    opmainnet: 0, // time based deployment
-    arbitrumone: 0, // time based deployment
-    zksyncsepolia: 0, // time based deployment
-    zksyncmainnet: 0, // time based deployment
-    unichainsepolia: 0, // time based deployment
-    bscmainnet: 10_512_000,
-    ethereum: 2_628_000,
-    basesepolia: 0, // time based deployment
-    basemainnet: 0, // time based deployment
-    unichainmainnet: 0, // time based deployment
-    hardhat: 100,
-  };
+  const { isTimeBased, blocksPerYear } = getBlockOrTimestampBasedDeploymentInfo(network.name as Chain);
 
   const adminAccount: AdminAccounts = {
-    sepolia: "0x94fa6078b6b8a26f0b6edffbe6501b22a10470fb", // SEPOLIA MULTISIG
-    ethereum: "0x285960C5B22fD66A736C7136967A3eB15e93CC67", // ETHEREUM MULTISIG
-    opbnbtestnet: "0xb15f6EfEbC276A3b9805df81b5FB3D50C2A62BDf", // OPBNBTESTNET MULTISIG
-    opbnbmainnet: "0xC46796a21a3A9FAB6546aF3434F2eBfFd0604207", // OPBNBMAINNET MULTISIG
-    arbitrumsepolia: "0x1426A5Ae009c4443188DA8793751024E358A61C2", // ARBITRUM SEPOLIA MULTISIG
-    arbitrumone: "0x14e0E151b33f9802b3e75b621c1457afc44DcAA0", // ARBITRUM ONE MULTISIG
-    zksyncsepolia: "0xa2f83de95E9F28eD443132C331B6a9C9B7a9F866", // ZKSYNC SEPOLIA MULTISIG
-    zksyncmainnet: "0x751Aa759cfBB6CE71A43b48e40e1cCcFC66Ba4aa", // ZKSYNC MAINNET MULTISIG
-    opsepolia: "0xd57365EE4E850e881229e2F8Aa405822f289e78d", // OPSEPOLIA MULTISIG
-    opmainnet: "0x2e94dd14E81999CdBF5deDE31938beD7308354b3", // OPMAINNET MULTISIG
-    unichainsepolia: "0x9831D3A641E8c7F082EEA75b8249c99be9D09a34", // UNICHAIN MULTISIG
     bscmainnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
     bsctestnet: await getContractAddressOrNullAddress(deployments, "NormalTimelock"),
-    basesepolia: "0xdf3b635d2b535f906BB02abb22AED71346E36a00", // BASE SEPOLIA MULTISIG
-    basemainnet: "0x1803Cf1D3495b43cC628aa1d8638A981F8CD341C", // BASE MAINNET MULTISIG
-    unichainmainnet: "0x1803Cf1D3495b43cC628aa1d8638A981F8CD341C", // UNICHAIN MAINNET MULTISIG
+    sepolia: sepoliaGovernanceDeployments.contracts.NormalTimelock.address,
+    ethereum: ethereumGovernanceDeployments.contracts.NormalTimelock.address,
+    opbnbtestnet: opbnbtestnetGovernanceDeployments.contracts.NormalTimelock.address,
+    opbnbmainnet: opbnbmainnetGovernanceDeployments.contracts.NormalTimelock.address,
+    arbitrumsepolia: arbitrumsepoliaGovernanceDeployments.contracts.NormalTimelock.address,
+    arbitrumone: arbitrumoneGovernanceDeployments.contracts.NormalTimelock.address,
+    zksyncsepolia: zksyncsepoliaGovernanceDeployments.contracts.NormalTimelock.address,
+    zksyncmainnet: zksyncmainnetGovernanceDeployments.contracts.NormalTimelock.address,
+    opsepolia: opsepoliaGovernanceDeployments.contracts.NormalTimelock.address,
+    opmainnet: opmainnetGovernanceDeployments.contracts.NormalTimelock.address,
+    basesepolia: basesepoliaGovernanceDeployments.contracts.NormalTimelock.address,
+    basemainnet: basemainnetGovernanceDeployments.contracts.NormalTimelock.address,
+    unichainsepolia: unichainsepoliaGovernanceDeployments.contracts.NormalTimelock.address,
+    unichainmainnet: unichainmainnetGovernanceDeployments.contracts.NormalTimelock.address,
+    berachainbepolia: "0xAb3DBA18664B96AD54459D06Ca8BD18C9146d5CE", // berachainbepoliaGovernanceDeployments.contracts.NormalTimelock.address
     hardhat: deployer,
   };
 
@@ -68,7 +62,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   xvsVault = await ethers.getContractAt("XVSVault", xvsVaultProxyDeployment.address);
 
-  let txn = await xvsVault.initializeTimeManager(isTimeBased, blocksPerYear[network.name]);
+  let txn = await xvsVault.initializeTimeManager(isTimeBased, blocksPerYear);
   await txn.wait();
 
   txn = await xvsVault.setXvsStore(xvs.address, xvsStoreDeployment.address);

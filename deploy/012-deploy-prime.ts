@@ -17,6 +17,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const NINETY_DAYS = 90 * 24 * 60 * 60;
   const ZERO_ADDRESS = ethers.constants.AddressZero;
 
+  // Should be true, when implementation has to be upgraded
+  const UPGRADE_IMPL = false;
+
   interface Config {
     [key: string]: number;
   }
@@ -57,7 +60,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   };
 
   const blocksPerYear: Config = {
-    bsctestnet: 10_512_000, // 3 sec per block
+    bsctestnet: 42_048_000, // 0.75 sec per block
     sepolia: 2_628_000, // 12 sec per block
     arbitrumsepolia: 0, // time based contracts
     arbitrumone: 0, // time based contracts
@@ -69,7 +72,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     basesepolia: 0, // time based contracts
     basemainnet: 0, // time based contracts
     unichainmainnet: 0,
-    bscmainnet: 10_512_000,
+    bscmainnet: 42_048_000,
     ethereum: 2_628_000,
     hardhat: 100,
   };
@@ -114,64 +117,90 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const defaultProxyAdmin = await hre.artifacts.readArtifact(
     "hardhat-deploy/solc_0.8/openzeppelin/proxy/transparent/ProxyAdmin.sol:ProxyAdmin",
   );
-  await deploy("PrimeLiquidityProvider", {
-    from: deployer,
-    log: true,
-    deterministicDeployment: false,
-    args: [isTimeBased, blocksPerYear[networkName]],
-    proxy: {
-      owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
-      proxyContract: "OptimizedTransparentUpgradeableProxy",
-      execute: {
-        methodName: "initialize",
-        args: [acmAddress, [], [], [], loopsLimit],
-      },
-      viaAdminContract: {
-        name: "DefaultProxyAdmin",
-        artifact: defaultProxyAdmin,
-      },
-    },
-  });
 
-  const plp = await ethers.getContract("PrimeLiquidityProvider");
+  if (!UPGRADE_IMPL) {
+    await deploy("PrimeLiquidityProvider", {
+      from: deployer,
+      log: true,
+      deterministicDeployment: false,
+      args: [isTimeBased, blocksPerYear[networkName]],
+      proxy: {
+        owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
+        proxyContract: "OptimizedTransparentUpgradeableProxy",
+        execute: {
+          methodName: "initialize",
+          args: [acmAddress, [], [], [], loopsLimit],
+        },
+        viaAdminContract: {
+          name: "DefaultProxyAdmin",
+          artifact: defaultProxyAdmin,
+        },
+      },
+    });
 
-  await deploy("Prime", {
-    from: deployer,
-    log: true,
-    deterministicDeployment: false,
-    args: [
-      wrappedNativeToken ? wrappedNativeToken : ZERO_ADDRESS,
-      nativeMarket ? nativeMarket : ZERO_ADDRESS,
-      blocksPerYear[networkName],
-      stakingPeriod[networkName],
-      minimumXVS,
-      maximumXVSCap,
-      isTimeBased,
-    ],
-    proxy: {
-      owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
-      proxyContract: "OptimizedTransparentUpgradeableProxy",
-      execute: {
-        methodName: "initialize",
-        args: [
-          xvsVaultAddress,
-          xvsAddress,
-          xVSVaultPoolId[networkName],
-          xvsVaultAlphaNumerator,
-          xvsVaultAlphaDenominator,
-          acmAddress,
-          plp.address,
-          corePoolAddress,
-          resilientOracleAddress,
-          loopsLimit,
-        ],
+    const plp = await ethers.getContract("PrimeLiquidityProvider");
+
+    await deploy("Prime", {
+      from: deployer,
+      log: true,
+      deterministicDeployment: false,
+      args: [
+        wrappedNativeToken ? wrappedNativeToken : ZERO_ADDRESS,
+        nativeMarket ? nativeMarket : ZERO_ADDRESS,
+        blocksPerYear[networkName],
+        stakingPeriod[networkName],
+        minimumXVS,
+        maximumXVSCap,
+        isTimeBased,
+      ],
+      proxy: {
+        owner: network.name === "hardhat" ? deployer : adminAccount[networkName],
+        proxyContract: "OptimizedTransparentUpgradeableProxy",
+        execute: {
+          methodName: "initialize",
+          args: [
+            xvsVaultAddress,
+            xvsAddress,
+            xVSVaultPoolId[networkName],
+            xvsVaultAlphaNumerator,
+            xvsVaultAlphaDenominator,
+            acmAddress,
+            plp.address,
+            corePoolAddress,
+            resilientOracleAddress,
+            loopsLimit,
+          ],
+        },
+        viaAdminContract: {
+          name: "DefaultProxyAdmin",
+          artifact: defaultProxyAdmin,
+        },
       },
-      viaAdminContract: {
-        name: "DefaultProxyAdmin",
-        artifact: defaultProxyAdmin,
-      },
-    },
-  });
+    });
+  } else {
+    await deploy("Prime_Implementation", {
+      contract: "Prime",
+      from: deployer,
+      log: true,
+      deterministicDeployment: false,
+      args: [
+        wrappedNativeToken ? wrappedNativeToken : ZERO_ADDRESS,
+        nativeMarket ? nativeMarket : ZERO_ADDRESS,
+        blocksPerYear[networkName],
+        stakingPeriod[networkName],
+        minimumXVS,
+        maximumXVSCap,
+        isTimeBased,
+      ],
+    });
+    await deploy("PrimeLiquidityProvider_Implementation", {
+      contract: "PrimeLiquidityProvider",
+      from: deployer,
+      log: true,
+      deterministicDeployment: false,
+      args: [isTimeBased, blocksPerYear[networkName]],
+    });
+  }
 };
 
 func.tags = ["Prime"];

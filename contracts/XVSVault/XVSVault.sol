@@ -912,6 +912,15 @@ contract XVSVault is XVSVaultStorage, ECDSA, AccessControlledV5, TimeManagerV5 {
     }
 
     /**
+     * @notice Sets the block per year in Time Manager
+     * @param blocksPerYear_ The number of blocks per year
+     */
+    function setBlocksPerYear(uint256 blocksPerYear_) external {
+        _checkAccessAllowed("setBlocksPerYear(uint256)");
+        _setBlocksPerYear(blocksPerYear_);
+    }
+
+    /**
      * @notice Sets the address of the access control of this contract
      * @dev Admin function to set the access control address
      * @param newAccessControlAddress New address for the access control

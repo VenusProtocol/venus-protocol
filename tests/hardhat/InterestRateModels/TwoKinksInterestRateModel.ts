@@ -4,6 +4,7 @@ import BigNumber from "bignumber.js";
 import chai from "chai";
 import { ethers } from "hardhat";
 
+import { DEFAULT_BLOCKS_PER_YEAR } from "../../../helpers/deploymentConfig";
 import { TwoKinksInterestRateModel } from "../../../typechain";
 
 const { expect } = chai;
@@ -40,6 +41,7 @@ describe(`Two Kinks Interest Rate Model Tests`, async () => {
       baseRate2PerYear,
       kink2,
       jumpMultiplierPerYear,
+      DEFAULT_BLOCKS_PER_YEAR,
     );
     await twoKinksInterestRateModel.deployed();
   };
@@ -160,6 +162,7 @@ describe(`Two Kinks Interest Rate Model Tests`, async () => {
       baseRate2PerYear,
       kink2,
       jumpMultiplierPerYear,
+      DEFAULT_BLOCKS_PER_YEAR,
     );
     await twoKinksInterestRateModel.deployed();
 
