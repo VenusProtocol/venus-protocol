@@ -280,3 +280,8 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
     /// @notice The XVS vToken contract address
     address internal xvsVToken;
 }
+
+contract ComptrollerV17Storage is ComptrollerV16Storage {
+    /// @notice check liquidation Threshold for each Market
+    mapping(address => uint256) public marketliquidationThreshold;
+}

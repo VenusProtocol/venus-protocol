@@ -4,17 +4,17 @@ pragma solidity 0.5.16;
 
 import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
 import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
-import { ComptrollerV16Storage } from "../../../Comptroller/ComptrollerStorage.sol";
+import { ComptrollerV17Storage } from "../../../Comptroller/ComptrollerStorage.sol";
 import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
 
 import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
-
+import { ComptrollerLens } from "../../../Lens/ComptrollerLens.sol";
 /**
  * @title FacetBase
  * @author Venus
  * @notice This facet contract contains functions related to access and checks
  */
-contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErrorReporter {
+contract FacetBase is ComptrollerV17Storage, ExponentialNoError, ComptrollerErrorReporter {
     using SafeBEP20 for IBEP20;
 
     /// @notice The initial Venus index for a market
@@ -129,7 +129,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
     }
 
     /**
-     * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed
+     * @notice Determine what the liquidity would be if the given amounts were redeemed/borrowed on the basis of collateral factor
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param account The account to determine liquidity for
      * @param redeemTokens The number of tokens to hypothetically redeem
@@ -147,6 +147,33 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
         uint256 borrowAmount
     ) internal view returns (Error, uint256, uint256) {
         (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalAccountLiquidity(
+            address(this),
+            account,
+            vTokenModify,
+            redeemTokens,
+            borrowAmount
+        );
+        return (Error(err), liquidity, shortfall);
+    }
+    /**
+     * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed on the basis of liquidation threshold
+     * @param vTokenModify The market to hypothetically redeem/borrow in
+     * @param account The account to determine liquidity for
+     * @param redeemTokens The number of tokens to hypothetically redeem
+     * @param borrowAmount The amount of underlying to hypothetically borrow
+     * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
+     *  without calculating accumulated interest.
+     * @return (possible error code,
+                hypothetical account liquidity in excess of collateral requirements,
+     *          hypothetical account shortfall below collateral requirements)
+     */
+    function getHypotheticalLiquidityInternal(
+        address account,
+        VToken vTokenModify,
+        uint256 redeemTokens,
+        uint256 borrowAmount
+    ) internal view returns (Error, uint256, uint256) {
+        (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalLiquidity(
             address(this),
             account,
             vTokenModify,
@@ -201,12 +228,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
             return uint256(Error.NO_ERROR);
         }
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
-            redeemer,
-            VToken(vToken),
-            redeemTokens,
-            0
-        );
+        (Error err, , uint256 shortfall) = getHypotheticalLiquidityInternal(redeemer, VToken(vToken), redeemTokens, 0);
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }

@@ -143,6 +143,9 @@ contract MarketFacet is IMarketFacet, FacetBase {
         ensureAllowed("unlistMarket(address)");
 
         Market storage _market = markets[market];
+        uint256 liquidationThresholdMantissa = marketliquidationThreshold[market];
+
+        require(liquidationThresholdMantissa == 0, "liquidaiton threshold is not 0");
 
         if (!_market.isListed) {
             return fail(Error.MARKET_NOT_LISTED, FailureInfo.UNLIST_MARKET_NOT_LISTED);

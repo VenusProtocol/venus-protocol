@@ -133,12 +133,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
         require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
-            borrower,
-            VToken(vToken),
-            0,
-            borrowAmount
-        );
+        (Error err, , uint256 shortfall) = getHypotheticalLiquidityInternal(borrower, VToken(vToken), 0, borrowAmount);
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }
@@ -254,7 +249,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
+        (Error err, , uint256 shortfall) = getHypotheticalLiquidityInternal(borrower, VToken(address(0)), 0, 0);
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }
@@ -425,7 +420,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
-     * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed
+     * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed on the basis of collateral factor 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param account The account to determine liquidity for
      * @param redeemTokens The number of tokens to hypothetically redeem

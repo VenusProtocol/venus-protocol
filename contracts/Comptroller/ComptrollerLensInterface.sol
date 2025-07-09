@@ -24,4 +24,12 @@ interface ComptrollerLensInterface {
         uint redeemTokens,
         uint borrowAmount
     ) external view returns (uint, uint, uint);
+
+    function getHypotheticalLiquidity(
+        address comptroller,
+        address account,
+        VToken vTokenModify,
+        uint redeemTokens,
+        uint borrowAmount
+    ) external view returns (uint, uint, uint);
 }

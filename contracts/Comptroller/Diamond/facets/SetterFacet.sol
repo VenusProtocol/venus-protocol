@@ -93,6 +93,13 @@ contract SetterFacet is ISetterFacet, FacetBase {
     /// @notice Emitted when XVS vToken address is changed
     event NewXVSVToken(address indexed oldXVSVToken, address indexed newXVSVToken);
 
+    /// @notice Emitted when liquidation threshold is changed by admin
+    event NewLiquidationThreshold(
+        VToken vToken,
+        uint256 oldLiquidationThresholdMantissa,
+        uint256 newLiquidationThresholdMantissa
+    );
+
     /**
      * @notice Compare two addresses to ensure they are different
      * @param oldAddress The original address to compare
@@ -197,14 +204,16 @@ contract SetterFacet is ISetterFacet, FacetBase {
      */
     function _setCollateralFactor(
         VToken vToken,
-        uint256 newCollateralFactorMantissa
+        uint256 newCollateralFactorMantissa,
+        uint256 newLiquidationThresholdMantissa
     )
         external
         compareValue(markets[address(vToken)].collateralFactorMantissa, newCollateralFactorMantissa)
+        compareValue(marketliquidationThreshold[address(vToken)], newLiquidationThresholdMantissa)
         returns (uint256)
     {
         // Check caller is allowed by access control manager
-        ensureAllowed("_setCollateralFactor(address,uint256)");
+        ensureAllowed("_setCollateralFactor(address,uint256,uint256)");
         ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
@@ -224,12 +233,28 @@ contract SetterFacet is ISetterFacet, FacetBase {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
 
+        // Ensure that liquidation threshold <= 1e18
+        if (newLiquidationThresholdMantissa > 1e18) {
+            return fail(Error.PRICE_ERROR, FailureInfo.SET_LIQUIDATION_THRESHOLD_VALIDATION);
+        }
+
+        // Ensure that liquidation threshold >= CF
+        if (newLiquidationThresholdMantissa < newCollateralFactorMantissa) {
+            return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION_LIQUIDATION_THRESHOLD);
+        }
+
         // Set market's collateral factor to new collateral factor, remember old value
         uint256 oldCollateralFactorMantissa = market.collateralFactorMantissa;
         market.collateralFactorMantissa = newCollateralFactorMantissa;
 
+        // Set market's liquidation threshold to new liquidation threshold, remember old value
+        uint256 oldLiquidationThresholdMantissa = marketliquidationThreshold[address(vToken)];
+        marketliquidationThreshold[address(vToken)] = newLiquidationThresholdMantissa;
+
         // Emit event with asset, old collateral factor, and new collateral factor
         emit NewCollateralFactor(vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
+        // Emit event with asset, old liquidation threshold, and new liquidation threshold
+        emit NewLiquidationThreshold(vToken, oldLiquidationThresholdMantissa, newLiquidationThresholdMantissa);
 
         return uint256(Error.NO_ERROR);
     }

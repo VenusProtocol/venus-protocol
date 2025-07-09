@@ -34,6 +34,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         Exp exchangeRate;
         Exp oraclePrice;
         Exp tokensToDenom;
+        Exp liquidationThreshold;
     }
 
     /**
@@ -166,6 +167,90 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             }
             (, uint collateralFactorMantissa) = ComptrollerInterface(comptroller).markets(address(asset));
             vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
+            vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
+
+            // Get the normalized price of the asset
+            vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(asset);
+            if (vars.oraclePriceMantissa == 0) {
+                return (uint(Error.PRICE_ERROR), 0, 0);
+            }
+            vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
+
+            // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
+            vars.tokensToDenom = mul_(mul_(vars.collateralFactor, vars.exchangeRate), vars.oraclePrice);
+
+            // sumCollateral += tokensToDenom * vTokenBalance
+            vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumCollateral);
+
+            // sumBorrowPlusEffects += oraclePrice * borrowBalance
+            vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+                vars.oraclePrice,
+                vars.borrowBalance,
+                vars.sumBorrowPlusEffects
+            );
+
+            // Calculate effects of interacting with vTokenModify
+            if (asset == vTokenModify) {
+                // redeem effect
+                // sumBorrowPlusEffects += tokensToDenom * redeemTokens
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+                    vars.tokensToDenom,
+                    redeemTokens,
+                    vars.sumBorrowPlusEffects
+                );
+
+                // borrow effect
+                // sumBorrowPlusEffects += oraclePrice * borrowAmount
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt( 
+                    vars.oraclePrice,
+                    borrowAmount,
+                    vars.sumBorrowPlusEffects
+                );
+            }
+        }
+
+        VAIControllerInterface vaiController = ComptrollerInterface(comptroller).vaiController();
+
+        if (address(vaiController) != address(0)) {
+            vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, vaiController.getVAIRepayAmount(account));
+        }
+
+        // These are safe, as the underflow condition is checked first
+        if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
+            return (uint(Error.NO_ERROR), vars.sumCollateral - vars.sumBorrowPlusEffects, 0);
+        } else {
+            return (uint(Error.NO_ERROR), 0, vars.sumBorrowPlusEffects - vars.sumCollateral);
+        }
+    }
+
+    function getHypotheticalLiquidity(
+        address comptroller,
+        address account,
+        VToken vTokenModify,
+        uint redeemTokens,
+        uint borrowAmount
+    ) external view returns (uint, uint, uint) {
+        AccountLiquidityLocalVars memory vars; // Holds all our calculation results
+        uint oErr;
+
+        // For each asset the account is in
+        VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
+        uint assetsCount = assets.length;
+        for (uint i = 0; i < assetsCount; ++i) {
+            VToken asset = assets[i];
+
+            // Read the balances and exchange rate from the vToken
+            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
+                account
+            );
+            if (oErr != 0) {
+                // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
+                return (uint(Error.SNAPSHOT_ERROR), 0, 0);
+            }
+            uint liquidationThresholdMantissa = ComptrollerInterface(comptroller).marketLiquidationThreshold(
+                address(asset)
+            );
+            vars.liquidationThreshold = Exp({ mantissa: liquidationThresholdMantissa });
             vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
             // Get the normalized price of the asset
