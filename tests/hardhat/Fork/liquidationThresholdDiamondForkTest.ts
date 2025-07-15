@@ -1,188 +1,165 @@
-import { smock, MockContract } from "@defi-wonderland/smock";
-import { impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
-import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { network } from "hardhat";
+
+import { convertToUnit } from "../../../helpers/utils";
+import {
+  ComptrollerLens,
+  ComptrollerLens__factory,
+  ResilientOracleInterface,
+  SetterFacet,
+  Unitroller__factory,
+  VBep20Harness,
+} from "../../../typechain";
+import { ComptrollerErrorReporter } from "../util/Errors";
+import { FacetCutAction, initMainnetUser, setForkBlock } from "./utils";
 
 const { expect } = chai;
 chai.use(smock.matchers);
-
-import { ComptrollerLens, ComptrollerLens__factory, IAccessControlManagerV5, VBep20, SetterFacet, Unitroller__factory } from "../../../typechain";
-import { initMainnetUser, setForkBlock, FacetCutAction } from "./utils";
-import { convertToUnit } from "../../../helpers/utils";
 
 const Owner = "0x939bd8d64c0a9583a7dcea9933f7b21697ab6396";
 const TIMELOCK_ADDRESS = "0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396";
 const UNITROLLER = "0xfD36E2c2a6789Db23113685031d7F16329158384";
 const VUSDT = "0xfD5840Cd36d94D7229439859C0112a4185BC0255";
 const ACM = "0x4788629abc6cfca10f9f969efdeaa1cf70c23555";
+const OLD_SETTER_FACET = "0x9B0D9D7c50d90f23449c4BbCAA671Ce7cd19DbCf";
 
-// get function selectors from ABI
-function getSelectors(contract: any) {
-  const signatures = Object.keys(contract.interface.functions);
-  console.log("signatures : ", signatures);
-  const selectors: any = signatures.reduce((acc: any, val) => {
-    if (val !== "init(bytes)") {
-      acc.push(contract.interface.getSighash(val));
-    }
-    return acc;
-  }, []);
-  selectors.contract = contract;
-  return selectors;
-}
 
 if (process.env.FORKED_NETWORK === "bscmainnet") {
-    describe("Liquidation Threshold Diamond Fork Test", () => {
-        let owner: SignerWithAddress;
-        let diamondUnitroller: any;
-        let vUsdt: VBep20;
-        let timeLockUser: ethers.Signer;
-        let accessControlManager: any;
-        let setterFacet: SetterFacet;
-        let comptrollerLens: MockContract<ComptrollerLens>;
+  describe("Liquidation Threshold Diamond Fork Test", () => {
+    let owner: SignerWithAddress;
+    let vUsdt: VBep20Harness;
+    let timeLockUser: ethers.Signer;
+    let accessControlManager: any;
+    let setterFacet: SetterFacet;
+    let comptrollerLens: MockContract<ComptrollerLens>;
+    let oracle: FakeContract<ResilientOracleInterface>;
 
-        before(async () => {
-            // Fork mainnet at a recent block
-            await setForkBlock(53416777);
+    before(async () => {
+      // Fork mainnet at a recent block
+      await setForkBlock(54063097);
+      oracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
+      owner = await initMainnetUser(Owner, ethers.utils.parseUnits("2"));
+      timeLockUser = await initMainnetUser(TIMELOCK_ADDRESS, ethers.utils.parseUnits("2"));
 
-            owner = await initMainnetUser(Owner, ethers.utils.parseUnits("2"));
-            
-            // Get contract instances
-            vUsdt = await ethers.getContractAt("contracts/Tokens/VTokens/VBep20Delegate.sol:VBep20Delegate", VUSDT);
+      // Get contract instances
+      vUsdt = await ethers.getContractAt("contracts/Tokens/VTokens/VBep20Delegator.sol:VBep20Delegator", VUSDT);
 
-            accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
-            accessControlManager.isAllowedToCall.returns(true);
+      //accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
+      accessControlManager = await ethers.getContractAt("IAccessControlManagerV5", ACM);
 
-            timeLockUser = await initMainnetUser(TIMELOCK_ADDRESS, ethers.utils.parseUnits("2"));
+      // Get the diamond proxy (Unitroller/Comptroller address)
+      const Diamond = await ethers.getContractFactory("Diamond");
+      const diamond = await Diamond.deploy();
+      await diamond.deployed();
 
-            // Deploy new Diamond
-            console.log("Deploying new Diamond...");
-            const Diamond = await ethers.getContractFactory("Diamond");
-            const diamond = await Diamond.deploy();
-            await diamond.deployed();
+      // Get the existing Unitroller
+      const unitroller = await Unitroller__factory.connect(UNITROLLER, owner);
 
-            // Get the existing Unitroller
-            const unitroller = await Unitroller__factory.connect(UNITROLLER, owner);
-            console.log("unitroller : ", unitroller.address);
+      const unitrollerDiamond = await ethers.getContractAt("Diamond", UNITROLLER);
 
-            // Get the current Diamond implementation to check existing selectors
-            const currentImplementation = await unitroller.comptrollerImplementation();
-            console.log("Current implementation: ", currentImplementation);
-            const currentDiamond = await ethers.getContractAt("Diamond", currentImplementation);
+      // Deploy the new SetterFacet
+      const setterFacetFactory = await ethers.getContractFactory("SetterFacet");
+      const newSetterFacet = await setterFacetFactory.deploy();
+      await newSetterFacet.deployed();
 
-            // Deploy all facets with updated functionality
-            const FacetNames = ["MarketFacet", "PolicyFacet", "RewardFacet", "SetterFacet"];
-            const cut: any = [];
+      // Get the selector for the new function
+      const addSetCollateralFactorSignature = newSetterFacet.interface.getSighash(
+        newSetterFacet.interface.functions["_setCollateralFactor(address,uint256,uint256)"],
+      );
 
-            for (const FacetName of FacetNames) {
-                const Facet = await ethers.getContractFactory(FacetName);
-                const facet = await Facet.deploy();
-                await facet.deployed();
+      // Get all existing selectors for the old SetterFacet (if you want to replace all)
+      // You may need to update this address to the actual old SetterFacet address
 
-                const FacetInterface = await ethers.getContractAt(`I${FacetName}`, facet.address);
-                const selectors = getSelectors(FacetInterface);
-                
-                console.log(`Processing ${FacetName} with ${selectors.length} selectors`);
-                
-                // Check which selectors already exist and which are new
-                const existingSelectors: any = [];
-                const newSelectors: any = [];
-                
-                for (const selector of selectors) {
-                    const mappedFacet = await currentDiamond.facetAddress(selector);
-                    if (mappedFacet.facetAddress === ethers.constants.AddressZero) {
-                        newSelectors.push(selector);
-                    } else {
-                        existingSelectors.push(selector);
-                    }
-                }
-                
-                console.log(`${FacetName}: ${newSelectors.length} new selectors, ${existingSelectors.length} existing selectors`);
-                
-                // Add new selectors
-                if (newSelectors.length > 0) {
-                    cut.push({
-                        facetAddress: facet.address,
-                        action: FacetCutAction.Add,
-                        functionSelectors: newSelectors,
-                    });
-                }
-                
-                // Replace existing selectors
-                if (existingSelectors.length > 0) {
-                    cut.push({
-                        facetAddress: facet.address,
-                        action: FacetCutAction.Replace,
-                        functionSelectors: existingSelectors,
-                    });
-                }
-                console.log(`existingSelectors.length : ${existingSelectors.length }`);
-                console.log(`newSelectors.length : ${newSelectors.length }`);
-            }
-            
-            console.log(`Total cut operations: ${cut.length}`);
-            for (let i = 0; i < cut.length; i++) {
-                console.log(`Cut ${i}: ${cut[i].action} ${cut[i].functionSelectors.length} selectors to ${cut[i].facetAddress}`);
-            }
+      const existingSetterFacetFunctions = await unitrollerDiamond.facetFunctionSelectors(OLD_SETTER_FACET);
 
-            // Set the new Diamond as the pending implementation for the unitroller
-            await unitroller.connect(owner)._setPendingImplementation(diamond.address);
-            await diamond.connect(owner)._become(unitroller.address);
-            
-            console.log("Performing diamond cut...")
-            const diamondCut = await ethers.getContractAt("IDiamondCut", unitroller.address);
-            await diamondCut.connect(owner).diamondCut(cut);
-            console.log("Diamond cut completed")
+      // Build the cut array
+      const cut = [
+        {
+          facetAddress: newSetterFacet.address,
+          action: FacetCutAction.Add,
+          functionSelectors: [addSetCollateralFactorSignature],
+        },
+        {
+          facetAddress: newSetterFacet.address,
+          action: FacetCutAction.Replace,
+          functionSelectors: existingSetterFacetFunctions,
+        },
+      ];
 
-            // Get the unitroller with new diamond implementation
-            diamondUnitroller = await ethers.getContractAt("ComptrollerMock", UNITROLLER);
+      await unitroller.connect(owner)._setPendingImplementation(diamond.address);
+      await diamond.connect(owner)._become(unitroller.address);
 
-            // Get the setter facet interface from the unitroller
-            setterFacet = await ethers.getContractAt("SetterFacet", UNITROLLER);
-            
-            // Set the access control manager on the unitroller
-            console.log("Setting access control manager...");
-            await setterFacet.connect(owner)._setAccessControl(accessControlManager.address);
+      // upgrade diamond with facets
+      const diamondCut = await ethers.getContractAt("IDiamondCut", unitroller.address);
+      // Perform the diamond cut as the admin/timelock
+      await diamondCut.connect(timeLockUser).diamondCut(cut);
 
-            // Deploy and set the comptroller lens
-            const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
-            comptrollerLens = await ComptrollerLensFactory.deploy();
-            await setterFacet.connect(owner)._setComptrollerLens(comptrollerLens.address);
+      // Now you can use the new SetterFacet via the proxy
+      setterFacet = await ethers.getContractAt("SetterFacet", UNITROLLER);
 
-            console.log("Setup completed");
-        });
+      // Deploy and set the comptroller lens
+      const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
+      comptrollerLens = await ComptrollerLensFactory.deploy();
+      await setterFacet.connect(owner)._setComptrollerLens(comptrollerLens.address);
+      //0x6592b5DE802159F3E74B2486b091D11a8256ab8A
+      await setterFacet.connect(owner)._setPriceOracle(oracle.address);
+      oracle.getUnderlyingPrice.returns((vToken: string) => {
+        if (vToken == vUsdt.address) {
+          return convertToUnit(1, 18);
+        } else {
+          return convertToUnit(1200, 18);
+        }
+      });
 
-        it("Should set liquidation threshold and emit event", async () => {
-            const newCF = convertToUnit("0.5", 18);
-            const newLT = convertToUnit("0.6", 18);
-
-            // Call the function through the diamond proxy
-            const tx = await setterFacet.connect(timeLockUser)._setCollateralFactor(VUSDT, newCF, newLT);
-            
-            // Verify the liquidation threshold was set
-            const threshold = await diamondUnitroller.marketliquidationThreshold(VUSDT);
-            expect(threshold).to.equal(newLT);
-            
-            // Check if the transaction was successful
-            expect(tx).to.not.be.undefined;
-        });
-
-        it("Should revert if liquidation threshold < collateral factor", async () => {
-            const newCF = convertToUnit("0.7", 18);
-            const newLT = convertToUnit("0.6", 18);
-            await expect(
-                setterFacet.connect(timeLockUser)._setCollateralFactor(VUSDT, newCF, newLT)
-            ).to.be.revertedWith("SET_COLLATERAL_FACTOR_VALIDATION_LIQUIDATION_THRESHOLD");
-        });
-
-        it("Should revert if liquidation threshold > 1e18", async () => {
-            const newCF = convertToUnit("0.8", 18);
-            const newLT = convertToUnit("1.1", 18);
-            await expect(
-                setterFacet.connect(timeLockUser)._setCollateralFactor(VUSDT, newCF, newLT)
-            ).to.be.revertedWith("SET_LIQUIDATION_THRESHOLD_VALIDATION");
-        });
+      await accessControlManager
+        .connect(owner)
+        .giveCallPermission(setterFacet.address, "_setCollateralFactor(address,uint256,uint256)", Owner);
     });
-} 
+
+    it("Should set liquidation threshold and emit event", async () => {
+      const oldCF = convertToUnit("0.8", 18);
+      const newCF = convertToUnit("0.7", 18);
+      const newLT = convertToUnit("0.8", 18);
+
+      // Call the function through the diamond proxy
+      const tx = await setterFacet.connect(owner)._setCollateralFactor(vUsdt.address, newCF, newLT);
+      await expect(tx).to.emit(setterFacet, "NewCollateralFactor").withArgs(vUsdt.address, oldCF, newCF);
+      await expect(tx).to.emit(setterFacet, "NewLiquidationThreshold").withArgs(vUsdt.address, 0, newLT);
+    });
+
+    it("Should revert if liquidation threshold < collateral factor", async () => {
+      const newCF = convertToUnit("0.9", 18);
+      const newLT = convertToUnit("0.6", 18);
+      await expect(setterFacet.connect(timeLockUser)._setCollateralFactor(VUSDT, newCF, newLT))
+        .to.emit(setterFacet, "Failure")
+        .withArgs(
+          ComptrollerErrorReporter.Error.PRICE_ERROR,
+          ComptrollerErrorReporter.FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION_LIQUIDATION_THRESHOLD,
+          0,
+        );
+    });
+
+    it("Should revert if liquidation threshold > 1e18", async () => {
+      const newCF = convertToUnit("0.9", 18);
+      const newLT = convertToUnit("1.1", 18);
+
+      await expect(setterFacet.connect(timeLockUser)._setCollateralFactor(vUsdt.address, newCF, newLT))
+        .to.emit(setterFacet, "Failure")
+        .withArgs(
+          ComptrollerErrorReporter.Error.PRICE_ERROR,
+          ComptrollerErrorReporter.FailureInfo.SET_LIQUIDATION_THRESHOLD_VALIDATION,
+          0,
+        );
+    });
+  });
+}
+
+// await expect(comptroller._setCollateralFactor(vToken.address, half))
+//         .to.emit(comptroller, "Failure")
+//         .withArgs(
+//           ComptrollerErrorReporter.Error.PRICE_ERROR,
+//           ComptrollerErrorReporter.FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE,
+//           0,
+//         );

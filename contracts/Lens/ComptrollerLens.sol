@@ -201,7 +201,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
 
                 // borrow effect
                 // sumBorrowPlusEffects += oraclePrice * borrowAmount
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt( 
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
                     vars.oraclePrice,
                     borrowAmount,
                     vars.sumBorrowPlusEffects
