@@ -209,7 +209,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     )
         external
         compareValue(markets[address(vToken)].collateralFactorMantissa, newCollateralFactorMantissa)
-        compareValue(marketliquidationThreshold[address(vToken)], newLiquidationThresholdMantissa)
+        compareValue(marketLiquidationThreshold[address(vToken)], newLiquidationThresholdMantissa)
         returns (uint256)
     {
         // Check caller is allowed by access control manager
@@ -248,8 +248,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
         market.collateralFactorMantissa = newCollateralFactorMantissa;
 
         // Set market's liquidation threshold to new liquidation threshold, remember old value
-        uint256 oldLiquidationThresholdMantissa = marketliquidationThreshold[address(vToken)];
-        marketliquidationThreshold[address(vToken)] = newLiquidationThresholdMantissa;
+        uint256 oldLiquidationThresholdMantissa = marketLiquidationThreshold[address(vToken)];
+        marketLiquidationThreshold[address(vToken)] = newLiquidationThresholdMantissa;
 
         // Emit event with asset, old collateral factor, and new collateral factor
         emit NewCollateralFactor(vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);

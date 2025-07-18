@@ -140,7 +140,7 @@ contract ComptrollerInterface {
 
     function vaiMintRate() external view returns (uint);
 
-    function marketLiquidationThreshold(address) external view returns (uint);
+    function marketLiquidationThreshold(address) external view returns (uint256);
 }
 
 interface IVAIVault {
