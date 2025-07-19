@@ -1,4 +1,5 @@
 import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
+import { impersonateAccount, setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import chai from "chai";
 import { parseUnits } from "ethers/lib/utils";
@@ -29,7 +30,7 @@ const OLD_SETTER_FACET = "0x9B0D9D7c50d90f23449c4BbCAA671Ce7cd19DbCf";
 const OLD_POLICY_FACET = "0x93e7Ff7c87B496aE76fFb22d437c9d46461A9B51";
 const OLD_REWARD_FACET = "0xc2F6bDCEa4907E8CB7480d3d315bc01c125fb63C";
 const OLD_MARKET_FACET = "0x4b093a3299F39615bA6b34B7897FDedCe7b83D63";
-const PROTOCOL_SHARE_RESERVE = "0xCa01D5A9A248a830E9D93231e791B1afFed7c446";
+const ETH_HOLDER = "0x98B4be9C7a32A5d3bEFb08bB98d65E6D204f7E98";
 
 if (process.env.FORKED_NETWORK === "bscmainnet") {
   describe("Liquidation Threshold Diamond Fork Test", () => {
@@ -181,7 +182,7 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
       vEth = await ethers.getContractAt("VBep20Harness", VETH);
       const underlyingEth = await vEth.underlying();
       eth = await ethers.getContractAt("IERC20Upgradeable", underlyingEth);
-      ethHolder = await initMainnetUser("0x98B4be9C7a32A5d3bEFb08bB98d65E6D204f7E98", parseUnits("1000", 18));
+      ethHolder = await initMainnetUser(ETH_HOLDER, parseUnits("1000", 18));
 
       //accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
       accessControlManager = await ethers.getContractAt("IAccessControlManagerV5", ACM);
@@ -304,6 +305,51 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
       await setterFacet.connect(owner)._setCollateralFactor(vEth.address, newCF, newLT);
 
       await expect(vEth.connect(ethHolder).borrow(parseUnits("1", 18))).to.revertedWith("math error");
+    });
+
+    it("liquidate the user using the Liquidator contract", async () => {
+      // Addresses from mainnet fork
+      const LIQUIDATOR = "0x0870793286aada55d39ce7f82fb2766e8004cf43";
+      const LIQUIDATOR_ACCOUNT = "0xec641b5afa871cf097f3b375d8c77284b5ae235c";
+      const PROTOCOL_SHARE_RESERVE = "0xCa01D5A9A248a830E9D93231e791B1afFed7c446";
+
+      // Impersonate accounts
+      await impersonateAccount(LIQUIDATOR_ACCOUNT);
+      const liquidatorSigner = await ethers.getSigner(LIQUIDATOR_ACCOUNT);
+      //await setBalance(ETH_HOLDER, ethers.utils.parseEther("10"));
+      await setBalance(LIQUIDATOR_ACCOUNT, ethers.utils.parseEther("10"));
+
+      // Get contract instances
+      const liquidator = await ethers.getContractAt("Liquidator", LIQUIDATOR);
+
+      await eth.connect(ethHolder).transfer(liquidatorSigner.address, parseUnits("2", 18));
+      await eth.connect(liquidatorSigner).approve(vEth.address, parseUnits("1", 18));
+
+      // Record balances before liquidation
+      const borrowerDebtBefore = await vEth.borrowBalanceStored(ethHolder.address);
+      const liquidatorVethBalanceBefore = await vEth.balanceOf(liquidatorSigner.address);
+      const protocolShareReserveBalanceBefore = await eth.balanceOf(PROTOCOL_SHARE_RESERVE);
+
+      // 5. Liquidator contract repays part of the borrow
+      const repayAmount = parseUnits("0.5", 18);
+      await eth.connect(liquidatorSigner).approve(liquidator.address, repayAmount);
+      await expect(
+        liquidator.connect(liquidatorSigner).liquidateBorrow(
+          vEth.address, // vToken borrowed (ETH)
+          ethHolder.address, // borrower
+          repayAmount, // repay amount
+          vEth.address, // collateral to seize
+        ),
+      ).to.emit(liquidator, "LiquidateBorrowedTokens");
+
+      // 6. Assert: Borrower's debt decreased and liquidator received seized collateral
+      const borrowerDebtAfter = await vEth.borrowBalanceStored(ethHolder.address);
+      const liquidatorVethBalanceAfter = await vEth.balanceOf(liquidatorSigner.address);
+      const protocolShareReserveBalanceAfter = await eth.balanceOf(PROTOCOL_SHARE_RESERVE);
+
+      expect(borrowerDebtAfter).to.be.lt(borrowerDebtBefore);
+      expect(liquidatorVethBalanceAfter).to.be.gt(liquidatorVethBalanceBefore);
+      expect(protocolShareReserveBalanceAfter).to.be.greaterThan(protocolShareReserveBalanceBefore);
     });
   });
 }
