@@ -9,7 +9,9 @@ import { convertToUnit } from "../../../helpers/utils";
 import {
   ComptrollerLens,
   ComptrollerLens__factory,
+  PolicyFacet,
   ResilientOracleInterface,
+  RewardFacet,
   SetterFacet,
   Unitroller__factory,
   VBep20Harness,
@@ -31,6 +33,7 @@ const OLD_POLICY_FACET = "0x93e7Ff7c87B496aE76fFb22d437c9d46461A9B51";
 const OLD_REWARD_FACET = "0xc2F6bDCEa4907E8CB7480d3d315bc01c125fb63C";
 const OLD_MARKET_FACET = "0x4b093a3299F39615bA6b34B7897FDedCe7b83D63";
 const ETH_HOLDER = "0x98B4be9C7a32A5d3bEFb08bB98d65E6D204f7E98";
+const XVS_ADDRESS = "0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63";
 
 if (process.env.FORKED_NETWORK === "bscmainnet") {
   describe("Liquidation Threshold Diamond Fork Test", () => {
@@ -168,6 +171,8 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
     let ethHolder: ethers.Signer;
     let accessControlManager: any;
     let setterFacet: SetterFacet;
+    let rewardFacet: RewardFacet;
+    let policyFacet: PolicyFacet;
     let comptrollerLens: MockContract<ComptrollerLens>;
     let oracle: FakeContract<ResilientOracleInterface>;
 
@@ -264,6 +269,8 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
 
       // Now you can use the new SetterFacet via the proxy
       setterFacet = await ethers.getContractAt("SetterFacet", UNITROLLER);
+      rewardFacet = await ethers.getContractAt("RewardFacet", UNITROLLER);
+      policyFacet = await ethers.getContractAt("PolicyFacet", UNITROLLER);
 
       // Deploy and set the comptroller lens
       const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
@@ -347,9 +354,54 @@ if (process.env.FORKED_NETWORK === "bscmainnet") {
       const liquidatorVethBalanceAfter = await vEth.balanceOf(liquidatorSigner.address);
       const protocolShareReserveBalanceAfter = await eth.balanceOf(PROTOCOL_SHARE_RESERVE);
 
-      expect(borrowerDebtAfter).to.be.lt(borrowerDebtBefore);
-      expect(liquidatorVethBalanceAfter).to.be.gt(liquidatorVethBalanceBefore);
-      expect(protocolShareReserveBalanceAfter).to.be.greaterThan(protocolShareReserveBalanceBefore);
+      expect(borrowerDebtAfter.lt(borrowerDebtBefore)).to.be.true;
+      expect(liquidatorVethBalanceAfter.gt(liquidatorVethBalanceBefore)).to.be.true;
+      expect(protocolShareReserveBalanceAfter.gt(protocolShareReserveBalanceBefore)).to.be.true;
+    });
+
+    it("allow a user to claim XVS rewards using claimVenus", async () => {
+      await policyFacet.connect(owner)._setVenusSpeeds([vEth.address], [parseUnits("1", 18)], [parseUnits("1", 18)]);
+
+      const newCF = convertToUnit("0.7", 18);
+      const newLT = convertToUnit("0.8", 18);
+      await setterFacet.connect(owner)._setCollateralFactor(vEth.address, newCF, newLT);
+      // 1. Setup: Get contract instances and user
+      const xvs = await ethers.getContractAt("XVS", XVS_ADDRESS);
+
+      // 2. User supplies and borrows to accrue rewards
+      await eth.connect(ethHolder).approve(vEth.address, parseUnits("2", 18));
+      await vEth.connect(ethHolder).mint(parseUnits("2", 18));
+      await vEth.connect(ethHolder).borrow(parseUnits("0.5", 18));
+
+      // 3. Advance blocks to accrue rewards
+      for (let i = 0; i < 20; i++) {
+        await ethers.provider.send("evm_mine", []);
+      }
+
+      // 4. Trigger reward distribution by interacting again
+      const borrowBalance = await vEth.borrowBalanceStored(ethHolder.address);
+      const repayAmount = borrowBalance.lt(parseUnits("0.01", 18)) ? borrowBalance : parseUnits("0.01", 18);
+
+      if (borrowBalance.gt(0)) {
+        await eth.connect(ethHolder).approve(vEth.address, repayAmount);
+        await vEth.connect(ethHolder).repayBorrow(repayAmount);
+      } else {
+        console.log("No borrow balance to repay, skipping repayBorrow call.");
+      }
+
+      // 5. Check XVS balance before claim
+      const xvsBalanceBefore = await xvs.balanceOf(ethHolder.address);
+
+      // 6. Call claimVenus
+      await rewardFacet
+        .connect(ethHolder)
+        ["claimVenus(address[],address[],bool,bool,bool)"]([ethHolder.address], [vEth.address], true, true, false);
+
+      // 7. Check XVS balance after claim
+      const xvsBalanceAfter = await xvs.balanceOf(ethHolder.address);
+
+      // 8. Assert: ethHolder received XVS rewards (BigNumber comparison)
+      expect(xvsBalanceAfter.gt(xvsBalanceBefore)).to.be.true;
     });
   });
 }
