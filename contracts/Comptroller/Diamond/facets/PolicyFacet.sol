@@ -133,7 +133,12 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
         require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
-        (Error err, , uint256 shortfall) = getHypotheticalLiquidityInternal(borrower, VToken(vToken), 0, borrowAmount);
+        (Error err, , uint256 shortfall, , , , ) = getHypotheticalLiquidityInternal(
+            borrower,
+            VToken(vToken),
+            0,
+            borrowAmount
+        );
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }
@@ -249,7 +254,15 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
-        (Error err, , uint256 shortfall) = getHypotheticalLiquidityInternal(borrower, VToken(address(0)), 0, 0);
+        (
+            Error err,
+            ,
+            uint256 shortfall,
+            uint256 averageLT,
+            uint256 healthFactor,
+            uint256 healthFactorThreshold,
+
+        ) = getHypotheticalLiquidityInternal(borrower, VToken(address(0)), 0, 0);
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }
@@ -257,9 +270,23 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
+        uint256 liquidationIncentiveMantissa = marketLiquidationIncentive[vTokenCollateral];
+        uint256 closeFactor;
+
+        if (healthFactor >= 1e18) return uint256(Error.INSUFFICIENT_SHORTFALL);
+        uint256 wtAvg = averageLT;
+        if (healthFactor >= healthFactorThreshold) {
+            uint256 numerator = borrowBalance * 1e18 - wtAvg * totalCollateral;
+            uint256 denominator = borrowBalance * (1e18 - ((wtAvg * (1e18 + liquidationIncentiveMantissa)) / 1e18));
+            closeFactor = (numerator * 1e18) / denominator;
+            closeFactor = closeFactor > 1e18 ? 1e18 : closeFactor;
+        } else {
+            closeFactor = 1e18;
+        }
+
         // The liquidator may not repay more than what is allowed by the closeFactor
         //-- maxClose = multipy of closeFactorMantissa and borrowBalance
-        if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactorMantissa }), borrowBalance)) {
+        if (repayAmount > mul_ScalarTruncate(Exp({ mantissa: closeFactor }), borrowBalance)) {
             return uint256(Error.TOO_MUCH_REPAY);
         }
 

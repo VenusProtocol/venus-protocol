@@ -100,6 +100,13 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newLiquidationThresholdMantissa
     );
 
+    /// @notice Emitted when market's liquidation incentive is changed by admin
+    event NewMarketLiquidationIncentive(
+        address vToken,
+        uint256 oldLiquidationIncentiveMantissa,
+        uint256 newLiquidationIncentiveMantissa
+    );
+
     /**
      * @notice Compare two addresses to ensure they are different
      * @param oldAddress The original address to compare
@@ -627,5 +634,20 @@ contract SetterFacet is ISetterFacet, FacetBase {
 
         emit NewXVSVToken(xvsVToken, xvsVToken_);
         xvsVToken = xvsVToken_;
+    }
+
+    function _setMarketLiquidationIncentive(
+        address vToken,
+        uint256 newLiquidationIncentive
+    ) external compareValue(marketLiquidationIncentive[vToken], newLiquidationIncentive) returns (uint256) {
+        ensureAllowed("_setMarketLiquidationIncentive(address,uint256)");
+        require(newLiquidationIncentive >= 1e18, "incentive < 1e18");
+        // Save current value for use in log
+        uint256 oldLiquidationIncentive = marketLiquidationIncentive[vToken];
+        // Set liquidation incentive to new incentive
+        marketLiquidationIncentive[vToken] = newLiquidationIncentive;
+        // Emit event with old incentive, new incentive
+        emit NewMarketLiquidationIncentive(vToken, oldLiquidationIncentive, newLiquidationIncentive);
+        return uint256(Error.NO_ERROR);
     }
 }

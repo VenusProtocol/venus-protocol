@@ -284,4 +284,6 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 contract ComptrollerV17Storage is ComptrollerV16Storage {
     /// @notice check liquidation Threshold for each Market
     mapping(address => uint256) public marketLiquidationThreshold;
+
+    mapping(address => uint256) public marketLiquidationIncentive;
 }

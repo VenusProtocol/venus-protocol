@@ -24,7 +24,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      *  whereas `borrowBalance` is the amount of underlying that the account has borrowed.
      */
     struct AccountLiquidityLocalVars {
-        uint sumCollateral;
+        uint sumCollateral; // weighted collateral
         uint sumBorrowPlusEffects;
         uint vTokenBalance;
         uint borrowBalance;
@@ -35,6 +35,11 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         Exp oraclePrice;
         Exp tokensToDenom;
         Exp liquidationThreshold;
+        uint256 totalCollateral; // total Collateral of user
+        uint256 averageLT; // Average liquidation threshold of all assets in the snapshot
+        uint256 healthFactor; // Health factor of the account, calculated as (weightedCollateral / borrows)
+        uint256 healthFactorThreshold; // Health factor threshold for liquidation, calculated as (averageLT * (1e18 + LiquidationIncentiveAvg) / 1e18)
+        uint256 liquidationIncentiveAvg; // Average liquidation incentive of all assets in the snapshot
     }
 
     /**
@@ -131,6 +136,88 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         return (uint(Error.NO_ERROR), seizeTokens);
     }
 
+
+    /**
+     * @dev Internal function to compute base liquidity metrics
+          */
+    function _computeLiquidityValues(
+        address comptroller,
+        address account,
+        VToken vTokenModify,
+        uint redeemTokens,
+        uint borrowAmount,
+        bool useLiquidationThreshold
+    ) internal view returns (AccountLiquidityLocalVars memory vars, uint error) {
+        VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
+
+        for (uint i = 0; i < assets.length; i++) {
+            VToken asset = assets[i];
+            uint oErr;
+            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
+                account
+            );
+            if (oErr != 0) {
+                return (vars, uint(Error.SNAPSHOT_ERROR));
+            }
+
+            // Set the appropriate factor
+            if (useLiquidationThreshold) {
+                vars.liquidationThreshold = Exp({
+                    mantissa: ComptrollerInterface(comptroller).marketLiquidationThreshold(address(asset))
+                });
+            } else {
+                (, uint collateralFactorMantissa) = ComptrollerInterface(comptroller).markets(address(asset));
+                vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
+            }
+
+            vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
+            vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(asset);
+            if (vars.oraclePriceMantissa == 0) {
+                return (vars, uint(Error.PRICE_ERROR));
+            }
+            vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
+
+            // Calculate tokensToDenom
+            Exp memory factorToUse = useLiquidationThreshold ? vars.liquidationThreshold : vars.collateralFactor;
+            vars.tokensToDenom = mul_(mul_(factorToUse, vars.exchangeRate), vars.oraclePrice);
+
+            // sumCollateral += tokensToDenom * vTokenBalance
+            vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumCollateral);
+
+            // sumBorrowPlusEffects += oraclePrice * borrowBalance
+            vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+                vars.oraclePrice,
+                vars.borrowBalance,
+                vars.sumBorrowPlusEffects
+            );
+
+            // For health factor calculations
+            if (useLiquidationThreshold) {
+                vars.totalCollateral = mul_ScalarTruncateAddUInt(
+                    mul_(vars.oraclePrice, vars.exchangeRate),
+                    vars.vTokenBalance,
+                    vars.totalCollateral
+                );
+            }
+
+            // Handle vTokenModify effects
+            if (asset == vTokenModify) {
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+                    vars.tokensToDenom,
+                    redeemTokens,
+                    vars.sumBorrowPlusEffects
+                );
+                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
+                    vars.oraclePrice,
+                    borrowAmount,
+                    vars.sumBorrowPlusEffects
+                );
+            }
+        }
+
+        return (vars, uint(Error.NO_ERROR));
+    }
+
     /**
      * @notice Computes the hypothetical liquidity and shortfall of an account given a hypothetical borrow
      *      A snapshot of the account is taken and the total borrow amount of the account is calculated
@@ -148,74 +235,25 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         uint redeemTokens,
         uint borrowAmount
     ) external view returns (uint, uint, uint) {
-        AccountLiquidityLocalVars memory vars; // Holds all our calculation results
-        uint oErr;
+        (AccountLiquidityLocalVars memory vars, uint err) = _computeLiquidityValues(
+            comptroller,
+            account,
+            vTokenModify,
+            redeemTokens,
+            borrowAmount,
+            false // Uses collateralFactor
+        );
 
-        // For each asset the account is in
-        VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
-        uint assetsCount = assets.length;
-        for (uint i = 0; i < assetsCount; ++i) {
-            VToken asset = assets[i];
-
-            // Read the balances and exchange rate from the vToken
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
-                account
-            );
-            if (oErr != 0) {
-                // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
-                return (uint(Error.SNAPSHOT_ERROR), 0, 0);
-            }
-            (, uint collateralFactorMantissa) = ComptrollerInterface(comptroller).markets(address(asset));
-            vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
-            vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
-
-            // Get the normalized price of the asset
-            vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(asset);
-            if (vars.oraclePriceMantissa == 0) {
-                return (uint(Error.PRICE_ERROR), 0, 0);
-            }
-            vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
-
-            // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
-            vars.tokensToDenom = mul_(mul_(vars.collateralFactor, vars.exchangeRate), vars.oraclePrice);
-
-            // sumCollateral += tokensToDenom * vTokenBalance
-            vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumCollateral);
-
-            // sumBorrowPlusEffects += oraclePrice * borrowBalance
-            vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                vars.oraclePrice,
-                vars.borrowBalance,
-                vars.sumBorrowPlusEffects
-            );
-
-            // Calculate effects of interacting with vTokenModify
-            if (asset == vTokenModify) {
-                // redeem effect
-                // sumBorrowPlusEffects += tokensToDenom * redeemTokens
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                    vars.tokensToDenom,
-                    redeemTokens,
-                    vars.sumBorrowPlusEffects
-                );
-
-                // borrow effect
-                // sumBorrowPlusEffects += oraclePrice * borrowAmount
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                    vars.oraclePrice,
-                    borrowAmount,
-                    vars.sumBorrowPlusEffects
-                );
-            }
+        if (err != uint(Error.NO_ERROR)) {
+            return (err, 0, 0);
         }
 
+        // Handle VAI debt
         VAIControllerInterface vaiController = ComptrollerInterface(comptroller).vaiController();
-
         if (address(vaiController) != address(0)) {
             vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, vaiController.getVAIRepayAmount(account));
         }
 
-        // These are safe, as the underflow condition is checked first
         if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
             return (uint(Error.NO_ERROR), vars.sumCollateral - vars.sumBorrowPlusEffects, 0);
         } else {
@@ -223,87 +261,73 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
         }
     }
 
+    /**
+     * @notice Computes extended liquidity with health factors (uses liquidationThreshold)
+     */
     function getHypotheticalLiquidity(
         address comptroller,
         address account,
         VToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount
-    ) external view returns (uint, uint, uint) {
-        AccountLiquidityLocalVars memory vars; // Holds all our calculation results
-        uint oErr;
+    ) external view returns (uint, uint, uint, uint, uint, uint, uint) {
+        (AccountLiquidityLocalVars memory vars, uint err) = _computeLiquidityValues(
+            comptroller,
+            account,
+            vTokenModify,
+            redeemTokens,
+            borrowAmount,
+            true // Uses liquidationThreshold
+        );
+        return _formatHypotheticalLiquidityResult(comptroller, account, vars, err);
+    }
 
-        // For each asset the account is in
-        VToken[] memory assets = ComptrollerInterface(comptroller).getAssetsIn(account);
-        uint assetsCount = assets.length;
-        for (uint i = 0; i < assetsCount; ++i) {
-            VToken asset = assets[i];
-
-            // Read the balances and exchange rate from the vToken
-            (oErr, vars.vTokenBalance, vars.borrowBalance, vars.exchangeRateMantissa) = asset.getAccountSnapshot(
-                account
-            );
-            if (oErr != 0) {
-                // semi-opaque error code, we assume NO_ERROR == 0 is invariant between upgrades
-                return (uint(Error.SNAPSHOT_ERROR), 0, 0);
-            }
-            uint liquidationThresholdMantissa = ComptrollerInterface(comptroller).marketLiquidationThreshold(
-                address(asset)
-            );
-            vars.liquidationThreshold = Exp({ mantissa: liquidationThresholdMantissa });
-            vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
-
-            // Get the normalized price of the asset
-            vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(asset);
-            if (vars.oraclePriceMantissa == 0) {
-                return (uint(Error.PRICE_ERROR), 0, 0);
-            }
-            vars.oraclePrice = Exp({ mantissa: vars.oraclePriceMantissa });
-
-            // Pre-compute a conversion factor from tokens -> bnb (normalized price value)
-            vars.tokensToDenom = mul_(mul_(vars.liquidationThreshold, vars.exchangeRate), vars.oraclePrice);
-
-            // sumCollateral += tokensToDenom * vTokenBalance
-            vars.sumCollateral = mul_ScalarTruncateAddUInt(vars.tokensToDenom, vars.vTokenBalance, vars.sumCollateral);
-
-            // sumBorrowPlusEffects += oraclePrice * borrowBalance
-            vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                vars.oraclePrice,
-                vars.borrowBalance,
-                vars.sumBorrowPlusEffects
-            );
-
-            // Calculate effects of interacting with vTokenModify
-            if (asset == vTokenModify) {
-                // redeem effect
-                // sumBorrowPlusEffects += tokensToDenom * redeemTokens
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                    vars.tokensToDenom,
-                    redeemTokens,
-                    vars.sumBorrowPlusEffects
-                );
-
-                // borrow effect
-                // sumBorrowPlusEffects += oraclePrice * borrowAmount
-                vars.sumBorrowPlusEffects = mul_ScalarTruncateAddUInt(
-                    vars.oraclePrice,
-                    borrowAmount,
-                    vars.sumBorrowPlusEffects
-                );
-            }
+    function _formatHypotheticalLiquidityResult(
+        address comptroller,
+        address account,
+        AccountLiquidityLocalVars memory vars,
+        uint err
+    ) internal view returns (uint, uint, uint, uint, uint, uint, uint) {
+        if (err != uint(Error.NO_ERROR)) {
+            return (err, 0, 0, 0, 0, 0, 0);
         }
 
-        VAIControllerInterface vaiController = ComptrollerInterface(comptroller).vaiController();
+        // Calculate health factors
+        if (vars.totalCollateral > 0) {
+            vars.averageLT = div_(vars.sumCollateral, vars.totalCollateral);
+        }
+        if (vars.sumBorrowPlusEffects > 0) {
+            vars.healthFactor = div_(vars.sumCollateral, vars.sumBorrowPlusEffects);
+        }
+        vars.healthFactorThreshold = div_(mul_(vars.averageLT, add_(1e18, vars.liquidationIncentiveAvg)), 1e18);
 
+        // Handle VAI debt
+        VAIControllerInterface vaiController = ComptrollerInterface(comptroller).vaiController();
         if (address(vaiController) != address(0)) {
             vars.sumBorrowPlusEffects = add_(vars.sumBorrowPlusEffects, vaiController.getVAIRepayAmount(account));
         }
 
-        // These are safe, as the underflow condition is checked first
         if (vars.sumCollateral > vars.sumBorrowPlusEffects) {
-            return (uint(Error.NO_ERROR), vars.sumCollateral - vars.sumBorrowPlusEffects, 0);
+            return (
+                uint(Error.NO_ERROR),
+                vars.sumCollateral - vars.sumBorrowPlusEffects,
+                0,
+                vars.averageLT,
+                vars.healthFactor,
+                vars.healthFactorThreshold,
+                vars.liquidationIncentiveAvg,
+
+            );
         } else {
-            return (uint(Error.NO_ERROR), 0, vars.sumBorrowPlusEffects - vars.sumCollateral);
+            return (
+                uint(Error.NO_ERROR),
+                0,
+                vars.sumBorrowPlusEffects - vars.sumCollateral,
+                vars.averageLT,
+                vars.healthFactor,
+                vars.healthFactorThreshold,
+                vars.liquidationIncentiveAvg
+            );
         }
     }
 }

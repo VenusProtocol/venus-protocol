@@ -172,15 +172,25 @@ contract FacetBase is ComptrollerV17Storage, ExponentialNoError, ComptrollerErro
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount
-    ) internal view returns (Error, uint256, uint256) {
-        (uint256 err, uint256 liquidity, uint256 shortfall) = comptrollerLens.getHypotheticalLiquidity(
-            address(this),
-            account,
-            vTokenModify,
-            redeemTokens,
-            borrowAmount
+    ) internal view returns (Error, uint256, uint256, uint256, uint256, uint256, uint256) {
+        (
+            uint256 err,
+            uint256 liquidity,
+            uint256 shortfall,
+            uint256 averageLT,
+            uint256 healthFactor,
+            uint256 healthFactorThreshold,
+            uint256 liquidationIncentiveAvg
+        ) = comptrollerLens.getHypotheticalLiquidity(address(this), account, vTokenModify, redeemTokens, borrowAmount);
+        return (
+            Error(err),
+            liquidity,
+            shortfall,
+            averageLT,
+            healthFactor,
+            healthFactorThreshold,
+            liquidationIncentiveAvg
         );
-        return (Error(err), liquidity, shortfall);
     }
 
     /**
@@ -228,7 +238,12 @@ contract FacetBase is ComptrollerV17Storage, ExponentialNoError, ComptrollerErro
             return uint256(Error.NO_ERROR);
         }
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
-        (Error err, , uint256 shortfall) = getHypotheticalLiquidityInternal(redeemer, VToken(vToken), redeemTokens, 0);
+        (Error err, , uint256 shortfall, , , , ) = getHypotheticalLiquidityInternal(
+            redeemer,
+            VToken(vToken),
+            redeemTokens,
+            0
+        );
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }
