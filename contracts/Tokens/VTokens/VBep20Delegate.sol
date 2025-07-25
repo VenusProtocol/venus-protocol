@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
 import { VBep20 } from "./VBep20.sol";
 import { VDelegateInterface } from "./VTokenInterfaces.sol";
@@ -12,7 +12,7 @@ contract VBep20Delegate is VBep20, VDelegateInterface {
     /**
      * @notice Construct an empty delegate
      */
-    constructor() public {}
+    constructor() {}
 
     /**
      * @notice Called by the delegator on a delegate to initialize it for duty

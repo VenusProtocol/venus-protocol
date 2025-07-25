@@ -2,7 +2,7 @@ pragma solidity ^0.5.16;
 
 import "../Utils/SafeMath.sol";
 import "../Utils/IBEP20.sol";
-import "../Tokens/Prime/IPrime.sol";
+import "../Tokens/Prime/IPrimeV5.sol";
 
 contract XVSVaultAdminStorage {
     /**

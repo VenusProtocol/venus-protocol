@@ -7,8 +7,10 @@ import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
+import { IProtocolShareReserve } from "../external/IProtocolShareReserve.sol";
+import { IWBNB } from "../external/IWBNB.sol";
 import "./LiquidatorStorage.sol";
-import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController, IProtocolShareReserve, IWBNB } from "../InterfacesV8.sol";
+import { IComptroller, IVToken, IVBep20, IVBNB, IVAIController } from "../InterfacesV8.sol";
 
 contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, LiquidatorStorage, AccessControlledV8 {
     /// @notice Address of vBNB contract.

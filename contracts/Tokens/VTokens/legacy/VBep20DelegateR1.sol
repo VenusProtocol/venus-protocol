@@ -1,15 +1,14 @@
 pragma solidity ^0.5.16;
 
-import "../VTokenInterfaces.sol";
 import { VBep20R1 } from "./VBep20R1.sol";
-import { VDelegateInterface } from "./VTokenInterfaceR1.sol";
+import { VDelegateInterfaceR1 } from "./VTokenInterfaceR1.sol";
 
 /**
  * @title Venus's VBep20Delegate Contract
  * @notice VTokens which wrap an EIP-20 underlying and are delegated to
  * @author Venus
  */
-contract VBep20DelegateR1 is VBep20R1, VDelegateInterface {
+contract VBep20DelegateR1 is VBep20R1, VDelegateInterfaceR1 {
     /**
      * @notice Construct an empty delegate
      */

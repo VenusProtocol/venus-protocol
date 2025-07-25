@@ -121,7 +121,7 @@ export const deployFakeAccessControlManager = async (): Promise<FakeContract<IAc
 };
 
 export const deployFakeProtocolShareReserve = async (): Promise<FakeContract<IProtocolShareReserve>> => {
-  const psr = await smock.fake<IProtocolShareReserve>("contracts/InterfacesV8.sol:IProtocolShareReserve");
+  const psr = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   return psr;
 };
 
