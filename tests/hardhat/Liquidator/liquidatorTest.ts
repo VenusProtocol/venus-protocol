@@ -54,9 +54,7 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
   const vaiController = await smock.fake<VAIController>("VAIController");
   const vTokenBorrowed = await smock.fake<VBep20Immutable>("VBep20Immutable");
   const vTokenCollateral = await smock.fake<VBep20Immutable>("VBep20Immutable");
-  const protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-    "contracts/InterfacesV8.sol:IProtocolShareReserve",
-  );
+  const protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
   const wBnb = await smock.fake<WBNB>("WBNB");
   const collateralUnderlying = await smock.fake<FaucetToken>("FaucetToken");
   collateralUnderlying.balanceOf.returns(convertToUnit(1, 10));

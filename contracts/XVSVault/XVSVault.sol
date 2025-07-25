@@ -7,7 +7,7 @@ import "../Utils/ECDSA.sol";
 import "../Utils/SafeBEP20.sol";
 import "../Utils/IBEP20.sol";
 import "./XVSVaultStorage.sol";
-import "../Tokens/Prime/IPrime.sol";
+import "../Tokens/Prime/IPrimeV5.sol";
 import "../Utils/SafeCast.sol";
 import "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV5.sol";
 import "@venusprotocol/solidity-utilities/contracts/TimeManagerV5.sol";

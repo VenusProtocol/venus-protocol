@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 pragma experimental ABIEncoderV2;
 
 import "./facets/MarketFacet.sol";

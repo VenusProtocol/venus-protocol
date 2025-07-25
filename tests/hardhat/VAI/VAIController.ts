@@ -9,7 +9,7 @@ import {
   ComptrollerLens__factory,
   ComptrollerMock,
   ComptrollerMock__factory,
-  IAccessControlManagerV5,
+  IAccessControlManagerV8,
   IProtocolShareReserve,
   PrimeScenario__factory,
   VAIControllerHarness__factory,
@@ -33,7 +33,7 @@ const BLOCKS_PER_YEAR = 1000;
 
 interface ComptrollerFixture {
   usdt: BEP20Harness;
-  accessControl: FakeContract<IAccessControlManagerV5>;
+  accessControl: FakeContract<IAccessControlManagerV8>;
   comptroller: MockContract<ComptrollerMock>;
   priceOracle: SimplePriceOracle;
   vai: VAIScenario;
@@ -47,7 +47,7 @@ describe("VAIController", async () => {
   let wallet: Wallet;
   let treasuryGuardian: Wallet;
   let treasuryAddress: Wallet;
-  let accessControl: FakeContract<IAccessControlManagerV5>;
+  let accessControl: FakeContract<IAccessControlManagerV8>;
   let comptroller: MockContract<ComptrollerMock>;
   let priceOracle: SimplePriceOracle;
   let vai: VAIScenario;
@@ -69,12 +69,10 @@ describe("VAIController", async () => {
       "BEP20 usdt",
     )) as BEP20Harness;
 
-    const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
+    const accessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
     accessControl.isAllowedToCall.returns(true);
 
-    protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-      "contracts/Tokens/VTokens/VTokenInterfaces.sol:IProtocolShareReserveV5",
-    );
+    protocolShareReserve = await smock.fake<IProtocolShareReserve>("IProtocolShareReserve");
     protocolShareReserve.updateAssetsState.returns(true);
 
     const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
@@ -665,7 +663,7 @@ describe("VAIController", async () => {
     });
 
     it("emits NewAccessControl event", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
+      const newAccessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
       const tx = await vaiController.setAccessControl(newAccessControl.address);
       await expect(tx)
         .to.emit(vaiController, "NewAccessControl")
@@ -673,7 +671,7 @@ describe("VAIController", async () => {
     });
 
     it("sets ACM address in storage", async () => {
-      const newAccessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
+      const newAccessControl = await smock.fake<IAccessControlManagerV8>("IAccessControlManagerV8");
       await vaiController.setAccessControl(newAccessControl.address);
       expect(await vaiController.getVariable("accessControl")).to.equal(newAccessControl.address);
     });

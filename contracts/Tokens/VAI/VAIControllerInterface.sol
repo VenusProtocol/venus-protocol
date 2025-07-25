@@ -1,8 +1,8 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
 import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
 
-contract VAIControllerInterface {
+interface VAIControllerInterface {
     function mintVAI(uint256 mintVAIAmount) external returns (uint256);
 
     function repayVAI(uint256 amount) external returns (uint256, uint256);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 pragma experimental ABIEncoderV2;
 
 import { IDiamondCut } from "./interfaces/IDiamondCut.sol";
@@ -249,7 +249,7 @@ contract Diamond is IDiamondCut, ComptrollerV16Storage {
 
     // Find facet for function that is called and execute the
     // function if a facet is found and return any value.
-    function() external payable {
+    fallback() external {
         address facet = _selectorToFacetAndPosition[msg.sig].facetAddress;
         require(facet != address(0), "Diamond: Function does not exist");
         // Execute public function from facet using delegatecall and return any value.
