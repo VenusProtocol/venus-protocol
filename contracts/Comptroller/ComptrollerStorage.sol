@@ -83,6 +83,14 @@ contract ComptrollerV1Storage is ComptrollerTypes, UnitrollerAdminStorage {
         mapping(address => bool) accountMembership;
         /// @notice Whether or not this market receives XVS
         bool isVenus;
+        /**
+         * @notice Multiplier representing the collateralization after which the borrow is eligible
+         * for liquidation. For instance, 0.8 liquidate when the borrow is 80% of collateral
+         * value. Must be between 0 and collateral factor, stored as a mantissa.
+         */
+        uint256 liquidationThresholdMantissa;
+        /// @notice discount on collateral that a liquidator receives when liquidating a borrow in this market
+        uint256 maxLiquidationIncentiveMantissa;
     }
 
     /**
@@ -279,11 +287,4 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 
     /// @notice The XVS vToken contract address
     address internal xvsVToken;
-}
-
-contract ComptrollerV17Storage is ComptrollerV16Storage {
-    /// @notice check liquidation Threshold for each Market
-    mapping(address => uint256) public marketLiquidationThreshold;
-
-    mapping(address => uint256) public marketLiquidationIncentive;
 }
