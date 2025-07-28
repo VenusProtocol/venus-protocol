@@ -26,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log(`Got deployment of Unitroller with address: ${comptrollerDeployment.address}`);
 
   for (const market of marketsConfig) {
-    const { name, asset, symbol, interestRateModel, flashloanConfig } = market;
+    const { name, asset, symbol, interestRateModel } = market;
 
     // Short-circuit to avoid extra requests to the node if vToken already exists
     const deployment = await deployments.getOrNull(symbol);
@@ -66,7 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         VTOKEN_DECIMALS,
         network.live ? normalTimelock.address : deployer,
         vBep20DelegateDeployment.address,
-        EMPTY_BYTES_ARRAY
+        EMPTY_BYTES_ARRAY,
       ],
       log: true,
       skipIfAlreadyDeployed: true,

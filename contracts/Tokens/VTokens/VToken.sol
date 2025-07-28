@@ -426,7 +426,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
     ) external nonReentrant returns (uint256) {
         ensureNonZeroAddress(receiver);
 
-        IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(msg.sender);
+        IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(receiver);
 
         // Tracks the flashLoan amount before transferring amount to the receiver
         flashLoanAmount += amount;
