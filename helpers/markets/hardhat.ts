@@ -21,7 +21,7 @@ export default [
     initialSupply: {
       amount: "9000",
       vTokenReceiver: "VTreasury",
-    }
+    },
   },
   {
     name: "Venus DOGE",
@@ -43,7 +43,7 @@ export default [
     initialSupply: {
       amount: "9000",
       vTokenReceiver: "VTreasury",
-    }
+    },
   },
   {
     name: "Venus USDT",
@@ -65,6 +65,6 @@ export default [
     initialSupply: {
       amount: "9000",
       vTokenReceiver: "VTreasury",
-    }
+    },
   },
 ] as const satisfies readonly Raw<VTokenConfig<"hardhat">>[];

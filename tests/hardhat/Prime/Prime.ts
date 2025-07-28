@@ -98,8 +98,8 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     "VToken usdt",
     "vusdt",
     BigNumber.from(18),
-    wallet.address
-    )) as VBep20Harness;
+    wallet.address,
+  )) as VBep20Harness;
   const veth = (await vTokenFactory.deploy(
     eth.address,
     comptroller.address,
@@ -108,7 +108,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     "VToken eth",
     "veth",
     BigNumber.from(18),
-    wallet.address
+    wallet.address,
   )) as VBep20Harness;
   const vbnb = (await vTokenFactory.deploy(
     wbnb.address,
@@ -118,7 +118,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
     "VToken bnb",
     "vbnb",
     BigNumber.from(18),
-    wallet.address
+    wallet.address,
   )) as VBep20Harness;
 
   //0.2 reserve factor
@@ -972,7 +972,7 @@ describe("PrimeScenario Token", () => {
         "VToken matic",
         "vmatic",
         BigNumber.from(18),
-        wallet.address
+        wallet.address,
       )) as VBep20Harness;
 
       const half = convertToUnit("0.5", 18);

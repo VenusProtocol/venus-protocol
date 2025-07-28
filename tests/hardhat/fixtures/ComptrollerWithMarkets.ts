@@ -241,7 +241,7 @@ export const deployVToken = async (
     symbol: string;
     decimals: number;
     admin: string;
-    protocolShareReserve: BaseContract
+    protocolShareReserve: BaseContract;
   }> = {},
 ): Promise<VBep20Harness> => {
   const accessControlManager = opts.accessControlManager ?? (await deployFakeAccessControlManager());
@@ -265,7 +265,7 @@ export const deployVToken = async (
     name,
     symbol,
     decimals,
-    admin
+    admin,
   );
   await vToken.deployed();
   await vToken.setAccessControlManager(accessControlManager.address);

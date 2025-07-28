@@ -121,7 +121,7 @@ describe("FlashLoan", async () => {
       "vTokenA",
       "VTKNA",
       18,
-      contracts.admin.address
+      contracts.admin.address,
     );
 
     vTokenA.setAccessControlManager(contracts.accessControlManager.address);
@@ -136,7 +136,7 @@ describe("FlashLoan", async () => {
       "vTokenB",
       "VTKNB",
       18,
-      contracts.admin.address
+      contracts.admin.address,
     );
 
     vTokenB.setAccessControlManager(contracts.accessControlManager.address);

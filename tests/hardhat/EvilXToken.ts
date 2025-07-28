@@ -92,7 +92,7 @@ describe("Evil Token test", async () => {
       decimals,
       admin.address,
       vDelegatee1.address,
-      "0x00"
+      "0x00",
     );
     await vDelegator1.deployed();
 
@@ -122,7 +122,7 @@ describe("Evil Token test", async () => {
       decimals,
       admin.address,
       vDelegatee1.address,
-      "0x00"
+      "0x00",
     );
     await vDelegator2.deployed();
 

@@ -30,14 +30,7 @@ contract MockVBNB is VToken {
         // Creator of the contract is admin during initialization
         admin = msg.sender;
 
-        initialize(
-            comptroller_,
-            interestRateModel_,
-            initialExchangeRateMantissa_,
-            name_,
-            symbol_,
-            decimals_
-        );
+        initialize(comptroller_, interestRateModel_, initialExchangeRateMantissa_, name_, symbol_, decimals_);
 
         // Set the proper admin now that initialization is done
         admin = admin_;

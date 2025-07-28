@@ -390,7 +390,7 @@ export default [
     initialSupply: {
       amount: "9000",
       vTokenReceiver: "VTreasury",
-    }
+    },
   },
   {
     name: "Venus SolvBTC",
@@ -412,7 +412,7 @@ export default [
     initialSupply: {
       amount: "0.1572404",
       vTokenReceiver: "VTreasury",
-    }
+    },
   },
   {
     name: "Venus TWT",
@@ -434,7 +434,7 @@ export default [
     initialSupply: {
       amount: "5000",
       vTokenReceiver: "VTreasury",
-    }
+    },
   },
   {
     name: "Venus THE",

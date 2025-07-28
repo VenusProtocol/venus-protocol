@@ -55,7 +55,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       "Venus USDC",
       "vUSDC",
       18,
-      deployer
+      deployer,
     ],
     log: true,
     autoMine: true,
@@ -72,7 +72,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       "Venus Ethereum",
       "vETH",
       18,
-      deployer
+      deployer,
     ],
     log: true,
     autoMine: true,
@@ -88,7 +88,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       "Venus BNB",
       "vBNB",
       18,
-      deployer
+      deployer,
     ],
     log: true,
     autoMine: true,
