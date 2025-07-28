@@ -119,10 +119,7 @@ describe("FlashLoan", async () => {
       "vTokenA",
       "VTKNA",
       18,
-      contracts.admin.address,
-      false,
-      protocolFeeMantissa,
-      supplierFeeMantissa,
+      contracts.admin.address
     );
 
     await vTokenA.setProtocolShareReserve(protocolShareReserveMock.address);

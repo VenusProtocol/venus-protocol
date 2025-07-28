@@ -15,10 +15,7 @@ contract VBep20Scenario is VBep20Immutable {
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
-        address payable admin_,
-        bool flashLoanEnabled_,
-        uint256 flashLoanProtocolFeeMantissa_,
-        uint256 flashLoanSupplierFeeMantissa_
+        address payable admin_
     )
         public
         VBep20Immutable(
@@ -29,10 +26,7 @@ contract VBep20Scenario is VBep20Immutable {
             name_,
             symbol_,
             decimals_,
-            admin_,
-            flashLoanEnabled_,
-            flashLoanProtocolFeeMantissa_,
-            flashLoanSupplierFeeMantissa_
+            admin_
         )
     {}
 

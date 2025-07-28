@@ -28,12 +28,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const market of marketsConfig) {
     const { name, asset, symbol, interestRateModel, flashloanConfig } = market;
 
-    const {
-      isFlashLoanEnabled = false,
-      flashLoanProtocolFeeMantissa = "0",
-      flashLoanSupplierFeeMantissa = "0",
-    } = flashloanConfig ?? {};
-
     // Short-circuit to avoid extra requests to the node if vToken already exists
     const deployment = await deployments.getOrNull(symbol);
     if (deployment !== null && deployment !== undefined) {
@@ -72,10 +66,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         VTOKEN_DECIMALS,
         network.live ? normalTimelock.address : deployer,
         vBep20DelegateDeployment.address,
-        EMPTY_BYTES_ARRAY,
-        isFlashLoanEnabled,
-        flashLoanProtocolFeeMantissa,
-        flashLoanSupplierFeeMantissa,
+        EMPTY_BYTES_ARRAY
       ],
       log: true,
       skipIfAlreadyDeployed: true,

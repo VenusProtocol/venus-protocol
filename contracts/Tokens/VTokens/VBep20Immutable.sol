@@ -18,9 +18,6 @@ contract VBep20Immutable is VBep20 {
      * @param symbol_ BEP-20 symbol of this token
      * @param decimals_ BEP-20 decimal precision of this token
      * @param admin_ Address of the administrator of this token
-     * @param flashLoanEnabled_ Enable flashLoan or not for this market
-     * @param flashLoanProtocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
-     * @param flashLoanSupplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
      */
     constructor(
         address underlying_,
@@ -30,10 +27,7 @@ contract VBep20Immutable is VBep20 {
         string memory name_,
         string memory symbol_,
         uint8 decimals_,
-        address payable admin_,
-        bool flashLoanEnabled_,
-        uint256 flashLoanProtocolFeeMantissa_,
-        uint256 flashLoanSupplierFeeMantissa_
+        address payable admin_
     ) public {
         // Creator of the contract is admin during initialization
         admin = msg.sender;
@@ -46,10 +40,7 @@ contract VBep20Immutable is VBep20 {
             initialExchangeRateMantissa_,
             name_,
             symbol_,
-            decimals_,
-            flashLoanEnabled_,
-            flashLoanProtocolFeeMantissa_,
-            flashLoanSupplierFeeMantissa_
+            decimals_
         );
 
         // Set the proper admin now that initialization is done

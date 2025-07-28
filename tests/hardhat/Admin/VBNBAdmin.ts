@@ -47,10 +47,7 @@ const setupMarketFixture = async (): Promise<SetupMarketFixture> => {
     "Venus BNB",
     "vBNB",
     18,
-    admin.address,
-    false,
-    0,
-    0,
+    admin.address
   );
 
   const protocolShareReserve = await smock.fake<IProtocolShareReserve>(

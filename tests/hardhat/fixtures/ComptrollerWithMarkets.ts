@@ -241,10 +241,7 @@ export const deployVToken = async (
     symbol: string;
     decimals: number;
     admin: string;
-    protocolShareReserve: BaseContract;
-    flashLoanEnabled: boolean;
-    flashLoanProtocolFeeMantissa: number;
-    flashLoanSupplierFeeMantissa: number;
+    protocolShareReserve: BaseContract
   }> = {},
 ): Promise<VBep20Harness> => {
   const accessControlManager = opts.accessControlManager ?? (await deployFakeAccessControlManager());
@@ -258,9 +255,6 @@ export const deployVToken = async (
   const symbol = opts.symbol ?? "VT";
   const decimals = opts.decimals ?? 8;
   const admin = opts.admin ?? (await ethers.getSigners())[0].address;
-  const flashLoanEnabled = opts.flashLoanEnabled ?? false;
-  const flashLoanProtocolFeeMantissa = opts.flashLoanProtocolFeeMantissa ?? 0;
-  const flashLoanSupplierFeeMantissa = opts.flashLoanSupplierFeeMantissa ?? 0;
 
   const vTokenFactory = await ethers.getContractFactory("VBep20Harness");
   const vToken: VBep20Harness = await vTokenFactory.deploy(
@@ -271,10 +265,7 @@ export const deployVToken = async (
     name,
     symbol,
     decimals,
-    admin,
-    flashLoanEnabled,
-    flashLoanProtocolFeeMantissa,
-    flashLoanSupplierFeeMantissa,
+    admin
   );
   await vToken.deployed();
   await vToken.setAccessControlManager(accessControlManager.address);
@@ -310,9 +301,6 @@ export const deployVBNB = async (
     symbol,
     decimals,
     admin,
-    false,
-    0,
-    0,
   );
   return vBNB;
 };
