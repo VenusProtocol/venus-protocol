@@ -133,7 +133,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         uint256 nextTotalBorrows = add_(VToken(vToken).totalBorrows(), borrowAmount);
         require(nextTotalBorrows <= borrowCap, "market borrow cap reached");
 
-        (Error err, , uint256 shortfall, , , , ) = getHypotheticalLiquidityInternal(
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             borrower,
             VToken(vToken),
             0,
@@ -254,15 +254,17 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         }
 
         /* The borrower must have shortfall in order to be liquidatable */
+        (, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(borrower, VToken(address(0)), 0, 0);
+
         (
             Error err,
-            ,
-            uint256 shortfall,
             uint256 averageLT,
+            uint256 totalCollateral,
             uint256 healthFactor,
-            uint256 healthFactorThreshold,
+            uint256 liquidationIncentiveAvg,
+            uint256 healthFactorThreshold
+        ) = getHypotheticalHealthSnapshot(borrower, VToken(address(0)), 0, 0);
 
-        ) = getHypotheticalLiquidityInternal(borrower, VToken(address(0)), 0, 0);
         if (err != Error.NO_ERROR) {
             return uint256(err);
         }
@@ -270,14 +272,19 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
-        uint256 liquidationIncentiveMantissa = marketLiquidationIncentive[vTokenCollateral];
+        if ((averageLT * (1e18 + liquidationIncentiveAvg)) > healthFactor) {
+            return uint256(Error.TOXIC_LIQUIDATION);
+        }
+
+        Market memory marketCollateral = markets[vTokenCollateral];
         uint256 closeFactor;
 
         if (healthFactor >= 1e18) return uint256(Error.INSUFFICIENT_SHORTFALL);
         uint256 wtAvg = averageLT;
         if (healthFactor >= healthFactorThreshold) {
             uint256 numerator = borrowBalance * 1e18 - wtAvg * totalCollateral;
-            uint256 denominator = borrowBalance * (1e18 - ((wtAvg * (1e18 + liquidationIncentiveMantissa)) / 1e18));
+            uint256 denominator = borrowBalance *
+                (1e18 - ((wtAvg * (1e18 + marketCollateral.maxLiquidationIncentiveMantissa)) / 1e18));
             closeFactor = (numerator * 1e18) / denominator;
             closeFactor = closeFactor > 1e18 ? 1e18 : closeFactor;
         } else {

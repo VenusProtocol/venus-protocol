@@ -21,7 +21,8 @@ contract ComptrollerErrorReporter {
         TOO_MANY_ASSETS,
         TOO_MUCH_REPAY,
         INSUFFICIENT_BALANCE_FOR_VAI,
-        MARKET_NOT_COLLATERAL
+        MARKET_NOT_COLLATERAL,
+        TOXIC_LIQUIDATION // the liquidation would result in a health factor below the threshold
     }
 
     enum FailureInfo {
