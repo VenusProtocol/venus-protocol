@@ -370,12 +370,12 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *      of parameters, that flashLoans are enabled for the given assets, and that the total repayment is sufficient.
      *      Reverts on invalid parameters, disabled flashLoans, or insufficient repayment.
      * @param receiver The address of the contract that will receive the flashLoan and execute the operation.
-     * @param assets The addresses of the assets to be loaned.
-     * @param amounts The amounts of each asset to be loaned.
+     * @param vTokens The addresses of the vToken assets to be loaned.
+     * @param underlyingAmounts The amounts of each underlying asset to be loaned.
      * @param param The bytes passed in the executeOperation call.
      * custom:requirements
-     *      - `assets.length` must be equal to `amounts.length`.
-     *      - `assets.length` and `amounts.length` must not be zero.
+     *      - `vTokens.length` must be equal to `underlyingAmounts.length`.
+     *      - `vTokens.length` and `underlyingAmounts.length` must not be zero.
      *      - The `receiver` address must not be the zero address.
      *      - FlashLoans must be enabled for each asset.
      *      - The `receiver` contract must repay the loan with the appropriate fee.
@@ -387,46 +387,51 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      */
     function executeFlashLoan(
         address payable receiver,
-        VToken[] calldata assets,
-        uint256[] calldata amounts,
+        VToken[] calldata vTokens,
+        uint256[] calldata underlyingAmounts,
         bytes calldata param
     ) external {
         ensureNonzeroAddress(receiver);
         // Asset and amount length must be equals and not be zero
-        if (assets.length != amounts.length || assets.length == 0) {
+        if (vTokens.length != underlyingAmounts.length || vTokens.length == 0) {
             revert("Invalid flashLoan params");
         }
 
-        uint256[] memory protocolFees = new uint256[](assets.length);
-        uint256[] memory supplierFees = new uint256[](assets.length);
-        uint256[] memory totalFees = new uint256[](assets.length);
-        uint256[] memory balanceAfterTransfer = new uint256[](assets.length);
+        uint256[] memory protocolFees = new uint256[](vTokens.length);
+        uint256[] memory supplierFees = new uint256[](vTokens.length);
+        uint256[] memory totalFees = new uint256[](vTokens.length);
+        uint256[] memory balanceAfterTransfer = new uint256[](vTokens.length);
 
-        for (uint256 j; j < assets.length; j++) {
-            (protocolFees[j], supplierFees[j]) = (assets[j]).calculateFlashLoanFee(amounts[j]);
+        for (uint256 j; j < vTokens.length; j++) {
+            (protocolFees[j], supplierFees[j]) = (vTokens[j]).calculateFlashLoanFee(underlyingAmounts[j]);
             totalFees[j] = protocolFees[j] + supplierFees[j]; // Sum protocol and supplier fees
             // Transfer the asset
-            (balanceAfterTransfer[j]) = (assets[j]).transferOutUnderlying(receiver, amounts[j]);
+            (balanceAfterTransfer[j]) = (vTokens[j]).transferOutUnderlying(receiver, underlyingAmounts[j]);
         }
 
         // Call the execute operation on receiver contract
-        if (!IFlashLoanReceiver(receiver).executeOperation(assets, amounts, totalFees, msg.sender, param)) {
+        if (!IFlashLoanReceiver(receiver).executeOperation(vTokens, underlyingAmounts, totalFees, msg.sender, param)) {
             revert("Execute flashLoan failed");
         }
 
-        for (uint256 k; k < assets.length; k++) {
-            (assets[k]).transferInUnderlyingAndVerify(receiver, amounts[k], totalFees[k], balanceAfterTransfer[k]);
-            (assets[k]).transferOutUnderlying(assets[k].protocolShareReserve(), protocolFees[k]);
+        for (uint256 k; k < vTokens.length; k++) {
+            (vTokens[k]).transferInUnderlyingAndVerify(
+                receiver,
+                underlyingAmounts[k],
+                totalFees[k],
+                balanceAfterTransfer[k]
+            );
+            (vTokens[k]).transferOutUnderlying(vTokens[k].protocolShareReserve(), protocolFees[k]);
 
             // Update protocol share reserve state
-            IProtocolShareReserveV5(assets[k].protocolShareReserve()).updateAssetsState(
-                address(assets[k].comptroller()),
-                address(assets[k].underlying()),
+            IProtocolShareReserveV5(vTokens[k].protocolShareReserve()).updateAssetsState(
+                address(vTokens[k].comptroller()),
+                address(vTokens[k].underlying()),
                 IProtocolShareReserveV5.IncomeType.FLASHLOAN
             );
         }
 
-        emit FlashLoanExecuted(receiver, assets, amounts);
+        emit FlashLoanExecuted(receiver, vTokens, underlyingAmounts);
     }
 
     /**
