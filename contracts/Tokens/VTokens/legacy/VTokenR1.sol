@@ -1321,6 +1321,7 @@ contract VTokenR1 is VTokenInterfaceR1, Exponential, TokenErrorReporter {
 
         /* We calculate the number of collateral tokens that will be seized */
         (uint amountSeizeError, uint seizeTokens) = comptroller.liquidateCalculateSeizeTokens(
+            borrower,
             address(this),
             address(vTokenCollateral),
             actualRepayAmount
