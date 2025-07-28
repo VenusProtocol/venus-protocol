@@ -265,7 +265,7 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
         }
         uint256 ourBalanceAfter = vTokenCollateral.balanceOf(address(this));
         uint256 seizedAmount = ourBalanceAfter - ourBalanceBefore;
-        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(vTokenCollateral, seizedAmount);
+        (uint256 ours, uint256 theirs) = _distributeLiquidationIncentive(borrower, vTokenCollateral, seizedAmount);
         _reduceReservesInternal();
         emit LiquidateBorrowedTokens(
             msg.sender,
@@ -353,10 +353,11 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
 
     /// @dev Distribute seized collateral between liquidator and protocol share reserve
     function _distributeLiquidationIncentive(
+        address borrower,
         IVToken vTokenCollateral,
         uint256 seizedAmount
     ) internal returns (uint256 ours, uint256 theirs) {
-        (ours, theirs) = _splitLiquidationIncentive(seizedAmount);
+        (ours, theirs) = _splitLiquidationIncentive(borrower, address(vTokenCollateral), seizedAmount);
         if (!vTokenCollateral.transfer(msg.sender, theirs)) {
             revert VTokenTransferFailed(address(this), msg.sender, theirs);
         }
@@ -436,8 +437,12 @@ contract Liquidator is Ownable2StepUpgradeable, ReentrancyGuardUpgradeable, Liqu
     }
 
     /// @dev Computes the amounts that would go to treasury and to the liquidator.
-    function _splitLiquidationIncentive(uint256 seizedAmount) internal view returns (uint256 ours, uint256 theirs) {
-        uint256 totalIncentive = comptroller.liquidationIncentiveMantissa();
+    function _splitLiquidationIncentive(
+        address borrower,
+        address vTokenCollateral,
+        uint256 seizedAmount
+    ) internal view returns (uint256 ours, uint256 theirs) {
+        uint256 totalIncentive = comptroller.getDynamicLiquidationIncentive(borrower, vTokenCollateral);
         ours = (seizedAmount * treasuryPercentMantissa) / totalIncentive;
         theirs = seizedAmount - ours;
     }

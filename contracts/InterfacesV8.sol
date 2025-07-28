@@ -73,6 +73,8 @@ interface IComptroller {
 
     function liquidationIncentiveMantissa() external view returns (uint256);
 
+    function getDynamicLiquidationIncentive(address borrower, address vToken) external view returns (uint256);
+
     function vaiController() external view returns (IVAIController);
 
     function liquidatorContract() external view returns (address);
