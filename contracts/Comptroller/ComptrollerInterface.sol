@@ -30,6 +30,7 @@ contract ComptrollerInterface {
     function borrowVerify(address vToken, address borrower, uint borrowAmount) external;
 
     function executeFlashLoan(
+        address initiator,
         address payable receiver,
         VToken[] calldata assets,
         uint256[] calldata amounts,
@@ -146,6 +147,8 @@ contract ComptrollerInterface {
     function mintedVAIs(address user) external view returns (uint);
 
     function vaiMintRate() external view returns (uint);
+
+    function authorizedFlashLoan(address account) external view returns (bool);
 }
 
 interface IVAIVault {

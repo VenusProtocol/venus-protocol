@@ -31,7 +31,7 @@ contract MockFlashLoanReceiver is FlashLoanReceiverBase {
         bytes calldata param
     ) external {
         // Request the flashLoan from the Comptroller contract
-        COMPTROLLER.executeFlashLoan(receiver, assets, amount, param);
+        COMPTROLLER.executeFlashLoan(msg.sender, receiver, assets, amount, param);
     }
 
     /**

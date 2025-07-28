@@ -280,3 +280,7 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
     /// @notice The XVS vToken contract address
     address internal xvsVToken;
 }
+contract ComptrollerV17Storage is ComptrollerV16Storage {
+    /// @notice Mapping of accounts authorized to execute flash loans
+    mapping(address => bool) public authorizedFlashLoan;
+}

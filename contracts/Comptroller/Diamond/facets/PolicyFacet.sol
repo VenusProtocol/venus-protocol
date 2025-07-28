@@ -386,6 +386,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
      *      - Reverts with `Insufficient reypayment balance` if the repayment (amount + fee) is insufficient after the operation.
      */
     function executeFlashLoan(
+        address initiator,
         address payable receiver,
         VToken[] calldata vTokens,
         uint256[] calldata underlyingAmounts,
@@ -395,6 +396,10 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         // Asset and amount length must be equals and not be zero
         if (vTokens.length != underlyingAmounts.length || vTokens.length == 0) {
             revert("Invalid flashLoan params");
+        }
+
+        if (!authorizedFlashLoan[initiator]) {
+            revert("Flash loan not authorized for this account");
         }
 
         uint256[] memory protocolFees = new uint256[](vTokens.length);

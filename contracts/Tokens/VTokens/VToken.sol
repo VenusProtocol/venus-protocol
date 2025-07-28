@@ -420,11 +420,17 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * custom:event Emits FlashLoanExecuted event on success
      */
     function executeFlashLoan(
+        address initiator,
         address payable receiver,
         uint256 amount,
         bytes calldata param
     ) external nonReentrant returns (uint256) {
         ensureNonZeroAddress(receiver);
+
+        // Check if the caller is authorized to execute flash loans
+        if (!comptroller.authorizedFlashLoan(initiator)) {
+            revert("Flash loan not authorized for this account");
+        }
 
         IFlashLoanSimpleReceiver receiverContract = IFlashLoanSimpleReceiver(receiver);
 
