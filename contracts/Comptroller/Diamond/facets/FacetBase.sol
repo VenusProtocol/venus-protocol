@@ -129,7 +129,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
     }
 
     /**
-     * @notice Determine what the liquidity would be if the given amounts were redeemed/borrowed on the basis of collateral factor
+     * @notice Determine what the liquidity would be if the given amounts were redeemed/borrowed on the basis of liquidation threshold
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param account The account to determine liquidity for
      * @param redeemTokens The number of tokens to hypothetically redeem
@@ -155,42 +155,35 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
         );
         return (Error(err), liquidity, shortfall);
     }
-    /**
-     * @notice Determine what the account liquidity would be if the given amounts were redeemed/borrowed on the basis of liquidation threshold
-     * @param vTokenModify The market to hypothetically redeem/borrow in
-     * @param account The account to determine liquidity for
-     * @param redeemTokens The number of tokens to hypothetically redeem
-     * @param borrowAmount The amount of underlying to hypothetically borrow
-     * @dev Note that we calculate the exchangeRateStored for each collateral vToken using stored data,
-     *  without calculating accumulated interest.
-     * @return (possible error code,
-                hypothetical account liquidity in excess of collateral requirements,
-     *          hypothetical account shortfall below collateral requirements)
-     */
-    function getHypotheticalLiquidityInternal(
+
+    function getHypotheticalHealthSnapshot(
         address account,
         VToken vTokenModify,
         uint256 redeemTokens,
         uint256 borrowAmount
-    ) internal view returns (Error, uint256, uint256, uint256, uint256, uint256, uint256) {
-        (
-            uint256 err,
-            uint256 liquidity,
-            uint256 shortfall,
+    )
+        internal
+        view
+        returns (
+            Error,
             uint256 averageLT,
+            uint256 totalCollateral,
             uint256 healthFactor,
             uint256 healthFactorThreshold,
             uint256 liquidationIncentiveAvg
-        ) = comptrollerLens.getHypotheticalLiquidity(address(this), account, vTokenModify, redeemTokens, borrowAmount);
-        return (
-            Error(err),
-            liquidity,
-            shortfall,
+        )
+    {
+        uint err;
+        (
+            err,
             averageLT,
+            totalCollateral,
             healthFactor,
             healthFactorThreshold,
             liquidationIncentiveAvg
-        );
+        ) = comptrollerLens.getAccountHealthSnapshot(address(this), account, vTokenModify, redeemTokens, borrowAmount);
+
+        return (Error(err), averageLT, totalCollateral, healthFactor, healthFactorThreshold, liquidationIncentiveAvg);
     }
 
     /**
@@ -238,7 +231,7 @@ contract FacetBase is ComptrollerV16Storage, ExponentialNoError, ComptrollerErro
             return uint256(Error.NO_ERROR);
         }
         /* Otherwise, perform a hypothetical liquidity check to guard against shortfall */
-        (Error err, , uint256 shortfall, , , , ) = getHypotheticalLiquidityInternal(
+        (Error err, , uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
             redeemer,
             VToken(vToken),
             redeemTokens,
