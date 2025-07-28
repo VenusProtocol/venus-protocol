@@ -491,7 +491,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint256 supplierFeeMantissa_
     ) external returns (uint256) {
         // update the signature
-        ensureAllowed("_setFlashLoanFeeMantissa(uint256)");
+        ensureAllowed("_setFlashLoanFeeMantissa(uint256,uint256)");
 
         emit FlashLoanFeeUpdated(
             flashLoanProtocolFeeMantissa,
@@ -513,9 +513,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
      * @param name_ EIP-20 name of this token
      * @param symbol_ EIP-20 symbol of this token
      * @param decimals_ EIP-20 decimal precision of this token
-     * @param flashLoanEnabled_ Enable flashLoan or not for this market
-     * @param flashLoanProtocolFeeMantissa_ FlashLoan protocol fee mantissa, transferred to protocol share reserve
-     * @param flashLoanSupplierFeeMantissa_ FlashLoan supplier fee mantissa, transferred to the supplier of the asset
      */
     function initialize(
         ComptrollerInterface comptroller_,
@@ -523,10 +520,7 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
-        uint8 decimals_,
-        bool flashLoanEnabled_,
-        uint256 flashLoanProtocolFeeMantissa_,
-        uint256 flashLoanSupplierFeeMantissa_
+        uint8 decimals_
     ) public {
         ensureAdmin(msg.sender);
         require(
@@ -557,10 +551,6 @@ contract VToken is VTokenInterface, Exponential, TokenErrorReporter {
 
         // The counter starts true to prevent changing it from zero to non-zero (i.e. smaller cost/refund)
         _notEntered = true;
-
-        isFlashLoanEnabled = flashLoanEnabled_;
-        flashLoanProtocolFeeMantissa = flashLoanProtocolFeeMantissa_;
-        flashLoanSupplierFeeMantissa = flashLoanSupplierFeeMantissa_;
     }
 
     /**
