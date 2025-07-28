@@ -67,6 +67,34 @@ contract MarketFacet is IMarketFacet, FacetBase {
     }
 
     /**
+     * @notice Get the liquidation incentive for a borrower
+     * @param borrower The address of the borrower
+     * @return incentive The liquidation incentive for the borrower, scaled by 1e18
+     */
+    function getDynamicLiquidationIncentive(
+        address borrower,
+        address vToken
+    ) external view returns (uint256 incentive) {
+        Market storage market = markets[vToken];
+        uint256 liquidationIncentiveMantissa = market.maxLiquidationIncentiveMantissa;
+
+        (Error err, uint averageLT, , uint healthFactor, uint healthFactorThreshold, ) = getHypotheticalHealthSnapshot(
+            borrower,
+            VToken(vToken),
+            0,
+            0
+        );
+        if (err != Error.NO_ERROR) {
+            return liquidationIncentiveMantissa; // return default value
+        }
+
+        if (healthFactor >= healthFactorThreshold) return liquidationIncentiveMantissa;
+
+        uint256 value = ((healthFactor * 1e18) / averageLT) - 1e18;
+        return value > liquidationIncentiveMantissa ? liquidationIncentiveMantissa : value;
+    }
+
+    /**
      * @notice Calculate number of tokens of collateral asset to seize given an underlying amount
      * @dev Used in liquidation (called in vToken.liquidateBorrowFresh)
      * @param vTokenBorrowed The address of the borrowed vToken
@@ -75,11 +103,13 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
     function liquidateCalculateSeizeTokens(
+        address borrower,
         address vTokenBorrowed,
         address vTokenCollateral,
         uint256 actualRepayAmount
     ) external view returns (uint256, uint256) {
         (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateCalculateSeizeTokens(
+            borrower,
             address(this),
             vTokenBorrowed,
             vTokenCollateral,
@@ -96,10 +126,12 @@ contract MarketFacet is IMarketFacet, FacetBase {
      * @return (errorCode, number of vTokenCollateral tokens to be seized in a liquidation)
      */
     function liquidateVAICalculateSeizeTokens(
+        address borrower,
         address vTokenCollateral,
         uint256 actualRepayAmount
     ) external view returns (uint256, uint256) {
         (uint256 err, uint256 seizeTokens) = comptrollerLens.liquidateVAICalculateSeizeTokens(
+            borrower,
             address(this),
             vTokenCollateral,
             actualRepayAmount
@@ -143,9 +175,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
         ensureAllowed("unlistMarket(address)");
 
         Market storage _market = markets[market];
-        uint256 liquidationThresholdMantissa = marketLiquidationThreshold[market];
-
-        require(liquidationThresholdMantissa == 0, "liquidaiton threshold is not 0");
 
         if (!_market.isListed) {
             return fail(Error.MARKET_NOT_LISTED, FailureInfo.UNLIST_MARKET_NOT_LISTED);
@@ -165,6 +194,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
         require(supplyCaps[market] == 0, "supply cap is not 0");
 
         require(_market.collateralFactorMantissa == 0, "collateral factor is not 0");
+        require(_market.liquidationThresholdMantissa == 0, "liquidation threshold is not 0");
 
         _market.isListed = false;
         emit MarketUnlisted(market);
