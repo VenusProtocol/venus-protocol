@@ -166,7 +166,13 @@ contract ComptrollerHarness is ComptrollerMock {
     }
 
     function harnessAddVtoken(address vToken) external {
-        markets[vToken] = Market({ isListed: true, isVenus: false, collateralFactorMantissa: 0 });
+        markets[vToken] = Market({
+            isListed: true,
+            isVenus: false,
+            collateralFactorMantissa: 0,
+            liquidationThresholdMantissa: 0,
+            maxLiquidationIncentiveMantissa: 0
+        });
     }
 }
 

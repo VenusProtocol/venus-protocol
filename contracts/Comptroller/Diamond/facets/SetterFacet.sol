@@ -216,7 +216,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     )
         external
         compareValue(markets[address(vToken)].collateralFactorMantissa, newCollateralFactorMantissa)
-        compareValue(marketLiquidationThreshold[address(vToken)], newLiquidationThresholdMantissa)
+        compareValue(markets[address(vToken)].liquidationThresholdMantissa, newLiquidationThresholdMantissa)
         returns (uint256)
     {
         // Check caller is allowed by access control manager
@@ -255,8 +255,8 @@ contract SetterFacet is ISetterFacet, FacetBase {
         market.collateralFactorMantissa = newCollateralFactorMantissa;
 
         // Set market's liquidation threshold to new liquidation threshold, remember old value
-        uint256 oldLiquidationThresholdMantissa = marketLiquidationThreshold[address(vToken)];
-        marketLiquidationThreshold[address(vToken)] = newLiquidationThresholdMantissa;
+        uint256 oldLiquidationThresholdMantissa = market.liquidationThresholdMantissa;
+        market.liquidationThresholdMantissa = newLiquidationThresholdMantissa;
 
         // Emit event with asset, old collateral factor, and new collateral factor
         emit NewCollateralFactor(vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
@@ -639,13 +639,21 @@ contract SetterFacet is ISetterFacet, FacetBase {
     function _setMarketLiquidationIncentive(
         address vToken,
         uint256 newLiquidationIncentive
-    ) external compareValue(marketLiquidationIncentive[vToken], newLiquidationIncentive) returns (uint256) {
+    )
+        external
+        compareValue(markets[address(vToken)].maxLiquidationIncentiveMantissa, newLiquidationIncentive)
+        returns (uint256)
+    {
         ensureAllowed("_setMarketLiquidationIncentive(address,uint256)");
+
+        Market storage market = markets[vToken];
+        ensureListed(market);
+
         require(newLiquidationIncentive >= 1e18, "incentive < 1e18");
         // Save current value for use in log
-        uint256 oldLiquidationIncentive = marketLiquidationIncentive[vToken];
+        uint256 oldLiquidationIncentive = market.maxLiquidationIncentiveMantissa;
         // Set liquidation incentive to new incentive
-        marketLiquidationIncentive[vToken] = newLiquidationIncentive;
+        market.maxLiquidationIncentiveMantissa = newLiquidationIncentive;
         // Emit event with old incentive, new incentive
         emit NewMarketLiquidationIncentive(vToken, oldLiquidationIncentive, newLiquidationIncentive);
         return uint256(Error.NO_ERROR);
