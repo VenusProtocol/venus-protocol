@@ -259,11 +259,10 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 return vars;
             }
 
-            (, , uint liquidationThresholdMantissa, uint liquidationIncentiveMantissa) = ComptrollerInterface(comptroller).markets(address(asset));
-            vars.liquidationIncentiveAvg = add_(
-                vars.liquidationIncentiveAvg,
-                liquidationIncentiveMantissa
-            );
+            (, , uint liquidationThresholdMantissa, uint liquidationIncentiveMantissa) = ComptrollerInterface(
+                comptroller
+            ).markets(address(asset));
+            vars.liquidationIncentiveAvg = add_(vars.liquidationIncentiveAvg, liquidationIncentiveMantissa);
 
             // Get the normalized price of the asset
             vars.oraclePriceMantissa = ComptrollerInterface(comptroller).oracle().getUnderlyingPrice(asset);
@@ -326,11 +325,8 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             vars.shortfall
         ) = _finalizeSnapshot(vars);
 
-        if(assetsCount > 0) {
-            vars.liquidationIncentiveAvg = div_(
-                vars.liquidationIncentiveAvg,
-                assetsCount
-            );
+        if (assetsCount > 0) {
+            vars.liquidationIncentiveAvg = div_(vars.liquidationIncentiveAvg, assetsCount);
         }
     }
 
@@ -363,12 +359,6 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
             snapshot.shortfall = borrowPlusEffects - snapshot.weightedCollateral;
         }
 
-        return (
-            healthFactor,
-            healthFactorThreshold,
-            snapshot.averageLT,
-            snapshot.liquidity,
-            snapshot.shortfall
-        );
+        return (healthFactor, healthFactorThreshold, snapshot.averageLT, snapshot.liquidity, snapshot.shortfall);
     }
 }
