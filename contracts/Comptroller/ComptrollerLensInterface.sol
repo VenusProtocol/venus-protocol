@@ -5,6 +5,7 @@ import "../Tokens/VTokens/VToken.sol";
 
 interface ComptrollerLensInterface {
     function liquidateCalculateSeizeTokens(
+        address borrower,
         address comptroller,
         address vTokenBorrowed,
         address vTokenCollateral,
@@ -12,6 +13,7 @@ interface ComptrollerLensInterface {
     ) external view returns (uint, uint);
 
     function liquidateVAICalculateSeizeTokens(
+        address borrower,
         address comptroller,
         address vTokenCollateral,
         uint actualRepayAmount
@@ -25,11 +27,11 @@ interface ComptrollerLensInterface {
         uint borrowAmount
     ) external view returns (uint, uint, uint);
 
-    function getHypotheticalLiquidity(
+    function getAccountHealthSnapshot(
         address comptroller,
         address account,
         VToken vTokenModify,
         uint redeemTokens,
         uint borrowAmount
-    ) external view returns (uint, uint, uint, uint, uint, uint, uint);
+    ) external view returns (uint, uint, uint, uint, uint, uint);
 }
