@@ -272,24 +272,19 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.INSUFFICIENT_SHORTFALL);
         }
 
-        if ((averageLT * (1e18 + liquidationIncentiveAvg)) > healthFactor) {
+        if (liquidationManager.isToxicLiquidation(averageLT, liquidationIncentiveAvg, healthFactor)) {
             return uint256(Error.TOXIC_LIQUIDATION);
         }
 
         Market memory marketCollateral = markets[vTokenCollateral];
-        uint256 closeFactor;
-
-        if (healthFactor >= 1e18) return uint256(Error.INSUFFICIENT_SHORTFALL);
-        uint256 wtAvg = averageLT;
-        if (healthFactor >= healthFactorThreshold) {
-            uint256 numerator = borrowBalance * 1e18 - wtAvg * totalCollateral;
-            uint256 denominator = borrowBalance *
-                (1e18 - ((wtAvg * (1e18 + marketCollateral.maxLiquidationIncentiveMantissa)) / 1e18));
-            closeFactor = (numerator * 1e18) / denominator;
-            closeFactor = closeFactor > 1e18 ? 1e18 : closeFactor;
-        } else {
-            closeFactor = 1e18;
-        }
+        uint256 closeFactor = liquidationManager.calculateCloseFactor(
+            borrowBalance,
+            averageLT,
+            totalCollateral,
+            healthFactor,
+            healthFactorThreshold,
+            marketCollateral.maxLiquidationIncentiveMantissa
+        );
 
         // The liquidator may not repay more than what is allowed by the closeFactor
         //-- maxClose = multipy of closeFactorMantissa and borrowBalance

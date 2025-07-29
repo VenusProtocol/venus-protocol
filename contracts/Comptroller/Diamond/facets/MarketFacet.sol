@@ -76,8 +76,6 @@ contract MarketFacet is IMarketFacet, FacetBase {
         address vToken
     ) external view returns (uint256 incentive) {
         Market storage market = markets[vToken];
-        uint256 liquidationIncentiveMantissa = market.maxLiquidationIncentiveMantissa;
-
         (Error err, uint averageLT, , uint healthFactor, uint healthFactorThreshold, ) = getHypotheticalHealthSnapshot(
             borrower,
             VToken(vToken),
@@ -88,10 +86,13 @@ contract MarketFacet is IMarketFacet, FacetBase {
             return liquidationIncentiveMantissa; // return default value
         }
 
-        if (healthFactor >= healthFactorThreshold) return liquidationIncentiveMantissa;
-
-        uint256 value = ((healthFactor * 1e18) / averageLT) - 1e18;
-        return value > liquidationIncentiveMantissa ? liquidationIncentiveMantissa : value;
+        incentive = liquidationManager.calculateDynamicLiquidationIncentive(
+            healthFactor,
+            healthFactorThreshold,
+            averageLT,
+            market.maxLiquidationIncentiveMantissa
+        );
+        return incentive;
     }
 
     /**
