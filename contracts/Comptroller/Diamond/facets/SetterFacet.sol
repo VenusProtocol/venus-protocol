@@ -613,7 +613,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @param _isWhiteListed True to whitelist the account for flash loans, false to remove from whitelist
      */
     function setWhiteListFlashLoanAccount(address account, bool _isWhiteListed) external {
-        ensureAllowed("setWhiteListFlashLoanAccount(address)");
+        ensureAllowed("setWhiteListFlashLoanAccount(address,bool)");
         ensureNonzeroAddress(account);
 
         authorizedFlashLoan[account] = _isWhiteListed;
