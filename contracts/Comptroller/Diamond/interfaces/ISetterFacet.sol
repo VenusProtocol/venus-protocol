@@ -64,5 +64,5 @@ interface ISetterFacet {
 
     function _setXVSVToken(address xvsVToken_) external;
 
-    function _setWhiteListFlashLoanAccount(address account, bool _isWhiteListed) external;
+    function setWhiteListFlashLoanAccount(address account, bool _isWhiteListed) external;
 }
