@@ -16,6 +16,7 @@ import {
 } from "../../../typechain";
 import { forking, initMainnetUser } from "./utils";
 
+// to fix invalid opcode revert, update hardhat to 2.22.15 and @defi-wonderland/smock to 2.4.0
 const COMPTROLLER_ADDRESS = "0xfd36e2c2a6789db23113685031d7f16329158384";
 const vBNB_ADDRESS = "0xA07c5b74C9B40447a954e1466938b865b6BBea36";
 const WBNB_ADDRESS = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";

@@ -107,18 +107,19 @@ contract CollateralSwapper is Ownable2StepUpgradeable {
      * @param marketFrom The vToken market from which collateral is seized.
      * @param marketTo The vToken market into which the swapped collateral is minted.
      * @param amountToSeize The amount of vTokens to seize and convert.
-     * @param helper The swap helper contract used to perform the token conversion.
+     * @param swapHelper The swap helper contract used to perform the token conversion.
      */
     function _swapCollateral(
         address user,
         IVToken marketFrom,
         IVToken marketTo,
         uint256 amountToSeize,
-        ISwapHelper helper
+        ISwapHelper swapHelper
     ) internal {
         if (user != msg.sender && !COMPTROLLER.approvedDelegates(user, msg.sender)) {
             revert Unauthorized();
         }
+        _checkAccountSafe(user);
 
         if (marketFrom.seize(address(this), user, amountToSeize) != 0) revert SeizeFailed();
 
@@ -133,7 +134,7 @@ contract CollateralSwapper is Ownable2StepUpgradeable {
             uint256 receivedNative = address(this).balance - nativeBalanceBefore;
             if (receivedNative == 0) revert NoUnderlyingReceived();
 
-            helper.swapInternal{ value: receivedNative }(address(0), toUnderlyingAddress, receivedNative);
+            swapHelper.swapInternal{ value: receivedNative }(address(0), toUnderlyingAddress, receivedNative);
         } else {
             IERC20Upgradeable fromUnderlying = IERC20Upgradeable(marketFrom.underlying());
             uint256 fromUnderlyingBalanceBefore = fromUnderlying.balanceOf(address(this));
@@ -143,10 +144,10 @@ contract CollateralSwapper is Ownable2StepUpgradeable {
             uint256 receivedFromToken = fromUnderlying.balanceOf(address(this)) - fromUnderlyingBalanceBefore;
             if (receivedFromToken == 0) revert NoUnderlyingReceived();
 
-            fromUnderlying.safeApprove(address(helper), 0);
-            fromUnderlying.safeApprove(address(helper), receivedFromToken);
+            fromUnderlying.safeApprove(address(swapHelper), 0);
+            fromUnderlying.safeApprove(address(swapHelper), receivedFromToken);
 
-            helper.swapInternal(address(fromUnderlying), toUnderlyingAddress, receivedFromToken);
+            swapHelper.swapInternal(address(fromUnderlying), toUnderlyingAddress, receivedFromToken);
         }
 
         uint256 toUnderlyingBalanceAfter = toUnderlying.balanceOf(address(this));
@@ -167,7 +168,7 @@ contract CollateralSwapper is Ownable2StepUpgradeable {
     function sweepToken(IERC20Upgradeable token) external onlyOwner {
         uint256 balance = token.balanceOf(address(this));
         if (balance > 0) {
-            token.transfer(owner(), balance);
+            token.safeTransfer(owner(), balance);
             emit SweepToken(address(token), owner(), balance);
         }
     }

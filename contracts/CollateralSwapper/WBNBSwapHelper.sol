@@ -4,7 +4,6 @@ pragma solidity 0.8.25;
 import { IWBNB } from "../InterfacesV8.sol";
 import { ISwapHelper } from "./ISwapHelper.sol";
 
-
 /**
  * @title WBNBSwapHelper
  * @notice Swap helper that wraps native BNB into WBNB for CollateralSwapper.

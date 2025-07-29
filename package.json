@@ -79,7 +79,7 @@
     "eslint": "^8.25.0",
     "eslint-config-prettier": "^8.5.0",
     "ethers": "^5.7.0",
-    "hardhat": "2.22.15",
+    "hardhat": "2.19.5",
     "hardhat-contract-sizer": "^2.8.0",
     "hardhat-dependency-compiler": "^1.2.1",
     "hardhat-deploy": "^0.12.4",
@@ -105,8 +105,5 @@
   "publishConfig": {
     "access": "public",
     "provenance": true
-  },
-  "resolutions": {
-    "hardhat": "2.22.15"
   }
 }

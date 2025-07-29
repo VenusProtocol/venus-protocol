@@ -46,12 +46,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   console.log("Transferring ownership to Normal Timelock ....");
-  const tx = await collateralSwapper.transferOwnership(timelock.address);
-  await tx.wait();
-  console.log("Ownership transferred to Normal Timelock");
+  if ((await collateralSwapper.owner) === deployer) {
+    const tx = await collateralSwapper.transferOwnership(timelock.address);
+    await tx.wait();
+    console.log("Ownership transferred to Normal Timelock");
+  }
 };
 
-func.tags = ["collateralSwapper"];
+func.tags = ["CollateralSwapper"];
 
 func.skip = async hre => !["bsctestnet", "bscmainnet"].includes(hre.network.name);
 

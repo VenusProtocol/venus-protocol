@@ -309,13 +309,9 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address borrower,
         uint256 seizeTokens // solhint-disable-line no-unused-vars
     ) external returns (uint256) {
-        address vBNBAddress = 0xA07c5b74C9B40447a954e1466938b865b6BBea36;
-        // TODO: Restrict this logic to only allow a specific SwapperContract to call seizeAllowed
-        if (vTokenCollateral == vBNBAddress) {
-            // Keep the flywheel moving
-            updateVenusSupplyIndex(vTokenCollateral);
-            distributeSupplierVenus(vTokenCollateral, borrower);
-            distributeSupplierVenus(vTokenCollateral, liquidator);
+        address VBNB_ADDRESS = 0xA07c5b74C9B40447a954e1466938b865b6BBea36;
+        address COLLATERAL_SWAPPER_ADDRESS = 0x1234567890123456789012345678901234567890; // not deployed yet
+        if (vTokenCollateral == VBNB_ADDRESS && vTokenBorrowed == COLLATERAL_SWAPPER_ADDRESS) {
             return uint256(Error.NO_ERROR);
         }
 
@@ -363,10 +359,6 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
         address borrower,
         uint256 seizeTokens // solhint-disable-line no-unused-vars
     ) external {
-        address vBNBAddress = 0xA07c5b74C9B40447a954e1466938b865b6BBea36;
-        if (vTokenCollateral == vBNBAddress) {
-            return;
-        }
         if (address(prime) != address(0)) {
             prime.accrueInterestAndUpdateScore(borrower, vTokenCollateral);
             prime.accrueInterestAndUpdateScore(liquidator, vTokenCollateral);

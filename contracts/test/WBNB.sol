@@ -67,4 +67,8 @@ contract WBNB {
         balanceOf[sender] += balance;
         emit Deposit(sender, balance);
     }
+
+    function totalSupply() public view returns (uint256) {
+        return address(this).balance;
+    }
 }
