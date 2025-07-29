@@ -4,6 +4,7 @@ import "../Tokens/VTokens/VToken.sol";
 import "../Oracle/PriceOracle.sol";
 import "../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerTypes } from "./ComptrollerStorage.sol";
+import { LiquidationManager } from "../LiquidationManager.sol";
 
 contract ComptrollerInterface {
     /// @notice Indicator that this is a Comptroller contract (for inspection)
@@ -103,6 +104,8 @@ contract ComptrollerInterface {
     function markets(address) external view returns (bool, uint, uint, uint);
 
     function oracle() external view returns (PriceOracle);
+
+    function liquidationManager() external view returns (LiquidationManager);
 
     function getAccountLiquidity(address) external view returns (uint, uint, uint);
 

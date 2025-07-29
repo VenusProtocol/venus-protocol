@@ -7,6 +7,7 @@ import { PriceOracle } from "../Oracle/PriceOracle.sol";
 import { VAIControllerInterface } from "../Tokens/VAI/VAIControllerInterface.sol";
 import { ComptrollerLensInterface } from "./ComptrollerLensInterface.sol";
 import { IPrime } from "../Tokens/Prime/IPrime.sol";
+import { LiquidationManager } from "../LiquidationManager.sol";
 
 interface ComptrollerTypes {
     enum Action {
@@ -287,4 +288,9 @@ contract ComptrollerV16Storage is ComptrollerV15Storage {
 
     /// @notice The XVS vToken contract address
     address internal xvsVToken;
+}
+
+contract ComptrollerV17Storage is ComptrollerV16Storage {
+    /// @notice The LiquidationManager contract address
+    LiquidationManager public liquidationManager;
 }

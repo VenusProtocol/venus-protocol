@@ -9,6 +9,7 @@ import { ComptrollerLensInterface } from "../../ComptrollerLensInterface.sol";
 import { VAIControllerInterface } from "../../../Tokens/VAI/VAIControllerInterface.sol";
 import { FacetBase } from "./FacetBase.sol";
 import { IPrime } from "../../../Tokens/Prime/IPrime.sol";
+import { LiquidationManager } from "../../../LiquidationManager.sol";
 
 /**
  * @title SetterFacet
@@ -105,6 +106,11 @@ contract SetterFacet is ISetterFacet, FacetBase {
         address vToken,
         uint256 oldLiquidationIncentiveMantissa,
         uint256 newLiquidationIncentiveMantissa
+    );
+
+    event NewLiquidationManager(
+        LiquidationManager indexed oldLiquidationManager,
+        LiquidationManager indexed newLiquidationManager
     );
 
     /**
@@ -264,6 +270,14 @@ contract SetterFacet is ISetterFacet, FacetBase {
         emit NewLiquidationThreshold(vToken, oldLiquidationThresholdMantissa, newLiquidationThresholdMantissa);
 
         return uint256(Error.NO_ERROR);
+    }
+
+    function _setLiquidationModule(address liquidationManager_) external {
+        ensureAllowed("_setLiquidationModule(address)");
+        ensureNonzeroAddress(liquidationManager_);
+        LiquidationManager oldLiquidationManager = liquidationManager;
+        liquidationManager = LiquidationManager(liquidationManager_);
+        emit NewLiquidationManager(oldLiquidationManager, liquidationManager);
     }
 
     /**
