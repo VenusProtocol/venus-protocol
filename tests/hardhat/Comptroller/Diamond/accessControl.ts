@@ -137,7 +137,7 @@ describe("Comptroller", () => {
         );
       });
     });
-    describe("supportMarket", () => {
+    describe("_supportMarket", () => {
       it("Should have AccessControl", async () => {
         await expect(comptroller.connect(user)._supportMarket(ethers.constants.AddressZero)).to.be.revertedWith(
           "access denied",
@@ -145,6 +145,16 @@ describe("Comptroller", () => {
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_supportMarket(address)");
       });
     });
+
+    describe("supportMarket", () => {
+      it("Should have AccessControl", async () => {
+        await expect(comptroller.connect(user).supportMarket(ethers.constants.AddressZero)).to.be.revertedWith(
+          "access denied",
+        );
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_supportMarket(address)");
+      });
+    });
+
     describe("seizeVenus", () => {
       it("Should have AccessControl", async () => {
         await expect(

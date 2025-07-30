@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
-import { PriceOracle } from "../../Oracle/PriceOracle.sol";
+import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
+import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
 import { VAIControllerErrorReporter } from "../../Utils/ErrorReporter.sol";
 import { Exponential } from "../../Utils/Exponential.sol";
 import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
-import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
-import { VToken, EIP20Interface } from "../VTokens/VToken.sol";
+import { VToken } from "../VTokens/VToken.sol";
 import { VAIUnitroller, VAIControllerStorageG4 } from "./VAIUnitroller.sol";
 import { VAIControllerInterface } from "./VAIControllerInterface.sol";
-import { VAI } from "./VAI.sol";
+import { IVAI } from "./IVAI.sol";
 import { IPrime } from "../Prime/IPrime.sol";
 import { VTokenInterface } from "../VTokens/VTokenInterfaces.sol";
 
@@ -81,7 +81,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
 
         vaiMintIndex = INITIAL_VAI_MINT_INDEX;
         accrualBlockNumber = getBlockNumber();
-        mintCap = uint256(-1);
+        mintCap = type(uint256).max;
 
         // The counter starts true to prevent changing it from zero to non-zero (i.e. smaller cost/refund)
         _notEntered = true;
@@ -112,7 +112,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         uint256 err;
         address minter = msg.sender;
         address _vai = vai;
-        uint256 vaiTotalSupply = EIP20Interface(_vai).totalSupply();
+        uint256 vaiTotalSupply = IVAI(_vai).totalSupply();
 
         uint256 vaiNewTotalSupply = add_(vaiTotalSupply, mintVAIAmount);
         require(vaiNewTotalSupply <= mintCap, "mint cap reached");
@@ -142,14 +142,14 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         if (treasuryPercent != 0) {
             uint256 feeAmount = div_(mul_(mintVAIAmount, treasuryPercent), 1e18);
             remainedAmount = sub_(mintVAIAmount, feeAmount);
-            VAI(_vai).mint(treasuryAddress, feeAmount);
+            IVAI(_vai).mint(treasuryAddress, feeAmount);
 
             emit MintFee(minter, feeAmount);
         } else {
             remainedAmount = mintVAIAmount;
         }
 
-        VAI(_vai).mint(minter, remainedAmount);
+        IVAI(_vai).mint(minter, remainedAmount);
         vaiMinterInterestIndex[minter] = vaiMintIndex;
 
         emit MintVAI(minter, remainedAmount);
@@ -219,7 +219,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
             repayAmount
         );
 
-        VAI _vai = VAI(vai);
+        IVAI _vai = IVAI(vai);
         _vai.burn(payer, burn);
         bool success = _vai.transferFrom(payer, receiver, partOfCurrentInterest);
         require(success == true, "failed to transfer VAI fee");
@@ -313,7 +313,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
             }
 
             /* Fail if repayAmount = -1 */
-            if (repayAmount == uint256(-1)) {
+            if (repayAmount == type(uint256).max) {
                 return (fail(Error.REJECTION, FailureInfo.VAI_LIQUIDATE_CLOSE_AMOUNT_IS_UINT_MAX), 0);
             }
 
@@ -452,7 +452,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
             return (uint256(Error.REJECTION), 0);
         }
 
-        PriceOracle oracle = comptroller.oracle();
+        ResilientOracleInterface oracle = comptroller.oracle();
         VToken[] memory enteredMarkets = comptroller.getAssetsIn(minter);
 
         AccountAmountLocalVars memory vars; // Holds all our calculation results
@@ -475,7 +475,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
             vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
             // Get the normalized price of the asset
-            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(enteredMarkets[i]);
+            vars.oraclePriceMantissa = oracle.getUnderlyingPrice(address(enteredMarkets[i]));
             if (vars.oraclePriceMantissa == 0) {
                 return (uint256(Error.PRICE_ERROR), 0);
             }
@@ -583,12 +583,12 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @return uint256 Yearly VAI interest rate
      */
     function getVAIRepayRate() public view returns (uint256) {
-        PriceOracle oracle = comptroller.oracle();
+        ResilientOracleInterface oracle = comptroller.oracle();
         MathError mErr;
 
         if (baseRateMantissa > 0) {
             if (floatRateMantissa > 0) {
-                uint256 oraclePrice = oracle.getUnderlyingPrice(VToken(getVAIAddress()));
+                uint256 oraclePrice = oracle.getUnderlyingPrice(getVAIAddress());
                 if (1e18 > oraclePrice) {
                     uint256 delta;
                     uint256 rate;
@@ -822,11 +822,11 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
         emit NewVAIMintCap(old, _mintCap);
     }
 
-    function getBlockNumber() internal view returns (uint256) {
+    function getBlockNumber() internal view virtual returns (uint256) {
         return block.number;
     }
 
-    function getBlocksPerYear() public view returns (uint256) {
+    function getBlocksPerYear() public view virtual returns (uint256) {
         return 42048000; //(24 * 60 * 60 * 365) / 0.75;
     }
 
@@ -834,7 +834,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
      * @notice Return the address of the VAI token
      * @return The address of VAI
      */
-    function getVAIAddress() public view returns (address) {
+    function getVAIAddress() public view virtual returns (address) {
         return vai;
     }
 
@@ -856,7 +856,7 @@ contract VAIController is VAIControllerInterface, VAIControllerStorageG4, VAICon
     }
 
     function _ensureAllowed(string memory functionSig) private view {
-        require(IAccessControlManagerV5(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+        require(IAccessControlManagerV8(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /// @dev Reverts if the protocol is paused

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 
@@ -27,6 +27,10 @@ interface IMarketFacet {
     function exitMarket(address vToken) external returns (uint256);
 
     function _supportMarket(VToken vToken) external returns (uint256);
+
+    function supportMarket(VToken vToken) external returns (uint256);
+
+    function isMarketListed(VToken vToken) external view returns (bool);
 
     function getAssetsIn(address account) external view returns (VToken[] memory);
 

@@ -288,11 +288,27 @@ forking(31873700, () => {
           expect(await diamondUnitroller.supplyCaps(vBUSD.address)).to.equals(parseUnits(currentSupplyCap, 0));
         });
 
+        it("should alias setMarketSupplyCaps to _setMarketSupplyCaps", async () => {
+          const currentSupplyCap = (await diamondUnitroller.supplyCaps(vBUSD.address)).toString();
+          await diamondUnitroller.connect(owner).setMarketSupplyCaps([vBUSD.address], [parseUnits("100000", 18)]);
+          expect(await diamondUnitroller.supplyCaps(vBUSD.address)).to.equals(parseUnits("100000", 18));
+          await diamondUnitroller.connect(owner).setMarketSupplyCaps([vBUSD.address], [currentSupplyCap]);
+          expect(await diamondUnitroller.supplyCaps(vBUSD.address)).to.equals(currentSupplyCap);
+        });
+
         it("setting close factor", async () => {
           const currentCloseFactor = (await diamondUnitroller.closeFactorMantissa()).toString();
           await diamondUnitroller.connect(owner)._setCloseFactor(parseUnits("8", 17));
           expect(await diamondUnitroller.closeFactorMantissa()).to.equals(parseUnits("8", 17));
           await diamondUnitroller.connect(owner)._setCloseFactor(parseUnits(currentCloseFactor, 0));
+          expect(await diamondUnitroller.closeFactorMantissa()).to.equals(parseUnits(currentCloseFactor, 0));
+        });
+
+        it("should alias setCloseFactor to _setCloseFactor", async () => {
+          const currentCloseFactor = (await diamondUnitroller.closeFactorMantissa()).toString();
+          await diamondUnitroller.connect(owner).setCloseFactor(parseUnits("8", 17));
+          expect(await diamondUnitroller.closeFactorMantissa()).to.equals(parseUnits("8", 17));
+          await diamondUnitroller.connect(owner).setCloseFactor(parseUnits(currentCloseFactor, 0));
           expect(await diamondUnitroller.closeFactorMantissa()).to.equals(parseUnits(currentCloseFactor, 0));
         });
 
@@ -306,11 +322,29 @@ forking(31873700, () => {
           expect(market.collateralFactorMantissa).to.equal(parseUnits("8", 17));
         });
 
+        it("should alias setCollateralFactor to _setCollateralFactor", async () => {
+          await diamondUnitroller.connect(owner).setCollateralFactor(vUSDT.address, 2);
+          market = await diamondUnitroller.markets(vUSDT.address);
+          expect(market.collateralFactorMantissa).to.equal(2);
+
+          await diamondUnitroller.connect(owner).setCollateralFactor(vUSDT.address, parseUnits("8", 17));
+          market = await diamondUnitroller.markets(vUSDT.address);
+          expect(market.collateralFactorMantissa).to.equal(parseUnits("8", 17));
+        });
+
         it("setting setting Liquidation Incentive", async () => {
           await diamondUnitroller.connect(owner)._setLiquidationIncentive(parseUnits("13", 17));
           expect(await diamondUnitroller.liquidationIncentiveMantissa()).to.equal(parseUnits("13", 17));
 
           await diamondUnitroller.connect(owner)._setLiquidationIncentive(parseUnits("11", 17));
+          expect(await diamondUnitroller.liquidationIncentiveMantissa()).to.equal(parseUnits("11", 17));
+        });
+
+        it("should alias setLiquidationIncentive to _setLiquidationIncentive", async () => {
+          await diamondUnitroller.connect(owner).setLiquidationIncentive(parseUnits("13", 17));
+          expect(await diamondUnitroller.liquidationIncentiveMantissa()).to.equal(parseUnits("13", 17));
+
+          await diamondUnitroller.connect(owner).setLiquidationIncentive(parseUnits("11", 17));
           expect(await diamondUnitroller.liquidationIncentiveMantissa()).to.equal(parseUnits("11", 17));
         });
 
@@ -333,6 +367,15 @@ forking(31873700, () => {
           expect(await diamondUnitroller.borrowCaps(vUSDT.address)).to.equal(currentBorrowCap);
         });
 
+        it("should alias setMarketBorrowCaps to _setMarketBorrowCaps", async () => {
+          const currentBorrowCap = (await diamondUnitroller.borrowCaps(vUSDT.address)).toString();
+          await diamondUnitroller.connect(owner).setMarketBorrowCaps([vUSDT.address], [parseUnits("10000", 18)]);
+          expect(await diamondUnitroller.borrowCaps(vUSDT.address)).to.equal(parseUnits("10000", 18));
+
+          await diamondUnitroller.connect(owner).setMarketBorrowCaps([vUSDT.address], [currentBorrowCap]);
+          expect(await diamondUnitroller.borrowCaps(vUSDT.address)).to.equal(currentBorrowCap);
+        });
+
         it("pausing mint action in vUSDT", async () => {
           const tx = await accessControlManager
             .connect(owner)
@@ -347,6 +390,26 @@ forking(31873700, () => {
           await expect(vUSDT.connect(usdtHolder).mint(1000)).to.be.revertedWith("action is paused");
 
           await expect(diamondUnitroller.connect(owner)._setActionsPaused([vUSDT.address], [0], false)).to.emit(
+            diamondUnitroller,
+            "ActionPausedMarket",
+          );
+          await expect(vUSDT.connect(busdHolder).mint(10)).to.be.emit(vUSDT, "Transfer");
+        });
+
+        it("should alias setActionsPaused to _setActionsPaused", async () => {
+          const tx = await accessControlManager
+            .connect(owner)
+            .giveCallPermission(diamondUnitroller.address, "_setActionsPaused(address[],uint8[],bool)", Owner);
+          await tx.wait();
+
+          await expect(diamondUnitroller.connect(owner).setActionsPaused([vUSDT.address], [0], true)).to.emit(
+            diamondUnitroller,
+            "ActionPausedMarket",
+          );
+
+          await expect(vUSDT.connect(usdtHolder).mint(1000)).to.be.revertedWith("action is paused");
+
+          await expect(diamondUnitroller.connect(owner).setActionsPaused([vUSDT.address], [0], false)).to.emit(
             diamondUnitroller,
             "ActionPausedMarket",
           );

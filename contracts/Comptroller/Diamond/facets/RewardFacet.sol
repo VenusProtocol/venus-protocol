@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
 import { IRewardFacet } from "../interfaces/IRewardFacet.sol";
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
-import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
 import { VBep20Interface } from "../../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
@@ -21,7 +23,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
     /// @notice Emitted when XVS are seized for the holder
     event VenusSeized(address indexed holder, uint256 amount);
 
-    using SafeBEP20 for IBEP20;
+    using SafeERC20 for IERC20;
 
     /**
      * @notice Claim all the xvs accrued by holder in all markets and VAI
@@ -87,7 +89,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
             "Blacklisted"
         );
 
-        IBEP20 xvs_ = IBEP20(xvs);
+        IERC20 xvs_ = IERC20(xvs);
 
         if (amount == 0 || amount > xvs_.balanceOf(address(this))) {
             return amount;
@@ -157,7 +159,7 @@ contract RewardFacet is IRewardFacet, XVSRewardsHelper {
         }
 
         if (totalHoldings != 0) {
-            IBEP20(xvs).safeTransfer(recipient, totalHoldings);
+            IERC20(xvs).safeTransfer(recipient, totalHoldings);
             emit VenusGranted(recipient, totalHoldings);
         }
 

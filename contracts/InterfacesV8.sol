@@ -108,16 +108,3 @@ interface ILiquidator {
 
     function treasuryPercentMantissa() external view returns (uint256);
 }
-
-interface IProtocolShareReserve {
-    enum IncomeType {
-        SPREAD,
-        LIQUIDATION
-    }
-
-    function updateAssetsState(address comptroller, address asset, IncomeType kind) external;
-}
-
-interface IWBNB is IERC20Upgradeable {
-    function deposit() external payable;
-}

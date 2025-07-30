@@ -1,21 +1,25 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
-import { VToken, ComptrollerErrorReporter, ExponentialNoError } from "../../../Tokens/VTokens/VToken.sol";
-import { IVAIVault } from "../../../Comptroller/ComptrollerInterface.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IAccessControlManagerV8 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV8.sol";
+
+import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { ComptrollerErrorReporter } from "../../../Utils/ErrorReporter.sol";
+import { ExponentialNoError } from "../../../Utils/ExponentialNoError.sol";
+import { IVAIVault, Action } from "../../../Comptroller/ComptrollerInterface.sol";
 import { ComptrollerV17Storage } from "../../../Comptroller/ComptrollerStorage.sol";
-import { IAccessControlManagerV5 } from "@venusprotocol/governance-contracts/contracts/Governance/IAccessControlManagerV5.sol";
+import { IFacetBase } from "../interfaces/IFacetBase.sol";
 
-import { SafeBEP20, IBEP20 } from "../../../Utils/SafeBEP20.sol";
-import { ComptrollerLens } from "../../../Lens/ComptrollerLens.sol";
 /**
  * @title FacetBase
  * @author Venus
  * @notice This facet contract contains functions related to access and checks
  */
-contract FacetBase is ComptrollerV17Storage, ExponentialNoError, ComptrollerErrorReporter {
-    using SafeBEP20 for IBEP20;
+contract FacetBase is IFacetBase, ComptrollerV17Storage, ExponentialNoError, ComptrollerErrorReporter {
+    using SafeERC20 for IERC20;
 
     /// @notice The initial Venus index for a market
     uint224 public constant venusInitialIndex = 1e36;
@@ -64,7 +68,7 @@ contract FacetBase is ComptrollerV17Storage, ExponentialNoError, ComptrollerErro
 
     /// @notice Checks the caller is allowed to call the specified fuction
     function ensureAllowed(string memory functionSig) internal view {
-        require(IAccessControlManagerV5(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
+        require(IAccessControlManagerV8(accessControl).isAllowedToCall(msg.sender, functionSig), "access denied");
     }
 
     /**
@@ -79,7 +83,7 @@ contract FacetBase is ComptrollerV17Storage, ExponentialNoError, ComptrollerErro
     /**
      * @notice Get the latest block number
      */
-    function getBlockNumber() internal view returns (uint256) {
+    function getBlockNumber() internal view virtual returns (uint256) {
         return block.number;
     }
 
@@ -98,7 +102,7 @@ contract FacetBase is ComptrollerV17Storage, ExponentialNoError, ComptrollerErro
             return;
         }
 
-        IBEP20 xvs_ = IBEP20(xvs);
+        IERC20 xvs_ = IERC20(xvs);
 
         uint256 xvsBalance = xvs_.balanceOf(address(this));
         if (xvsBalance == 0) {

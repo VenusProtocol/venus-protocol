@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-pragma solidity 0.5.16;
+pragma solidity 0.8.25;
 
 import { VToken } from "../../../Tokens/VTokens/VToken.sol";
+import { Action } from "../../ComptrollerInterface.sol";
 import { IPolicyFacet } from "../interfaces/IPolicyFacet.sol";
 
 import { XVSRewardsHelper } from "./XVSRewardsHelper.sol";
@@ -126,7 +127,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             }
         }
 
-        if (oracle.getUnderlyingPrice(VToken(vToken)) == 0) {
+        if (oracle.getUnderlyingPrice(vToken) == 0) {
             return uint256(Error.PRICE_ERROR);
         }
 
@@ -432,20 +433,25 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
     }
 
     /**
+     * @notice Alias to getAccountLiquidity to support the Isolated Lending Comptroller Interface
+     * @param account The account get liquidity for
+     * @return (possible error code (semi-opaque),
+                account liquidity in excess of collateral requirements,
+     *          account shortfall below collateral requirements)
+     */
+    function getBorrowingPower(address account) external view returns (uint256, uint256, uint256) {
+        return _getAccountLiquidity(account);
+    }
+
+    /**
      * @notice Determine the current account liquidity wrt collateral requirements
+     * @param account The account get liquidity for
      * @return (possible error code (semi-opaque),
                 account liquidity in excess of collateral requirements,
      *          account shortfall below collateral requirements)
      */
     function getAccountLiquidity(address account) external view returns (uint256, uint256, uint256) {
-        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
-            account,
-            VToken(address(0)),
-            0,
-            0
-        );
-
-        return (uint256(err), liquidity, shortfall);
+        return _getAccountLiquidity(account);
     }
 
     /**
@@ -495,6 +501,17 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             ensureNonzeroAddress(address(vTokens[i]));
             setVenusSpeedInternal(vTokens[i], supplySpeeds[i], borrowSpeeds[i]);
         }
+    }
+
+    function _getAccountLiquidity(address account) internal view returns (uint256, uint256, uint256) {
+        (Error err, uint256 liquidity, uint256 shortfall) = getHypotheticalAccountLiquidityInternal(
+            account,
+            VToken(address(0)),
+            0,
+            0
+        );
+
+        return (uint256(err), liquidity, shortfall);
     }
 
     function setVenusSpeedInternal(VToken vToken, uint256 supplySpeed, uint256 borrowSpeed) internal {

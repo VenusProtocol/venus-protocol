@@ -1,15 +1,21 @@
-pragma solidity ^0.5.16;
+pragma solidity 0.8.25;
 
-import { VToken, VBep20Interface, ComptrollerInterface, InterestRateModel, VTokenInterface } from "./VToken.sol";
-import { EIP20Interface } from "../EIP20Interface.sol";
-import { EIP20NonStandardInterface } from "../EIP20NonStandardInterface.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
+import { VBep20Interface, VTokenInterface } from "./VTokenInterfaces.sol";
+import { VToken } from "./VToken.sol";
 
 /**
  * @title Venus's VBep20 Contract
- * @notice vTokens which wrap an EIP-20 underlying
+ * @notice vTokens which wrap an ERC-20 underlying
  * @author Venus
  */
 contract VBep20 is VToken, VBep20Interface {
+    using SafeERC20 for IERC20;
+
     /*** User Interface ***/
 
     /**
@@ -49,7 +55,7 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits Transfer event on success
     // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeem(uint redeemTokens) external returns (uint) {
-        return redeemInternal(msg.sender, msg.sender, redeemTokens);
+        return redeemInternal(msg.sender, payable(msg.sender), redeemTokens);
     }
 
     /**
@@ -66,7 +72,7 @@ contract VBep20 is VToken, VBep20Interface {
     function redeemBehalf(address redeemer, uint redeemTokens) external returns (uint) {
         require(comptroller.approvedDelegates(redeemer, msg.sender), "not an approved delegate");
 
-        return redeemInternal(redeemer, msg.sender, redeemTokens);
+        return redeemInternal(redeemer, payable(msg.sender), redeemTokens);
     }
 
     /**
@@ -79,7 +85,7 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits Transfer event on success
     // @custom:event Emits RedeemFee when fee is charged by the treasury
     function redeemUnderlying(uint redeemAmount) external returns (uint) {
-        return redeemUnderlyingInternal(msg.sender, msg.sender, redeemAmount);
+        return redeemUnderlyingInternal(msg.sender, payable(msg.sender), redeemAmount);
     }
 
     /**
@@ -96,7 +102,7 @@ contract VBep20 is VToken, VBep20Interface {
     function redeemUnderlyingBehalf(address redeemer, uint redeemAmount) external returns (uint) {
         require(comptroller.approvedDelegates(redeemer, msg.sender), "not an approved delegate");
 
-        return redeemUnderlyingInternal(redeemer, msg.sender, redeemAmount);
+        return redeemUnderlyingInternal(redeemer, payable(msg.sender), redeemAmount);
     }
 
     /**
@@ -106,7 +112,7 @@ contract VBep20 is VToken, VBep20Interface {
      */
     // @custom:event Emits Borrow event on success
     function borrow(uint borrowAmount) external returns (uint) {
-        return borrowInternal(msg.sender, msg.sender, borrowAmount);
+        return borrowInternal(msg.sender, payable(msg.sender), borrowAmount);
     }
 
     /**
@@ -119,7 +125,7 @@ contract VBep20 is VToken, VBep20Interface {
     // @custom:event Emits Borrow event on success
     function borrowBehalf(address borrower, uint borrowAmount) external returns (uint) {
         require(comptroller.approvedDelegates(borrower, msg.sender), "not an approved delegate");
-        return borrowInternal(borrower, msg.sender, borrowAmount);
+        return borrowInternal(borrower, payable(msg.sender), borrowAmount);
     }
 
     /**
@@ -186,7 +192,7 @@ contract VBep20 is VToken, VBep20Interface {
     function initialize(
         address underlying_,
         ComptrollerInterface comptroller_,
-        InterestRateModel interestRateModel_,
+        InterestRateModelV8 interestRateModel_,
         uint initialExchangeRateMantissa_,
         string memory name_,
         string memory symbol_,
@@ -197,79 +203,36 @@ contract VBep20 is VToken, VBep20Interface {
 
         // Set underlying and sanity check it
         underlying = underlying_;
-        EIP20Interface(underlying).totalSupply();
+        IERC20(underlying).totalSupply();
     }
 
     /*** Safe Token ***/
 
     /**
-     * @dev Similar to EIP20 transfer, except it handles a False result from `transferFrom` and reverts in that case.
-     *      This will revert due to insufficient balance or insufficient allowance.
+     * @dev Similar to ERC-20 transfer, but handles tokens that have transfer fees.
      *      This function returns the actual amount received,
      *      which may be less than `amount` if there is a fee attached to the transfer.
-     *
-     *      Note: This wrapper safely handles non-standard BEP-20 tokens that do not return a value.
-     *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
+     * @param from Sender of the underlying tokens
+     * @param amount Amount of underlying to transfer
+     * @return Actual amount received
      */
-    function doTransferIn(address from, uint amount) internal returns (uint) {
-        uint balanceBefore = EIP20Interface(underlying).balanceOf(address(this));
-        EIP20NonStandardInterface(underlying).transferFrom(from, address(this), amount);
-
-        bool success;
-        assembly {
-            switch returndatasize()
-            case 0 {
-                // This is a non-standard BEP-20
-                success := not(0) // set success to true
-            }
-            case 32 {
-                // This is a compliant BEP-20
-                returndatacopy(0, 0, 32)
-                success := mload(0) // Set `success = returndata` of external call
-            }
-            default {
-                // This is an excessively non-compliant BEP-20, revert.
-                revert(0, 0)
-            }
-        }
-        require(success, "TOKEN_TRANSFER_IN_FAILED");
-
-        // Calculate the amount that was *actually* transferred
-        uint balanceAfter = EIP20Interface(underlying).balanceOf(address(this));
-        require(balanceAfter >= balanceBefore, "TOKEN_TRANSFER_IN_OVERFLOW");
-        return balanceAfter - balanceBefore; // underflow already checked above, just subtract
+    function doTransferIn(address from, uint256 amount) internal virtual override returns (uint256) {
+        IERC20 token = IERC20(underlying);
+        uint256 balanceBefore = token.balanceOf(address(this));
+        token.safeTransferFrom(from, address(this), amount);
+        uint256 balanceAfter = token.balanceOf(address(this));
+        // Return the amount that was *actually* transferred
+        return balanceAfter - balanceBefore;
     }
 
     /**
-     * @dev Similar to EIP20 transfer, except it handles a False success from `transfer` and returns an explanatory
-     *      error code rather than reverting. If caller has not called checked protocol's balance, this may revert due to
-     *      insufficient cash held in this contract. If caller has checked protocol's balance prior to this call, and verified
-     *      it is >= amount, this should not revert in normal conditions.
-     *
-     *      Note: This wrapper safely handles non-standard BEP-20 tokens that do not return a value.
-     *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
+     * @dev Just a regular ERC-20 transfer, reverts on failure
+     * @param to Receiver of the underlying tokens
+     * @param amount Amount of underlying to transfer
      */
-    function doTransferOut(address payable to, uint amount) internal {
-        EIP20NonStandardInterface(underlying).transfer(to, amount);
-
-        bool success;
-        assembly {
-            switch returndatasize()
-            case 0 {
-                // This is a non-standard BEP-20
-                success := not(0) // set success to true
-            }
-            case 32 {
-                // This is a compliant BEP-20
-                returndatacopy(0, 0, 32)
-                success := mload(0) // Set `success = returndata` of external call
-            }
-            default {
-                // This is an excessively non-compliant BEP-20, revert.
-                revert(0, 0)
-            }
-        }
-        require(success, "TOKEN_TRANSFER_OUT_FAILED");
+    function doTransferOut(address payable to, uint256 amount) internal virtual override {
+        IERC20 token = IERC20(underlying);
+        token.safeTransfer(to, amount);
     }
 
     /**
@@ -277,7 +240,7 @@ contract VBep20 is VToken, VBep20Interface {
      * @dev This excludes the value of the current message, if any
      * @return The quantity of underlying tokens owned by this contract
      */
-    function getCashPrior() internal view returns (uint) {
-        return EIP20Interface(underlying).balanceOf(address(this));
+    function getCashPrior() internal view override returns (uint) {
+        return IERC20(underlying).balanceOf(address(this));
     }
 }
