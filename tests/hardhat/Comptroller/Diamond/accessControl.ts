@@ -60,18 +60,39 @@ describe("Comptroller", () => {
     describe("setCollateralFactor", () => {
       it("Should have AccessControl", async () => {
         await expect(
-          comptroller.connect(user)._setCollateralFactor(ethers.constants.AddressZero, 1),
+          comptroller.connect(user)._setCollateralFactor(ethers.constants.AddressZero, 1, 1),
         ).to.be.revertedWith("access denied");
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
           userAddress,
-          "_setCollateralFactor(address,uint256)",
+          "_setCollateralFactor(address,uint256,uint256)",
         );
       });
 
       it("Should revert for same values", async () => {
-        await expect(comptroller._setCollateralFactor(ethers.constants.AddressZero, 0)).to.be.revertedWith(
+        await expect(comptroller._setCollateralFactor(ethers.constants.AddressZero, 0, 0)).to.be.revertedWith(
           "old value is same as new value",
         );
+      });
+    });
+
+    describe("setMarketLiquidaitonIncentive", () => {
+      it("Should have AccessControl", async () => {
+        await expect(
+          comptroller.connect(user)._setMarketLiquidationIncentive(ethers.constants.AddressZero, 1),
+        ).to.be.revertedWith("access denied");
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(
+          userAddress,
+          "_setMarketLiquidationIncentive(address,uint256)",
+        );
+      });
+    });
+
+    describe("setLiquidationModule", () => {
+      it("Should have AccessControl", async () => {
+        await expect(comptroller.connect(user)._setLiquidationModule(ethers.constants.AddressZero)).to.be.revertedWith(
+          "access denied",
+        );
+        expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_setLiquidationModule(address)");
       });
     });
 

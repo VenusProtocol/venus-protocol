@@ -272,7 +272,9 @@ contract SetterFacet is ISetterFacet, FacetBase {
         return uint256(Error.NO_ERROR);
     }
 
-    function _setLiquidationModule(address liquidationManager_) external {
+    function _setLiquidationModule(
+        address liquidationManager_
+    ) external compareAddress(address(liquidationManager), liquidationManager_) {
         ensureAllowed("_setLiquidationModule(address)");
         ensureNonzeroAddress(liquidationManager_);
         LiquidationManager oldLiquidationManager = liquidationManager;

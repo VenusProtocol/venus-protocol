@@ -69,4 +69,6 @@ interface ISetterFacet {
     function _setXVSVToken(address xvsVToken_) external;
 
     function _setMarketLiquidationIncentive(address vToken, uint256 newLiquidationIncentive) external returns (uint256);
+
+    function _setLiquidationModule(address liquidationManager_) external;
 }

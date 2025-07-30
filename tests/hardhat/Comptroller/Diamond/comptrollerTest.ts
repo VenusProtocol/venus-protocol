@@ -12,6 +12,7 @@ import {
   ComptrollerMock,
   EIP20Interface,
   IAccessControlManagerV5,
+  LiquidationManager,
   PriceOracle,
   Unitroller,
   VAIController,
@@ -360,6 +361,7 @@ describe("Comptroller", () => {
 
   describe("_setCollateralFactor", () => {
     const half = convertToUnit("0.5", 18);
+    const liquidationThreshold = convertToUnit("0.6", 18);
     let comptroller: ComptrollerMock;
     let vToken: FakeContract<VToken>;
     let oracle: FakeContract<PriceOracle>;
@@ -380,13 +382,15 @@ describe("Comptroller", () => {
     });
 
     it("fails if asset is not listed", async () => {
-      await expect(comptroller._setCollateralFactor(vToken.address, half)).to.be.revertedWith("market not listed");
+      await expect(comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold)).to.be.revertedWith(
+        "market not listed",
+      );
     });
 
     it("fails if factor is set without an underlying price", async () => {
       await comptroller._supportMarket(vToken.address);
       oracle.getUnderlyingPrice.returns(0);
-      await expect(comptroller._setCollateralFactor(vToken.address, half))
+      await expect(comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold))
         .to.emit(comptroller, "Failure")
         .withArgs(
           ComptrollerErrorReporter.Error.PRICE_ERROR,
@@ -397,17 +401,94 @@ describe("Comptroller", () => {
 
     it("succeeds and sets market", async () => {
       await comptroller._supportMarket(vToken.address);
-      await expect(comptroller._setCollateralFactor(vToken.address, half))
+      await expect(comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold))
         .emit(comptroller, "NewCollateralFactor")
         .withArgs(vToken.address, "0", half);
     });
 
     it("should revert on same values", async () => {
       await comptroller._supportMarket(vToken.address);
-      await comptroller._setCollateralFactor(vToken.address, half);
-      await expect(comptroller._setCollateralFactor(vToken.address, half)).to.be.revertedWith(
+      await comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold);
+      await expect(comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold)).to.be.revertedWith(
         "old value is same as new value",
       );
+    });
+  });
+
+  describe("_setMarketLiquidationIncentive", () => {
+    let comptroller: ComptrollerMock;
+    let vToken: FakeContract<VToken>;
+    let oracle: FakeContract<PriceOracle>;
+
+    type Contracts = SimpleComptrollerFixture & { vToken: FakeContract<VToken> };
+
+    async function deploy(): Promise<Contracts> {
+      const contracts = await deploySimpleComptroller();
+      const vToken = await smock.fake<VToken>("VToken");
+      vToken.comptroller.returns(contracts.comptroller.address);
+      vToken.isVToken.returns(true);
+      return { vToken, ...contracts };
+    }
+
+    beforeEach(async () => {
+      ({ comptroller, oracle, vToken } = await loadFixture(deploy));
+      configureOracle(oracle);
+    });
+
+    it("fails if asset is not listed", async () => {
+      await expect(
+        comptroller._setMarketLiquidationIncentive(vToken.address, convertToUnit("1.1", 18)),
+      ).to.be.revertedWith("market not listed");
+    });
+
+    it("fails if incentive is less than 1e18", async () => {
+      await comptroller._supportMarket(vToken.address);
+      await expect(
+        comptroller._setMarketLiquidationIncentive(vToken.address, convertToUnit("0.99999", 18)),
+      ).to.be.revertedWith("incentive < 1e18");
+    });
+
+    it("succeeds and sets market liquidation incentive", async () => {
+      await comptroller._supportMarket(vToken.address);
+      const newIncentive = convertToUnit("1.1", 18);
+      await expect(comptroller._setMarketLiquidationIncentive(vToken.address, newIncentive))
+        .to.emit(comptroller, "NewMarketLiquidationIncentive")
+        .withArgs(vToken.address, "0", newIncentive);
+    });
+
+    it("should revert on same values", async () => {
+      await comptroller._supportMarket(vToken.address);
+      const newIncentive = convertToUnit("1.1", 18);
+      await comptroller._setMarketLiquidationIncentive(vToken.address, newIncentive);
+      await expect(comptroller._setMarketLiquidationIncentive(vToken.address, newIncentive)).to.be.revertedWith(
+        "old value is same as new value",
+      );
+    });
+  });
+
+  describe("_setLiquidationModule", () => {
+    let comptroller: ComptrollerMock;
+    let liquidationMananger: FakeContract<LiquidationManager>;
+
+    beforeEach(async () => {
+      ({ comptroller } = await loadFixture(deploySimpleComptroller));
+    });
+
+    it("succeeds and sets liquidation module", async () => {
+      liquidationMananger = await smock.fake<LiquidationManager>("LiquidationManager");
+      await expect(comptroller._setLiquidationModule(liquidationMananger.address))
+        .to.emit(comptroller, "NewLiquidationManager")
+        .withArgs(constants.AddressZero, liquidationMananger.address);
+      expect(await comptroller.liquidationManager()).to.equal(liquidationMananger.address);
+    });
+
+    it("should revert on same values", async () => {
+      liquidationMananger = await smock.fake<LiquidationManager>("LiquidationManager");
+      await comptroller._setLiquidationModule(liquidationMananger.address);
+      await expect(comptroller._setLiquidationModule(liquidationMananger.address)).to.be.revertedWith(
+        "old address is same as new address",
+      );
+      testZeroAddress("_setLiquidationModule", [constants.AddressZero]);
     });
   });
 
@@ -837,11 +918,14 @@ describe("Comptroller", () => {
 
       describe("Forced liquidations disabled", async () => {
         let comptrollerLens: FakeContract<ComptrollerLens>;
+        let liquidationMananger: FakeContract<LiquidationManager>;
 
         beforeEach(async () => {
           comptrollerLens = await smock.fake<ComptrollerLens>("ComptrollerLens");
+          liquidationMananger = await smock.fake<LiquidationManager>("LiquidationManager");
           await comptroller._setComptrollerLens(comptrollerLens.address);
           await comptroller._setCloseFactor(convertToUnit("0.5", 18));
+          await comptroller._setLiquidationModule(liquidationMananger.address);
         });
 
         generalTests();
@@ -862,6 +946,7 @@ describe("Comptroller", () => {
         it("succeeds if borrower has nonzero shortfall", async () => {
           vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
           comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 1]);
+          liquidationMananger.calculateCloseFactor.returns(convertToUnit("0.5", 18));
           const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
             vToken.address,
             vToken.address,
@@ -870,6 +955,20 @@ describe("Comptroller", () => {
             convertToUnit("1", 18),
           );
           expect(errCode).to.equal(0);
+        });
+
+        it("fails with TOO_MUCH_REPAY if trying to repay > borrowed amount", async () => {
+          vToken.borrowBalanceStored.returns(convertToUnit("100", 18));
+          comptrollerLens.getHypotheticalAccountLiquidity.returns([0, 0, 1]);
+          liquidationMananger.calculateCloseFactor.returns(convertToUnit("0.5", 18));
+          const errCode = await comptroller.callStatic.liquidateBorrowAllowed(
+            vToken.address,
+            vToken.address,
+            accounts[0].address,
+            root.address,
+            convertToUnit("60", 18),
+          );
+          expect(errCode).to.equal(17);
         });
       });
     });
