@@ -206,6 +206,10 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newCollateralFactorMantissa,
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256) {
+        require(
+            newCollateralFactorMantissa == newLiquidationThresholdMantissa,
+            "collateral factor and liquidation threshold must be the same"
+        );
         return __setCollateralFactor(vToken, newCollateralFactorMantissa, newLiquidationThresholdMantissa);
     }
 
@@ -620,7 +624,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         Market storage market = markets[vToken];
         ensureListed(market);
 
-        require(newLiquidationIncentive >= 1e18, "incentive < 1e18");
+        require(newLiquidationIncentive >= mantissaOne, "incentive < mantissaOne");
         // Save current value for use in log
         uint256 oldLiquidationIncentive = market.maxLiquidationIncentiveMantissa;
         // Set liquidation incentive to new incentive
@@ -754,7 +758,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
     ) internal compareValue(liquidationIncentiveMantissa, newLiquidationIncentiveMantissa) returns (uint256) {
         ensureAllowed("_setLiquidationIncentive(uint256)");
 
-        require(newLiquidationIncentiveMantissa >= 1e18, "incentive < 1e18");
+        require(newLiquidationIncentiveMantissa >= mantissaOne, "incentive < mantissaOne");
 
         // Save current value for use in log
         uint256 oldLiquidationIncentiveMantissa = liquidationIncentiveMantissa;

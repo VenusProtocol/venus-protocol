@@ -40,7 +40,7 @@ contract LiquidationManager is ExponentialNoError {
             return maxLiquidationIncentiveMantissa;
         }
 
-        uint256 value = ((healthFactor * 1e18) / averageLT) - 1e18;
+        uint256 value = ((healthFactor * mantissaOne) / averageLT) - mantissaOne;
         return value > maxLiquidationIncentiveMantissa ? maxLiquidationIncentiveMantissa : value;
     }
 
@@ -69,6 +69,6 @@ contract LiquidationManager is ExponentialNoError {
         uint256 liquidationIncentiveAvg,
         uint256 healthFactor
     ) external pure returns (bool) {
-        return ((averageLT * (1e18 + liquidationIncentiveAvg)) > healthFactor);
+        return ((averageLT * (mantissaOne + liquidationIncentiveAvg)) > healthFactor);
     }
 }
