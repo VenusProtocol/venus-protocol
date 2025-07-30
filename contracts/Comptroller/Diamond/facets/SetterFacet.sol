@@ -206,11 +206,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newCollateralFactorMantissa,
         uint256 newLiquidationThresholdMantissa
     ) external returns (uint256) {
-        require(
-            newCollateralFactorMantissa == newLiquidationThresholdMantissa,
-            "collateral factor and liquidation threshold must be the same"
-        );
-        return __setCollateralFactor(vToken, newCollateralFactorMantissa);
+        return __setCollateralFactor(vToken, newCollateralFactorMantissa, newLiquidationThresholdMantissa);
     }
 
     /**
@@ -218,10 +214,15 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @dev Allows a privileged role to set the collateralFactorMantissa
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor, scaled by 1e18
+     * @param newLiquidationThresholdMantissa The new liquidation threshold, scaled by 1e18
      * @return uint256 0=success, otherwise a failure. (See ErrorReporter for details)
      */
-    function _setCollateralFactor(VToken vToken, uint256 newCollateralFactorMantissa) external returns (uint256) {
-        return __setCollateralFactor(vToken, newCollateralFactorMantissa);
+    function _setCollateralFactor(
+        VToken vToken,
+        uint256 newCollateralFactorMantissa,
+        uint256 newLiquidationThresholdMantissa
+    ) external returns (uint256) {
+        return __setCollateralFactor(vToken, newCollateralFactorMantissa, newLiquidationThresholdMantissa);
     }
 
     /**
@@ -685,18 +686,21 @@ contract SetterFacet is ISetterFacet, FacetBase {
      * @dev Updates the collateral factor. Used by _setCollateralFactor and setCollateralFactor
      * @param vToken The market to set the factor on
      * @param newCollateralFactorMantissa The new collateral factor to be set
+     * @param newLiquidationThresholdMantissa The new liquidation threshold to be set
      * @return uint256 0=success, otherwise reverted
      */
     function __setCollateralFactor(
         VToken vToken,
-        uint256 newCollateralFactorMantissa
+        uint256 newCollateralFactorMantissa,
+        uint256 newLiquidationThresholdMantissa
     )
         internal
         compareValue(markets[address(vToken)].collateralFactorMantissa, newCollateralFactorMantissa)
+        compareValue(markets[address(vToken)].liquidationThresholdMantissa, newLiquidationThresholdMantissa)
         returns (uint256)
     {
         // Check caller is allowed by access control manager
-        ensureAllowed("_setCollateralFactor(address,uint256)");
+        ensureAllowed("_setCollateralFactor(address,uint256,uint256)");
         ensureNonzeroAddress(address(vToken));
 
         // Verify market is listed
@@ -716,12 +720,26 @@ contract SetterFacet is ISetterFacet, FacetBase {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
 
+        // Ensure that liquidation threshold <= 1
+        if (newLiquidationThresholdMantissa > mantissaOne) {
+            return fail(Error.PRICE_ERROR, FailureInfo.SET_LIQUIDATION_THRESHOLD_VALIDATION);
+        }
+
+        // Ensure that liquidation threshold >= CF
+        if (newLiquidationThresholdMantissa < newCollateralFactorMantissa) {
+            return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_VALIDATION_LIQUIDATION_THRESHOLD);
+        }
+
         // Set market's collateral factor to new collateral factor, remember old value
         uint256 oldCollateralFactorMantissa = market.collateralFactorMantissa;
         market.collateralFactorMantissa = newCollateralFactorMantissa;
-
         // Emit event with asset, old collateral factor, and new collateral factor
         emit NewCollateralFactor(vToken, oldCollateralFactorMantissa, newCollateralFactorMantissa);
+
+        uint256 oldLiquidationThresholdMantissa = market.liquidationThresholdMantissa;
+        market.liquidationThresholdMantissa = newLiquidationThresholdMantissa;
+        // Emit event with asset, old liquidation threshold, and new liquidation threshold
+        emit NewLiquidationThreshold(vToken, oldLiquidationThresholdMantissa, newLiquidationThresholdMantissa);
 
         return uint256(Error.NO_ERROR);
     }
