@@ -236,9 +236,13 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
                 return vars;
             }
 
-            (, , uint liquidationThresholdMantissa, uint liquidationIncentiveMantissa) = ComptrollerInterface(
-                comptroller
-            ).markets(address(asset));
+            (
+                ,
+                uint collateralFactorMantissa,
+                ,
+                uint liquidationThresholdMantissa,
+                uint liquidationIncentiveMantissa
+            ) = ComptrollerInterface(comptroller).markets(address(asset));
             vars.liquidationIncentiveAvg = add_(vars.liquidationIncentiveAvg, liquidationIncentiveMantissa);
 
             // Get the normalized price of the asset

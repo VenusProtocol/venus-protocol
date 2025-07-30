@@ -88,7 +88,7 @@ contract SnapshotLens is ExponentialNoError {
         require(oErr == 0, "Snapshot Error");
         vars.exchangeRate = Exp({ mantissa: vars.exchangeRateMantissa });
 
-        (, uint collateralFactorMantissa, , ) = ComptrollerInterface(comptrollerAddress).markets(address(vToken));
+        (, uint collateralFactorMantissa, , , ) = ComptrollerInterface(comptrollerAddress).markets(address(vToken));
         vars.collateralFactor = Exp({ mantissa: collateralFactorMantissa });
 
         // Get the normalized price of the asset

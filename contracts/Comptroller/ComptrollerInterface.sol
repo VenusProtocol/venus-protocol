@@ -101,7 +101,7 @@ contract ComptrollerInterface {
 
     function getXVSAddress() public view returns (address);
 
-    function markets(address) external view returns (bool, uint, uint, uint);
+    function markets(address) external view returns (bool, uint, bool, uint, uint);
 
     function oracle() external view returns (PriceOracle);
 
