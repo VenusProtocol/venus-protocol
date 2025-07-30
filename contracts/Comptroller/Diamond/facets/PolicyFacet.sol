@@ -277,7 +277,7 @@ contract PolicyFacet is IPolicyFacet, XVSRewardsHelper {
             return uint256(Error.TOXIC_LIQUIDATION);
         }
 
-        Market memory marketCollateral = markets[vTokenCollateral];
+        Market storage marketCollateral = markets[vTokenCollateral];
         uint256 closeFactor = liquidationManager.calculateCloseFactor(
             borrowBalance,
             averageLT,

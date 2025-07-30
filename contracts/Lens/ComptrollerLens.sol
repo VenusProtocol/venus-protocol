@@ -200,7 +200,7 @@ contract ComptrollerLens is ComptrollerLensInterface, ComptrollerErrorReporter, 
      * @param vTokenModify The market to hypothetically redeem/borrow in
      * @param redeemTokens Number of vTokens being redeemed
      * @param borrowAmount Amount borrowed
-     * @return Returns an AccountLiquidityLocalVars struct containing the calculated values
+     * @return vars Returns an AccountLiquidityLocalVars struct containing the calculated values
      * @dev This function processes all assets the account is in, calculates their balances, prices,
      *      and computes the total collateral, borrows, and effects of the hypothetical actions.
      *      It also calculates the health factor, average liquidation threshold, and liquidation incentive.
