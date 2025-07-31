@@ -88,8 +88,13 @@ describe("Comptroller", () => {
     });
 
     describe("setLiquidationModule", () => {
+      let liquidationModule: FakeContract;
+      beforeEach(async () => {
+        liquidationModule = await smock.fake("LiquidationManager");
+      });
+
       it("Should have AccessControl", async () => {
-        await expect(comptroller.connect(user)._setLiquidationModule(ethers.constants.AddressZero)).to.be.revertedWith(
+        await expect(comptroller.connect(user)._setLiquidationModule(liquidationModule.address)).to.be.revertedWith(
           "access denied",
         );
         expect(accessControl.isAllowedToCall).to.be.calledOnceWith(userAddress, "_setLiquidationModule(address)");

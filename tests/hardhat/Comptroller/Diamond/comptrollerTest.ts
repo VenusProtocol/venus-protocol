@@ -103,7 +103,9 @@ describe("Comptroller", () => {
     });
 
     it("fails if incentive is less than 1e18", async () => {
-      await expect(comptroller._setLiquidationIncentive(tooSmallIncentive)).to.be.revertedWith("incentive < 1e18");
+      await expect(comptroller._setLiquidationIncentive(tooSmallIncentive)).to.be.revertedWith(
+        "incentive < mantissaOne",
+      );
     });
 
     it("accepts a valid incentive and emits a NewLiquidationIncentive event", async () => {
@@ -415,7 +417,7 @@ describe("Comptroller", () => {
 
     it("succeeds and sets market using alias", async () => {
       await comptroller.supportMarket(vToken.address);
-      await expect(comptroller._setCollateralFactor(vToken.address, half))
+      await expect(comptroller._setCollateralFactor(vToken.address, half, liquidationThreshold))
         .emit(comptroller, "NewCollateralFactor")
         .withArgs(vToken.address, "0", half);
 
@@ -462,7 +464,7 @@ describe("Comptroller", () => {
       await comptroller._supportMarket(vToken.address);
       await expect(
         comptroller._setMarketLiquidationIncentive(vToken.address, convertToUnit("0.99999", 18)),
-      ).to.be.revertedWith("incentive < 1e18");
+      ).to.be.revertedWith("incentive < mantissaOne");
     });
 
     it("succeeds and sets market liquidation incentive", async () => {
