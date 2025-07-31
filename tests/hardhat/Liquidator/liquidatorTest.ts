@@ -43,9 +43,11 @@ type LiquidatorFixture = {
   vBnb: FakeContract<MockVBNB>;
   accessControlManager: FakeContract<IAccessControlManagerV5>;
   collateralUnderlying: FakeContract<FaucetToken>;
+  borrower: SignerWithAddress;
 };
 
 async function deployLiquidator(): Promise<LiquidatorFixture> {
+  const [borrower] = await ethers.getSigners();
   const comptroller = await smock.fake<ComptrollerMock>("ComptrollerMock");
   const vBnb = await smock.fake<MockVBNB>("MockVBNB");
   const FaucetToken = await smock.mock<FaucetToken__factory>("FaucetToken");
@@ -67,6 +69,8 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
     collateralFactorMantissa: convertToUnit(5, 17),
     accountMembership: true,
     isVenus: true,
+    liquidationThresholdMantissa: convertToUnit(5, 17),
+    maxLiquidationIncentiveMantissa: convertToUnit(1.1, 18),
   });
   vaiController.getVAIAddress.returns(vai.address);
 
@@ -95,12 +99,19 @@ async function deployLiquidator(): Promise<LiquidatorFixture> {
     liquidator,
     accessControlManager,
     collateralUnderlying,
+    borrower,
   };
 }
 
 function configure(fixture: LiquidatorFixture) {
-  const { comptroller, borrowedUnderlying, vai, vaiController, vTokenBorrowed, vTokenCollateral, vBnb } = fixture;
-  comptroller.liquidationIncentiveMantissa.returns(announcedIncentive);
+  const { comptroller, borrowedUnderlying, vai, vaiController, vTokenBorrowed, vTokenCollateral, vBnb, borrower } =
+    fixture;
+  comptroller.getDynamicLiquidationIncentive
+    .whenCalledWith(borrower.address, vTokenBorrowed.address)
+    .returns(announcedIncentive);
+  comptroller.getDynamicLiquidationIncentive
+    .whenCalledWith(borrower.address, vTokenCollateral.address)
+    .returns(announcedIncentive);
   vTokenBorrowed.underlying.returns(borrowedUnderlying.address);
   for (const vToken of [vTokenBorrowed, vTokenCollateral]) {
     vToken.transfer.reset();
@@ -146,6 +157,7 @@ describe("Liquidator", () => {
       liquidator: liquidatorContract,
       accessControlManager,
       collateralUnderlying,
+      borrower,
     } = contracts);
   });
 
