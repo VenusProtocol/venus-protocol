@@ -250,6 +250,8 @@ forking(31873700, () => {
           expect(market.collateralFactorMantissa).to.equal(marketUpgrade.collateralFactorMantissa);
           expect(market.isListed).to.equal(marketUpgrade.isListed);
           expect(market.isVenus).to.equal(marketUpgrade.isVenus);
+          expect(market.liquidationThresholdMantissa).to.equal(marketUpgrade.liquidationThresholdMantissa);
+          expect(market.maxLiquidationIncentiveMantissa).to.equal(marketUpgrade.maxLiquidationIncentiveMantissa);
 
           venusBorrowerIndex = await unitroller.venusBorrowerIndex(vBUSD.address, busdHolder.address);
           const venusBorrowerIndexUpgrade = await diamondUnitroller.venusBorrowerIndex(
@@ -313,26 +315,42 @@ forking(31873700, () => {
         });
 
         it("setting collateral factor", async () => {
-          await diamondUnitroller.connect(owner)._setCollateralFactor(vUSDT.address, 2);
+          const tx = await accessControlManager
+            .connect(owner)
+            .giveCallPermission(diamondUnitroller.address, "_setCollateralFactor(address,uint256,uint256)", Owner);
+          await tx.wait();
+          await diamondUnitroller.connect(owner)._setCollateralFactor(vUSDT.address, 2, 2);
           market = await diamondUnitroller.markets(vUSDT.address);
           expect(market.collateralFactorMantissa).to.equal(2);
+          expect(market.liquidationThresholdMantissa).to.equal(2);
 
-          await diamondUnitroller.connect(owner)._setCollateralFactor(vUSDT.address, parseUnits("8", 17));
+          await diamondUnitroller
+            .connect(owner)
+            ._setCollateralFactor(vUSDT.address, parseUnits("8", 17), parseUnits("8", 17));
           market = await diamondUnitroller.markets(vUSDT.address);
           expect(market.collateralFactorMantissa).to.equal(parseUnits("8", 17));
+          expect(market.liquidationThresholdMantissa).to.equal(parseUnits("8", 17));
         });
 
         it("should alias setCollateralFactor to _setCollateralFactor", async () => {
-          await diamondUnitroller.connect(owner).setCollateralFactor(vUSDT.address, 2);
+          const tx = await accessControlManager
+            .connect(owner)
+            .giveCallPermission(diamondUnitroller.address, "setCollateralFactor(address,uint256,uint256)", Owner);
+          await tx.wait();
+          await diamondUnitroller.connect(owner).setCollateralFactor(vUSDT.address, 2, 2);
           market = await diamondUnitroller.markets(vUSDT.address);
           expect(market.collateralFactorMantissa).to.equal(2);
+          expect(market.liquidationThresholdMantissa).to.equal(2);
 
-          await diamondUnitroller.connect(owner).setCollateralFactor(vUSDT.address, parseUnits("8", 17));
+          await diamondUnitroller
+            .connect(owner)
+            .setCollateralFactor(vUSDT.address, parseUnits("8", 17), parseUnits("8", 17));
           market = await diamondUnitroller.markets(vUSDT.address);
           expect(market.collateralFactorMantissa).to.equal(parseUnits("8", 17));
+          expect(market.liquidationThresholdMantissa).to.equal(parseUnits("8", 17));
         });
 
-        it("setting setting Liquidation Incentive", async () => {
+        it("setting Liquidation Incentive", async () => {
           await diamondUnitroller.connect(owner)._setLiquidationIncentive(parseUnits("13", 17));
           expect(await diamondUnitroller.liquidationIncentiveMantissa()).to.equal(parseUnits("13", 17));
 
@@ -346,6 +364,21 @@ forking(31873700, () => {
 
           await diamondUnitroller.connect(owner).setLiquidationIncentive(parseUnits("11", 17));
           expect(await diamondUnitroller.liquidationIncentiveMantissa()).to.equal(parseUnits("11", 17));
+        });
+
+        it("setting Market liquidation incentive", async () => {
+          const tx = await accessControlManager
+            .connect(owner)
+            .giveCallPermission(diamondUnitroller.address, "_setMarketLiquidationIncentive(address,uint256)", Owner);
+          await tx.wait();
+
+          await diamondUnitroller.connect(owner)._setMarketLiquidationIncentive(vUSDT.address, parseUnits("13", 17));
+          market = await diamondUnitroller.markets(vUSDT.address);
+          expect(market.maxLiquidationIncentiveMantissa).to.equal(parseUnits("13", 17));
+
+          await diamondUnitroller.connect(owner)._setMarketLiquidationIncentive(vUSDT.address, parseUnits("11", 17));
+          market = await diamondUnitroller.markets(vUSDT.address);
+          expect(market.maxLiquidationIncentiveMantissa).to.equal(parseUnits("11", 17));
         });
 
         it("setting Pause Guardian", async () => {
