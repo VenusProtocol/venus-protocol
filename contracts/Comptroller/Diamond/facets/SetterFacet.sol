@@ -110,6 +110,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         uint256 newLiquidationIncentiveMantissa
     );
 
+    /// @notice Emitted when liquidation manager is changed by admin
     event NewLiquidationManager(
         LiquidationManager indexed oldLiquidationManager,
         LiquidationManager indexed newLiquidationManager
@@ -611,6 +612,12 @@ contract SetterFacet is ISetterFacet, FacetBase {
         xvsVToken = xvsVToken_;
     }
 
+    /**
+     * @notice Set the liquidation incentive for a market
+     * @param vToken The market to set the liquidation incentive for
+     * @param newLiquidationIncentive The new liquidation incentive, scaled by 1e18
+     * @return uint256 0=success, otherwise reverted
+     */
     function _setMarketLiquidationIncentive(
         address vToken,
         uint256 newLiquidationIncentive
@@ -633,6 +640,7 @@ contract SetterFacet is ISetterFacet, FacetBase {
         emit NewMarketLiquidationIncentive(vToken, oldLiquidationIncentive, newLiquidationIncentive);
         return uint256(Error.NO_ERROR);
     }
+
     /**
      * @dev Updates the valid price oracle. Used by _setPriceOracle and setPriceOracle
      * @param newOracle The new price oracle to be set

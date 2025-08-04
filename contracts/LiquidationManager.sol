@@ -3,7 +3,25 @@ pragma solidity ^0.8.25;
 
 import { ExponentialNoError } from "./Utils/ExponentialNoError.sol";
 
+/**
+ * @title LiquidationManager
+ * @dev This contract provides functions to manage liquidations in the venus protocol.
+ * It calculates close factors, dynamic liquidation incentives, and the number of tokens to seize during liquidation.
+ * It also checks if a liquidation is toxic based on average liquidation threshold and health factor.
+ * @author Venus
+ * @notice This contract is designed to be used in conjunction with the venus protocol's liquidation process.
+ */
 contract LiquidationManager is ExponentialNoError {
+    /**
+     * @notice Calculate the close factor for a liquidation
+     * @param borrowBalance The borrow balance of the borrower
+     * @param wtAvg The weighted average of the collateral
+     * @param totalCollateral The total collateral available for liquidation
+     * @param healthFactor The health factor of the borrower
+     * @param healthFactorThreshold The threshold for the health factor to determine if liquidation is needed
+     * @param maxLiquidationIncentive The maximum liquidation incentive allowed
+     * @return closeFactor The calculated close factor, scaled by 1e18
+     */
     function calculateCloseFactor(
         uint256 borrowBalance,
         uint256 wtAvg,
@@ -30,6 +48,14 @@ contract LiquidationManager is ExponentialNoError {
         }
     }
 
+    /**
+     * @notice Calculate the dynamic liquidation incentive based on health factor and average liquidation threshold
+     * @param healthFactor The health factor of the borrower
+     * @param healthFactorThreshold The threshold for the health factor to determine if liquidation is needed
+     * @param averageLT The average liquidation threshold of the collateral
+     * @param maxLiquidationIncentiveMantissa The maximum liquidation incentive allowed, scaled by 1e18
+     * @return incentive The calculated dynamic liquidation incentive, scaled by 1e18
+     */
     function calculateDynamicLiquidationIncentive(
         uint256 healthFactor,
         uint256 healthFactorThreshold,
@@ -44,6 +70,15 @@ contract LiquidationManager is ExponentialNoError {
         return value > maxLiquidationIncentiveMantissa ? maxLiquidationIncentiveMantissa : value;
     }
 
+    /**
+     * @notice Calculate the number of tokens to seize during liquidation
+     * @param actualRepayAmount The amount of debt being repaid in the liquidation
+     * @param liquidationIncentiveMantissa The liquidation incentive, scaled by 1e18
+     * @param priceBorrowedMantissa The price of the borrowed asset, scaled by 1e18
+     * @param priceCollateralMantissa The price of the collateral asset, scaled by 1e18
+     * @param exchangeRateMantissa The exchange rate of the collateral asset, scaled by 1e18
+     * @return seizeTokens The number of tokens to seize during liquidation, scaled by 1e18
+     */
     function calculateSeizeTokens(
         uint256 actualRepayAmount,
         uint256 liquidationIncentiveMantissa,
@@ -64,6 +99,13 @@ contract LiquidationManager is ExponentialNoError {
         return (seizeTokens);
     }
 
+    /**
+     * @notice Check if a liquidation is toxic based on average liquidation threshold and health factor
+     * @param averageLT The average liquidation threshold of the collateral
+     * @param liquidationIncentiveAvg The average liquidation incentive, scaled by 1e18
+     * @param healthFactor The health factor of the borrower
+     * @return bool True if the liquidation is toxic, false otherwise
+     */
     function isToxicLiquidation(
         uint256 averageLT,
         uint256 liquidationIncentiveAvg,

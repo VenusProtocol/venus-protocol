@@ -70,6 +70,7 @@ contract MarketFacet is IMarketFacet, FacetBase {
     /**
      * @notice Get the liquidation incentive for a borrower
      * @param borrower The address of the borrower
+     * @param vToken The address of the vToken
      * @return incentive The liquidation incentive for the borrower, scaled by 1e18
      */
     function getDynamicLiquidationIncentive(
@@ -77,12 +78,14 @@ contract MarketFacet is IMarketFacet, FacetBase {
         address vToken
     ) external view returns (uint256 incentive) {
         Market storage market = markets[vToken];
-        (Error err, uint averageLT, , uint healthFactor, uint healthFactorThreshold, ) = getHypotheticalHealthSnapshot(
-            borrower,
-            VToken(vToken),
-            0,
-            0
-        );
+        (
+            Error err,
+            uint256 averageLT,
+            ,
+            uint256 healthFactor,
+            uint256 healthFactorThreshold,
+
+        ) = getHypotheticalHealthSnapshot(borrower, VToken(vToken), 0, 0);
         if (err != Error.NO_ERROR) {
             return liquidationIncentiveMantissa; // return default value
         }
